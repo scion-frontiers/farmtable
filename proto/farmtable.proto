@@ -1,0 +1,918 @@
+// Farm Table — Canonical Protobuf Schema
+//
+// Defines the Normalized Task Object (NTO), all supporting entities,
+// and the FarmTable gRPC service. This is the source of truth for the
+// Farm Table data model and service contract (see discussion-log.md Q9).
+
+syntax = "proto3";
+
+package farmtable.v1;
+
+option go_package = "go.farmtable.dev/api/gen/farmtable/v1;farmtablev1";
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+// TODO: Import google/api/annotations.proto and add option (google.api.http)
+// annotations to RPCs for gRPC-HTTP transcoding (grpc-gateway / Envoy).
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Enums
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Task storage backend. "farmtable" indicates the built-in graph backend;
+// all others are external platforms normalized into the NTO.
+enum Platform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_FARMTABLE = 1;
+  PLATFORM_GITHUB = 2;
+  PLATFORM_LINEAR = 3;
+  PLATFORM_JIRA = 4;
+  PLATFORM_ASANA = 5;
+  PLATFORM_BEADS = 6;
+}
+
+// Tier 1 status: universal lifecycle phase. Every task has exactly one.
+enum TaskPhase {
+  TASK_PHASE_UNSPECIFIED = 0;
+  TASK_PHASE_OPEN = 1;
+  TASK_PHASE_IN_PROGRESS = 2;
+  TASK_PHASE_ON_HOLD = 3;
+  TASK_PHASE_CLOSED = 4;
+}
+
+// Tier 2 status: fixed set of finer-grained positions within each phase.
+// Phase-stage mapping:
+//   OPEN:        triage, backlog, ready
+//   IN_PROGRESS: working, in_review, in_qa, deploying
+//   ON_HOLD:     blocked, waiting_for_input, deferred, scheduled
+//   CLOSED:      completed, wont_fix, duplicate, cancelled
+enum TaskStage {
+  TASK_STAGE_UNSPECIFIED = 0;
+  // OPEN
+  TASK_STAGE_TRIAGE = 1;
+  TASK_STAGE_BACKLOG = 2;
+  TASK_STAGE_READY = 3;
+  // IN_PROGRESS
+  TASK_STAGE_WORKING = 4;
+  TASK_STAGE_IN_REVIEW = 5;
+  TASK_STAGE_IN_QA = 6;
+  TASK_STAGE_DEPLOYING = 7;
+  // ON_HOLD
+  TASK_STAGE_BLOCKED = 8;
+  TASK_STAGE_WAITING_FOR_INPUT = 9;
+  TASK_STAGE_DEFERRED = 10;
+  TASK_STAGE_SCHEDULED = 11;
+  // CLOSED
+  TASK_STAGE_COMPLETED = 12;
+  TASK_STAGE_WONT_FIX = 13;
+  TASK_STAGE_DUPLICATE = 14;
+  TASK_STAGE_CANCELLED = 15;
+}
+
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_URGENT = 1;
+  TASK_PRIORITY_HIGH = 2;
+  TASK_PRIORITY_NORMAL = 3;
+  TASK_PRIORITY_LOW = 4;
+}
+
+// Non-hierarchical semantic relationship between two tasks.
+// Hierarchy is expressed via Task.parent_task_id.
+enum RelationshipType {
+  RELATIONSHIP_TYPE_UNSPECIFIED = 0;
+  RELATIONSHIP_TYPE_BLOCKS = 1;
+  RELATIONSHIP_TYPE_BLOCKED_BY = 2;
+  RELATIONSHIP_TYPE_RELATED = 3;
+  RELATIONSHIP_TYPE_DUPLICATE = 4;
+}
+
+enum UserType {
+  USER_TYPE_UNSPECIFIED = 0;
+  USER_TYPE_HUMAN = 1;
+  USER_TYPE_AGENT = 2;
+  USER_TYPE_SERVICE_ACCOUNT = 3;
+}
+
+enum IdentityStatus {
+  IDENTITY_STATUS_UNSPECIFIED = 0;
+  IDENTITY_STATUS_ACTIVE = 1;
+  IDENTITY_STATUS_SUSPENDED = 2;
+  IDENTITY_STATUS_ARCHIVED = 3;
+}
+
+enum AuthMethod {
+  AUTH_METHOD_UNSPECIFIED = 0;
+  AUTH_METHOD_OAUTH2_PKCE = 1;
+  AUTH_METHOD_API_KEY = 2;
+  AUTH_METHOD_PAT = 3;
+  AUTH_METHOD_SERVICE_ACCOUNT = 4;
+  AUTH_METHOD_MCP_OAUTH = 5;
+  AUTH_METHOD_GITHUB_APP = 6;
+  AUTH_METHOD_ATLASSIAN_CONNECT = 7;
+  AUTH_METHOD_LOCAL_PROCESS = 8;
+}
+
+enum CustomFieldType {
+  CUSTOM_FIELD_TYPE_UNSPECIFIED = 0;
+  CUSTOM_FIELD_TYPE_TEXT = 1;
+  CUSTOM_FIELD_TYPE_NUMBER = 2;
+  CUSTOM_FIELD_TYPE_DATE = 3;
+  CUSTOM_FIELD_TYPE_SINGLE_SELECT = 4;
+  CUSTOM_FIELD_TYPE_MULTI_SELECT = 5;
+  CUSTOM_FIELD_TYPE_USER = 6;
+  CUSTOM_FIELD_TYPE_BOOLEAN = 7;
+  CUSTOM_FIELD_TYPE_URL = 8;
+}
+
+enum CIStatus {
+  CI_STATUS_UNSPECIFIED = 0;
+  CI_STATUS_PENDING = 1;
+  CI_STATUS_RUNNING = 2;
+  CI_STATUS_PASSED = 3;
+  CI_STATUS_FAILED = 4;
+}
+
+enum PullRequestStatus {
+  PULL_REQUEST_STATUS_UNSPECIFIED = 0;
+  PULL_REQUEST_STATUS_OPEN = 1;
+  PULL_REQUEST_STATUS_MERGED = 2;
+  PULL_REQUEST_STATUS_CLOSED = 3;
+}
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_TASK_CREATED = 1;
+  EVENT_TYPE_TASK_UPDATED = 2;
+  EVENT_TYPE_TASK_DELETED = 3;
+  EVENT_TYPE_TASK_PHASE_CHANGED = 4;
+  EVENT_TYPE_TASK_STAGE_CHANGED = 5;
+  EVENT_TYPE_TASK_ASSIGNED = 6;
+  EVENT_TYPE_COMMENT_CREATED = 7;
+  EVENT_TYPE_COMMENT_UPDATED = 8;
+}
+
+enum WebhookSource {
+  WEBHOOK_SOURCE_UNSPECIFIED = 0;
+  WEBHOOK_SOURCE_NATIVE = 1;
+  WEBHOOK_SOURCE_VIRTUAL = 2;
+}
+
+enum SortField {
+  SORT_FIELD_UNSPECIFIED = 0;
+  SORT_FIELD_CREATED = 1;
+  SORT_FIELD_UPDATED = 2;
+  SORT_FIELD_PRIORITY = 3;
+  SORT_FIELD_DUE_DATE = 4;
+}
+
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_ASC = 1;
+  SORT_ORDER_DESC = 2;
+}
+
+enum DependencyDirection {
+  DEPENDENCY_DIRECTION_UNSPECIFIED = 0;
+  DEPENDENCY_DIRECTION_UP = 1;
+  DEPENDENCY_DIRECTION_DOWN = 2;
+  DEPENDENCY_DIRECTION_BOTH = 3;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Core Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// A human, agent, or service account that can be assigned tasks or author changes.
+message User {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  optional string email = 3 [(buf.validate.field).string.email = true];
+  UserType type = 4 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  IdentityStatus status = 5 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  optional string remote_id = 6;
+  optional Platform platform = 7 [(buf.validate.field).enum.defined_only = true];
+}
+
+// A directed semantic relationship between two tasks.
+message Relationship {
+  RelationshipType type = 1 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  string target_task_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+// A file attached to a task or comment.
+message Attachment {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string filename = 2 [(buf.validate.field).string.min_len = 1];
+  string url = 3 [(buf.validate.field).string.uri = true];
+  optional string content_type = 4;
+  optional int64 size_bytes = 5 [(buf.validate.field).int64.gte = 0];
+}
+
+// A value for a platform-specific or organization-defined custom field.
+message CustomFieldValue {
+  string field_id = 1 [(buf.validate.field).string.min_len = 1];
+  string field_name = 2 [(buf.validate.field).string.min_len = 1];
+  CustomFieldType field_type = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  google.protobuf.Value value = 4 [(buf.validate.field).required = true];
+}
+
+// Schema for a custom field available in a collection.
+message CustomFieldDefinition {
+  string field_id = 1 [(buf.validate.field).string.min_len = 1];
+  string field_name = 2 [(buf.validate.field).string.min_len = 1];
+  CustomFieldType field_type = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  bool required = 4;
+}
+
+// A pull request linked to a task via code_context.
+message PullRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  string url = 2 [(buf.validate.field).string.uri = true];
+  PullRequestStatus status = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+}
+
+// Typed domain extension for code-related task context. Present when the
+// task is associated with code work (repos, branches, PRs, CI).
+message CodeContext {
+  optional string repo = 1;
+  optional string branch = 2;
+  repeated PullRequest pull_requests = 3;
+  optional CIStatus ci_status = 4 [(buf.validate.field).enum.defined_only = true];
+  repeated string commit_shas = 5;
+}
+
+// Maps a platform-native status label to a Farm Table normalized phase and stage.
+message StatusMapping {
+  string native_status = 1 [(buf.validate.field).string.min_len = 1];
+  TaskPhase phase = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  TaskStage stage = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Primary Entity Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// The Normalized Task Object (NTO) — the central entity of Farm Table.
+// Encapsulates everything an agent needs to understand and execute a piece
+// of work, regardless of source platform.
+message Task {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+
+  optional string description = 3;
+
+  optional string acceptance_criteria = 4;
+
+  // Three-tier status model.
+  TaskPhase phase = 5 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  TaskStage stage = 6 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  // Tier 3: verbatim status label from the source platform, for round-trip fidelity.
+  optional string native_status = 7;
+
+  // Kind of work (e.g., "epic", "story", "task", "bug", "subtask").
+  // Freeform to accommodate platform-specific types. Null when the source
+  // platform has no task typing.
+  optional string type = 8;
+
+  // Null when the source platform has no native priority (e.g., GitHub Issues).
+  optional TaskPriority priority = 9 [(buf.validate.field).enum.defined_only = true];
+
+  repeated User assignees = 10;
+
+  optional User creator = 11;
+
+  google.protobuf.Timestamp start_date = 12;
+
+  google.protobuf.Timestamp due_date = 13;
+
+  string collection_id = 14 [(buf.validate.field).string.uuid = true];
+
+  // Parent task for hierarchy (supports up to 8 levels per GitHub sub-issues).
+  optional string parent_task_id = 15 [(buf.validate.field).string.uuid = true];
+
+  // Non-hierarchical dependency and semantic links to other tasks.
+  repeated Relationship relationships = 16;
+
+  repeated string labels = 17;
+
+  repeated CustomFieldValue custom_fields = 18;
+
+  // Typed domain extension for code-related context.
+  optional CodeContext code_context = 19;
+
+  // Identifier in the source platform (e.g., "PROJ-123", "owner/repo#45").
+  // Null for tasks in the built-in backend.
+  optional string remote_id = 20;
+
+  optional string remote_url = 21 [(buf.validate.field).string.uri = true];
+
+  // Raw platform-specific payload. Escape hatch for fields not covered by
+  // the NTO or typed extensions.
+  google.protobuf.Struct remote_data = 22;
+
+  Platform platform = 23 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  google.protobuf.Timestamp created_at = 24 [(buf.validate.field).required = true];
+
+  google.protobuf.Timestamp updated_at = 25;
+
+  // Set when the task enters the CLOSED phase. Essential for cycle-time metrics.
+  google.protobuf.Timestamp closed_at = 26;
+
+  // Opaque concurrency token for optimistic locking. Monotonic integer (as
+  // string) on the built-in backend; platform-derived (ETag, updatedAt, or
+  // computed hash) on external platforms. See .design/consistency-model.md.
+  string version = 27;
+}
+
+// A grouping of tasks representing a project, board, or repository.
+// Each collection maps 1:1 to a single external platform integration.
+message Collection {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+
+  optional string description = 3;
+
+  Platform platform = 4 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  // Identifier in the source platform. Null for built-in backend collections.
+  optional string remote_id = 5;
+
+  optional string workspace_id = 6;
+
+  optional string linked_account_id = 7 [(buf.validate.field).string.uuid = true];
+
+  // Per-collection mapping of native statuses to normalized phase and stage.
+  repeated StatusMapping status_mappings = 8;
+
+  repeated CustomFieldDefinition custom_field_definitions = 9;
+
+  google.protobuf.Struct remote_data = 10;
+
+  google.protobuf.Timestamp created_at = 11 [(buf.validate.field).required = true];
+
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// A message in the conversation thread of a task.
+// Body is normalized to Markdown regardless of source platform format.
+message Comment {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  string task_id = 2 [(buf.validate.field).string.uuid = true];
+
+  User author = 3 [(buf.validate.field).required = true];
+
+  string body = 4 [(buf.validate.field).string.min_len = 1];
+
+  repeated Attachment attachments = 5;
+
+  google.protobuf.Timestamp created_at = 6 [(buf.validate.field).required = true];
+
+  google.protobuf.Timestamp updated_at = 7;
+
+  optional string remote_id = 8;
+}
+
+// A field-level diff recording how a task was modified.
+// Forms the tamper-proof audit trail of all agent and human actions.
+message Change {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  string task_id = 2 [(buf.validate.field).string.uuid = true];
+
+  // Name of the field that changed (e.g., "phase", "stage", "assignees").
+  string field = 3 [(buf.validate.field).string.min_len = 1];
+
+  google.protobuf.Value old_value = 4;
+
+  google.protobuf.Value new_value = 5 [(buf.validate.field).required = true];
+
+  User changed_by = 6 [(buf.validate.field).required = true];
+
+  google.protobuf.Timestamp changed_at = 7 [(buf.validate.field).required = true];
+
+  optional string reason = 8;
+}
+
+// A connection between a Farm Table deployment and an external platform account.
+// Farm Table acts as an auth bridge: agents authenticate only to Farm Table,
+// and Farm Table proxies operations to external platforms via linked accounts.
+message LinkedAccount {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  Platform platform = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  AuthMethod auth_method = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  // Granted permission scopes (least-privilege set).
+  repeated string scopes = 4;
+
+  optional string remote_user_id = 5;
+
+  IdentityStatus status = 6 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  google.protobuf.Timestamp created_at = 7 [(buf.validate.field).required = true];
+
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+// A normalized event emitted when a task changes in any connected platform.
+// Supports both native webhooks and virtual webhooks (poll-derived).
+message WebhookEvent {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+
+  EventType event_type = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  string task_id = 3 [(buf.validate.field).string.uuid = true];
+
+  repeated Change changes = 4;
+
+  User triggered_by = 5;
+
+  Platform platform = 6 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  WebhookSource source = 7 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  google.protobuf.Timestamp timestamp = 8 [(buf.validate.field).required = true];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Task RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message ListTasksRequest {
+  optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  optional TaskPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
+  // Repeatable; tasks matching any listed stage are returned (OR semantics).
+  repeated TaskStage stages = 3;
+  // User ID, "me" for the authenticated agent, or "none" for unassigned.
+  optional string assignee = 4;
+  optional TaskPriority priority = 5 [(buf.validate.field).enum.defined_only = true];
+  optional string type = 6;
+  // Repeatable; tasks must have all listed labels (AND semantics).
+  repeated string labels = 7;
+  optional string parent_task_id = 8 [(buf.validate.field).string.uuid = true];
+  SortField sort_field = 9;
+  SortOrder sort_order = 10;
+  // When true, returns the complete NTO including description, relationships,
+  // code_context, custom_fields, and remote_data. Default is compact.
+  bool full = 11;
+  int32 page_size = 12 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  // CLI should use --page-token for this field (aligns proto convention with CLI flag naming).
+  string page_token = 13;
+}
+
+message ListTasksResponse {
+  repeated Task items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+message GetTaskRequest {
+  // Task identifier: UUID, UUID prefix (min 8 chars), or remote ID.
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  bool include_comments = 2;
+  bool include_changes = 3;
+  // Required when resolving by remote ID to disambiguate across platforms.
+  optional string collection_id = 4 [(buf.validate.field).string.uuid = true];
+}
+
+message GetTaskResponse {
+  Task task = 1;
+  // Populated when include_comments is true (most recent 20).
+  repeated Comment comments = 2;
+  // Populated when include_changes is true (most recent 50).
+  repeated Change changes = 3;
+}
+
+message CreateTaskRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  string collection_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string description = 3;
+  optional string acceptance_criteria = 4;
+  // Default: TASK_STAGE_TRIAGE. Phase is inferred from stage.
+  optional TaskStage stage = 5 [(buf.validate.field).enum.defined_only = true];
+  optional TaskPriority priority = 6 [(buf.validate.field).enum.defined_only = true];
+  optional string type = 7;
+  // User IDs or "me" for the authenticated agent.
+  repeated string assignee_ids = 8;
+  repeated string labels = 9;
+  optional string parent_task_id = 10 [(buf.validate.field).string.uuid = true];
+  google.protobuf.Timestamp due_date = 11;
+  google.protobuf.Timestamp start_date = 12;
+  // Task IDs this task blocks.
+  repeated string blocks_task_ids = 13;
+  // Task IDs blocking this task.
+  repeated string blocked_by_task_ids = 14;
+  // code_context fields.
+  optional string repo = 15;
+  optional string branch = 16;
+  optional string reason = 17;
+}
+
+message UpdateTaskRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  optional string name = 2;
+  optional string description = 3;
+  optional string acceptance_criteria = 4;
+
+  // Setting stage automatically resolves the correct phase.
+  optional TaskStage stage = 5 [(buf.validate.field).enum.defined_only = true];
+  optional TaskPriority priority = 6 [(buf.validate.field).enum.defined_only = true];
+  optional string type = 7;
+
+  // Assignee management. To clear all assignees, set clear_assignees=true.
+  repeated string assignee_ids = 10;
+  bool clear_assignees = 11;
+
+  // Date management. Use clear_* to remove a date.
+  google.protobuf.Timestamp due_date = 12;
+  bool clear_due_date = 13;
+  google.protobuf.Timestamp start_date = 14;
+  bool clear_start_date = 15;
+
+  // Hierarchy. Use clear_parent to remove.
+  optional string parent_task_id = 16 [(buf.validate.field).string.uuid = true];
+  bool clear_parent = 17;
+
+  // Label management (add/remove).
+  repeated string add_labels = 20;
+  repeated string remove_labels = 21;
+
+  // Relationship management.
+  repeated string add_blocks = 22;
+  repeated string add_blocked_by = 23;
+  // Remove relationship by target task ID.
+  repeated string remove_relationships = 24;
+
+  // code_context updates.
+  optional string repo = 30;
+  optional string branch = 31;
+  repeated PullRequest add_pull_requests = 32;
+  optional CIStatus ci_status = 33 [(buf.validate.field).enum.defined_only = true];
+
+  optional string reason = 40;
+
+  // If set, the update is conditional: server rejects with ABORTED if
+  // the task's current version does not match. Omit for unconditional updates.
+  optional string version = 41;
+}
+
+message ClaimTaskRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  // Default: TASK_STAGE_WORKING.
+  optional TaskStage stage = 2 [(buf.validate.field).enum.defined_only = true];
+  optional string reason = 3;
+  // Conditional claim: rejected with ABORTED if version does not match.
+  optional string version = 4;
+}
+
+message ClaimTaskResponse {
+  Task task = 1;
+  google.protobuf.Timestamp claimed_at = 2;
+}
+
+message CloseTaskRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  // Close stage: completed (default), wont_fix, duplicate, cancelled.
+  // Only TASK_STAGE_COMPLETED, TASK_STAGE_WONT_FIX, TASK_STAGE_DUPLICATE,
+  // and TASK_STAGE_CANCELLED are valid here; server rejects other values.
+  optional TaskStage stage = 2 [(buf.validate.field).enum.defined_only = true];
+  optional string reason = 3;
+  // When stage is duplicate, the ID of the canonical task.
+  optional string duplicate_of_task_id = 4 [(buf.validate.field).string.uuid = true];
+  // Conditional close: rejected with ABORTED if version does not match.
+  optional string version = 5;
+}
+
+message DeleteTaskRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  optional string reason = 2;
+}
+
+message DeleteTaskResponse {}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Comment RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message AddCommentRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  string body = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ListCommentsRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 3;
+  SortOrder order = 4;
+}
+
+message ListCommentsResponse {
+  repeated Comment items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+message GetCommentRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Collection RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message ListCollectionsRequest {
+  optional Platform platform = 1 [(buf.validate.field).enum.defined_only = true];
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 3;
+}
+
+message ListCollectionsResponse {
+  repeated Collection items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+message GetCollectionRequest {
+  // Collection UUID or name.
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateCollectionRequest {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  optional string description = 2;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Graph Query RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Tasks ready to work on: OPEN phase, dependencies resolved, optionally filtered.
+message GetReadyTasksRequest {
+  optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  optional string assignee = 2;
+  // Minimum priority threshold (e.g., HIGH returns URGENT and HIGH).
+  optional TaskPriority min_priority = 3 [(buf.validate.field).enum.defined_only = true];
+  // Also include triage and backlog tasks with no unresolved blockers.
+  bool include_unblocked_open = 4;
+  int32 page_size = 5 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 6;
+}
+
+message ReadyTask {
+  Task task = 1;
+  int32 blockers_resolved = 2;
+}
+
+message GetReadyTasksResponse {
+  repeated ReadyTask items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+// Tasks currently blocked, along with what blocks them.
+message GetBlockedTasksRequest {
+  optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  optional string assignee = 2;
+  int32 page_size = 3 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 4;
+}
+
+message BlockerInfo {
+  string task_id = 1;
+  string name = 2;
+  TaskPhase phase = 3;
+  TaskStage stage = 4;
+}
+
+message BlockedTask {
+  Task task = 1;
+  repeated BlockerInfo blocked_by = 2;
+}
+
+message GetBlockedTasksResponse {
+  repeated BlockedTask items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+// Dependency tree for a task — what it blocks and what blocks it.
+message GetDependencyTreeRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  DependencyDirection direction = 2;
+  // Maximum traversal depth (default: 5).
+  int32 max_depth = 3 [(buf.validate.field).int32 = {gte: 1, lte: 20}];
+}
+
+// Recursive structure — can produce large responses for deep graphs.
+// max_depth on GetDependencyTreeRequest mitigates this; consider a
+// server-side response size cap as an additional safeguard.
+message DependencyNode {
+  Task task = 1;
+  repeated DependencyNode blocks = 2;
+  repeated DependencyNode blocked_by = 3;
+}
+
+message GetDependencyTreeResponse {
+  DependencyNode root = 1;
+}
+
+// Built-in backend only. Longest chain of dependent tasks determining
+// overall completion time.
+message GetCriticalPathRequest {
+  string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  // Start from a specific task instead of the full graph.
+  optional string root_task_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message CriticalPathNode {
+  string id = 1;
+  string name = 2;
+  TaskStage stage = 3;
+  int32 depth = 4;
+}
+
+message Bottleneck {
+  string id = 1;
+  string name = 2;
+  int32 fan_out = 3;
+  string reason = 4;
+}
+
+message GetCriticalPathResponse {
+  repeated CriticalPathNode path = 1;
+  int32 total_depth = 2;
+  Bottleneck bottleneck = 3;
+}
+
+// Built-in backend only. Tasks with the highest fan-out of downstream dependents.
+message GetBottlenecksRequest {
+  string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  int32 limit = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+}
+
+message BottleneckTask {
+  string id = 1;
+  string name = 2;
+  TaskStage stage = 3;
+  int32 downstream_count = 4;
+  int32 direct_dependents = 5;
+}
+
+message GetBottlenecksResponse {
+  repeated BottleneckTask items = 1;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Change (Audit Trail) RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message ListChangesRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Filter to changes on a specific field (e.g., "stage", "priority").
+  optional string field = 2;
+  int32 page_size = 3 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 4;
+}
+
+message ListChangesResponse {
+  repeated Change items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// User RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message WhoAmIRequest {}
+
+message ListUsersRequest {
+  optional UserType type = 1 [(buf.validate.field).enum.defined_only = true];
+  optional string collection_id = 2 [(buf.validate.field).string.uuid = true];
+  int32 page_size = 3 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 4;
+}
+
+message ListUsersResponse {
+  repeated User items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+message GetUserRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// System RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message GetStatusRequest {
+  optional Platform platform = 1 [(buf.validate.field).enum.defined_only = true];
+}
+
+message PlatformConnectionStatus {
+  Platform platform = 1;
+  string status = 2;
+  int32 collections = 3;
+}
+
+message GetStatusResponse {
+  string server = 1;
+  string server_version = 2;
+  string api_protocol = 3;
+  string status = 4;
+  int32 latency_ms = 5;
+  User authenticated_as = 6;
+  repeated PlatformConnectionStatus platforms = 7;
+}
+
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  string cli_version = 1;
+  string server_version = 2;
+  string api_protocol = 3;
+  string server = 4;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Service Definition
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// TODO: Add server-side interceptor to inject x-request-id into response
+// metadata for request tracing / debugging support.
+
+// All RPCs in a single service for v1. If the service grows significantly,
+// consider splitting into TaskService, GraphService, CollectionService, etc.
+service FarmTableService {
+  // ── Tasks ──
+
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc CreateTask(CreateTaskRequest) returns (Task);
+  rpc UpdateTask(UpdateTaskRequest) returns (Task);
+  // Atomically assigns the task to the authenticated agent and transitions
+  // it to working (or a specified stage). Uses compare-and-swap on the
+  // built-in backend for guaranteed atomicity.
+  rpc ClaimTask(ClaimTaskRequest) returns (ClaimTaskResponse);
+  rpc CloseTask(CloseTaskRequest) returns (Task);
+  rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+
+  // ── Comments ──
+
+  rpc AddComment(AddCommentRequest) returns (Comment);
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+  rpc GetComment(GetCommentRequest) returns (Comment);
+
+  // ── Collections ──
+
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+  rpc GetCollection(GetCollectionRequest) returns (Collection);
+  // Creates a collection in the built-in backend. External platform
+  // collections are created through the admin/setup flow.
+  rpc CreateCollection(CreateCollectionRequest) returns (Collection);
+
+  // ── Graph Queries ──
+
+  // List tasks ready to work on: OPEN phase, stage ready, and all blocking
+  // dependencies resolved (CLOSED phase). The primary "what should I work
+  // on next?" query for agents.
+  rpc GetReadyTasks(GetReadyTasksRequest) returns (GetReadyTasksResponse);
+  rpc GetBlockedTasks(GetBlockedTasksRequest) returns (GetBlockedTasksResponse);
+  rpc GetDependencyTree(GetDependencyTreeRequest) returns (GetDependencyTreeResponse);
+  // Built-in backend only.
+  rpc GetCriticalPath(GetCriticalPathRequest) returns (GetCriticalPathResponse);
+  // Built-in backend only.
+  rpc GetBottlenecks(GetBottlenecksRequest) returns (GetBottlenecksResponse);
+
+  // ── Audit Trail ──
+
+  rpc ListChanges(ListChangesRequest) returns (ListChangesResponse);
+
+  // ── Users ──
+
+  rpc WhoAmI(WhoAmIRequest) returns (User);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc GetUser(GetUserRequest) returns (User);
+
+  // ── System ──
+
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+}
