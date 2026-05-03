@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://farmtable.dev/schema/draft/v0.1.0",
+  "$id": "https://farmtable.dev/schema/draft/v0.3.0",
   "title": "Farm Table — Normalized Task Interface Schema (DRAFT)",
-  "description": "Draft JSON Schema for the Farm Table universal task interface. Defines the Normalized Task Object (NTO) and all supporting entities. Tasks may originate from the built-in graph backend (platform='farmtable') or from external platforms normalized into the same schema.",
+  "description": "Draft JSON Schema for the Farm Table task runtime. Defines the Normalized Task Object (NTO) and all supporting entities. Tasks may originate from the built-in graph backend (platform='farmtable') or from external platforms normalized into the same schema.",
 
   "$defs": {
 
@@ -12,10 +12,44 @@
       "description": "Task storage backend. 'farmtable' indicates the task is stored natively in the built-in graph backend; all others are external platforms normalized into the NTO."
     },
 
-    "TaskStatus": {
+    "TaskPhase": {
       "type": "string",
       "enum": ["OPEN", "IN_PROGRESS", "ON_HOLD", "CLOSED"],
-      "description": "Normalized task lifecycle state. Maps platform-native statuses into four canonical categories: OPEN (Backlog, Todo, New), IN_PROGRESS (Active, Working, In Development, QA, Review), ON_HOLD (Blocked, Paused, Deferred, Pending Feedback), CLOSED (Done, Completed, Fixed, Resolved, Won't Fix)."
+      "description": "Tier 1 status: universal lifecycle phase. Every task has exactly one phase. Agents use this for coarse decision-making ('is there work to do?')."
+    },
+
+    "TaskStage": {
+      "type": "string",
+      "enum": [
+        "triage", "backlog", "ready",
+        "working", "in_review", "in_qa", "deploying",
+        "blocked", "waiting_for_input", "deferred", "scheduled",
+        "completed", "wont_fix", "duplicate", "cancelled"
+      ],
+      "description": "Tier 2 status: fixed set of finer-grained positions within each phase. Farm Table controls this enum. Agents use this for precise decision-making ('is this task ready to start or still in triage?')."
+    },
+
+    "PhaseStageMapping": {
+      "type": "object",
+      "description": "Documents which stages are valid within each phase. Used for validation, not stored per-task.",
+      "properties": {
+        "OPEN": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["triage", "backlog", "ready"] }
+        },
+        "IN_PROGRESS": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["working", "in_review", "in_qa", "deploying"] }
+        },
+        "ON_HOLD": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["blocked", "waiting_for_input", "deferred", "scheduled"] }
+        },
+        "CLOSED": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["completed", "wont_fix", "duplicate", "cancelled"] }
+        }
+      }
     },
 
     "TaskPriority": {
@@ -26,8 +60,8 @@
 
     "RelationshipType": {
       "type": "string",
-      "enum": ["BLOCKS", "BLOCKED_BY", "RELATED", "DUPLICATE", "PARENT", "CHILD"],
-      "description": "Semantic relationship between two tasks."
+      "enum": ["BLOCKS", "BLOCKED_BY", "RELATED", "DUPLICATE"],
+      "description": "Semantic relationship between two tasks. Hierarchy (parent/child) is expressed via parent_task_id, not relationships."
     },
 
     "UserType": {
@@ -44,8 +78,8 @@
 
     "AuthMethod": {
       "type": "string",
-      "enum": ["OAUTH2_PKCE", "API_KEY", "PAT", "SERVICE_ACCOUNT"],
-      "description": "Authentication method used for a linked platform account."
+      "enum": ["OAUTH2_PKCE", "API_KEY", "PAT", "SERVICE_ACCOUNT", "MCP_OAUTH", "GITHUB_APP", "ATLASSIAN_CONNECT", "LOCAL_PROCESS"],
+      "description": "Authentication method used for a linked platform account. MCP_OAUTH: Farm Table as MCP client via OAuth. GITHUB_APP: JWT + installation token. ATLASSIAN_CONNECT: Jira's native app auth (JWT). LOCAL_PROCESS: local subprocess access (e.g., Beads CLI)."
     },
 
     "CustomFieldType": {
@@ -210,7 +244,7 @@
         },
         "field": {
           "type": "string",
-          "description": "Name of the field that changed (e.g., 'status', 'assignees', 'priority')."
+          "description": "Name of the field that changed (e.g., 'phase', 'stage', 'assignees', 'priority')."
         },
         "old_value": {
           "description": "Previous value of the field."
@@ -235,31 +269,29 @@
 
     "StatusMapping": {
       "type": "object",
-      "description": "Maps a platform-native status label to a Farm Table normalized status category.",
+      "description": "Maps a platform-native status label to a Farm Table normalized phase and stage.",
       "properties": {
         "native_status": {
           "type": "string",
           "description": "The status label as it appears in the source platform."
         },
-        "normalized_status": {
-          "$ref": "#/$defs/TaskStatus"
+        "phase": {
+          "$ref": "#/$defs/TaskPhase"
+        },
+        "stage": {
+          "$ref": "#/$defs/TaskStage"
         }
       },
-      "required": ["native_status", "normalized_status"]
+      "required": ["native_status", "phase", "stage"]
     },
 
     "LinkedAccount": {
       "type": "object",
-      "description": "A connection between a Farm Table identity and a platform account. Manages authentication tokens and scope grants under least-privilege.",
+      "description": "A connection between a Farm Table deployment and a platform account. Farm Table acts as an auth bridge: agents authenticate only to Farm Table, and Farm Table uses linked accounts to proxy operations to external platforms.",
       "properties": {
         "id": {
           "type": "string",
           "format": "uuid"
-        },
-        "user_id": {
-          "type": "string",
-          "format": "uuid",
-          "description": "The Farm Table user this account belongs to."
         },
         "platform": {
           "$ref": "#/$defs/Platform"
@@ -274,7 +306,7 @@
         },
         "remote_user_id": {
           "type": "string",
-          "description": "User identifier in the source platform."
+          "description": "User or bot identifier in the source platform."
         },
         "status": {
           "$ref": "#/$defs/IdentityStatus"
@@ -289,12 +321,62 @@
           "description": "Token expiration time, if applicable."
         }
       },
-      "required": ["id", "user_id", "platform", "auth_method", "scopes", "status", "created_at"]
+      "required": ["id", "platform", "auth_method", "scopes", "status", "created_at"]
+    },
+
+    "CodeContext": {
+      "type": "object",
+      "description": "Typed domain extension for code-related task context. Provides structured fields that coding agents need to begin work, rather than requiring agents to parse remote_data.",
+      "properties": {
+        "repo": {
+          "type": ["string", "null"],
+          "description": "Repository identifier (e.g., 'owner/repo' for GitHub)."
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "description": "Target or working branch for this task."
+        },
+        "pull_requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "PR identifier (number or platform ID)."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["open", "merged", "closed"],
+                "description": "PR state."
+              }
+            },
+            "required": ["id", "url", "status"]
+          },
+          "default": [],
+          "description": "Pull requests linked to this task."
+        },
+        "ci_status": {
+          "type": ["string", "null"],
+          "enum": ["pending", "running", "passed", "failed", null],
+          "description": "Aggregate CI/CD pipeline status for the task's associated code changes."
+        },
+        "commit_shas": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Relevant commit SHAs associated with this task."
+        }
+      }
     },
 
     "Collection": {
       "type": "object",
-      "description": "A grouping of tasks representing a project, board, or repository. Defines the operational boundary for agent work and scopes task queries.",
+      "description": "A grouping of tasks representing a project, board, or repository. Each collection maps 1:1 to a single external platform integration. Defines the operational boundary for agent work and scopes task queries.",
       "properties": {
         "id": {
           "type": "string",
@@ -318,10 +400,15 @@
           "type": ["string", "null"],
           "description": "Platform workspace or organization identifier, if applicable."
         },
+        "linked_account_id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "Reference to the LinkedAccount used to authenticate with this collection's platform."
+        },
         "status_mappings": {
           "type": "array",
           "items": { "$ref": "#/$defs/StatusMapping" },
-          "description": "Per-collection mapping of native statuses to normalized states. Supports custom workflows (e.g., Jira's configurable status schemes)."
+          "description": "Per-collection mapping of native statuses to normalized phase and stage. Supports custom workflows (e.g., Jira's configurable status schemes)."
         },
         "custom_field_definitions": {
           "type": "array",
@@ -335,7 +422,7 @@
             },
             "required": ["field_id", "field_name", "field_type"]
           },
-          "description": "Custom fields available in this collection, discovered via platform API (e.g., Jira /createmeta)."
+          "description": "Custom fields available in this collection, discovered via platform API."
         },
         "remote_data": {
           "type": ["object", "null"],
@@ -370,15 +457,32 @@
           "type": ["string", "null"],
           "description": "Detailed work instructions, normalized to Markdown."
         },
-        "status": {
-          "$ref": "#/$defs/TaskStatus"
+        "acceptance_criteria": {
+          "type": ["string", "null"],
+          "description": "Conditions that must be met for this task to be considered complete, normalized to Markdown. First-class field in the built-in backend; for external platforms, may be extracted from structured description sections or dedicated fields (e.g., Beads' acceptance_criteria)."
+        },
+        "phase": {
+          "$ref": "#/$defs/TaskPhase",
+          "description": "Tier 1 status: universal lifecycle phase."
+        },
+        "stage": {
+          "$ref": "#/$defs/TaskStage",
+          "description": "Tier 2 status: finer-grained position within the phase."
         },
         "native_status": {
           "type": ["string", "null"],
-          "description": "The original status label from the source platform, preserved for round-trip fidelity."
+          "description": "Tier 3 status: the original status label from the source platform, preserved verbatim for round-trip fidelity."
+        },
+        "type": {
+          "type": ["string", "null"],
+          "description": "The kind of work this task represents (e.g., 'epic', 'story', 'task', 'bug', 'subtask'). Freeform string to accommodate platform-specific types (Jira custom issue types, Beads issue_type, Asana resource_subtype). Null when the source platform has no task typing."
         },
         "priority": {
-          "$ref": "#/$defs/TaskPriority"
+          "oneOf": [
+            { "$ref": "#/$defs/TaskPriority" },
+            { "type": "null" }
+          ],
+          "description": "Normalized urgency level. Null when the source platform has no native priority (e.g., GitHub Issues)."
         },
         "assignees": {
           "type": "array",
@@ -391,6 +495,11 @@
             { "type": "null" }
           ],
           "description": "The user who created the task."
+        },
+        "start_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 planned start date. Enables agents to reason about work windows and scheduling."
         },
         "due_date": {
           "type": ["string", "null"],
@@ -411,7 +520,7 @@
           "type": "array",
           "items": { "$ref": "#/$defs/Relationship" },
           "default": [],
-          "description": "Dependency and semantic links to other tasks (blocks, blocked_by, related, duplicate)."
+          "description": "Non-hierarchical dependency and semantic links to other tasks (blocks, blocked_by, related, duplicate). Hierarchy is expressed via parent_task_id."
         },
         "labels": {
           "type": "array",
@@ -423,11 +532,18 @@
           "type": "array",
           "items": { "$ref": "#/$defs/CustomFieldValue" },
           "default": [],
-          "description": "Organization-defined custom field values. Preserves platform-specific metadata via declarative mapping."
+          "description": "Organization-defined custom field values."
+        },
+        "code_context": {
+          "oneOf": [
+            { "$ref": "#/$defs/CodeContext" },
+            { "type": "null" }
+          ],
+          "description": "Typed domain extension for code-related context. Present when the task is associated with code work (repos, branches, PRs, CI). Null for non-code tasks."
         },
         "remote_id": {
           "type": ["string", "null"],
-          "description": "Identifier in the source platform (e.g., GitHub issue number, Jira key PROJ-123, Linear UUID). Null for tasks stored in the built-in backend (platform='farmtable'), where 'id' is the canonical identifier."
+          "description": "Identifier in the source platform (e.g., GitHub issue number, Jira key PROJ-123, Linear UUID). Null for tasks in the built-in backend."
         },
         "remote_url": {
           "type": ["string", "null"],
@@ -436,7 +552,7 @@
         },
         "remote_data": {
           "type": ["object", "null"],
-          "description": "Raw, un-transformed payload from the source platform. Escape hatch for fields that do not map to the NTO."
+          "description": "Raw, un-transformed payload from the source platform. Escape hatch for fields that do not map to the NTO or typed extensions."
         },
         "platform": {
           "$ref": "#/$defs/Platform"
@@ -448,13 +564,18 @@
         "updated_at": {
           "type": ["string", "null"],
           "format": "date-time"
+        },
+        "closed_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp when the task entered the CLOSED phase. Null while the task is open. Essential for cycle-time metrics and agent performance analysis."
         }
       },
       "required": [
         "id",
         "name",
-        "status",
-        "priority",
+        "phase",
+        "stage",
         "assignees",
         "collection_id",
         "platform",
@@ -476,7 +597,8 @@
             "task.created",
             "task.updated",
             "task.deleted",
-            "task.status_changed",
+            "task.phase_changed",
+            "task.stage_changed",
             "task.assigned",
             "comment.created",
             "comment.updated"
