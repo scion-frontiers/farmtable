@@ -1,0 +1,551 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://farmtable.dev/schema/draft/v0.1.0",
+  "title": "Farm Table — Normalized Task Interface Schema (DRAFT)",
+  "description": "Draft JSON Schema for the Farm Table universal task interface. Defines the Normalized Task Object (NTO) and all supporting entities derived from initial research.",
+
+  "$defs": {
+
+    "Platform": {
+      "type": "string",
+      "enum": ["github", "linear", "jira", "asana", "beads"],
+      "description": "Supported task management platform identifier."
+    },
+
+    "TaskStatus": {
+      "type": "string",
+      "enum": ["OPEN", "IN_PROGRESS", "ON_HOLD", "CLOSED"],
+      "description": "Normalized task lifecycle state. Maps platform-native statuses into four canonical categories: OPEN (Backlog, Todo, New), IN_PROGRESS (Active, Working, In Development, QA, Review), ON_HOLD (Blocked, Paused, Deferred, Pending Feedback), CLOSED (Done, Completed, Fixed, Resolved, Won't Fix)."
+    },
+
+    "TaskPriority": {
+      "type": "string",
+      "enum": ["URGENT", "HIGH", "NORMAL", "LOW"],
+      "description": "Normalized urgency level for task prioritization."
+    },
+
+    "RelationshipType": {
+      "type": "string",
+      "enum": ["BLOCKS", "BLOCKED_BY", "RELATED", "DUPLICATE", "PARENT", "CHILD"],
+      "description": "Semantic relationship between two tasks."
+    },
+
+    "UserType": {
+      "type": "string",
+      "enum": ["HUMAN", "AGENT", "SERVICE_ACCOUNT"],
+      "description": "Classification of an actor in the system."
+    },
+
+    "IdentityStatus": {
+      "type": "string",
+      "enum": ["ACTIVE", "SUSPENDED", "ARCHIVED"],
+      "description": "Lifecycle state for a user or service account identity."
+    },
+
+    "AuthMethod": {
+      "type": "string",
+      "enum": ["OAUTH2_PKCE", "API_KEY", "PAT", "SERVICE_ACCOUNT"],
+      "description": "Authentication method used for a linked platform account."
+    },
+
+    "CustomFieldType": {
+      "type": "string",
+      "enum": ["TEXT", "NUMBER", "DATE", "SINGLE_SELECT", "MULTI_SELECT", "USER", "BOOLEAN", "URL"],
+      "description": "Data type of a custom field value."
+    },
+
+
+    "User": {
+      "type": "object",
+      "description": "A human, agent, or service account that can be assigned tasks or author changes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable Farm Table identifier for this user."
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Contact email, if applicable."
+        },
+        "type": {
+          "$ref": "#/$defs/UserType"
+        },
+        "status": {
+          "$ref": "#/$defs/IdentityStatus"
+        },
+        "remote_id": {
+          "type": "string",
+          "description": "The user's identifier in the source platform."
+        },
+        "platform": {
+          "$ref": "#/$defs/Platform"
+        }
+      },
+      "required": ["id", "name", "type", "status"]
+    },
+
+    "Relationship": {
+      "type": "object",
+      "description": "A directed semantic relationship between two tasks.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/RelationshipType"
+        },
+        "target_task_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Farm Table ID of the related task."
+        }
+      },
+      "required": ["type", "target_task_id"]
+    },
+
+    "CustomFieldValue": {
+      "type": "object",
+      "description": "A value for a platform-specific or organization-defined custom field. Preserves non-standard metadata that does not map to NTO built-in fields.",
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "description": "Platform-native field identifier (e.g., Jira's customfield_10026)."
+        },
+        "field_name": {
+          "type": "string",
+          "description": "Human-readable field name."
+        },
+        "field_type": {
+          "$ref": "#/$defs/CustomFieldType"
+        },
+        "value": {
+          "description": "The field value. Type varies based on field_type."
+        }
+      },
+      "required": ["field_id", "field_name", "field_type", "value"]
+    },
+
+    "Attachment": {
+      "type": "object",
+      "description": "A file attached to a task or comment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type of the attachment."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["id", "filename", "url"]
+    },
+
+    "Comment": {
+      "type": "object",
+      "description": "A message in the conversation thread of a task. Body is normalized to Markdown regardless of source platform format.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable Farm Table identifier."
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "author": {
+          "$ref": "#/$defs/User"
+        },
+        "body": {
+          "type": "string",
+          "description": "Comment content normalized to Markdown."
+        },
+        "attachments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Attachment" },
+          "default": []
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "remote_id": {
+          "type": "string",
+          "description": "Comment identifier in the source platform."
+        }
+      },
+      "required": ["id", "task_id", "author", "body", "created_at"]
+    },
+
+    "Change": {
+      "type": "object",
+      "description": "A field-level diff recording how a task was modified. Forms a tamper-proof audit trail of all agent and human actions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "field": {
+          "type": "string",
+          "description": "Name of the field that changed (e.g., 'status', 'assignees', 'priority')."
+        },
+        "old_value": {
+          "description": "Previous value of the field."
+        },
+        "new_value": {
+          "description": "New value of the field."
+        },
+        "changed_by": {
+          "$ref": "#/$defs/User"
+        },
+        "changed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": ["string", "null"],
+          "description": "Optional explanation for the change, supporting the 'auditable by construction' principle."
+        }
+      },
+      "required": ["id", "task_id", "field", "new_value", "changed_by", "changed_at"]
+    },
+
+    "StatusMapping": {
+      "type": "object",
+      "description": "Maps a platform-native status label to a Farm Table normalized status category.",
+      "properties": {
+        "native_status": {
+          "type": "string",
+          "description": "The status label as it appears in the source platform."
+        },
+        "normalized_status": {
+          "$ref": "#/$defs/TaskStatus"
+        }
+      },
+      "required": ["native_status", "normalized_status"]
+    },
+
+    "LinkedAccount": {
+      "type": "object",
+      "description": "A connection between a Farm Table identity and a platform account. Manages authentication tokens and scope grants under least-privilege.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The Farm Table user this account belongs to."
+        },
+        "platform": {
+          "$ref": "#/$defs/Platform"
+        },
+        "auth_method": {
+          "$ref": "#/$defs/AuthMethod"
+        },
+        "scopes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Granted permission scopes (least-privilege set for current work)."
+        },
+        "remote_user_id": {
+          "type": "string",
+          "description": "User identifier in the source platform."
+        },
+        "status": {
+          "$ref": "#/$defs/IdentityStatus"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Token expiration time, if applicable."
+        }
+      },
+      "required": ["id", "user_id", "platform", "auth_method", "scopes", "status", "created_at"]
+    },
+
+    "Collection": {
+      "type": "object",
+      "description": "A grouping of tasks representing a project, board, or repository. Defines the operational boundary for agent work and scopes task queries.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable Farm Table identifier for this collection."
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "platform": {
+          "$ref": "#/$defs/Platform"
+        },
+        "remote_id": {
+          "type": "string",
+          "description": "Identifier in the source platform (e.g., repo full name, project key, team ID)."
+        },
+        "workspace_id": {
+          "type": ["string", "null"],
+          "description": "Platform workspace or organization identifier, if applicable."
+        },
+        "status_mappings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/StatusMapping" },
+          "description": "Per-collection mapping of native statuses to normalized states. Supports custom workflows (e.g., Jira's configurable status schemes)."
+        },
+        "custom_field_definitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field_id": { "type": "string" },
+              "field_name": { "type": "string" },
+              "field_type": { "$ref": "#/$defs/CustomFieldType" },
+              "required": { "type": "boolean", "default": false }
+            },
+            "required": ["field_id", "field_name", "field_type"]
+          },
+          "description": "Custom fields available in this collection, discovered via platform API (e.g., Jira /createmeta)."
+        },
+        "remote_data": {
+          "type": ["object", "null"],
+          "description": "Raw platform-specific metadata for this collection."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "platform", "remote_id", "created_at"]
+    },
+
+    "Task": {
+      "type": "object",
+      "description": "The Normalized Task Object (NTO) — the central entity of Farm Table. Encapsulates all information an agent needs to understand and execute a piece of work, regardless of source platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable Farm Table identifier. Globally unique across all platforms."
+        },
+        "name": {
+          "type": "string",
+          "description": "Title or summary of the task."
+        },
+        "description": {
+          "type": ["string", "null"],
+          "description": "Detailed work instructions, normalized to Markdown."
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "native_status": {
+          "type": ["string", "null"],
+          "description": "The original status label from the source platform, preserved for round-trip fidelity."
+        },
+        "priority": {
+          "$ref": "#/$defs/TaskPriority"
+        },
+        "assignees": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/User" },
+          "description": "Agents and/or humans assigned to this task."
+        },
+        "creator": {
+          "oneOf": [
+            { "$ref": "#/$defs/User" },
+            { "type": "null" }
+          ],
+          "description": "The user who created the task."
+        },
+        "due_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 deadline for completion."
+        },
+        "collection_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The collection (project/board/repo) this task belongs to."
+        },
+        "parent_task_id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "Reference to a higher-level task in the hierarchy (supports up to 8 levels per GitHub sub-issues)."
+        },
+        "relationships": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Relationship" },
+          "default": [],
+          "description": "Dependency and semantic links to other tasks (blocks, blocked_by, related, duplicate)."
+        },
+        "labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Tags or labels applied to the task."
+        },
+        "custom_fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CustomFieldValue" },
+          "default": [],
+          "description": "Organization-defined custom field values. Preserves platform-specific metadata via declarative mapping."
+        },
+        "remote_id": {
+          "type": "string",
+          "description": "Identifier in the source platform (e.g., GitHub issue number, Jira key PROJ-123, Linear UUID)."
+        },
+        "remote_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "Web URL to the task in the source platform."
+        },
+        "remote_data": {
+          "type": ["object", "null"],
+          "description": "Raw, un-transformed payload from the source platform. Escape hatch for fields that do not map to the NTO."
+        },
+        "platform": {
+          "$ref": "#/$defs/Platform"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "status",
+        "priority",
+        "assignees",
+        "collection_id",
+        "remote_id",
+        "platform",
+        "created_at"
+      ]
+    },
+
+    "WebhookEvent": {
+      "type": "object",
+      "description": "A normalized event emitted when a task changes in any connected platform. Supports both native webhooks and virtual webhooks (poll-derived) for platforms without webhook support.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "task.created",
+            "task.updated",
+            "task.deleted",
+            "task.status_changed",
+            "task.assigned",
+            "comment.created",
+            "comment.updated"
+          ]
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "changes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Change" },
+          "description": "Field-level diffs included with this event."
+        },
+        "triggered_by": {
+          "oneOf": [
+            { "$ref": "#/$defs/User" },
+            { "type": "null" }
+          ]
+        },
+        "platform": {
+          "$ref": "#/$defs/Platform"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["NATIVE_WEBHOOK", "VIRTUAL_WEBHOOK"],
+          "description": "Whether this event came from a platform webhook or was synthesized by polling."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "event_type", "task_id", "platform", "source", "timestamp"]
+    }
+  },
+
+
+  "type": "object",
+  "description": "Root schema object. A Farm Table document may contain any combination of the defined entities.",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Task" }
+    },
+    "collections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Collection" }
+    },
+    "users": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/User" }
+    },
+    "comments": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Comment" }
+    },
+    "changes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Change" }
+    },
+    "linked_accounts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/LinkedAccount" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WebhookEvent" }
+    }
+  }
+}
