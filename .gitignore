@@ -1,26 +1,37 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
+# Project specific
+.scratch
+scenarios/
+.venv/
+cli_tree.json
+google-cloud-sdk
+google-cloud-cli-linux-x86_64.tar.gz
+/third_party/google-api-go-client/
+third_party/google-api-go-client/.scion/agents/
+.scion/agents/
+.scion/state.yaml
+.scion/grove-id
+
+# Binaries
+bin/
+dist/
+ggcloud
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
-*.test
+# Generated
+internal/cmd/generated/
 
-# Code coverage profiles and other test artifacts
+# Go
+vendor/
+*.test
 *.out
+debug/
 coverage.*
 *.coverprofile
 profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
 go.work
 go.work.sum
 
@@ -28,5 +39,9 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+.design/project-log/perf/*.csv
