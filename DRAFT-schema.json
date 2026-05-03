@@ -2,14 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://farmtable.dev/schema/draft/v0.1.0",
   "title": "Farm Table — Normalized Task Interface Schema (DRAFT)",
-  "description": "Draft JSON Schema for the Farm Table universal task interface. Defines the Normalized Task Object (NTO) and all supporting entities derived from initial research.",
+  "description": "Draft JSON Schema for the Farm Table universal task interface. Defines the Normalized Task Object (NTO) and all supporting entities. Tasks may originate from the built-in graph backend (platform='farmtable') or from external platforms normalized into the same schema.",
 
   "$defs": {
 
     "Platform": {
       "type": "string",
-      "enum": ["github", "linear", "jira", "asana", "beads"],
-      "description": "Supported task management platform identifier."
+      "enum": ["farmtable", "github", "linear", "jira", "asana", "beads"],
+      "description": "Task storage backend. 'farmtable' indicates the task is stored natively in the built-in graph backend; all others are external platforms normalized into the NTO."
     },
 
     "TaskStatus": {
@@ -311,8 +311,8 @@
           "$ref": "#/$defs/Platform"
         },
         "remote_id": {
-          "type": "string",
-          "description": "Identifier in the source platform (e.g., repo full name, project key, team ID)."
+          "type": ["string", "null"],
+          "description": "Identifier in the source platform (e.g., repo full name, project key, team ID). Null for collections in the built-in backend."
         },
         "workspace_id": {
           "type": ["string", "null"],
@@ -350,7 +350,7 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "name", "platform", "remote_id", "created_at"]
+      "required": ["id", "name", "platform", "created_at"]
     },
 
     "Task": {
@@ -426,8 +426,8 @@
           "description": "Organization-defined custom field values. Preserves platform-specific metadata via declarative mapping."
         },
         "remote_id": {
-          "type": "string",
-          "description": "Identifier in the source platform (e.g., GitHub issue number, Jira key PROJ-123, Linear UUID)."
+          "type": ["string", "null"],
+          "description": "Identifier in the source platform (e.g., GitHub issue number, Jira key PROJ-123, Linear UUID). Null for tasks stored in the built-in backend (platform='farmtable'), where 'id' is the canonical identifier."
         },
         "remote_url": {
           "type": ["string", "null"],
@@ -457,7 +457,6 @@
         "priority",
         "assignees",
         "collection_id",
-        "remote_id",
         "platform",
         "created_at"
       ]

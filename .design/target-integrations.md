@@ -2,9 +2,16 @@
 
 The initial integration set is drawn from the platforms analyzed in the primary research. Each is selected because it represents a distinct category of task management user and exercises a different shape of the normalization problem — covering this set proves the universal interface holds up across the real range of teams Farm Table needs to serve.
 
+Farm Table also includes a **built-in graph backend** that serves as the default task store when no external platform is connected. The built-in backend covers the "agent-native work" archetype directly — it provides dependency-aware graph queries, atomic task claims, and analytical capabilities (critical path, bottleneck detection) out of the box. External integrations extend Farm Table's reach into the tools teams already use.
+
 ## Tier 1 — Launch targets
 
-These five are the baseline. Supporting all of them is what makes Farm Table credible as a "universal" interface rather than a single-platform adapter — and ensures it spans both human-first tools that agents must adapt to and agent-native tools that already speak the agent's language.
+These four external integrations plus the built-in backend form the baseline. Together they make Farm Table credible as a "universal" interface — spanning human-first tools that agents must adapt to, while the built-in backend ensures agents can start working immediately without any external dependency.
+
+### Built-in backend (default)
+- **Who it serves:** Any team deploying agents, especially those without an existing task tracker or those whose existing tracker lacks agent-native primitives.
+- **Why it matters:** Eliminates the cold-start problem. Agents can receive, claim, track, and complete work from minute one. No API keys, no SaaS accounts, no platform configuration. Also serves as the reference implementation of the NTO — every normalization adapter targets the same schema the built-in backend stores natively.
+- **Product shape it tests:** Graph-native task relationships (blocks, blocked-by, parent, child, related), atomic task claims for multi-agent coordination, ready-task detection via dependency resolution, critical-path and bottleneck analysis, and Postgres-backed transactional integrity.
 
 ### GitHub Issues
 - **Who it serves:** Engineering teams whose work lives next to the code — open source projects, developer tools, infrastructure teams.
@@ -27,22 +34,23 @@ These five are the baseline. Supporting all of them is what makes Farm Table cre
 - **Product shape it tests:** Multi-level hierarchy (Portfolio → Project → Section → Task), inherited metadata, mixed human/agent collaboration patterns.
 
 ### Beads (`bd`)
-- **Who it serves:** Teams whose work is largely driven by coding agents — and who want a tracker that was designed for agent workflows from day one rather than retrofitted onto a human-first tool.
-- **Why it matters:** Beads is the only Tier 1 target built natively for AI agents. It treats issues as a dependency-aware graph, supports atomic task claims for multi-agent coordination, and runs locally next to the code rather than as a SaaS. Including it ensures Farm Table's notion of "universal" stretches to agent-native systems, not just human-first ones — and gives Farm Table a credible answer for teams that want zero SaaS dependency in their agent loop.
-- **Product shape it tests:** Agent-native primitives (atomic claim, ready-task detection, semantic compaction), rich graph relationships beyond simple parent/child (blocks, relates, supersedes, duplicates, replies), local-first / git-adjacent storage rather than cloud APIs, and multi-agent/multi-branch coordination via hash-based IDs.
+- **Who it serves:** Teams already using Beads for Git-native, local-first task management who want their agents to participate in that workflow through Farm Table's universal interface.
+- **Why it matters:** Beads represents the distributed, Git-adjacent model — tasks travel with the repository, branch with the code, and merge with the pull request. While Farm Table's built-in backend now covers agent-native graph capabilities in a centralized Postgres store, Beads integration ensures Farm Table works for teams that have chosen the opposite architectural trade-off: offline-first, branch-local task state over centralized query power. This keeps Farm Table's "universal" promise honest across both centralized and distributed paradigms.
+- **Product shape it tests:** Git-native storage normalization (JSONL → NTO), branch-aware task resolution, hash-based ID mapping, and import/migration path from Beads into the built-in backend for teams that outgrow local-first constraints.
 
 ## Coverage rationale
-Together, the Tier 1 set covers the five archetypes Farm Table must serve:
+Together, the built-in backend and the Tier 1 integrations cover the six archetypes Farm Table must serve:
 
 | Archetype | Represented by |
 | :---- | :---- |
+| Agent-native work (default) | Built-in backend |
 | Code-integrated work | GitHub |
 | Developer-velocity work | Linear |
 | Enterprise / customized work | Jira Cloud |
 | Cross-functional / collaborative work | Asana |
-| Agent-native work | Beads |
+| Distributed / Git-native work | Beads |
 
-Any gap here would leave a major class of team unable to deploy agents through Farm Table.
+Any gap here would leave a major class of team unable to deploy agents through Farm Table. The built-in backend ensures every deployment has a working task system from day one; the integrations ensure Farm Table meets teams where they already are.
 
 ## Future candidates
 Not committed for launch, but on the radar for later expansion based on user demand:
