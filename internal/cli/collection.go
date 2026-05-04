@@ -28,30 +28,28 @@ func newCollectionListCmd(globals *globalFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List collections",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.ListCollectionsRequest{}
 			if platform != "" {
 				p, err := parsePlatform(platform)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Platform = &p
 			}
 
 			resp, err := client.ListCollections(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -86,21 +84,19 @@ func newCollectionGetCmd(globals *globalFlags) *cobra.Command {
 		Short: "Get collection details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			resp, err := client.GetCollection(ctx, &pb.GetCollectionRequest{Id: args[0]})
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -123,16 +119,14 @@ func newCollectionCreateCmd(globals *globalFlags) *cobra.Command {
 		Short: "Create a collection (built-in backend)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.CreateCollectionRequest{
@@ -144,7 +138,7 @@ func newCollectionCreateCmd(globals *globalFlags) *cobra.Command {
 
 			coll, err := client.CreateCollection(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {

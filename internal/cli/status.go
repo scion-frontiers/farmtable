@@ -14,27 +14,30 @@ func newStatusCmd(globals *globalFlags) *cobra.Command {
 		Use:   "status",
 		Short: "Check server and platform connection health",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect to %s: %v", server, err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			start := time.Now()
 			resp, err := client.GetStatus(ctx, &pb.GetStatusRequest{})
 			latency := time.Since(start).Milliseconds()
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
+			}
+
+			serverAddr := resolveServer(globals.server)
+			if serverAddr == "" {
+				serverAddr = "embedded"
 			}
 
 			m := map[string]interface{}{
-				"server":         server,
+				"server":         serverAddr,
 				"server_version": resp.GetServerVersion(),
 				"api_protocol":   "grpc",
 				"status":         resp.GetStatus(),

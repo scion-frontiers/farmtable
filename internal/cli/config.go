@@ -96,7 +96,10 @@ func SaveConfigValue(key, value string) error {
 		lines = append(lines, fmt.Sprintf("%s = %q", key, value))
 	}
 
-	return os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		return err
+	}
+	return os.Chmod(path, 0o600)
 }
 
 func readLines(path string) ([]string, error) {

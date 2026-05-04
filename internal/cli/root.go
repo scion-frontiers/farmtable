@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -19,9 +20,10 @@ func Execute(version string) {
 	globals := &globalFlags{}
 
 	root := &cobra.Command{
-		Use:          "ft",
-		Short:        "Farm Table CLI — agent-first task management",
-		SilenceUsage: true,
+		Use:           "ft",
+		Short:         "Farm Table CLI — agent-first task management",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
 
 	root.PersistentFlags().StringVarP(&globals.output, "output", "o", "", "Output format: json, table, quiet, jsonl")
@@ -40,6 +42,10 @@ func Execute(version string) {
 	)
 
 	if err := root.Execute(); err != nil {
+		var exitErr *ExitError
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.Code)
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

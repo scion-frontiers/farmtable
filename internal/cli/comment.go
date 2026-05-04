@@ -30,9 +30,7 @@ func newCommentAddCmd(globals *globalFlags) *cobra.Command {
 		Short: "Add a comment to a task",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
 			var commentBody string
@@ -41,26 +39,26 @@ func newCommentAddCmd(globals *globalFlags) *cobra.Command {
 			} else if body != "" {
 				b, err := readInputValue(body)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
+					return exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
 				}
 				commentBody = b
 			} else {
 				data, err := io.ReadAll(os.Stdin)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", fmt.Sprintf("reading stdin: %v", err))
+					return exitError(ExitGeneral, "INTERNAL_ERROR", fmt.Sprintf("reading stdin: %v", err))
 				}
 				commentBody = string(data)
 			}
 
 			if commentBody == "" {
-				exitError(ExitValidation, "VALIDATION_ERROR", "comment body is required")
+				return exitError(ExitValidation, "VALIDATION_ERROR", "comment body is required")
 			}
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			comment, err := client.AddComment(ctx, &pb.AddCommentRequest{
@@ -68,7 +66,7 @@ func newCommentAddCmd(globals *globalFlags) *cobra.Command {
 				Body:   commentBody,
 			})
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -97,16 +95,14 @@ func newCommentListCmd(globals *globalFlags) *cobra.Command {
 		Short: "List comments on a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.ListCommentsRequest{
@@ -122,7 +118,7 @@ func newCommentListCmd(globals *globalFlags) *cobra.Command {
 
 			resp, err := client.ListComments(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {

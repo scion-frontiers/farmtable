@@ -35,19 +35,17 @@ func newTaskGetCmd(globals *globalFlags) *cobra.Command {
 		Short: "Get full task details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
-			collection := resolveCollection(globals.collection)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
+			collection := resolveCollectionFromServer(ctx, client, globals.collection)
 			req := &pb.GetTaskRequest{
 				Id:              args[0],
 				IncludeComments: withComments,
@@ -59,7 +57,7 @@ func newTaskGetCmd(globals *globalFlags) *cobra.Command {
 
 			resp, err := client.GetTask(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -113,19 +111,17 @@ func newTaskListCmd(globals *globalFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List tasks with filters",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
-			collection := resolveCollection(globals.collection)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
+			collection := resolveCollectionFromServer(ctx, client, globals.collection)
 			req := &pb.ListTasksRequest{
 				Full:      full,
 				PageSize:  limit,
@@ -138,14 +134,14 @@ func newTaskListCmd(globals *globalFlags) *cobra.Command {
 			if phase != "" {
 				p, err := parsePhase(phase)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Phase = &p
 			}
 			for _, s := range stages {
 				st, err := parseStage(s)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Stages = append(req.Stages, st)
 			}
@@ -155,7 +151,7 @@ func newTaskListCmd(globals *globalFlags) *cobra.Command {
 			if priority != "" {
 				p, err := parsePriority(priority)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Priority = &p
 			}
@@ -169,19 +165,25 @@ func newTaskListCmd(globals *globalFlags) *cobra.Command {
 				req.ParentTaskId = &parent
 			}
 			if sort != "" {
-				if v, ok := sortFieldValues[sort]; ok {
-					req.SortField = v
+				v, ok := sortFieldValues[sort]
+				if !ok {
+					return exitError(ExitValidation, "VALIDATION_ERROR",
+						fmt.Sprintf("invalid sort field %q; valid: created, updated, priority, due_date", sort))
 				}
+				req.SortField = v
 			}
 			if order != "" {
-				if v, ok := sortOrderValues[order]; ok {
-					req.SortOrder = v
+				v, ok := sortOrderValues[order]
+				if !ok {
+					return exitError(ExitValidation, "VALIDATION_ERROR",
+						fmt.Sprintf("invalid sort order %q; valid: asc, desc", order))
 				}
+				req.SortOrder = v
 			}
 
 			resp, err := client.ListTasks(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -245,23 +247,21 @@ func newTaskCreateCmd(globals *globalFlags) *cobra.Command {
 		Short: "Create a new task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
-			collection := resolveCollection(globals.collection)
 
-			if collection == "" {
-				exitError(ExitValidation, "VALIDATION_ERROR", "collection is required; use --collection or set default_collection in config")
-			}
-
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
+			collection := resolveCollectionFromServer(ctx, client, globals.collection)
+			if collection == "" {
+				return exitError(ExitValidation, "VALIDATION_ERROR", "collection is required; use --collection or set default_collection in config")
+			}
+
 			req := &pb.CreateTaskRequest{
 				Name:         args[0],
 				CollectionId: collection,
@@ -270,28 +270,28 @@ func newTaskCreateCmd(globals *globalFlags) *cobra.Command {
 			if description != "" {
 				desc, err := readInputValue(description)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
+					return exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
 				}
 				req.Description = &desc
 			}
 			if acceptanceCriteria != "" {
 				ac, err := readInputValue(acceptanceCriteria)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
+					return exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
 				}
 				req.AcceptanceCriteria = &ac
 			}
 			if stage != "" {
 				st, err := parseStage(stage)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Stage = &st
 			}
 			if priority != "" {
 				p, err := parsePriority(priority)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Priority = &p
 			}
@@ -310,14 +310,14 @@ func newTaskCreateCmd(globals *globalFlags) *cobra.Command {
 			if dueDate != "" {
 				ts, err := parseDate(dueDate)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid due-date: %v", err))
+					return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid due-date: %v", err))
 				}
 				req.DueDate = ts
 			}
 			if startDate != "" {
 				ts, err := parseDate(startDate)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid start-date: %v", err))
+					return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid start-date: %v", err))
 				}
 				req.StartDate = ts
 			}
@@ -339,7 +339,7 @@ func newTaskCreateCmd(globals *globalFlags) *cobra.Command {
 
 			task, err := client.CreateTask(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -401,16 +401,14 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 		Short: "Update task fields",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.UpdateTaskRequest{
@@ -423,28 +421,28 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 			if description != "" {
 				desc, err := readInputValue(description)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
+					return exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
 				}
 				req.Description = &desc
 			}
 			if acceptanceCriteria != "" {
 				ac, err := readInputValue(acceptanceCriteria)
 				if err != nil {
-					exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
+					return exitError(ExitGeneral, "INTERNAL_ERROR", err.Error())
 				}
 				req.AcceptanceCriteria = &ac
 			}
 			if stage != "" {
 				st, err := parseStage(stage)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Stage = &st
 			}
 			if priority != "" {
 				p, err := parsePriority(priority)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Priority = &p
 			}
@@ -466,7 +464,7 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 				} else {
 					ts, err := parseDate(dueDate)
 					if err != nil {
-						exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid due-date: %v", err))
+						return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid due-date: %v", err))
 					}
 					req.DueDate = ts
 				}
@@ -477,7 +475,7 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 				} else {
 					ts, err := parseDate(startDate)
 					if err != nil {
-						exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid start-date: %v", err))
+						return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid start-date: %v", err))
 					}
 					req.StartDate = ts
 				}
@@ -516,19 +514,19 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 			if addPRURL != "" && addPRStatus != "" {
 				prSt, ok := prStatusValues[strings.ToLower(addPRStatus)]
 				if !ok {
-					exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid PR status %q; valid: open, merged, closed", addPRStatus))
+					return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid PR status %q; valid: open, merged, closed", addPRStatus))
 				}
 				req.AddPullRequests = []*pb.PullRequest{{
 					Url:    addPRURL,
 					Status: prSt,
 				}}
 			} else if addPRURL != "" || addPRStatus != "" {
-				exitError(ExitValidation, "VALIDATION_ERROR", "--add-pr-url and --add-pr-status must be used together")
+				return exitError(ExitValidation, "VALIDATION_ERROR", "--add-pr-url and --add-pr-status must be used together")
 			}
 			if ciStatus != "" {
 				ci, ok := ciStatusValues[strings.ToLower(ciStatus)]
 				if !ok {
-					exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid CI status %q; valid: pending, running, passed, failed", ciStatus))
+					return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid CI status %q; valid: pending, running, passed, failed", ciStatus))
 				}
 				req.CiStatus = &ci
 			}
@@ -541,7 +539,7 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 
 			task, err := client.UpdateTask(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -591,16 +589,14 @@ func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 		Short: "Atomically claim and start a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.ClaimTaskRequest{
@@ -609,7 +605,7 @@ func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 			if stage != "" {
 				st, err := parseStage(stage)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Stage = &st
 			}
@@ -622,7 +618,7 @@ func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 
 			resp, err := client.ClaimTask(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {
@@ -656,16 +652,14 @@ func newTaskCloseCmd(globals *globalFlags) *cobra.Command {
 		Short: "Close a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			requireToken(token)
 			output := resolveOutput(globals.output)
 
-			client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
 			if err != nil {
-				exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
 			}
-			defer conn.Close()
+			defer closer.Close()
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.CloseTaskRequest{
@@ -674,7 +668,7 @@ func newTaskCloseCmd(globals *globalFlags) *cobra.Command {
 			if stage != "" {
 				st, err := parseStage(stage)
 				if err != nil {
-					exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+					return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
 				}
 				req.Stage = &st
 			}
@@ -690,7 +684,7 @@ func newTaskCloseCmd(globals *globalFlags) *cobra.Command {
 
 			task, err := client.CloseTask(ctx, req)
 			if err != nil {
-				handleGRPCError(err)
+				return handleGRPCError(err)
 			}
 
 			switch output {

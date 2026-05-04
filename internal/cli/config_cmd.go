@@ -76,12 +76,12 @@ func newConfigSetCmd() *cobra.Command {
 				"output":             true,
 			}
 			if !validKeys[key] {
-				exitError(ExitValidation, "VALIDATION_ERROR",
+				return exitError(ExitValidation, "VALIDATION_ERROR",
 					fmt.Sprintf("invalid config key %q; valid keys: %s", key, strings.Join(configKeys(), ", ")))
 			}
 
 			if err := SaveConfigValue(key, value); err != nil {
-				exitError(ExitGeneral, "INTERNAL_ERROR", fmt.Sprintf("saving config: %v", err))
+				return exitError(ExitGeneral, "INTERNAL_ERROR", fmt.Sprintf("saving config: %v", err))
 			}
 
 			fmt.Fprintf(os.Stderr, "Set %s = %q\n", key, value)
@@ -94,8 +94,9 @@ func newConfigPathCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "path",
 		Short: "Print config file path",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println(defaultConfigPath())
+			return nil
 		},
 	}
 }

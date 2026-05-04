@@ -22,19 +22,21 @@ func newVersionCmd(globals *globalFlags, cliVersion string) *cobra.Command {
 				"server":         nil,
 			}
 
-			server := resolveServer(globals.server)
+			serverAddr := resolveServer(globals.server)
 			token := resolveToken(globals.token)
-			m["server"] = server
+			if serverAddr != "" {
+				m["server"] = serverAddr
+			} else {
+				m["server"] = "embedded"
+			}
 
-			if token != "" {
-				client, conn, err := newClient(server, token)
+			client, closer, err := newClient(globals)
+			if err == nil {
+				defer closer.Close()
+				ctx := authCtx(context.Background(), token)
+				resp, err := client.GetVersion(ctx, &pb.GetVersionRequest{})
 				if err == nil {
-					defer conn.Close()
-					ctx := authCtx(context.Background(), token)
-					resp, err := client.GetVersion(ctx, &pb.GetVersionRequest{})
-					if err == nil {
-						m["server_version"] = resp.GetServerVersion()
-					}
+					m["server_version"] = resp.GetServerVersion()
 				}
 			}
 

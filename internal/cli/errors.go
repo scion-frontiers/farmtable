@@ -22,6 +22,14 @@ const (
 	ExitPlatform      = 9
 )
 
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string { return e.Err.Error() }
+func (e *ExitError) Unwrap() error { return e.Err }
+
 func grpcExitCode(err error) int {
 	st, ok := status.FromError(err)
 	if !ok {
@@ -70,7 +78,7 @@ func grpcErrorCode(err error) string {
 	}
 }
 
-func handleGRPCError(err error) {
+func handleGRPCError(err error) *ExitError {
 	code := grpcExitCode(err)
 	errCode := grpcErrorCode(err)
 	st, _ := status.FromError(err)
@@ -84,10 +92,10 @@ func handleGRPCError(err error) {
 	data, _ := json.MarshalIndent(errObj, "", "  ")
 	fmt.Fprintln(os.Stdout, string(data))
 	fmt.Fprintf(os.Stderr, "Error: %s\n", st.Message())
-	os.Exit(code)
+	return &ExitError{Code: code, Err: fmt.Errorf("%s", st.Message())}
 }
 
-func exitError(code int, errCode, message string) {
+func exitError(code int, errCode, message string) *ExitError {
 	errObj := map[string]interface{}{
 		"error": map[string]interface{}{
 			"code":    errCode,
@@ -97,11 +105,12 @@ func exitError(code int, errCode, message string) {
 	data, _ := json.MarshalIndent(errObj, "", "  ")
 	fmt.Fprintln(os.Stdout, string(data))
 	fmt.Fprintf(os.Stderr, "Error: %s\n", message)
-	os.Exit(code)
+	return &ExitError{Code: code, Err: fmt.Errorf("%s", message)}
 }
 
-func requireToken(token string) {
+func requireToken(token string) *ExitError {
 	if token == "" {
-		exitError(ExitAuth, "AUTH_REQUIRED", "No API token found. Set FARMTABLE_TOKEN, use --token, or configure token in config file.")
+		return exitError(ExitAuth, "AUTH_REQUIRED", "No API token found. Set FARMTABLE_TOKEN, use --token, or configure token in config file.")
 	}
+	return nil
 }
