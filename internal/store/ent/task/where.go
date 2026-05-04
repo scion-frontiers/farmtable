@@ -121,6 +121,16 @@ func AcceptanceCriteria(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldAcceptanceCriteria, v))
 }
 
+// Repo applies equality check predicate on the "repo" field. It's identical to RepoEQ.
+func Repo(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldRepo, v))
+}
+
+// Branch applies equality check predicate on the "branch" field. It's identical to BranchEQ.
+func Branch(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldBranch, v))
+}
+
 // Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
 func Version(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldVersion, v))
@@ -899,6 +909,206 @@ func RemoteDataIsNil() predicate.Task {
 // RemoteDataNotNil applies the NotNil predicate on the "remote_data" field.
 func RemoteDataNotNil() predicate.Task {
 	return predicate.Task(sql.FieldNotNull(FieldRemoteData))
+}
+
+// LabelsIsNil applies the IsNil predicate on the "labels" field.
+func LabelsIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldLabels))
+}
+
+// LabelsNotNil applies the NotNil predicate on the "labels" field.
+func LabelsNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldLabels))
+}
+
+// RepoEQ applies the EQ predicate on the "repo" field.
+func RepoEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldRepo, v))
+}
+
+// RepoNEQ applies the NEQ predicate on the "repo" field.
+func RepoNEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldRepo, v))
+}
+
+// RepoIn applies the In predicate on the "repo" field.
+func RepoIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldRepo, vs...))
+}
+
+// RepoNotIn applies the NotIn predicate on the "repo" field.
+func RepoNotIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldRepo, vs...))
+}
+
+// RepoGT applies the GT predicate on the "repo" field.
+func RepoGT(v string) predicate.Task {
+	return predicate.Task(sql.FieldGT(FieldRepo, v))
+}
+
+// RepoGTE applies the GTE predicate on the "repo" field.
+func RepoGTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldGTE(FieldRepo, v))
+}
+
+// RepoLT applies the LT predicate on the "repo" field.
+func RepoLT(v string) predicate.Task {
+	return predicate.Task(sql.FieldLT(FieldRepo, v))
+}
+
+// RepoLTE applies the LTE predicate on the "repo" field.
+func RepoLTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldLTE(FieldRepo, v))
+}
+
+// RepoContains applies the Contains predicate on the "repo" field.
+func RepoContains(v string) predicate.Task {
+	return predicate.Task(sql.FieldContains(FieldRepo, v))
+}
+
+// RepoHasPrefix applies the HasPrefix predicate on the "repo" field.
+func RepoHasPrefix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasPrefix(FieldRepo, v))
+}
+
+// RepoHasSuffix applies the HasSuffix predicate on the "repo" field.
+func RepoHasSuffix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasSuffix(FieldRepo, v))
+}
+
+// RepoIsNil applies the IsNil predicate on the "repo" field.
+func RepoIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldRepo))
+}
+
+// RepoNotNil applies the NotNil predicate on the "repo" field.
+func RepoNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldRepo))
+}
+
+// RepoEqualFold applies the EqualFold predicate on the "repo" field.
+func RepoEqualFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldEqualFold(FieldRepo, v))
+}
+
+// RepoContainsFold applies the ContainsFold predicate on the "repo" field.
+func RepoContainsFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldContainsFold(FieldRepo, v))
+}
+
+// BranchEQ applies the EQ predicate on the "branch" field.
+func BranchEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldBranch, v))
+}
+
+// BranchNEQ applies the NEQ predicate on the "branch" field.
+func BranchNEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldBranch, v))
+}
+
+// BranchIn applies the In predicate on the "branch" field.
+func BranchIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldBranch, vs...))
+}
+
+// BranchNotIn applies the NotIn predicate on the "branch" field.
+func BranchNotIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldBranch, vs...))
+}
+
+// BranchGT applies the GT predicate on the "branch" field.
+func BranchGT(v string) predicate.Task {
+	return predicate.Task(sql.FieldGT(FieldBranch, v))
+}
+
+// BranchGTE applies the GTE predicate on the "branch" field.
+func BranchGTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldGTE(FieldBranch, v))
+}
+
+// BranchLT applies the LT predicate on the "branch" field.
+func BranchLT(v string) predicate.Task {
+	return predicate.Task(sql.FieldLT(FieldBranch, v))
+}
+
+// BranchLTE applies the LTE predicate on the "branch" field.
+func BranchLTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldLTE(FieldBranch, v))
+}
+
+// BranchContains applies the Contains predicate on the "branch" field.
+func BranchContains(v string) predicate.Task {
+	return predicate.Task(sql.FieldContains(FieldBranch, v))
+}
+
+// BranchHasPrefix applies the HasPrefix predicate on the "branch" field.
+func BranchHasPrefix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasPrefix(FieldBranch, v))
+}
+
+// BranchHasSuffix applies the HasSuffix predicate on the "branch" field.
+func BranchHasSuffix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasSuffix(FieldBranch, v))
+}
+
+// BranchIsNil applies the IsNil predicate on the "branch" field.
+func BranchIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldBranch))
+}
+
+// BranchNotNil applies the NotNil predicate on the "branch" field.
+func BranchNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldBranch))
+}
+
+// BranchEqualFold applies the EqualFold predicate on the "branch" field.
+func BranchEqualFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldEqualFold(FieldBranch, v))
+}
+
+// BranchContainsFold applies the ContainsFold predicate on the "branch" field.
+func BranchContainsFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldContainsFold(FieldBranch, v))
+}
+
+// CiStatusEQ applies the EQ predicate on the "ci_status" field.
+func CiStatusEQ(v CiStatus) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldCiStatus, v))
+}
+
+// CiStatusNEQ applies the NEQ predicate on the "ci_status" field.
+func CiStatusNEQ(v CiStatus) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldCiStatus, v))
+}
+
+// CiStatusIn applies the In predicate on the "ci_status" field.
+func CiStatusIn(vs ...CiStatus) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldCiStatus, vs...))
+}
+
+// CiStatusNotIn applies the NotIn predicate on the "ci_status" field.
+func CiStatusNotIn(vs ...CiStatus) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldCiStatus, vs...))
+}
+
+// CiStatusIsNil applies the IsNil predicate on the "ci_status" field.
+func CiStatusIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldCiStatus))
+}
+
+// CiStatusNotNil applies the NotNil predicate on the "ci_status" field.
+func CiStatusNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldCiStatus))
+}
+
+// PullRequestsIsNil applies the IsNil predicate on the "pull_requests" field.
+func PullRequestsIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldPullRequests))
+}
+
+// PullRequestsNotNil applies the NotNil predicate on the "pull_requests" field.
+func PullRequestsNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldPullRequests))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.

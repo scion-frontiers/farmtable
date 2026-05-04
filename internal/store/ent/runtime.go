@@ -119,8 +119,16 @@ func init() {
 	task.DefaultUpdatedAt = taskDescUpdatedAt.Default.(func() time.Time)
 	// task.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	task.UpdateDefaultUpdatedAt = taskDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// taskDescRepo is the schema descriptor for repo field.
+	taskDescRepo := taskFields[19].Descriptor()
+	// task.DefaultRepo holds the default value on creation for the repo field.
+	task.DefaultRepo = taskDescRepo.Default.(string)
+	// taskDescBranch is the schema descriptor for branch field.
+	taskDescBranch := taskFields[20].Descriptor()
+	// task.DefaultBranch holds the default value on creation for the branch field.
+	task.DefaultBranch = taskDescBranch.Default.(string)
 	// taskDescVersion is the schema descriptor for version field.
-	taskDescVersion := taskFields[18].Descriptor()
+	taskDescVersion := taskFields[23].Descriptor()
 	// task.DefaultVersion holds the default value on creation for the version field.
 	task.DefaultVersion = taskDescVersion.Default.(string)
 	// taskDescID is the schema descriptor for id field.

@@ -54,6 +54,16 @@ type Task struct {
 	AcceptanceCriteria *string `json:"acceptance_criteria,omitempty"`
 	// RemoteData holds the value of the "remote_data" field.
 	RemoteData map[string]interface{} `json:"remote_data,omitempty"`
+	// Labels holds the value of the "labels" field.
+	Labels []string `json:"labels,omitempty"`
+	// Repo holds the value of the "repo" field.
+	Repo string `json:"repo,omitempty"`
+	// Branch holds the value of the "branch" field.
+	Branch string `json:"branch,omitempty"`
+	// CiStatus holds the value of the "ci_status" field.
+	CiStatus *task.CiStatus `json:"ci_status,omitempty"`
+	// PullRequests holds the value of the "pull_requests" field.
+	PullRequests []map[string]string `json:"pull_requests,omitempty"`
 	// Version holds the value of the "version" field.
 	Version string `json:"version,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -157,9 +167,9 @@ func (*Task) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case task.FieldAssigneeID, task.FieldParentTaskID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case task.FieldRemoteData:
+		case task.FieldRemoteData, task.FieldLabels, task.FieldPullRequests:
 			values[i] = new([]byte)
-		case task.FieldTitle, task.FieldDescription, task.FieldPhase, task.FieldStage, task.FieldNativeLabel, task.FieldType, task.FieldPriority, task.FieldAcceptanceCriteria, task.FieldVersion:
+		case task.FieldTitle, task.FieldDescription, task.FieldPhase, task.FieldStage, task.FieldNativeLabel, task.FieldType, task.FieldPriority, task.FieldAcceptanceCriteria, task.FieldRepo, task.FieldBranch, task.FieldCiStatus, task.FieldVersion:
 			values[i] = new(sql.NullString)
 		case task.FieldStartDate, task.FieldDueDate, task.FieldClosedAt, task.FieldCreatedAt, task.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -295,6 +305,41 @@ func (_m *Task) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.RemoteData); err != nil {
 					return fmt.Errorf("unmarshal field remote_data: %w", err)
+				}
+			}
+		case task.FieldLabels:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field labels", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Labels); err != nil {
+					return fmt.Errorf("unmarshal field labels: %w", err)
+				}
+			}
+		case task.FieldRepo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field repo", values[i])
+			} else if value.Valid {
+				_m.Repo = value.String
+			}
+		case task.FieldBranch:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field branch", values[i])
+			} else if value.Valid {
+				_m.Branch = value.String
+			}
+		case task.FieldCiStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ci_status", values[i])
+			} else if value.Valid {
+				_m.CiStatus = new(task.CiStatus)
+				*_m.CiStatus = task.CiStatus(value.String)
+			}
+		case task.FieldPullRequests:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field pull_requests", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PullRequests); err != nil {
+					return fmt.Errorf("unmarshal field pull_requests: %w", err)
 				}
 			}
 		case task.FieldVersion:
@@ -438,6 +483,23 @@ func (_m *Task) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("remote_data=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RemoteData))
+	builder.WriteString(", ")
+	builder.WriteString("labels=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Labels))
+	builder.WriteString(", ")
+	builder.WriteString("repo=")
+	builder.WriteString(_m.Repo)
+	builder.WriteString(", ")
+	builder.WriteString("branch=")
+	builder.WriteString(_m.Branch)
+	builder.WriteString(", ")
+	if v := _m.CiStatus; v != nil {
+		builder.WriteString("ci_status=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("pull_requests=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PullRequests))
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(_m.Version)

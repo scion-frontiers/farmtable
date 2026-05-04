@@ -50,6 +50,16 @@ const (
 	FieldAcceptanceCriteria = "acceptance_criteria"
 	// FieldRemoteData holds the string denoting the remote_data field in the database.
 	FieldRemoteData = "remote_data"
+	// FieldLabels holds the string denoting the labels field in the database.
+	FieldLabels = "labels"
+	// FieldRepo holds the string denoting the repo field in the database.
+	FieldRepo = "repo"
+	// FieldBranch holds the string denoting the branch field in the database.
+	FieldBranch = "branch"
+	// FieldCiStatus holds the string denoting the ci_status field in the database.
+	FieldCiStatus = "ci_status"
+	// FieldPullRequests holds the string denoting the pull_requests field in the database.
+	FieldPullRequests = "pull_requests"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// EdgeCollection holds the string denoting the collection edge name in mutations.
@@ -133,6 +143,11 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldAcceptanceCriteria,
 	FieldRemoteData,
+	FieldLabels,
+	FieldRepo,
+	FieldBranch,
+	FieldCiStatus,
+	FieldPullRequests,
 	FieldVersion,
 }
 
@@ -161,6 +176,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultRepo holds the default value on creation for the "repo" field.
+	DefaultRepo string
+	// DefaultBranch holds the default value on creation for the "branch" field.
+	DefaultBranch string
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion string
 	// DefaultID holds the default value on creation for the "id" field.
@@ -259,6 +278,32 @@ func PriorityValidator(pr Priority) error {
 	}
 }
 
+// CiStatus defines the type for the "ci_status" enum field.
+type CiStatus string
+
+// CiStatus values.
+const (
+	CiStatusUnknown CiStatus = "unknown"
+	CiStatusPending CiStatus = "pending"
+	CiStatusRunning CiStatus = "running"
+	CiStatusPassed  CiStatus = "passed"
+	CiStatusFailed  CiStatus = "failed"
+)
+
+func (cs CiStatus) String() string {
+	return string(cs)
+}
+
+// CiStatusValidator is a validator for the "ci_status" field enum values. It is called by the builders before save.
+func CiStatusValidator(cs CiStatus) error {
+	switch cs {
+	case CiStatusUnknown, CiStatusPending, CiStatusRunning, CiStatusPassed, CiStatusFailed:
+		return nil
+	default:
+		return fmt.Errorf("task: invalid enum value for ci_status field: %q", cs)
+	}
+}
+
 // OrderOption defines the ordering options for the Task queries.
 type OrderOption func(*sql.Selector)
 
@@ -345,6 +390,21 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByAcceptanceCriteria orders the results by the acceptance_criteria field.
 func ByAcceptanceCriteria(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAcceptanceCriteria, opts...).ToFunc()
+}
+
+// ByRepo orders the results by the repo field.
+func ByRepo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRepo, opts...).ToFunc()
+}
+
+// ByBranch orders the results by the branch field.
+func ByBranch(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBranch, opts...).ToFunc()
+}
+
+// ByCiStatus orders the results by the ci_status field.
+func ByCiStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCiStatus, opts...).ToFunc()
 }
 
 // ByVersion orders the results by the version field.

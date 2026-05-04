@@ -2561,6 +2561,13 @@ type TaskMutation struct {
 	updated_at                  *time.Time
 	acceptance_criteria         *string
 	remote_data                 *map[string]interface{}
+	labels                      *[]string
+	appendlabels                []string
+	repo                        *string
+	branch                      *string
+	ci_status                   *task.CiStatus
+	pull_requests               *[]map[string]string
+	appendpull_requests         []map[string]string
 	version                     *string
 	clearedFields               map[string]struct{}
 	collection                  *uuid.UUID
@@ -3446,6 +3453,283 @@ func (m *TaskMutation) ResetRemoteData() {
 	delete(m.clearedFields, task.FieldRemoteData)
 }
 
+// SetLabels sets the "labels" field.
+func (m *TaskMutation) SetLabels(s []string) {
+	m.labels = &s
+	m.appendlabels = nil
+}
+
+// Labels returns the value of the "labels" field in the mutation.
+func (m *TaskMutation) Labels() (r []string, exists bool) {
+	v := m.labels
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabels returns the old "labels" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldLabels(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabels is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabels requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabels: %w", err)
+	}
+	return oldValue.Labels, nil
+}
+
+// AppendLabels adds s to the "labels" field.
+func (m *TaskMutation) AppendLabels(s []string) {
+	m.appendlabels = append(m.appendlabels, s...)
+}
+
+// AppendedLabels returns the list of values that were appended to the "labels" field in this mutation.
+func (m *TaskMutation) AppendedLabels() ([]string, bool) {
+	if len(m.appendlabels) == 0 {
+		return nil, false
+	}
+	return m.appendlabels, true
+}
+
+// ClearLabels clears the value of the "labels" field.
+func (m *TaskMutation) ClearLabels() {
+	m.labels = nil
+	m.appendlabels = nil
+	m.clearedFields[task.FieldLabels] = struct{}{}
+}
+
+// LabelsCleared returns if the "labels" field was cleared in this mutation.
+func (m *TaskMutation) LabelsCleared() bool {
+	_, ok := m.clearedFields[task.FieldLabels]
+	return ok
+}
+
+// ResetLabels resets all changes to the "labels" field.
+func (m *TaskMutation) ResetLabels() {
+	m.labels = nil
+	m.appendlabels = nil
+	delete(m.clearedFields, task.FieldLabels)
+}
+
+// SetRepo sets the "repo" field.
+func (m *TaskMutation) SetRepo(s string) {
+	m.repo = &s
+}
+
+// Repo returns the value of the "repo" field in the mutation.
+func (m *TaskMutation) Repo() (r string, exists bool) {
+	v := m.repo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRepo returns the old "repo" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldRepo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRepo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRepo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRepo: %w", err)
+	}
+	return oldValue.Repo, nil
+}
+
+// ClearRepo clears the value of the "repo" field.
+func (m *TaskMutation) ClearRepo() {
+	m.repo = nil
+	m.clearedFields[task.FieldRepo] = struct{}{}
+}
+
+// RepoCleared returns if the "repo" field was cleared in this mutation.
+func (m *TaskMutation) RepoCleared() bool {
+	_, ok := m.clearedFields[task.FieldRepo]
+	return ok
+}
+
+// ResetRepo resets all changes to the "repo" field.
+func (m *TaskMutation) ResetRepo() {
+	m.repo = nil
+	delete(m.clearedFields, task.FieldRepo)
+}
+
+// SetBranch sets the "branch" field.
+func (m *TaskMutation) SetBranch(s string) {
+	m.branch = &s
+}
+
+// Branch returns the value of the "branch" field in the mutation.
+func (m *TaskMutation) Branch() (r string, exists bool) {
+	v := m.branch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBranch returns the old "branch" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldBranch(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBranch is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBranch requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBranch: %w", err)
+	}
+	return oldValue.Branch, nil
+}
+
+// ClearBranch clears the value of the "branch" field.
+func (m *TaskMutation) ClearBranch() {
+	m.branch = nil
+	m.clearedFields[task.FieldBranch] = struct{}{}
+}
+
+// BranchCleared returns if the "branch" field was cleared in this mutation.
+func (m *TaskMutation) BranchCleared() bool {
+	_, ok := m.clearedFields[task.FieldBranch]
+	return ok
+}
+
+// ResetBranch resets all changes to the "branch" field.
+func (m *TaskMutation) ResetBranch() {
+	m.branch = nil
+	delete(m.clearedFields, task.FieldBranch)
+}
+
+// SetCiStatus sets the "ci_status" field.
+func (m *TaskMutation) SetCiStatus(ts task.CiStatus) {
+	m.ci_status = &ts
+}
+
+// CiStatus returns the value of the "ci_status" field in the mutation.
+func (m *TaskMutation) CiStatus() (r task.CiStatus, exists bool) {
+	v := m.ci_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCiStatus returns the old "ci_status" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldCiStatus(ctx context.Context) (v *task.CiStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCiStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCiStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCiStatus: %w", err)
+	}
+	return oldValue.CiStatus, nil
+}
+
+// ClearCiStatus clears the value of the "ci_status" field.
+func (m *TaskMutation) ClearCiStatus() {
+	m.ci_status = nil
+	m.clearedFields[task.FieldCiStatus] = struct{}{}
+}
+
+// CiStatusCleared returns if the "ci_status" field was cleared in this mutation.
+func (m *TaskMutation) CiStatusCleared() bool {
+	_, ok := m.clearedFields[task.FieldCiStatus]
+	return ok
+}
+
+// ResetCiStatus resets all changes to the "ci_status" field.
+func (m *TaskMutation) ResetCiStatus() {
+	m.ci_status = nil
+	delete(m.clearedFields, task.FieldCiStatus)
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (m *TaskMutation) SetPullRequests(value []map[string]string) {
+	m.pull_requests = &value
+	m.appendpull_requests = nil
+}
+
+// PullRequests returns the value of the "pull_requests" field in the mutation.
+func (m *TaskMutation) PullRequests() (r []map[string]string, exists bool) {
+	v := m.pull_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPullRequests returns the old "pull_requests" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldPullRequests(ctx context.Context) (v []map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPullRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPullRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPullRequests: %w", err)
+	}
+	return oldValue.PullRequests, nil
+}
+
+// AppendPullRequests adds value to the "pull_requests" field.
+func (m *TaskMutation) AppendPullRequests(value []map[string]string) {
+	m.appendpull_requests = append(m.appendpull_requests, value...)
+}
+
+// AppendedPullRequests returns the list of values that were appended to the "pull_requests" field in this mutation.
+func (m *TaskMutation) AppendedPullRequests() ([]map[string]string, bool) {
+	if len(m.appendpull_requests) == 0 {
+		return nil, false
+	}
+	return m.appendpull_requests, true
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (m *TaskMutation) ClearPullRequests() {
+	m.pull_requests = nil
+	m.appendpull_requests = nil
+	m.clearedFields[task.FieldPullRequests] = struct{}{}
+}
+
+// PullRequestsCleared returns if the "pull_requests" field was cleared in this mutation.
+func (m *TaskMutation) PullRequestsCleared() bool {
+	_, ok := m.clearedFields[task.FieldPullRequests]
+	return ok
+}
+
+// ResetPullRequests resets all changes to the "pull_requests" field.
+func (m *TaskMutation) ResetPullRequests() {
+	m.pull_requests = nil
+	m.appendpull_requests = nil
+	delete(m.clearedFields, task.FieldPullRequests)
+}
+
 // SetVersion sets the "version" field.
 func (m *TaskMutation) SetVersion(s string) {
 	m.version = &s
@@ -3853,7 +4137,7 @@ func (m *TaskMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TaskMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 23)
 	if m.title != nil {
 		fields = append(fields, task.FieldTitle)
 	}
@@ -3905,6 +4189,21 @@ func (m *TaskMutation) Fields() []string {
 	if m.remote_data != nil {
 		fields = append(fields, task.FieldRemoteData)
 	}
+	if m.labels != nil {
+		fields = append(fields, task.FieldLabels)
+	}
+	if m.repo != nil {
+		fields = append(fields, task.FieldRepo)
+	}
+	if m.branch != nil {
+		fields = append(fields, task.FieldBranch)
+	}
+	if m.ci_status != nil {
+		fields = append(fields, task.FieldCiStatus)
+	}
+	if m.pull_requests != nil {
+		fields = append(fields, task.FieldPullRequests)
+	}
 	if m.version != nil {
 		fields = append(fields, task.FieldVersion)
 	}
@@ -3950,6 +4249,16 @@ func (m *TaskMutation) Field(name string) (ent.Value, bool) {
 		return m.AcceptanceCriteria()
 	case task.FieldRemoteData:
 		return m.RemoteData()
+	case task.FieldLabels:
+		return m.Labels()
+	case task.FieldRepo:
+		return m.Repo()
+	case task.FieldBranch:
+		return m.Branch()
+	case task.FieldCiStatus:
+		return m.CiStatus()
+	case task.FieldPullRequests:
+		return m.PullRequests()
 	case task.FieldVersion:
 		return m.Version()
 	}
@@ -3995,6 +4304,16 @@ func (m *TaskMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldAcceptanceCriteria(ctx)
 	case task.FieldRemoteData:
 		return m.OldRemoteData(ctx)
+	case task.FieldLabels:
+		return m.OldLabels(ctx)
+	case task.FieldRepo:
+		return m.OldRepo(ctx)
+	case task.FieldBranch:
+		return m.OldBranch(ctx)
+	case task.FieldCiStatus:
+		return m.OldCiStatus(ctx)
+	case task.FieldPullRequests:
+		return m.OldPullRequests(ctx)
 	case task.FieldVersion:
 		return m.OldVersion(ctx)
 	}
@@ -4125,6 +4444,41 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRemoteData(v)
 		return nil
+	case task.FieldLabels:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabels(v)
+		return nil
+	case task.FieldRepo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRepo(v)
+		return nil
+	case task.FieldBranch:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBranch(v)
+		return nil
+	case task.FieldCiStatus:
+		v, ok := value.(task.CiStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCiStatus(v)
+		return nil
+	case task.FieldPullRequests:
+		v, ok := value.([]map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPullRequests(v)
+		return nil
 	case task.FieldVersion:
 		v, ok := value.(string)
 		if !ok {
@@ -4195,6 +4549,21 @@ func (m *TaskMutation) ClearedFields() []string {
 	if m.FieldCleared(task.FieldRemoteData) {
 		fields = append(fields, task.FieldRemoteData)
 	}
+	if m.FieldCleared(task.FieldLabels) {
+		fields = append(fields, task.FieldLabels)
+	}
+	if m.FieldCleared(task.FieldRepo) {
+		fields = append(fields, task.FieldRepo)
+	}
+	if m.FieldCleared(task.FieldBranch) {
+		fields = append(fields, task.FieldBranch)
+	}
+	if m.FieldCleared(task.FieldCiStatus) {
+		fields = append(fields, task.FieldCiStatus)
+	}
+	if m.FieldCleared(task.FieldPullRequests) {
+		fields = append(fields, task.FieldPullRequests)
+	}
 	return fields
 }
 
@@ -4241,6 +4610,21 @@ func (m *TaskMutation) ClearField(name string) error {
 		return nil
 	case task.FieldRemoteData:
 		m.ClearRemoteData()
+		return nil
+	case task.FieldLabels:
+		m.ClearLabels()
+		return nil
+	case task.FieldRepo:
+		m.ClearRepo()
+		return nil
+	case task.FieldBranch:
+		m.ClearBranch()
+		return nil
+	case task.FieldCiStatus:
+		m.ClearCiStatus()
+		return nil
+	case task.FieldPullRequests:
+		m.ClearPullRequests()
 		return nil
 	}
 	return fmt.Errorf("unknown Task nullable field %s", name)
@@ -4300,6 +4684,21 @@ func (m *TaskMutation) ResetField(name string) error {
 		return nil
 	case task.FieldRemoteData:
 		m.ResetRemoteData()
+		return nil
+	case task.FieldLabels:
+		m.ResetLabels()
+		return nil
+	case task.FieldRepo:
+		m.ResetRepo()
+		return nil
+	case task.FieldBranch:
+		m.ResetBranch()
+		return nil
+	case task.FieldCiStatus:
+		m.ResetCiStatus()
+		return nil
+	case task.FieldPullRequests:
+		m.ResetPullRequests()
 		return nil
 	case task.FieldVersion:
 		m.ResetVersion()

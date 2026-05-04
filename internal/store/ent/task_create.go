@@ -239,6 +239,60 @@ func (_c *TaskCreate) SetRemoteData(v map[string]interface{}) *TaskCreate {
 	return _c
 }
 
+// SetLabels sets the "labels" field.
+func (_c *TaskCreate) SetLabels(v []string) *TaskCreate {
+	_c.mutation.SetLabels(v)
+	return _c
+}
+
+// SetRepo sets the "repo" field.
+func (_c *TaskCreate) SetRepo(v string) *TaskCreate {
+	_c.mutation.SetRepo(v)
+	return _c
+}
+
+// SetNillableRepo sets the "repo" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableRepo(v *string) *TaskCreate {
+	if v != nil {
+		_c.SetRepo(*v)
+	}
+	return _c
+}
+
+// SetBranch sets the "branch" field.
+func (_c *TaskCreate) SetBranch(v string) *TaskCreate {
+	_c.mutation.SetBranch(v)
+	return _c
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableBranch(v *string) *TaskCreate {
+	if v != nil {
+		_c.SetBranch(*v)
+	}
+	return _c
+}
+
+// SetCiStatus sets the "ci_status" field.
+func (_c *TaskCreate) SetCiStatus(v task.CiStatus) *TaskCreate {
+	_c.mutation.SetCiStatus(v)
+	return _c
+}
+
+// SetNillableCiStatus sets the "ci_status" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableCiStatus(v *task.CiStatus) *TaskCreate {
+	if v != nil {
+		_c.SetCiStatus(*v)
+	}
+	return _c
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (_c *TaskCreate) SetPullRequests(v []map[string]string) *TaskCreate {
+	_c.mutation.SetPullRequests(v)
+	return _c
+}
+
 // SetVersion sets the "version" field.
 func (_c *TaskCreate) SetVersion(v string) *TaskCreate {
 	_c.mutation.SetVersion(v)
@@ -429,6 +483,14 @@ func (_c *TaskCreate) defaults() {
 		v := task.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Repo(); !ok {
+		v := task.DefaultRepo
+		_c.mutation.SetRepo(v)
+	}
+	if _, ok := _c.mutation.Branch(); !ok {
+		v := task.DefaultBranch
+		_c.mutation.SetBranch(v)
+	}
 	if _, ok := _c.mutation.Version(); !ok {
 		v := task.DefaultVersion
 		_c.mutation.SetVersion(v)
@@ -478,6 +540,11 @@ func (_c *TaskCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Task.updated_at"`)}
+	}
+	if v, ok := _c.mutation.CiStatus(); ok {
+		if err := task.CiStatusValidator(v); err != nil {
+			return &ValidationError{Name: "ci_status", err: fmt.Errorf(`ent: validator failed for field "Task.ci_status": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "Task.version"`)}
@@ -579,6 +646,26 @@ func (_c *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.RemoteData(); ok {
 		_spec.SetField(task.FieldRemoteData, field.TypeJSON, value)
 		_node.RemoteData = value
+	}
+	if value, ok := _c.mutation.Labels(); ok {
+		_spec.SetField(task.FieldLabels, field.TypeJSON, value)
+		_node.Labels = value
+	}
+	if value, ok := _c.mutation.Repo(); ok {
+		_spec.SetField(task.FieldRepo, field.TypeString, value)
+		_node.Repo = value
+	}
+	if value, ok := _c.mutation.Branch(); ok {
+		_spec.SetField(task.FieldBranch, field.TypeString, value)
+		_node.Branch = value
+	}
+	if value, ok := _c.mutation.CiStatus(); ok {
+		_spec.SetField(task.FieldCiStatus, field.TypeEnum, value)
+		_node.CiStatus = &value
+	}
+	if value, ok := _c.mutation.PullRequests(); ok {
+		_spec.SetField(task.FieldPullRequests, field.TypeJSON, value)
+		_node.PullRequests = value
 	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(task.FieldVersion, field.TypeString, value)

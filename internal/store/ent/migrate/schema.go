@@ -121,6 +121,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{RelationshipsColumns[3]},
 			},
+			{
+				Name:    "relationship_source_task_id_target_task_id_type",
+				Unique:  true,
+				Columns: []*schema.Column{RelationshipsColumns[2], RelationshipsColumns[3], RelationshipsColumns[1]},
+			},
 		},
 	}
 	// TasksColumns holds the columns for the "tasks" table.
@@ -141,6 +146,11 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "acceptance_criteria", Type: field.TypeString, Nullable: true},
 		{Name: "remote_data", Type: field.TypeJSON, Nullable: true},
+		{Name: "labels", Type: field.TypeJSON, Nullable: true},
+		{Name: "repo", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "branch", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "ci_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"unknown", "pending", "running", "passed", "failed"}},
+		{Name: "pull_requests", Type: field.TypeJSON, Nullable: true},
 		{Name: "version", Type: field.TypeString, Default: "1"},
 		{Name: "collection_id", Type: field.TypeUUID},
 		{Name: "parent_task_id", Type: field.TypeUUID, Nullable: true},
@@ -153,13 +163,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tasks_collections_tasks",
-				Columns:    []*schema.Column{TasksColumns[17]},
+				Columns:    []*schema.Column{TasksColumns[22]},
 				RefColumns: []*schema.Column{CollectionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "tasks_tasks_children",
-				Columns:    []*schema.Column{TasksColumns[18]},
+				Columns:    []*schema.Column{TasksColumns[23]},
 				RefColumns: []*schema.Column{TasksColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -168,12 +178,12 @@ var (
 			{
 				Name:    "task_id_version",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[0], TasksColumns[16]},
+				Columns: []*schema.Column{TasksColumns[0], TasksColumns[21]},
 			},
 			{
 				Name:    "task_collection_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[17]},
+				Columns: []*schema.Column{TasksColumns[22]},
 			},
 			{
 				Name:    "task_phase",

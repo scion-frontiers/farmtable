@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
@@ -307,6 +308,102 @@ func (_u *TaskUpdate) ClearRemoteData() *TaskUpdate {
 	return _u
 }
 
+// SetLabels sets the "labels" field.
+func (_u *TaskUpdate) SetLabels(v []string) *TaskUpdate {
+	_u.mutation.SetLabels(v)
+	return _u
+}
+
+// AppendLabels appends value to the "labels" field.
+func (_u *TaskUpdate) AppendLabels(v []string) *TaskUpdate {
+	_u.mutation.AppendLabels(v)
+	return _u
+}
+
+// ClearLabels clears the value of the "labels" field.
+func (_u *TaskUpdate) ClearLabels() *TaskUpdate {
+	_u.mutation.ClearLabels()
+	return _u
+}
+
+// SetRepo sets the "repo" field.
+func (_u *TaskUpdate) SetRepo(v string) *TaskUpdate {
+	_u.mutation.SetRepo(v)
+	return _u
+}
+
+// SetNillableRepo sets the "repo" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableRepo(v *string) *TaskUpdate {
+	if v != nil {
+		_u.SetRepo(*v)
+	}
+	return _u
+}
+
+// ClearRepo clears the value of the "repo" field.
+func (_u *TaskUpdate) ClearRepo() *TaskUpdate {
+	_u.mutation.ClearRepo()
+	return _u
+}
+
+// SetBranch sets the "branch" field.
+func (_u *TaskUpdate) SetBranch(v string) *TaskUpdate {
+	_u.mutation.SetBranch(v)
+	return _u
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableBranch(v *string) *TaskUpdate {
+	if v != nil {
+		_u.SetBranch(*v)
+	}
+	return _u
+}
+
+// ClearBranch clears the value of the "branch" field.
+func (_u *TaskUpdate) ClearBranch() *TaskUpdate {
+	_u.mutation.ClearBranch()
+	return _u
+}
+
+// SetCiStatus sets the "ci_status" field.
+func (_u *TaskUpdate) SetCiStatus(v task.CiStatus) *TaskUpdate {
+	_u.mutation.SetCiStatus(v)
+	return _u
+}
+
+// SetNillableCiStatus sets the "ci_status" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableCiStatus(v *task.CiStatus) *TaskUpdate {
+	if v != nil {
+		_u.SetCiStatus(*v)
+	}
+	return _u
+}
+
+// ClearCiStatus clears the value of the "ci_status" field.
+func (_u *TaskUpdate) ClearCiStatus() *TaskUpdate {
+	_u.mutation.ClearCiStatus()
+	return _u
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (_u *TaskUpdate) SetPullRequests(v []map[string]string) *TaskUpdate {
+	_u.mutation.SetPullRequests(v)
+	return _u
+}
+
+// AppendPullRequests appends value to the "pull_requests" field.
+func (_u *TaskUpdate) AppendPullRequests(v []map[string]string) *TaskUpdate {
+	_u.mutation.AppendPullRequests(v)
+	return _u
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (_u *TaskUpdate) ClearPullRequests() *TaskUpdate {
+	_u.mutation.ClearPullRequests()
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *TaskUpdate) SetVersion(v string) *TaskUpdate {
 	_u.mutation.SetVersion(v)
@@ -600,6 +697,11 @@ func (_u *TaskUpdate) check() error {
 			return &ValidationError{Name: "priority", err: fmt.Errorf(`ent: validator failed for field "Task.priority": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CiStatus(); ok {
+		if err := task.CiStatusValidator(v); err != nil {
+			return &ValidationError{Name: "ci_status", err: fmt.Errorf(`ent: validator failed for field "Task.ci_status": %w`, err)}
+		}
+	}
 	if _u.mutation.CollectionCleared() && len(_u.mutation.CollectionIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Task.collection"`)
 	}
@@ -689,6 +791,46 @@ func (_u *TaskUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.RemoteDataCleared() {
 		_spec.ClearField(task.FieldRemoteData, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Labels(); ok {
+		_spec.SetField(task.FieldLabels, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedLabels(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldLabels, value)
+		})
+	}
+	if _u.mutation.LabelsCleared() {
+		_spec.ClearField(task.FieldLabels, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Repo(); ok {
+		_spec.SetField(task.FieldRepo, field.TypeString, value)
+	}
+	if _u.mutation.RepoCleared() {
+		_spec.ClearField(task.FieldRepo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Branch(); ok {
+		_spec.SetField(task.FieldBranch, field.TypeString, value)
+	}
+	if _u.mutation.BranchCleared() {
+		_spec.ClearField(task.FieldBranch, field.TypeString)
+	}
+	if value, ok := _u.mutation.CiStatus(); ok {
+		_spec.SetField(task.FieldCiStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.CiStatusCleared() {
+		_spec.ClearField(task.FieldCiStatus, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.PullRequests(); ok {
+		_spec.SetField(task.FieldPullRequests, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedPullRequests(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldPullRequests, value)
+		})
+	}
+	if _u.mutation.PullRequestsCleared() {
+		_spec.ClearField(task.FieldPullRequests, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(task.FieldVersion, field.TypeString, value)
@@ -1270,6 +1412,102 @@ func (_u *TaskUpdateOne) ClearRemoteData() *TaskUpdateOne {
 	return _u
 }
 
+// SetLabels sets the "labels" field.
+func (_u *TaskUpdateOne) SetLabels(v []string) *TaskUpdateOne {
+	_u.mutation.SetLabels(v)
+	return _u
+}
+
+// AppendLabels appends value to the "labels" field.
+func (_u *TaskUpdateOne) AppendLabels(v []string) *TaskUpdateOne {
+	_u.mutation.AppendLabels(v)
+	return _u
+}
+
+// ClearLabels clears the value of the "labels" field.
+func (_u *TaskUpdateOne) ClearLabels() *TaskUpdateOne {
+	_u.mutation.ClearLabels()
+	return _u
+}
+
+// SetRepo sets the "repo" field.
+func (_u *TaskUpdateOne) SetRepo(v string) *TaskUpdateOne {
+	_u.mutation.SetRepo(v)
+	return _u
+}
+
+// SetNillableRepo sets the "repo" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableRepo(v *string) *TaskUpdateOne {
+	if v != nil {
+		_u.SetRepo(*v)
+	}
+	return _u
+}
+
+// ClearRepo clears the value of the "repo" field.
+func (_u *TaskUpdateOne) ClearRepo() *TaskUpdateOne {
+	_u.mutation.ClearRepo()
+	return _u
+}
+
+// SetBranch sets the "branch" field.
+func (_u *TaskUpdateOne) SetBranch(v string) *TaskUpdateOne {
+	_u.mutation.SetBranch(v)
+	return _u
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableBranch(v *string) *TaskUpdateOne {
+	if v != nil {
+		_u.SetBranch(*v)
+	}
+	return _u
+}
+
+// ClearBranch clears the value of the "branch" field.
+func (_u *TaskUpdateOne) ClearBranch() *TaskUpdateOne {
+	_u.mutation.ClearBranch()
+	return _u
+}
+
+// SetCiStatus sets the "ci_status" field.
+func (_u *TaskUpdateOne) SetCiStatus(v task.CiStatus) *TaskUpdateOne {
+	_u.mutation.SetCiStatus(v)
+	return _u
+}
+
+// SetNillableCiStatus sets the "ci_status" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableCiStatus(v *task.CiStatus) *TaskUpdateOne {
+	if v != nil {
+		_u.SetCiStatus(*v)
+	}
+	return _u
+}
+
+// ClearCiStatus clears the value of the "ci_status" field.
+func (_u *TaskUpdateOne) ClearCiStatus() *TaskUpdateOne {
+	_u.mutation.ClearCiStatus()
+	return _u
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (_u *TaskUpdateOne) SetPullRequests(v []map[string]string) *TaskUpdateOne {
+	_u.mutation.SetPullRequests(v)
+	return _u
+}
+
+// AppendPullRequests appends value to the "pull_requests" field.
+func (_u *TaskUpdateOne) AppendPullRequests(v []map[string]string) *TaskUpdateOne {
+	_u.mutation.AppendPullRequests(v)
+	return _u
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (_u *TaskUpdateOne) ClearPullRequests() *TaskUpdateOne {
+	_u.mutation.ClearPullRequests()
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *TaskUpdateOne) SetVersion(v string) *TaskUpdateOne {
 	_u.mutation.SetVersion(v)
@@ -1576,6 +1814,11 @@ func (_u *TaskUpdateOne) check() error {
 			return &ValidationError{Name: "priority", err: fmt.Errorf(`ent: validator failed for field "Task.priority": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CiStatus(); ok {
+		if err := task.CiStatusValidator(v); err != nil {
+			return &ValidationError{Name: "ci_status", err: fmt.Errorf(`ent: validator failed for field "Task.ci_status": %w`, err)}
+		}
+	}
 	if _u.mutation.CollectionCleared() && len(_u.mutation.CollectionIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Task.collection"`)
 	}
@@ -1682,6 +1925,46 @@ func (_u *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) {
 	}
 	if _u.mutation.RemoteDataCleared() {
 		_spec.ClearField(task.FieldRemoteData, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Labels(); ok {
+		_spec.SetField(task.FieldLabels, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedLabels(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldLabels, value)
+		})
+	}
+	if _u.mutation.LabelsCleared() {
+		_spec.ClearField(task.FieldLabels, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Repo(); ok {
+		_spec.SetField(task.FieldRepo, field.TypeString, value)
+	}
+	if _u.mutation.RepoCleared() {
+		_spec.ClearField(task.FieldRepo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Branch(); ok {
+		_spec.SetField(task.FieldBranch, field.TypeString, value)
+	}
+	if _u.mutation.BranchCleared() {
+		_spec.ClearField(task.FieldBranch, field.TypeString)
+	}
+	if value, ok := _u.mutation.CiStatus(); ok {
+		_spec.SetField(task.FieldCiStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.CiStatusCleared() {
+		_spec.ClearField(task.FieldCiStatus, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.PullRequests(); ok {
+		_spec.SetField(task.FieldPullRequests, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedPullRequests(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldPullRequests, value)
+		})
+	}
+	if _u.mutation.PullRequestsCleared() {
+		_spec.ClearField(task.FieldPullRequests, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(task.FieldVersion, field.TypeString, value)
