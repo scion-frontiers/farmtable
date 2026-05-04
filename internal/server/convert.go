@@ -4,6 +4,7 @@ import (
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -229,8 +230,144 @@ func taskToProto(t *ent.Task) *pb.Task {
 	if t.RemoteData != nil {
 		pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)
 	}
+	if len(t.Labels) > 0 {
+		pt.Labels = t.Labels
+	}
+	if t.Repo != "" || t.Branch != "" || t.CiStatus != nil || len(t.PullRequests) > 0 {
+		pt.CodeContext = &pb.CodeContext{}
+		if t.Repo != "" {
+			pt.CodeContext.Repo = &t.Repo
+		}
+		if t.Branch != "" {
+			pt.CodeContext.Branch = &t.Branch
+		}
+		if t.CiStatus != nil {
+			cs := ciStatusToProto(*t.CiStatus)
+			pt.CodeContext.CiStatus = &cs
+		}
+		for _, pr := range t.PullRequests {
+			pt.CodeContext.PullRequests = append(pt.CodeContext.PullRequests, &pb.PullRequest{
+				Id:     pr["id"],
+				Url:    pr["url"],
+				Status: prStatusToProto(pr["status"]),
+			})
+		}
+	}
+	if edges := t.Edges.SourceRelationships; len(edges) > 0 {
+		for _, r := range edges {
+			pt.Relationships = append(pt.Relationships, &pb.Relationship{
+				Type:         relationshipTypeToProto(r.Type),
+				TargetTaskId: r.TargetTaskID.String(),
+			})
+		}
+	}
+	if edges := t.Edges.TargetRelationships; len(edges) > 0 {
+		for _, r := range edges {
+			pt.Relationships = append(pt.Relationships, &pb.Relationship{
+				Type:         relationshipTypeToProto(r.Type),
+				TargetTaskId: r.SourceTaskID.String(),
+			})
+		}
+	}
 
 	return pt
+}
+
+func ciStatusToProto(cs task.CiStatus) pb.CIStatus {
+	switch cs {
+	case task.CiStatusPending:
+		return pb.CIStatus_CI_STATUS_PENDING
+	case task.CiStatusRunning:
+		return pb.CIStatus_CI_STATUS_RUNNING
+	case task.CiStatusPassed:
+		return pb.CIStatus_CI_STATUS_PASSED
+	case task.CiStatusFailed:
+		return pb.CIStatus_CI_STATUS_FAILED
+	default:
+		return pb.CIStatus_CI_STATUS_UNSPECIFIED
+	}
+}
+
+func ciStatusFromProto(cs pb.CIStatus) string {
+	switch cs {
+	case pb.CIStatus_CI_STATUS_PENDING:
+		return "pending"
+	case pb.CIStatus_CI_STATUS_RUNNING:
+		return "running"
+	case pb.CIStatus_CI_STATUS_PASSED:
+		return "passed"
+	case pb.CIStatus_CI_STATUS_FAILED:
+		return "failed"
+	default:
+		return "unknown"
+	}
+}
+
+func prStatusToProto(s string) pb.PullRequestStatus {
+	switch s {
+	case "open":
+		return pb.PullRequestStatus_PULL_REQUEST_STATUS_OPEN
+	case "merged":
+		return pb.PullRequestStatus_PULL_REQUEST_STATUS_MERGED
+	case "closed":
+		return pb.PullRequestStatus_PULL_REQUEST_STATUS_CLOSED
+	default:
+		return pb.PullRequestStatus_PULL_REQUEST_STATUS_UNSPECIFIED
+	}
+}
+
+func prStatusFromProto(s pb.PullRequestStatus) string {
+	switch s {
+	case pb.PullRequestStatus_PULL_REQUEST_STATUS_OPEN:
+		return "open"
+	case pb.PullRequestStatus_PULL_REQUEST_STATUS_MERGED:
+		return "merged"
+	case pb.PullRequestStatus_PULL_REQUEST_STATUS_CLOSED:
+		return "closed"
+	default:
+		return ""
+	}
+}
+
+func relationshipTypeToProto(rt relationship.Type) pb.RelationshipType {
+	switch rt {
+	case relationship.TypeBlocks:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKS
+	case relationship.TypeBlockedBy:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKED_BY
+	case relationship.TypeRelatesTo:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_RELATED
+	case relationship.TypeDuplicates, relationship.TypeDuplicatedBy:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_DUPLICATE
+	default:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+	}
+}
+
+func sortFieldToString(f pb.SortField) string {
+	switch f {
+	case pb.SortField_SORT_FIELD_CREATED:
+		return "created"
+	case pb.SortField_SORT_FIELD_UPDATED:
+		return "updated"
+	case pb.SortField_SORT_FIELD_PRIORITY:
+		return "priority"
+	case pb.SortField_SORT_FIELD_DUE_DATE:
+		return "due_date"
+	default:
+		return ""
+	}
+}
+
+func sortOrderToString(o pb.SortOrder) string {
+	switch o {
+	case pb.SortOrder_SORT_ORDER_ASC:
+		return "asc"
+	case pb.SortOrder_SORT_ORDER_DESC:
+		return "desc"
+	default:
+		return "asc"
+	}
 }
 
 func collectionToProto(c *ent.Collection) *pb.Collection {
