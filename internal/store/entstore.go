@@ -80,6 +80,10 @@ func openSQLite(dsn string) (*ent.Client, error) {
 		db.Close()
 		return nil, fmt.Errorf("enabling foreign keys: %w", err)
 	}
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("setting busy timeout: %w", err)
+	}
 
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	return ent.NewClient(ent.Driver(drv)), nil

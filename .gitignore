@@ -1,4 +1,5 @@
 # Project specific
+.farmtable/
 .scratch
 scenarios/
 .venv/
