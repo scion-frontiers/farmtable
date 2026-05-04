@@ -23,6 +23,11 @@ func main() {
 		log.Fatal("FARMTABLE_DB_URL is required")
 	}
 
+	dbDialect := os.Getenv("FARMTABLE_DB_DIALECT")
+	if dbDialect == "" {
+		dbDialect = "postgres"
+	}
+
 	port := os.Getenv("FARMTABLE_PORT")
 	if port == "" {
 		port = "50051"
@@ -31,14 +36,24 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s, err := store.NewPostgresStoreFromDSN(ctx, dbURL)
+	s, err := store.NewEntStore(ctx, store.StoreOptions{
+		Dialect: dbDialect,
+		DSN:     dbURL,
+		Migrate: true,
+	})
 	if err != nil {
 		log.Fatalf("Failed to initialize store: %v", err)
 	}
 	defer s.Close()
 
-	grpcServer := grpc.NewServer()
-	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s))
+	token := os.Getenv("FARMTABLE_TOKEN")
+	if token == "" {
+		log.Println("WARNING: FARMTABLE_TOKEN not set — server running in open access mode")
+	}
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(token)),
+	)
+	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version))
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {

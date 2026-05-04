@@ -237,6 +237,31 @@ Full design: `.design/consistency-model.md`
 
 ---
 
+### Q12: Backend architecture — dual-mode operation (embedded + client-server)
+
+**Context:** The built-in backend was designed Postgres-only. This creates friction for local dev, single-agent use, testing, and the "zero-config quick start" promise.
+
+**Challenge:** How to support both SQLite (for embedded/local/testing) and Postgres (for production multi-agent) without duplicating the codebase or creating architectural complexity?
+
+**Decision: Dual-mode via bufconn.**
+
+- **Embedded mode (default):** CLI starts an in-process gRPC server over bufconn (gRPC's in-memory transport), backed by SQLite at `~/.farmtable/farmtable.db`. No separate server process, no Postgres, no configuration. Just works.
+- **Client-server mode:** When `FARMTABLE_SERVER` is set or `--server` is provided, CLI dials a remote `farmtable-server` backed by Postgres. Production multi-agent deployments use this mode.
+- **Single store implementation:** Rename `PostgresStore` → `EntStore` with a dialect parameter. Ent handles SQL differences between Postgres and SQLite. The existing code has no Postgres-specific queries — it's already dialect-agnostic.
+- **Single decision point:** Mode selection happens in `connect.go` only. CLI commands, service layer, and store layer are completely unaware of which mode is active.
+
+**Key properties:**
+- Zero-config by default (embedded SQLite). Server config opts into client-server mode.
+- Same Ent schemas, same service code, same CLI code for both modes.
+- SQLite concurrency is sufficient for embedded single-process use. Postgres required for multi-agent production.
+- Recursive CTEs (graph queries) supported by both databases.
+
+**Implementation phases:** A (EntStore refactor) → B (embedded mode) → C (default collection) → D (test infrastructure).
+
+Full design: `.design/backend-architecture.md`
+
+---
+
 ## Open items for future discussion
 - Repositioning / messaging (Q1 follow-up)
 - Beads audience validation (Q2 follow-up)
