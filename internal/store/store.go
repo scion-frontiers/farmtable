@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
@@ -31,6 +32,13 @@ type CreateTaskParams struct {
 	ParentTaskID       *uuid.UUID
 	AcceptanceCriteria *string
 	RemoteData         map[string]any
+	Labels             []string
+	StartDate          *time.Time
+	DueDate            *time.Time
+	BlocksTaskIDs      []uuid.UUID
+	BlockedByTaskIDs   []uuid.UUID
+	Repo               string
+	Branch             string
 }
 
 type UpdateTaskParams struct {
@@ -50,6 +58,29 @@ type UpdateTaskParams struct {
 	ClearAcceptance    bool
 	RemoteData         map[string]any
 	Version            string // required for CAS
+	StartDate          *time.Time
+	ClearStartDate     bool
+	DueDate            *time.Time
+	ClearDueDate       bool
+	AddLabels          []string
+	RemoveLabels       []string
+	AddBlocks          []uuid.UUID
+	AddBlockedBy       []uuid.UUID
+	RemoveRelationships []uuid.UUID
+	Repo               *string
+	Branch             *string
+	ClearRepo          bool
+	ClearBranch        bool
+	AddPullRequests    []PullRequestParam
+	CIStatus           *string
+	ClearCIStatus      bool
+	Reason             *string
+}
+
+type PullRequestParam struct {
+	ID     string
+	URL    string
+	Status string
 }
 
 type ListTasksParams struct {
@@ -58,6 +89,12 @@ type ListTasksParams struct {
 	Stage        *task.Stage
 	AssigneeID   *uuid.UUID
 	Unassigned   bool
+	Priority     *task.Priority
+	Type         *string
+	Labels       []string
+	ParentTaskID *uuid.UUID
+	SortField    string
+	SortOrder    string
 	Limit        int
 	Offset       int
 }
@@ -107,5 +144,44 @@ type Store interface {
 	GetComment(ctx context.Context, id uuid.UUID) (*ent.Comment, error)
 	ListComments(ctx context.Context, p ListCommentsParams) ([]*ent.Comment, int, error)
 	ListChanges(ctx context.Context, p ListChangesParams) ([]*ent.Change, int, error)
+	GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error)
+	GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error)
 	Close() error
+}
+
+// ── Graph Query Params ──
+
+type GetReadyTasksParams struct {
+	CollectionID         *uuid.UUID
+	AssigneeID           *uuid.UUID
+	Unassigned           bool
+	MinPriority          *task.Priority
+	IncludeUnblockedOpen bool
+	Limit                int
+	Offset               int
+}
+
+type ReadyTaskResult struct {
+	Task             *ent.Task
+	BlockersResolved int
+}
+
+type GetBlockedTasksParams struct {
+	CollectionID *uuid.UUID
+	AssigneeID   *uuid.UUID
+	Unassigned   bool
+	Limit        int
+	Offset       int
+}
+
+type BlockerInfoResult struct {
+	TaskID uuid.UUID
+	Name   string
+	Phase  task.Phase
+	Stage  task.Stage
+}
+
+type BlockedTaskResult struct {
+	Task     *ent.Task
+	Blockers []BlockerInfoResult
 }

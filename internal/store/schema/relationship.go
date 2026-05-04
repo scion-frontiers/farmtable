@@ -41,5 +41,6 @@ func (Relationship) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("source_task_id"),
 		index.Fields("target_task_id"),
+		index.Fields("source_task_id", "target_task_id", "type").Unique(),
 	}
 }

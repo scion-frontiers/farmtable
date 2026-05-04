@@ -45,6 +45,14 @@ func (Task) Fields() []ent.Field {
 		field.Time("updated_at").Default(timeNow).UpdateDefault(timeNow),
 		field.String("acceptance_criteria").Optional().Nillable(),
 		field.JSON("remote_data", map[string]any{}).Optional(),
+		field.JSON("labels", []string{}).Optional(),
+		field.String("repo").Optional().Default(""),
+		field.String("branch").Optional().Default(""),
+		field.Enum("ci_status").
+			Values("unknown", "pending", "running", "passed", "failed").
+			Optional().
+			Nillable(),
+		field.JSON("pull_requests", []map[string]string{}).Optional(),
 		field.String("version").Default("1"),
 	}
 }
