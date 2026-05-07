@@ -394,9 +394,14 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 		removeRels         []string
 		repoFlag           string
 		branchFlag         string
+		clearDueDate       bool
+		clearStartDate     bool
+		clearRepo          bool
+		clearBranch        bool
 		addPRURL           string
 		addPRStatus        string
 		ciStatus           string
+		clearCIStatus      bool
 		reason             string
 		version            string
 	)
@@ -463,7 +468,9 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 				}
 			}
 
-			if cmd.Flags().Changed("due-date") {
+			if clearDueDate {
+				req.ClearDueDate = true
+			} else if cmd.Flags().Changed("due-date") {
 				if strings.ToLower(dueDate) == "none" {
 					req.ClearDueDate = true
 				} else {
@@ -474,7 +481,9 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 					req.DueDate = ts
 				}
 			}
-			if cmd.Flags().Changed("start-date") {
+			if clearStartDate {
+				req.ClearStartDate = true
+			} else if cmd.Flags().Changed("start-date") {
 				if strings.ToLower(startDate) == "none" {
 					req.ClearStartDate = true
 				} else {
@@ -510,10 +519,16 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 				req.RemoveRelationships = removeRels
 			}
 
-			if repoFlag != "" {
+			if clearRepo {
+				empty := ""
+				req.Repo = &empty
+			} else if repoFlag != "" {
 				req.Repo = &repoFlag
 			}
-			if branchFlag != "" {
+			if clearBranch {
+				empty := ""
+				req.Branch = &empty
+			} else if branchFlag != "" {
 				req.Branch = &branchFlag
 			}
 			if addPRURL != "" && addPRStatus != "" {
@@ -528,7 +543,10 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 			} else if addPRURL != "" || addPRStatus != "" {
 				return exitError(ExitValidation, "VALIDATION_ERROR", "--add-pr-url and --add-pr-status must be used together")
 			}
-			if ciStatus != "" {
+			if clearCIStatus {
+				unspecified := pb.CIStatus_CI_STATUS_UNSPECIFIED
+				req.CiStatus = &unspecified
+			} else if ciStatus != "" {
 				ci, ok := ciStatusValues[strings.ToLower(ciStatus)]
 				if !ok {
 					return exitError(ExitValidation, "VALIDATION_ERROR", fmt.Sprintf("invalid CI status %q; valid: pending, running, passed, failed", ciStatus))
@@ -565,7 +583,9 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 	cmd.Flags().StringVarP(&taskType, "type", "t", "", "New task type")
 	cmd.Flags().StringSliceVarP(&assignees, "assignee", "a", nil, "Set assignee(s); 'none' to clear")
 	cmd.Flags().StringVar(&dueDate, "due-date", "", "New due date; 'none' to clear")
+	cmd.Flags().BoolVar(&clearDueDate, "clear-due-date", false, "Clear due date")
 	cmd.Flags().StringVar(&startDate, "start-date", "", "New start date; 'none' to clear")
+	cmd.Flags().BoolVar(&clearStartDate, "clear-start-date", false, "Clear start date")
 	cmd.Flags().StringVar(&parentID, "parent", "", "New parent task ID; 'none' to clear")
 	cmd.Flags().StringSliceVar(&addLabels, "add-label", nil, "Add label (repeatable)")
 	cmd.Flags().StringSliceVar(&removeLabels, "remove-label", nil, "Remove label (repeatable)")
@@ -573,10 +593,13 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 	cmd.Flags().StringSliceVar(&addBlockedBy, "add-blocked-by", nil, "Add BLOCKED_BY relationship (repeatable)")
 	cmd.Flags().StringSliceVar(&removeRels, "remove-relationship", nil, "Remove relationship (repeatable)")
 	cmd.Flags().StringVar(&repoFlag, "repo", "", "Update code_context repo")
+	cmd.Flags().BoolVar(&clearRepo, "clear-repo", false, "Clear code_context repo")
 	cmd.Flags().StringVar(&branchFlag, "branch", "", "Update code_context branch")
+	cmd.Flags().BoolVar(&clearBranch, "clear-branch", false, "Clear code_context branch")
 	cmd.Flags().StringVar(&addPRURL, "add-pr-url", "", "PR URL (must pair with --add-pr-status)")
 	cmd.Flags().StringVar(&addPRStatus, "add-pr-status", "", "PR status: open, merged, closed")
 	cmd.Flags().StringVar(&ciStatus, "ci-status", "", "CI status: pending, running, passed, failed")
+	cmd.Flags().BoolVar(&clearCIStatus, "clear-ci-status", false, "Clear CI status")
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	cmd.Flags().StringVar(&version, "version", "", "Expected version for CAS update")
 	return cmd
