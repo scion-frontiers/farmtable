@@ -23,6 +23,11 @@ func newTaskCmd(globals *globalFlags) *cobra.Command {
 		newTaskUpdateCmd(globals),
 		newTaskClaimCmd(globals),
 		newTaskCloseCmd(globals),
+		newReadyCmd(globals),
+		newBlockedCmd(globals),
+		newTreeCmd(globals),
+		newCriticalPathCmd(globals),
+		newBottlenecksCmd(globals),
 	)
 	return cmd
 }

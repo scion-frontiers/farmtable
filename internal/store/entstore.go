@@ -237,33 +237,37 @@ func (s *EntStore) ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Tas
 		q = q.Where(preds...)
 	}
 
-	switch p.SortField {
+	desc := p.SortOrder == "desc"
+	sortField := p.SortField
+	if sortField == "" {
+		sortField = "created"
+	}
+
+	switch sortField {
 	case "created":
-		if p.SortOrder == "desc" {
-			q = q.Order(task.ByCreatedAt(entsql.OrderDesc()))
+		if desc {
+			q = q.Order(task.ByCreatedAt(entsql.OrderDesc()), task.ByID(entsql.OrderDesc()))
 		} else {
-			q = q.Order(task.ByCreatedAt())
+			q = q.Order(task.ByCreatedAt(), task.ByID())
 		}
 	case "updated":
-		if p.SortOrder == "desc" {
-			q = q.Order(task.ByUpdatedAt(entsql.OrderDesc()))
+		if desc {
+			q = q.Order(task.ByUpdatedAt(entsql.OrderDesc()), task.ByID(entsql.OrderDesc()))
 		} else {
-			q = q.Order(task.ByUpdatedAt())
+			q = q.Order(task.ByUpdatedAt(), task.ByID())
 		}
 	case "priority":
-		if p.SortOrder == "desc" {
-			q = q.Order(task.ByPriority(entsql.OrderDesc()))
+		if desc {
+			q = q.Order(task.ByPriority(entsql.OrderDesc()), task.ByID(entsql.OrderDesc()))
 		} else {
-			q = q.Order(task.ByPriority())
+			q = q.Order(task.ByPriority(), task.ByID())
 		}
 	case "due_date":
-		if p.SortOrder == "desc" {
-			q = q.Order(task.ByDueDate(entsql.OrderDesc()))
+		if desc {
+			q = q.Order(task.ByDueDate(entsql.OrderDesc()), task.ByID(entsql.OrderDesc()))
 		} else {
-			q = q.Order(task.ByDueDate())
+			q = q.Order(task.ByDueDate(), task.ByID())
 		}
-	default:
-		q = q.Order(task.ByCreatedAt())
 	}
 
 	total, err := q.Clone().Count(ctx)
@@ -271,11 +275,27 @@ func (s *EntStore) ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Tas
 		return nil, 0, fmt.Errorf("counting tasks: %w", err)
 	}
 
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		var dbField string
+		switch sortField {
+		case "updated":
+			dbField = task.FieldUpdatedAt
+		case "priority":
+			dbField = task.FieldPriority
+		case "due_date":
+			dbField = task.FieldDueDate
+		default:
+			dbField = task.FieldCreatedAt
+		}
+		q = q.Where(keysetPredTask(dbField, p.LastSortValue, lastID, desc))
+	}
+
 	if p.Limit > 0 {
 		q = q.Limit(p.Limit)
-	}
-	if p.Offset > 0 {
-		q = q.Offset(p.Offset)
 	}
 
 	q = q.WithSourceRelationships().WithTargetRelationships()
@@ -686,13 +706,17 @@ func (s *EntStore) ListCollections(ctx context.Context, p ListCollectionsParams)
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting collections: %w", err)
 	}
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		q = q.Where(keysetPredCollection(p.LastSortValue, lastID))
+	}
 	if p.Limit > 0 {
 		q = q.Limit(p.Limit)
 	}
-	if p.Offset > 0 {
-		q = q.Offset(p.Offset)
-	}
-	cols, err := q.All(ctx)
+	cols, err := q.Order(collection.ByCreatedAt(), collection.ByID()).All(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing collections: %w", err)
 	}
@@ -728,13 +752,17 @@ func (s *EntStore) ListComments(ctx context.Context, p ListCommentsParams) ([]*e
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting comments: %w", err)
 	}
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		q = q.Where(keysetPredComment(p.LastSortValue, lastID))
+	}
 	if p.Limit > 0 {
 		q = q.Limit(p.Limit)
 	}
-	if p.Offset > 0 {
-		q = q.Offset(p.Offset)
-	}
-	comments, err := q.Order(comment.ByCreatedAt()).All(ctx)
+	comments, err := q.Order(comment.ByCreatedAt(), comment.ByID()).All(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing comments: %w", err)
 	}
@@ -926,6 +954,72 @@ func (s *EntStore) recordChanges(ctx context.Context, taskID, authorID uuid.UUID
 	return nil
 }
 
+func keysetPredTask(sortCol, lastSortValue string, lastID uuid.UUID, desc bool) predicate.Task {
+	return predicate.Task(func(s *entsql.Selector) {
+		colRef := s.C(sortCol)
+		idRef := s.C(task.FieldID)
+		if desc {
+			s.Where(entsql.Or(
+				entsql.LT(colRef, lastSortValue),
+				entsql.And(
+					entsql.EQ(colRef, lastSortValue),
+					entsql.LT(idRef, lastID),
+				),
+			))
+		} else {
+			s.Where(entsql.Or(
+				entsql.GT(colRef, lastSortValue),
+				entsql.And(
+					entsql.EQ(colRef, lastSortValue),
+					entsql.GT(idRef, lastID),
+				),
+			))
+		}
+	})
+}
+
+func keysetPredComment(lastSortValue string, lastID uuid.UUID) predicate.Comment {
+	return predicate.Comment(func(s *entsql.Selector) {
+		colRef := s.C(comment.FieldCreatedAt)
+		idRef := s.C(comment.FieldID)
+		s.Where(entsql.Or(
+			entsql.GT(colRef, lastSortValue),
+			entsql.And(
+				entsql.EQ(colRef, lastSortValue),
+				entsql.GT(idRef, lastID),
+			),
+		))
+	})
+}
+
+func keysetPredChange(lastSortValue string, lastID uuid.UUID) predicate.Change {
+	return predicate.Change(func(s *entsql.Selector) {
+		colRef := s.C(change.FieldCreatedAt)
+		idRef := s.C(change.FieldID)
+		s.Where(entsql.Or(
+			entsql.GT(colRef, lastSortValue),
+			entsql.And(
+				entsql.EQ(colRef, lastSortValue),
+				entsql.GT(idRef, lastID),
+			),
+		))
+	})
+}
+
+func keysetPredCollection(lastSortValue string, lastID uuid.UUID) predicate.Collection {
+	return predicate.Collection(func(s *entsql.Selector) {
+		colRef := s.C(collection.FieldCreatedAt)
+		idRef := s.C(collection.FieldID)
+		s.Where(entsql.Or(
+			entsql.GT(colRef, lastSortValue),
+			entsql.And(
+				entsql.EQ(colRef, lastSortValue),
+				entsql.GT(idRef, lastID),
+			),
+		))
+	})
+}
+
 func (s *EntStore) ListChanges(ctx context.Context, p ListChangesParams) ([]*ent.Change, int, error) {
 	q := s.client.Change.Query().Where(change.TaskIDEQ(p.TaskID))
 	if p.Field != "" {
@@ -935,13 +1029,17 @@ func (s *EntStore) ListChanges(ctx context.Context, p ListChangesParams) ([]*ent
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting changes: %w", err)
 	}
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		q = q.Where(keysetPredChange(p.LastSortValue, lastID))
+	}
 	if p.Limit > 0 {
 		q = q.Limit(p.Limit)
 	}
-	if p.Offset > 0 {
-		q = q.Offset(p.Offset)
-	}
-	changes, err := q.Order(change.ByCreatedAt()).All(ctx)
+	changes, err := q.Order(change.ByCreatedAt(), change.ByID()).All(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing changes: %w", err)
 	}

@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -167,14 +169,15 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	cursor, err := decodeCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
 
 	p := store.ListTasksParams{
-		Limit:  pageSize,
-		Offset: offset,
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
 	}
 
 	if req.CollectionId != nil {
@@ -239,12 +242,14 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		resp.Items = append(resp.Items, taskToProto(t))
 	}
 
-	nextOffset := offset + len(tasks)
-	if nextOffset < total {
+	sortField := p.SortField
+	if sortField == "" {
+		sortField = "created"
+	}
+	if len(tasks) > 0 && len(tasks) == pageSize {
+		last := tasks[len(tasks)-1]
 		resp.HasMore = true
-		resp.NextPageToken = base64.StdEncoding.EncodeToString(
-			[]byte(strconv.Itoa(nextOffset)),
-		)
+		resp.NextPageToken = encodeCursor(last.ID.String(), taskSortValue(last, sortField))
 	}
 
 	return resp, nil
@@ -464,15 +469,16 @@ func (s *FarmTableService) ListComments(ctx context.Context, req *pb.ListComment
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	cursor, err := decodeCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
 
 	comments, total, err := s.store.ListComments(ctx, store.ListCommentsParams{
-		TaskID: taskID,
-		Limit:  pageSize,
-		Offset: offset,
+		TaskID:        taskID,
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "listing comments: %v", err)
@@ -484,10 +490,10 @@ func (s *FarmTableService) ListComments(ctx context.Context, req *pb.ListComment
 	for _, c := range comments {
 		resp.Items = append(resp.Items, commentToProto(c))
 	}
-	nextOffset := offset + len(comments)
-	if nextOffset < total {
+	if len(comments) > 0 && len(comments) == pageSize {
+		last := comments[len(comments)-1]
 		resp.HasMore = true
-		resp.NextPageToken = encodePageToken(nextOffset)
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
 	}
 	return resp, nil
 }
@@ -529,14 +535,15 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	cursor, err := decodeCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
 
 	p := store.ListCollectionsParams{
-		Limit:  pageSize,
-		Offset: offset,
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
 	}
 
 	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
@@ -555,10 +562,10 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 	for _, c := range cols {
 		resp.Items = append(resp.Items, collectionToProto(c))
 	}
-	nextOffset := offset + len(cols)
-	if nextOffset < total {
+	if len(cols) > 0 && len(cols) == pageSize {
+		last := cols[len(cols)-1]
 		resp.HasMore = true
-		resp.NextPageToken = encodePageToken(nextOffset)
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
 	}
 	return resp, nil
 }
@@ -593,16 +600,17 @@ func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesR
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	cursor, err := decodeCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
 
 	changes, total, err := s.store.ListChanges(ctx, store.ListChangesParams{
-		TaskID: taskID,
-		Field:  req.GetField(),
-		Limit:  pageSize,
-		Offset: offset,
+		TaskID:        taskID,
+		Field:         req.GetField(),
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "listing changes: %v", err)
@@ -614,10 +622,10 @@ func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesR
 	for _, c := range changes {
 		resp.Items = append(resp.Items, changeToProto(c))
 	}
-	nextOffset := offset + len(changes)
-	if nextOffset < total {
+	if len(changes) > 0 && len(changes) == pageSize {
+		last := changes[len(changes)-1]
 		resp.HasMore = true
-		resp.NextPageToken = encodePageToken(nextOffset)
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
 	}
 	return resp, nil
 }
@@ -659,7 +667,7 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	offset, err := decodeOffsetCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
@@ -711,7 +719,7 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 	nextOffset := offset + len(results)
 	if nextOffset < total {
 		resp.HasMore = true
-		resp.NextPageToken = encodePageToken(nextOffset)
+		resp.NextPageToken = encodeOffsetCursor(nextOffset)
 	}
 
 	return resp, nil
@@ -726,7 +734,7 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 		pageSize = 200
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	offset, err := decodeOffsetCursor(req.GetPageToken())
 	if err != nil {
 		return nil, err
 	}
@@ -781,7 +789,7 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 	nextOffset := offset + len(results)
 	if nextOffset < total {
 		resp.HasMore = true
-		resp.NextPageToken = encodePageToken(nextOffset)
+		resp.NextPageToken = encodeOffsetCursor(nextOffset)
 	}
 
 	return resp, nil
@@ -1183,7 +1191,7 @@ func storeErr(err error, entity string) error {
 }
 
 func encodePageToken(offset int) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%d", offset)))
+	return base64.StdEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
 }
 
 func decodePageToken(token string) (int, error) {
@@ -1202,4 +1210,71 @@ func decodePageToken(token string) (int, error) {
 		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
 	}
 	return offset, nil
+}
+
+type pageCursor struct {
+	LastID        string `json:"last_id"`
+	LastSortValue string `json:"last_sort_value"`
+}
+
+func encodeCursor(lastID, lastSortValue string) string {
+	c := pageCursor{LastID: lastID, LastSortValue: lastSortValue}
+	b, _ := json.Marshal(c)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func decodeCursor(token string) (pageCursor, error) {
+	if token == "" {
+		return pageCursor{}, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	var c pageCursor
+	if err := json.Unmarshal(b, &c); err != nil {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	if c.LastID == "" {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token: missing last_id")
+	}
+	return c, nil
+}
+
+func encodeOffsetCursor(offset int) string {
+	return encodeCursor(strconv.Itoa(offset), "")
+}
+
+func decodeOffsetCursor(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	c, err := decodeCursor(token)
+	if err != nil {
+		return 0, err
+	}
+	offset, err := strconv.Atoi(c.LastID)
+	if err != nil || offset < 0 {
+		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	return offset, nil
+}
+
+func taskSortValue(t *ent.Task, sortField string) string {
+	switch sortField {
+	case "updated":
+		return t.UpdatedAt.UTC().Format(time.RFC3339Nano)
+	case "priority":
+		if t.Priority != nil {
+			return string(*t.Priority)
+		}
+		return ""
+	case "due_date":
+		if t.DueDate != nil {
+			return t.DueDate.UTC().Format(time.RFC3339Nano)
+		}
+		return ""
+	default:
+		return t.CreatedAt.UTC().Format(time.RFC3339Nano)
+	}
 }

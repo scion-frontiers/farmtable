@@ -84,19 +84,20 @@ type PullRequestParam struct {
 }
 
 type ListTasksParams struct {
-	CollectionID *uuid.UUID
-	Phase        *task.Phase
-	Stage        *task.Stage
-	AssigneeID   *uuid.UUID
-	Unassigned   bool
-	Priority     *task.Priority
-	Type         *string
-	Labels       []string
-	ParentTaskID *uuid.UUID
-	SortField    string
-	SortOrder    string
-	Limit        int
-	Offset       int
+	CollectionID  *uuid.UUID
+	Phase         *task.Phase
+	Stage         *task.Stage
+	AssigneeID    *uuid.UUID
+	Unassigned    bool
+	Priority      *task.Priority
+	Type          *string
+	Labels        []string
+	ParentTaskID  *uuid.UUID
+	SortField     string
+	SortOrder     string
+	Limit         int
+	LastID        string
+	LastSortValue string
 }
 
 type CreateCollectionParams struct {
@@ -106,9 +107,10 @@ type CreateCollectionParams struct {
 }
 
 type ListCollectionsParams struct {
-	Platform *collection.Platform
-	Limit    int
-	Offset   int
+	Platform      *collection.Platform
+	Limit         int
+	LastID        string
+	LastSortValue string
 }
 
 type AddCommentParams struct {
@@ -118,16 +120,18 @@ type AddCommentParams struct {
 }
 
 type ListCommentsParams struct {
-	TaskID uuid.UUID
-	Limit  int
-	Offset int
+	TaskID        uuid.UUID
+	Limit         int
+	LastID        string
+	LastSortValue string
 }
 
 type ListChangesParams struct {
-	TaskID uuid.UUID
-	Field  string
-	Limit  int
-	Offset int
+	TaskID        uuid.UUID
+	Field         string
+	Limit         int
+	LastID        string
+	LastSortValue string
 }
 
 type Store interface {

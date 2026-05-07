@@ -313,7 +313,6 @@ func (a *GitHubAdapter) buildRemoteIDIndex(ctx context.Context, collectionID uui
 		tasks, total, err := a.store.ListTasks(ctx, store.ListTasksParams{
 			CollectionID: &collectionID,
 			Limit:        limit,
-			Offset:       offset,
 		})
 		if err != nil {
 			return nil, err
