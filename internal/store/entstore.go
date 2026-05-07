@@ -11,15 +11,21 @@ import (
 	"strings"
 	"time"
 
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+	"github.com/farmtable-io/farmtable/internal/store/ent/user"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -331,9 +337,9 @@ func hasAllLabels(taskLabels, required []string) bool {
 	return true
 }
 
-func (s *EntStore) UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams) (*ent.Task, error) {
+func (s *EntStore) UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error) {
 	for attempt := 0; ; attempt++ {
-		result, err := s.doUpdateTask(ctx, id, p)
+		result, err := s.doUpdateTask(ctx, id, p, actorID)
 		if err == ErrConflict && p.Version == "" && attempt == 0 {
 			continue
 		}
@@ -341,7 +347,7 @@ func (s *EntStore) UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskPar
 	}
 }
 
-func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams) (*ent.Task, error) {
+func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
@@ -513,7 +519,7 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	for _, c := range changes {
 		_, err := tx.Change.Create().
 			SetTaskID(id).
-			SetAuthorID(uuid.Nil).
+			SetAuthorID(actorID).
 			SetFieldName(c.Field).
 			SetOldValue(c.OldValue).
 			SetNewValue(c.NewValue).
@@ -605,7 +611,7 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 	}
 }
 
-func (s *EntStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string) (*ent.Task, error) {
+func (s *EntStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error) {
 	switch stage {
 	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 	default:
@@ -662,7 +668,7 @@ func (s *EntStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage
 			return nil, err
 		}
 
-		if err := s.recordChanges(ctx, id, uuid.Nil, old, result); err != nil {
+		if err := s.recordChanges(ctx, id, actorID, old, result); err != nil {
 			log.Printf("recording changes for task %s: %v", id, err)
 		}
 
@@ -952,6 +958,178 @@ func (s *EntStore) recordChanges(ctx context.Context, taskID, authorID uuid.UUID
 		}
 	}
 	return nil
+}
+
+// ── User Methods ──
+
+func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error) {
+	create := s.client.User.Create().
+		SetDisplayName(p.DisplayName).
+		SetType(p.Type).
+		SetStatus(p.Status)
+
+	if p.Email != nil {
+		create.SetEmail(*p.Email)
+	}
+
+	u, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("creating user: %w", err)
+	}
+	return u, nil
+}
+
+func (s *EntStore) GetUser(ctx context.Context, id uuid.UUID) (*ent.User, error) {
+	u, err := s.client.User.Get(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("getting user: %w", err)
+	}
+	return u, nil
+}
+
+func (s *EntStore) GetUserByName(ctx context.Context, name string) (*ent.User, error) {
+	u, err := s.client.User.Query().
+		Where(user.DisplayNameEQ(name)).
+		First(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("getting user by name: %w", err)
+	}
+	return u, nil
+}
+
+func (s *EntStore) ListUsers(ctx context.Context, p ListUsersParams) ([]*ent.User, int, error) {
+	q := s.client.User.Query()
+	if p.Type != "" {
+		q = q.Where(user.TypeEQ(p.Type))
+	}
+	total, err := q.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("counting users: %w", err)
+	}
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		q = q.Where(keysetPredUser(p.LastSortValue, lastID))
+	}
+	if p.Limit > 0 {
+		q = q.Limit(p.Limit)
+	}
+	users, err := q.Order(user.ByCreatedAt(), user.ByID()).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing users: %w", err)
+	}
+	return users, total, nil
+}
+
+// ── API Token Methods ──
+
+func HashToken(raw string) string {
+	h := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(h[:])
+}
+
+func (s *EntStore) CreateAPIToken(ctx context.Context, p CreateAPITokenParams) (*ent.ApiToken, string, error) {
+	rawBytes := make([]byte, 32)
+	if _, err := rand.Read(rawBytes); err != nil {
+		return nil, "", fmt.Errorf("generating token: %w", err)
+	}
+	rawToken := "ft_" + hex.EncodeToString(rawBytes)
+	tokenHash := HashToken(rawToken)
+
+	create := s.client.ApiToken.Create().
+		SetTokenHash(tokenHash).
+		SetName(p.Name).
+		SetUserID(p.UserID)
+
+	if p.ExpiresAt != nil {
+		create.SetExpiresAt(*p.ExpiresAt)
+	}
+
+	tok, err := create.Save(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating api token: %w", err)
+	}
+	return tok, rawToken, nil
+}
+
+func (s *EntStore) LookupToken(ctx context.Context, tokenHash string) (*ent.ApiToken, error) {
+	tok, err := s.client.ApiToken.Query().
+		Where(apitoken.TokenHashEQ(tokenHash)).
+		WithUser().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("looking up token: %w", err)
+	}
+	return tok, nil
+}
+
+func (s *EntStore) ListAPITokens(ctx context.Context, p ListAPITokensParams) ([]*ent.ApiToken, int, error) {
+	q := s.client.ApiToken.Query().WithUser()
+	if p.UserID != nil {
+		q = q.Where(apitoken.UserIDEQ(*p.UserID))
+	}
+	total, err := q.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("counting tokens: %w", err)
+	}
+	if p.Limit > 0 {
+		q = q.Limit(p.Limit)
+	}
+	tokens, err := q.Order(apitoken.ByCreatedAt(), apitoken.ByID()).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing tokens: %w", err)
+	}
+	return tokens, total, nil
+}
+
+func (s *EntStore) RevokeAPIToken(ctx context.Context, id uuid.UUID) error {
+	err := s.client.ApiToken.DeleteOneID(id).Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("revoking token: %w", err)
+	}
+	return nil
+}
+
+func (s *EntStore) UpdateTokenLastUsed(ctx context.Context, id uuid.UUID) error {
+	_, err := s.client.ApiToken.UpdateOneID(id).
+		SetLastUsedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("updating token last_used_at: %w", err)
+	}
+	return nil
+}
+
+func keysetPredUser(lastSortValue string, lastID uuid.UUID) predicate.User {
+	return predicate.User(func(s *entsql.Selector) {
+		colRef := s.C(user.FieldCreatedAt)
+		idRef := s.C(user.FieldID)
+		var sortVal interface{} = lastSortValue
+		if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+			sortVal = t
+		}
+		s.Where(entsql.Or(
+			entsql.GT(colRef, sortVal),
+			entsql.And(
+				entsql.EQ(colRef, sortVal),
+				entsql.GT(idRef, lastID),
+			),
+		))
+	})
 }
 
 func keysetPredTask(sortCol, lastSortValue string, lastID uuid.UUID, desc bool) predicate.Task {

@@ -46,12 +46,17 @@ func main() {
 	}
 	defer s.Close()
 
+	var lookup server.TokenLookup
 	token := os.Getenv("FARMTABLE_TOKEN")
 	if token == "" {
 		log.Println("WARNING: FARMTABLE_TOKEN not set — server running in open access mode")
+	} else {
+		lookup = server.NewStoreTokenLookup(s)
+		log.Println("Token authentication enabled (store-backed)")
 	}
+
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(server.TokenAuthInterceptor(token)),
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
 	)
 	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version))
 

@@ -6,12 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
 	"github.com/farmtable-io/farmtable/internal/store/ent/user"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -41,6 +44,12 @@ func (_u *UserUpdate) SetNillableEmail(v *string) *UserUpdate {
 	return _u
 }
 
+// ClearEmail clears the value of the "email" field.
+func (_u *UserUpdate) ClearEmail() *UserUpdate {
+	_u.mutation.ClearEmail()
+	return _u
+}
+
 // SetDisplayName sets the "display_name" field.
 func (_u *UserUpdate) SetDisplayName(v string) *UserUpdate {
 	_u.mutation.SetDisplayName(v)
@@ -51,6 +60,34 @@ func (_u *UserUpdate) SetDisplayName(v string) *UserUpdate {
 func (_u *UserUpdate) SetNillableDisplayName(v *string) *UserUpdate {
 	if v != nil {
 		_u.SetDisplayName(*v)
+	}
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *UserUpdate) SetType(v string) *UserUpdate {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableType(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *UserUpdate) SetStatus(v string) *UserUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableStatus(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
 	}
 	return _u
 }
@@ -75,13 +112,56 @@ func (_u *UserUpdate) ClearPlatformID() *UserUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *UserUpdate) SetUpdatedAt(v time.Time) *UserUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddAPITokenIDs adds the "api_tokens" edge to the ApiToken entity by IDs.
+func (_u *UserUpdate) AddAPITokenIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddAPITokenIDs(ids...)
+	return _u
+}
+
+// AddAPITokens adds the "api_tokens" edges to the ApiToken entity.
+func (_u *UserUpdate) AddAPITokens(v ...*ApiToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAPITokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
 }
 
+// ClearAPITokens clears all "api_tokens" edges to the ApiToken entity.
+func (_u *UserUpdate) ClearAPITokens() *UserUpdate {
+	_u.mutation.ClearAPITokens()
+	return _u
+}
+
+// RemoveAPITokenIDs removes the "api_tokens" edge to ApiToken entities by IDs.
+func (_u *UserUpdate) RemoveAPITokenIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveAPITokenIDs(ids...)
+	return _u
+}
+
+// RemoveAPITokens removes "api_tokens" edges to ApiToken entities.
+func (_u *UserUpdate) RemoveAPITokens(v ...*ApiToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAPITokenIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *UserUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -107,13 +187,16 @@ func (_u *UserUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *UserUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_u *UserUpdate) check() error {
-	if v, ok := _u.mutation.Email(); ok {
-		if err := user.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.DisplayName(); ok {
 		if err := user.DisplayNameValidator(v); err != nil {
 			return &ValidationError{Name: "display_name", err: fmt.Errorf(`ent: validator failed for field "User.display_name": %w`, err)}
@@ -137,14 +220,71 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(user.FieldEmail, field.TypeString)
+	}
 	if value, ok := _u.mutation.DisplayName(); ok {
 		_spec.SetField(user.FieldDisplayName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(user.FieldType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(user.FieldStatus, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.PlatformID(); ok {
 		_spec.SetField(user.FieldPlatformID, field.TypeString, value)
 	}
 	if _u.mutation.PlatformIDCleared() {
 		_spec.ClearField(user.FieldPlatformID, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.APITokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAPITokensIDs(); len(nodes) > 0 && !_u.mutation.APITokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.APITokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -180,6 +320,12 @@ func (_u *UserUpdateOne) SetNillableEmail(v *string) *UserUpdateOne {
 	return _u
 }
 
+// ClearEmail clears the value of the "email" field.
+func (_u *UserUpdateOne) ClearEmail() *UserUpdateOne {
+	_u.mutation.ClearEmail()
+	return _u
+}
+
 // SetDisplayName sets the "display_name" field.
 func (_u *UserUpdateOne) SetDisplayName(v string) *UserUpdateOne {
 	_u.mutation.SetDisplayName(v)
@@ -190,6 +336,34 @@ func (_u *UserUpdateOne) SetDisplayName(v string) *UserUpdateOne {
 func (_u *UserUpdateOne) SetNillableDisplayName(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetDisplayName(*v)
+	}
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *UserUpdateOne) SetType(v string) *UserUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableType(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *UserUpdateOne) SetStatus(v string) *UserUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableStatus(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
 	}
 	return _u
 }
@@ -214,9 +388,51 @@ func (_u *UserUpdateOne) ClearPlatformID() *UserUpdateOne {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *UserUpdateOne) SetUpdatedAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// AddAPITokenIDs adds the "api_tokens" edge to the ApiToken entity by IDs.
+func (_u *UserUpdateOne) AddAPITokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddAPITokenIDs(ids...)
+	return _u
+}
+
+// AddAPITokens adds the "api_tokens" edges to the ApiToken entity.
+func (_u *UserUpdateOne) AddAPITokens(v ...*ApiToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAPITokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearAPITokens clears all "api_tokens" edges to the ApiToken entity.
+func (_u *UserUpdateOne) ClearAPITokens() *UserUpdateOne {
+	_u.mutation.ClearAPITokens()
+	return _u
+}
+
+// RemoveAPITokenIDs removes the "api_tokens" edge to ApiToken entities by IDs.
+func (_u *UserUpdateOne) RemoveAPITokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveAPITokenIDs(ids...)
+	return _u
+}
+
+// RemoveAPITokens removes "api_tokens" edges to ApiToken entities.
+func (_u *UserUpdateOne) RemoveAPITokens(v ...*ApiToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAPITokenIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -234,6 +450,7 @@ func (_u *UserUpdateOne) Select(field string, fields ...string) *UserUpdateOne {
 
 // Save executes the query and returns the updated User entity.
 func (_u *UserUpdateOne) Save(ctx context.Context) (*User, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -259,13 +476,16 @@ func (_u *UserUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *UserUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_u *UserUpdateOne) check() error {
-	if v, ok := _u.mutation.Email(); ok {
-		if err := user.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.DisplayName(); ok {
 		if err := user.DisplayNameValidator(v); err != nil {
 			return &ValidationError{Name: "display_name", err: fmt.Errorf(`ent: validator failed for field "User.display_name": %w`, err)}
@@ -306,14 +526,71 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(user.FieldEmail, field.TypeString)
+	}
 	if value, ok := _u.mutation.DisplayName(); ok {
 		_spec.SetField(user.FieldDisplayName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(user.FieldType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(user.FieldStatus, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.PlatformID(); ok {
 		_spec.SetField(user.FieldPlatformID, field.TypeString, value)
 	}
 	if _u.mutation.PlatformIDCleared() {
 		_spec.ClearField(user.FieldPlatformID, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.APITokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAPITokensIDs(); len(nodes) > 0 && !_u.mutation.APITokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.APITokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.APITokensTable,
+			Columns: []string{user.APITokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

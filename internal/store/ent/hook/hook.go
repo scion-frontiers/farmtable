@@ -9,6 +9,18 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 )
 
+// The ApiTokenFunc type is an adapter to allow the use of ordinary
+// function as ApiToken mutator.
+type ApiTokenFunc func(context.Context, *ent.ApiTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ApiTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ApiTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ApiTokenMutation", m)
+}
+
 // The ChangeFunc type is an adapter to allow the use of ordinary
 // function as Change mutator.
 type ChangeFunc func(context.Context, *ent.ChangeMutation) (ent.Value, error)

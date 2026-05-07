@@ -180,6 +180,60 @@ func platformToProto(p collection.Platform) pb.Platform {
 	}
 }
 
+// User type conversions
+
+func userTypeToProto(t string) pb.UserType {
+	switch t {
+	case "human":
+		return pb.UserType_USER_TYPE_HUMAN
+	case "agent":
+		return pb.UserType_USER_TYPE_AGENT
+	case "service_account":
+		return pb.UserType_USER_TYPE_SERVICE_ACCOUNT
+	default:
+		return pb.UserType_USER_TYPE_AGENT
+	}
+}
+
+func userTypeFromProto(t pb.UserType) string {
+	switch t {
+	case pb.UserType_USER_TYPE_HUMAN:
+		return "human"
+	case pb.UserType_USER_TYPE_AGENT:
+		return "agent"
+	case pb.UserType_USER_TYPE_SERVICE_ACCOUNT:
+		return "service_account"
+	default:
+		return ""
+	}
+}
+
+func userStatusToProto(s string) pb.IdentityStatus {
+	switch s {
+	case "active":
+		return pb.IdentityStatus_IDENTITY_STATUS_ACTIVE
+	case "suspended":
+		return pb.IdentityStatus_IDENTITY_STATUS_SUSPENDED
+	case "archived":
+		return pb.IdentityStatus_IDENTITY_STATUS_ARCHIVED
+	default:
+		return pb.IdentityStatus_IDENTITY_STATUS_ACTIVE
+	}
+}
+
+func userToProto(u *ent.User) *pb.User {
+	pu := &pb.User{
+		Id:     u.ID.String(),
+		Name:   u.DisplayName,
+		Type:   userTypeToProto(u.Type),
+		Status: userStatusToProto(u.Status),
+	}
+	if u.Email != nil {
+		pu.Email = u.Email
+	}
+	return pu
+}
+
 // Entity → Proto conversions
 
 func taskToProto(t *ent.Task) *pb.Task {

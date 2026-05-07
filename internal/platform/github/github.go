@@ -76,7 +76,7 @@ func (a *GitHubAdapter) SyncCollection(ctx context.Context, collectionID uuid.UU
 
 			if existingID, ok := existingTasks[remoteID]; ok {
 				updateParams := IssueToUpdateParams(issue, remoteID)
-				if _, err := a.store.UpdateTask(ctx, existingID, updateParams); err != nil {
+				if _, err := a.store.UpdateTask(ctx, existingID, updateParams, uuid.Nil); err != nil {
 					result.Errors++
 					continue
 				}

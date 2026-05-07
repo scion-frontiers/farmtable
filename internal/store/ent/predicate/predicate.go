@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// ApiToken is the predicate function for apitoken builders.
+type ApiToken func(*sql.Selector)
+
 // Change is the predicate function for change builders.
 type Change func(*sql.Selector)
 

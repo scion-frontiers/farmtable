@@ -190,7 +190,7 @@ func TestUpdateTask_CAS(t *testing.T) {
 		updated, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 			Title:   &newTitle,
 			Version: created.Version,
-		})
+		}, uuid.Nil)
 		if err != nil {
 			t.Fatalf("UpdateTask: %v", err)
 		}
@@ -207,7 +207,7 @@ func TestUpdateTask_CAS(t *testing.T) {
 		_, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 			Title:   &newTitle,
 			Version: "1", // stale version
-		})
+		}, uuid.Nil)
 		if err != store.ErrConflict {
 			t.Errorf("err = %v, want ErrConflict", err)
 		}
@@ -217,7 +217,7 @@ func TestUpdateTask_CAS(t *testing.T) {
 		newTitle := "Unconditional"
 		updated, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 			Title: &newTitle,
-		})
+		}, uuid.Nil)
 		if err != nil {
 			t.Fatalf("UpdateTask without version: %v", err)
 		}
@@ -287,7 +287,7 @@ func TestClaimTask_ClosedTask(t *testing.T) {
 		t.Fatalf("CreateTask: %v", err)
 	}
 
-	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version)
+	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version, uuid.Nil)
 	if err != nil {
 		t.Fatalf("CloseTask: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestVersionIncrement_WithoutHook(t *testing.T) {
 	updated, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title:   &newTitle,
 		Version: "1",
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}
@@ -338,7 +338,7 @@ func TestVersionIncrement_WithoutHook(t *testing.T) {
 		t.Errorf("version after claim = %q, want %q", claimed.Version, "3")
 	}
 
-	closed, err := s.CloseTask(ctx, created.ID, task.StageCompleted, "")
+	closed, err := s.CloseTask(ctx, created.ID, task.StageCompleted, "", uuid.Nil)
 	if err != nil {
 		t.Fatalf("CloseTask: %v", err)
 	}
@@ -366,7 +366,7 @@ func TestCloseTask(t *testing.T) {
 			t.Fatalf("CreateTask: %v", err)
 		}
 
-		closed, err := s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version)
+		closed, err := s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version, uuid.Nil)
 		if err != nil {
 			t.Fatalf("CloseTask: %v", err)
 		}
@@ -393,7 +393,7 @@ func TestCloseTask(t *testing.T) {
 			t.Fatalf("CreateTask: %v", err)
 		}
 
-		closed, err := s.CloseTask(ctx, created.ID, task.StageWontFix, created.Version)
+		closed, err := s.CloseTask(ctx, created.ID, task.StageWontFix, created.Version, uuid.Nil)
 		if err != nil {
 			t.Fatalf("CloseTask: %v", err)
 		}
@@ -414,7 +414,7 @@ func TestCloseTask(t *testing.T) {
 			t.Fatalf("CreateTask: %v", err)
 		}
 
-		_, err = s.CloseTask(ctx, created.ID, task.StageWorking, created.Version)
+		_, err = s.CloseTask(ctx, created.ID, task.StageWorking, created.Version, uuid.Nil)
 		if err == nil {
 			t.Fatal("expected error for invalid close stage")
 		}
@@ -488,7 +488,7 @@ func TestUpdateTask_Labels(t *testing.T) {
 	updated, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		AddLabels:    []string{"gamma"},
 		RemoveLabels: []string{"alpha"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}
@@ -529,7 +529,7 @@ func TestUpdateTask_Dates(t *testing.T) {
 	updated, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		DueDate:        &due,
 		ClearStartDate: true,
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}
@@ -542,7 +542,7 @@ func TestUpdateTask_Dates(t *testing.T) {
 
 	cleared, err := s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		ClearDueDate: true,
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask clear due: %v", err)
 	}
@@ -572,7 +572,7 @@ func TestUpdateTask_Relationships(t *testing.T) {
 
 	_, err = s.UpdateTask(ctx, t1.ID, store.UpdateTaskParams{
 		AddBlocks: []uuid.UUID{t2.ID},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask add blocks: %v", err)
 	}
@@ -590,7 +590,7 @@ func TestUpdateTask_Relationships(t *testing.T) {
 
 	_, err = s.UpdateTask(ctx, t1.ID, store.UpdateTaskParams{
 		RemoveRelationships: []uuid.UUID{t2.ID},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask remove relationship: %v", err)
 	}
@@ -833,7 +833,7 @@ func TestUpdateTask_ChangesRecorded(t *testing.T) {
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}
@@ -951,7 +951,7 @@ func TestCloseTask_ChangesRecorded(t *testing.T) {
 		t.Fatalf("CreateTask: %v", err)
 	}
 
-	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, "")
+	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, "", uuid.Nil)
 	if err != nil {
 		t.Fatalf("CloseTask: %v", err)
 	}
@@ -1021,7 +1021,7 @@ func TestListChanges_FieldFilter(t *testing.T) {
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}
@@ -1098,12 +1098,12 @@ func TestCloseTask_AlreadyClosed(t *testing.T) {
 		t.Fatalf("CreateTask: %v", err)
 	}
 
-	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version)
+	_, err = s.CloseTask(ctx, created.ID, task.StageCompleted, created.Version, uuid.Nil)
 	if err != nil {
 		t.Fatalf("CloseTask: %v", err)
 	}
 
-	_, err = s.CloseTask(ctx, created.ID, task.StageCancelled, "")
+	_, err = s.CloseTask(ctx, created.ID, task.StageCancelled, "", uuid.Nil)
 	if err != store.ErrAlreadyClosed {
 		t.Errorf("err = %v, want ErrAlreadyClosed", err)
 	}
@@ -1130,14 +1130,14 @@ func TestRelationship_DuplicateIgnored(t *testing.T) {
 
 	_, err = s.UpdateTask(ctx, t1.ID, store.UpdateTaskParams{
 		AddBlocks: []uuid.UUID{t2.ID},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("first AddBlocks: %v", err)
 	}
 
 	_, err = s.UpdateTask(ctx, t1.ID, store.UpdateTaskParams{
 		AddBlocks: []uuid.UUID{t2.ID},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("duplicate AddBlocks should not error: %v", err)
 	}
@@ -1171,7 +1171,7 @@ func TestUpdateTask_LabelsChangeRecorded(t *testing.T) {
 
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		AddLabels: []string{"beta"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("UpdateTask: %v", err)
 	}

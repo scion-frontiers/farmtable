@@ -138,9 +138,9 @@ type Store interface {
 	CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error)
 	GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error)
 	ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Task, int, error)
-	UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams) (*ent.Task, error)
+	UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error)
 	ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error)
-	CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string) (*ent.Task, error)
+	CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error)
 	CreateCollection(ctx context.Context, p CreateCollectionParams) (*ent.Collection, error)
 	GetCollection(ctx context.Context, id uuid.UUID) (*ent.Collection, error)
 	ListCollections(ctx context.Context, p ListCollectionsParams) ([]*ent.Collection, int, error)
@@ -150,6 +150,20 @@ type Store interface {
 	ListChanges(ctx context.Context, p ListChangesParams) ([]*ent.Change, int, error)
 	GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error)
 	GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error)
+
+	// Users
+	CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error)
+	GetUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
+	GetUserByName(ctx context.Context, name string) (*ent.User, error)
+	ListUsers(ctx context.Context, p ListUsersParams) ([]*ent.User, int, error)
+
+	// API Tokens
+	CreateAPIToken(ctx context.Context, p CreateAPITokenParams) (*ent.ApiToken, string, error)
+	LookupToken(ctx context.Context, tokenHash string) (*ent.ApiToken, error)
+	ListAPITokens(ctx context.Context, p ListAPITokensParams) ([]*ent.ApiToken, int, error)
+	RevokeAPIToken(ctx context.Context, id uuid.UUID) error
+	UpdateTokenLastUsed(ctx context.Context, id uuid.UUID) error
+
 	Close() error
 }
 
@@ -188,4 +202,35 @@ type BlockerInfoResult struct {
 type BlockedTaskResult struct {
 	Task     *ent.Task
 	Blockers []BlockerInfoResult
+}
+
+// ── User Params ──
+
+type CreateUserParams struct {
+	DisplayName string
+	Email       *string
+	Type        string
+	Status      string
+}
+
+type ListUsersParams struct {
+	Type          string
+	Limit         int
+	LastID        string
+	LastSortValue string
+}
+
+// ── API Token Params ──
+
+type CreateAPITokenParams struct {
+	UserID    uuid.UUID
+	Name      string
+	ExpiresAt *time.Time
+}
+
+type ListAPITokensParams struct {
+	UserID        *uuid.UUID
+	Limit         int
+	LastID        string
+	LastSortValue string
 }

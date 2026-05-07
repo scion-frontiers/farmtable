@@ -8,6 +8,42 @@ import (
 )
 
 var (
+	// APITokensColumns holds the columns for the "api_tokens" table.
+	APITokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "token_hash", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// APITokensTable holds the schema information for the "api_tokens" table.
+	APITokensTable = &schema.Table{
+		Name:       "api_tokens",
+		Columns:    APITokensColumns,
+		PrimaryKey: []*schema.Column{APITokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "api_tokens_users_api_tokens",
+				Columns:    []*schema.Column{APITokensColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "apitoken_token_hash",
+				Unique:  true,
+				Columns: []*schema.Column{APITokensColumns[1]},
+			},
+			{
+				Name:    "apitoken_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{APITokensColumns[6]},
+			},
+		},
+	}
 	// ChangesColumns holds the columns for the "changes" table.
 	ChangesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -200,10 +236,13 @@ var (
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "email", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString, Nullable: true},
 		{Name: "display_name", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString, Default: "agent"},
+		{Name: "status", Type: field.TypeString, Default: "active"},
 		{Name: "platform_id", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -213,6 +252,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		APITokensTable,
 		ChangesTable,
 		CollectionsTable,
 		CommentsTable,
@@ -223,6 +263,7 @@ var (
 )
 
 func init() {
+	APITokensTable.ForeignKeys[0].RefTable = UsersTable
 	ChangesTable.ForeignKeys[0].RefTable = TasksTable
 	CommentsTable.ForeignKeys[0].RefTable = TasksTable
 	RelationshipsTable.ForeignKeys[0].RefTable = TasksTable

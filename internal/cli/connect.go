@@ -136,8 +136,16 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 		return nil, nil, fmt.Errorf("opening embedded database: %w", err)
 	}
 
+	if err := ensureLocalUser(ctx, s); err != nil {
+		s.Close()
+		return nil, nil, fmt.Errorf("ensuring local user: %w", err)
+	}
+
+	lookup := server.NewStoreTokenLookup(s)
 	lis := bufconn.Listen(1 << 20)
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+	)
 	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "embedded"))
 	go srv.Serve(lis)
 
@@ -153,15 +161,46 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 		return nil, nil, fmt.Errorf("dialing embedded server: %w", err)
 	}
 
+	token := resolveToken("")
 	client := pb.NewFarmTableServiceClient(conn)
-	closer := &embeddedCloser{conn: conn, srv: srv, store: s}
+	closer := &embeddedCloser{conn: conn, srv: srv, store: s, token: token}
 
-	if err := ensureDefaultCollection(context.Background(), client); err != nil {
+	if err := ensureDefaultCollection(authCtx(ctx, token), client); err != nil {
 		closer.Close()
 		return nil, nil, fmt.Errorf("ensuring default collection: %w", err)
 	}
 
 	return client, closer, nil
+}
+
+func ensureLocalUser(ctx context.Context, s *store.EntStore) error {
+	_, err := s.GetUserByName(ctx, "local")
+	if err == nil {
+		return nil
+	}
+
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "local",
+		Type:        "agent",
+		Status:      "active",
+	})
+	if err != nil {
+		return fmt.Errorf("creating local user: %w", err)
+	}
+
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "local-embedded",
+	})
+	if err != nil {
+		return fmt.Errorf("creating local token: %w", err)
+	}
+
+	if err := SaveConfigValue("token", rawToken); err != nil {
+		return fmt.Errorf("saving token to config: %w", err)
+	}
+
+	return nil
 }
 
 func ensureDefaultCollection(ctx context.Context, client pb.FarmTableServiceClient) error {
@@ -182,6 +221,7 @@ type embeddedCloser struct {
 	conn  *grpc.ClientConn
 	srv   *grpc.Server
 	store *store.EntStore
+	token string
 }
 
 func (c *embeddedCloser) Close() error {
@@ -189,6 +229,23 @@ func (c *embeddedCloser) Close() error {
 	c.srv.GracefulStop()
 	storeErr := c.store.Close()
 	return errors.Join(connErr, storeErr)
+}
+
+func openDirectStore() (*store.EntStore, func(), error) {
+	dbPath := resolveDBPath()
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+		return nil, nil, fmt.Errorf("creating data directory: %w", err)
+	}
+	ctx := context.Background()
+	s, err := store.NewEntStore(ctx, store.StoreOptions{
+		Dialect: "sqlite3",
+		DSN:     fmt.Sprintf("file:%s?_fk=1", dbPath),
+		Migrate: true,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("opening database: %w", err)
+	}
+	return s, func() { s.Close() }, nil
 }
 
 func authCtx(ctx context.Context, token string) context.Context {

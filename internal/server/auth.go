@@ -2,36 +2,101 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-func TokenAuthInterceptor(validToken string) grpc.UnaryServerInterceptor {
+type contextKey string
+
+const userIDKey contextKey = "user_id"
+
+func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	id, ok := ctx.Value(userIDKey).(uuid.UUID)
+	return id, ok
+}
+
+func ContextWithUserID(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, userIDKey, id)
+}
+
+type TokenLookupResult struct {
+	UserID    uuid.UUID
+	TokenID   uuid.UUID
+	ExpiresAt *time.Time
+}
+
+type TokenLookup interface {
+	LookupByHash(ctx context.Context, hash string) (*TokenLookupResult, error)
+	RecordUsage(ctx context.Context, tokenID uuid.UUID)
+}
+
+func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if validToken == "" {
+		if lookup == nil {
 			return handler(ctx, req)
 		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
-			return nil, status.Error(codes.Unauthenticated, "missing metadata")
+			return handler(ctx, req)
 		}
 		auth := md.Get("authorization")
 		if len(auth) == 0 {
-			return nil, status.Error(codes.Unauthenticated, "missing authorization token")
+			return handler(ctx, req)
 		}
 		val := auth[0]
 		if !strings.HasPrefix(val, "Bearer ") {
 			return nil, status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
 		}
 		token := strings.TrimPrefix(val, "Bearer ")
-		if subtle.ConstantTimeCompare([]byte(token), []byte(validToken)) != 1 {
+
+		h := sha256.Sum256([]byte(token))
+		hash := hex.EncodeToString(h[:])
+
+		result, err := lookup.LookupByHash(ctx, hash)
+		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
+
+		if result.ExpiresAt != nil && result.ExpiresAt.Before(time.Now()) {
+			return nil, status.Error(codes.Unauthenticated, "token expired")
+		}
+
+		go lookup.RecordUsage(context.Background(), result.TokenID)
+
+		ctx = ContextWithUserID(ctx, result.UserID)
 		return handler(ctx, req)
 	}
 }
+
+type legacyTokenLookup struct {
+	token  string
+	userID uuid.UUID
+}
+
+func LegacyTokenAuth(validToken string) TokenLookup {
+	if validToken == "" {
+		return nil
+	}
+	return &legacyTokenLookup{token: validToken, userID: uuid.Nil}
+}
+
+func (l *legacyTokenLookup) LookupByHash(_ context.Context, hash string) (*TokenLookupResult, error) {
+	h := sha256.Sum256([]byte(l.token))
+	expected := hex.EncodeToString(h[:])
+	if subtle.ConstantTimeCompare([]byte(hash), []byte(expected)) != 1 {
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
+	}
+	return &TokenLookupResult{UserID: l.userID}, nil
+}
+
+func (l *legacyTokenLookup) RecordUsage(_ context.Context, _ uuid.UUID) {}

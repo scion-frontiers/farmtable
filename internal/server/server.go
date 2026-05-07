@@ -374,7 +374,8 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.Reason = req.Reason
 	}
 
-	t, err := s.store.UpdateTask(ctx, id, p)
+	actorID, _ := UserIDFromContext(ctx)
+	t, err := s.store.UpdateTask(ctx, id, p, actorID)
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
@@ -387,8 +388,10 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
 	}
 
-	// In a real system, assigneeID comes from auth context. Use a placeholder.
-	assigneeID := uuid.New()
+	assigneeID, _ := UserIDFromContext(ctx)
+	if assigneeID == uuid.Nil {
+		assigneeID = uuid.New()
+	}
 
 	version := ""
 	if req.Version != nil {
@@ -422,7 +425,8 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 		version = *req.Version
 	}
 
-	t, err := s.store.CloseTask(ctx, id, stage, version)
+	actorID, _ := UserIDFromContext(ctx)
+	t, err := s.store.CloseTask(ctx, id, stage, version, actorID)
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
@@ -441,8 +445,10 @@ func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentReq
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
 	}
 
-	// Author comes from auth context in production.
-	authorID := uuid.New()
+	authorID, _ := UserIDFromContext(ctx)
+	if authorID == uuid.Nil {
+		authorID = uuid.New()
+	}
 
 	c, err := s.store.AddComment(ctx, store.AddCommentParams{
 		TaskID:   taskID,
@@ -630,6 +636,75 @@ func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesR
 	return resp, nil
 }
 
+// ── Users ──
+
+func (s *FarmTableService) WhoAmI(ctx context.Context, req *pb.WhoAmIRequest) (*pb.User, error) {
+	userID, ok := UserIDFromContext(ctx)
+	if !ok || userID == uuid.Nil {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	u, err := s.store.GetUser(ctx, userID)
+	if err != nil {
+		return nil, storeErr(err, "user")
+	}
+	return userToProto(u), nil
+}
+
+func (s *FarmTableService) ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.ListUsersParams{
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	}
+
+	if req.Type != nil {
+		p.Type = userTypeFromProto(*req.Type)
+	}
+
+	users, total, err := s.store.ListUsers(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing users: %v", err)
+	}
+
+	resp := &pb.ListUsersResponse{
+		TotalCount: int32(total),
+	}
+	for _, u := range users {
+		resp.Items = append(resp.Items, userToProto(u))
+	}
+	if len(users) > 0 && len(users) == pageSize {
+		last := users[len(users)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+func (s *FarmTableService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user id: %v", err)
+	}
+	u, err := s.store.GetUser(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "user")
+	}
+	return userToProto(u), nil
+}
+
 // ── Status & Version ──
 
 func (s *FarmTableService) GetVersion(ctx context.Context, req *pb.GetVersionRequest) (*pb.GetVersionResponse, error) {
@@ -651,6 +726,12 @@ func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusReque
 	_, _, err := s.store.ListCollections(ctx, store.ListCollectionsParams{Limit: 1})
 	if err != nil {
 		resp.Status = "unavailable"
+	}
+
+	if userID, ok := UserIDFromContext(ctx); ok && userID != uuid.Nil {
+		if u, err := s.store.GetUser(ctx, userID); err == nil {
+			resp.AuthenticatedAs = userToProto(u)
+		}
 	}
 
 	return resp, nil

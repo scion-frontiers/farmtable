@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
@@ -19,6 +20,24 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	apitokenFields := schema.ApiToken{}.Fields()
+	_ = apitokenFields
+	// apitokenDescTokenHash is the schema descriptor for token_hash field.
+	apitokenDescTokenHash := apitokenFields[1].Descriptor()
+	// apitoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	apitoken.TokenHashValidator = apitokenDescTokenHash.Validators[0].(func(string) error)
+	// apitokenDescName is the schema descriptor for name field.
+	apitokenDescName := apitokenFields[2].Descriptor()
+	// apitoken.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	apitoken.NameValidator = apitokenDescName.Validators[0].(func(string) error)
+	// apitokenDescCreatedAt is the schema descriptor for created_at field.
+	apitokenDescCreatedAt := apitokenFields[4].Descriptor()
+	// apitoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	apitoken.DefaultCreatedAt = apitokenDescCreatedAt.Default.(func() time.Time)
+	// apitokenDescID is the schema descriptor for id field.
+	apitokenDescID := apitokenFields[0].Descriptor()
+	// apitoken.DefaultID holds the default value on creation for the id field.
+	apitoken.DefaultID = apitokenDescID.Default.(func() uuid.UUID)
 	changeFields := schema.Change{}.Fields()
 	_ = changeFields
 	// changeDescFieldName is the schema descriptor for field_name field.
@@ -137,22 +156,32 @@ func init() {
 	task.DefaultID = taskDescID.Default.(func() uuid.UUID)
 	userFields := schema.User{}.Fields()
 	_ = userFields
-	// userDescEmail is the schema descriptor for email field.
-	userDescEmail := userFields[1].Descriptor()
-	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
 	// userDescDisplayName is the schema descriptor for display_name field.
 	userDescDisplayName := userFields[2].Descriptor()
 	// user.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
 	user.DisplayNameValidator = userDescDisplayName.Validators[0].(func(string) error)
+	// userDescType is the schema descriptor for type field.
+	userDescType := userFields[3].Descriptor()
+	// user.DefaultType holds the default value on creation for the type field.
+	user.DefaultType = userDescType.Default.(string)
+	// userDescStatus is the schema descriptor for status field.
+	userDescStatus := userFields[4].Descriptor()
+	// user.DefaultStatus holds the default value on creation for the status field.
+	user.DefaultStatus = userDescStatus.Default.(string)
 	// userDescPlatformID is the schema descriptor for platform_id field.
-	userDescPlatformID := userFields[3].Descriptor()
+	userDescPlatformID := userFields[5].Descriptor()
 	// user.DefaultPlatformID holds the default value on creation for the platform_id field.
 	user.DefaultPlatformID = userDescPlatformID.Default.(string)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[4].Descriptor()
+	userDescCreatedAt := userFields[6].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[7].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
