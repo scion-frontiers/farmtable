@@ -956,21 +956,29 @@ func (s *EntStore) recordChanges(ctx context.Context, taskID, authorID uuid.UUID
 
 func keysetPredTask(sortCol, lastSortValue string, lastID uuid.UUID, desc bool) predicate.Task {
 	return predicate.Task(func(s *entsql.Selector) {
-		colRef := s.C(sortCol)
 		idRef := s.C(task.FieldID)
+
+		var sortVal interface{} = lastSortValue
+		if sortCol == task.FieldCreatedAt || sortCol == task.FieldUpdatedAt || sortCol == task.FieldDueDate {
+			if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+				sortVal = t
+			}
+		}
+
+		colRef := s.C(sortCol)
 		if desc {
 			s.Where(entsql.Or(
-				entsql.LT(colRef, lastSortValue),
+				entsql.LT(colRef, sortVal),
 				entsql.And(
-					entsql.EQ(colRef, lastSortValue),
+					entsql.EQ(colRef, sortVal),
 					entsql.LT(idRef, lastID),
 				),
 			))
 		} else {
 			s.Where(entsql.Or(
-				entsql.GT(colRef, lastSortValue),
+				entsql.GT(colRef, sortVal),
 				entsql.And(
-					entsql.EQ(colRef, lastSortValue),
+					entsql.EQ(colRef, sortVal),
 					entsql.GT(idRef, lastID),
 				),
 			))
@@ -982,10 +990,14 @@ func keysetPredComment(lastSortValue string, lastID uuid.UUID) predicate.Comment
 	return predicate.Comment(func(s *entsql.Selector) {
 		colRef := s.C(comment.FieldCreatedAt)
 		idRef := s.C(comment.FieldID)
+		var sortVal interface{} = lastSortValue
+		if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+			sortVal = t
+		}
 		s.Where(entsql.Or(
-			entsql.GT(colRef, lastSortValue),
+			entsql.GT(colRef, sortVal),
 			entsql.And(
-				entsql.EQ(colRef, lastSortValue),
+				entsql.EQ(colRef, sortVal),
 				entsql.GT(idRef, lastID),
 			),
 		))
@@ -996,10 +1008,14 @@ func keysetPredChange(lastSortValue string, lastID uuid.UUID) predicate.Change {
 	return predicate.Change(func(s *entsql.Selector) {
 		colRef := s.C(change.FieldCreatedAt)
 		idRef := s.C(change.FieldID)
+		var sortVal interface{} = lastSortValue
+		if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+			sortVal = t
+		}
 		s.Where(entsql.Or(
-			entsql.GT(colRef, lastSortValue),
+			entsql.GT(colRef, sortVal),
 			entsql.And(
-				entsql.EQ(colRef, lastSortValue),
+				entsql.EQ(colRef, sortVal),
 				entsql.GT(idRef, lastID),
 			),
 		))
@@ -1010,10 +1026,14 @@ func keysetPredCollection(lastSortValue string, lastID uuid.UUID) predicate.Coll
 	return predicate.Collection(func(s *entsql.Selector) {
 		colRef := s.C(collection.FieldCreatedAt)
 		idRef := s.C(collection.FieldID)
+		var sortVal interface{} = lastSortValue
+		if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+			sortVal = t
+		}
 		s.Where(entsql.Or(
-			entsql.GT(colRef, lastSortValue),
+			entsql.GT(colRef, sortVal),
 			entsql.And(
-				entsql.EQ(colRef, lastSortValue),
+				entsql.EQ(colRef, sortVal),
 				entsql.GT(idRef, lastID),
 			),
 		))

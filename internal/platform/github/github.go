@@ -307,12 +307,15 @@ func (a *GitHubAdapter) remoteID(number int) string {
 func (a *GitHubAdapter) buildRemoteIDIndex(ctx context.Context, collectionID uuid.UUID) (map[string]uuid.UUID, error) {
 	index := make(map[string]uuid.UUID)
 
-	offset := 0
 	limit := 200
+	var lastID string
+	var lastSortValue string
 	for {
-		tasks, total, err := a.store.ListTasks(ctx, store.ListTasksParams{
-			CollectionID: &collectionID,
-			Limit:        limit,
+		tasks, _, err := a.store.ListTasks(ctx, store.ListTasksParams{
+			CollectionID:  &collectionID,
+			Limit:         limit,
+			LastID:        lastID,
+			LastSortValue: lastSortValue,
 		})
 		if err != nil {
 			return nil, err
@@ -322,10 +325,12 @@ func (a *GitHubAdapter) buildRemoteIDIndex(ctx context.Context, collectionID uui
 				index[rid] = t.ID
 			}
 		}
-		offset += len(tasks)
-		if offset >= total {
+		if len(tasks) < limit {
 			break
 		}
+		last := tasks[len(tasks)-1]
+		lastID = last.ID.String()
+		lastSortValue = last.CreatedAt.UTC().Format(time.RFC3339Nano)
 	}
 
 	return index, nil
