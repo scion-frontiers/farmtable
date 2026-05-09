@@ -115,3 +115,37 @@ Three features that would have made graph analysis significantly easier, filed a
 **Observation:** Even though the remediation agents found no new work to do, the verification pass was useful. We now have high confidence that all remediation plan items were executed correctly. The agents confirmed specific code patterns (ConstantTimeCompare, transaction boundaries, unique constraints, etc.) exist at expected locations.
 
 **Implication:** "Audit existing tasks against codebase" is a legitimate workflow for Farm Table. Consider a built-in `ft task verify` command that checks task descriptions against code evidence.
+
+---
+
+## 2026-05-09: Agents that can't push lose all work on deletion
+
+**Observation:** eng-infra couldn't push because the GitHub App token lacks `workflows` permission (needed for `.github/workflows/` files). eng-docs couldn't push because the infra commit was in its git history, poisoning the push. Both agents were deleted after reporting completion — their commits were lost.
+
+**Evidence:** INFRA-1, INFRA-2, and DOC-1 all show `completed` in ft, but no commits exist on origin/main. Had to manually reopen all three tasks.
+
+**Implication:** Agents should push early and often as checkpoints, not only at the end. Alternatively, agent deletion should verify push status first. This is a significant workflow risk — task state diverges from reality silently.
+
+---
+
+## 2026-05-09: Permission cascading between parallel agents
+
+**Observation:** eng-infra and eng-docs shared a clone lineage (Hub cloned the same repo for both). When eng-infra committed `.github/workflows/` files that couldn't be pushed, that commit sat in the local history. eng-docs, building on top, inherited the unpushable commit. Result: a push blocker in one agent cascaded to block a completely unrelated agent.
+
+**Implication:** Parallel agents working on independent streams should have fully independent clones. One agent's permission failure should not contaminate another's push path.
+
+---
+
+## 2026-05-09: .claude/ directory is a permission trap for agents
+
+**Observation:** eng-mcp tried to write `.claude/mcp.json` for the Claude Code MCP config. This triggered an interactive permission prompt that blocked the non-interactive agent twice. Had to message the agent twice to redirect it.
+
+**Implication:** Agents should avoid writing to paths that trigger interactive prompts (`.claude/`, dotfiles, system config). Agent briefs should explicitly mention paths to avoid, or the orchestration should pre-approve known-safe paths.
+
+---
+
+## 2026-05-09: Task state drift from failed pushes
+
+**Observation:** All three strategic agents closed their ft tasks as completed, but two agents' commits were lost. The task graph showed 5 completed tasks when only 2 were actually delivered. Coordinator caught this during verification and reopened 3 tasks.
+
+**Implication:** `ft task close` should ideally be gated on push confirmation, not just local commit. Or the coordinator's verification step (check git log after agent reports completion) should be a standard operating procedure, not optional.
