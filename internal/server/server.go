@@ -931,6 +931,17 @@ func (s *FarmTableService) buildDependencyNode(ctx context.Context, taskID uuid.
 				}
 			}
 		}
+		for _, rel := range t.Edges.TargetRelationships {
+			if rel.Type == "blocked_by" {
+				child, err := s.buildDependencyNode(ctx, rel.SourceTaskID, dir, maxDepth, depth+1, visited)
+				if err != nil {
+					return nil, err
+				}
+				if child != nil {
+					node.Blocks = append(node.Blocks, child)
+				}
+			}
+		}
 	}
 
 	if dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_UP || dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_BOTH {
@@ -1082,6 +1093,11 @@ func (s *FarmTableService) findLongestBlocksChain(ctx context.Context, taskID uu
 			blocksTargets = append(blocksTargets, rel.TargetTaskID)
 		}
 	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type == "blocked_by" {
+			blocksTargets = append(blocksTargets, rel.SourceTaskID)
+		}
+	}
 
 	entry := criticalPathEntry{
 		id:     t.ID,
@@ -1225,6 +1241,12 @@ func (s *FarmTableService) countDownstream(ctx context.Context, taskID uuid.UUID
 		if rel.Type == "blocks" && !visited[rel.TargetTaskID] {
 			visited[rel.TargetTaskID] = true
 			count += 1 + s.countDownstream(ctx, rel.TargetTaskID, visited, depth+1)
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type == "blocked_by" && !visited[rel.SourceTaskID] {
+			visited[rel.SourceTaskID] = true
+			count += 1 + s.countDownstream(ctx, rel.SourceTaskID, visited, depth+1)
 		}
 	}
 	return count
