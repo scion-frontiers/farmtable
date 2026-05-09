@@ -97,3 +97,21 @@ Three features that would have made graph analysis significantly easier, filed a
 ## 2026-05-09: --notify flag deprecated
 
 **Observation:** `scion start --notify` now produces a deprecation warning — notifications are on by default. Minor, but the coordinator's instructions and CLAUDE.md should be updated.
+
+---
+
+## 2026-05-09: Triage audit reveals 19 of 57 tasks were already done
+
+**Observation:** Of the original 57 work-tasks in the dogfood database, 19 were already implemented (14 remediation + 5 caught in triage audit). That's 33% of the backlog representing stale work. The TPM agent that decomposed the roadmap didn't cross-reference git history or grep the codebase.
+
+**Evidence:** Three separate agents (eng-store, eng-cli, eng-triage) independently verified which tasks were done vs needed. Total: 22 completed, 38 genuinely open work-tasks remaining.
+
+**Implication:** Backlog decomposition from documents is dangerous without codebase validation. Future decomposition should: (1) read the roadmap, (2) for each proposed task, grep/check if it's already implemented, (3) only create tasks for genuinely missing work. This is a workflow pattern Farm Table could support — e.g., a "smart create" that checks for existing implementations before filing.
+
+---
+
+## 2026-05-09: Verification-as-audit is valuable
+
+**Observation:** Even though the remediation agents found no new work to do, the verification pass was useful. We now have high confidence that all remediation plan items were executed correctly. The agents confirmed specific code patterns (ConstantTimeCompare, transaction boundaries, unique constraints, etc.) exist at expected locations.
+
+**Implication:** "Audit existing tasks against codebase" is a legitimate workflow for Farm Table. Consider a built-in `ft task verify` command that checks task descriptions against code evidence.
