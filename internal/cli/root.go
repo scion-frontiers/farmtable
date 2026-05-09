@@ -41,6 +41,7 @@ func Execute(version string) {
 		newConfigCmd(globals),
 		newVersionCmd(globals, version),
 		newStatusCmd(globals),
+		newMCPCmd(globals),
 	)
 
 	if err := root.Execute(); err != nil {
