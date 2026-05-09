@@ -18,6 +18,7 @@ func newUserCmd(globals *globalFlags) *cobra.Command {
 	}
 	cmd.AddCommand(
 		newUserCreateCmd(globals),
+		newUserGetCmd(globals),
 		newUserListCmd(globals),
 		newUserWhoAmICmd(globals),
 	)
@@ -74,6 +75,39 @@ func newUserCreateCmd(globals *globalFlags) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&email, "email", "", "Email address")
 	cmd.Flags().StringVar(&userType, "type", "agent", "User type: human, agent, service_account")
+	return cmd
+}
+
+func newUserGetCmd(globals *globalFlags) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get <id>",
+		Short: "Get user details",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token := resolveToken(globals.token)
+			output := resolveOutput(globals.output)
+
+			client, closer, err := newClient(globals)
+			if err != nil {
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+			}
+			defer closer.Close()
+
+			ctx := authCtx(context.Background(), token)
+			u, err := client.GetUser(ctx, &pb.GetUserRequest{Id: args[0]})
+			if err != nil {
+				return handleGRPCError(err)
+			}
+
+			switch output {
+			case "quiet":
+				printQuiet(u.GetId())
+			default:
+				printJSON(userFullToMap(u))
+			}
+			return nil
+		},
+	}
 	return cmd
 }
 

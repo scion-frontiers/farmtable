@@ -676,6 +676,17 @@ func (s *EntStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage
 	}
 }
 
+func (s *EntStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
+	n, err := s.client.Task.Delete().Where(task.IDEQ(id)).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("deleting task: %w", err)
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (s *EntStore) CreateCollection(ctx context.Context, p CreateCollectionParams) (*ent.Collection, error) {
 	create := s.client.Collection.Create().
 		SetName(p.Name).

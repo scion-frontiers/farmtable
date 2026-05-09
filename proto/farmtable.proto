@@ -572,6 +572,8 @@ message ClaimTaskRequest {
   optional string reason = 3;
   // Conditional claim: rejected with ABORTED if version does not match.
   optional string version = 4;
+  // Override assignee: claim on behalf of another user/agent.
+  optional string assignee_id = 5;
 }
 
 message ClaimTaskResponse {

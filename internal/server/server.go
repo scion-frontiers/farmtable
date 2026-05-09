@@ -389,6 +389,13 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 	}
 
 	assigneeID, _ := UserIDFromContext(ctx)
+	if req.AssigneeId != nil {
+		parsed, err := uuid.Parse(*req.AssigneeId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
+		}
+		assigneeID = parsed
+	}
 	if assigneeID == uuid.Nil {
 		assigneeID = uuid.New()
 	}
@@ -434,7 +441,15 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 }
 
 func (s *FarmTableService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "DeleteTask not implemented")
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
+	}
+
+	if err := s.store.DeleteTask(ctx, id); err != nil {
+		return nil, storeErr(err, "task")
+	}
+	return &pb.DeleteTaskResponse{}, nil
 }
 
 // ── Comments ──

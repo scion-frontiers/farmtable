@@ -3141,7 +3141,9 @@ type ClaimTaskRequest struct {
 	Stage  *TaskStage `protobuf:"varint,2,opt,name=stage,proto3,enum=farmtable.v1.TaskStage,oneof" json:"stage,omitempty"`
 	Reason *string    `protobuf:"bytes,3,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
 	// Conditional claim: rejected with ABORTED if version does not match.
-	Version       *string `protobuf:"bytes,4,opt,name=version,proto3,oneof" json:"version,omitempty"`
+	Version *string `protobuf:"bytes,4,opt,name=version,proto3,oneof" json:"version,omitempty"`
+	// Override assignee: claim on behalf of another user/agent.
+	AssigneeId    *string `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3200,6 +3202,13 @@ func (x *ClaimTaskRequest) GetReason() string {
 func (x *ClaimTaskRequest) GetVersion() string {
 	if x != nil && x.Version != nil {
 		return *x.Version
+	}
+	return ""
+}
+
+func (x *ClaimTaskRequest) GetAssigneeId() string {
+	if x != nil && x.AssigneeId != nil {
+		return *x.AssigneeId
 	}
 	return ""
 }
@@ -5905,16 +5914,19 @@ const file_farmtable_proto_rawDesc = "" +
 	"_ci_statusB\t\n" +
 	"\a_reasonB\n" +
 	"\n" +
-	"\b_version\"\xc6\x01\n" +
+	"\b_version\"\xfc\x01\n" +
 	"\x10ClaimTaskRequest\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12<\n" +
 	"\x05stage\x18\x02 \x01(\x0e2\x17.farmtable.v1.TaskStageB\b\xbaH\x05\x82\x01\x02\x10\x01H\x00R\x05stage\x88\x01\x01\x12\x1b\n" +
 	"\x06reason\x18\x03 \x01(\tH\x01R\x06reason\x88\x01\x01\x12\x1d\n" +
-	"\aversion\x18\x04 \x01(\tH\x02R\aversion\x88\x01\x01B\b\n" +
+	"\aversion\x18\x04 \x01(\tH\x02R\aversion\x88\x01\x01\x12$\n" +
+	"\vassignee_id\x18\x05 \x01(\tH\x03R\n" +
+	"assigneeId\x88\x01\x01B\b\n" +
 	"\x06_stageB\t\n" +
 	"\a_reasonB\n" +
 	"\n" +
-	"\b_version\"v\n" +
+	"\b_versionB\x0e\n" +
+	"\f_assignee_id\"v\n" +
 	"\x11ClaimTaskResponse\x12&\n" +
 	"\x04task\x18\x01 \x01(\v2\x12.farmtable.v1.TaskR\x04task\x129\n" +
 	"\n" +

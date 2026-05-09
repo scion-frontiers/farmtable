@@ -36,6 +36,7 @@ func Execute(version string) {
 		newTaskCmd(globals),
 		newCollectionCmd(globals),
 		newCommentCmd(globals),
+		newChangeCmd(globals),
 		newUserCmd(globals),
 		newTokenCmd(globals),
 		newConfigCmd(globals),

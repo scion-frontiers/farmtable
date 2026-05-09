@@ -141,6 +141,7 @@ type Store interface {
 	UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error)
 	ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error)
 	CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error)
+	DeleteTask(ctx context.Context, id uuid.UUID) error
 	CreateCollection(ctx context.Context, p CreateCollectionParams) (*ent.Collection, error)
 	GetCollection(ctx context.Context, id uuid.UUID) (*ent.Collection, error)
 	ListCollections(ctx context.Context, p ListCollectionsParams) ([]*ent.Collection, int, error)

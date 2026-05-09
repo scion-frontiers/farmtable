@@ -22,7 +22,9 @@ func newTaskCmd(globals *globalFlags) *cobra.Command {
 		newTaskCreateCmd(globals),
 		newTaskUpdateCmd(globals),
 		newTaskClaimCmd(globals),
+		newTaskReleaseCmd(globals),
 		newTaskCloseCmd(globals),
+		newTaskDeleteCmd(globals),
 		newReadyCmd(globals),
 		newBlockedCmd(globals),
 		newTreeCmd(globals),
@@ -607,9 +609,10 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 
 func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 	var (
-		stage   string
-		reason  string
-		version string
+		assignee string
+		stage    string
+		reason   string
+		version  string
 	)
 
 	cmd := &cobra.Command{
@@ -629,6 +632,9 @@ func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 			ctx := authCtx(context.Background(), token)
 			req := &pb.ClaimTaskRequest{
 				Id: args[0],
+			}
+			if assignee != "" {
+				req.AssigneeId = &assignee
 			}
 			if stage != "" {
 				st, err := parseStage(stage)
@@ -661,6 +667,7 @@ func newTaskClaimCmd(globals *globalFlags) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&assignee, "assignee", "a", "", "Claim on behalf of another user (user ID)")
 	cmd.Flags().StringVar(&stage, "stage", "", "Override target stage (default: working)")
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	cmd.Flags().StringVar(&version, "version", "", "Expected version for CAS claim")
@@ -729,6 +736,121 @@ func newTaskCloseCmd(globals *globalFlags) *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	cmd.Flags().StringVar(&duplicateOf, "duplicate-of", "", "Canonical task ID when --stage duplicate")
 	cmd.Flags().StringVar(&version, "version", "", "Expected version for CAS close")
+	return cmd
+}
+
+func newTaskReleaseCmd(globals *globalFlags) *cobra.Command {
+	var (
+		stage  string
+		reason string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "release <id>",
+		Short: "Release a claimed task (clear assignee, reset stage)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token := resolveToken(globals.token)
+			output := resolveOutput(globals.output)
+
+			client, closer, err := newClient(globals)
+			if err != nil {
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+			}
+			defer closer.Close()
+
+			ctx := authCtx(context.Background(), token)
+
+			targetStage := "ready"
+			if stage != "" {
+				targetStage = stage
+			}
+			st, err := parseStage(targetStage)
+			if err != nil {
+				return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+			}
+
+			req := &pb.UpdateTaskRequest{
+				Id:             args[0],
+				Stage:          &st,
+				ClearAssignees: true,
+			}
+			if reason != "" {
+				req.Reason = &reason
+			}
+
+			task, err := client.UpdateTask(ctx, req)
+			if err != nil {
+				return handleGRPCError(err)
+			}
+
+			switch output {
+			case "quiet":
+				printQuiet(task.GetId())
+			default:
+				printJSON(taskToMap(task, false))
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&stage, "stage", "", "Target stage after release (default: ready)")
+	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
+	return cmd
+}
+
+func newTaskDeleteCmd(globals *globalFlags) *cobra.Command {
+	var (
+		force  bool
+		reason string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete a task",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token := resolveToken(globals.token)
+			output := resolveOutput(globals.output)
+
+			if !force {
+				return exitError(ExitValidation, "VALIDATION_ERROR", "delete is destructive; pass --force to confirm")
+			}
+
+			client, closer, err := newClient(globals)
+			if err != nil {
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+			}
+			defer closer.Close()
+
+			ctx := authCtx(context.Background(), token)
+			req := &pb.DeleteTaskRequest{
+				Id: args[0],
+			}
+			if reason != "" {
+				req.Reason = &reason
+			}
+
+			_, err = client.DeleteTask(ctx, req)
+			if err != nil {
+				return handleGRPCError(err)
+			}
+
+			switch output {
+			case "quiet":
+				printQuiet(args[0])
+			default:
+				printJSON(map[string]interface{}{
+					"id":      args[0],
+					"deleted": true,
+				})
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Confirm deletion")
+	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	return cmd
 }
 
