@@ -30,6 +30,7 @@ var _ platform.Adapter = (*GitHubAdapter)(nil)
 func New(token, owner, repo string, s store.Store) *GitHubAdapter {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(context.Background(), ts)
+	tc.Transport = newRateLimitTransport(tc.Transport)
 	return &GitHubAdapter{
 		client: gh.NewClient(tc),
 		store:  s,
