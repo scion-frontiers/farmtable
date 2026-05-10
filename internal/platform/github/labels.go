@@ -331,9 +331,10 @@ func (m *LabelMapper) stripForMatch(raw string) string {
 		s = s[len(prefix):]
 	}
 
-	// Strip category path prefixes.
+	// Strip category path prefixes (both slash and colon variants).
 	s = strings.TrimPrefix(s, "stage/")
 	s = strings.TrimPrefix(s, "priority/")
+	s = strings.TrimPrefix(s, "priority:")
 
 	return s
 }
