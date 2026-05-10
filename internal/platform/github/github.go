@@ -23,6 +23,8 @@ type GitHubAdapter struct {
 	store  store.Store
 	owner  string
 	repo   string
+	gql    *graphqlClient
+	config *GitHubConfig
 }
 
 var _ platform.Adapter = (*GitHubAdapter)(nil)
@@ -37,6 +39,17 @@ func New(token, owner, repo string, s store.Store) *GitHubAdapter {
 		owner:  owner,
 		repo:   repo,
 	}
+}
+
+// NewWithConfig creates a GitHubAdapter with optional configuration.
+// When cfg is non-nil, a GraphQL client is also initialized for v4 API access.
+func NewWithConfig(token, owner, repo string, s store.Store, cfg *GitHubConfig) *GitHubAdapter {
+	a := New(token, owner, repo, s)
+	a.config = cfg
+	if cfg != nil {
+		a.gql = newGraphQLClient(token, owner, repo, cfg)
+	}
+	return a
 }
 
 func (a *GitHubAdapter) Platform() string { return "github" }
