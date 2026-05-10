@@ -59,6 +59,10 @@ func newReadyCmd(globals *globalFlags) *cobra.Command {
 				return handleGRPCError(err)
 			}
 
+			if len(resp.GetItems()) == 0 && !includeUnblocked {
+				fmt.Fprintln(os.Stderr, "No tasks in 'ready' stage. Try --include-unblocked to also show unblocked tasks in triage/backlog stages.")
+			}
+
 			switch output {
 			case "quiet":
 				for _, item := range resp.GetItems() {
@@ -83,7 +87,7 @@ func newReadyCmd(globals *globalFlags) *cobra.Command {
 
 	cmd.Flags().StringVarP(&assignee, "assignee", "a", "", "Filter by assignee")
 	cmd.Flags().StringVar(&minPriority, "min-priority", "", "Minimum priority: URGENT, HIGH, NORMAL, LOW")
-	cmd.Flags().BoolVar(&includeUnblocked, "include-unblocked", false, "Include unblocked open tasks")
+	cmd.Flags().BoolVar(&includeUnblocked, "include-unblocked", false, "Also show unblocked tasks in triage/backlog stages")
 	cmd.Flags().Int32Var(&limit, "limit", 50, "Max results (max: 200)")
 	cmd.Flags().StringVar(&cursor, "cursor", "", "Pagination cursor")
 	return cmd
