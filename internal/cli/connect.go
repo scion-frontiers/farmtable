@@ -8,10 +8,12 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"google.golang.org/grpc"
@@ -106,6 +108,10 @@ func isLocalhost(addr string) bool {
 }
 
 func newClient(globals *globalFlags) (pb.FarmTableServiceClient, io.Closer, error) {
+	if repo := os.Getenv("FARMTABLE_GITHUB_REPO"); repo != "" {
+		return startGitHubPassThrough(repo)
+	}
+
 	server := resolveServer(globals.server)
 
 	if server != "" {
@@ -246,6 +252,82 @@ func openDirectStore() (*store.EntStore, func(), error) {
 		return nil, nil, fmt.Errorf("opening database: %w", err)
 	}
 	return s, func() { s.Close() }, nil
+}
+
+func startGitHubPassThrough(repo string) (pb.FarmTableServiceClient, io.Closer, error) {
+	parts := strings.SplitN(repo, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return nil, nil, fmt.Errorf("FARMTABLE_GITHUB_REPO must be owner/repo, got %q", repo)
+	}
+	owner, repoName := parts[0], parts[1]
+
+	token := resolveGitHubToken()
+	if token == "" {
+		return nil, nil, fmt.Errorf("no GitHub token found: set GITHUB_TOKEN or configure git credential helper")
+	}
+
+	var cfg *github.GitHubConfig
+	cfgPath := ".farmtable/github.yaml"
+	if envCfg := os.Getenv("FARMTABLE_GITHUB_CONFIG"); envCfg != "" {
+		cfgPath = envCfg
+	}
+	loaded, err := github.LoadConfig(cfgPath)
+	if err == nil {
+		cfg = loaded
+	} else {
+		cfg = github.DefaultConfig()
+	}
+
+	s := github.NewPassThroughStore(token, owner, repoName, cfg)
+
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer()
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "passthrough"))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		srv.Stop()
+		return nil, nil, fmt.Errorf("dialing pass-through server: %w", err)
+	}
+
+	client := pb.NewFarmTableServiceClient(conn)
+	closer := &passThroughCloser{conn: conn, srv: srv}
+	return client, closer, nil
+}
+
+type passThroughCloser struct {
+	conn *grpc.ClientConn
+	srv  *grpc.Server
+}
+
+func (c *passThroughCloser) Close() error {
+	connErr := c.conn.Close()
+	c.srv.GracefulStop()
+	return connErr
+}
+
+func resolveGitHubToken() string {
+	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" {
+		return tok
+	}
+	cmd := exec.Command("git", "credential", "fill")
+	cmd.Stdin = strings.NewReader("protocol=https\nhost=github.com\n")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, "password=") {
+			return strings.TrimPrefix(line, "password=")
+		}
+	}
+	return ""
 }
 
 func authCtx(ctx context.Context, token string) context.Context {

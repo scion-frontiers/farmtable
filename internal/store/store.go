@@ -17,6 +17,7 @@ var (
 	ErrAlreadyClaimed  = errors.New("task already claimed")
 	ErrAlreadyClosed   = errors.New("task already closed")
 	ErrInvalidArgument = errors.New("invalid argument")
+	ErrNotImplemented  = errors.New("not implemented")
 )
 
 type CreateTaskParams struct {
