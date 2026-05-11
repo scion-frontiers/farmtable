@@ -111,9 +111,12 @@ func newCommentListCmd(globals *globalFlags) *cobra.Command {
 				PageToken: cursor,
 			}
 			if order != "" {
-				if v, ok := sortOrderValues[order]; ok {
-					req.Order = v
+				v, ok := sortOrderValues[order]
+				if !ok {
+					return exitError(ExitValidation, "VALIDATION_ERROR",
+						fmt.Sprintf("invalid sort order %q; valid: asc, desc", order))
 				}
+				req.Order = v
 			}
 
 			resp, err := client.ListComments(ctx, req)
