@@ -5414,6 +5414,9 @@ type GetStatusResponse struct {
 	LatencyMs       int32                       `protobuf:"varint,5,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
 	AuthenticatedAs *User                       `protobuf:"bytes,6,opt,name=authenticated_as,json=authenticatedAs,proto3" json:"authenticated_as,omitempty"`
 	Platforms       []*PlatformConnectionStatus `protobuf:"bytes,7,rep,name=platforms,proto3" json:"platforms,omitempty"`
+	ServerMode      string                      `protobuf:"bytes,8,opt,name=server_mode,json=serverMode,proto3" json:"server_mode,omitempty"`
+	UptimeSeconds   int64                       `protobuf:"varint,9,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
+	TaskCount       int32                       `protobuf:"varint,10,opt,name=task_count,json=taskCount,proto3" json:"task_count,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -5495,6 +5498,27 @@ func (x *GetStatusResponse) GetPlatforms() []*PlatformConnectionStatus {
 		return x.Platforms
 	}
 	return nil
+}
+
+func (x *GetStatusResponse) GetServerMode() string {
+	if x != nil {
+		return x.ServerMode
+	}
+	return ""
+}
+
+func (x *GetStatusResponse) GetUptimeSeconds() int64 {
+	if x != nil {
+		return x.UptimeSeconds
+	}
+	return 0
+}
+
+func (x *GetStatusResponse) GetTaskCount() int32 {
+	if x != nil {
+		return x.TaskCount
+	}
+	return 0
 }
 
 type GetVersionRequest struct {
@@ -6112,7 +6136,7 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x18PlatformConnectionStatus\x122\n" +
 	"\bplatform\x18\x01 \x01(\x0e2\x16.farmtable.v1.PlatformR\bplatform\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12 \n" +
-	"\vcollections\x18\x03 \x01(\x05R\vcollections\"\xb1\x02\n" +
+	"\vcollections\x18\x03 \x01(\x05R\vcollections\"\x98\x03\n" +
 	"\x11GetStatusResponse\x12\x16\n" +
 	"\x06server\x18\x01 \x01(\tR\x06server\x12%\n" +
 	"\x0eserver_version\x18\x02 \x01(\tR\rserverVersion\x12!\n" +
@@ -6121,7 +6145,13 @@ const file_farmtable_proto_rawDesc = "" +
 	"\n" +
 	"latency_ms\x18\x05 \x01(\x05R\tlatencyMs\x12=\n" +
 	"\x10authenticated_as\x18\x06 \x01(\v2\x12.farmtable.v1.UserR\x0fauthenticatedAs\x12D\n" +
-	"\tplatforms\x18\a \x03(\v2&.farmtable.v1.PlatformConnectionStatusR\tplatforms\"\x13\n" +
+	"\tplatforms\x18\a \x03(\v2&.farmtable.v1.PlatformConnectionStatusR\tplatforms\x12\x1f\n" +
+	"\vserver_mode\x18\b \x01(\tR\n" +
+	"serverMode\x12%\n" +
+	"\x0euptime_seconds\x18\t \x01(\x03R\ruptimeSeconds\x12\x1d\n" +
+	"\n" +
+	"task_count\x18\n" +
+	" \x01(\x05R\ttaskCount\"\x13\n" +
 	"\x11GetVersionRequest\"\x97\x01\n" +
 	"\x12GetVersionResponse\x12\x1f\n" +
 	"\vcli_version\x18\x01 \x01(\tR\n" +

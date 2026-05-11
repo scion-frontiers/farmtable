@@ -3,6 +3,8 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
+	"text/tabwriter"
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -39,9 +41,12 @@ func newStatusCmd(globals *globalFlags) *cobra.Command {
 			m := map[string]interface{}{
 				"server":         serverAddr,
 				"server_version": resp.GetServerVersion(),
+				"server_mode":    resp.GetServerMode(),
 				"api_protocol":   "grpc",
 				"status":         resp.GetStatus(),
 				"latency_ms":     latency,
+				"uptime_seconds": resp.GetUptimeSeconds(),
+				"task_count":     resp.GetTaskCount(),
 			}
 			if resp.GetAuthenticatedAs() != nil {
 				m["authenticated_as"] = userToMap(resp.GetAuthenticatedAs())
@@ -59,6 +64,25 @@ func newStatusCmd(globals *globalFlags) *cobra.Command {
 			switch output {
 			case "quiet":
 				fmt.Println(resp.GetStatus())
+			case "jsonl":
+				printJSONLine(m)
+			case "table":
+				w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+				fmt.Fprintf(w, "SERVER\t%s\n", serverAddr)
+				fmt.Fprintf(w, "VERSION\t%s\n", resp.GetServerVersion())
+				fmt.Fprintf(w, "MODE\t%s\n", resp.GetServerMode())
+				fmt.Fprintf(w, "STATUS\t%s\n", resp.GetStatus())
+				fmt.Fprintf(w, "LATENCY\t%dms\n", latency)
+				fmt.Fprintf(w, "UPTIME\t%ds\n", resp.GetUptimeSeconds())
+				fmt.Fprintf(w, "TASKS\t%d\n", resp.GetTaskCount())
+				if resp.GetAuthenticatedAs() != nil {
+					name := resp.GetAuthenticatedAs().GetName()
+					if name == "" {
+						name = resp.GetAuthenticatedAs().GetId()
+					}
+					fmt.Fprintf(w, "USER\t%s\n", name)
+				}
+				w.Flush()
 			default:
 				printJSON(m)
 			}

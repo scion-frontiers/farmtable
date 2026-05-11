@@ -738,9 +738,9 @@ func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusReque
 		resp.Status = "unavailable"
 	}
 
-	tasks, _, listErr := s.store.ListTasks(ctx, store.ListTasksParams{Limit: 1})
+	_, taskTotal, listErr := s.store.ListTasks(ctx, store.ListTasksParams{Limit: 1})
 	if listErr == nil {
-		resp.TaskCount = int32(len(tasks))
+		resp.TaskCount = int32(taskTotal)
 	}
 
 	if userID, ok := UserIDFromContext(ctx); ok && userID != uuid.Nil {

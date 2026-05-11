@@ -842,6 +842,9 @@ message GetStatusResponse {
   int32 latency_ms = 5;
   User authenticated_as = 6;
   repeated PlatformConnectionStatus platforms = 7;
+  string server_mode = 8;
+  int64 uptime_seconds = 9;
+  int32 task_count = 10;
 }
 
 message GetVersionRequest {}
