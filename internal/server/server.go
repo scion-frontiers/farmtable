@@ -23,12 +23,13 @@ import (
 
 type FarmTableService struct {
 	pb.UnimplementedFarmTableServiceServer
-	store   store.Store
-	version string
+	store     store.Store
+	version   string
+	startedAt time.Time
 }
 
 func NewFarmTableService(s store.Store, version string) *FarmTableService {
-	return &FarmTableService{store: s, version: version}
+	return &FarmTableService{store: s, version: version, startedAt: time.Now()}
 }
 
 const defaultPageSize = 50
@@ -440,16 +441,8 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	return taskToProto(t), nil
 }
 
-func (s *FarmTableService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
-	id, err := uuid.Parse(req.GetId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
-	}
-
-	if err := s.store.DeleteTask(ctx, id); err != nil {
-		return nil, storeErr(err, "task")
-	}
-	return &pb.DeleteTaskResponse{}, nil
+func (s *FarmTableService) DeleteTask(_ context.Context, _ *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "delete is not supported; close tasks instead")
 }
 
 // ── Comments ──
@@ -736,11 +729,18 @@ func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusReque
 		Server:        "farmtable",
 		ApiProtocol:   "grpc",
 		Status:        "serving",
+		ServerMode:    s.version,
+		UptimeSeconds: int64(time.Since(s.startedAt).Seconds()),
 	}
 
 	_, _, err := s.store.ListCollections(ctx, store.ListCollectionsParams{Limit: 1})
 	if err != nil {
 		resp.Status = "unavailable"
+	}
+
+	tasks, _, listErr := s.store.ListTasks(ctx, store.ListTasksParams{Limit: 1})
+	if listErr == nil {
+		resp.TaskCount = int32(len(tasks))
 	}
 
 	if userID, ok := UserIDFromContext(ctx); ok && userID != uuid.Nil {

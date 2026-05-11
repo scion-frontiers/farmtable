@@ -24,7 +24,6 @@ func newTaskCmd(globals *globalFlags) *cobra.Command {
 		newTaskClaimCmd(globals),
 		newTaskReleaseCmd(globals),
 		newTaskCloseCmd(globals),
-		newTaskDeleteCmd(globals),
 		newReadyCmd(globals),
 		newBlockedCmd(globals),
 		newTreeCmd(globals),
@@ -795,61 +794,6 @@ func newTaskReleaseCmd(globals *globalFlags) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&stage, "stage", "", "Target stage after release (default: ready)")
-	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
-	return cmd
-}
-
-func newTaskDeleteCmd(globals *globalFlags) *cobra.Command {
-	var (
-		force  bool
-		reason string
-	)
-
-	cmd := &cobra.Command{
-		Use:   "delete <id>",
-		Short: "Delete a task",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			token := resolveToken(globals.token)
-			output := resolveOutput(globals.output)
-
-			if !force {
-				return exitError(ExitValidation, "VALIDATION_ERROR", "delete is destructive; pass --force to confirm")
-			}
-
-			client, closer, err := newClient(globals)
-			if err != nil {
-				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
-			}
-			defer closer.Close()
-
-			ctx := authCtx(context.Background(), token)
-			req := &pb.DeleteTaskRequest{
-				Id: args[0],
-			}
-			if reason != "" {
-				req.Reason = &reason
-			}
-
-			_, err = client.DeleteTask(ctx, req)
-			if err != nil {
-				return handleGRPCError(err)
-			}
-
-			switch output {
-			case "quiet":
-				printQuiet(args[0])
-			default:
-				printJSON(map[string]interface{}{
-					"id":      args[0],
-					"deleted": true,
-				})
-			}
-			return nil
-		},
-	}
-
-	cmd.Flags().BoolVar(&force, "force", false, "Confirm deletion")
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	return cmd
 }
