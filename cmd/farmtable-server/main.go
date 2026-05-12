@@ -12,6 +12,7 @@ import (
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/streaming"
 	"google.golang.org/grpc"
 )
 
@@ -55,10 +56,13 @@ func main() {
 		log.Println("Token authentication enabled (store-backed)")
 	}
 
+	eventBus := streaming.NewEventBus()
+
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
-	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version))
+	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version, server.WithEventBus(eventBus)))
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {

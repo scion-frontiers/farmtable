@@ -11,6 +11,7 @@ import (
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/convert"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/streaming"
@@ -57,7 +58,7 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	stage := task.StageTriage
 	phase := task.PhaseOpen
 	if req.Stage != nil {
-		stage = stageFromProto(*req.Stage)
+		stage = convert.StageFromProto(*req.Stage)
 		phase = phaseForStage(stage)
 	}
 
@@ -72,7 +73,7 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	}
 
 	if req.Priority != nil {
-		pr := priorityFromProto(*req.Priority)
+		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
 	if len(req.GetAssigneeIds()) > 0 {
@@ -209,11 +210,11 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		p.CollectionID = &cid
 	}
 	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
-		ph := phaseFromProto(*req.Phase)
+		ph := convert.PhaseFromProto(*req.Phase)
 		p.Phase = &ph
 	}
 	if len(req.GetStages()) > 0 {
-		st := stageFromProto(req.GetStages()[0])
+		st := convert.StageFromProto(req.GetStages()[0])
 		p.Stage = &st
 	}
 	if req.Assignee != nil {
@@ -228,7 +229,7 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		}
 	}
 	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
-		pr := priorityFromProto(*req.Priority)
+		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
 	if req.Type != nil {
@@ -298,13 +299,13 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.AcceptanceCriteria = req.AcceptanceCriteria
 	}
 	if req.Stage != nil {
-		st := stageFromProto(*req.Stage)
+		st := convert.StageFromProto(*req.Stage)
 		p.Stage = &st
 		ph := phaseForStage(st)
 		p.Phase = &ph
 	}
 	if req.Priority != nil {
-		pr := priorityFromProto(*req.Priority)
+		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
 	if req.Type != nil {
@@ -462,7 +463,7 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 
 	stage := task.StageCompleted
 	if req.Stage != nil {
-		stage = stageFromProto(*req.Stage)
+		stage = convert.StageFromProto(*req.Stage)
 	}
 
 	version := ""
@@ -838,7 +839,7 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 		}
 	}
 	if req.MinPriority != nil && *req.MinPriority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
-		pr := priorityFromProto(*req.MinPriority)
+		pr := convert.PriorityFromProto(*req.MinPriority)
 		p.MinPriority = &pr
 	}
 

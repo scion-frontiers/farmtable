@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/convert"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
@@ -18,7 +19,6 @@ type Subscriber struct {
 	ID     string
 	Filter SubscriptionFilter
 	Events chan *pb.TaskEvent
-	Done   chan struct{}
 }
 
 type SubscriptionFilter struct {
@@ -43,7 +43,6 @@ func (eb *EventBus) Subscribe(filter SubscriptionFilter) *Subscriber {
 		ID:     uuid.New().String(),
 		Filter: filter,
 		Events: make(chan *pb.TaskEvent, 256),
-		Done:   make(chan struct{}),
 	}
 
 	eb.mu.Lock()
@@ -62,7 +61,6 @@ func (eb *EventBus) Unsubscribe(id string) {
 	eb.mu.Unlock()
 
 	if ok {
-		close(sub.Done)
 		close(sub.Events)
 	}
 }
@@ -108,14 +106,14 @@ func matchesFilter(f SubscriptionFilter, event *pb.TaskEvent) bool {
 	}
 
 	if f.Phase != nil {
-		taskPhase := phaseFromProto(t.GetPhase())
+		taskPhase := convert.PhaseFromProto(t.GetPhase())
 		if taskPhase != *f.Phase {
 			return false
 		}
 	}
 
 	if len(f.Stages) > 0 {
-		taskStage := stageFromProto(t.GetStage())
+		taskStage := convert.StageFromProto(t.GetStage())
 		matched := false
 		for _, s := range f.Stages {
 			if taskStage == s {
@@ -171,7 +169,7 @@ func matchesFilter(f SubscriptionFilter, event *pb.TaskEvent) bool {
 		if t.Priority == nil {
 			return false
 		}
-		taskPriority := priorityFromProto(*t.Priority)
+		taskPriority := convert.PriorityFromProto(*t.Priority)
 		if taskPriority != *f.Priority {
 			return false
 		}
@@ -180,69 +178,3 @@ func matchesFilter(f SubscriptionFilter, event *pb.TaskEvent) bool {
 	return true
 }
 
-func phaseFromProto(p pb.TaskPhase) task.Phase {
-	switch p {
-	case pb.TaskPhase_TASK_PHASE_OPEN:
-		return task.PhaseOpen
-	case pb.TaskPhase_TASK_PHASE_IN_PROGRESS:
-		return task.PhaseInProgress
-	case pb.TaskPhase_TASK_PHASE_ON_HOLD:
-		return task.PhaseOnHold
-	case pb.TaskPhase_TASK_PHASE_CLOSED:
-		return task.PhaseClosed
-	default:
-		return task.PhaseOpen
-	}
-}
-
-func stageFromProto(s pb.TaskStage) task.Stage {
-	switch s {
-	case pb.TaskStage_TASK_STAGE_TRIAGE:
-		return task.StageTriage
-	case pb.TaskStage_TASK_STAGE_BACKLOG:
-		return task.StageBacklog
-	case pb.TaskStage_TASK_STAGE_READY:
-		return task.StageReady
-	case pb.TaskStage_TASK_STAGE_WORKING:
-		return task.StageWorking
-	case pb.TaskStage_TASK_STAGE_IN_REVIEW:
-		return task.StageInReview
-	case pb.TaskStage_TASK_STAGE_IN_QA:
-		return task.StageInQa
-	case pb.TaskStage_TASK_STAGE_DEPLOYING:
-		return task.StageDeploying
-	case pb.TaskStage_TASK_STAGE_BLOCKED:
-		return task.StageBlocked
-	case pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT:
-		return task.StageWaitingForInput
-	case pb.TaskStage_TASK_STAGE_DEFERRED:
-		return task.StageDeferred
-	case pb.TaskStage_TASK_STAGE_SCHEDULED:
-		return task.StageScheduled
-	case pb.TaskStage_TASK_STAGE_COMPLETED:
-		return task.StageCompleted
-	case pb.TaskStage_TASK_STAGE_WONT_FIX:
-		return task.StageWontFix
-	case pb.TaskStage_TASK_STAGE_DUPLICATE:
-		return task.StageDuplicate
-	case pb.TaskStage_TASK_STAGE_CANCELLED:
-		return task.StageCancelled
-	default:
-		return task.StageTriage
-	}
-}
-
-func priorityFromProto(p pb.TaskPriority) task.Priority {
-	switch p {
-	case pb.TaskPriority_TASK_PRIORITY_URGENT:
-		return task.PriorityUrgent
-	case pb.TaskPriority_TASK_PRIORITY_HIGH:
-		return task.PriorityHigh
-	case pb.TaskPriority_TASK_PRIORITY_NORMAL:
-		return task.PriorityNormal
-	case pb.TaskPriority_TASK_PRIORITY_LOW:
-		return task.PriorityLow
-	default:
-		return task.PriorityNormal
-	}
-}

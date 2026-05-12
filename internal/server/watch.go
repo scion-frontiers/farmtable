@@ -4,6 +4,7 @@ import (
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/convert"
 	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -22,13 +23,19 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	sub := s.eventBus.Subscribe(filter)
 	defer s.eventBus.Unsubscribe(sub.ID)
 
+	var seq int64
+
 	if req.GetIncludeInitial() {
-		if err := s.sendInitialSnapshot(req, filter, stream); err != nil {
+		var err error
+		seq, err = s.sendInitialSnapshot(req, filter, stream, seq)
+		if err != nil {
 			return err
 		}
+		seq++
 		if err := stream.Send(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_SNAPSHOT_COMPLETE,
 			Timestamp: timestamppb.Now(),
+			Sequence:  seq,
 		}); err != nil {
 			return err
 		}
@@ -43,36 +50,42 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 			if !ok {
 				return nil
 			}
+			seq++
+			event.Sequence = seq
 			if err := stream.Send(event); err != nil {
 				return err
 			}
 		case <-heartbeat.C:
+			seq++
 			if err := stream.Send(&pb.TaskEvent{
 				EventType: pb.TaskEventType_TASK_EVENT_TYPE_HEARTBEAT,
 				Timestamp: timestamppb.Now(),
+				Sequence:  seq,
 			}); err != nil {
 				return err
 			}
 		case <-stream.Context().Done():
-			return stream.Context().Err()
+			return nil
 		}
 	}
 }
 
-func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter streaming.SubscriptionFilter, stream grpc.ServerStreamingServer[pb.TaskEvent]) error {
+func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter streaming.SubscriptionFilter, stream grpc.ServerStreamingServer[pb.TaskEvent], seq int64) (int64, error) {
 	if filter.TaskID != nil {
 		resp, err := s.GetTask(stream.Context(), &pb.GetTaskRequest{Id: filter.TaskID.String()})
 		if err != nil {
 			st, ok := status.FromError(err)
 			if ok && st.Code() == codes.NotFound {
-				return nil
+				return seq, nil
 			}
-			return err
+			return seq, err
 		}
-		return stream.Send(&pb.TaskEvent{
+		seq++
+		return seq, stream.Send(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_INITIAL,
 			Task:      resp.GetTask(),
 			Timestamp: timestamppb.Now(),
+			Sequence:  seq,
 		})
 	}
 
@@ -82,15 +95,17 @@ func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter
 		listReq.PageToken = pageToken
 		resp, err := s.ListTasks(stream.Context(), listReq)
 		if err != nil {
-			return err
+			return seq, err
 		}
 		for _, t := range resp.GetItems() {
+			seq++
 			if err := stream.Send(&pb.TaskEvent{
 				EventType: pb.TaskEventType_TASK_EVENT_TYPE_INITIAL,
 				Task:      t,
 				Timestamp: timestamppb.Now(),
+				Sequence:  seq,
 			}); err != nil {
-				return err
+				return seq, err
 			}
 		}
 		if !resp.GetHasMore() {
@@ -98,7 +113,7 @@ func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter
 		}
 		pageToken = resp.GetNextPageToken()
 	}
-	return nil
+	return seq, nil
 }
 
 func buildFilter(req *pb.WatchTasksRequest) streaming.SubscriptionFilter {
@@ -111,12 +126,12 @@ func buildFilter(req *pb.WatchTasksRequest) streaming.SubscriptionFilter {
 		}
 	}
 	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
-		ph := phaseFromProto(*req.Phase)
+		ph := convert.PhaseFromProto(*req.Phase)
 		f.Phase = &ph
 	}
 	for _, s := range req.GetStages() {
 		if s != pb.TaskStage_TASK_STAGE_UNSPECIFIED {
-			f.Stages = append(f.Stages, stageFromProto(s))
+			f.Stages = append(f.Stages, convert.StageFromProto(s))
 		}
 	}
 	if req.Assignee != nil {
@@ -139,7 +154,7 @@ func buildFilter(req *pb.WatchTasksRequest) streaming.SubscriptionFilter {
 		}
 	}
 	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
-		pr := priorityFromProto(*req.Priority)
+		pr := convert.PriorityFromProto(*req.Priority)
 		f.Priority = &pr
 	}
 
