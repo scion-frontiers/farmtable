@@ -5,7 +5,7 @@ RUN npm ci
 COPY web/ .
 RUN npm run build
 
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 RUN apt-get update && apt-get install -y gcc libc6-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY go.mod go.sum ./

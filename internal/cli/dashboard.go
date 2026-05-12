@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/server"
@@ -19,6 +21,8 @@ import (
 	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
 
 	farmtable "github.com/farmtable-io/farmtable"
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -74,6 +78,27 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	)
 	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, "dashboard", server.WithEventBus(eventBus)))
 
+	// Bootstrap: serve on bufconn to ensure default collection exists
+	bufLis := bufconn.Listen(1 << 20)
+	go grpcServer.Serve(bufLis)
+
+	bootstrapConn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return bufLis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("dialing bootstrap server: %w", err)
+	}
+	token := resolveToken("")
+	bootstrapClient := pb.NewFarmTableServiceClient(bootstrapConn)
+	if err := ensureDefaultCollection(authCtx(ctx, token), bootstrapClient); err != nil {
+		bootstrapConn.Close()
+		return fmt.Errorf("ensuring default collection: %w", err)
+	}
+	bootstrapConn.Close()
+
 	wrappedGrpc := grpcweb.WrapServer(grpcServer,
 		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
 		grpcweb.WithWebsockets(true),
@@ -102,8 +127,23 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	go func() {
 		<-sigCh
 		log.Println("Shutting down...")
-		grpcServer.GracefulStop()
-		httpServer.Shutdown(context.Background())
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		httpServer.Shutdown(shutdownCtx)
+
+		done := make(chan struct{})
+		go func() {
+			grpcServer.GracefulStop()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			log.Println("Forcing gRPC server stop")
+			grpcServer.Stop()
+		}
+
 		cancel()
 	}()
 
