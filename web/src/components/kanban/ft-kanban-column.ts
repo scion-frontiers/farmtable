@@ -104,18 +104,26 @@ export class FtKanbanColumn extends LitElement {
   @state()
   private isDragOver = false;
 
-  private onDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.dataTransfer!.dropEffect = 'move';
+  private _dragEnterCount = 0;
+
+  private onDragEnter() {
+    this._dragEnterCount++;
     this.isDragOver = true;
   }
 
+  private onDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'move';
+  }
+
   private onDragLeave() {
-    this.isDragOver = false;
+    this._dragEnterCount--;
+    this.isDragOver = this._dragEnterCount > 0;
   }
 
   private onDrop(e: DragEvent) {
     e.preventDefault();
+    this._dragEnterCount = 0;
     this.isDragOver = false;
     const taskId = e.dataTransfer!.getData('text/plain');
     if (!taskId) return;
@@ -140,6 +148,7 @@ export class FtKanbanColumn extends LitElement {
       </div>
       <div
         class=${classMap({ cards: true, dragover: this.isDragOver })}
+        @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}
         @drop=${this.onDrop}

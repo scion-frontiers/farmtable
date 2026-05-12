@@ -78,9 +78,6 @@ export class FtKanbanView extends LitElement {
     .on-hold-header sl-icon {
       transition: transform 0.2s;
     }
-    .on-hold-header .expanded sl-icon {
-      transform: rotate(90deg);
-    }
     .on-hold-columns {
       display: flex;
       gap: 0.75rem;
@@ -141,6 +138,8 @@ export class FtKanbanView extends LitElement {
     try {
       if (this.client) {
         await this.client.updateTask(taskId, { stage, phase: newPhase });
+      } else {
+        console.warn('No client configured — stage change is local only');
       }
     } catch {
       this.store.upsert({ ...task, stage: oldStage, phase: oldPhase });
