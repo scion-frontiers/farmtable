@@ -1,0 +1,84 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import type { ConnectionStatus } from '../store/stream-manager.js';
+
+@customElement('ft-toolbar')
+export class FtToolbar extends LitElement {
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      gap: 1rem;
+      border-bottom: 1px solid var(--sl-color-neutral-200);
+      background: var(--sl-color-neutral-50);
+    }
+    .title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-right: auto;
+    }
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    sl-select {
+      min-width: 120px;
+    }
+  `;
+
+  @property()
+  currentView: 'kanban' | 'tree' = 'kanban';
+
+  @property()
+  connectionStatus: ConnectionStatus = 'disconnected';
+
+  render() {
+    return html`
+      <span class="title">Farm Table</span>
+
+      <div class="filters">
+        <sl-select placeholder="Phase" size="small" clearable>
+          <sl-option value="open">Open</sl-option>
+          <sl-option value="in_progress">In Progress</sl-option>
+          <sl-option value="on_hold">On Hold</sl-option>
+          <sl-option value="closed">Closed</sl-option>
+        </sl-select>
+
+        <sl-select placeholder="Assignee" size="small" clearable>
+          <sl-option value="me">Me</sl-option>
+          <sl-option value="unassigned">Unassigned</sl-option>
+        </sl-select>
+      </div>
+
+      <sl-radio-group
+        value=${this.currentView}
+        size="small"
+        @sl-change=${this.onViewChange}
+      >
+        <sl-radio-button value="kanban">Kanban</sl-radio-button>
+        <sl-radio-button value="tree">Tree</sl-radio-button>
+      </sl-radio-group>
+
+      <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
+    `;
+  }
+
+  private onViewChange(e: Event) {
+    const target = e.target as HTMLElement & { value: string };
+    this.dispatchEvent(
+      new CustomEvent('view-change', {
+        detail: { view: target.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'ft-toolbar': FtToolbar;
+  }
+}

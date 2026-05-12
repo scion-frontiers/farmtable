@@ -1,0 +1,23 @@
+{
+  "name": "farmtable-web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lit": "^3.0.0",
+    "@shoelace-style/shoelace": "^2.15.0",
+    "@dagrejs/dagre": "^1.1.0",
+    "marked": "^15.0.0",
+    "dompurify": "^3.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "typescript": "^5.5.0"
+  }
+}
