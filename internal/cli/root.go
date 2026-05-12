@@ -43,6 +43,7 @@ func Execute(version string) {
 		newVersionCmd(globals, version),
 		newStatusCmd(globals),
 		newMCPCmd(globals),
+		newWatchCmd(globals),
 	)
 
 	if err := root.Execute(); err != nil {
