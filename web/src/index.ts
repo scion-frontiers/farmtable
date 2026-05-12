@@ -18,6 +18,9 @@ import './components/ft-toolbar.js';
 import './components/kanban/ft-task-card.js';
 import './components/kanban/ft-kanban-column.js';
 import './components/kanban/ft-kanban-view.js';
+import './components/tree/ft-tree-node.js';
+import './components/tree/ft-hierarchy-nav.js';
+import './components/tree/ft-tree-view.js';
 import './components/ft-app.js';
 
 setBasePath(import.meta.env.BASE_URL + 'shoelace');

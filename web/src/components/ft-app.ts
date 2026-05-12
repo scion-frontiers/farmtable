@@ -101,7 +101,14 @@ export class FtApp extends LitElement {
                     @task-select=${this.onTaskSelect}
                   ></ft-kanban-view>
                 `
-              : html`<div class="placeholder">Tree View — coming soon<div class="task-count">${taskCount} tasks loaded</div></div>`}
+              : html`
+                  <ft-tree-view
+                    .store=${this.taskStore}
+                    .client=${this.client}
+                    selected-task-id=${this.selectedTaskId ?? ''}
+                    @task-select=${this.onTaskSelect}
+                  ></ft-tree-view>
+                `}
         </div>
 
         ${this.selectedTaskId
