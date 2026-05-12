@@ -52,11 +52,13 @@ export class FtInspector extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
-  private storeCtrl!: TaskStoreController;
+  private storeCtrl?: TaskStoreController;
 
   connectedCallback() {
     super.connectedCallback();
-    this.storeCtrl = new TaskStoreController(this, this.store);
+    if (!this.storeCtrl) {
+      this.storeCtrl = new TaskStoreController(this, this.store);
+    }
   }
 
   private onClose() {

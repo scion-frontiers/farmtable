@@ -4,19 +4,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { Comment } from '../../gen/types.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
 import { renderMarkdown } from '../../util/markdown.js';
-
-function formatTimestamp(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}
+import { formatTimestamp } from '../../util/format.js';
 
 @customElement('ft-inspector-comments')
 export class FtInspectorComments extends LitElement {
@@ -85,6 +73,11 @@ export class FtInspectorComments extends LitElement {
     if (changed.has('taskId') && this.taskId !== this.cachedTaskId) {
       this.loaded = false;
       this.comments = [];
+      this.cachedTaskId = this.taskId;
+      const details = this.shadowRoot?.querySelector('sl-details');
+      if (details?.open) {
+        this.onExpand();
+      }
     }
   }
 

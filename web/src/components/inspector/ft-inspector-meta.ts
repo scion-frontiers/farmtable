@@ -1,19 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
-
-function formatDate(iso: string | undefined): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
+import { formatDate } from '../../util/format.js';
 
 @customElement('ft-inspector-meta')
 export class FtInspectorMeta extends LitElement {

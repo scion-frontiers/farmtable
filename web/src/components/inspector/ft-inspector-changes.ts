@@ -2,19 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Change } from '../../gen/types.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
-
-function formatTimestamp(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}
+import { formatTimestamp } from '../../util/format.js';
 
 function formatValue(v: unknown): string {
   if (v == null) return '—';
@@ -94,6 +82,11 @@ export class FtInspectorChanges extends LitElement {
     if (changed.has('taskId') && this.taskId !== this.cachedTaskId) {
       this.loaded = false;
       this.changes = [];
+      this.cachedTaskId = this.taskId;
+      const details = this.shadowRoot?.querySelector('sl-details');
+      if (details?.open) {
+        this.onExpand();
+      }
     }
   }
 
