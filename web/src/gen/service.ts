@@ -18,7 +18,7 @@ export interface FarmTableServiceClient {
   updateTask(id: string, fields: Partial<Task>): Promise<Task>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
-  watchTasks(): AsyncIterable<TaskEvent>;
+  watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent>;
 }
 
 const COLLECTION_ID = '00000000-0000-0000-0000-000000000001';
@@ -222,11 +222,12 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     return [];
   }
 
-  async *watchTasks(): AsyncIterable<TaskEvent> {
+  async *watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent> {
     let seq = 0n;
     const now = new Date().toISOString();
 
     for (const task of MOCK_TASKS) {
+      if (signal?.aborted) return;
       yield {
         task,
         eventType: TaskEventType.INITIAL,
@@ -245,8 +246,9 @@ export class MockFarmTableClient implements FarmTableServiceClient {
       sequence: ++seq,
     };
 
-    while (true) {
+    while (!signal?.aborted) {
       await delay(5000);
+      if (signal?.aborted) return;
       const randomTask = MOCK_TASKS[Math.floor(Math.random() * MOCK_TASKS.length)];
       yield {
         task: { ...randomTask, updatedAt: new Date().toISOString() },

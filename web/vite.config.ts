@@ -1,12 +1,19 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
-  root: resolve(__dirname),
   build: {
     outDir: 'dist',
     sourcemap: true,
   },
+  plugins: [
+    viteStaticCopy({
+      targets: [{
+        src: 'node_modules/@shoelace-style/shoelace/dist/assets/**/*',
+        dest: 'shoelace/assets',
+      }],
+    }),
+  ],
   server: {
     proxy: {
       '/farmtable.v1': {

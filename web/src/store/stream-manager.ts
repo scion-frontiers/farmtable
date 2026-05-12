@@ -2,7 +2,7 @@ import type { FarmTableServiceClient } from '../gen/service.js';
 import { TaskEventType } from '../gen/types.js';
 import type { TaskStore } from './task-store.js';
 
-export type ConnectionStatus = 'connecting' | 'connected' | 'syncing' | 'live' | 'disconnected' | 'error' | 'reconnecting';
+export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'error' | 'reconnecting';
 
 export class StreamManager extends EventTarget {
   private client: FarmTableServiceClient;
@@ -45,9 +45,8 @@ export class StreamManager extends EventTarget {
 
     try {
       this.setStatus('syncing');
-      this.resetHeartbeat();
 
-      for await (const event of this.client.watchTasks()) {
+      for await (const event of this.client.watchTasks(this.abortController.signal)) {
         if (this.abortController?.signal.aborted) break;
 
         this.resetHeartbeat();
@@ -71,6 +70,10 @@ export class StreamManager extends EventTarget {
           this.store.upsert(event.task, event.changes);
         }
       }
+
+      if (!this.abortController?.signal.aborted) {
+        this.scheduleReconnect();
+      }
     } catch (err) {
       if (this.abortController?.signal.aborted) return;
       console.error('Stream error:', err);
@@ -82,6 +85,7 @@ export class StreamManager extends EventTarget {
   private resync(): void {
     this.sequence = 0n;
     this.store.clear();
+    this.attempt = 0;
     this.scheduleReconnect();
   }
 

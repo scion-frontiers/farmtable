@@ -56,10 +56,6 @@ export class TaskStore extends EventTarget {
     return this.allTasks.filter((t) => t.parentTaskId === parentId);
   }
 
-  getRoots(): Task[] {
-    return this.roots;
-  }
-
   upsert(task: Task, _changes?: Change[]): void {
     this.tasks.set(task.id, task);
     this.dispatchEvent(new CustomEvent('tasks-changed', { detail: { task } }));

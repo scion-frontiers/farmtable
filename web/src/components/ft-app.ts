@@ -50,6 +50,9 @@ export class FtApp extends LitElement {
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
   private streamManager!: StreamManager;
+  private onStatusChanged = ((e: CustomEvent) => {
+    this.connectionStatus = e.detail.status;
+  }) as EventListener;
 
   @state()
   private currentView: 'kanban' | 'tree' = 'kanban';
@@ -64,14 +67,13 @@ export class FtApp extends LitElement {
     super.connectedCallback();
     const client = new MockFarmTableClient();
     this.streamManager = new StreamManager(client, this.taskStore);
-    this.streamManager.addEventListener('status-changed', ((e: CustomEvent) => {
-      this.connectionStatus = e.detail.status;
-    }) as EventListener);
+    this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.stop();
   }
 
