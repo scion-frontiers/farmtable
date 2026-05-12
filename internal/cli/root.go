@@ -44,6 +44,7 @@ func Execute(version string) {
 		newStatusCmd(globals),
 		newMCPCmd(globals),
 		newWatchCmd(globals),
+		newDashboardCmd(globals),
 	)
 
 	if err := root.Execute(); err != nil {
