@@ -33,17 +33,12 @@ export class FtApp extends LitElement {
       font-size: 1.2rem;
     }
     .inspector {
-      width: 360px;
+      width: 400px;
+      flex-shrink: 0;
       border-left: 1px solid var(--sl-color-neutral-200);
       padding: 1rem;
-      overflow: auto;
+      overflow: hidden;
       background: var(--sl-color-neutral-50);
-    }
-    .task-count {
-      text-align: center;
-      margin-top: 0.5rem;
-      color: var(--sl-color-neutral-400);
-      font-size: 0.85rem;
     }
   `;
 
@@ -114,8 +109,13 @@ export class FtApp extends LitElement {
         ${this.selectedTaskId
           ? html`
               <div class="inspector">
-                <div>Task Inspector</div>
-                <div>ID: ${this.selectedTaskId}</div>
+                <ft-inspector
+                  taskId=${this.selectedTaskId}
+                  .store=${this.taskStore}
+                  .client=${this.client}
+                  @close=${this.onInspectorClose}
+                  @task-select=${this.onTaskSelect}
+                ></ft-inspector>
               </div>
             `
           : null}
@@ -129,6 +129,10 @@ export class FtApp extends LitElement {
 
   private onTaskSelect(e: CustomEvent) {
     this.selectedTaskId = e.detail.taskId;
+  }
+
+  private onInspectorClose() {
+    this.selectedTaskId = null;
   }
 }
 

@@ -3,6 +3,7 @@ import {
   type Comment,
   type Change,
   type TaskEvent,
+  type User,
   TaskPhase,
   TaskStage,
   TaskPriority,
@@ -199,6 +200,85 @@ const MOCK_TASKS: Task[] = [
   },
 ];
 
+const MOCK_USERS: Record<string, User> = {
+  u1: { id: 'u1', name: 'Alice', type: UserType.HUMAN, status: IdentityStatus.ACTIVE },
+  u2: { id: 'u2', name: 'Bob', type: UserType.HUMAN, status: IdentityStatus.ACTIVE },
+  u3: { id: 'u3', name: 'Agent-7', type: UserType.AGENT, status: IdentityStatus.ACTIVE },
+};
+
+const MOCK_COMMENTS: Record<string, Comment[]> = {
+  '10000000-0000-0000-0000-000000000001': [
+    {
+      id: 'c1', taskId: '10000000-0000-0000-0000-000000000001',
+      author: MOCK_USERS.u1, body: 'Should we use GitHub Actions or GitLab CI? I lean toward **GitHub Actions** since the repo is already on GitHub.',
+      attachments: [], createdAt: NOW,
+    },
+    {
+      id: 'c2', taskId: '10000000-0000-0000-0000-000000000001',
+      author: MOCK_USERS.u2, body: 'Agreed. Let\'s start with a simple `build → test → deploy` pipeline.',
+      attachments: [], createdAt: NOW,
+    },
+  ],
+  '10000000-0000-0000-0000-000000000002': [
+    {
+      id: 'c3', taskId: '10000000-0000-0000-0000-000000000002',
+      author: MOCK_USERS.u2, body: 'Schema draft is ready for review. Using Ent with SQLite for local dev and Postgres for production.',
+      attachments: [], createdAt: NOW,
+    },
+  ],
+  '10000000-0000-0000-0000-000000000005': [
+    {
+      id: 'c4', taskId: '10000000-0000-0000-0000-000000000005',
+      author: MOCK_USERS.u3, body: 'Kanban view is functional. Working on drag-and-drop stage transitions next.',
+      attachments: [], createdAt: NOW,
+    },
+    {
+      id: 'c5', taskId: '10000000-0000-0000-0000-000000000005',
+      author: MOCK_USERS.u1, body: 'Looks great! Can we also add a tree view for the hierarchy?',
+      attachments: [], createdAt: NOW,
+    },
+    {
+      id: 'c6', taskId: '10000000-0000-0000-0000-000000000005',
+      author: MOCK_USERS.u3, body: 'Sure, I\'ll add that as a follow-up.\n\n- [x] Kanban board\n- [ ] Tree view\n- [ ] Inspector panel',
+      attachments: [], createdAt: NOW,
+    },
+  ],
+};
+
+const MOCK_CHANGES: Record<string, Change[]> = {
+  '10000000-0000-0000-0000-000000000002': [
+    {
+      id: 'ch1', taskId: '10000000-0000-0000-0000-000000000002',
+      field: 'stage', oldValue: 'Ready', newValue: 'Working',
+      changedBy: MOCK_USERS.u2, changedAt: NOW,
+    },
+    {
+      id: 'ch2', taskId: '10000000-0000-0000-0000-000000000002',
+      field: 'priority', oldValue: 'High', newValue: 'Urgent',
+      changedBy: MOCK_USERS.u1, changedAt: NOW,
+    },
+  ],
+  '10000000-0000-0000-0000-000000000005': [
+    {
+      id: 'ch3', taskId: '10000000-0000-0000-0000-000000000005',
+      field: 'stage', oldValue: 'Working', newValue: 'In Review',
+      changedBy: MOCK_USERS.u3, changedAt: NOW,
+    },
+    {
+      id: 'ch4', taskId: '10000000-0000-0000-0000-000000000005',
+      field: 'assignees', oldValue: 'Alice', newValue: 'Alice, Agent-7',
+      changedBy: MOCK_USERS.u1, changedAt: NOW,
+    },
+  ],
+  '10000000-0000-0000-0000-000000000006': [
+    {
+      id: 'ch5', taskId: '10000000-0000-0000-0000-000000000006',
+      field: 'stage', oldValue: 'Working', newValue: 'Blocked',
+      changedBy: MOCK_USERS.u2, changedAt: NOW,
+    },
+  ],
+};
+
 export class MockFarmTableClient implements FarmTableServiceClient {
   async listTasks(): Promise<Task[]> {
     return [...MOCK_TASKS];
@@ -223,12 +303,14 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     return updated;
   }
 
-  async listComments(): Promise<Comment[]> {
-    return [];
+  async listComments(taskId: string): Promise<Comment[]> {
+    await delay(300);
+    return MOCK_COMMENTS[taskId] ?? [];
   }
 
-  async listChanges(): Promise<Change[]> {
-    return [];
+  async listChanges(taskId: string): Promise<Change[]> {
+    await delay(300);
+    return MOCK_CHANGES[taskId] ?? [];
   }
 
   async *watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent> {

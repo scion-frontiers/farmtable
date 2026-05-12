@@ -11,6 +11,8 @@ import '@shoelace-style/shoelace/dist/components/tag/tag.js';
 import '@shoelace-style/shoelace/dist/components/avatar/avatar.js';
 import '@shoelace-style/shoelace/dist/components/icon/icon.js';
 import '@shoelace-style/shoelace/dist/components/alert/alert.js';
+import '@shoelace-style/shoelace/dist/components/divider/divider.js';
+import '@shoelace-style/shoelace/dist/components/details/details.js';
 
 import './styles/theme.css';
 import './components/ft-connection-badge.js';
@@ -21,6 +23,14 @@ import './components/kanban/ft-kanban-view.js';
 import './components/tree/ft-tree-node.js';
 import './components/tree/ft-hierarchy-nav.js';
 import './components/tree/ft-tree-view.js';
+import './components/inspector/ft-inspector-header.js';
+import './components/inspector/ft-inspector-meta.js';
+import './components/inspector/ft-inspector-desc.js';
+import './components/inspector/ft-inspector-relations.js';
+import './components/inspector/ft-inspector-code.js';
+import './components/inspector/ft-inspector-comments.js';
+import './components/inspector/ft-inspector-changes.js';
+import './components/inspector/ft-inspector.js';
 import './components/ft-app.js';
 
 setBasePath(import.meta.env.BASE_URL + 'shoelace');
