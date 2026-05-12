@@ -5,7 +5,7 @@ import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import { RelationshipType } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
-import type { FarmTableServiceClient } from '../../gen/service.js';
+import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 80;
@@ -114,7 +114,10 @@ export class FtTreeView extends LitElement {
   @state() private draggedTaskId: string | null = null;
   @state() private dropTargetId: string | null = null;
   @state() private isPanning = false;
+  @state() private expandedNodes = new Set<string>();
+  private expandedInitialized = false;
 
+  private _dragDescendants: Set<string> | null = null;
   private containerWidth = 800;
   private containerHeight = 600;
   private panStartX = 0;
@@ -186,6 +189,8 @@ export class FtTreeView extends LitElement {
   // ── Layout ──
 
   private getVisibleTasks(): Task[] {
+    this.initExpandedNodes();
+
     let tasks: Task[];
     if (this.focusRootId) {
       const ids = getDescendantIds(this.focusRootId, this.store);
@@ -206,17 +211,21 @@ export class FtTreeView extends LitElement {
       for (const r of roots) walk(r.id, 0);
       tasks = tasks.filter((t) => (depths.get(t.id) ?? 0) <= this.maxDepth);
     }
+
+    tasks = tasks.filter((t) => !this.hasCollapsedAncestor(t));
+
     return tasks;
   }
 
   private structureKey(tasks: Task[]): string {
+    const expanded = [...this.expandedNodes].sort().join(',');
     return tasks
       .map(
         (t) =>
           `${t.id}:${t.parentTaskId ?? ''}:${t.relationships.map((r) => `${r.type}-${r.targetTaskId}`).join(',')}`,
       )
       .sort()
-      .join('|');
+      .join('|') + '||' + expanded;
   }
 
   private runLayout() {
@@ -390,6 +399,40 @@ export class FtTreeView extends LitElement {
     this.lastStructureKey = '';
   }
 
+  // ── Collapse / Expand ──
+
+  private initExpandedNodes() {
+    if (this.expandedInitialized) return;
+    this.expandedInitialized = true;
+    for (const task of this.store.allTasks) {
+      this.expandedNodes.add(task.id);
+    }
+  }
+
+  private toggleExpand(taskId: string) {
+    const next = new Set(this.expandedNodes);
+    if (next.has(taskId)) {
+      next.delete(taskId);
+    } else {
+      next.add(taskId);
+    }
+    this.expandedNodes = next;
+    this.lastStructureKey = '';
+  }
+
+  private onToggleExpand(e: CustomEvent) {
+    this.toggleExpand(e.detail.taskId);
+  }
+
+  private hasCollapsedAncestor(task: Task): boolean {
+    let current = task.parentTaskId ? this.store.getTask(task.parentTaskId) : undefined;
+    while (current) {
+      if (!this.expandedNodes.has(current.id)) return true;
+      current = current.parentTaskId ? this.store.getTask(current.parentTaskId) : undefined;
+    }
+    return false;
+  }
+
   // ── Drag-and-drop ──
 
   private onDragStartCapture(e: DragEvent) {
@@ -400,20 +443,21 @@ export class FtTreeView extends LitElement {
         | null;
       if (node?.task) {
         this.draggedTaskId = node.task.id;
+        this._dragDescendants = getDescendantIds(node.task.id, this.store);
       }
     }
   }
 
   private onForeignDragStart(e: DragEvent, taskId: string) {
     this.draggedTaskId = taskId;
+    this._dragDescendants = getDescendantIds(taskId, this.store);
     e.dataTransfer!.setData('application/ft-task-id', taskId);
     e.dataTransfer!.effectAllowed = 'move';
   }
 
   private onNodeDragOver(e: DragEvent, taskId: string) {
     if (!this.draggedTaskId || this.draggedTaskId === taskId) return;
-    const descendants = getDescendantIds(this.draggedTaskId, this.store);
-    if (descendants.has(taskId)) return;
+    if (this._dragDescendants?.has(taskId)) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
     this.dropTargetId = taskId;
@@ -437,6 +481,7 @@ export class FtTreeView extends LitElement {
     await this.reparentTask(taskId, targetId);
     this.draggedTaskId = null;
     this.dropTargetId = null;
+    this._dragDescendants = null;
   }
 
   private onCanvasDragOver(e: DragEvent) {
@@ -454,11 +499,13 @@ export class FtTreeView extends LitElement {
     await this.reparentTask(taskId, null);
     this.draggedTaskId = null;
     this.dropTargetId = null;
+    this._dragDescendants = null;
   }
 
   private onDragEnd() {
     this.draggedTaskId = null;
     this.dropTargetId = null;
+    this._dragDescendants = null;
   }
 
   private async reparentTask(
@@ -474,9 +521,10 @@ export class FtTreeView extends LitElement {
 
     try {
       if (this.client) {
-        await this.client.updateTask(taskId, {
-          parentTaskId: newParentId ?? undefined,
-        });
+        const fields: UpdateTaskFields = newParentId !== null
+          ? { parentTaskId: newParentId }
+          : { parentTaskId: null };
+        await this.client.updateTask(taskId, fields);
       }
     } catch {
       this.store.upsert({ ...task, parentTaskId: oldParentId });
@@ -496,9 +544,7 @@ export class FtTreeView extends LitElement {
     const vbW = this.containerWidth / this.scale;
     const vbH = this.containerHeight / this.scale;
 
-    const dragDescendants = this.draggedTaskId
-      ? getDescendantIds(this.draggedTaskId, this.store)
-      : new Set<string>();
+    const dragDescendants = this._dragDescendants ?? new Set<string>();
 
     return html`
       <ft-hierarchy-nav
@@ -555,6 +601,8 @@ export class FtTreeView extends LitElement {
                     .task=${n.task}
                     ?selected=${this.selectedTaskId === n.id}
                     .childCount=${this.store.getChildren(n.id).length}
+                    ?expanded=${this.expandedNodes.has(n.id)}
+                    @toggle-expand=${this.onToggleExpand}
                   ></ft-tree-node>
                 </foreignObject>
               `;

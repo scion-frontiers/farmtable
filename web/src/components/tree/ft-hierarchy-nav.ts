@@ -57,8 +57,13 @@ export class FtHierarchyNav extends LitElement {
         walk(child.id, depth + 1);
       }
     };
-    for (const root of this.store.roots) {
-      walk(root.id, 0);
+    if (this.focusRootId) {
+      const focusRoot = this.store.getTask(this.focusRootId);
+      if (focusRoot) walk(focusRoot.id, 0);
+    } else {
+      for (const root of this.store.roots) {
+        walk(root.id, 0);
+      }
     }
     return max;
   }

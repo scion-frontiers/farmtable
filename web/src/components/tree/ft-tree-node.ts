@@ -133,6 +133,13 @@ export class FtTreeNode extends LitElement {
       font-size: 10px;
       color: var(--sl-color-neutral-500, #94a3b8);
       font-weight: 600;
+      cursor: pointer;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+    .child-count:hover {
+      background: var(--sl-color-neutral-200, #334155);
+      color: var(--sl-color-neutral-900, #e2e8f0);
     }
   `;
 
@@ -145,10 +152,24 @@ export class FtTreeNode extends LitElement {
   @property({ type: Number })
   childCount = 0;
 
+  @property({ type: Boolean })
+  expanded = true;
+
   private onDragStart(e: DragEvent) {
     e.dataTransfer!.setData('application/ft-task-id', this.task.id);
     e.dataTransfer!.setData('application/ft-subtree', 'true');
     e.dataTransfer!.effectAllowed = 'move';
+  }
+
+  private onToggleExpand(e: Event) {
+    e.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('toggle-expand', {
+        detail: { taskId: this.task.id },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   render() {
@@ -189,8 +210,10 @@ export class FtTreeNode extends LitElement {
                   (l) => html`<span class="label-tag">${l}</span>`,
                 )}
                 ${this.childCount > 0
-                  ? html`<span class="child-count"
-                      >[+${this.childCount}]</span
+                  ? html`<span
+                      class="child-count"
+                      @click=${this.onToggleExpand}
+                      >${this.expanded ? `[−${this.childCount}]` : `[+${this.childCount}]`}</span
                     >`
                   : nothing}
               </div>

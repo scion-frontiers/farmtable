@@ -12,10 +12,12 @@ import {
   IdentityStatus,
 } from './types.js';
 
+export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId'> & { parentTaskId?: string | null };
+
 export interface FarmTableServiceClient {
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
-  updateTask(id: string, fields: Partial<Task>): Promise<Task>;
+  updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
   watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent>;
@@ -208,10 +210,17 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     return { ...task };
   }
 
-  async updateTask(id: string, fields: Partial<Task>): Promise<Task> {
+  async updateTask(id: string, fields: UpdateTaskFields): Promise<Task> {
     const task = MOCK_TASKS.find((t) => t.id === id);
     if (!task) throw new Error(`Task not found: ${id}`);
-    return { ...task, ...fields };
+    const { parentTaskId, ...rest } = fields;
+    const updated: Task = { ...task, ...rest };
+    if (parentTaskId === null) {
+      delete updated.parentTaskId;
+    } else if (parentTaskId !== undefined) {
+      updated.parentTaskId = parentTaskId;
+    }
+    return updated;
   }
 
   async listComments(): Promise<Comment[]> {
