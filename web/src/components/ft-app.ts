@@ -3,7 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
-import { MockFarmTableClient } from '../gen/service.js';
+import { MockFarmTableClient, type FarmTableServiceClient } from '../gen/service.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -50,6 +50,7 @@ export class FtApp extends LitElement {
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
   private streamManager!: StreamManager;
+  private client!: FarmTableServiceClient;
   private onStatusChanged = ((e: CustomEvent) => {
     this.connectionStatus = e.detail.status;
   }) as EventListener;
@@ -65,8 +66,8 @@ export class FtApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    const client = new MockFarmTableClient();
-    this.streamManager = new StreamManager(client, this.taskStore);
+    this.client = new MockFarmTableClient();
+    this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();
   }
@@ -89,16 +90,18 @@ export class FtApp extends LitElement {
 
       <div class="content">
         <div class="main">
-          <div class="placeholder">
-            ${this.taskStore.isLoading
-              ? html`<sl-spinner style="font-size: 2rem;"></sl-spinner>`
-              : html`
-                  <div>
-                    <div>${this.currentView === 'kanban' ? 'Kanban Board' : 'Tree View'} — coming soon</div>
-                    <div class="task-count">${taskCount} tasks loaded</div>
-                  </div>
-                `}
-          </div>
+          ${this.taskStore.isLoading
+            ? html`<div class="placeholder"><sl-spinner style="font-size: 2rem;"></sl-spinner></div>`
+            : this.currentView === 'kanban'
+              ? html`
+                  <ft-kanban-view
+                    .store=${this.taskStore}
+                    .client=${this.client}
+                    selected-task-id=${this.selectedTaskId ?? ''}
+                    @task-select=${this.onTaskSelect}
+                  ></ft-kanban-view>
+                `
+              : html`<div class="placeholder">Tree View — coming soon<div class="task-count">${taskCount} tasks loaded</div></div>`}
         </div>
 
         ${this.selectedTaskId
@@ -115,6 +118,10 @@ export class FtApp extends LitElement {
 
   private onViewChange(e: CustomEvent) {
     this.currentView = e.detail.view;
+  }
+
+  private onTaskSelect(e: CustomEvent) {
+    this.selectedTaskId = e.detail.taskId;
   }
 }
 
