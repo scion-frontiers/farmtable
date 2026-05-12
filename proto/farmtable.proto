@@ -180,6 +180,18 @@ enum DependencyDirection {
   DEPENDENCY_DIRECTION_BOTH = 3;
 }
 
+// Classification of a streaming event.
+enum TaskEventType {
+  TASK_EVENT_TYPE_UNSPECIFIED = 0;
+  TASK_EVENT_TYPE_INITIAL = 1;
+  TASK_EVENT_TYPE_CREATED = 2;
+  TASK_EVENT_TYPE_UPDATED = 3;
+  TASK_EVENT_TYPE_CLOSED = 4;
+  TASK_EVENT_TYPE_DELETED = 5;
+  TASK_EVENT_TYPE_HEARTBEAT = 6;
+  TASK_EVENT_TYPE_SNAPSHOT_COMPLETE = 7;
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Core Messages
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -857,6 +869,32 @@ message GetVersionResponse {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Streaming RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Defines a live query subscription for streaming task updates.
+message WatchTasksRequest {
+  optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  optional TaskPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
+  repeated TaskStage stages = 3;
+  optional string assignee = 4;
+  repeated string labels = 5;
+  optional string task_id = 6 [(buf.validate.field).string.uuid = true];
+  // Proto3 defaults to false. Clients must explicitly set to true for initial snapshot.
+  bool include_initial = 7;
+  optional TaskPriority priority = 8 [(buf.validate.field).enum.defined_only = true];
+}
+
+// A single event in the task watch stream.
+message TaskEvent {
+  TaskEventType event_type = 1;
+  Task task = 2;
+  repeated Change changes = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  int64 sequence = 5;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Service Definition
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -920,4 +958,9 @@ service FarmTableService {
 
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+
+  // ── Streaming ──
+  // Server-side streaming live query. Sends initial snapshot then incremental events.
+  // Native backend only; returns UNIMPLEMENTED for pass-through mode.
+  rpc WatchTasks(WatchTasksRequest) returns (stream TaskEvent);
 }

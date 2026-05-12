@@ -977,6 +977,71 @@ func (DependencyDirection) EnumDescriptor() ([]byte, []int) {
 	return file_farmtable_proto_rawDescGZIP(), []int{15}
 }
 
+// Classification of a streaming event.
+type TaskEventType int32
+
+const (
+	TaskEventType_TASK_EVENT_TYPE_UNSPECIFIED       TaskEventType = 0
+	TaskEventType_TASK_EVENT_TYPE_INITIAL           TaskEventType = 1
+	TaskEventType_TASK_EVENT_TYPE_CREATED           TaskEventType = 2
+	TaskEventType_TASK_EVENT_TYPE_UPDATED           TaskEventType = 3
+	TaskEventType_TASK_EVENT_TYPE_CLOSED            TaskEventType = 4
+	TaskEventType_TASK_EVENT_TYPE_DELETED           TaskEventType = 5
+	TaskEventType_TASK_EVENT_TYPE_HEARTBEAT         TaskEventType = 6
+	TaskEventType_TASK_EVENT_TYPE_SNAPSHOT_COMPLETE TaskEventType = 7
+)
+
+// Enum value maps for TaskEventType.
+var (
+	TaskEventType_name = map[int32]string{
+		0: "TASK_EVENT_TYPE_UNSPECIFIED",
+		1: "TASK_EVENT_TYPE_INITIAL",
+		2: "TASK_EVENT_TYPE_CREATED",
+		3: "TASK_EVENT_TYPE_UPDATED",
+		4: "TASK_EVENT_TYPE_CLOSED",
+		5: "TASK_EVENT_TYPE_DELETED",
+		6: "TASK_EVENT_TYPE_HEARTBEAT",
+		7: "TASK_EVENT_TYPE_SNAPSHOT_COMPLETE",
+	}
+	TaskEventType_value = map[string]int32{
+		"TASK_EVENT_TYPE_UNSPECIFIED":       0,
+		"TASK_EVENT_TYPE_INITIAL":           1,
+		"TASK_EVENT_TYPE_CREATED":           2,
+		"TASK_EVENT_TYPE_UPDATED":           3,
+		"TASK_EVENT_TYPE_CLOSED":            4,
+		"TASK_EVENT_TYPE_DELETED":           5,
+		"TASK_EVENT_TYPE_HEARTBEAT":         6,
+		"TASK_EVENT_TYPE_SNAPSHOT_COMPLETE": 7,
+	}
+)
+
+func (x TaskEventType) Enum() *TaskEventType {
+	p := new(TaskEventType)
+	*p = x
+	return p
+}
+
+func (x TaskEventType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskEventType) Descriptor() protoreflect.EnumDescriptor {
+	return file_farmtable_proto_enumTypes[16].Descriptor()
+}
+
+func (TaskEventType) Type() protoreflect.EnumType {
+	return &file_farmtable_proto_enumTypes[16]
+}
+
+func (x TaskEventType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskEventType.Descriptor instead.
+func (TaskEventType) EnumDescriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{16}
+}
+
 // A human, agent, or service account that can be assigned tasks or author changes.
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -5625,6 +5690,185 @@ func (x *GetVersionResponse) GetServer() string {
 	return ""
 }
 
+// Defines a live query subscription for streaming task updates.
+type WatchTasksRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	CollectionId *string                `protobuf:"bytes,1,opt,name=collection_id,json=collectionId,proto3,oneof" json:"collection_id,omitempty"`
+	Phase        *TaskPhase             `protobuf:"varint,2,opt,name=phase,proto3,enum=farmtable.v1.TaskPhase,oneof" json:"phase,omitempty"`
+	Stages       []TaskStage            `protobuf:"varint,3,rep,packed,name=stages,proto3,enum=farmtable.v1.TaskStage" json:"stages,omitempty"`
+	Assignee     *string                `protobuf:"bytes,4,opt,name=assignee,proto3,oneof" json:"assignee,omitempty"`
+	Labels       []string               `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty"`
+	TaskId       *string                `protobuf:"bytes,6,opt,name=task_id,json=taskId,proto3,oneof" json:"task_id,omitempty"`
+	// Proto3 defaults to false. Clients must explicitly set to true for initial snapshot.
+	IncludeInitial bool          `protobuf:"varint,7,opt,name=include_initial,json=includeInitial,proto3" json:"include_initial,omitempty"`
+	Priority       *TaskPriority `protobuf:"varint,8,opt,name=priority,proto3,enum=farmtable.v1.TaskPriority,oneof" json:"priority,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WatchTasksRequest) Reset() {
+	*x = WatchTasksRequest{}
+	mi := &file_farmtable_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchTasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchTasksRequest) ProtoMessage() {}
+
+func (x *WatchTasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_farmtable_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchTasksRequest.ProtoReflect.Descriptor instead.
+func (*WatchTasksRequest) Descriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *WatchTasksRequest) GetCollectionId() string {
+	if x != nil && x.CollectionId != nil {
+		return *x.CollectionId
+	}
+	return ""
+}
+
+func (x *WatchTasksRequest) GetPhase() TaskPhase {
+	if x != nil && x.Phase != nil {
+		return *x.Phase
+	}
+	return TaskPhase_TASK_PHASE_UNSPECIFIED
+}
+
+func (x *WatchTasksRequest) GetStages() []TaskStage {
+	if x != nil {
+		return x.Stages
+	}
+	return nil
+}
+
+func (x *WatchTasksRequest) GetAssignee() string {
+	if x != nil && x.Assignee != nil {
+		return *x.Assignee
+	}
+	return ""
+}
+
+func (x *WatchTasksRequest) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *WatchTasksRequest) GetTaskId() string {
+	if x != nil && x.TaskId != nil {
+		return *x.TaskId
+	}
+	return ""
+}
+
+func (x *WatchTasksRequest) GetIncludeInitial() bool {
+	if x != nil {
+		return x.IncludeInitial
+	}
+	return false
+}
+
+func (x *WatchTasksRequest) GetPriority() TaskPriority {
+	if x != nil && x.Priority != nil {
+		return *x.Priority
+	}
+	return TaskPriority_TASK_PRIORITY_UNSPECIFIED
+}
+
+// A single event in the task watch stream.
+type TaskEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     TaskEventType          `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=farmtable.v1.TaskEventType" json:"event_type,omitempty"`
+	Task          *Task                  `protobuf:"bytes,2,opt,name=task,proto3" json:"task,omitempty"`
+	Changes       []*Change              `protobuf:"bytes,3,rep,name=changes,proto3" json:"changes,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Sequence      int64                  `protobuf:"varint,5,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskEvent) Reset() {
+	*x = TaskEvent{}
+	mi := &file_farmtable_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskEvent) ProtoMessage() {}
+
+func (x *TaskEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_farmtable_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskEvent.ProtoReflect.Descriptor instead.
+func (*TaskEvent) Descriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *TaskEvent) GetEventType() TaskEventType {
+	if x != nil {
+		return x.EventType
+	}
+	return TaskEventType_TASK_EVENT_TYPE_UNSPECIFIED
+}
+
+func (x *TaskEvent) GetTask() *Task {
+	if x != nil {
+		return x.Task
+	}
+	return nil
+}
+
+func (x *TaskEvent) GetChanges() []*Change {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+func (x *TaskEvent) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *TaskEvent) GetSequence() int64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
 var File_farmtable_proto protoreflect.FileDescriptor
 
 const file_farmtable_proto_rawDesc = "" +
@@ -6158,7 +6402,29 @@ const file_farmtable_proto_rawDesc = "" +
 	"cliVersion\x12%\n" +
 	"\x0eserver_version\x18\x02 \x01(\tR\rserverVersion\x12!\n" +
 	"\fapi_protocol\x18\x03 \x01(\tR\vapiProtocol\x12\x16\n" +
-	"\x06server\x18\x04 \x01(\tR\x06server*\xa1\x01\n" +
+	"\x06server\x18\x04 \x01(\tR\x06server\"\xc9\x03\n" +
+	"\x11WatchTasksRequest\x122\n" +
+	"\rcollection_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\fcollectionId\x88\x01\x01\x12<\n" +
+	"\x05phase\x18\x02 \x01(\x0e2\x17.farmtable.v1.TaskPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01H\x01R\x05phase\x88\x01\x01\x12/\n" +
+	"\x06stages\x18\x03 \x03(\x0e2\x17.farmtable.v1.TaskStageR\x06stages\x12\x1f\n" +
+	"\bassignee\x18\x04 \x01(\tH\x02R\bassignee\x88\x01\x01\x12\x16\n" +
+	"\x06labels\x18\x05 \x03(\tR\x06labels\x12&\n" +
+	"\atask_id\x18\x06 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x03R\x06taskId\x88\x01\x01\x12'\n" +
+	"\x0finclude_initial\x18\a \x01(\bR\x0eincludeInitial\x12E\n" +
+	"\bpriority\x18\b \x01(\x0e2\x1a.farmtable.v1.TaskPriorityB\b\xbaH\x05\x82\x01\x02\x10\x01H\x04R\bpriority\x88\x01\x01B\x10\n" +
+	"\x0e_collection_idB\b\n" +
+	"\x06_phaseB\v\n" +
+	"\t_assigneeB\n" +
+	"\n" +
+	"\b_task_idB\v\n" +
+	"\t_priority\"\xf5\x01\n" +
+	"\tTaskEvent\x12:\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\x0e2\x1b.farmtable.v1.TaskEventTypeR\teventType\x12&\n" +
+	"\x04task\x18\x02 \x01(\v2\x12.farmtable.v1.TaskR\x04task\x12.\n" +
+	"\achanges\x18\x03 \x03(\v2\x14.farmtable.v1.ChangeR\achanges\x128\n" +
+	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x1a\n" +
+	"\bsequence\x18\x05 \x01(\x03R\bsequence*\xa1\x01\n" +
 	"\bPlatform\x12\x18\n" +
 	"\x14PLATFORM_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12PLATFORM_FARMTABLE\x10\x01\x12\x13\n" +
@@ -6273,7 +6539,16 @@ const file_farmtable_proto_rawDesc = "" +
 	" DEPENDENCY_DIRECTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17DEPENDENCY_DIRECTION_UP\x10\x01\x12\x1d\n" +
 	"\x19DEPENDENCY_DIRECTION_DOWN\x10\x02\x12\x1d\n" +
-	"\x19DEPENDENCY_DIRECTION_BOTH\x10\x032\x8b\x0f\n" +
+	"\x19DEPENDENCY_DIRECTION_BOTH\x10\x03*\x86\x02\n" +
+	"\rTaskEventType\x12\x1f\n" +
+	"\x1bTASK_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17TASK_EVENT_TYPE_INITIAL\x10\x01\x12\x1b\n" +
+	"\x17TASK_EVENT_TYPE_CREATED\x10\x02\x12\x1b\n" +
+	"\x17TASK_EVENT_TYPE_UPDATED\x10\x03\x12\x1a\n" +
+	"\x16TASK_EVENT_TYPE_CLOSED\x10\x04\x12\x1b\n" +
+	"\x17TASK_EVENT_TYPE_DELETED\x10\x05\x12\x1d\n" +
+	"\x19TASK_EVENT_TYPE_HEARTBEAT\x10\x06\x12%\n" +
+	"!TASK_EVENT_TYPE_SNAPSHOT_COMPLETE\x10\a2\xd5\x0f\n" +
 	"\x10FarmTableService\x12L\n" +
 	"\tListTasks\x12\x1e.farmtable.v1.ListTasksRequest\x1a\x1f.farmtable.v1.ListTasksResponse\x12F\n" +
 	"\aGetTask\x12\x1c.farmtable.v1.GetTaskRequest\x1a\x1d.farmtable.v1.GetTaskResponse\x12A\n" +
@@ -6304,7 +6579,9 @@ const file_farmtable_proto_rawDesc = "" +
 	"\aGetUser\x12\x1c.farmtable.v1.GetUserRequest\x1a\x12.farmtable.v1.User\x12L\n" +
 	"\tGetStatus\x12\x1e.farmtable.v1.GetStatusRequest\x1a\x1f.farmtable.v1.GetStatusResponse\x12O\n" +
 	"\n" +
-	"GetVersion\x12\x1f.farmtable.v1.GetVersionRequest\x1a .farmtable.v1.GetVersionResponseB3Z1go.farmtable.dev/api/gen/farmtable/v1;farmtablev1b\x06proto3"
+	"GetVersion\x12\x1f.farmtable.v1.GetVersionRequest\x1a .farmtable.v1.GetVersionResponse\x12H\n" +
+	"\n" +
+	"WatchTasks\x12\x1f.farmtable.v1.WatchTasksRequest\x1a\x17.farmtable.v1.TaskEvent0\x01B3Z1go.farmtable.dev/api/gen/farmtable/v1;farmtablev1b\x06proto3"
 
 var (
 	file_farmtable_proto_rawDescOnce sync.Once
@@ -6318,8 +6595,8 @@ func file_farmtable_proto_rawDescGZIP() []byte {
 	return file_farmtable_proto_rawDescData
 }
 
-var file_farmtable_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
-var file_farmtable_proto_msgTypes = make([]protoimpl.MessageInfo, 61)
+var file_farmtable_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
+var file_farmtable_proto_msgTypes = make([]protoimpl.MessageInfo, 63)
 var file_farmtable_proto_goTypes = []any{
 	(Platform)(0),                     // 0: farmtable.v1.Platform
 	(TaskPhase)(0),                    // 1: farmtable.v1.TaskPhase
@@ -6337,70 +6614,73 @@ var file_farmtable_proto_goTypes = []any{
 	(SortField)(0),                    // 13: farmtable.v1.SortField
 	(SortOrder)(0),                    // 14: farmtable.v1.SortOrder
 	(DependencyDirection)(0),          // 15: farmtable.v1.DependencyDirection
-	(*User)(nil),                      // 16: farmtable.v1.User
-	(*Relationship)(nil),              // 17: farmtable.v1.Relationship
-	(*Attachment)(nil),                // 18: farmtable.v1.Attachment
-	(*CustomFieldValue)(nil),          // 19: farmtable.v1.CustomFieldValue
-	(*CustomFieldDefinition)(nil),     // 20: farmtable.v1.CustomFieldDefinition
-	(*PullRequest)(nil),               // 21: farmtable.v1.PullRequest
-	(*CodeContext)(nil),               // 22: farmtable.v1.CodeContext
-	(*StatusMapping)(nil),             // 23: farmtable.v1.StatusMapping
-	(*Task)(nil),                      // 24: farmtable.v1.Task
-	(*Collection)(nil),                // 25: farmtable.v1.Collection
-	(*Comment)(nil),                   // 26: farmtable.v1.Comment
-	(*Change)(nil),                    // 27: farmtable.v1.Change
-	(*LinkedAccount)(nil),             // 28: farmtable.v1.LinkedAccount
-	(*WebhookEvent)(nil),              // 29: farmtable.v1.WebhookEvent
-	(*ListTasksRequest)(nil),          // 30: farmtable.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),         // 31: farmtable.v1.ListTasksResponse
-	(*GetTaskRequest)(nil),            // 32: farmtable.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),           // 33: farmtable.v1.GetTaskResponse
-	(*CreateTaskRequest)(nil),         // 34: farmtable.v1.CreateTaskRequest
-	(*UpdateTaskRequest)(nil),         // 35: farmtable.v1.UpdateTaskRequest
-	(*ClaimTaskRequest)(nil),          // 36: farmtable.v1.ClaimTaskRequest
-	(*ClaimTaskResponse)(nil),         // 37: farmtable.v1.ClaimTaskResponse
-	(*CloseTaskRequest)(nil),          // 38: farmtable.v1.CloseTaskRequest
-	(*DeleteTaskRequest)(nil),         // 39: farmtable.v1.DeleteTaskRequest
-	(*DeleteTaskResponse)(nil),        // 40: farmtable.v1.DeleteTaskResponse
-	(*AddCommentRequest)(nil),         // 41: farmtable.v1.AddCommentRequest
-	(*ListCommentsRequest)(nil),       // 42: farmtable.v1.ListCommentsRequest
-	(*ListCommentsResponse)(nil),      // 43: farmtable.v1.ListCommentsResponse
-	(*GetCommentRequest)(nil),         // 44: farmtable.v1.GetCommentRequest
-	(*ListCollectionsRequest)(nil),    // 45: farmtable.v1.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),   // 46: farmtable.v1.ListCollectionsResponse
-	(*GetCollectionRequest)(nil),      // 47: farmtable.v1.GetCollectionRequest
-	(*CreateCollectionRequest)(nil),   // 48: farmtable.v1.CreateCollectionRequest
-	(*GetReadyTasksRequest)(nil),      // 49: farmtable.v1.GetReadyTasksRequest
-	(*ReadyTask)(nil),                 // 50: farmtable.v1.ReadyTask
-	(*GetReadyTasksResponse)(nil),     // 51: farmtable.v1.GetReadyTasksResponse
-	(*GetBlockedTasksRequest)(nil),    // 52: farmtable.v1.GetBlockedTasksRequest
-	(*BlockerInfo)(nil),               // 53: farmtable.v1.BlockerInfo
-	(*BlockedTask)(nil),               // 54: farmtable.v1.BlockedTask
-	(*GetBlockedTasksResponse)(nil),   // 55: farmtable.v1.GetBlockedTasksResponse
-	(*GetDependencyTreeRequest)(nil),  // 56: farmtable.v1.GetDependencyTreeRequest
-	(*DependencyNode)(nil),            // 57: farmtable.v1.DependencyNode
-	(*GetDependencyTreeResponse)(nil), // 58: farmtable.v1.GetDependencyTreeResponse
-	(*GetCriticalPathRequest)(nil),    // 59: farmtable.v1.GetCriticalPathRequest
-	(*CriticalPathNode)(nil),          // 60: farmtable.v1.CriticalPathNode
-	(*Bottleneck)(nil),                // 61: farmtable.v1.Bottleneck
-	(*GetCriticalPathResponse)(nil),   // 62: farmtable.v1.GetCriticalPathResponse
-	(*GetBottlenecksRequest)(nil),     // 63: farmtable.v1.GetBottlenecksRequest
-	(*BottleneckTask)(nil),            // 64: farmtable.v1.BottleneckTask
-	(*GetBottlenecksResponse)(nil),    // 65: farmtable.v1.GetBottlenecksResponse
-	(*ListChangesRequest)(nil),        // 66: farmtable.v1.ListChangesRequest
-	(*ListChangesResponse)(nil),       // 67: farmtable.v1.ListChangesResponse
-	(*WhoAmIRequest)(nil),             // 68: farmtable.v1.WhoAmIRequest
-	(*ListUsersRequest)(nil),          // 69: farmtable.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),         // 70: farmtable.v1.ListUsersResponse
-	(*GetUserRequest)(nil),            // 71: farmtable.v1.GetUserRequest
-	(*GetStatusRequest)(nil),          // 72: farmtable.v1.GetStatusRequest
-	(*PlatformConnectionStatus)(nil),  // 73: farmtable.v1.PlatformConnectionStatus
-	(*GetStatusResponse)(nil),         // 74: farmtable.v1.GetStatusResponse
-	(*GetVersionRequest)(nil),         // 75: farmtable.v1.GetVersionRequest
-	(*GetVersionResponse)(nil),        // 76: farmtable.v1.GetVersionResponse
-	(*structpb.Value)(nil),            // 77: google.protobuf.Value
-	(*timestamppb.Timestamp)(nil),     // 78: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),           // 79: google.protobuf.Struct
+	(TaskEventType)(0),                // 16: farmtable.v1.TaskEventType
+	(*User)(nil),                      // 17: farmtable.v1.User
+	(*Relationship)(nil),              // 18: farmtable.v1.Relationship
+	(*Attachment)(nil),                // 19: farmtable.v1.Attachment
+	(*CustomFieldValue)(nil),          // 20: farmtable.v1.CustomFieldValue
+	(*CustomFieldDefinition)(nil),     // 21: farmtable.v1.CustomFieldDefinition
+	(*PullRequest)(nil),               // 22: farmtable.v1.PullRequest
+	(*CodeContext)(nil),               // 23: farmtable.v1.CodeContext
+	(*StatusMapping)(nil),             // 24: farmtable.v1.StatusMapping
+	(*Task)(nil),                      // 25: farmtable.v1.Task
+	(*Collection)(nil),                // 26: farmtable.v1.Collection
+	(*Comment)(nil),                   // 27: farmtable.v1.Comment
+	(*Change)(nil),                    // 28: farmtable.v1.Change
+	(*LinkedAccount)(nil),             // 29: farmtable.v1.LinkedAccount
+	(*WebhookEvent)(nil),              // 30: farmtable.v1.WebhookEvent
+	(*ListTasksRequest)(nil),          // 31: farmtable.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),         // 32: farmtable.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),            // 33: farmtable.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),           // 34: farmtable.v1.GetTaskResponse
+	(*CreateTaskRequest)(nil),         // 35: farmtable.v1.CreateTaskRequest
+	(*UpdateTaskRequest)(nil),         // 36: farmtable.v1.UpdateTaskRequest
+	(*ClaimTaskRequest)(nil),          // 37: farmtable.v1.ClaimTaskRequest
+	(*ClaimTaskResponse)(nil),         // 38: farmtable.v1.ClaimTaskResponse
+	(*CloseTaskRequest)(nil),          // 39: farmtable.v1.CloseTaskRequest
+	(*DeleteTaskRequest)(nil),         // 40: farmtable.v1.DeleteTaskRequest
+	(*DeleteTaskResponse)(nil),        // 41: farmtable.v1.DeleteTaskResponse
+	(*AddCommentRequest)(nil),         // 42: farmtable.v1.AddCommentRequest
+	(*ListCommentsRequest)(nil),       // 43: farmtable.v1.ListCommentsRequest
+	(*ListCommentsResponse)(nil),      // 44: farmtable.v1.ListCommentsResponse
+	(*GetCommentRequest)(nil),         // 45: farmtable.v1.GetCommentRequest
+	(*ListCollectionsRequest)(nil),    // 46: farmtable.v1.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),   // 47: farmtable.v1.ListCollectionsResponse
+	(*GetCollectionRequest)(nil),      // 48: farmtable.v1.GetCollectionRequest
+	(*CreateCollectionRequest)(nil),   // 49: farmtable.v1.CreateCollectionRequest
+	(*GetReadyTasksRequest)(nil),      // 50: farmtable.v1.GetReadyTasksRequest
+	(*ReadyTask)(nil),                 // 51: farmtable.v1.ReadyTask
+	(*GetReadyTasksResponse)(nil),     // 52: farmtable.v1.GetReadyTasksResponse
+	(*GetBlockedTasksRequest)(nil),    // 53: farmtable.v1.GetBlockedTasksRequest
+	(*BlockerInfo)(nil),               // 54: farmtable.v1.BlockerInfo
+	(*BlockedTask)(nil),               // 55: farmtable.v1.BlockedTask
+	(*GetBlockedTasksResponse)(nil),   // 56: farmtable.v1.GetBlockedTasksResponse
+	(*GetDependencyTreeRequest)(nil),  // 57: farmtable.v1.GetDependencyTreeRequest
+	(*DependencyNode)(nil),            // 58: farmtable.v1.DependencyNode
+	(*GetDependencyTreeResponse)(nil), // 59: farmtable.v1.GetDependencyTreeResponse
+	(*GetCriticalPathRequest)(nil),    // 60: farmtable.v1.GetCriticalPathRequest
+	(*CriticalPathNode)(nil),          // 61: farmtable.v1.CriticalPathNode
+	(*Bottleneck)(nil),                // 62: farmtable.v1.Bottleneck
+	(*GetCriticalPathResponse)(nil),   // 63: farmtable.v1.GetCriticalPathResponse
+	(*GetBottlenecksRequest)(nil),     // 64: farmtable.v1.GetBottlenecksRequest
+	(*BottleneckTask)(nil),            // 65: farmtable.v1.BottleneckTask
+	(*GetBottlenecksResponse)(nil),    // 66: farmtable.v1.GetBottlenecksResponse
+	(*ListChangesRequest)(nil),        // 67: farmtable.v1.ListChangesRequest
+	(*ListChangesResponse)(nil),       // 68: farmtable.v1.ListChangesResponse
+	(*WhoAmIRequest)(nil),             // 69: farmtable.v1.WhoAmIRequest
+	(*ListUsersRequest)(nil),          // 70: farmtable.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),         // 71: farmtable.v1.ListUsersResponse
+	(*GetUserRequest)(nil),            // 72: farmtable.v1.GetUserRequest
+	(*GetStatusRequest)(nil),          // 73: farmtable.v1.GetStatusRequest
+	(*PlatformConnectionStatus)(nil),  // 74: farmtable.v1.PlatformConnectionStatus
+	(*GetStatusResponse)(nil),         // 75: farmtable.v1.GetStatusResponse
+	(*GetVersionRequest)(nil),         // 76: farmtable.v1.GetVersionRequest
+	(*GetVersionResponse)(nil),        // 77: farmtable.v1.GetVersionResponse
+	(*WatchTasksRequest)(nil),         // 78: farmtable.v1.WatchTasksRequest
+	(*TaskEvent)(nil),                 // 79: farmtable.v1.TaskEvent
+	(*structpb.Value)(nil),            // 80: google.protobuf.Value
+	(*timestamppb.Timestamp)(nil),     // 81: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),           // 82: google.protobuf.Struct
 }
 var file_farmtable_proto_depIdxs = []int32{
 	5,   // 0: farmtable.v1.User.type:type_name -> farmtable.v1.UserType
@@ -6408,158 +6688,167 @@ var file_farmtable_proto_depIdxs = []int32{
 	0,   // 2: farmtable.v1.User.platform:type_name -> farmtable.v1.Platform
 	4,   // 3: farmtable.v1.Relationship.type:type_name -> farmtable.v1.RelationshipType
 	8,   // 4: farmtable.v1.CustomFieldValue.field_type:type_name -> farmtable.v1.CustomFieldType
-	77,  // 5: farmtable.v1.CustomFieldValue.value:type_name -> google.protobuf.Value
+	80,  // 5: farmtable.v1.CustomFieldValue.value:type_name -> google.protobuf.Value
 	8,   // 6: farmtable.v1.CustomFieldDefinition.field_type:type_name -> farmtable.v1.CustomFieldType
 	10,  // 7: farmtable.v1.PullRequest.status:type_name -> farmtable.v1.PullRequestStatus
-	21,  // 8: farmtable.v1.CodeContext.pull_requests:type_name -> farmtable.v1.PullRequest
+	22,  // 8: farmtable.v1.CodeContext.pull_requests:type_name -> farmtable.v1.PullRequest
 	9,   // 9: farmtable.v1.CodeContext.ci_status:type_name -> farmtable.v1.CIStatus
 	1,   // 10: farmtable.v1.StatusMapping.phase:type_name -> farmtable.v1.TaskPhase
 	2,   // 11: farmtable.v1.StatusMapping.stage:type_name -> farmtable.v1.TaskStage
 	1,   // 12: farmtable.v1.Task.phase:type_name -> farmtable.v1.TaskPhase
 	2,   // 13: farmtable.v1.Task.stage:type_name -> farmtable.v1.TaskStage
 	3,   // 14: farmtable.v1.Task.priority:type_name -> farmtable.v1.TaskPriority
-	16,  // 15: farmtable.v1.Task.assignees:type_name -> farmtable.v1.User
-	16,  // 16: farmtable.v1.Task.creator:type_name -> farmtable.v1.User
-	78,  // 17: farmtable.v1.Task.start_date:type_name -> google.protobuf.Timestamp
-	78,  // 18: farmtable.v1.Task.due_date:type_name -> google.protobuf.Timestamp
-	17,  // 19: farmtable.v1.Task.relationships:type_name -> farmtable.v1.Relationship
-	19,  // 20: farmtable.v1.Task.custom_fields:type_name -> farmtable.v1.CustomFieldValue
-	22,  // 21: farmtable.v1.Task.code_context:type_name -> farmtable.v1.CodeContext
-	79,  // 22: farmtable.v1.Task.remote_data:type_name -> google.protobuf.Struct
+	17,  // 15: farmtable.v1.Task.assignees:type_name -> farmtable.v1.User
+	17,  // 16: farmtable.v1.Task.creator:type_name -> farmtable.v1.User
+	81,  // 17: farmtable.v1.Task.start_date:type_name -> google.protobuf.Timestamp
+	81,  // 18: farmtable.v1.Task.due_date:type_name -> google.protobuf.Timestamp
+	18,  // 19: farmtable.v1.Task.relationships:type_name -> farmtable.v1.Relationship
+	20,  // 20: farmtable.v1.Task.custom_fields:type_name -> farmtable.v1.CustomFieldValue
+	23,  // 21: farmtable.v1.Task.code_context:type_name -> farmtable.v1.CodeContext
+	82,  // 22: farmtable.v1.Task.remote_data:type_name -> google.protobuf.Struct
 	0,   // 23: farmtable.v1.Task.platform:type_name -> farmtable.v1.Platform
-	78,  // 24: farmtable.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	78,  // 25: farmtable.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
-	78,  // 26: farmtable.v1.Task.closed_at:type_name -> google.protobuf.Timestamp
+	81,  // 24: farmtable.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	81,  // 25: farmtable.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
+	81,  // 26: farmtable.v1.Task.closed_at:type_name -> google.protobuf.Timestamp
 	0,   // 27: farmtable.v1.Collection.platform:type_name -> farmtable.v1.Platform
-	23,  // 28: farmtable.v1.Collection.status_mappings:type_name -> farmtable.v1.StatusMapping
-	20,  // 29: farmtable.v1.Collection.custom_field_definitions:type_name -> farmtable.v1.CustomFieldDefinition
-	79,  // 30: farmtable.v1.Collection.remote_data:type_name -> google.protobuf.Struct
-	78,  // 31: farmtable.v1.Collection.created_at:type_name -> google.protobuf.Timestamp
-	78,  // 32: farmtable.v1.Collection.updated_at:type_name -> google.protobuf.Timestamp
-	16,  // 33: farmtable.v1.Comment.author:type_name -> farmtable.v1.User
-	18,  // 34: farmtable.v1.Comment.attachments:type_name -> farmtable.v1.Attachment
-	78,  // 35: farmtable.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
-	78,  // 36: farmtable.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
-	77,  // 37: farmtable.v1.Change.old_value:type_name -> google.protobuf.Value
-	77,  // 38: farmtable.v1.Change.new_value:type_name -> google.protobuf.Value
-	16,  // 39: farmtable.v1.Change.changed_by:type_name -> farmtable.v1.User
-	78,  // 40: farmtable.v1.Change.changed_at:type_name -> google.protobuf.Timestamp
+	24,  // 28: farmtable.v1.Collection.status_mappings:type_name -> farmtable.v1.StatusMapping
+	21,  // 29: farmtable.v1.Collection.custom_field_definitions:type_name -> farmtable.v1.CustomFieldDefinition
+	82,  // 30: farmtable.v1.Collection.remote_data:type_name -> google.protobuf.Struct
+	81,  // 31: farmtable.v1.Collection.created_at:type_name -> google.protobuf.Timestamp
+	81,  // 32: farmtable.v1.Collection.updated_at:type_name -> google.protobuf.Timestamp
+	17,  // 33: farmtable.v1.Comment.author:type_name -> farmtable.v1.User
+	19,  // 34: farmtable.v1.Comment.attachments:type_name -> farmtable.v1.Attachment
+	81,  // 35: farmtable.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
+	81,  // 36: farmtable.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
+	80,  // 37: farmtable.v1.Change.old_value:type_name -> google.protobuf.Value
+	80,  // 38: farmtable.v1.Change.new_value:type_name -> google.protobuf.Value
+	17,  // 39: farmtable.v1.Change.changed_by:type_name -> farmtable.v1.User
+	81,  // 40: farmtable.v1.Change.changed_at:type_name -> google.protobuf.Timestamp
 	0,   // 41: farmtable.v1.LinkedAccount.platform:type_name -> farmtable.v1.Platform
 	7,   // 42: farmtable.v1.LinkedAccount.auth_method:type_name -> farmtable.v1.AuthMethod
 	6,   // 43: farmtable.v1.LinkedAccount.status:type_name -> farmtable.v1.IdentityStatus
-	78,  // 44: farmtable.v1.LinkedAccount.created_at:type_name -> google.protobuf.Timestamp
-	78,  // 45: farmtable.v1.LinkedAccount.expires_at:type_name -> google.protobuf.Timestamp
+	81,  // 44: farmtable.v1.LinkedAccount.created_at:type_name -> google.protobuf.Timestamp
+	81,  // 45: farmtable.v1.LinkedAccount.expires_at:type_name -> google.protobuf.Timestamp
 	11,  // 46: farmtable.v1.WebhookEvent.event_type:type_name -> farmtable.v1.EventType
-	27,  // 47: farmtable.v1.WebhookEvent.changes:type_name -> farmtable.v1.Change
-	16,  // 48: farmtable.v1.WebhookEvent.triggered_by:type_name -> farmtable.v1.User
+	28,  // 47: farmtable.v1.WebhookEvent.changes:type_name -> farmtable.v1.Change
+	17,  // 48: farmtable.v1.WebhookEvent.triggered_by:type_name -> farmtable.v1.User
 	0,   // 49: farmtable.v1.WebhookEvent.platform:type_name -> farmtable.v1.Platform
 	12,  // 50: farmtable.v1.WebhookEvent.source:type_name -> farmtable.v1.WebhookSource
-	78,  // 51: farmtable.v1.WebhookEvent.timestamp:type_name -> google.protobuf.Timestamp
+	81,  // 51: farmtable.v1.WebhookEvent.timestamp:type_name -> google.protobuf.Timestamp
 	1,   // 52: farmtable.v1.ListTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
 	2,   // 53: farmtable.v1.ListTasksRequest.stages:type_name -> farmtable.v1.TaskStage
 	3,   // 54: farmtable.v1.ListTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
 	13,  // 55: farmtable.v1.ListTasksRequest.sort_field:type_name -> farmtable.v1.SortField
 	14,  // 56: farmtable.v1.ListTasksRequest.sort_order:type_name -> farmtable.v1.SortOrder
-	24,  // 57: farmtable.v1.ListTasksResponse.items:type_name -> farmtable.v1.Task
-	24,  // 58: farmtable.v1.GetTaskResponse.task:type_name -> farmtable.v1.Task
-	26,  // 59: farmtable.v1.GetTaskResponse.comments:type_name -> farmtable.v1.Comment
-	27,  // 60: farmtable.v1.GetTaskResponse.changes:type_name -> farmtable.v1.Change
+	25,  // 57: farmtable.v1.ListTasksResponse.items:type_name -> farmtable.v1.Task
+	25,  // 58: farmtable.v1.GetTaskResponse.task:type_name -> farmtable.v1.Task
+	27,  // 59: farmtable.v1.GetTaskResponse.comments:type_name -> farmtable.v1.Comment
+	28,  // 60: farmtable.v1.GetTaskResponse.changes:type_name -> farmtable.v1.Change
 	2,   // 61: farmtable.v1.CreateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
 	3,   // 62: farmtable.v1.CreateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
-	78,  // 63: farmtable.v1.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	78,  // 64: farmtable.v1.CreateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
+	81,  // 63: farmtable.v1.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	81,  // 64: farmtable.v1.CreateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
 	2,   // 65: farmtable.v1.UpdateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
 	3,   // 66: farmtable.v1.UpdateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
-	78,  // 67: farmtable.v1.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	78,  // 68: farmtable.v1.UpdateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
-	21,  // 69: farmtable.v1.UpdateTaskRequest.add_pull_requests:type_name -> farmtable.v1.PullRequest
+	81,  // 67: farmtable.v1.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	81,  // 68: farmtable.v1.UpdateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
+	22,  // 69: farmtable.v1.UpdateTaskRequest.add_pull_requests:type_name -> farmtable.v1.PullRequest
 	9,   // 70: farmtable.v1.UpdateTaskRequest.ci_status:type_name -> farmtable.v1.CIStatus
 	2,   // 71: farmtable.v1.ClaimTaskRequest.stage:type_name -> farmtable.v1.TaskStage
-	24,  // 72: farmtable.v1.ClaimTaskResponse.task:type_name -> farmtable.v1.Task
-	78,  // 73: farmtable.v1.ClaimTaskResponse.claimed_at:type_name -> google.protobuf.Timestamp
+	25,  // 72: farmtable.v1.ClaimTaskResponse.task:type_name -> farmtable.v1.Task
+	81,  // 73: farmtable.v1.ClaimTaskResponse.claimed_at:type_name -> google.protobuf.Timestamp
 	2,   // 74: farmtable.v1.CloseTaskRequest.stage:type_name -> farmtable.v1.TaskStage
 	14,  // 75: farmtable.v1.ListCommentsRequest.order:type_name -> farmtable.v1.SortOrder
-	26,  // 76: farmtable.v1.ListCommentsResponse.items:type_name -> farmtable.v1.Comment
+	27,  // 76: farmtable.v1.ListCommentsResponse.items:type_name -> farmtable.v1.Comment
 	0,   // 77: farmtable.v1.ListCollectionsRequest.platform:type_name -> farmtable.v1.Platform
-	25,  // 78: farmtable.v1.ListCollectionsResponse.items:type_name -> farmtable.v1.Collection
+	26,  // 78: farmtable.v1.ListCollectionsResponse.items:type_name -> farmtable.v1.Collection
 	3,   // 79: farmtable.v1.GetReadyTasksRequest.min_priority:type_name -> farmtable.v1.TaskPriority
-	24,  // 80: farmtable.v1.ReadyTask.task:type_name -> farmtable.v1.Task
-	50,  // 81: farmtable.v1.GetReadyTasksResponse.items:type_name -> farmtable.v1.ReadyTask
+	25,  // 80: farmtable.v1.ReadyTask.task:type_name -> farmtable.v1.Task
+	51,  // 81: farmtable.v1.GetReadyTasksResponse.items:type_name -> farmtable.v1.ReadyTask
 	1,   // 82: farmtable.v1.BlockerInfo.phase:type_name -> farmtable.v1.TaskPhase
 	2,   // 83: farmtable.v1.BlockerInfo.stage:type_name -> farmtable.v1.TaskStage
-	24,  // 84: farmtable.v1.BlockedTask.task:type_name -> farmtable.v1.Task
-	53,  // 85: farmtable.v1.BlockedTask.blocked_by:type_name -> farmtable.v1.BlockerInfo
-	54,  // 86: farmtable.v1.GetBlockedTasksResponse.items:type_name -> farmtable.v1.BlockedTask
+	25,  // 84: farmtable.v1.BlockedTask.task:type_name -> farmtable.v1.Task
+	54,  // 85: farmtable.v1.BlockedTask.blocked_by:type_name -> farmtable.v1.BlockerInfo
+	55,  // 86: farmtable.v1.GetBlockedTasksResponse.items:type_name -> farmtable.v1.BlockedTask
 	15,  // 87: farmtable.v1.GetDependencyTreeRequest.direction:type_name -> farmtable.v1.DependencyDirection
-	24,  // 88: farmtable.v1.DependencyNode.task:type_name -> farmtable.v1.Task
-	57,  // 89: farmtable.v1.DependencyNode.blocks:type_name -> farmtable.v1.DependencyNode
-	57,  // 90: farmtable.v1.DependencyNode.blocked_by:type_name -> farmtable.v1.DependencyNode
-	57,  // 91: farmtable.v1.GetDependencyTreeResponse.root:type_name -> farmtable.v1.DependencyNode
+	25,  // 88: farmtable.v1.DependencyNode.task:type_name -> farmtable.v1.Task
+	58,  // 89: farmtable.v1.DependencyNode.blocks:type_name -> farmtable.v1.DependencyNode
+	58,  // 90: farmtable.v1.DependencyNode.blocked_by:type_name -> farmtable.v1.DependencyNode
+	58,  // 91: farmtable.v1.GetDependencyTreeResponse.root:type_name -> farmtable.v1.DependencyNode
 	2,   // 92: farmtable.v1.CriticalPathNode.stage:type_name -> farmtable.v1.TaskStage
-	60,  // 93: farmtable.v1.GetCriticalPathResponse.path:type_name -> farmtable.v1.CriticalPathNode
-	61,  // 94: farmtable.v1.GetCriticalPathResponse.bottleneck:type_name -> farmtable.v1.Bottleneck
+	61,  // 93: farmtable.v1.GetCriticalPathResponse.path:type_name -> farmtable.v1.CriticalPathNode
+	62,  // 94: farmtable.v1.GetCriticalPathResponse.bottleneck:type_name -> farmtable.v1.Bottleneck
 	2,   // 95: farmtable.v1.BottleneckTask.stage:type_name -> farmtable.v1.TaskStage
-	64,  // 96: farmtable.v1.GetBottlenecksResponse.items:type_name -> farmtable.v1.BottleneckTask
-	27,  // 97: farmtable.v1.ListChangesResponse.items:type_name -> farmtable.v1.Change
+	65,  // 96: farmtable.v1.GetBottlenecksResponse.items:type_name -> farmtable.v1.BottleneckTask
+	28,  // 97: farmtable.v1.ListChangesResponse.items:type_name -> farmtable.v1.Change
 	5,   // 98: farmtable.v1.ListUsersRequest.type:type_name -> farmtable.v1.UserType
-	16,  // 99: farmtable.v1.ListUsersResponse.items:type_name -> farmtable.v1.User
+	17,  // 99: farmtable.v1.ListUsersResponse.items:type_name -> farmtable.v1.User
 	0,   // 100: farmtable.v1.GetStatusRequest.platform:type_name -> farmtable.v1.Platform
 	0,   // 101: farmtable.v1.PlatformConnectionStatus.platform:type_name -> farmtable.v1.Platform
-	16,  // 102: farmtable.v1.GetStatusResponse.authenticated_as:type_name -> farmtable.v1.User
-	73,  // 103: farmtable.v1.GetStatusResponse.platforms:type_name -> farmtable.v1.PlatformConnectionStatus
-	30,  // 104: farmtable.v1.FarmTableService.ListTasks:input_type -> farmtable.v1.ListTasksRequest
-	32,  // 105: farmtable.v1.FarmTableService.GetTask:input_type -> farmtable.v1.GetTaskRequest
-	34,  // 106: farmtable.v1.FarmTableService.CreateTask:input_type -> farmtable.v1.CreateTaskRequest
-	35,  // 107: farmtable.v1.FarmTableService.UpdateTask:input_type -> farmtable.v1.UpdateTaskRequest
-	36,  // 108: farmtable.v1.FarmTableService.ClaimTask:input_type -> farmtable.v1.ClaimTaskRequest
-	38,  // 109: farmtable.v1.FarmTableService.CloseTask:input_type -> farmtable.v1.CloseTaskRequest
-	39,  // 110: farmtable.v1.FarmTableService.DeleteTask:input_type -> farmtable.v1.DeleteTaskRequest
-	41,  // 111: farmtable.v1.FarmTableService.AddComment:input_type -> farmtable.v1.AddCommentRequest
-	42,  // 112: farmtable.v1.FarmTableService.ListComments:input_type -> farmtable.v1.ListCommentsRequest
-	44,  // 113: farmtable.v1.FarmTableService.GetComment:input_type -> farmtable.v1.GetCommentRequest
-	45,  // 114: farmtable.v1.FarmTableService.ListCollections:input_type -> farmtable.v1.ListCollectionsRequest
-	47,  // 115: farmtable.v1.FarmTableService.GetCollection:input_type -> farmtable.v1.GetCollectionRequest
-	48,  // 116: farmtable.v1.FarmTableService.CreateCollection:input_type -> farmtable.v1.CreateCollectionRequest
-	49,  // 117: farmtable.v1.FarmTableService.GetReadyTasks:input_type -> farmtable.v1.GetReadyTasksRequest
-	52,  // 118: farmtable.v1.FarmTableService.GetBlockedTasks:input_type -> farmtable.v1.GetBlockedTasksRequest
-	56,  // 119: farmtable.v1.FarmTableService.GetDependencyTree:input_type -> farmtable.v1.GetDependencyTreeRequest
-	59,  // 120: farmtable.v1.FarmTableService.GetCriticalPath:input_type -> farmtable.v1.GetCriticalPathRequest
-	63,  // 121: farmtable.v1.FarmTableService.GetBottlenecks:input_type -> farmtable.v1.GetBottlenecksRequest
-	66,  // 122: farmtable.v1.FarmTableService.ListChanges:input_type -> farmtable.v1.ListChangesRequest
-	68,  // 123: farmtable.v1.FarmTableService.WhoAmI:input_type -> farmtable.v1.WhoAmIRequest
-	69,  // 124: farmtable.v1.FarmTableService.ListUsers:input_type -> farmtable.v1.ListUsersRequest
-	71,  // 125: farmtable.v1.FarmTableService.GetUser:input_type -> farmtable.v1.GetUserRequest
-	72,  // 126: farmtable.v1.FarmTableService.GetStatus:input_type -> farmtable.v1.GetStatusRequest
-	75,  // 127: farmtable.v1.FarmTableService.GetVersion:input_type -> farmtable.v1.GetVersionRequest
-	31,  // 128: farmtable.v1.FarmTableService.ListTasks:output_type -> farmtable.v1.ListTasksResponse
-	33,  // 129: farmtable.v1.FarmTableService.GetTask:output_type -> farmtable.v1.GetTaskResponse
-	24,  // 130: farmtable.v1.FarmTableService.CreateTask:output_type -> farmtable.v1.Task
-	24,  // 131: farmtable.v1.FarmTableService.UpdateTask:output_type -> farmtable.v1.Task
-	37,  // 132: farmtable.v1.FarmTableService.ClaimTask:output_type -> farmtable.v1.ClaimTaskResponse
-	24,  // 133: farmtable.v1.FarmTableService.CloseTask:output_type -> farmtable.v1.Task
-	40,  // 134: farmtable.v1.FarmTableService.DeleteTask:output_type -> farmtable.v1.DeleteTaskResponse
-	26,  // 135: farmtable.v1.FarmTableService.AddComment:output_type -> farmtable.v1.Comment
-	43,  // 136: farmtable.v1.FarmTableService.ListComments:output_type -> farmtable.v1.ListCommentsResponse
-	26,  // 137: farmtable.v1.FarmTableService.GetComment:output_type -> farmtable.v1.Comment
-	46,  // 138: farmtable.v1.FarmTableService.ListCollections:output_type -> farmtable.v1.ListCollectionsResponse
-	25,  // 139: farmtable.v1.FarmTableService.GetCollection:output_type -> farmtable.v1.Collection
-	25,  // 140: farmtable.v1.FarmTableService.CreateCollection:output_type -> farmtable.v1.Collection
-	51,  // 141: farmtable.v1.FarmTableService.GetReadyTasks:output_type -> farmtable.v1.GetReadyTasksResponse
-	55,  // 142: farmtable.v1.FarmTableService.GetBlockedTasks:output_type -> farmtable.v1.GetBlockedTasksResponse
-	58,  // 143: farmtable.v1.FarmTableService.GetDependencyTree:output_type -> farmtable.v1.GetDependencyTreeResponse
-	62,  // 144: farmtable.v1.FarmTableService.GetCriticalPath:output_type -> farmtable.v1.GetCriticalPathResponse
-	65,  // 145: farmtable.v1.FarmTableService.GetBottlenecks:output_type -> farmtable.v1.GetBottlenecksResponse
-	67,  // 146: farmtable.v1.FarmTableService.ListChanges:output_type -> farmtable.v1.ListChangesResponse
-	16,  // 147: farmtable.v1.FarmTableService.WhoAmI:output_type -> farmtable.v1.User
-	70,  // 148: farmtable.v1.FarmTableService.ListUsers:output_type -> farmtable.v1.ListUsersResponse
-	16,  // 149: farmtable.v1.FarmTableService.GetUser:output_type -> farmtable.v1.User
-	74,  // 150: farmtable.v1.FarmTableService.GetStatus:output_type -> farmtable.v1.GetStatusResponse
-	76,  // 151: farmtable.v1.FarmTableService.GetVersion:output_type -> farmtable.v1.GetVersionResponse
-	128, // [128:152] is the sub-list for method output_type
-	104, // [104:128] is the sub-list for method input_type
-	104, // [104:104] is the sub-list for extension type_name
-	104, // [104:104] is the sub-list for extension extendee
-	0,   // [0:104] is the sub-list for field type_name
+	17,  // 102: farmtable.v1.GetStatusResponse.authenticated_as:type_name -> farmtable.v1.User
+	74,  // 103: farmtable.v1.GetStatusResponse.platforms:type_name -> farmtable.v1.PlatformConnectionStatus
+	1,   // 104: farmtable.v1.WatchTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 105: farmtable.v1.WatchTasksRequest.stages:type_name -> farmtable.v1.TaskStage
+	3,   // 106: farmtable.v1.WatchTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
+	16,  // 107: farmtable.v1.TaskEvent.event_type:type_name -> farmtable.v1.TaskEventType
+	25,  // 108: farmtable.v1.TaskEvent.task:type_name -> farmtable.v1.Task
+	28,  // 109: farmtable.v1.TaskEvent.changes:type_name -> farmtable.v1.Change
+	81,  // 110: farmtable.v1.TaskEvent.timestamp:type_name -> google.protobuf.Timestamp
+	31,  // 111: farmtable.v1.FarmTableService.ListTasks:input_type -> farmtable.v1.ListTasksRequest
+	33,  // 112: farmtable.v1.FarmTableService.GetTask:input_type -> farmtable.v1.GetTaskRequest
+	35,  // 113: farmtable.v1.FarmTableService.CreateTask:input_type -> farmtable.v1.CreateTaskRequest
+	36,  // 114: farmtable.v1.FarmTableService.UpdateTask:input_type -> farmtable.v1.UpdateTaskRequest
+	37,  // 115: farmtable.v1.FarmTableService.ClaimTask:input_type -> farmtable.v1.ClaimTaskRequest
+	39,  // 116: farmtable.v1.FarmTableService.CloseTask:input_type -> farmtable.v1.CloseTaskRequest
+	40,  // 117: farmtable.v1.FarmTableService.DeleteTask:input_type -> farmtable.v1.DeleteTaskRequest
+	42,  // 118: farmtable.v1.FarmTableService.AddComment:input_type -> farmtable.v1.AddCommentRequest
+	43,  // 119: farmtable.v1.FarmTableService.ListComments:input_type -> farmtable.v1.ListCommentsRequest
+	45,  // 120: farmtable.v1.FarmTableService.GetComment:input_type -> farmtable.v1.GetCommentRequest
+	46,  // 121: farmtable.v1.FarmTableService.ListCollections:input_type -> farmtable.v1.ListCollectionsRequest
+	48,  // 122: farmtable.v1.FarmTableService.GetCollection:input_type -> farmtable.v1.GetCollectionRequest
+	49,  // 123: farmtable.v1.FarmTableService.CreateCollection:input_type -> farmtable.v1.CreateCollectionRequest
+	50,  // 124: farmtable.v1.FarmTableService.GetReadyTasks:input_type -> farmtable.v1.GetReadyTasksRequest
+	53,  // 125: farmtable.v1.FarmTableService.GetBlockedTasks:input_type -> farmtable.v1.GetBlockedTasksRequest
+	57,  // 126: farmtable.v1.FarmTableService.GetDependencyTree:input_type -> farmtable.v1.GetDependencyTreeRequest
+	60,  // 127: farmtable.v1.FarmTableService.GetCriticalPath:input_type -> farmtable.v1.GetCriticalPathRequest
+	64,  // 128: farmtable.v1.FarmTableService.GetBottlenecks:input_type -> farmtable.v1.GetBottlenecksRequest
+	67,  // 129: farmtable.v1.FarmTableService.ListChanges:input_type -> farmtable.v1.ListChangesRequest
+	69,  // 130: farmtable.v1.FarmTableService.WhoAmI:input_type -> farmtable.v1.WhoAmIRequest
+	70,  // 131: farmtable.v1.FarmTableService.ListUsers:input_type -> farmtable.v1.ListUsersRequest
+	72,  // 132: farmtable.v1.FarmTableService.GetUser:input_type -> farmtable.v1.GetUserRequest
+	73,  // 133: farmtable.v1.FarmTableService.GetStatus:input_type -> farmtable.v1.GetStatusRequest
+	76,  // 134: farmtable.v1.FarmTableService.GetVersion:input_type -> farmtable.v1.GetVersionRequest
+	78,  // 135: farmtable.v1.FarmTableService.WatchTasks:input_type -> farmtable.v1.WatchTasksRequest
+	32,  // 136: farmtable.v1.FarmTableService.ListTasks:output_type -> farmtable.v1.ListTasksResponse
+	34,  // 137: farmtable.v1.FarmTableService.GetTask:output_type -> farmtable.v1.GetTaskResponse
+	25,  // 138: farmtable.v1.FarmTableService.CreateTask:output_type -> farmtable.v1.Task
+	25,  // 139: farmtable.v1.FarmTableService.UpdateTask:output_type -> farmtable.v1.Task
+	38,  // 140: farmtable.v1.FarmTableService.ClaimTask:output_type -> farmtable.v1.ClaimTaskResponse
+	25,  // 141: farmtable.v1.FarmTableService.CloseTask:output_type -> farmtable.v1.Task
+	41,  // 142: farmtable.v1.FarmTableService.DeleteTask:output_type -> farmtable.v1.DeleteTaskResponse
+	27,  // 143: farmtable.v1.FarmTableService.AddComment:output_type -> farmtable.v1.Comment
+	44,  // 144: farmtable.v1.FarmTableService.ListComments:output_type -> farmtable.v1.ListCommentsResponse
+	27,  // 145: farmtable.v1.FarmTableService.GetComment:output_type -> farmtable.v1.Comment
+	47,  // 146: farmtable.v1.FarmTableService.ListCollections:output_type -> farmtable.v1.ListCollectionsResponse
+	26,  // 147: farmtable.v1.FarmTableService.GetCollection:output_type -> farmtable.v1.Collection
+	26,  // 148: farmtable.v1.FarmTableService.CreateCollection:output_type -> farmtable.v1.Collection
+	52,  // 149: farmtable.v1.FarmTableService.GetReadyTasks:output_type -> farmtable.v1.GetReadyTasksResponse
+	56,  // 150: farmtable.v1.FarmTableService.GetBlockedTasks:output_type -> farmtable.v1.GetBlockedTasksResponse
+	59,  // 151: farmtable.v1.FarmTableService.GetDependencyTree:output_type -> farmtable.v1.GetDependencyTreeResponse
+	63,  // 152: farmtable.v1.FarmTableService.GetCriticalPath:output_type -> farmtable.v1.GetCriticalPathResponse
+	66,  // 153: farmtable.v1.FarmTableService.GetBottlenecks:output_type -> farmtable.v1.GetBottlenecksResponse
+	68,  // 154: farmtable.v1.FarmTableService.ListChanges:output_type -> farmtable.v1.ListChangesResponse
+	17,  // 155: farmtable.v1.FarmTableService.WhoAmI:output_type -> farmtable.v1.User
+	71,  // 156: farmtable.v1.FarmTableService.ListUsers:output_type -> farmtable.v1.ListUsersResponse
+	17,  // 157: farmtable.v1.FarmTableService.GetUser:output_type -> farmtable.v1.User
+	75,  // 158: farmtable.v1.FarmTableService.GetStatus:output_type -> farmtable.v1.GetStatusResponse
+	77,  // 159: farmtable.v1.FarmTableService.GetVersion:output_type -> farmtable.v1.GetVersionResponse
+	79,  // 160: farmtable.v1.FarmTableService.WatchTasks:output_type -> farmtable.v1.TaskEvent
+	136, // [136:161] is the sub-list for method output_type
+	111, // [111:136] is the sub-list for method input_type
+	111, // [111:111] is the sub-list for extension type_name
+	111, // [111:111] is the sub-list for extension extendee
+	0,   // [0:111] is the sub-list for field type_name
 }
 
 func init() { file_farmtable_proto_init() }
@@ -6590,13 +6879,14 @@ func file_farmtable_proto_init() {
 	file_farmtable_proto_msgTypes[50].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[53].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[56].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[61].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_farmtable_proto_rawDesc), len(file_farmtable_proto_rawDesc)),
-			NumEnums:      16,
-			NumMessages:   61,
+			NumEnums:      17,
+			NumMessages:   63,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
