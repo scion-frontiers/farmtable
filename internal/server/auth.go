@@ -78,6 +78,57 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 	}
 }
 
+func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if lookup == nil {
+			return handler(srv, ss)
+		}
+
+		md, ok := metadata.FromIncomingContext(ss.Context())
+		if !ok {
+			return handler(srv, ss)
+		}
+		auth := md.Get("authorization")
+		if len(auth) == 0 {
+			return handler(srv, ss)
+		}
+		val := auth[0]
+		if !strings.HasPrefix(val, "Bearer ") {
+			return status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
+		}
+		token := strings.TrimPrefix(val, "Bearer ")
+
+		h := sha256.Sum256([]byte(token))
+		hash := hex.EncodeToString(h[:])
+
+		result, err := lookup.LookupByHash(ss.Context(), hash)
+		if err != nil {
+			return status.Error(codes.Unauthenticated, "invalid token")
+		}
+
+		if result.ExpiresAt != nil && result.ExpiresAt.Before(time.Now()) {
+			return status.Error(codes.Unauthenticated, "token expired")
+		}
+
+		go lookup.RecordUsage(context.Background(), result.TokenID)
+
+		wrapped := &authenticatedStream{
+			ServerStream: ss,
+			ctx:          ContextWithUserID(ss.Context(), result.UserID),
+		}
+		return handler(srv, wrapped)
+	}
+}
+
+type authenticatedStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *authenticatedStream) Context() context.Context {
+	return s.ctx
+}
+
 type legacyTokenLookup struct {
 	token  string
 	userID uuid.UUID

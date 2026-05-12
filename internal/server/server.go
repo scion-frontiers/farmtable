@@ -13,6 +13,7 @@ import (
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
@@ -26,10 +27,21 @@ type FarmTableService struct {
 	store     store.Store
 	version   string
 	startedAt time.Time
+	eventBus  *streaming.EventBus
 }
 
-func NewFarmTableService(s store.Store, version string) *FarmTableService {
-	return &FarmTableService{store: s, version: version, startedAt: time.Now()}
+type ServiceOption func(*FarmTableService)
+
+func WithEventBus(eb *streaming.EventBus) ServiceOption {
+	return func(s *FarmTableService) { s.eventBus = eb }
+}
+
+func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *FarmTableService {
+	svc := &FarmTableService{store: s, version: version, startedAt: time.Now()}
+	for _, opt := range opts {
+		opt(svc)
+	}
+	return svc
 }
 
 const defaultPageSize = 50
@@ -116,7 +128,15 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating task: %v", err)
 	}
-	return taskToProto(t), nil
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CREATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+	return proto, nil
 }
 
 func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
@@ -380,7 +400,15 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
-	return taskToProto(t), nil
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+	return proto, nil
 }
 
 func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskRequest) (*pb.ClaimTaskResponse, error) {
@@ -411,8 +439,17 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 		return nil, storeErr(err, "task")
 	}
 
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
 	return &pb.ClaimTaskResponse{
-		Task:      taskToProto(t),
+		Task:      proto,
 		ClaimedAt: timestamppb.Now(),
 	}, nil
 }
@@ -438,7 +475,15 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
-	return taskToProto(t), nil
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CLOSED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+	return proto, nil
 }
 
 func (s *FarmTableService) DeleteTask(_ context.Context, _ *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {

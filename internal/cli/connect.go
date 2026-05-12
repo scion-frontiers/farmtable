@@ -16,6 +16,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/streaming"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -148,11 +149,13 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 	}
 
 	lookup := server.NewStoreTokenLookup(s)
+	eventBus := streaming.NewEventBus()
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
-	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "embedded"))
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "embedded", server.WithEventBus(eventBus)))
 	go srv.Serve(lis)
 
 	conn, err := grpc.NewClient("passthrough:///bufconn",

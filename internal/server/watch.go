@@ -1,0 +1,173 @@
+package server
+
+import (
+	"time"
+
+	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/streaming"
+	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.ServerStreamingServer[pb.TaskEvent]) error {
+	if s.eventBus == nil {
+		return status.Error(codes.Unimplemented, "streaming not available in pass-through mode")
+	}
+
+	filter := buildFilter(req)
+
+	sub := s.eventBus.Subscribe(filter)
+	defer s.eventBus.Unsubscribe(sub.ID)
+
+	if req.GetIncludeInitial() {
+		if err := s.sendInitialSnapshot(req, filter, stream); err != nil {
+			return err
+		}
+		if err := stream.Send(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_SNAPSHOT_COMPLETE,
+			Timestamp: timestamppb.Now(),
+		}); err != nil {
+			return err
+		}
+	}
+
+	heartbeat := time.NewTicker(30 * time.Second)
+	defer heartbeat.Stop()
+
+	for {
+		select {
+		case event, ok := <-sub.Events:
+			if !ok {
+				return nil
+			}
+			if err := stream.Send(event); err != nil {
+				return err
+			}
+		case <-heartbeat.C:
+			if err := stream.Send(&pb.TaskEvent{
+				EventType: pb.TaskEventType_TASK_EVENT_TYPE_HEARTBEAT,
+				Timestamp: timestamppb.Now(),
+			}); err != nil {
+				return err
+			}
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		}
+	}
+}
+
+func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter streaming.SubscriptionFilter, stream grpc.ServerStreamingServer[pb.TaskEvent]) error {
+	if filter.TaskID != nil {
+		resp, err := s.GetTask(stream.Context(), &pb.GetTaskRequest{Id: filter.TaskID.String()})
+		if err != nil {
+			st, ok := status.FromError(err)
+			if ok && st.Code() == codes.NotFound {
+				return nil
+			}
+			return err
+		}
+		return stream.Send(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_INITIAL,
+			Task:      resp.GetTask(),
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
+	listReq := filterToListRequest(req)
+	pageToken := ""
+	for {
+		listReq.PageToken = pageToken
+		resp, err := s.ListTasks(stream.Context(), listReq)
+		if err != nil {
+			return err
+		}
+		for _, t := range resp.GetItems() {
+			if err := stream.Send(&pb.TaskEvent{
+				EventType: pb.TaskEventType_TASK_EVENT_TYPE_INITIAL,
+				Task:      t,
+				Timestamp: timestamppb.Now(),
+			}); err != nil {
+				return err
+			}
+		}
+		if !resp.GetHasMore() {
+			break
+		}
+		pageToken = resp.GetNextPageToken()
+	}
+	return nil
+}
+
+func buildFilter(req *pb.WatchTasksRequest) streaming.SubscriptionFilter {
+	var f streaming.SubscriptionFilter
+
+	if req.CollectionId != nil {
+		id, err := uuid.Parse(*req.CollectionId)
+		if err == nil {
+			f.CollectionID = &id
+		}
+	}
+	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
+		ph := phaseFromProto(*req.Phase)
+		f.Phase = &ph
+	}
+	for _, s := range req.GetStages() {
+		if s != pb.TaskStage_TASK_STAGE_UNSPECIFIED {
+			f.Stages = append(f.Stages, stageFromProto(s))
+		}
+	}
+	if req.Assignee != nil {
+		if *req.Assignee == "none" {
+			f.Unassigned = true
+		} else {
+			id, err := uuid.Parse(*req.Assignee)
+			if err == nil {
+				f.AssigneeID = &id
+			}
+		}
+	}
+	if len(req.GetLabels()) > 0 {
+		f.Labels = req.GetLabels()
+	}
+	if req.TaskId != nil {
+		id, err := uuid.Parse(*req.TaskId)
+		if err == nil {
+			f.TaskID = &id
+		}
+	}
+	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		pr := priorityFromProto(*req.Priority)
+		f.Priority = &pr
+	}
+
+	return f
+}
+
+func filterToListRequest(req *pb.WatchTasksRequest) *pb.ListTasksRequest {
+	lr := &pb.ListTasksRequest{
+		PageSize: 200,
+	}
+	if req.CollectionId != nil {
+		lr.CollectionId = req.CollectionId
+	}
+	if req.Phase != nil {
+		lr.Phase = req.Phase
+	}
+	if len(req.GetStages()) > 0 {
+		lr.Stages = req.GetStages()
+	}
+	if req.Assignee != nil {
+		lr.Assignee = req.Assignee
+	}
+	if len(req.GetLabels()) > 0 {
+		lr.Labels = req.GetLabels()
+	}
+	if req.Priority != nil {
+		lr.Priority = req.Priority
+	}
+	return lr
+}
+
