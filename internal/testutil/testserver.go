@@ -75,6 +75,36 @@ func NewTestServerWithStreaming(t *testing.T) (pb.FarmTableServiceClient, func()
 	return client, cleanup
 }
 
+func NewTestServerPostgres(t *testing.T) (pb.FarmTableServiceClient, func()) {
+	t.Helper()
+	s, storeCleanup := NewTestStorePostgres(t)
+
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer()
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		srv.Stop()
+		storeCleanup()
+		t.Fatalf("dialing bufconn: %v", err)
+	}
+
+	client := pb.NewFarmTableServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
+		srv.Stop()
+		storeCleanup()
+	}
+	return client, cleanup
+}
+
 func NewTestServerWithAuth(t *testing.T, s *store.EntStore) (pb.FarmTableServiceClient, *grpc.Server, func()) {
 	t.Helper()
 

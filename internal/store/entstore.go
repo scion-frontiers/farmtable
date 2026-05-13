@@ -158,28 +158,44 @@ func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Tas
 	}
 
 	for _, targetID := range p.BlocksTaskIDs {
-		_, err := tx.Relationship.Create().
+		exists, err := tx.Relationship.Query().Where(
+			relationship.SourceTaskIDEQ(t.ID),
+			relationship.TargetTaskIDEQ(targetID),
+			relationship.TypeEQ(relationship.TypeBlocks),
+		).Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("checking blocks relationship: %w", err)
+		}
+		if exists {
+			continue
+		}
+		_, err = tx.Relationship.Create().
 			SetSourceTaskID(t.ID).
 			SetTargetTaskID(targetID).
 			SetType(relationship.TypeBlocks).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
-				continue
-			}
 			return nil, fmt.Errorf("creating blocks relationship: %w", err)
 		}
 	}
 	for _, targetID := range p.BlockedByTaskIDs {
-		_, err := tx.Relationship.Create().
+		exists, err := tx.Relationship.Query().Where(
+			relationship.SourceTaskIDEQ(t.ID),
+			relationship.TargetTaskIDEQ(targetID),
+			relationship.TypeEQ(relationship.TypeBlockedBy),
+		).Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("checking blocked_by relationship: %w", err)
+		}
+		if exists {
+			continue
+		}
+		_, err = tx.Relationship.Create().
 			SetSourceTaskID(t.ID).
 			SetTargetTaskID(targetID).
 			SetType(relationship.TypeBlockedBy).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
-				continue
-			}
 			return nil, fmt.Errorf("creating blocked_by relationship: %w", err)
 		}
 	}
@@ -473,28 +489,44 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	}
 
 	for _, targetID := range p.AddBlocks {
-		_, err := tx.Relationship.Create().
+		exists, err := tx.Relationship.Query().Where(
+			relationship.SourceTaskIDEQ(id),
+			relationship.TargetTaskIDEQ(targetID),
+			relationship.TypeEQ(relationship.TypeBlocks),
+		).Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("checking blocks relationship: %w", err)
+		}
+		if exists {
+			continue
+		}
+		_, err = tx.Relationship.Create().
 			SetSourceTaskID(id).
 			SetTargetTaskID(targetID).
 			SetType(relationship.TypeBlocks).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
-				continue
-			}
 			return nil, fmt.Errorf("creating blocks relationship: %w", err)
 		}
 	}
 	for _, targetID := range p.AddBlockedBy {
-		_, err := tx.Relationship.Create().
+		exists, err := tx.Relationship.Query().Where(
+			relationship.SourceTaskIDEQ(id),
+			relationship.TargetTaskIDEQ(targetID),
+			relationship.TypeEQ(relationship.TypeBlockedBy),
+		).Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("checking blocked_by relationship: %w", err)
+		}
+		if exists {
+			continue
+		}
+		_, err = tx.Relationship.Create().
 			SetSourceTaskID(id).
 			SetTargetTaskID(targetID).
 			SetType(relationship.TypeBlockedBy).
 			Save(ctx)
 		if err != nil {
-			if ent.IsConstraintError(err) {
-				continue
-			}
 			return nil, fmt.Errorf("creating blocked_by relationship: %w", err)
 		}
 	}
