@@ -49,8 +49,8 @@ export class FtTaskCard extends LitElement {
     }
     .title {
       font-size: 0.875rem;
-      font-weight: 500;
-      line-height: 1.3;
+      font-weight: 600;
+      line-height: 1.4;
       margin-bottom: 0.5rem;
       word-break: break-word;
     }
@@ -59,13 +59,13 @@ export class FtTaskCard extends LitElement {
       align-items: center;
       gap: 0.375rem;
       flex-wrap: wrap;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
     }
     .type {
       color: var(--sl-color-neutral-500);
       font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
     .assignee {
       margin-left: auto;
@@ -77,12 +77,12 @@ export class FtTaskCard extends LitElement {
       margin-top: 0.375rem;
     }
     sl-tag::part(base) {
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       padding: 0 0.35rem;
       height: 1.25rem;
     }
     .overflow-label {
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       color: var(--sl-color-neutral-500);
       line-height: 1.25rem;
     }

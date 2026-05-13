@@ -62,7 +62,7 @@ export class FtTreeNode extends LitElement {
       width: 100%;
       height: 100%;
       box-sizing: border-box;
-      background: var(--sl-color-neutral-0, #1a1a2e);
+      background: var(--sl-color-neutral-0);
       border: 2px solid var(--node-stage-color, #6b7280);
       border-left: 5px solid var(--node-priority-color, #3b82f6);
       border-radius: 8px;
@@ -73,17 +73,17 @@ export class FtTreeNode extends LitElement {
       cursor: pointer;
       overflow: hidden;
       font-family: var(--sl-font-sans, sans-serif);
-      font-size: 12px;
-      color: var(--sl-color-neutral-900, #e2e8f0);
+      font-size: 13px;
+      color: var(--sl-color-neutral-900);
     }
     .node.selected {
-      border-color: var(--sl-color-primary-500, #6366f1);
+      border-color: var(--sl-color-primary-500);
       box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
     }
     .title {
       font-weight: 600;
-      font-size: 12px;
-      line-height: 1.3;
+      font-size: 13px;
+      line-height: 1.4;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -98,15 +98,15 @@ export class FtTreeNode extends LitElement {
       display: inline-block;
       padding: 1px 6px;
       border-radius: 4px;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 500;
       color: #fff;
       background: var(--node-stage-color, #6b7280);
       white-space: nowrap;
     }
     .assignee {
-      font-size: 10px;
-      color: var(--sl-color-neutral-500, #94a3b8);
+      font-size: 11px;
+      color: var(--sl-color-neutral-500);
       margin-left: auto;
       white-space: nowrap;
       overflow: hidden;
@@ -123,23 +123,24 @@ export class FtTreeNode extends LitElement {
       display: inline-block;
       padding: 0 4px;
       border-radius: 3px;
-      font-size: 9px;
-      background: var(--sl-color-neutral-200, #334155);
-      color: var(--sl-color-neutral-700, #cbd5e1);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      background: var(--sl-color-neutral-200);
+      color: var(--sl-color-neutral-700);
       white-space: nowrap;
     }
     .child-count {
       margin-left: auto;
-      font-size: 10px;
-      color: var(--sl-color-neutral-500, #94a3b8);
+      font-size: 11px;
+      color: var(--sl-color-neutral-500);
       font-weight: 600;
       cursor: pointer;
       padding: 0 2px;
       border-radius: 3px;
     }
     .child-count:hover {
-      background: var(--sl-color-neutral-200, #334155);
-      color: var(--sl-color-neutral-900, #e2e8f0);
+      background: var(--sl-color-neutral-200);
+      color: var(--sl-color-neutral-900);
     }
   `;
 

@@ -67,8 +67,8 @@ export class FtKanbanView extends LitElement {
       align-items: center;
       gap: 0.5rem;
       cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 700;
       color: var(--sl-color-neutral-500);
       text-transform: uppercase;
       letter-spacing: 0.04em;

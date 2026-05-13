@@ -1,3 +1,4 @@
+@import '@shoelace-style/shoelace/dist/themes/light.css';
 @import '@shoelace-style/shoelace/dist/themes/dark.css';
 
 :root {
@@ -28,6 +29,9 @@ body {
   background: var(--sl-color-neutral-0);
   color: var(--sl-color-neutral-900);
   font-family: var(--sl-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 ft-app {

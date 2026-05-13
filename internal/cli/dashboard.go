@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -116,9 +117,17 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	})
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
-	addr := fmt.Sprintf(":%d", port)
+	listenAddr := fmt.Sprintf(":%d", port)
+	lis, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		if isAddrInUse(err) {
+			return fmt.Errorf("port %d is already in use — try a different port with --port", port)
+		}
+		return fmt.Errorf("listen on port %d: %w", port, err)
+	}
+
+	boundPort := lis.Addr().(*net.TCPAddr).Port
 	httpServer := &http.Server{
-		Addr:    addr,
 		Handler: mux,
 	}
 
@@ -147,17 +156,28 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 		cancel()
 	}()
 
-	url := fmt.Sprintf("http://localhost:%d", port)
+	url := fmt.Sprintf("http://localhost:%d", boundPort)
 	fmt.Printf("Farm Table dashboard: %s\n", url)
 
 	if openBrowser {
 		openURL(url)
 	}
 
-	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+	if err := httpServer.Serve(lis); err != http.ErrServerClosed {
 		return fmt.Errorf("HTTP server error: %w", err)
 	}
 	return nil
+}
+
+func isAddrInUse(err error) bool {
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		var sysErr *os.SyscallError
+		if errors.As(opErr.Err, &sysErr) {
+			return errors.Is(sysErr.Err, syscall.EADDRINUSE)
+		}
+	}
+	return false
 }
 
 func openURL(url string) {

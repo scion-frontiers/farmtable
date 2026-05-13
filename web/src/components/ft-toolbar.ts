@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 
 @customElement('ft-toolbar')
@@ -26,6 +26,14 @@ export class FtToolbar extends LitElement {
     sl-select {
       min-width: 120px;
     }
+    .theme-toggle {
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: var(--sl-color-neutral-600);
+    }
+    .theme-toggle:hover {
+      color: var(--sl-color-neutral-900);
+    }
   `;
 
   @property()
@@ -33,6 +41,9 @@ export class FtToolbar extends LitElement {
 
   @property()
   connectionStatus: ConnectionStatus = 'disconnected';
+
+  @state()
+  private isDark = document.documentElement.classList.contains('sl-theme-dark');
 
   render() {
     return html`
@@ -61,8 +72,21 @@ export class FtToolbar extends LitElement {
         <sl-radio-button value="tree">Tree</sl-radio-button>
       </sl-radio-group>
 
+      <sl-icon-button
+        class="theme-toggle"
+        name=${this.isDark ? 'sun' : 'moon'}
+        label=${this.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        @click=${this.onToggleTheme}
+      ></sl-icon-button>
+
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
     `;
+  }
+
+  private onToggleTheme() {
+    this.isDark = !this.isDark;
+    document.documentElement.classList.toggle('sl-theme-dark', this.isDark);
+    localStorage.setItem('ft-theme', this.isDark ? 'dark' : 'light');
   }
 
   private onViewChange(e: Event) {

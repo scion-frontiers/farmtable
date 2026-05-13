@@ -50,8 +50,8 @@ export class FtKanbanColumn extends LitElement {
       align-items: center;
       gap: 0.5rem;
       padding: 0.75rem 0.75rem 0.5rem;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--sl-color-neutral-700);
