@@ -4,8 +4,8 @@ Added Claude Code skills for Farm Table task usage and Farm Table development.
 
 ## Files Added
 
-- `.claude/skills/farmtable/` for MCP-based task workflows.
-- `.claude/skills/farmtable-dev/` for build, test, setup, and gotchas.
+- `.agents/skills/farmtable/` for MCP-based task workflows.
+- `.agents/skills/farmtable-dev/` for build, test, setup, and gotchas.
 - `agents.md` as a concise root guide for future agents.
 
 ## Notes
