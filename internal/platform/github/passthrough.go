@@ -177,7 +177,9 @@ func (s *GitHubPassThroughStore) ListTasks(ctx context.Context, p store.ListTask
 
 	var labelFilter []string
 	if p.Stage != nil {
-		labelFilter = append(labelFilter, s.mapper.StageToLabel(*p.Stage))
+		if stageLabel := s.mapper.StageToLabel(*p.Stage); stageLabel != "" {
+			labelFilter = append(labelFilter, stageLabel)
+		}
 	}
 	if len(p.Labels) > 0 {
 		labelFilter = append(labelFilter, p.Labels...)
@@ -242,14 +244,18 @@ func (s *GitHubPassThroughStore) CreateTask(ctx context.Context, p store.CreateT
 	var labelIDs []githubv4.ID
 
 	stageLabel := s.mapper.StageToLabel(p.Stage)
-	if id, ok := s.labelNameToID(stageLabel); ok {
-		labelIDs = append(labelIDs, id)
+	if stageLabel != "" {
+		if id, ok := s.labelNameToID(stageLabel); ok {
+			labelIDs = append(labelIDs, id)
+		}
 	}
 
 	if p.Priority != nil {
 		prioLabel := s.mapper.PriorityToLabel(*p.Priority)
-		if id, ok := s.labelNameToID(prioLabel); ok {
-			labelIDs = append(labelIDs, id)
+		if prioLabel != "" {
+			if id, ok := s.labelNameToID(prioLabel); ok {
+				labelIDs = append(labelIDs, id)
+			}
 		}
 	}
 

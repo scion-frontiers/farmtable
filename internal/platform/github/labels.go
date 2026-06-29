@@ -66,6 +66,7 @@ var defaultTypeLabels = map[string]string{
 // Farm Table stage/priority/type values.
 type LabelMapper struct {
 	config          LabelConfig
+	enabled         bool
 	stageToLabel    map[task.Stage]string
 	priorityToLabel map[task.Priority]string
 
@@ -82,6 +83,7 @@ type LabelMapper struct {
 func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 	m := &LabelMapper{
 		config:          cfg,
+		enabled:         cfg.Enabled,
 		stageToLabel:    make(map[task.Stage]string),
 		priorityToLabel: make(map[task.Priority]string),
 		labelToStage:    make(map[string]task.Stage),
@@ -151,6 +153,10 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 // The push_prefix (e.g. "ft:") is stripped before matching, so both
 // "working" and "ft:stage/working" will match StageWorking.
 func (m *LabelMapper) MapLabelsToStage(labels []string) (task.Stage, bool) {
+	if !m.enabled {
+		return "", false
+	}
+
 	candidates := make(map[task.Stage]bool)
 
 	for _, raw := range labels {
@@ -181,6 +187,10 @@ func (m *LabelMapper) MapLabelsToStage(labels []string) (task.Stage, bool) {
 // MapLabelsToPriority scans labels for priority mappings and returns the
 // first match found. Labels are matched case-insensitively with prefix stripping.
 func (m *LabelMapper) MapLabelsToPriority(labels []string) (*task.Priority, bool) {
+	if !m.enabled {
+		return nil, false
+	}
+
 	for _, raw := range labels {
 		key := m.stripForMatch(raw)
 		if p, ok := m.labelToPriority[key]; ok {
@@ -193,6 +203,10 @@ func (m *LabelMapper) MapLabelsToPriority(labels []string) (*task.Priority, bool
 // MapLabelsToType scans labels for type mappings and returns the first match.
 // Labels are matched case-insensitively with prefix stripping.
 func (m *LabelMapper) MapLabelsToType(labels []string) (string, bool) {
+	if !m.enabled {
+		return "", false
+	}
+
 	for _, raw := range labels {
 		key := m.stripForMatch(raw)
 		if t, ok := m.labelToType[key]; ok {
@@ -205,6 +219,10 @@ func (m *LabelMapper) MapLabelsToType(labels []string) (string, bool) {
 // StageToLabel returns the GitHub label name for a given stage, using
 // the push_prefix. Example: StageWorking -> "ft:stage/working".
 func (m *LabelMapper) StageToLabel(s task.Stage) string {
+	if !m.enabled {
+		return ""
+	}
+
 	if label, ok := m.stageToLabel[s]; ok {
 		return label
 	}
@@ -218,6 +236,10 @@ func (m *LabelMapper) StageToLabel(s task.Stage) string {
 // PriorityToLabel returns the GitHub label name for a given priority.
 // Example: PriorityHigh -> "priority:high".
 func (m *LabelMapper) PriorityToLabel(p task.Priority) string {
+	if !m.enabled {
+		return ""
+	}
+
 	if label, ok := m.priorityToLabel[p]; ok {
 		return label
 	}
@@ -228,6 +250,10 @@ func (m *LabelMapper) PriorityToLabel(p task.Priority) string {
 // an issue from its current labels to a new stage. It removes any existing
 // stage labels and adds the label for newStage.
 func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage) (add []string, remove []string) {
+	if !m.enabled {
+		return nil, nil
+	}
+
 	newLabel := m.StageToLabel(newStage)
 
 	for _, raw := range currentLabels {
@@ -257,6 +283,10 @@ func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage
 // PriorityLabelSwap computes the label add/remove sets needed to transition
 // an issue to a new priority.
 func (m *LabelMapper) PriorityLabelSwap(currentLabels []string, newPriority task.Priority) (add []string, remove []string) {
+	if !m.enabled {
+		return nil, nil
+	}
+
 	newLabel := m.PriorityToLabel(newPriority)
 
 	for _, raw := range currentLabels {

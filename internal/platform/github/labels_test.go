@@ -374,6 +374,52 @@ func TestPriorityLabelSwap(t *testing.T) {
 	}
 }
 
+func TestLabelMapper_Disabled(t *testing.T) {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.Enabled = false
+	m := NewLabelMapper(cfg)
+
+	if stage, ok := m.MapLabelsToStage([]string{"ft:stage/working", "blocked"}); ok {
+		t.Fatalf("MapLabelsToStage returned %q, want no match when mapping is disabled", stage)
+	}
+
+	if priority, ok := m.MapLabelsToPriority([]string{"priority:urgent"}); ok {
+		t.Fatalf("MapLabelsToPriority returned %q, want no match when mapping is disabled", *priority)
+	}
+
+	if typ, ok := m.MapLabelsToType([]string{"bug"}); ok {
+		t.Fatalf("MapLabelsToType returned %q, want no match when mapping is disabled", typ)
+	}
+
+	if label := m.StageToLabel(task.StageWorking); label != "" {
+		t.Fatalf("StageToLabel returned %q, want empty when mapping is disabled", label)
+	}
+
+	if label := m.PriorityToLabel(task.PriorityHigh); label != "" {
+		t.Fatalf("PriorityToLabel returned %q, want empty when mapping is disabled", label)
+	}
+
+	add, remove := m.StageLabelSwap([]string{"ft:stage/working"}, task.StageInReview)
+	if len(add) != 0 || len(remove) != 0 {
+		t.Fatalf("StageLabelSwap returned add=%v remove=%v, want no label changes when mapping is disabled", add, remove)
+	}
+
+	add, remove = m.PriorityLabelSwap([]string{"priority:low"}, task.PriorityHigh)
+	if len(add) != 0 || len(remove) != 0 {
+		t.Fatalf("PriorityLabelSwap returned add=%v remove=%v, want no label changes when mapping is disabled", add, remove)
+	}
+
+	phase, stage := m.IssueToPhaseStage("open", "", []string{"ft:stage/working"})
+	if phase != task.PhaseOpen || stage != task.StageTriage {
+		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageTriage)
+	}
+
+	phase, stage = m.IssueToPhaseStage("closed", "completed", []string{"cancelled"})
+	if phase != task.PhaseClosed || stage != task.StageCompleted {
+		t.Fatalf("IssueToPhaseStage(closed) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseClosed, task.StageCompleted)
+	}
+}
+
 // --- IssueToPhaseStage ---
 
 func TestIssueToPhaseStage_ClosedNotPlanned(t *testing.T) {
