@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -21,6 +22,11 @@ type Server struct {
 }
 
 type ClientFactory func() (pb.FarmTableServiceClient, io.Closer, string, error)
+
+const (
+	maxMCPPageSize        int32 = 200
+	maxMCPDependencyDepth int32 = 20
+)
 
 func NewServer(factory ClientFactory) (*Server, error) {
 	client, closer, token, err := factory()
@@ -226,8 +232,10 @@ func (s *Server) handleTaskList(ctx context.Context, req mcp.CallToolRequest) (*
 		}
 		r.SortOrder = so
 	}
-	if v := optFloat(req, "limit"); v > 0 {
-		r.PageSize = int32(v)
+	if v, ok, err := optBoundedPositiveInt32(req, "limit", maxMCPPageSize); err != nil {
+		return toolError(err.Error()), nil
+	} else if ok {
+		r.PageSize = v
 	}
 
 	resp, err := s.client.ListTasks(grpcCtx, r)
@@ -606,11 +614,10 @@ func (s *Server) handleTaskTree(ctx context.Context, req mcp.CallToolRequest) (*
 	}
 
 	maxDepth := int32(5)
-	if v := optFloat(req, "max_depth"); v > 0 {
-		maxDepth = int32(v)
-		if maxDepth > 20 {
-			return toolError("max_depth cannot exceed 20"), nil
-		}
+	if v, ok, err := optBoundedPositiveInt32(req, "max_depth", maxMCPDependencyDepth); err != nil {
+		return toolError(err.Error()), nil
+	} else if ok {
+		maxDepth = v
 	}
 
 	resp, err := s.client.GetDependencyTree(grpcCtx, &pb.GetDependencyTreeRequest{
@@ -645,8 +652,10 @@ func (s *Server) handleTaskReady(ctx context.Context, req mcp.CallToolRequest) (
 		}
 		r.MinPriority = &p
 	}
-	if v := optFloat(req, "limit"); v > 0 {
-		r.PageSize = int32(v)
+	if v, ok, err := optBoundedPositiveInt32(req, "limit", maxMCPPageSize); err != nil {
+		return toolError(err.Error()), nil
+	} else if ok {
+		r.PageSize = v
 	}
 
 	resp, err := s.client.GetReadyTasks(grpcCtx, r)
@@ -1073,6 +1082,20 @@ func optFloat(req mcp.CallToolRequest, key string) float64 {
 		return 0
 	}
 	return f
+}
+
+func optBoundedPositiveInt32(req mcp.CallToolRequest, key string, max int32) (int32, bool, error) {
+	v := optFloat(req, key)
+	if v == 0 {
+		return 0, false, nil
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || math.Trunc(v) != v {
+		return 0, false, fmt.Errorf("%s must be a positive integer", key)
+	}
+	if v > float64(max) {
+		return 0, false, fmt.Errorf("%s cannot exceed %d", key, max)
+	}
+	return int32(v), true, nil
 }
 
 func requiredString(req mcp.CallToolRequest, key string) (string, error) {
