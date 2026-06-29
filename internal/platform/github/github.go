@@ -369,12 +369,28 @@ func (a *GitHubAdapter) buildRemoteIDIndex(ctx context.Context, collectionID uui
 }
 
 func (a *GitHubAdapter) syncSubIssueLinks(ctx context.Context, collectionID uuid.UUID) error {
-	tasks, _, err := a.store.ListTasks(ctx, store.ListTasksParams{
-		CollectionID: &collectionID,
-		Limit:        1000,
-	})
-	if err != nil {
-		return err
+	const limit = 1000
+
+	var tasks []*ent.Task
+	var lastID string
+	var lastSortValue string
+	for {
+		page, _, err := a.store.ListTasks(ctx, store.ListTasksParams{
+			CollectionID:  &collectionID,
+			Limit:         limit,
+			LastID:        lastID,
+			LastSortValue: lastSortValue,
+		})
+		if err != nil {
+			return err
+		}
+		tasks = append(tasks, page...)
+		if len(page) < limit {
+			break
+		}
+		last := page[len(page)-1]
+		lastID = last.ID.String()
+		lastSortValue = last.CreatedAt.UTC().Format(time.RFC3339Nano)
 	}
 
 	tasksByID := make(map[uuid.UUID]*ent.Task, len(tasks))

@@ -1,12 +1,14 @@
 package github
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	gh "github.com/google/go-github/v62/github"
 	"github.com/google/uuid"
 
+	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
@@ -258,6 +260,55 @@ func TestTaskToIssueRequest_OnHoldIsMappedToOpen(t *testing.T) {
 	if req.GetState() != "open" {
 		t.Errorf("State = %q, want %q for on-hold task", req.GetState(), "open")
 	}
+}
+
+func TestSyncSubIssueLinksPaginatesAllTasks(t *testing.T) {
+	ctx := context.Background()
+	collID := uuid.New()
+	s := &pagedTaskStore{
+		pages: [][]*ent.Task{
+			makeTasks(collID, 1000, 0),
+			makeTasks(collID, 1, 1000),
+		},
+	}
+	a := &GitHubAdapter{store: s}
+	if err := a.syncSubIssueLinks(ctx, collID); err != nil {
+		t.Fatalf("syncSubIssueLinks: %v", err)
+	}
+	if got, want := len(s.requests), 2; got != want {
+		t.Fatalf("ListTasks calls = %d, want %d", got, want)
+	}
+	if s.requests[1].LastID == "" {
+		t.Fatal("second ListTasks call did not include a cursor")
+	}
+}
+
+type pagedTaskStore struct {
+	store.Store
+	pages    [][]*ent.Task
+	requests []store.ListTasksParams
+}
+
+func (s *pagedTaskStore) ListTasks(ctx context.Context, p store.ListTasksParams) ([]*ent.Task, int, error) {
+	s.requests = append(s.requests, p)
+	page := len(s.requests) - 1
+	if page >= len(s.pages) {
+		return nil, 0, nil
+	}
+	return s.pages[page], 1001, nil
+}
+
+func makeTasks(collectionID uuid.UUID, count, offset int) []*ent.Task {
+	tasks := make([]*ent.Task, 0, count)
+	for i := 0; i < count; i++ {
+		tasks = append(tasks, &ent.Task{
+			ID:           uuid.New(),
+			CollectionID: collectionID,
+			CreatedAt:    time.Date(2026, 1, 1, 0, 0, offset+i, 0, time.UTC),
+			RemoteData:   map[string]any{},
+		})
+	}
+	return tasks
 }
 
 func TestExtractIssueNumber(t *testing.T) {
