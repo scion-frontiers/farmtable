@@ -19,6 +19,8 @@ type contextKey string
 
 const userIDKey contextKey = "user_id"
 
+const tokenUsageTimeout = 5 * time.Second
+
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(userIDKey).(uuid.UUID)
 	return id, ok
@@ -71,7 +73,7 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "token expired")
 		}
 
-		go lookup.RecordUsage(context.Background(), result.TokenID)
+		recordTokenUsage(lookup, result.TokenID)
 
 		ctx = ContextWithUserID(ctx, result.UserID)
 		return handler(ctx, req)
@@ -110,7 +112,7 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 			return status.Error(codes.Unauthenticated, "token expired")
 		}
 
-		go lookup.RecordUsage(context.Background(), result.TokenID)
+		recordTokenUsage(lookup, result.TokenID)
 
 		wrapped := &authenticatedStream{
 			ServerStream: ss,
@@ -118,6 +120,14 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 		}
 		return handler(srv, wrapped)
 	}
+}
+
+func recordTokenUsage(lookup TokenLookup, tokenID uuid.UUID) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), tokenUsageTimeout)
+		defer cancel()
+		lookup.RecordUsage(ctx, tokenID)
+	}()
 }
 
 type authenticatedStream struct {

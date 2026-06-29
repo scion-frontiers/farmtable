@@ -4,11 +4,13 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/testutil"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -209,4 +211,47 @@ func TestAuthInterceptor_NoTokenSentAllowsAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected access without token (no mandatory auth), got: %v", err)
 	}
+}
+
+func TestAuthInterceptor_RecordUsageHasDeadline(t *testing.T) {
+	lookup := &deadlineLookup{
+		result: &server.TokenLookupResult{
+			UserID:  uuid.New(),
+			TokenID: uuid.New(),
+		},
+		used: make(chan context.Context, 1),
+	}
+	client, _, cleanup := startServerWithLookup(t, lookup)
+	defer cleanup()
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer secret-token")
+	if _, err := client.GetVersion(ctx, &pb.GetVersionRequest{}); err != nil {
+		t.Fatalf("expected success with valid token, got: %v", err)
+	}
+
+	select {
+	case usageCtx := <-lookup.used:
+		deadline, ok := usageCtx.Deadline()
+		if !ok {
+			t.Fatal("expected token usage context to have a deadline")
+		}
+		if time.Until(deadline) <= 0 {
+			t.Fatalf("expected token usage deadline to be in the future, got %v", deadline)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for token usage recording")
+	}
+}
+
+type deadlineLookup struct {
+	result *server.TokenLookupResult
+	used   chan context.Context
+}
+
+func (l *deadlineLookup) LookupByHash(context.Context, string) (*server.TokenLookupResult, error) {
+	return l.result, nil
+}
+
+func (l *deadlineLookup) RecordUsage(ctx context.Context, _ uuid.UUID) {
+	l.used <- ctx
 }
