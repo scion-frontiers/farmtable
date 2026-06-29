@@ -38,11 +38,16 @@ type issueNode struct {
 	}
 
 	SubIssues struct {
-		Nodes []subIssueNode
-	} `graphql:"subIssues(first: 50)"`
+		Nodes      []subIssueNode
+		TotalCount githubv4.Int
+	} `graphql:"subIssues(first: 100)"`
+
+	SubIssuesSummary subIssuesSummary
+	Parent           *parentIssueNode
 }
 
 type subIssueNode struct {
+	ID     githubv4.ID
 	Number githubv4.Int
 	Title  githubv4.String
 	State  githubv4.String
@@ -51,6 +56,17 @@ type subIssueNode struct {
 			Name githubv4.String
 		}
 	} `graphql:"labels(first: 20)"`
+}
+
+type parentIssueNode struct {
+	ID     githubv4.ID
+	Number githubv4.Int
+}
+
+type subIssuesSummary struct {
+	Total            githubv4.Int
+	Completed        githubv4.Int
+	PercentCompleted githubv4.Int
 }
 
 type issueCommentNode struct {
@@ -189,6 +205,14 @@ func (c *graphqlClient) listIssueComments(ctx context.Context, number int, limit
 	return all, nil
 }
 
+func (c *graphqlClient) listSubIssues(ctx context.Context, number int) ([]subIssueNode, error) {
+	issue, err := c.getIssue(ctx, number)
+	if err != nil {
+		return nil, err
+	}
+	return issue.SubIssues.Nodes, nil
+}
+
 // ── Repository ID lookup (needed for mutations) ──
 
 func (c *graphqlClient) getRepositoryID(ctx context.Context) (githubv4.ID, error) {
@@ -300,6 +324,44 @@ func (c *graphqlClient) addComment(ctx context.Context, issueID githubv4.ID, bod
 		return nil, fmt.Errorf("graphql add comment: %w", err)
 	}
 	return &mutation.AddComment.CommentEdge.Node, nil
+}
+
+func (c *graphqlClient) addSubIssue(ctx context.Context, parentID, childID githubv4.ID) error {
+	var mutation struct {
+		AddSubIssue struct {
+			Issue    issueNode
+			SubIssue issueNode
+		} `graphql:"addSubIssue(input: $input)"`
+	}
+
+	input := githubv4.AddSubIssueInput{
+		IssueID:    parentID,
+		SubIssueID: &childID,
+	}
+
+	if err := c.v4.Mutate(ctx, &mutation, input, nil); err != nil {
+		return fmt.Errorf("graphql add sub-issue: %w", err)
+	}
+	return nil
+}
+
+func (c *graphqlClient) removeSubIssue(ctx context.Context, parentID, childID githubv4.ID) error {
+	var mutation struct {
+		RemoveSubIssue struct {
+			Issue    issueNode
+			SubIssue issueNode
+		} `graphql:"removeSubIssue(input: $input)"`
+	}
+
+	input := githubv4.RemoveSubIssueInput{
+		IssueID:    parentID,
+		SubIssueID: childID,
+	}
+
+	if err := c.v4.Mutate(ctx, &mutation, input, nil); err != nil {
+		return fmt.Errorf("graphql remove sub-issue: %w", err)
+	}
+	return nil
 }
 
 func (c *graphqlClient) addLabels(ctx context.Context, labelableID githubv4.ID, labelIDs []githubv4.ID) error {
@@ -425,6 +487,12 @@ func issueBuildRemoteData(owner, repo string, issue *issueNode) map[string]any {
 	if issue.Milestone != nil {
 		rd["milestone"] = string(issue.Milestone.Title)
 	}
+	if issue.Parent != nil {
+		rd["parent"] = map[string]any{
+			"node_id": issue.Parent.ID,
+			"number":  int(issue.Parent.Number),
+		}
+	}
 
 	if len(issue.SubIssues.Nodes) > 0 {
 		var subs []map[string]any
@@ -436,6 +504,11 @@ func issueBuildRemoteData(owner, repo string, issue *issueNode) map[string]any {
 			})
 		}
 		rd["sub_issues"] = subs
+	}
+	rd["sub_issues_summary"] = map[string]any{
+		"total":             int(issue.SubIssuesSummary.Total),
+		"completed":         int(issue.SubIssuesSummary.Completed),
+		"percent_completed": int(issue.SubIssuesSummary.PercentCompleted),
 	}
 
 	return rd

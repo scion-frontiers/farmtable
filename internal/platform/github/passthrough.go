@@ -147,6 +147,10 @@ func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task {
 		aid := s.userUUID(string(issue.Assignees.Nodes[0].Login))
 		t.AssigneeID = &aid
 	}
+	if issue.Parent != nil {
+		pid := s.issueUUID(int(issue.Parent.Number))
+		t.ParentTaskID = &pid
+	}
 
 	if stateStr == "CLOSED" {
 		now := time.Now()
@@ -255,9 +259,27 @@ func (s *GitHubPassThroughStore) CreateTask(ctx context.Context, p store.CreateT
 		}
 	}
 
+	var parentIssue *issueNode
+	var err error
+	if p.ParentTaskID != nil {
+		parentIssue, err = s.getIssueByTaskID(ctx, *p.ParentTaskID)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.checkSubIssueLimits(ctx, parentIssue); err != nil {
+			return nil, err
+		}
+	}
+
 	issue, err := s.gql.createIssue(ctx, s.repoID, p.Title, p.Description, labelIDs, nil)
 	if err != nil {
 		return nil, err
+	}
+	if parentIssue != nil {
+		if err := s.gql.addSubIssue(ctx, parentIssue.ID, issue.ID); err != nil {
+			return nil, err
+		}
+		issue.Parent = &parentIssueNode{ID: parentIssue.ID, Number: parentIssue.Number}
 	}
 	return s.issueToTask(issue), nil
 }
@@ -280,6 +302,10 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 	}
 
 	issueID := target.ID
+	oldParentID := githubv4.ID(nil)
+	if target.Parent != nil {
+		oldParentID = target.Parent.ID
+	}
 
 	updated, err := s.gql.updateIssue(ctx, issueID, p.Title, p.Description)
 	if err != nil {
@@ -324,7 +350,84 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		_ = s.gql.updateIssueAssignees(ctx, issueID, nil)
 	}
 
+	if p.ClearParent || p.ParentTaskID != nil {
+		if oldParentID != nil {
+			if err := s.gql.removeSubIssue(ctx, oldParentID, issueID); err != nil {
+				return nil, err
+			}
+			updated.Parent = nil
+		}
+
+		if p.ParentTaskID != nil {
+			parentIssue, err := s.getIssueByTaskID(ctx, *p.ParentTaskID)
+			if err != nil {
+				return nil, err
+			}
+			if err := s.checkSubIssueLimits(ctx, parentIssue); err != nil {
+				return nil, err
+			}
+			if err := s.gql.addSubIssue(ctx, parentIssue.ID, issueID); err != nil {
+				return nil, err
+			}
+			updated.Parent = &parentIssueNode{ID: parentIssue.ID, Number: parentIssue.Number}
+		}
+	}
+
 	return s.issueToTask(updated), nil
+}
+
+func (s *GitHubPassThroughStore) getIssueByTaskID(ctx context.Context, id uuid.UUID) (*issueNode, error) {
+	issues, err := s.gql.listIssues(ctx, []githubv4.IssueState{githubv4.IssueStateOpen, githubv4.IssueStateClosed}, nil, 200)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range issues {
+		if s.issueUUID(int(issues[i].Number)) == id {
+			return &issues[i], nil
+		}
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *GitHubPassThroughStore) checkSubIssueLimits(ctx context.Context, parent *issueNode) error {
+	if parent == nil {
+		return store.ErrNotFound
+	}
+
+	if int(parent.SubIssues.TotalCount) >= MaxSubIssuesPerParent {
+		return fmt.Errorf("sub-issue count limit (%d) exceeded", MaxSubIssuesPerParent)
+	}
+
+	issues, err := s.gql.listIssues(ctx, []githubv4.IssueState{githubv4.IssueStateOpen, githubv4.IssueStateClosed}, nil, 200)
+	if err != nil {
+		return err
+	}
+	if s.issueDepth(parent, issues) >= MaxSubIssueDepth {
+		return fmt.Errorf("sub-issue depth limit (%d) exceeded", MaxSubIssueDepth)
+	}
+	return nil
+}
+
+func (s *GitHubPassThroughStore) issueDepth(issue *issueNode, issues []issueNode) int {
+	depth := 1
+	seen := map[int]bool{int(issue.Number): true}
+	current := issue
+	for current.Parent != nil {
+		parentNumber := int(current.Parent.Number)
+		if seen[parentNumber] {
+			break
+		}
+		seen[parentNumber] = true
+		parent := s.findIssueByNumber(issues, parentNumber)
+		if parent == nil {
+			depth++
+			break
+		}
+		depth++
+		current = parent
+	}
+	return depth
 }
 
 func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error) {

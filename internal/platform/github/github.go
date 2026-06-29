@@ -9,6 +9,7 @@ import (
 
 	gh "github.com/google/go-github/v62/github"
 	"github.com/google/uuid"
+	githubv4 "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 
 	"github.com/farmtable-io/farmtable/internal/platform"
@@ -108,6 +109,12 @@ func (a *GitHubAdapter) SyncCollection(ctx context.Context, collectionID uuid.UU
 			break
 		}
 		listOpts.Page = resp.NextPage
+	}
+
+	if a.gql != nil {
+		if err := a.syncSubIssueLinks(ctx, collectionID); err != nil {
+			return result, err
+		}
 	}
 
 	return result, nil
@@ -246,6 +253,7 @@ func phaseToIssueState(phase task.Phase) string {
 func buildRemoteData(issue *gh.Issue, remoteID string) map[string]any {
 	rd := map[string]any{
 		"remote_id":  remoteID,
+		"node_id":    issue.GetNodeID(),
 		"html_url":   issue.GetHTMLURL(),
 		"number":     issue.GetNumber(),
 		"created_at": issue.GetCreatedAt().Format(time.RFC3339),
@@ -310,6 +318,16 @@ func extractIssueNumber(remoteData map[string]any) int {
 	return 0
 }
 
+func extractNodeID(remoteData map[string]any) githubv4.ID {
+	if remoteData == nil {
+		return nil
+	}
+	if raw, ok := remoteData["node_id"].(string); ok && raw != "" {
+		return githubv4.ID(raw)
+	}
+	return nil
+}
+
 func deterministicUUID(input string) uuid.UUID {
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("github:user:"+input))
 }
@@ -348,4 +366,86 @@ func (a *GitHubAdapter) buildRemoteIDIndex(ctx context.Context, collectionID uui
 	}
 
 	return index, nil
+}
+
+func (a *GitHubAdapter) syncSubIssueLinks(ctx context.Context, collectionID uuid.UUID) error {
+	tasks, _, err := a.store.ListTasks(ctx, store.ListTasksParams{
+		CollectionID: &collectionID,
+		Limit:        1000,
+	})
+	if err != nil {
+		return err
+	}
+
+	tasksByID := make(map[uuid.UUID]*ent.Task, len(tasks))
+	for _, t := range tasks {
+		tasksByID[t.ID] = t
+	}
+
+	for _, child := range tasks {
+		if child.ParentTaskID == nil {
+			continue
+		}
+		parent := tasksByID[*child.ParentTaskID]
+		if parent == nil {
+			continue
+		}
+		parentID := extractNodeID(parent.RemoteData)
+		childID := extractNodeID(child.RemoteData)
+		if parentID == nil || childID == nil {
+			continue
+		}
+
+		parentNumber := extractIssueNumber(parent.RemoteData)
+		if parentNumber <= 0 {
+			continue
+		}
+		subIssues, err := a.gql.listSubIssues(ctx, parentNumber)
+		if err != nil {
+			return err
+		}
+		if subIssueLinked(subIssues, childID) {
+			continue
+		}
+		if len(subIssues) >= MaxSubIssuesPerParent {
+			return fmt.Errorf("sub-issue count limit (%d) exceeded", MaxSubIssuesPerParent)
+		}
+		if adapterTaskDepth(parent, tasksByID) >= MaxSubIssueDepth {
+			return fmt.Errorf("sub-issue depth limit (%d) exceeded", MaxSubIssueDepth)
+		}
+		if err := a.gql.addSubIssue(ctx, parentID, childID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func subIssueLinked(subIssues []subIssueNode, childID githubv4.ID) bool {
+	for _, subIssue := range subIssues {
+		if subIssue.ID == childID {
+			return true
+		}
+	}
+	return false
+}
+
+func adapterTaskDepth(t *ent.Task, tasksByID map[uuid.UUID]*ent.Task) int {
+	depth := 1
+	seen := map[uuid.UUID]bool{t.ID: true}
+	current := t
+	for current.ParentTaskID != nil {
+		parentID := *current.ParentTaskID
+		if seen[parentID] {
+			break
+		}
+		seen[parentID] = true
+		parent := tasksByID[parentID]
+		if parent == nil {
+			depth++
+			break
+		}
+		depth++
+		current = parent
+	}
+	return depth
 }
