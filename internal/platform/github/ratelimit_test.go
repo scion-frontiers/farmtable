@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 func init() {
 	sleepFunc = func(time.Duration) {}
 	logWriterFn = func() io.Writer { return io.Discard }
@@ -43,6 +49,50 @@ func TestRateLimitTransport_RetriesOn5xx(t *testing.T) {
 	}
 	if got := int(calls.Load()); got != 3 {
 		t.Errorf("calls = %d, want 3 (1 initial + 2 retries then success)", got)
+	}
+}
+
+func TestRateLimitTransport_RetriesRequestBody(t *testing.T) {
+	const wantBody = `{"query":"mutation { doThing }"}`
+	var calls atomic.Int32
+	rt := newRateLimitTransport(roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		if string(body) != wantBody {
+			t.Fatalf("attempt %d body = %q, want %q", calls.Load()+1, string(body), wantBody)
+		}
+
+		statusCode := http.StatusOK
+		if calls.Add(1) == 1 {
+			statusCode = http.StatusBadGateway
+		}
+		return &http.Response{
+			StatusCode: statusCode,
+			Header:     http.Header{},
+			Body:       io.NopCloser(bytes.NewReader(nil)),
+			Request:    req,
+		}, nil
+	}))
+
+	req, err := http.NewRequest("POST", "https://api.github.example/graphql", bytes.NewBufferString(wantBody))
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	req.GetBody = nil
+
+	resp, err := rt.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("StatusCode = %d, want 200", resp.StatusCode)
+	}
+	if got := int(calls.Load()); got != 2 {
+		t.Errorf("calls = %d, want 2", got)
 	}
 }
 

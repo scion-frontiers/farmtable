@@ -31,6 +31,9 @@ func newRateLimitTransport(base http.RoundTripper) *rateLimitTransport {
 
 func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.waitIfNeeded()
+	if err := ensureReplayableBody(req); err != nil {
+		return nil, err
+	}
 
 	var resp *http.Response
 	var err error
@@ -41,6 +44,12 @@ func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error
 			fmt.Fprintf(logWriter(), "github: retry %d/%d after %s\n", attempt, maxRetries, backoff)
 			sleep(backoff)
 			backoff *= 2
+			if req.GetBody != nil {
+				req.Body, err = req.GetBody()
+				if err != nil {
+					return nil, fmt.Errorf("replaying request body: %w", err)
+				}
+			}
 		}
 
 		resp, err = t.base.RoundTrip(req)
@@ -78,6 +87,29 @@ func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error
 	}
 
 	return resp, err
+}
+
+func ensureReplayableBody(req *http.Request) error {
+	if req.Body == nil || req.Body == http.NoBody || req.GetBody != nil {
+		return nil
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return fmt.Errorf("reading request body for retry: %w", err)
+	}
+	if err := req.Body.Close(); err != nil {
+		return fmt.Errorf("closing request body after buffering for retry: %w", err)
+	}
+
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	req.Body, err = req.GetBody()
+	if err != nil {
+		return fmt.Errorf("reopening request body after buffering for retry: %w", err)
+	}
+	return nil
 }
 
 func (t *rateLimitTransport) waitIfNeeded() {
