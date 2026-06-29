@@ -102,9 +102,10 @@ func dialServer(server string) (*grpc.ClientConn, error) {
 
 func isLocalhost(addr string) bool {
 	host := addr
-	if idx := strings.LastIndex(addr, ":"); idx >= 0 {
-		host = addr[:idx]
+	if splitHost, _, err := net.SplitHostPort(addr); err == nil {
+		host = splitHost
 	}
+	host = strings.Trim(host, "[]")
 	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == ""
 }
 
