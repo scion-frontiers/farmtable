@@ -570,6 +570,11 @@ message UpdateTaskRequest {
   repeated PullRequest add_pull_requests = 32;
   optional CIStatus ci_status = 33 [(buf.validate.field).enum.defined_only = true];
 
+  // Cross-reference to the source platform. For built-in tasks this can be used
+  // to decorate one-time mirrors into external systems.
+  optional string remote_id = 34;
+  optional string remote_url = 35 [(buf.validate.field).string.uri = true];
+
   optional string reason = 40;
 
   // If set, the update is conditional: server rejects with ABORTED if

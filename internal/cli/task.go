@@ -403,6 +403,8 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 		addPRStatus        string
 		ciStatus           string
 		clearCIStatus      bool
+		remoteID           string
+		remoteURL          string
 		reason             string
 		version            string
 	)
@@ -554,6 +556,12 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 				}
 				req.CiStatus = &ci
 			}
+			if cmd.Flags().Changed("remote-id") {
+				req.RemoteId = &remoteID
+			}
+			if cmd.Flags().Changed("remote-url") {
+				req.RemoteUrl = &remoteURL
+			}
 			if reason != "" {
 				req.Reason = &reason
 			}
@@ -601,6 +609,8 @@ func newTaskUpdateCmd(globals *globalFlags) *cobra.Command {
 	cmd.Flags().StringVar(&addPRStatus, "add-pr-status", "", "PR status: open, merged, closed")
 	cmd.Flags().StringVar(&ciStatus, "ci-status", "", "CI status: pending, running, passed, failed")
 	cmd.Flags().BoolVar(&clearCIStatus, "clear-ci-status", false, "Clear CI status")
+	cmd.Flags().StringVar(&remoteID, "remote-id", "", "Update source platform identifier")
+	cmd.Flags().StringVar(&remoteURL, "remote-url", "", "Update source platform URL")
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	cmd.Flags().StringVar(&version, "version", "", "Expected version for CAS update")
 	return cmd
@@ -830,4 +840,3 @@ func parseDate(s string) (*timestamppb.Timestamp, error) {
 	}
 	return nil, fmt.Errorf("cannot parse date %q (use ISO 8601 or YYYY-MM-DD)", s)
 }
-

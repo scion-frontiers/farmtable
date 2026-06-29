@@ -2979,7 +2979,11 @@ type UpdateTaskRequest struct {
 	Branch          *string        `protobuf:"bytes,31,opt,name=branch,proto3,oneof" json:"branch,omitempty"`
 	AddPullRequests []*PullRequest `protobuf:"bytes,32,rep,name=add_pull_requests,json=addPullRequests,proto3" json:"add_pull_requests,omitempty"`
 	CiStatus        *CIStatus      `protobuf:"varint,33,opt,name=ci_status,json=ciStatus,proto3,enum=farmtable.v1.CIStatus,oneof" json:"ci_status,omitempty"`
-	Reason          *string        `protobuf:"bytes,40,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
+	// Cross-reference to the source platform. For built-in tasks this can be used
+	// to decorate one-time mirrors into external systems.
+	RemoteId  *string `protobuf:"bytes,34,opt,name=remote_id,json=remoteId,proto3,oneof" json:"remote_id,omitempty"`
+	RemoteUrl *string `protobuf:"bytes,35,opt,name=remote_url,json=remoteUrl,proto3,oneof" json:"remote_url,omitempty"`
+	Reason    *string `protobuf:"bytes,40,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
 	// If set, the update is conditional: server rejects with ABORTED if
 	// the task's current version does not match. Omit for unconditional updates.
 	Version       *string `protobuf:"bytes,41,opt,name=version,proto3,oneof" json:"version,omitempty"`
@@ -3183,6 +3187,20 @@ func (x *UpdateTaskRequest) GetCiStatus() CIStatus {
 		return *x.CiStatus
 	}
 	return CIStatus_CI_STATUS_UNSPECIFIED
+}
+
+func (x *UpdateTaskRequest) GetRemoteId() string {
+	if x != nil && x.RemoteId != nil {
+		return *x.RemoteId
+	}
+	return ""
+}
+
+func (x *UpdateTaskRequest) GetRemoteUrl() string {
+	if x != nil && x.RemoteUrl != nil {
+		return *x.RemoteUrl
+	}
+	return ""
 }
 
 func (x *UpdateTaskRequest) GetReason() string {
@@ -6136,7 +6154,8 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x0f_parent_task_idB\a\n" +
 	"\x05_repoB\t\n" +
 	"\a_branchB\t\n" +
-	"\a_reason\"\xfc\t\n" +
+	"\a_reason\"\xe9\n" +
+	"\n" +
 	"\x11UpdateTaskRequest\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12%\n" +
@@ -6165,10 +6184,13 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x04repo\x18\x1e \x01(\tH\aR\x04repo\x88\x01\x01\x12\x1b\n" +
 	"\x06branch\x18\x1f \x01(\tH\bR\x06branch\x88\x01\x01\x12E\n" +
 	"\x11add_pull_requests\x18  \x03(\v2\x19.farmtable.v1.PullRequestR\x0faddPullRequests\x12B\n" +
-	"\tci_status\x18! \x01(\x0e2\x16.farmtable.v1.CIStatusB\b\xbaH\x05\x82\x01\x02\x10\x01H\tR\bciStatus\x88\x01\x01\x12\x1b\n" +
-	"\x06reason\x18( \x01(\tH\n" +
-	"R\x06reason\x88\x01\x01\x12\x1d\n" +
-	"\aversion\x18) \x01(\tH\vR\aversion\x88\x01\x01B\a\n" +
+	"\tci_status\x18! \x01(\x0e2\x16.farmtable.v1.CIStatusB\b\xbaH\x05\x82\x01\x02\x10\x01H\tR\bciStatus\x88\x01\x01\x12 \n" +
+	"\tremote_id\x18\" \x01(\tH\n" +
+	"R\bremoteId\x88\x01\x01\x12,\n" +
+	"\n" +
+	"remote_url\x18# \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01H\vR\tremoteUrl\x88\x01\x01\x12\x1b\n" +
+	"\x06reason\x18( \x01(\tH\fR\x06reason\x88\x01\x01\x12\x1d\n" +
+	"\aversion\x18) \x01(\tH\rR\aversion\x88\x01\x01B\a\n" +
 	"\x05_nameB\x0e\n" +
 	"\f_descriptionB\x16\n" +
 	"\x14_acceptance_criteriaB\b\n" +
@@ -6179,7 +6201,10 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x05_repoB\t\n" +
 	"\a_branchB\f\n" +
 	"\n" +
-	"_ci_statusB\t\n" +
+	"_ci_statusB\f\n" +
+	"\n" +
+	"_remote_idB\r\n" +
+	"\v_remote_urlB\t\n" +
 	"\a_reasonB\n" +
 	"\n" +
 	"\b_version\"\xfc\x01\n" +

@@ -182,6 +182,41 @@ func TestRPC_UpdateTask_VersionConflict(t *testing.T) {
 	})
 }
 
+func TestRPC_UpdateTask_RemoteReference(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Remote reference test",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	remoteID := "123"
+	remoteURL := "https://github.com/ptone/farmtable/issues/123"
+	updated, err := client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+		Id:        created.GetId(),
+		RemoteId:  &remoteID,
+		RemoteUrl: &remoteURL,
+	})
+	if err != nil {
+		t.Fatalf("UpdateTask: %v", err)
+	}
+	if updated.GetRemoteId() != remoteID {
+		t.Errorf("remote_id = %q, want %q", updated.GetRemoteId(), remoteID)
+	}
+	if updated.GetRemoteUrl() != remoteURL {
+		t.Errorf("remote_url = %q, want %q", updated.GetRemoteUrl(), remoteURL)
+	}
+	if updated.GetRemoteData().GetFields()["remote_id"].GetStringValue() != remoteID {
+		t.Errorf("remote_data.remote_id = %q, want %q", updated.GetRemoteData().GetFields()["remote_id"].GetStringValue(), remoteID)
+	}
+}
+
 func TestRPC_ClaimTask(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()

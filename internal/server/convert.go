@@ -215,6 +215,12 @@ func taskToProto(t *ent.Task) *pb.Task {
 		pt.ClosedAt = timestamppb.New(*t.ClosedAt)
 	}
 	if t.RemoteData != nil {
+		if remoteID, ok := t.RemoteData["remote_id"].(string); ok && remoteID != "" {
+			pt.RemoteId = &remoteID
+		}
+		if remoteURL, ok := t.RemoteData["remote_url"].(string); ok && remoteURL != "" {
+			pt.RemoteUrl = &remoteURL
+		}
 		pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)
 	}
 	if len(t.Labels) > 0 {

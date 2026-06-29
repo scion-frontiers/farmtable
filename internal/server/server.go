@@ -391,6 +391,15 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		cs := ciStatusFromProto(*req.CiStatus)
 		p.CIStatus = &cs
 	}
+	if req.RemoteId != nil || req.RemoteUrl != nil {
+		p.RemoteData = map[string]any{}
+		if req.RemoteId != nil {
+			p.RemoteData["remote_id"] = req.GetRemoteId()
+		}
+		if req.RemoteUrl != nil {
+			p.RemoteData["remote_url"] = req.GetRemoteUrl()
+		}
+	}
 
 	if req.Reason != nil {
 		p.Reason = req.Reason

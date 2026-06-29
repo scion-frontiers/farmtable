@@ -95,7 +95,6 @@ func openSQLite(dsn string) (*ent.Client, error) {
 	return ent.NewClient(ent.Driver(drv)), nil
 }
 
-
 func (s *EntStore) Client() *ent.Client {
 	return s.client
 }
@@ -429,7 +428,14 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 		update.SetAcceptanceCriteria(*p.AcceptanceCriteria)
 	}
 	if p.RemoteData != nil {
-		update.SetRemoteData(p.RemoteData)
+		remoteData := make(map[string]any, len(old.RemoteData)+len(p.RemoteData))
+		for key, value := range old.RemoteData {
+			remoteData[key] = value
+		}
+		for key, value := range p.RemoteData {
+			remoteData[key] = value
+		}
+		update.SetRemoteData(remoteData)
 	}
 
 	if p.ClearStartDate {
