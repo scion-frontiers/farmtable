@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/convert"
@@ -47,6 +48,8 @@ func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *
 }
 
 const defaultPageSize = 50
+const maxTaskNameLength = 512
+const maxTaskDescriptionLength = 65536
 
 func validateDefinedEnum(field string, value int32, names map[int32]string) error {
 	if _, ok := names[value]; !ok {
@@ -55,11 +58,31 @@ func validateDefinedEnum(field string, value int32, names map[int32]string) erro
 	return nil
 }
 
+func validateTaskName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return status.Errorf(codes.InvalidArgument, "name is required")
+	}
+	if utf8.RuneCountInString(name) > maxTaskNameLength {
+		return status.Errorf(codes.InvalidArgument, "name must be at most %d characters", maxTaskNameLength)
+	}
+	return nil
+}
+
+func validateTaskDescription(description string) error {
+	if utf8.RuneCountInString(description) > maxTaskDescriptionLength {
+		return status.Errorf(codes.InvalidArgument, "description must be at most %d characters", maxTaskDescriptionLength)
+	}
+	return nil
+}
+
 // ── Tasks ──
 
 func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.Task, error) {
-	if strings.TrimSpace(req.GetName()) == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "name is required")
+	if err := validateTaskName(req.GetName()); err != nil {
+		return nil, err
+	}
+	if err := validateTaskDescription(req.GetDescription()); err != nil {
+		return nil, err
 	}
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
@@ -324,9 +347,15 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	}
 
 	if req.Name != nil {
+		if err := validateTaskName(req.GetName()); err != nil {
+			return nil, err
+		}
 		p.Title = req.Name
 	}
 	if req.Description != nil {
+		if err := validateTaskDescription(req.GetDescription()); err != nil {
+			return nil, err
+		}
 		p.Description = req.Description
 	}
 	if req.AcceptanceCriteria != nil {

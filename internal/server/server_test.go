@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	testMaxTaskNameLength        = 512
+	testMaxTaskDescriptionLength = 65536
 )
 
 func createTestCollection(t *testing.T, client pb.FarmTableServiceClient) string {
@@ -68,6 +74,8 @@ func TestRPC_CreateTask_InvalidInput(t *testing.T) {
 	ctx := context.Background()
 
 	collID := createTestCollection(t, client)
+	longName := stringOfLength(testMaxTaskNameLength + 1)
+	longDescription := stringOfLength(testMaxTaskDescriptionLength + 1)
 
 	tests := []struct {
 		name string
@@ -78,6 +86,21 @@ func TestRPC_CreateTask_InvalidInput(t *testing.T) {
 			req: &pb.CreateTaskRequest{
 				CollectionId: collID,
 				Name:         "   ",
+			},
+		},
+		{
+			name: "name too long",
+			req: &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         longName,
+			},
+		},
+		{
+			name: "description too long",
+			req: &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "description too long",
+				Description:  &longDescription,
 			},
 		},
 		{
@@ -101,6 +124,64 @@ func TestRPC_CreateTask_InvalidInput(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := client.CreateTask(ctx, tt.req)
+			if err == nil {
+				t.Fatal("expected invalid argument error")
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected gRPC status error, got %v", err)
+			}
+			if st.Code() != codes.InvalidArgument {
+				t.Errorf("code = %v, want InvalidArgument", st.Code())
+			}
+		})
+	}
+}
+
+func TestRPC_UpdateTask_InvalidTextInput(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "update validation",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		req  *pb.UpdateTaskRequest
+	}{
+		{
+			name: "blank name",
+			req: &pb.UpdateTaskRequest{
+				Id:   created.GetId(),
+				Name: strPtr("   "),
+			},
+		},
+		{
+			name: "name too long",
+			req: &pb.UpdateTaskRequest{
+				Id:   created.GetId(),
+				Name: strPtr(stringOfLength(testMaxTaskNameLength + 1)),
+			},
+		},
+		{
+			name: "description too long",
+			req: &pb.UpdateTaskRequest{
+				Id:          created.GetId(),
+				Description: strPtr(stringOfLength(testMaxTaskDescriptionLength + 1)),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.UpdateTask(ctx, tt.req)
 			if err == nil {
 				t.Fatal("expected invalid argument error")
 			}
@@ -1237,3 +1318,7 @@ func TestRPC_GetCriticalPath_DiamondDAG(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+func stringOfLength(length int) string {
+	return strings.Repeat("x", length)
+}
