@@ -691,6 +691,9 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 	}
 
 	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		if err := validateDefinedEnum("platform", int32(*req.Platform), pb.Platform_name); err != nil {
+			return nil, err
+		}
 		plat := platformFromProto(*req.Platform)
 		p.Platform = &plat
 	}
@@ -809,6 +812,9 @@ func (s *FarmTableService) ListUsers(ctx context.Context, req *pb.ListUsersReque
 	}
 
 	if req.Type != nil {
+		if err := validateDefinedEnum("type", int32(*req.Type), pb.UserType_name); err != nil {
+			return nil, err
+		}
 		p.Type = userTypeFromProto(*req.Type)
 	}
 

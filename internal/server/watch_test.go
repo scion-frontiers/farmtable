@@ -437,3 +437,65 @@ func TestWatchTasks_PassThroughReturnsUnimplemented(t *testing.T) {
 		t.Errorf("code = %v, want Unimplemented", st.Code())
 	}
 }
+
+func TestWatchTasks_InvalidFilters(t *testing.T) {
+	client, cleanup := testutil.NewTestServerWithStreaming(t)
+	defer cleanup()
+
+	badCollectionID := "not-a-uuid"
+	badPhase := pb.TaskPhase(99)
+	badStage := pb.TaskStage(99)
+	badAssignee := "not-a-uuid"
+	badTaskID := "not-a-uuid"
+	badPriority := pb.TaskPriority(99)
+
+	tests := []struct {
+		name string
+		req  *pb.WatchTasksRequest
+	}{
+		{
+			name: "collection_id",
+			req:  &pb.WatchTasksRequest{CollectionId: &badCollectionID},
+		},
+		{
+			name: "phase",
+			req:  &pb.WatchTasksRequest{Phase: &badPhase},
+		},
+		{
+			name: "stage",
+			req:  &pb.WatchTasksRequest{Stages: []pb.TaskStage{badStage}},
+		},
+		{
+			name: "assignee",
+			req:  &pb.WatchTasksRequest{Assignee: &badAssignee},
+		},
+		{
+			name: "task_id",
+			req:  &pb.WatchTasksRequest{TaskId: &badTaskID},
+		},
+		{
+			name: "priority",
+			req:  &pb.WatchTasksRequest{Priority: &badPriority},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stream, err := client.WatchTasks(context.Background(), tt.req)
+			if err != nil {
+				t.Fatalf("WatchTasks: %v", err)
+			}
+			_, err = stream.Recv()
+			if err == nil {
+				t.Fatal("expected invalid argument error")
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected gRPC status error, got %v", err)
+			}
+			if st.Code() != codes.InvalidArgument {
+				t.Errorf("code = %v, want InvalidArgument", st.Code())
+			}
+		})
+	}
+}

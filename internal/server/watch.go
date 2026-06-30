@@ -17,6 +17,9 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	if s.eventBus == nil {
 		return status.Error(codes.Unimplemented, "streaming not available in pass-through mode")
 	}
+	if err := validateWatchTasksRequest(req); err != nil {
+		return err
+	}
 
 	filter := buildFilter(req)
 
@@ -68,6 +71,43 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 			return nil
 		}
 	}
+}
+
+func validateWatchTasksRequest(req *pb.WatchTasksRequest) error {
+	if req.CollectionId != nil {
+		if _, err := uuid.Parse(*req.CollectionId); err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+	}
+	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
+		if err := validateDefinedEnum("phase", int32(*req.Phase), pb.TaskPhase_name); err != nil {
+			return err
+		}
+	}
+	for _, stage := range req.GetStages() {
+		if stage == pb.TaskStage_TASK_STAGE_UNSPECIFIED {
+			continue
+		}
+		if err := validateDefinedEnum("stages", int32(stage), pb.TaskStage_name); err != nil {
+			return err
+		}
+	}
+	if req.Assignee != nil && *req.Assignee != "none" {
+		if _, err := uuid.Parse(*req.Assignee); err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid assignee: %v", err)
+		}
+	}
+	if req.TaskId != nil {
+		if _, err := uuid.Parse(*req.TaskId); err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+		}
+	}
+	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *FarmTableService) sendInitialSnapshot(req *pb.WatchTasksRequest, filter streaming.SubscriptionFilter, stream grpc.ServerStreamingServer[pb.TaskEvent], seq int64) (int64, error) {
@@ -185,4 +225,3 @@ func filterToListRequest(req *pb.WatchTasksRequest) *pb.ListTasksRequest {
 	}
 	return lr
 }
-

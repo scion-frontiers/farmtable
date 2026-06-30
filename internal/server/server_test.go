@@ -572,6 +572,46 @@ func TestRPC_ListTasks_PageSizeCap(t *testing.T) {
 	}
 }
 
+func TestRPC_ListCollections_InvalidPlatform(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+
+	platform := pb.Platform(99)
+	_, err := client.ListCollections(context.Background(), &pb.ListCollectionsRequest{
+		Platform: &platform,
+	})
+	if err == nil {
+		t.Fatal("expected invalid argument error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Errorf("code = %v, want InvalidArgument", st.Code())
+	}
+}
+
+func TestRPC_ListUsers_InvalidType(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+
+	userType := pb.UserType(99)
+	_, err := client.ListUsers(context.Background(), &pb.ListUsersRequest{
+		Type: &userType,
+	})
+	if err == nil {
+		t.Fatal("expected invalid argument error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Errorf("code = %v, want InvalidArgument", st.Code())
+	}
+}
+
 func TestRPC_GetVersion(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
