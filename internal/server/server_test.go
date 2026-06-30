@@ -945,6 +945,30 @@ func TestRPC_GetReadyTasks(t *testing.T) {
 	_ = taskA
 }
 
+func TestRPC_GetReadyTasksRejectsInvalidMinPriority(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	invalidPriority := pb.TaskPriority(99)
+	_, err := client.GetReadyTasks(ctx, &pb.GetReadyTasksRequest{
+		MinPriority: &invalidPriority,
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid min_priority")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Errorf("code = %v, want InvalidArgument", st.Code())
+	}
+	if !strings.Contains(st.Message(), "invalid min_priority") {
+		t.Errorf("message = %q, want invalid min_priority", st.Message())
+	}
+}
+
 func TestRPC_GetBlockedTasks(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()

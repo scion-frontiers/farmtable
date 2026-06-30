@@ -923,6 +923,9 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 		}
 	}
 	if req.MinPriority != nil && *req.MinPriority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		if err := validateDefinedEnum("min_priority", int32(*req.MinPriority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
 		pr := convert.PriorityFromProto(*req.MinPriority)
 		p.MinPriority = &pr
 	}
