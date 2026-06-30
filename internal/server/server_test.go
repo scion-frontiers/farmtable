@@ -62,6 +62,59 @@ func TestRPC_CreateAndGetTask(t *testing.T) {
 	}
 }
 
+func TestRPC_CreateTask_InvalidInput(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+
+	tests := []struct {
+		name string
+		req  *pb.CreateTaskRequest
+	}{
+		{
+			name: "blank name",
+			req: &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "   ",
+			},
+		},
+		{
+			name: "unknown stage",
+			req: &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "bad stage",
+				Stage:        pb.TaskStage(99).Enum(),
+			},
+		},
+		{
+			name: "unknown priority",
+			req: &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "bad priority",
+				Priority:     pb.TaskPriority(99).Enum(),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.CreateTask(ctx, tt.req)
+			if err == nil {
+				t.Fatal("expected invalid argument error")
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected gRPC status error, got %v", err)
+			}
+			if st.Code() != codes.InvalidArgument {
+				t.Errorf("code = %v, want InvalidArgument", st.Code())
+			}
+		})
+	}
+}
+
 func TestRPC_ListTasks_Pagination(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()

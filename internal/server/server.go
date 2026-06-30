@@ -8,15 +8,16 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/convert"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
-	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,9 +48,19 @@ func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *
 
 const defaultPageSize = 50
 
+func validateDefinedEnum(field string, value int32, names map[int32]string) error {
+	if _, ok := names[value]; !ok {
+		return status.Errorf(codes.InvalidArgument, "invalid %s: %d", field, value)
+	}
+	return nil
+}
+
 // ── Tasks ──
 
 func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.Task, error) {
+	if strings.TrimSpace(req.GetName()) == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "name is required")
+	}
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
@@ -58,6 +69,9 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	stage := task.StageTriage
 	phase := task.PhaseOpen
 	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
 		stage = convert.StageFromProto(*req.Stage)
 		phase = phaseForStage(stage)
 	}
@@ -73,6 +87,9 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	}
 
 	if req.Priority != nil {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
 		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
@@ -210,10 +227,18 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		p.CollectionID = &cid
 	}
 	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
+		if err := validateDefinedEnum("phase", int32(*req.Phase), pb.TaskPhase_name); err != nil {
+			return nil, err
+		}
 		ph := convert.PhaseFromProto(*req.Phase)
 		p.Phase = &ph
 	}
 	if len(req.GetStages()) > 0 {
+		for _, stage := range req.GetStages() {
+			if err := validateDefinedEnum("stages", int32(stage), pb.TaskStage_name); err != nil {
+				return nil, err
+			}
+		}
 		st := convert.StageFromProto(req.GetStages()[0])
 		p.Stage = &st
 	}
@@ -229,6 +254,9 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		}
 	}
 	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
 		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
@@ -246,9 +274,15 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		p.ParentTaskID = &pid
 	}
 	if req.GetSortField() != pb.SortField_SORT_FIELD_UNSPECIFIED {
+		if err := validateDefinedEnum("sort_field", int32(req.GetSortField()), pb.SortField_name); err != nil {
+			return nil, err
+		}
 		p.SortField = sortFieldToString(req.GetSortField())
 	}
 	if req.GetSortOrder() != pb.SortOrder_SORT_ORDER_UNSPECIFIED {
+		if err := validateDefinedEnum("sort_order", int32(req.GetSortOrder()), pb.SortOrder_name); err != nil {
+			return nil, err
+		}
 		p.SortOrder = sortOrderToString(req.GetSortOrder())
 	}
 
@@ -299,12 +333,18 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.AcceptanceCriteria = req.AcceptanceCriteria
 	}
 	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
 		st := convert.StageFromProto(*req.Stage)
 		p.Stage = &st
 		ph := phaseForStage(st)
 		p.Phase = &ph
 	}
 	if req.Priority != nil {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
 		pr := convert.PriorityFromProto(*req.Priority)
 		p.Priority = &pr
 	}
@@ -388,6 +428,9 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		})
 	}
 	if req.CiStatus != nil && *req.CiStatus != pb.CIStatus_CI_STATUS_UNSPECIFIED {
+		if err := validateDefinedEnum("ci_status", int32(*req.CiStatus), pb.CIStatus_name); err != nil {
+			return nil, err
+		}
 		cs := ciStatusFromProto(*req.CiStatus)
 		p.CIStatus = &cs
 	}
@@ -472,6 +515,9 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 
 	stage := task.StageCompleted
 	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
 		stage = convert.StageFromProto(*req.Stage)
 	}
 
