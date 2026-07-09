@@ -32,6 +32,7 @@ func TestDashboardStoreOptions_DefaultsToSQLite(t *testing.T) {
 func TestDashboardStoreOptions_UsesConfiguredDatabase(t *testing.T) {
 	t.Setenv("FARMTABLE_DB_URL", "host=/cloudsql/project:region:instance dbname=farmtable user=farmtable password=secret sslmode=disable")
 	t.Setenv("FARMTABLE_DB_DIALECT", "")
+	t.Setenv("FARMTABLE_DB_PASSWORD", "")
 
 	opts, err := dashboardStoreOptions()
 	if err != nil {
@@ -42,6 +43,21 @@ func TestDashboardStoreOptions_UsesConfiguredDatabase(t *testing.T) {
 	}
 	if opts.DSN != "host=/cloudsql/project:region:instance dbname=farmtable user=farmtable password=secret sslmode=disable" {
 		t.Fatalf("DSN = %q", opts.DSN)
+	}
+}
+
+func TestDashboardStoreOptions_AppendsSecretPassword(t *testing.T) {
+	t.Setenv("FARMTABLE_DB_URL", "host=/cloudsql/project:region:instance dbname=farmtable user=farmtable sslmode=disable")
+	t.Setenv("FARMTABLE_DB_DIALECT", "")
+	t.Setenv("FARMTABLE_DB_PASSWORD", "secret-password")
+
+	opts, err := dashboardStoreOptions()
+	if err != nil {
+		t.Fatalf("dashboardStoreOptions: %v", err)
+	}
+	want := "host=/cloudsql/project:region:instance dbname=farmtable user=farmtable sslmode=disable password=secret-password"
+	if opts.DSN != want {
+		t.Fatalf("DSN = %q, want %q", opts.DSN, want)
 	}
 }
 

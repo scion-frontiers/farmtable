@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -171,6 +172,9 @@ func dashboardStoreOptions() (store.StoreOptions, error) {
 		dbDialect := os.Getenv("FARMTABLE_DB_DIALECT")
 		if dbDialect == "" {
 			dbDialect = "postgres"
+		}
+		if dbPassword := os.Getenv("FARMTABLE_DB_PASSWORD"); dbPassword != "" && !strings.Contains(dbURL, "password=") {
+			dbURL = fmt.Sprintf("%s password=%s", dbURL, dbPassword)
 		}
 		return store.StoreOptions{
 			Dialect: dbDialect,
