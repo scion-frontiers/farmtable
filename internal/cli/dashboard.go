@@ -18,7 +18,9 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/server"
+	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/streaming"
+	"github.com/google/uuid"
 	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -52,22 +54,18 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dbPath := resolveDBPath()
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
-		return fmt.Errorf("creating data directory: %w", err)
+	storeOpts, err := dashboardStoreOptions()
+	if err != nil {
+		return err
 	}
-
-	s, err := store.NewEntStore(ctx, store.StoreOptions{
-		Dialect: "sqlite3",
-		DSN:     fmt.Sprintf("file:%s?_fk=1", dbPath),
-		Migrate: true,
-	})
+	s, err := store.NewEntStore(ctx, storeOpts)
 	if err != nil {
 		return fmt.Errorf("opening database: %w", err)
 	}
 	defer s.Close()
 
-	if err := ensureLocalUser(ctx, s); err != nil {
+	token := resolveToken("")
+	if err := ensureLocalUser(ctx, s, token); err != nil {
 		return fmt.Errorf("ensuring local user: %w", err)
 	}
 
@@ -92,7 +90,6 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	if err != nil {
 		return fmt.Errorf("dialing bootstrap server: %w", err)
 	}
-	token := resolveToken("")
 	bootstrapClient := pb.NewFarmTableServiceClient(bootstrapConn)
 	if err := ensureDefaultCollection(authCtx(ctx, token), bootstrapClient); err != nil {
 		bootstrapConn.Close()
@@ -169,6 +166,30 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	return nil
 }
 
+func dashboardStoreOptions() (store.StoreOptions, error) {
+	if dbURL := os.Getenv("FARMTABLE_DB_URL"); dbURL != "" {
+		dbDialect := os.Getenv("FARMTABLE_DB_DIALECT")
+		if dbDialect == "" {
+			dbDialect = "postgres"
+		}
+		return store.StoreOptions{
+			Dialect: dbDialect,
+			DSN:     dbURL,
+			Migrate: true,
+		}, nil
+	}
+
+	dbPath := resolveDBPath()
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+		return store.StoreOptions{}, fmt.Errorf("creating data directory: %w", err)
+	}
+	return store.StoreOptions{
+		Dialect: "sqlite3",
+		DSN:     fmt.Sprintf("file:%s?_fk=1", dbPath),
+		Migrate: true,
+	}, nil
+}
+
 func isAddrInUse(err error) bool {
 	var opErr *net.OpError
 	if errors.As(err, &opErr) {
@@ -191,4 +212,30 @@ func openURL(url string) {
 		cmd = exec.Command("xdg-open", url)
 	}
 	cmd.Start()
+}
+
+func ensureDashboardToken(ctx context.Context, s *store.EntStore, userID uuid.UUID, rawToken string) error {
+	if rawToken == "" {
+		return nil
+	}
+	tokenHash := store.HashToken(rawToken)
+	exists, err := s.Client().ApiToken.Query().
+		Where(apitoken.TokenHashEQ(tokenHash)).
+		Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("checking dashboard token: %w", err)
+	}
+	if exists {
+		return nil
+	}
+
+	_, err = s.Client().ApiToken.Create().
+		SetTokenHash(tokenHash).
+		SetName("dashboard-env").
+		SetUserID(userID).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("creating dashboard token: %w", err)
+	}
+	return nil
 }

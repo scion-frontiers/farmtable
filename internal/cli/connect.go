@@ -144,7 +144,7 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 		return nil, nil, fmt.Errorf("opening embedded database: %w", err)
 	}
 
-	if err := ensureLocalUser(ctx, s); err != nil {
+	if err := ensureLocalUser(ctx, s, resolveToken("")); err != nil {
 		s.Close()
 		return nil, nil, fmt.Errorf("ensuring local user: %w", err)
 	}
@@ -183,13 +183,13 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 	return client, closer, nil
 }
 
-func ensureLocalUser(ctx context.Context, s *store.EntStore) error {
-	_, err := s.GetUserByName(ctx, "local")
+func ensureLocalUser(ctx context.Context, s *store.EntStore, token string) error {
+	u, err := s.GetUserByName(ctx, "local")
 	if err == nil {
-		return nil
+		return ensureDashboardToken(ctx, s, u.ID, token)
 	}
 
-	u, err := s.CreateUser(ctx, store.CreateUserParams{
+	u, err = s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "local",
 		Type:        "agent",
 		Status:      "active",
@@ -210,7 +210,7 @@ func ensureLocalUser(ctx context.Context, s *store.EntStore) error {
 		return fmt.Errorf("saving token to config: %w", err)
 	}
 
-	return nil
+	return ensureDashboardToken(ctx, s, u.ID, token)
 }
 
 func ensureDefaultCollection(ctx context.Context, client pb.FarmTableServiceClient) error {
