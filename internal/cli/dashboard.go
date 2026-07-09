@@ -113,6 +113,9 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	mux.HandleFunc("/farmtable.v1/", func(w http.ResponseWriter, r *http.Request) {
 		wrappedGrpc.ServeHTTP(w, r)
 	})
+	mux.HandleFunc("/farmtable.v1.FarmTableService/", func(w http.ResponseWriter, r *http.Request) {
+		wrappedGrpc.ServeHTTP(w, r)
+	})
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
 	listenAddr := fmt.Sprintf(":%d", port)
