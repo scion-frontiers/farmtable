@@ -24,6 +24,8 @@ import (
 	"github.com/google/uuid"
 	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -129,7 +131,7 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 
 	boundPort := lis.Addr().(*net.TCPAddr).Port
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
 	sigCh := make(chan os.Signal, 1)
