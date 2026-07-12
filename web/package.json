@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.0",
+    "@improbable-eng/grpc-web": "^0.15.0",
     "@shoelace-style/shoelace": "^2.15.0",
     "dompurify": "^3.0.0",
     "lit": "^3.0.0",
-    "marked": "^15.0.0"
+    "marked": "^15.0.0",
+    "protobufjs": "^8.7.0"
   },
   "devDependencies": {
     "typescript": "^5.5.0",

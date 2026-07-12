@@ -3,7 +3,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
-import { MockFarmTableClient, type FarmTableServiceClient } from '../gen/service.js';
+import { type FarmTableServiceClient } from '../gen/service.js';
+import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -61,7 +62,7 @@ export class FtApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.client = new MockFarmTableClient();
+    this.client = createGrpcFarmTableClient();
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();

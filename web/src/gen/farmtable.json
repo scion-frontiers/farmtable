@@ -1,0 +1,3070 @@
+{
+  "nested": {
+    "farmtable": {
+      "nested": {
+        "v1": {
+          "options": {
+            "go_package": "go.farmtable.dev/api/gen/farmtable/v1;farmtablev1"
+          },
+          "nested": {
+            "Platform": {
+              "values": {
+                "PLATFORM_UNSPECIFIED": 0,
+                "PLATFORM_FARMTABLE": 1,
+                "PLATFORM_GITHUB": 2,
+                "PLATFORM_LINEAR": 3,
+                "PLATFORM_JIRA": 4,
+                "PLATFORM_ASANA": 5,
+                "PLATFORM_BEADS": 6
+              }
+            },
+            "TaskPhase": {
+              "values": {
+                "TASK_PHASE_UNSPECIFIED": 0,
+                "TASK_PHASE_OPEN": 1,
+                "TASK_PHASE_IN_PROGRESS": 2,
+                "TASK_PHASE_ON_HOLD": 3,
+                "TASK_PHASE_CLOSED": 4
+              }
+            },
+            "TaskStage": {
+              "values": {
+                "TASK_STAGE_UNSPECIFIED": 0,
+                "TASK_STAGE_TRIAGE": 1,
+                "TASK_STAGE_BACKLOG": 2,
+                "TASK_STAGE_READY": 3,
+                "TASK_STAGE_WORKING": 4,
+                "TASK_STAGE_IN_REVIEW": 5,
+                "TASK_STAGE_IN_QA": 6,
+                "TASK_STAGE_DEPLOYING": 7,
+                "TASK_STAGE_BLOCKED": 8,
+                "TASK_STAGE_WAITING_FOR_INPUT": 9,
+                "TASK_STAGE_DEFERRED": 10,
+                "TASK_STAGE_SCHEDULED": 11,
+                "TASK_STAGE_COMPLETED": 12,
+                "TASK_STAGE_WONT_FIX": 13,
+                "TASK_STAGE_DUPLICATE": 14,
+                "TASK_STAGE_CANCELLED": 15
+              }
+            },
+            "TaskPriority": {
+              "values": {
+                "TASK_PRIORITY_UNSPECIFIED": 0,
+                "TASK_PRIORITY_URGENT": 1,
+                "TASK_PRIORITY_HIGH": 2,
+                "TASK_PRIORITY_NORMAL": 3,
+                "TASK_PRIORITY_LOW": 4
+              }
+            },
+            "RelationshipType": {
+              "values": {
+                "RELATIONSHIP_TYPE_UNSPECIFIED": 0,
+                "RELATIONSHIP_TYPE_BLOCKS": 1,
+                "RELATIONSHIP_TYPE_BLOCKED_BY": 2,
+                "RELATIONSHIP_TYPE_RELATED": 3,
+                "RELATIONSHIP_TYPE_DUPLICATE": 4
+              }
+            },
+            "UserType": {
+              "values": {
+                "USER_TYPE_UNSPECIFIED": 0,
+                "USER_TYPE_HUMAN": 1,
+                "USER_TYPE_AGENT": 2,
+                "USER_TYPE_SERVICE_ACCOUNT": 3
+              }
+            },
+            "IdentityStatus": {
+              "values": {
+                "IDENTITY_STATUS_UNSPECIFIED": 0,
+                "IDENTITY_STATUS_ACTIVE": 1,
+                "IDENTITY_STATUS_SUSPENDED": 2,
+                "IDENTITY_STATUS_ARCHIVED": 3
+              }
+            },
+            "AuthMethod": {
+              "values": {
+                "AUTH_METHOD_UNSPECIFIED": 0,
+                "AUTH_METHOD_OAUTH2_PKCE": 1,
+                "AUTH_METHOD_API_KEY": 2,
+                "AUTH_METHOD_PAT": 3,
+                "AUTH_METHOD_SERVICE_ACCOUNT": 4,
+                "AUTH_METHOD_MCP_OAUTH": 5,
+                "AUTH_METHOD_GITHUB_APP": 6,
+                "AUTH_METHOD_ATLASSIAN_CONNECT": 7,
+                "AUTH_METHOD_LOCAL_PROCESS": 8
+              }
+            },
+            "CustomFieldType": {
+              "values": {
+                "CUSTOM_FIELD_TYPE_UNSPECIFIED": 0,
+                "CUSTOM_FIELD_TYPE_TEXT": 1,
+                "CUSTOM_FIELD_TYPE_NUMBER": 2,
+                "CUSTOM_FIELD_TYPE_DATE": 3,
+                "CUSTOM_FIELD_TYPE_SINGLE_SELECT": 4,
+                "CUSTOM_FIELD_TYPE_MULTI_SELECT": 5,
+                "CUSTOM_FIELD_TYPE_USER": 6,
+                "CUSTOM_FIELD_TYPE_BOOLEAN": 7,
+                "CUSTOM_FIELD_TYPE_URL": 8
+              }
+            },
+            "CIStatus": {
+              "values": {
+                "CI_STATUS_UNSPECIFIED": 0,
+                "CI_STATUS_PENDING": 1,
+                "CI_STATUS_RUNNING": 2,
+                "CI_STATUS_PASSED": 3,
+                "CI_STATUS_FAILED": 4
+              }
+            },
+            "PullRequestStatus": {
+              "values": {
+                "PULL_REQUEST_STATUS_UNSPECIFIED": 0,
+                "PULL_REQUEST_STATUS_OPEN": 1,
+                "PULL_REQUEST_STATUS_MERGED": 2,
+                "PULL_REQUEST_STATUS_CLOSED": 3
+              }
+            },
+            "EventType": {
+              "values": {
+                "EVENT_TYPE_UNSPECIFIED": 0,
+                "EVENT_TYPE_TASK_CREATED": 1,
+                "EVENT_TYPE_TASK_UPDATED": 2,
+                "EVENT_TYPE_TASK_DELETED": 3,
+                "EVENT_TYPE_TASK_PHASE_CHANGED": 4,
+                "EVENT_TYPE_TASK_STAGE_CHANGED": 5,
+                "EVENT_TYPE_TASK_ASSIGNED": 6,
+                "EVENT_TYPE_COMMENT_CREATED": 7,
+                "EVENT_TYPE_COMMENT_UPDATED": 8
+              }
+            },
+            "WebhookSource": {
+              "values": {
+                "WEBHOOK_SOURCE_UNSPECIFIED": 0,
+                "WEBHOOK_SOURCE_NATIVE": 1,
+                "WEBHOOK_SOURCE_VIRTUAL": 2
+              }
+            },
+            "SortField": {
+              "values": {
+                "SORT_FIELD_UNSPECIFIED": 0,
+                "SORT_FIELD_CREATED": 1,
+                "SORT_FIELD_UPDATED": 2,
+                "SORT_FIELD_PRIORITY": 3,
+                "SORT_FIELD_DUE_DATE": 4
+              }
+            },
+            "SortOrder": {
+              "values": {
+                "SORT_ORDER_UNSPECIFIED": 0,
+                "SORT_ORDER_ASC": 1,
+                "SORT_ORDER_DESC": 2
+              }
+            },
+            "DependencyDirection": {
+              "values": {
+                "DEPENDENCY_DIRECTION_UNSPECIFIED": 0,
+                "DEPENDENCY_DIRECTION_UP": 1,
+                "DEPENDENCY_DIRECTION_DOWN": 2,
+                "DEPENDENCY_DIRECTION_BOTH": 3
+              }
+            },
+            "TaskEventType": {
+              "values": {
+                "TASK_EVENT_TYPE_UNSPECIFIED": 0,
+                "TASK_EVENT_TYPE_INITIAL": 1,
+                "TASK_EVENT_TYPE_CREATED": 2,
+                "TASK_EVENT_TYPE_UPDATED": 3,
+                "TASK_EVENT_TYPE_CLOSED": 4,
+                "TASK_EVENT_TYPE_DELETED": 5,
+                "TASK_EVENT_TYPE_HEARTBEAT": 6,
+                "TASK_EVENT_TYPE_SNAPSHOT_COMPLETE": 7
+              }
+            },
+            "User": {
+              "oneofs": {
+                "_email": {
+                  "oneof": [
+                    "email"
+                  ]
+                },
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
+                },
+                "_platform": {
+                  "oneof": [
+                    "platform"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "email": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).string.email": true,
+                    "proto3_optional": true
+                  }
+                },
+                "type": {
+                  "type": "UserType",
+                  "id": 4,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "status": {
+                  "type": "IdentityStatus",
+                  "id": 5,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 6,
+                  "protoName": "remote_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 7,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "Relationship": {
+              "fields": {
+                "type": {
+                  "type": "RelationshipType",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "targetTaskId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "target_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                }
+              }
+            },
+            "Attachment": {
+              "oneofs": {
+                "_contentType": {
+                  "oneof": [
+                    "contentType"
+                  ]
+                },
+                "_sizeBytes": {
+                  "oneof": [
+                    "sizeBytes"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "filename": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "url": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).string.uri": true
+                  }
+                },
+                "contentType": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "content_type",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "sizeBytes": {
+                  "type": "int64",
+                  "id": 5,
+                  "protoName": "size_bytes",
+                  "options": {
+                    "(buf.validate.field).int64.gte": 0,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "CustomFieldValue": {
+              "fields": {
+                "fieldId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "field_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "fieldName": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "field_name",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "fieldType": {
+                  "type": "CustomFieldType",
+                  "id": 3,
+                  "protoName": "field_type",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "value": {
+                  "type": "google.protobuf.Value",
+                  "id": 4,
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                }
+              }
+            },
+            "CustomFieldDefinition": {
+              "fields": {
+                "fieldId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "field_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "fieldName": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "field_name",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "fieldType": {
+                  "type": "CustomFieldType",
+                  "id": 3,
+                  "protoName": "field_type",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "required": {
+                  "type": "bool",
+                  "id": 4
+                }
+              }
+            },
+            "PullRequest": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "url": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.uri": true
+                  }
+                },
+                "status": {
+                  "type": "PullRequestStatus",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                }
+              }
+            },
+            "CodeContext": {
+              "oneofs": {
+                "_repo": {
+                  "oneof": [
+                    "repo"
+                  ]
+                },
+                "_branch": {
+                  "oneof": [
+                    "branch"
+                  ]
+                },
+                "_ciStatus": {
+                  "oneof": [
+                    "ciStatus"
+                  ]
+                }
+              },
+              "fields": {
+                "repo": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "branch": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "pullRequests": {
+                  "rule": "repeated",
+                  "type": "PullRequest",
+                  "id": 3,
+                  "protoName": "pull_requests"
+                },
+                "ciStatus": {
+                  "type": "CIStatus",
+                  "id": 4,
+                  "protoName": "ci_status",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "commitShas": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 5,
+                  "protoName": "commit_shas"
+                }
+              }
+            },
+            "StatusMapping": {
+              "fields": {
+                "nativeStatus": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "native_status",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "phase": {
+                  "type": "TaskPhase",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                }
+              }
+            },
+            "Task": {
+              "oneofs": {
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                },
+                "_acceptanceCriteria": {
+                  "oneof": [
+                    "acceptanceCriteria"
+                  ]
+                },
+                "_nativeStatus": {
+                  "oneof": [
+                    "nativeStatus"
+                  ]
+                },
+                "_type": {
+                  "oneof": [
+                    "type"
+                  ]
+                },
+                "_priority": {
+                  "oneof": [
+                    "priority"
+                  ]
+                },
+                "_creator": {
+                  "oneof": [
+                    "creator"
+                  ]
+                },
+                "_parentTaskId": {
+                  "oneof": [
+                    "parentTaskId"
+                  ]
+                },
+                "_codeContext": {
+                  "oneof": [
+                    "codeContext"
+                  ]
+                },
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
+                },
+                "_remoteUrl": {
+                  "oneof": [
+                    "remoteUrl"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "acceptanceCriteria": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "acceptance_criteria",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "phase": {
+                  "type": "TaskPhase",
+                  "id": 5,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 6,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "nativeStatus": {
+                  "type": "string",
+                  "id": 7,
+                  "protoName": "native_status",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "type": {
+                  "type": "string",
+                  "id": 8,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "priority": {
+                  "type": "TaskPriority",
+                  "id": 9,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "assignees": {
+                  "rule": "repeated",
+                  "type": "User",
+                  "id": 10
+                },
+                "creator": {
+                  "type": "User",
+                  "id": 11,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "startDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 12,
+                  "protoName": "start_date"
+                },
+                "dueDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 13,
+                  "protoName": "due_date"
+                },
+                "collectionId": {
+                  "type": "string",
+                  "id": 14,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "parentTaskId": {
+                  "type": "string",
+                  "id": 15,
+                  "protoName": "parent_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "relationships": {
+                  "rule": "repeated",
+                  "type": "Relationship",
+                  "id": 16
+                },
+                "labels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 17
+                },
+                "customFields": {
+                  "rule": "repeated",
+                  "type": "CustomFieldValue",
+                  "id": 18,
+                  "protoName": "custom_fields"
+                },
+                "codeContext": {
+                  "type": "CodeContext",
+                  "id": 19,
+                  "protoName": "code_context",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 20,
+                  "protoName": "remote_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "remoteUrl": {
+                  "type": "string",
+                  "id": 21,
+                  "protoName": "remote_url",
+                  "options": {
+                    "(buf.validate.field).string.uri": true,
+                    "proto3_optional": true
+                  }
+                },
+                "remoteData": {
+                  "type": "google.protobuf.Struct",
+                  "id": 22,
+                  "protoName": "remote_data"
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 23,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "createdAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 24,
+                  "protoName": "created_at",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "updatedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 25,
+                  "protoName": "updated_at"
+                },
+                "closedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 26,
+                  "protoName": "closed_at"
+                },
+                "version": {
+                  "type": "string",
+                  "id": 27
+                }
+              }
+            },
+            "Collection": {
+              "oneofs": {
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                },
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
+                },
+                "_workspaceId": {
+                  "oneof": [
+                    "workspaceId"
+                  ]
+                },
+                "_linkedAccountId": {
+                  "oneof": [
+                    "linkedAccountId"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 4,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 5,
+                  "protoName": "remote_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "workspaceId": {
+                  "type": "string",
+                  "id": 6,
+                  "protoName": "workspace_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "linkedAccountId": {
+                  "type": "string",
+                  "id": 7,
+                  "protoName": "linked_account_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "statusMappings": {
+                  "rule": "repeated",
+                  "type": "StatusMapping",
+                  "id": 8,
+                  "protoName": "status_mappings"
+                },
+                "customFieldDefinitions": {
+                  "rule": "repeated",
+                  "type": "CustomFieldDefinition",
+                  "id": 9,
+                  "protoName": "custom_field_definitions"
+                },
+                "remoteData": {
+                  "type": "google.protobuf.Struct",
+                  "id": 10,
+                  "protoName": "remote_data"
+                },
+                "createdAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 11,
+                  "protoName": "created_at",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "updatedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 12,
+                  "protoName": "updated_at"
+                }
+              }
+            },
+            "Comment": {
+              "oneofs": {
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "taskId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "author": {
+                  "type": "User",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "body": {
+                  "type": "string",
+                  "id": 4,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "attachments": {
+                  "rule": "repeated",
+                  "type": "Attachment",
+                  "id": 5
+                },
+                "createdAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 6,
+                  "protoName": "created_at",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "updatedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 7,
+                  "protoName": "updated_at"
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 8,
+                  "protoName": "remote_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "Change": {
+              "oneofs": {
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "taskId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "field": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "oldValue": {
+                  "type": "google.protobuf.Value",
+                  "id": 4,
+                  "protoName": "old_value"
+                },
+                "newValue": {
+                  "type": "google.protobuf.Value",
+                  "id": 5,
+                  "protoName": "new_value",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "changedBy": {
+                  "type": "User",
+                  "id": 6,
+                  "protoName": "changed_by",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "changedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 7,
+                  "protoName": "changed_at",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 8,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "LinkedAccount": {
+              "oneofs": {
+                "_remoteUserId": {
+                  "oneof": [
+                    "remoteUserId"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "authMethod": {
+                  "type": "AuthMethod",
+                  "id": 3,
+                  "protoName": "auth_method",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "scopes": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 4
+                },
+                "remoteUserId": {
+                  "type": "string",
+                  "id": 5,
+                  "protoName": "remote_user_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "status": {
+                  "type": "IdentityStatus",
+                  "id": 6,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "createdAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 7,
+                  "protoName": "created_at",
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                },
+                "expiresAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 8,
+                  "protoName": "expires_at"
+                }
+              }
+            },
+            "WebhookEvent": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "eventType": {
+                  "type": "EventType",
+                  "id": 2,
+                  "protoName": "event_type",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "taskId": {
+                  "type": "string",
+                  "id": 3,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "changes": {
+                  "rule": "repeated",
+                  "type": "Change",
+                  "id": 4
+                },
+                "triggeredBy": {
+                  "type": "User",
+                  "id": 5,
+                  "protoName": "triggered_by"
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 6,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "source": {
+                  "type": "WebhookSource",
+                  "id": 7,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "(buf.validate.field).enum.not_in": 0
+                  }
+                },
+                "timestamp": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 8,
+                  "options": {
+                    "(buf.validate.field).required": true
+                  }
+                }
+              }
+            },
+            "ListTasksRequest": {
+              "oneofs": {
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                },
+                "_phase": {
+                  "oneof": [
+                    "phase"
+                  ]
+                },
+                "_assignee": {
+                  "oneof": [
+                    "assignee"
+                  ]
+                },
+                "_priority": {
+                  "oneof": [
+                    "priority"
+                  ]
+                },
+                "_type": {
+                  "oneof": [
+                    "type"
+                  ]
+                },
+                "_parentTaskId": {
+                  "oneof": [
+                    "parentTaskId"
+                  ]
+                }
+              },
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "phase": {
+                  "type": "TaskPhase",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "stages": {
+                  "rule": "repeated",
+                  "type": "TaskStage",
+                  "id": 3
+                },
+                "assignee": {
+                  "type": "string",
+                  "id": 4,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "priority": {
+                  "type": "TaskPriority",
+                  "id": 5,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "type": {
+                  "type": "string",
+                  "id": 6,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "labels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 7
+                },
+                "parentTaskId": {
+                  "type": "string",
+                  "id": 8,
+                  "protoName": "parent_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "sortField": {
+                  "type": "SortField",
+                  "id": 9,
+                  "protoName": "sort_field"
+                },
+                "sortOrder": {
+                  "type": "SortOrder",
+                  "id": 10,
+                  "protoName": "sort_order"
+                },
+                "full": {
+                  "type": "bool",
+                  "id": 11
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 12,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 13,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "ListTasksResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "Task",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetTaskRequest": {
+              "oneofs": {
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "includeComments": {
+                  "type": "bool",
+                  "id": 2,
+                  "protoName": "include_comments"
+                },
+                "includeChanges": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "include_changes"
+                },
+                "collectionId": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "GetTaskResponse": {
+              "fields": {
+                "task": {
+                  "type": "Task",
+                  "id": 1
+                },
+                "comments": {
+                  "rule": "repeated",
+                  "type": "Comment",
+                  "id": 2
+                },
+                "changes": {
+                  "rule": "repeated",
+                  "type": "Change",
+                  "id": 3
+                }
+              }
+            },
+            "CreateTaskRequest": {
+              "oneofs": {
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                },
+                "_acceptanceCriteria": {
+                  "oneof": [
+                    "acceptanceCriteria"
+                  ]
+                },
+                "_stage": {
+                  "oneof": [
+                    "stage"
+                  ]
+                },
+                "_priority": {
+                  "oneof": [
+                    "priority"
+                  ]
+                },
+                "_type": {
+                  "oneof": [
+                    "type"
+                  ]
+                },
+                "_parentTaskId": {
+                  "oneof": [
+                    "parentTaskId"
+                  ]
+                },
+                "_repo": {
+                  "oneof": [
+                    "repo"
+                  ]
+                },
+                "_branch": {
+                  "oneof": [
+                    "branch"
+                  ]
+                },
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                }
+              },
+              "fields": {
+                "name": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "collectionId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "acceptanceCriteria": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "acceptance_criteria",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 5,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "priority": {
+                  "type": "TaskPriority",
+                  "id": 6,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "type": {
+                  "type": "string",
+                  "id": 7,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "assigneeIds": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 8,
+                  "protoName": "assignee_ids"
+                },
+                "labels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 9
+                },
+                "parentTaskId": {
+                  "type": "string",
+                  "id": 10,
+                  "protoName": "parent_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "dueDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 11,
+                  "protoName": "due_date"
+                },
+                "startDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 12,
+                  "protoName": "start_date"
+                },
+                "blocksTaskIds": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 13,
+                  "protoName": "blocks_task_ids"
+                },
+                "blockedByTaskIds": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 14,
+                  "protoName": "blocked_by_task_ids"
+                },
+                "repo": {
+                  "type": "string",
+                  "id": 15,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "branch": {
+                  "type": "string",
+                  "id": 16,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 17,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "UpdateTaskRequest": {
+              "oneofs": {
+                "_name": {
+                  "oneof": [
+                    "name"
+                  ]
+                },
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                },
+                "_acceptanceCriteria": {
+                  "oneof": [
+                    "acceptanceCriteria"
+                  ]
+                },
+                "_stage": {
+                  "oneof": [
+                    "stage"
+                  ]
+                },
+                "_priority": {
+                  "oneof": [
+                    "priority"
+                  ]
+                },
+                "_type": {
+                  "oneof": [
+                    "type"
+                  ]
+                },
+                "_parentTaskId": {
+                  "oneof": [
+                    "parentTaskId"
+                  ]
+                },
+                "_repo": {
+                  "oneof": [
+                    "repo"
+                  ]
+                },
+                "_branch": {
+                  "oneof": [
+                    "branch"
+                  ]
+                },
+                "_ciStatus": {
+                  "oneof": [
+                    "ciStatus"
+                  ]
+                },
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
+                },
+                "_remoteUrl": {
+                  "oneof": [
+                    "remoteUrl"
+                  ]
+                },
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                },
+                "_version": {
+                  "oneof": [
+                    "version"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "acceptanceCriteria": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "acceptance_criteria",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 5,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "priority": {
+                  "type": "TaskPriority",
+                  "id": 6,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "type": {
+                  "type": "string",
+                  "id": 7,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "assigneeIds": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 10,
+                  "protoName": "assignee_ids"
+                },
+                "clearAssignees": {
+                  "type": "bool",
+                  "id": 11,
+                  "protoName": "clear_assignees"
+                },
+                "dueDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 12,
+                  "protoName": "due_date"
+                },
+                "clearDueDate": {
+                  "type": "bool",
+                  "id": 13,
+                  "protoName": "clear_due_date"
+                },
+                "startDate": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 14,
+                  "protoName": "start_date"
+                },
+                "clearStartDate": {
+                  "type": "bool",
+                  "id": 15,
+                  "protoName": "clear_start_date"
+                },
+                "parentTaskId": {
+                  "type": "string",
+                  "id": 16,
+                  "protoName": "parent_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "clearParent": {
+                  "type": "bool",
+                  "id": 17,
+                  "protoName": "clear_parent"
+                },
+                "addLabels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 20,
+                  "protoName": "add_labels"
+                },
+                "removeLabels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 21,
+                  "protoName": "remove_labels"
+                },
+                "addBlocks": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 22,
+                  "protoName": "add_blocks"
+                },
+                "addBlockedBy": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 23,
+                  "protoName": "add_blocked_by"
+                },
+                "removeRelationships": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 24,
+                  "protoName": "remove_relationships"
+                },
+                "repo": {
+                  "type": "string",
+                  "id": 30,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "branch": {
+                  "type": "string",
+                  "id": 31,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "addPullRequests": {
+                  "rule": "repeated",
+                  "type": "PullRequest",
+                  "id": 32,
+                  "protoName": "add_pull_requests"
+                },
+                "ciStatus": {
+                  "type": "CIStatus",
+                  "id": 33,
+                  "protoName": "ci_status",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 34,
+                  "protoName": "remote_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "remoteUrl": {
+                  "type": "string",
+                  "id": 35,
+                  "protoName": "remote_url",
+                  "options": {
+                    "(buf.validate.field).string.uri": true,
+                    "proto3_optional": true
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 40,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "version": {
+                  "type": "string",
+                  "id": 41,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "ClaimTaskRequest": {
+              "oneofs": {
+                "_stage": {
+                  "oneof": [
+                    "stage"
+                  ]
+                },
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                },
+                "_version": {
+                  "oneof": [
+                    "version"
+                  ]
+                },
+                "_assigneeId": {
+                  "oneof": [
+                    "assigneeId"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "version": {
+                  "type": "string",
+                  "id": 4,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "assigneeId": {
+                  "type": "string",
+                  "id": 5,
+                  "protoName": "assignee_id",
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "ClaimTaskResponse": {
+              "fields": {
+                "task": {
+                  "type": "Task",
+                  "id": 1
+                },
+                "claimedAt": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 2,
+                  "protoName": "claimed_at"
+                }
+              }
+            },
+            "CloseTaskRequest": {
+              "oneofs": {
+                "_stage": {
+                  "oneof": [
+                    "stage"
+                  ]
+                },
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                },
+                "_duplicateOfTaskId": {
+                  "oneof": [
+                    "duplicateOfTaskId"
+                  ]
+                },
+                "_version": {
+                  "oneof": [
+                    "version"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "duplicateOfTaskId": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "duplicate_of_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "version": {
+                  "type": "string",
+                  "id": 5,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "DeleteTaskRequest": {
+              "oneofs": {
+                "_reason": {
+                  "oneof": [
+                    "reason"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "DeleteTaskResponse": {
+              "fields": {}
+            },
+            "AddCommentRequest": {
+              "fields": {
+                "taskId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "body": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                }
+              }
+            },
+            "ListCommentsRequest": {
+              "fields": {
+                "taskId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 2,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 3,
+                  "protoName": "page_token"
+                },
+                "order": {
+                  "type": "SortOrder",
+                  "id": 4
+                }
+              }
+            },
+            "ListCommentsResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "Comment",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetCommentRequest": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                }
+              }
+            },
+            "ListCollectionsRequest": {
+              "oneofs": {
+                "_platform": {
+                  "oneof": [
+                    "platform"
+                  ]
+                }
+              },
+              "fields": {
+                "platform": {
+                  "type": "Platform",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 2,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 3,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "ListCollectionsResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "Collection",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetCollectionRequest": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                }
+              }
+            },
+            "CreateCollectionRequest": {
+              "oneofs": {
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                }
+              },
+              "fields": {
+                "name": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "GetReadyTasksRequest": {
+              "oneofs": {
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                },
+                "_assignee": {
+                  "oneof": [
+                    "assignee"
+                  ]
+                },
+                "_minPriority": {
+                  "oneof": [
+                    "minPriority"
+                  ]
+                }
+              },
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "assignee": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "minPriority": {
+                  "type": "TaskPriority",
+                  "id": 3,
+                  "protoName": "min_priority",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "includeUnblockedOpen": {
+                  "type": "bool",
+                  "id": 4,
+                  "protoName": "include_unblocked_open"
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 5,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 6,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "ReadyTask": {
+              "fields": {
+                "task": {
+                  "type": "Task",
+                  "id": 1
+                },
+                "blockersResolved": {
+                  "type": "int32",
+                  "id": 2,
+                  "protoName": "blockers_resolved"
+                }
+              }
+            },
+            "GetReadyTasksResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "ReadyTask",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetBlockedTasksRequest": {
+              "oneofs": {
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                },
+                "_assignee": {
+                  "oneof": [
+                    "assignee"
+                  ]
+                }
+              },
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "assignee": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 3,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "BlockerInfo": {
+              "fields": {
+                "taskId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "task_id"
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2
+                },
+                "phase": {
+                  "type": "TaskPhase",
+                  "id": 3
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 4
+                }
+              }
+            },
+            "BlockedTask": {
+              "fields": {
+                "task": {
+                  "type": "Task",
+                  "id": 1
+                },
+                "blockedBy": {
+                  "rule": "repeated",
+                  "type": "BlockerInfo",
+                  "id": 2,
+                  "protoName": "blocked_by"
+                }
+              }
+            },
+            "GetBlockedTasksResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "BlockedTask",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetDependencyTreeRequest": {
+              "fields": {
+                "taskId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "direction": {
+                  "type": "DependencyDirection",
+                  "id": 2
+                },
+                "maxDepth": {
+                  "type": "int32",
+                  "id": 3,
+                  "protoName": "max_depth",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 20
+                  }
+                }
+              }
+            },
+            "DependencyNode": {
+              "fields": {
+                "task": {
+                  "type": "Task",
+                  "id": 1
+                },
+                "blocks": {
+                  "rule": "repeated",
+                  "type": "DependencyNode",
+                  "id": 2
+                },
+                "blockedBy": {
+                  "rule": "repeated",
+                  "type": "DependencyNode",
+                  "id": 3,
+                  "protoName": "blocked_by"
+                }
+              }
+            },
+            "GetDependencyTreeResponse": {
+              "fields": {
+                "root": {
+                  "type": "DependencyNode",
+                  "id": 1
+                }
+              }
+            },
+            "GetCriticalPathRequest": {
+              "oneofs": {
+                "_rootTaskId": {
+                  "oneof": [
+                    "rootTaskId"
+                  ]
+                }
+              },
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "rootTaskId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "root_task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "CriticalPathNode": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 3
+                },
+                "depth": {
+                  "type": "int32",
+                  "id": 4
+                }
+              }
+            },
+            "Bottleneck": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2
+                },
+                "fanOut": {
+                  "type": "int32",
+                  "id": 3,
+                  "protoName": "fan_out"
+                },
+                "reason": {
+                  "type": "string",
+                  "id": 4
+                }
+              }
+            },
+            "GetCriticalPathResponse": {
+              "fields": {
+                "path": {
+                  "rule": "repeated",
+                  "type": "CriticalPathNode",
+                  "id": 1
+                },
+                "totalDepth": {
+                  "type": "int32",
+                  "id": 2,
+                  "protoName": "total_depth"
+                },
+                "bottleneck": {
+                  "type": "Bottleneck",
+                  "id": 3
+                }
+              }
+            },
+            "GetBottlenecksRequest": {
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "limit": {
+                  "type": "int32",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 100
+                  }
+                }
+              }
+            },
+            "BottleneckTask": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2
+                },
+                "stage": {
+                  "type": "TaskStage",
+                  "id": 3
+                },
+                "downstreamCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "downstream_count"
+                },
+                "directDependents": {
+                  "type": "int32",
+                  "id": 5,
+                  "protoName": "direct_dependents"
+                }
+              }
+            },
+            "GetBottlenecksResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "BottleneckTask",
+                  "id": 1
+                }
+              }
+            },
+            "ListChangesRequest": {
+              "oneofs": {
+                "_field": {
+                  "oneof": [
+                    "field"
+                  ]
+                }
+              },
+              "fields": {
+                "taskId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1
+                  }
+                },
+                "field": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 3,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "ListChangesResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "Change",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "WhoAmIRequest": {
+              "fields": {}
+            },
+            "ListUsersRequest": {
+              "oneofs": {
+                "_type": {
+                  "oneof": [
+                    "type"
+                  ]
+                },
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                }
+              },
+              "fields": {
+                "type": {
+                  "type": "UserType",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "collectionId": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "pageSize": {
+                  "type": "int32",
+                  "id": 3,
+                  "protoName": "page_size",
+                  "options": {
+                    "(buf.validate.field).int32.gte": 1,
+                    "(buf.validate.field).int32.lte": 200
+                  }
+                },
+                "pageToken": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "page_token"
+                }
+              }
+            },
+            "ListUsersResponse": {
+              "fields": {
+                "items": {
+                  "rule": "repeated",
+                  "type": "User",
+                  "id": 1
+                },
+                "nextPageToken": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "next_page_token"
+                },
+                "hasMore": {
+                  "type": "bool",
+                  "id": 3,
+                  "protoName": "has_more"
+                },
+                "totalCount": {
+                  "type": "int32",
+                  "id": 4,
+                  "protoName": "total_count"
+                }
+              }
+            },
+            "GetUserRequest": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                }
+              }
+            },
+            "GetStatusRequest": {
+              "oneofs": {
+                "_platform": {
+                  "oneof": [
+                    "platform"
+                  ]
+                }
+              },
+              "fields": {
+                "platform": {
+                  "type": "Platform",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "PlatformConnectionStatus": {
+              "fields": {
+                "platform": {
+                  "type": "Platform",
+                  "id": 1
+                },
+                "status": {
+                  "type": "string",
+                  "id": 2
+                },
+                "collections": {
+                  "type": "int32",
+                  "id": 3
+                }
+              }
+            },
+            "GetStatusResponse": {
+              "fields": {
+                "server": {
+                  "type": "string",
+                  "id": 1
+                },
+                "serverVersion": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "server_version"
+                },
+                "apiProtocol": {
+                  "type": "string",
+                  "id": 3,
+                  "protoName": "api_protocol"
+                },
+                "status": {
+                  "type": "string",
+                  "id": 4
+                },
+                "latencyMs": {
+                  "type": "int32",
+                  "id": 5,
+                  "protoName": "latency_ms"
+                },
+                "authenticatedAs": {
+                  "type": "User",
+                  "id": 6,
+                  "protoName": "authenticated_as"
+                },
+                "platforms": {
+                  "rule": "repeated",
+                  "type": "PlatformConnectionStatus",
+                  "id": 7
+                },
+                "serverMode": {
+                  "type": "string",
+                  "id": 8,
+                  "protoName": "server_mode"
+                },
+                "uptimeSeconds": {
+                  "type": "int64",
+                  "id": 9,
+                  "protoName": "uptime_seconds"
+                },
+                "taskCount": {
+                  "type": "int32",
+                  "id": 10,
+                  "protoName": "task_count"
+                }
+              }
+            },
+            "GetVersionRequest": {
+              "fields": {}
+            },
+            "GetVersionResponse": {
+              "fields": {
+                "cliVersion": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "cli_version"
+                },
+                "serverVersion": {
+                  "type": "string",
+                  "id": 2,
+                  "protoName": "server_version"
+                },
+                "apiProtocol": {
+                  "type": "string",
+                  "id": 3,
+                  "protoName": "api_protocol"
+                },
+                "server": {
+                  "type": "string",
+                  "id": 4
+                }
+              }
+            },
+            "WatchTasksRequest": {
+              "oneofs": {
+                "_collectionId": {
+                  "oneof": [
+                    "collectionId"
+                  ]
+                },
+                "_phase": {
+                  "oneof": [
+                    "phase"
+                  ]
+                },
+                "_assignee": {
+                  "oneof": [
+                    "assignee"
+                  ]
+                },
+                "_taskId": {
+                  "oneof": [
+                    "taskId"
+                  ]
+                },
+                "_priority": {
+                  "oneof": [
+                    "priority"
+                  ]
+                }
+              },
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1,
+                  "protoName": "collection_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "phase": {
+                  "type": "TaskPhase",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "stages": {
+                  "rule": "repeated",
+                  "type": "TaskStage",
+                  "id": 3
+                },
+                "assignee": {
+                  "type": "string",
+                  "id": 4,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "labels": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 5
+                },
+                "taskId": {
+                  "type": "string",
+                  "id": 6,
+                  "protoName": "task_id",
+                  "options": {
+                    "(buf.validate.field).string.uuid": true,
+                    "proto3_optional": true
+                  }
+                },
+                "includeInitial": {
+                  "type": "bool",
+                  "id": 7,
+                  "protoName": "include_initial"
+                },
+                "priority": {
+                  "type": "TaskPriority",
+                  "id": 8,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
+            "TaskEvent": {
+              "fields": {
+                "eventType": {
+                  "type": "TaskEventType",
+                  "id": 1,
+                  "protoName": "event_type"
+                },
+                "task": {
+                  "type": "Task",
+                  "id": 2
+                },
+                "changes": {
+                  "rule": "repeated",
+                  "type": "Change",
+                  "id": 3
+                },
+                "timestamp": {
+                  "type": "google.protobuf.Timestamp",
+                  "id": 4
+                },
+                "sequence": {
+                  "type": "int64",
+                  "id": 5
+                }
+              }
+            },
+            "FarmTableService": {
+              "methods": {
+                "ListTasks": {
+                  "requestType": "ListTasksRequest",
+                  "responseType": "ListTasksResponse"
+                },
+                "GetTask": {
+                  "requestType": "GetTaskRequest",
+                  "responseType": "GetTaskResponse"
+                },
+                "CreateTask": {
+                  "requestType": "CreateTaskRequest",
+                  "responseType": "Task"
+                },
+                "UpdateTask": {
+                  "requestType": "UpdateTaskRequest",
+                  "responseType": "Task"
+                },
+                "ClaimTask": {
+                  "requestType": "ClaimTaskRequest",
+                  "responseType": "ClaimTaskResponse"
+                },
+                "CloseTask": {
+                  "requestType": "CloseTaskRequest",
+                  "responseType": "Task"
+                },
+                "DeleteTask": {
+                  "requestType": "DeleteTaskRequest",
+                  "responseType": "DeleteTaskResponse"
+                },
+                "AddComment": {
+                  "requestType": "AddCommentRequest",
+                  "responseType": "Comment"
+                },
+                "ListComments": {
+                  "requestType": "ListCommentsRequest",
+                  "responseType": "ListCommentsResponse"
+                },
+                "GetComment": {
+                  "requestType": "GetCommentRequest",
+                  "responseType": "Comment"
+                },
+                "ListCollections": {
+                  "requestType": "ListCollectionsRequest",
+                  "responseType": "ListCollectionsResponse"
+                },
+                "GetCollection": {
+                  "requestType": "GetCollectionRequest",
+                  "responseType": "Collection"
+                },
+                "CreateCollection": {
+                  "requestType": "CreateCollectionRequest",
+                  "responseType": "Collection"
+                },
+                "GetReadyTasks": {
+                  "requestType": "GetReadyTasksRequest",
+                  "responseType": "GetReadyTasksResponse"
+                },
+                "GetBlockedTasks": {
+                  "requestType": "GetBlockedTasksRequest",
+                  "responseType": "GetBlockedTasksResponse"
+                },
+                "GetDependencyTree": {
+                  "requestType": "GetDependencyTreeRequest",
+                  "responseType": "GetDependencyTreeResponse"
+                },
+                "GetCriticalPath": {
+                  "requestType": "GetCriticalPathRequest",
+                  "responseType": "GetCriticalPathResponse"
+                },
+                "GetBottlenecks": {
+                  "requestType": "GetBottlenecksRequest",
+                  "responseType": "GetBottlenecksResponse"
+                },
+                "ListChanges": {
+                  "requestType": "ListChangesRequest",
+                  "responseType": "ListChangesResponse"
+                },
+                "WhoAmI": {
+                  "requestType": "WhoAmIRequest",
+                  "responseType": "User"
+                },
+                "ListUsers": {
+                  "requestType": "ListUsersRequest",
+                  "responseType": "ListUsersResponse"
+                },
+                "GetUser": {
+                  "requestType": "GetUserRequest",
+                  "responseType": "User"
+                },
+                "GetStatus": {
+                  "requestType": "GetStatusRequest",
+                  "responseType": "GetStatusResponse"
+                },
+                "GetVersion": {
+                  "requestType": "GetVersionRequest",
+                  "responseType": "GetVersionResponse"
+                },
+                "WatchTasks": {
+                  "requestType": "WatchTasksRequest",
+                  "responseType": "TaskEvent",
+                  "responseStream": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "google": {
+      "nested": {
+        "protobuf": {
+          "nested": {
+            "Timestamp": {
+              "fields": {
+                "seconds": {
+                  "type": "int64",
+                  "id": 1
+                },
+                "nanos": {
+                  "type": "int32",
+                  "id": 2
+                }
+              }
+            },
+            "Struct": {
+              "fields": {
+                "fields": {
+                  "keyType": "string",
+                  "type": "Value",
+                  "id": 1
+                }
+              }
+            },
+            "Value": {
+              "oneofs": {
+                "kind": {
+                  "oneof": [
+                    "nullValue",
+                    "numberValue",
+                    "stringValue",
+                    "boolValue",
+                    "structValue",
+                    "listValue"
+                  ]
+                }
+              },
+              "fields": {
+                "nullValue": {
+                  "type": "NullValue",
+                  "id": 1
+                },
+                "numberValue": {
+                  "type": "double",
+                  "id": 2
+                },
+                "stringValue": {
+                  "type": "string",
+                  "id": 3
+                },
+                "boolValue": {
+                  "type": "bool",
+                  "id": 4
+                },
+                "structValue": {
+                  "type": "Struct",
+                  "id": 5
+                },
+                "listValue": {
+                  "type": "ListValue",
+                  "id": 6
+                }
+              }
+            },
+            "NullValue": {
+              "values": {
+                "NULL_VALUE": 0
+              }
+            },
+            "ListValue": {
+              "fields": {
+                "values": {
+                  "rule": "repeated",
+                  "type": "Value",
+                  "id": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
