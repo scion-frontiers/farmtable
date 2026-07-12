@@ -19,13 +19,11 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/server"
+	"github.com/farmtable-io/farmtable/internal/serverapp"
 	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/google/uuid"
-	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -100,25 +98,10 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	}
 	bootstrapConn.Close()
 
-	wrappedGrpc := grpcweb.WrapServer(grpcServer,
-		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
-		grpcweb.WithWebsockets(true),
-		grpcweb.WithWebsocketOriginFunc(func(req *http.Request) bool { return true }),
-	)
-
 	subFS, err := fs.Sub(farmtable.WebAssets, "web/dist")
 	if err != nil {
 		return fmt.Errorf("creating sub-filesystem: %w", err)
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/farmtable.v1/", func(w http.ResponseWriter, r *http.Request) {
-		wrappedGrpc.ServeHTTP(w, r)
-	})
-	mux.HandleFunc("/farmtable.v1.FarmTableService/", func(w http.ResponseWriter, r *http.Request) {
-		wrappedGrpc.ServeHTTP(w, r)
-	})
-	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
 	listenAddr := fmt.Sprintf(":%d", port)
 	lis, err := net.Listen("tcp", listenAddr)
@@ -131,7 +114,7 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 
 	boundPort := lis.Addr().(*net.TCPAddr).Port
 	httpServer := &http.Server{
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS)),
 	}
 
 	sigCh := make(chan os.Signal, 1)
