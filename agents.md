@@ -75,9 +75,14 @@ If `ft` reports `invalid token`, the token in
 `~/.config/farmtable/config.toml` likely does not match the embedded DB. See the
 `farmtable-dev` skill's gotchas resource for the token-hash repair command.
 
-## Build And Test
+## Project Overview
 
-Consult `CLAUDE.md` before changing code. Current project commands:
+- **Language:** Go
+- **ORM:** Ent (entgo.io) on SQLite (embedded) / Postgres (server mode)
+- **Proto:** `proto/farmtable.proto` is the source of truth for the data model
+- **Design docs:** `.design/` directory
+
+## Build And Test
 
 ```bash
 go build ./...
