@@ -56,6 +56,26 @@ func TestPostgres_UpdateTask_Relationships(t *testing.T) {
 	runUpdateTaskRelationships(t, testutil.NewTestStorePostgres)
 }
 
+func TestPostgres_InsertTasksAfter(t *testing.T) {
+	runInsertTasksAfter(t, testutil.NewTestStorePostgres)
+}
+
+func TestPostgres_InsertTasksAfter_NoDownstream(t *testing.T) {
+	runInsertTasksAfterNoDownstream(t, testutil.NewTestStorePostgres)
+}
+
+func TestPostgres_InsertTasksAfter_AnchorNotFound(t *testing.T) {
+	runInsertTasksAfterAnchorNotFound(t, testutil.NewTestStorePostgres)
+}
+
+func TestPostgres_InsertTasksAfter_EmptySteps(t *testing.T) {
+	runInsertTasksAfterEmptySteps(t, testutil.NewTestStorePostgres)
+}
+
+func TestPostgres_InsertTasksAfter_RollsBackOnFailure(t *testing.T) {
+	runInsertTasksAfterRollsBackOnFailure(t, testutil.NewTestStorePostgres)
+}
+
 func TestPostgres_UpdateTask_ChangesRecorded(t *testing.T) {
 	runUpdateTaskChangesRecorded(t, testutil.NewTestStorePostgres)
 }

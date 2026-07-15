@@ -30,6 +30,16 @@ func createTestCollection(t *testing.T, client pb.FarmTableServiceClient) string
 	return c.GetId()
 }
 
+func assertProtoBlocks(t *testing.T, task *pb.Task, targetID string) {
+	t.Helper()
+	for _, rel := range task.GetRelationships() {
+		if rel.GetType() == pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKS && rel.GetTargetTaskId() == targetID {
+			return
+		}
+	}
+	t.Fatalf("task %s does not block %s; relationships=%v", task.GetId(), targetID, task.GetRelationships())
+}
+
 func TestRPC_CreateAndGetTask(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
@@ -124,6 +134,122 @@ func TestRPC_CreateTask_InvalidInput(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := client.CreateTask(ctx, tt.req)
+			if err == nil {
+				t.Fatal("expected invalid argument error")
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected gRPC status error, got %v", err)
+			}
+			if st.Code() != codes.InvalidArgument {
+				t.Errorf("code = %v, want InvalidArgument", st.Code())
+			}
+		})
+	}
+}
+
+func TestRPC_InsertTasksAfter(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	anchor, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Test gate 1",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask anchor: %v", err)
+	}
+	deploy, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Deploy",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask deploy: %v", err)
+	}
+	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+		Id:        anchor.GetId(),
+		AddBlocks: []string{deploy.GetId()},
+	})
+	if err != nil {
+		t.Fatalf("UpdateTask wire anchor: %v", err)
+	}
+
+	priority := pb.TaskPriority_TASK_PRIORITY_NORMAL
+	taskType := "bug"
+	desc := "Fix the failure"
+	resp, err := client.InsertTasksAfter(ctx, &pb.InsertTasksAfterRequest{
+		AnchorTaskId: anchor.GetId(),
+		CollectionId: collID,
+		Reason:       strPtr("tests failed"),
+		Steps: []*pb.NewTaskSpec{
+			{Name: "Rework 2", Description: &desc, Type: &taskType, Priority: &priority, Labels: []string{"rework"}},
+			{Name: "Test gate 2"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("InsertTasksAfter: %v", err)
+	}
+	if len(resp.GetInsertedTasks()) != 2 {
+		t.Fatalf("inserted tasks = %d, want 2", len(resp.GetInsertedTasks()))
+	}
+	if resp.GetInsertedTasks()[0].GetName() != "Rework 2" || resp.GetInsertedTasks()[1].GetName() != "Test gate 2" {
+		t.Fatalf("inserted order = [%q, %q], want [Rework 2, Test gate 2]", resp.GetInsertedTasks()[0].GetName(), resp.GetInsertedTasks()[1].GetName())
+	}
+	assertProtoBlocks(t, resp.GetAnchorTask(), resp.GetInsertedTasks()[0].GetId())
+
+	first, err := client.GetTask(ctx, &pb.GetTaskRequest{Id: resp.GetInsertedTasks()[0].GetId()})
+	if err != nil {
+		t.Fatalf("GetTask first inserted: %v", err)
+	}
+	assertProtoBlocks(t, first.GetTask(), resp.GetInsertedTasks()[1].GetId())
+
+	last, err := client.GetTask(ctx, &pb.GetTaskRequest{Id: resp.GetInsertedTasks()[1].GetId()})
+	if err != nil {
+		t.Fatalf("GetTask last inserted: %v", err)
+	}
+	assertProtoBlocks(t, last.GetTask(), deploy.GetId())
+}
+
+func TestRPC_InsertTasksAfter_InvalidInput(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	anchor, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Anchor",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask anchor: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		req  *pb.InsertTasksAfterRequest
+	}{
+		{
+			name: "blank step name",
+			req: &pb.InsertTasksAfterRequest{
+				AnchorTaskId: anchor.GetId(),
+				CollectionId: collID,
+				Steps:        []*pb.NewTaskSpec{{Name: "   "}},
+			},
+		},
+		{
+			name: "empty steps",
+			req: &pb.InsertTasksAfterRequest{
+				AnchorTaskId: anchor.GetId(),
+				CollectionId: collID,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.InsertTasksAfter(ctx, tt.req)
 			if err == nil {
 				t.Fatal("expected invalid argument error")
 			}

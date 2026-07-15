@@ -290,6 +290,10 @@ func (s *GitHubPassThroughStore) CreateTask(ctx context.Context, p store.CreateT
 	return s.issueToTask(issue), nil
 }
 
+func (s *GitHubPassThroughStore) InsertTasksAfter(ctx context.Context, p store.InsertTasksAfterParams) (*store.InsertTasksAfterResult, error) {
+	return nil, fmt.Errorf("insert tasks after: %w", store.ErrNotImplemented)
+}
+
 func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p store.UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error) {
 	issues, err := s.gql.listIssues(ctx, []githubv4.IssueState{githubv4.IssueStateOpen, githubv4.IssueStateClosed}, nil, 200)
 	if err != nil {

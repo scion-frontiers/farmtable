@@ -20,6 +20,7 @@ func newTaskCmd(globals *globalFlags) *cobra.Command {
 		newTaskGetCmd(globals),
 		newTaskListCmd(globals),
 		newTaskCreateCmd(globals),
+		newTaskInsertAfterCmd(globals),
 		newTaskUpdateCmd(globals),
 		newTaskClaimCmd(globals),
 		newTaskReleaseCmd(globals),
@@ -30,6 +31,93 @@ func newTaskCmd(globals *globalFlags) *cobra.Command {
 		newCriticalPathCmd(globals),
 		newBottlenecksCmd(globals),
 	)
+	return cmd
+}
+
+func newTaskInsertAfterCmd(globals *globalFlags) *cobra.Command {
+	var (
+		steps    []string
+		taskType string
+		priority string
+		labels   []string
+		reason   string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "insert-after <anchor-task-id>",
+		Short: "Insert new tasks after an existing task in the dependency chain",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token := resolveToken(globals.token)
+			output := resolveOutput(globals.output)
+
+			if len(steps) == 0 {
+				return exitError(ExitValidation, "VALIDATION_ERROR", "at least one --step is required")
+			}
+
+			client, closer, err := newClient(globals)
+			if err != nil {
+				return exitError(ExitServerUnavail, "SERVER_UNAVAILABLE", fmt.Sprintf("failed to connect: %v", err))
+			}
+			defer closer.Close()
+
+			ctx := authCtx(context.Background(), token)
+			collection := resolveCollectionFromServer(ctx, client, globals.collection)
+			if collection == "" {
+				return exitError(ExitValidation, "VALIDATION_ERROR", "collection is required; use --collection or set default_collection in config")
+			}
+
+			pr, err := parsePriority(priority)
+			if err != nil {
+				return exitError(ExitValidation, "VALIDATION_ERROR", err.Error())
+			}
+
+			req := &pb.InsertTasksAfterRequest{
+				AnchorTaskId: args[0],
+				CollectionId: collection,
+			}
+			if reason != "" {
+				req.Reason = &reason
+			}
+			for _, step := range steps {
+				stepName := step
+				stepType := taskType
+				stepPriority := pr
+				req.Steps = append(req.Steps, &pb.NewTaskSpec{
+					Name:     stepName,
+					Type:     &stepType,
+					Priority: &stepPriority,
+					Labels:   labels,
+				})
+			}
+
+			resp, err := client.InsertTasksAfter(ctx, req)
+			if err != nil {
+				return handleGRPCError(err)
+			}
+
+			switch output {
+			case "quiet":
+				for _, t := range resp.GetInsertedTasks() {
+					printQuiet(t.GetId())
+				}
+			case "jsonl":
+				for _, t := range resp.GetInsertedTasks() {
+					printJSONLine(taskToMap(t, false))
+				}
+			case "table":
+				printTaskTable(resp.GetInsertedTasks(), int32(len(resp.GetInsertedTasks())))
+			default:
+				printJSON(insertTasksAfterToMap(resp))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringSliceVar(&steps, "step", nil, "Task name to insert (repeatable, in order)")
+	cmd.Flags().StringVarP(&taskType, "type", "t", "task", "Task type for inserted tasks")
+	cmd.Flags().StringVarP(&priority, "priority", "p", "NORMAL", "Priority for inserted tasks: URGENT, HIGH, NORMAL, LOW")
+	cmd.Flags().StringSliceVarP(&labels, "label", "l", nil, "Label for inserted tasks (repeatable)")
+	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	return cmd
 }
 

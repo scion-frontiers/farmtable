@@ -180,6 +180,86 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	return proto, nil
 }
 
+func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertTasksAfterRequest) (*pb.InsertTasksAfterResponse, error) {
+	anchorID, err := uuid.Parse(req.GetAnchorTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid anchor_task_id: %v", err)
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if len(req.GetSteps()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "at least one step is required")
+	}
+
+	p := store.InsertTasksAfterParams{
+		AnchorTaskID: anchorID,
+		CollectionID: collID,
+		Reason:       req.GetReason(),
+	}
+	if actorID, ok := UserIDFromContext(ctx); ok {
+		p.ActorID = actorID
+	}
+
+	for i, step := range req.GetSteps() {
+		if err := validateTaskName(step.GetName()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].name: %v", i, err)
+		}
+		if err := validateTaskDescription(step.GetDescription()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].description: %v", i, err)
+		}
+
+		params := store.CreateTaskParams{
+			Title:        step.GetName(),
+			Description:  step.GetDescription(),
+			CollectionID: collID,
+			Phase:        task.PhaseOpen,
+			Stage:        task.StageTriage,
+			NativeLabel:  string(task.StageTriage),
+			Type:         step.GetType(),
+			Labels:       step.GetLabels(),
+		}
+		if step.Priority != nil {
+			if err := validateDefinedEnum("priority", int32(step.GetPriority()), pb.TaskPriority_name); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "steps[%d].priority: %v", i, err)
+			}
+			pr := convert.PriorityFromProto(step.GetPriority())
+			params.Priority = &pr
+		}
+		p.Steps = append(p.Steps, params)
+	}
+
+	result, err := s.store.InsertTasksAfter(ctx, p)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+
+	resp := &pb.InsertTasksAfterResponse{
+		AnchorTask: taskToProto(result.AnchorTask),
+	}
+	for _, inserted := range result.InsertedTasks {
+		proto := taskToProto(inserted)
+		resp.InsertedTasks = append(resp.InsertedTasks, proto)
+		if s.eventBus != nil {
+			s.eventBus.Publish(&pb.TaskEvent{
+				EventType: pb.TaskEventType_TASK_EVENT_TYPE_CREATED,
+				Task:      proto,
+				Timestamp: timestamppb.Now(),
+			})
+		}
+	}
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      resp.AnchorTask,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
+	return resp, nil
+}
+
 func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
@@ -1442,6 +1522,9 @@ func storeErr(err error, entity string) error {
 	}
 	if errors.Is(err, store.ErrInvalidArgument) {
 		return status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if errors.Is(err, store.ErrNotImplemented) {
+		return status.Errorf(codes.Unimplemented, "%v", err)
 	}
 	log.Printf("internal error for %s: %v", entity, err)
 	return status.Errorf(codes.Internal, "internal error for %s", entity)

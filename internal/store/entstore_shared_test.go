@@ -7,9 +7,32 @@ import (
 	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
+
+func assertBlockTargets(t *testing.T, got *ent.Task, want ...uuid.UUID) {
+	t.Helper()
+	targets := make([]string, 0, len(got.Edges.SourceRelationships))
+	for _, rel := range got.Edges.SourceRelationships {
+		targets = append(targets, rel.TargetTaskID.String())
+	}
+	wantStrings := make([]string, 0, len(want))
+	for _, id := range want {
+		wantStrings = append(wantStrings, id.String())
+	}
+	sort.Strings(targets)
+	sort.Strings(wantStrings)
+	if len(targets) != len(wantStrings) {
+		t.Fatalf("block targets = %v, want %v", targets, wantStrings)
+	}
+	for i := range targets {
+		if targets[i] != wantStrings[i] {
+			t.Fatalf("block targets = %v, want %v", targets, wantStrings)
+		}
+	}
+}
 
 type storeFactory func(t *testing.T) (*store.EntStore, func())
 
@@ -541,6 +564,193 @@ func runUpdateTaskRelationships(t *testing.T, newStore storeFactory) {
 	}
 	if len(got2.Edges.SourceRelationships) != 0 {
 		t.Errorf("source_relationships count = %d, want 0", len(got2.Edges.SourceRelationships))
+	}
+}
+
+func runInsertTasksAfter(t *testing.T, newStore storeFactory) {
+	s, cleanup := newStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, s)
+	anchor, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Test gate 1", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask anchor: %v", err)
+	}
+	deploy, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Deploy", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask deploy: %v", err)
+	}
+	_, err = s.UpdateTask(ctx, anchor.ID, store.UpdateTaskParams{
+		AddBlocks: []uuid.UUID{deploy.ID},
+	}, uuid.Nil)
+	if err != nil {
+		t.Fatalf("wire anchor to deploy: %v", err)
+	}
+
+	normal := task.PriorityNormal
+	result, err := s.InsertTasksAfter(ctx, store.InsertTasksAfterParams{
+		AnchorTaskID: anchor.ID,
+		CollectionID: collID,
+		ActorID:      uuid.Nil,
+		Reason:       "tests failed",
+		Steps: []store.CreateTaskParams{
+			{Title: "Rework 2", Description: "Fix failing test", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage", Type: "bug", Priority: &normal, Labels: []string{"rework"}},
+			{Title: "Test gate 2", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage", Type: "task", Priority: &normal},
+		},
+	})
+	if err != nil {
+		t.Fatalf("InsertTasksAfter: %v", err)
+	}
+	if len(result.InsertedTasks) != 2 {
+		t.Fatalf("inserted tasks = %d, want 2", len(result.InsertedTasks))
+	}
+	if result.InsertedTasks[0].Title != "Rework 2" || result.InsertedTasks[1].Title != "Test gate 2" {
+		t.Fatalf("inserted task order = [%q, %q], want [Rework 2, Test gate 2]", result.InsertedTasks[0].Title, result.InsertedTasks[1].Title)
+	}
+
+	gotAnchor, err := s.GetTask(ctx, anchor.ID)
+	if err != nil {
+		t.Fatalf("GetTask anchor: %v", err)
+	}
+	if gotAnchor.Version != "3" {
+		t.Errorf("anchor version = %q, want 3", gotAnchor.Version)
+	}
+	assertBlockTargets(t, gotAnchor, result.InsertedTasks[0].ID)
+
+	gotFirst, err := s.GetTask(ctx, result.InsertedTasks[0].ID)
+	if err != nil {
+		t.Fatalf("GetTask first inserted: %v", err)
+	}
+	assertBlockTargets(t, gotFirst, result.InsertedTasks[1].ID)
+
+	gotLast, err := s.GetTask(ctx, result.InsertedTasks[1].ID)
+	if err != nil {
+		t.Fatalf("GetTask last inserted: %v", err)
+	}
+	assertBlockTargets(t, gotLast, deploy.ID)
+}
+
+func runInsertTasksAfterNoDownstream(t *testing.T, newStore storeFactory) {
+	s, cleanup := newStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, s)
+	anchor, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Anchor", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask anchor: %v", err)
+	}
+
+	result, err := s.InsertTasksAfter(ctx, store.InsertTasksAfterParams{
+		AnchorTaskID: anchor.ID,
+		CollectionID: collID,
+		Steps: []store.CreateTaskParams{
+			{Title: "Follow-up", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage", Type: "task"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("InsertTasksAfter: %v", err)
+	}
+	if len(result.InsertedTasks) != 1 {
+		t.Fatalf("inserted tasks = %d, want 1", len(result.InsertedTasks))
+	}
+	gotAnchor, err := s.GetTask(ctx, anchor.ID)
+	if err != nil {
+		t.Fatalf("GetTask anchor: %v", err)
+	}
+	assertBlockTargets(t, gotAnchor, result.InsertedTasks[0].ID)
+	gotInserted, err := s.GetTask(ctx, result.InsertedTasks[0].ID)
+	if err != nil {
+		t.Fatalf("GetTask inserted: %v", err)
+	}
+	assertBlockTargets(t, gotInserted)
+}
+
+func runInsertTasksAfterAnchorNotFound(t *testing.T, newStore storeFactory) {
+	s, cleanup := newStore(t)
+	defer cleanup()
+	collID := createTestCollection(t, s)
+
+	_, err := s.InsertTasksAfter(context.Background(), store.InsertTasksAfterParams{
+		AnchorTaskID: uuid.New(),
+		CollectionID: collID,
+		Steps: []store.CreateTaskParams{
+			{Title: "Follow-up", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage"},
+		},
+	})
+	if err != store.ErrNotFound {
+		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func runInsertTasksAfterEmptySteps(t *testing.T, newStore storeFactory) {
+	s, cleanup := newStore(t)
+	defer cleanup()
+	collID := createTestCollection(t, s)
+
+	_, err := s.InsertTasksAfter(context.Background(), store.InsertTasksAfterParams{
+		AnchorTaskID: uuid.New(),
+		CollectionID: collID,
+	})
+	if err != store.ErrInvalidArgument {
+		t.Errorf("err = %v, want ErrInvalidArgument", err)
+	}
+}
+
+func runInsertTasksAfterRollsBackOnFailure(t *testing.T, newStore storeFactory) {
+	s, cleanup := newStore(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, s)
+	anchor, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Anchor", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask anchor: %v", err)
+	}
+	deploy, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Deploy", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask deploy: %v", err)
+	}
+	_, err = s.UpdateTask(ctx, anchor.ID, store.UpdateTaskParams{AddBlocks: []uuid.UUID{deploy.ID}}, uuid.Nil)
+	if err != nil {
+		t.Fatalf("wire anchor to deploy: %v", err)
+	}
+
+	_, err = s.InsertTasksAfter(ctx, store.InsertTasksAfterParams{
+		AnchorTaskID: anchor.ID,
+		CollectionID: collID,
+		Steps: []store.CreateTaskParams{
+			{Title: "Valid intermediate", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage", Type: "task"},
+			{Title: "", Phase: task.PhaseOpen, Stage: task.StageTriage, NativeLabel: "triage", Type: "task"},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected insert failure")
+	}
+
+	gotAnchor, err := s.GetTask(ctx, anchor.ID)
+	if err != nil {
+		t.Fatalf("GetTask anchor: %v", err)
+	}
+	assertBlockTargets(t, gotAnchor, deploy.ID)
+
+	tasks, total, err := s.ListTasks(ctx, store.ListTasksParams{CollectionID: &collID})
+	if err != nil {
+		t.Fatalf("ListTasks: %v", err)
+	}
+	if total != 2 || len(tasks) != 2 {
+		t.Fatalf("task count after rollback = total %d len %d, want 2", total, len(tasks))
 	}
 }
 

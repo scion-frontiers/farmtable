@@ -43,39 +43,52 @@ type CreateTaskParams struct {
 }
 
 type UpdateTaskParams struct {
-	Title              *string
-	Description        *string
-	Phase              *task.Phase
-	Stage              *task.Stage
-	NativeLabel        *string
-	Type               *string
-	Priority           *task.Priority
-	ClearPriority      bool
-	AssigneeID         *uuid.UUID
-	ClearAssignee      bool
-	ParentTaskID       *uuid.UUID
-	ClearParent        bool
-	AcceptanceCriteria *string
-	ClearAcceptance    bool
-	RemoteData         map[string]any
-	Version            string // required for CAS
-	StartDate          *time.Time
-	ClearStartDate     bool
-	DueDate            *time.Time
-	ClearDueDate       bool
-	AddLabels          []string
-	RemoveLabels       []string
-	AddBlocks          []uuid.UUID
-	AddBlockedBy       []uuid.UUID
+	Title               *string
+	Description         *string
+	Phase               *task.Phase
+	Stage               *task.Stage
+	NativeLabel         *string
+	Type                *string
+	Priority            *task.Priority
+	ClearPriority       bool
+	AssigneeID          *uuid.UUID
+	ClearAssignee       bool
+	ParentTaskID        *uuid.UUID
+	ClearParent         bool
+	AcceptanceCriteria  *string
+	ClearAcceptance     bool
+	RemoteData          map[string]any
+	Version             string // required for CAS
+	StartDate           *time.Time
+	ClearStartDate      bool
+	DueDate             *time.Time
+	ClearDueDate        bool
+	AddLabels           []string
+	RemoveLabels        []string
+	AddBlocks           []uuid.UUID
+	AddBlockedBy        []uuid.UUID
 	RemoveRelationships []uuid.UUID
-	Repo               *string
-	Branch             *string
-	ClearRepo          bool
-	ClearBranch        bool
-	AddPullRequests    []PullRequestParam
-	CIStatus           *string
-	ClearCIStatus      bool
-	Reason             *string
+	Repo                *string
+	Branch              *string
+	ClearRepo           bool
+	ClearBranch         bool
+	AddPullRequests     []PullRequestParam
+	CIStatus            *string
+	ClearCIStatus       bool
+	Reason              *string
+}
+
+type InsertTasksAfterParams struct {
+	AnchorTaskID uuid.UUID
+	Steps        []CreateTaskParams
+	CollectionID uuid.UUID
+	ActorID      uuid.UUID
+	Reason       string
+}
+
+type InsertTasksAfterResult struct {
+	InsertedTasks []*ent.Task
+	AnchorTask    *ent.Task
 }
 
 type PullRequestParam struct {
@@ -137,6 +150,7 @@ type ListChangesParams struct {
 
 type Store interface {
 	CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error)
+	InsertTasksAfter(ctx context.Context, p InsertTasksAfterParams) (*InsertTasksAfterResult, error)
 	GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error)
 	ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Task, int, error)
 	UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error)

@@ -206,6 +206,148 @@ func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Tas
 	return s.getTaskWithEdges(ctx, t.ID)
 }
 
+func (s *EntStore) InsertTasksAfter(ctx context.Context, p InsertTasksAfterParams) (*InsertTasksAfterResult, error) {
+	if len(p.Steps) == 0 {
+		return nil, ErrInvalidArgument
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	anchor, err := tx.Task.Query().
+		Where(task.IDEQ(p.AnchorTaskID), task.CollectionIDEQ(p.CollectionID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("getting anchor task: %w", err)
+	}
+
+	downstream, err := tx.Relationship.Query().
+		Where(
+			relationship.SourceTaskIDEQ(p.AnchorTaskID),
+			relationship.TypeEQ(relationship.TypeBlocks),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading downstream relationships: %w", err)
+	}
+
+	insertedIDs := make([]uuid.UUID, 0, len(p.Steps))
+	for i, step := range p.Steps {
+		create := tx.Task.Create().
+			SetTitle(step.Title).
+			SetDescription(step.Description).
+			SetCollectionID(p.CollectionID).
+			SetPhase(step.Phase).
+			SetStage(step.Stage).
+			SetNativeLabel(step.NativeLabel).
+			SetType(step.Type).
+			SetVersion("1")
+
+		if step.Priority != nil {
+			create.SetPriority(*step.Priority)
+		}
+		if len(step.Labels) > 0 {
+			create.SetLabels(step.Labels)
+		}
+
+		inserted, err := create.Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("creating inserted task %d: %w", i+1, err)
+		}
+		insertedIDs = append(insertedIDs, inserted.ID)
+	}
+
+	chain := append([]uuid.UUID{p.AnchorTaskID}, insertedIDs...)
+	for i := 0; i < len(chain)-1; i++ {
+		if err := createBlocksRelationship(ctx, tx, chain[i], chain[i+1]); err != nil {
+			return nil, err
+		}
+	}
+
+	lastInsertedID := insertedIDs[len(insertedIDs)-1]
+	for _, rel := range downstream {
+		if err := createBlocksRelationship(ctx, tx, lastInsertedID, rel.TargetTaskID); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(downstream) > 0 {
+		downstreamIDs := make([]uuid.UUID, 0, len(downstream))
+		for _, rel := range downstream {
+			downstreamIDs = append(downstreamIDs, rel.TargetTaskID)
+		}
+		_, err = tx.Relationship.Delete().
+			Where(
+				relationship.SourceTaskIDEQ(p.AnchorTaskID),
+				relationship.TargetTaskIDIn(downstreamIDs...),
+				relationship.TypeEQ(relationship.TypeBlocks),
+			).
+			Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("removing anchor downstream relationships: %w", err)
+		}
+	}
+
+	currentVersion, _ := strconv.Atoi(anchor.Version)
+	if _, err := tx.Task.Update().
+		Where(task.IDEQ(p.AnchorTaskID)).
+		SetVersion(strconv.Itoa(currentVersion + 1)).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("updating anchor task version: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("committing task insertion: %w", err)
+	}
+
+	insertedTasks := make([]*ent.Task, 0, len(insertedIDs))
+	for _, id := range insertedIDs {
+		inserted, err := s.getTaskWithEdges(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		insertedTasks = append(insertedTasks, inserted)
+	}
+	anchorResult, err := s.getTaskWithEdges(ctx, p.AnchorTaskID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &InsertTasksAfterResult{
+		InsertedTasks: insertedTasks,
+		AnchorTask:    anchorResult,
+	}, nil
+}
+
+func createBlocksRelationship(ctx context.Context, tx *ent.Tx, sourceID, targetID uuid.UUID) error {
+	exists, err := tx.Relationship.Query().Where(
+		relationship.SourceTaskIDEQ(sourceID),
+		relationship.TargetTaskIDEQ(targetID),
+		relationship.TypeEQ(relationship.TypeBlocks),
+	).Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("checking blocks relationship: %w", err)
+	}
+	if exists {
+		return nil
+	}
+	_, err = tx.Relationship.Create().
+		SetSourceTaskID(sourceID).
+		SetTargetTaskID(targetID).
+		SetType(relationship.TypeBlocks).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("creating blocks relationship: %w", err)
+	}
+	return nil
+}
+
 func (s *EntStore) GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error) {
 	return s.getTaskWithEdges(ctx, id)
 }

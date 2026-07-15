@@ -604,6 +604,26 @@ func TestUpdateTask_Relationships(t *testing.T) {
 	}
 }
 
+func TestInsertTasksAfter(t *testing.T) {
+	runInsertTasksAfter(t, testutil.NewTestStore)
+}
+
+func TestInsertTasksAfter_NoDownstream(t *testing.T) {
+	runInsertTasksAfterNoDownstream(t, testutil.NewTestStore)
+}
+
+func TestInsertTasksAfter_AnchorNotFound(t *testing.T) {
+	runInsertTasksAfterAnchorNotFound(t, testutil.NewTestStore)
+}
+
+func TestInsertTasksAfter_EmptySteps(t *testing.T) {
+	runInsertTasksAfterEmptySteps(t, testutil.NewTestStore)
+}
+
+func TestInsertTasksAfter_RollsBackOnFailure(t *testing.T) {
+	runInsertTasksAfterRollsBackOnFailure(t, testutil.NewTestStore)
+}
+
 func TestListTasks_FilterByPriority(t *testing.T) {
 	s, cleanup := testutil.NewTestStore(t)
 	defer cleanup()

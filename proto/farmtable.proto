@@ -528,6 +528,26 @@ message CreateTaskRequest {
   optional string reason = 17;
 }
 
+message NewTaskSpec {
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+  optional string description = 2;
+  optional string type = 3;
+  optional TaskPriority priority = 4 [(buf.validate.field).enum.defined_only = true];
+  repeated string labels = 5;
+}
+
+message InsertTasksAfterRequest {
+  string anchor_task_id = 1 [(buf.validate.field).string.uuid = true];
+  repeated NewTaskSpec steps = 2;
+  string collection_id = 3 [(buf.validate.field).string.uuid = true];
+  optional string reason = 4;
+}
+
+message InsertTasksAfterResponse {
+  repeated Task inserted_tasks = 1;
+  Task anchor_task = 2;
+}
+
 message UpdateTaskRequest {
   string id = 1 [(buf.validate.field).string.min_len = 1];
 
@@ -914,6 +934,7 @@ service FarmTableService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
   rpc CreateTask(CreateTaskRequest) returns (Task);
+  rpc InsertTasksAfter(InsertTasksAfterRequest) returns (InsertTasksAfterResponse);
   rpc UpdateTask(UpdateTaskRequest) returns (Task);
   // Atomically assigns the task to the authenticated agent and transitions
   // it to working (or a specified stage). Uses compare-and-swap on the

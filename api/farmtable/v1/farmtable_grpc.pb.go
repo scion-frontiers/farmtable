@@ -28,6 +28,7 @@ const (
 	FarmTableService_ListTasks_FullMethodName         = "/farmtable.v1.FarmTableService/ListTasks"
 	FarmTableService_GetTask_FullMethodName           = "/farmtable.v1.FarmTableService/GetTask"
 	FarmTableService_CreateTask_FullMethodName        = "/farmtable.v1.FarmTableService/CreateTask"
+	FarmTableService_InsertTasksAfter_FullMethodName  = "/farmtable.v1.FarmTableService/InsertTasksAfter"
 	FarmTableService_UpdateTask_FullMethodName        = "/farmtable.v1.FarmTableService/UpdateTask"
 	FarmTableService_ClaimTask_FullMethodName         = "/farmtable.v1.FarmTableService/ClaimTask"
 	FarmTableService_CloseTask_FullMethodName         = "/farmtable.v1.FarmTableService/CloseTask"
@@ -62,6 +63,7 @@ type FarmTableServiceClient interface {
 	ListTasks(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
 	GetTask(ctx context.Context, in *GetTaskRequest, opts ...grpc.CallOption) (*GetTaskResponse, error)
 	CreateTask(ctx context.Context, in *CreateTaskRequest, opts ...grpc.CallOption) (*Task, error)
+	InsertTasksAfter(ctx context.Context, in *InsertTasksAfterRequest, opts ...grpc.CallOption) (*InsertTasksAfterResponse, error)
 	UpdateTask(ctx context.Context, in *UpdateTaskRequest, opts ...grpc.CallOption) (*Task, error)
 	// Atomically assigns the task to the authenticated agent and transitions
 	// it to working (or a specified stage). Uses compare-and-swap on the
@@ -131,6 +133,16 @@ func (c *farmTableServiceClient) CreateTask(ctx context.Context, in *CreateTaskR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Task)
 	err := c.cc.Invoke(ctx, FarmTableService_CreateTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *farmTableServiceClient) InsertTasksAfter(ctx context.Context, in *InsertTasksAfterRequest, opts ...grpc.CallOption) (*InsertTasksAfterResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InsertTasksAfterResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_InsertTasksAfter_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -376,6 +388,7 @@ type FarmTableServiceServer interface {
 	ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
 	GetTask(context.Context, *GetTaskRequest) (*GetTaskResponse, error)
 	CreateTask(context.Context, *CreateTaskRequest) (*Task, error)
+	InsertTasksAfter(context.Context, *InsertTasksAfterRequest) (*InsertTasksAfterResponse, error)
 	UpdateTask(context.Context, *UpdateTaskRequest) (*Task, error)
 	// Atomically assigns the task to the authenticated agent and transitions
 	// it to working (or a specified stage). Uses compare-and-swap on the
@@ -429,6 +442,9 @@ func (UnimplementedFarmTableServiceServer) GetTask(context.Context, *GetTaskRequ
 }
 func (UnimplementedFarmTableServiceServer) CreateTask(context.Context, *CreateTaskRequest) (*Task, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateTask not implemented")
+}
+func (UnimplementedFarmTableServiceServer) InsertTasksAfter(context.Context, *InsertTasksAfterRequest) (*InsertTasksAfterResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InsertTasksAfter not implemented")
 }
 func (UnimplementedFarmTableServiceServer) UpdateTask(context.Context, *UpdateTaskRequest) (*Task, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateTask not implemented")
@@ -567,6 +583,24 @@ func _FarmTableService_CreateTask_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(FarmTableServiceServer).CreateTask(ctx, req.(*CreateTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FarmTableService_InsertTasksAfter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InsertTasksAfterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).InsertTasksAfter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_InsertTasksAfter_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).InsertTasksAfter(ctx, req.(*InsertTasksAfterRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -978,6 +1012,10 @@ var FarmTableService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateTask",
 			Handler:    _FarmTableService_CreateTask_Handler,
+		},
+		{
+			MethodName: "InsertTasksAfter",
+			Handler:    _FarmTableService_InsertTasksAfter_Handler,
 		},
 		{
 			MethodName: "UpdateTask",

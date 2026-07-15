@@ -69,6 +69,17 @@ func taskToMap(t *pb.Task, compact bool) map[string]interface{} {
 	return m
 }
 
+func insertTasksAfterToMap(resp *pb.InsertTasksAfterResponse) map[string]interface{} {
+	inserted := make([]interface{}, 0, len(resp.GetInsertedTasks()))
+	for _, t := range resp.GetInsertedTasks() {
+		inserted = append(inserted, taskToMap(t, false))
+	}
+	return map[string]interface{}{
+		"inserted_tasks": inserted,
+		"anchor_task":    taskToMap(resp.GetAnchorTask(), false),
+	}
+}
+
 func collectionToMap(c *pb.Collection) map[string]interface{} {
 	m := map[string]interface{}{
 		"id":          c.GetId(),
@@ -197,9 +208,9 @@ func codeContextToMap(cc *pb.CodeContext) interface{} {
 		return nil
 	}
 	m := map[string]interface{}{
-		"repo":       nilIfEmpty(cc.GetRepo()),
-		"branch":     nilIfEmpty(cc.GetBranch()),
-		"ci_status":  nil,
+		"repo":        nilIfEmpty(cc.GetRepo()),
+		"branch":      nilIfEmpty(cc.GetBranch()),
+		"ci_status":   nil,
 		"commit_shas": cc.GetCommitShas(),
 	}
 	if cc.GetCiStatus() != pb.CIStatus_CI_STATUS_UNSPECIFIED {
