@@ -6,7 +6,8 @@ Farm Table is an **open-source task runtime built specifically for AI agents**. 
 
 When no external platform is connected, the built-in backend provides a **graph-native task store** complete with dependency tracking, atomic CAS (Compare-And-Swap) claims, and instant ready-task detection. No API keys, no SaaS accounts, and zero complex configuration are required.
 
-**NOTE: Farmtable is at an early and experimental stage**
+*NOTE: Farmtable is at an early and experimental stage*
+
 ---
 
 ## 🚀 System Architecture & Modes
