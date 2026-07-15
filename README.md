@@ -1,12 +1,12 @@
 # 🚜 Farm Table
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/scion-frontiers/farmtable)](https://goreportcard.com/report/github.com/scion-frontiers/farmtable)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Farm Table is an **open-source task runtime built specifically for AI agents**. It provides coding and execution agents with a single, predictable, and robust interface to receive work, understand complex dependency structures, and track execution progress—whether tasks reside in GitHub, Jira, Linear, or Farm Table's own built-in graph-native backend.
 
 When no external platform is connected, the built-in backend provides a **graph-native task store** complete with dependency tracking, atomic CAS (Compare-And-Swap) claims, and instant ready-task detection. No API keys, no SaaS accounts, and zero complex configuration are required.
 
+**NOTE: Farmtable is at an early and experimental stage**
 ---
 
 ## 🚀 System Architecture & Modes
