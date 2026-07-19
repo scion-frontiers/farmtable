@@ -14,10 +14,15 @@ import {
 } from './types.js';
 
 export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId'> & { parentTaskId?: string | null };
+export interface CreateTaskFields {
+  name: string;
+  description?: string;
+}
 
 export interface FarmTableServiceClient {
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
+  createTask(fields: CreateTaskFields): Promise<Task>;
   updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
@@ -287,6 +292,27 @@ export class MockFarmTableClient implements FarmTableServiceClient {
   async getTask(id: string): Promise<Task> {
     const task = MOCK_TASKS.find((t) => t.id === id);
     if (!task) throw new Error(`Task not found: ${id}`);
+    return { ...task };
+  }
+
+  async createTask(fields: CreateTaskFields): Promise<Task> {
+    const task: Task = {
+      id: crypto.randomUUID(),
+      name: fields.name,
+      description: fields.description,
+      phase: TaskPhase.OPEN,
+      stage: TaskStage.TRIAGE,
+      priority: TaskPriority.NORMAL,
+      assignees: [],
+      labels: [],
+      relationships: [],
+      customFields: [],
+      collectionId: COLLECTION_ID,
+      platform: Platform.FARMTABLE,
+      createdAt: new Date().toISOString(),
+      version: '1',
+    };
+    MOCK_TASKS.unshift(task);
     return { ...task };
   }
 

@@ -5,6 +5,7 @@ import { TaskStoreController } from '../../store/task-store-controller.js';
 import { TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
+import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 
 interface ColumnDef {
   stage: TaskStage;
@@ -57,6 +58,11 @@ export class FtKanbanView extends LitElement {
       overflow-x: auto;
       padding-bottom: 0.5rem;
     }
+    .view-header {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.75rem;
+    }
     .on-hold-section {
       border-top: 1px solid var(--sl-color-neutral-200);
       padding-top: 0.75rem;
@@ -107,6 +113,9 @@ export class FtKanbanView extends LitElement {
   @state()
   private onHoldExpanded = false;
 
+  @state()
+  private isCreatingTask = false;
+
   connectedCallback() {
     super.connectedCallback();
     this.storeController = new TaskStoreController(this, this.store);
@@ -150,10 +159,40 @@ export class FtKanbanView extends LitElement {
     this.onHoldExpanded = !this.onHoldExpanded;
   }
 
+  private async openAddTaskDialog() {
+    const dialog = this.renderRoot.querySelector<FtAddTaskDialog>('ft-add-task-dialog');
+    await dialog?.show();
+  }
+
+  private async onTaskCreate(e: CustomEvent<TaskCreateDetail>) {
+    if (!this.client || this.isCreatingTask) return;
+
+    const dialog = e.currentTarget as FtAddTaskDialog;
+    this.isCreatingTask = true;
+    dialog.setCreating(true);
+
+    try {
+      await this.client.createTask(e.detail);
+      dialog.close();
+    } catch (error) {
+      console.error('Failed to create task', error);
+    } finally {
+      this.isCreatingTask = false;
+      dialog.setCreating(false);
+    }
+  }
+
   render() {
     const onHoldTotal = this.onHoldTotal;
 
     return html`
+      <div class="view-header">
+        <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
+          <sl-icon name="plus" slot="prefix"></sl-icon>
+          Add Task
+        </sl-button>
+      </div>
+
       <div class="board" @stage-change=${this.onStageChange}>
         ${BOARD_COLUMNS.map(
           (col) => html`
@@ -196,6 +235,8 @@ export class FtKanbanView extends LitElement {
             </div>
           `
         : nothing}
+
+      <ft-add-task-dialog @task-create=${this.onTaskCreate}></ft-add-task-dialog>
     `;
   }
 }

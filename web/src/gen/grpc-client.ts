@@ -14,7 +14,7 @@ import {
   type User,
   SortOrder,
 } from './types.js';
-import type { FarmTableServiceClient, UpdateTaskFields } from './service.js';
+import type { CreateTaskFields, FarmTableServiceClient, UpdateTaskFields } from './service.js';
 
 type ProtoRecord = Record<string, unknown>;
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -103,6 +103,7 @@ function streamMethod(
 const methods = {
   listTasks: unaryMethod('ListTasks', 'ListTasksRequest', 'ListTasksResponse'),
   getTask: unaryMethod('GetTask', 'GetTaskRequest', 'GetTaskResponse'),
+  createTask: unaryMethod('CreateTask', 'CreateTaskRequest', 'Task'),
   updateTask: unaryMethod('UpdateTask', 'UpdateTaskRequest', 'Task'),
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
   listChanges: unaryMethod('ListChanges', 'ListChangesRequest', 'ListChangesResponse'),
@@ -145,6 +146,18 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
       collectionId: await this.resolveCollectionId(),
     });
     return toTask(asRecord(response.task));
+  }
+
+  async createTask(fields: CreateTaskFields): Promise<Task> {
+    const request: ProtoRecord = {
+      name: fields.name,
+      collectionId: await this.resolveCollectionId(),
+    };
+
+    if (fields.description !== undefined) request.description = fields.description;
+
+    const response = await this.unary(methods.createTask, request);
+    return toTask(response);
   }
 
   async updateTask(id: string, fields: UpdateTaskFields): Promise<Task> {
