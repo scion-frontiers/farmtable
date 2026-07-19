@@ -5,6 +5,7 @@ import { TaskStoreController } from '../../store/task-store-controller.js';
 import { TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import { phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
+import type { UpdateTaskFields } from '../../gen/service.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 
 // TODO(test-coverage): Add component tests for the column-add-task event flow.
@@ -144,8 +145,38 @@ export class FtKanbanView extends LitElement {
       } else {
         console.warn('No client configured — stage change is local only');
       }
-    } catch {
+    } catch (error) {
+      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
+      console.warn('Failed to update task stage; rolled back optimistic change', error);
       this.store.upsert({ ...task, stage: oldStage, phase: oldPhase });
+    }
+  }
+
+  private async onTaskUpdate(e: CustomEvent) {
+    const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
+    const task = this.store.getTask(taskId);
+    if (!task) return;
+
+    const { parentTaskId, ...rest } = fields;
+    const updated: Task = { ...task, ...rest };
+    if (parentTaskId === null) {
+      delete updated.parentTaskId;
+    } else if (parentTaskId !== undefined) {
+      updated.parentTaskId = parentTaskId;
+    }
+
+    this.store.upsert(updated);
+
+    try {
+      if (this.client) {
+        await this.client.updateTask(taskId, fields);
+      } else {
+        console.warn('No client configured — task update is local only');
+      }
+    } catch (error) {
+      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
+      console.warn('Failed to update task; rolled back optimistic change', error);
+      this.store.upsert(task);
     }
   }
 
@@ -208,6 +239,7 @@ export class FtKanbanView extends LitElement {
       <div
         class="board"
         @stage-change=${this.onStageChange}
+        @task-update=${this.onTaskUpdate}
         @column-add-task=${this.onColumnAddTask}
       >
         ${BOARD_COLUMNS.map(
@@ -237,6 +269,7 @@ export class FtKanbanView extends LitElement {
                     <div
                       class="on-hold-columns"
                       @stage-change=${this.onStageChange}
+                      @task-update=${this.onTaskUpdate}
                       @column-add-task=${this.onColumnAddTask}
                     >
                       ${ON_HOLD_STAGES.map(
