@@ -73,6 +73,8 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	eventBus := streaming.NewEventBus()
 
 	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(server.NewStoreTokenLookup(s))),
 		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(server.NewStoreTokenLookup(s))),
 	)
@@ -87,6 +89,10 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 			return bufLis.DialContext(ctx)
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
 	)
 	if err != nil {
 		return fmt.Errorf("dialing bootstrap server: %w", err)

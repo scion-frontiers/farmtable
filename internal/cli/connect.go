@@ -24,6 +24,8 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+const grpcMaxMessageSize = 64 << 20
+
 func resolveServer(flagVal string) string {
 	if flagVal != "" {
 		return flagVal
@@ -97,7 +99,13 @@ func dialServer(server string) (*grpc.ClientConn, error) {
 	} else {
 		creds = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	}
-	return grpc.NewClient(server, creds)
+	return grpc.NewClient(server,
+		creds,
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
+	)
 }
 
 func isLocalhost(addr string) bool {
@@ -153,6 +161,8 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 	eventBus := streaming.NewEventBus()
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
 		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
@@ -164,6 +174,10 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 			return lis.DialContext(ctx)
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
 	)
 	if err != nil {
 		srv.Stop()
@@ -285,7 +299,10 @@ func startGitHubPassThrough(repo string) (pb.FarmTableServiceClient, io.Closer, 
 	s := github.NewPassThroughStore(token, owner, repoName, cfg)
 
 	lis := bufconn.Listen(1 << 20)
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
+	)
 	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "passthrough"))
 	go srv.Serve(lis)
 
@@ -294,6 +311,10 @@ func startGitHubPassThrough(repo string) (pb.FarmTableServiceClient, io.Closer, 
 			return lis.DialContext(ctx)
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
 	)
 	if err != nil {
 		srv.Stop()

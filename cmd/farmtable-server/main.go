@@ -23,6 +23,8 @@ import (
 
 var version = "dev"
 
+const grpcMaxMessageSize = 64 << 20
+
 func main() {
 	storeOpts, err := serverStoreOptions()
 	if err != nil {
@@ -51,6 +53,8 @@ func main() {
 	eventBus := streaming.NewEventBus()
 
 	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
 		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)

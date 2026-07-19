@@ -218,6 +218,10 @@ func (s *GitHubPassThroughStore) ListTasks(ctx context.Context, p store.ListTask
 	return tasks, len(tasks), nil
 }
 
+func (s *GitHubPassThroughStore) ListAllTasksForCollection(ctx context.Context, p store.ListAllTasksForCollectionParams) ([]*ent.Task, error) {
+	return nil, fmt.Errorf("list all tasks for collection: %w", store.ErrNotImplemented)
+}
+
 func (s *GitHubPassThroughStore) GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error) {
 	issues, err := s.gql.listIssues(ctx, []githubv4.IssueState{githubv4.IssueStateOpen, githubv4.IssueStateClosed}, nil, 200)
 	if err != nil {
@@ -627,10 +631,26 @@ func (s *GitHubPassThroughStore) ListComments(ctx context.Context, p store.ListC
 	return comments, len(comments), nil
 }
 
+func (s *GitHubPassThroughStore) ListAllCommentsForTask(ctx context.Context, p store.ListAllCommentsForTaskParams) ([]*ent.Comment, error) {
+	return nil, fmt.Errorf("list all comments for task: %w", store.ErrNotImplemented)
+}
+
 // ── Audit Trail ──
 
 func (s *GitHubPassThroughStore) ListChanges(ctx context.Context, p store.ListChangesParams) ([]*ent.Change, int, error) {
 	return nil, 0, fmt.Errorf("list changes: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ListAllChangesForTask(ctx context.Context, p store.ListAllChangesForTaskParams) ([]*ent.Change, error) {
+	return nil, fmt.Errorf("list all changes for task: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ListAllRelationshipsForCollection(ctx context.Context, p store.ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
+	return nil, fmt.Errorf("list all relationships for collection: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ImportCollection(ctx context.Context, p store.ImportCollectionParams) (*ent.Collection, error) {
+	return nil, fmt.Errorf("import collection: %w", store.ErrNotImplemented)
 }
 
 // ── Graph Queries ──
@@ -742,6 +762,10 @@ func (s *GitHubPassThroughStore) GetUserByName(ctx context.Context, name string)
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}, nil
+}
+
+func (s *GitHubPassThroughStore) GetUserByEmail(ctx context.Context, email string) ([]*ent.User, error) {
+	return nil, fmt.Errorf("get user by email: %w", store.ErrNotImplemented)
 }
 
 func (s *GitHubPassThroughStore) ListUsers(ctx context.Context, p store.ListUsersParams) ([]*ent.User, int, error) {

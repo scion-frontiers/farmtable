@@ -7,6 +7,7 @@ import (
 
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
@@ -153,11 +154,96 @@ type ListChangesParams struct {
 	LastSortValue string
 }
 
+type ListAllTasksForCollectionParams struct {
+	CollectionID uuid.UUID
+}
+
+type ListAllCommentsForTaskParams struct {
+	TaskID uuid.UUID
+}
+
+type ListAllChangesForTaskParams struct {
+	TaskID uuid.UUID
+}
+
+type ListAllRelationshipsForCollectionParams struct {
+	CollectionID uuid.UUID
+}
+
+type ImportCollectionParams struct {
+	Collection    ImportCollection
+	Tasks         []ImportTask
+	Comments      []ImportComment
+	Relationships []ImportRelationship
+	Changes       []ImportChange
+}
+
+type ImportCollection struct {
+	Name        string
+	Description string
+	Platform    collection.Platform
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ImportTask struct {
+	ID                 uuid.UUID
+	Title              string
+	Description        string
+	Phase              task.Phase
+	Stage              task.Stage
+	NativeLabel        string
+	Type               string
+	Priority           *task.Priority
+	AssigneeID         *uuid.UUID
+	ParentTaskID       *uuid.UUID
+	StartDate          *time.Time
+	DueDate            *time.Time
+	ClosedAt           *time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	AcceptanceCriteria *string
+	Labels             []string
+	Repo               string
+	Branch             string
+	CIStatus           *task.CiStatus
+	PullRequests       []map[string]string
+	RemoteData         map[string]any
+	Version            string
+}
+
+type ImportComment struct {
+	ID        uuid.UUID
+	TaskID    uuid.UUID
+	AuthorID  uuid.UUID
+	Body      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type ImportRelationship struct {
+	ID           uuid.UUID
+	SourceTaskID uuid.UUID
+	TargetTaskID uuid.UUID
+	Type         relationship.Type
+}
+
+type ImportChange struct {
+	ID        uuid.UUID
+	TaskID    uuid.UUID
+	AuthorID  uuid.UUID
+	FieldName string
+	OldValue  string
+	NewValue  string
+	CreatedAt time.Time
+}
+
 type Store interface {
 	CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error)
 	InsertTasksAfter(ctx context.Context, p InsertTasksAfterParams) (*InsertTasksAfterResult, error)
 	GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error)
 	ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Task, int, error)
+	ListAllTasksForCollection(ctx context.Context, p ListAllTasksForCollectionParams) ([]*ent.Task, error)
 	UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error)
 	ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error)
 	CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error)
@@ -170,6 +256,10 @@ type Store interface {
 	GetComment(ctx context.Context, id uuid.UUID) (*ent.Comment, error)
 	ListComments(ctx context.Context, p ListCommentsParams) ([]*ent.Comment, int, error)
 	ListChanges(ctx context.Context, p ListChangesParams) ([]*ent.Change, int, error)
+	ListAllCommentsForTask(ctx context.Context, p ListAllCommentsForTaskParams) ([]*ent.Comment, error)
+	ListAllChangesForTask(ctx context.Context, p ListAllChangesForTaskParams) ([]*ent.Change, error)
+	ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error)
+	ImportCollection(ctx context.Context, p ImportCollectionParams) (*ent.Collection, error)
 	GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error)
 	GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error)
 
@@ -177,6 +267,7 @@ type Store interface {
 	CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error)
 	GetUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
 	GetUserByName(ctx context.Context, name string) (*ent.User, error)
+	GetUserByEmail(ctx context.Context, email string) ([]*ent.User, error)
 	ListUsers(ctx context.Context, p ListUsersParams) ([]*ent.User, int, error)
 
 	// API Tokens
