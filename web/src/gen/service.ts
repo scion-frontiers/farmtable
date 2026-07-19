@@ -3,6 +3,7 @@ import {
   type Comment,
   type Change,
   type Collection,
+  type ImportStats,
   type TaskEvent,
   type User,
   TaskPhase,
@@ -34,6 +35,8 @@ export interface FarmTableServiceClient {
   getCollection(id: string): Promise<Collection>;
   createCollection(name: string, opts?: { platform?: number; remoteId?: string }): Promise<Collection>;
   updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection>;
+  exportCollection(id: string, includeChanges?: boolean): Promise<{ data: Uint8Array; warnings: string[] }>;
+  importCollection(data: Uint8Array, name?: string, dryRun?: boolean): Promise<{ collectionId: string; stats: ImportStats; warnings: string[] }>;
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
@@ -419,6 +422,18 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     const updated = { ...collection, ...fields, updatedAt: new Date().toISOString() };
     MOCK_COLLECTIONS[collectionIndex] = updated;
     return { ...updated };
+  }
+
+  async exportCollection(_id: string, _includeChanges?: boolean): Promise<{ data: Uint8Array; warnings: string[] }> {
+    return { data: new TextEncoder().encode('{}'), warnings: [] };
+  }
+
+  async importCollection(_data: Uint8Array, _name?: string, _dryRun?: boolean): Promise<{ collectionId: string; stats: ImportStats; warnings: string[] }> {
+    return {
+      collectionId: crypto.randomUUID(),
+      stats: { usersMatched: 0, usersCreated: 0, tasks: 0, comments: 0, relationships: 0, changes: 0 },
+      warnings: [],
+    };
   }
 
   async listTasks(): Promise<Task[]> {
