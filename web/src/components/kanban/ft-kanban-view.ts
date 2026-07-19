@@ -6,6 +6,7 @@ import { TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import { UNASSIGNED_FILTER_VALUE } from '../task-filters.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
 
@@ -113,6 +114,12 @@ export class FtKanbanView extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
+  @property({ attribute: false })
+  phaseFilter: TaskPhase | null = null;
+
+  @property({ attribute: false })
+  assigneeFilter: string | null = null;
+
   private storeController!: TaskStoreController;
 
   @state()
@@ -124,14 +131,23 @@ export class FtKanbanView extends LitElement {
   }
 
   private getColumnTasks(stage: TaskStage): Task[] {
-    return this.store.getByStage(stage);
+    return this.store.getByStage(stage).filter((task) => this.matchesFilters(task));
   }
 
-  private get onHoldTotal(): number {
-    return ON_HOLD_STAGES.reduce(
-      (sum, col) => sum + this.getColumnTasks(col.stage).length,
-      0,
-    );
+  private matchesFilters(task: Task): boolean {
+    if (this.phaseFilter !== null && task.phase !== this.phaseFilter) {
+      return false;
+    }
+
+    if (!this.assigneeFilter) {
+      return true;
+    }
+
+    if (this.assigneeFilter === UNASSIGNED_FILTER_VALUE) {
+      return task.assignees.length === 0;
+    }
+
+    return task.assignees.some((assignee) => assignee.id === this.assigneeFilter);
   }
 
   private async onStageChange(e: CustomEvent) {
@@ -264,7 +280,15 @@ export class FtKanbanView extends LitElement {
   }
 
   render() {
-    const onHoldTotal = this.onHoldTotal;
+    const boardColumns = BOARD_COLUMNS.map((col) => ({
+      ...col,
+      tasks: this.getColumnTasks(col.stage),
+    }));
+    const onHoldColumns = ON_HOLD_STAGES.map((col) => ({
+      ...col,
+      tasks: this.getColumnTasks(col.stage),
+    }));
+    const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
 
     return html`
       <div class="view-header">
@@ -281,11 +305,11 @@ export class FtKanbanView extends LitElement {
         @column-add-task=${this.onColumnAddTask}
         @column-nav=${this.onColumnNav}
       >
-        ${BOARD_COLUMNS.map(
+        ${boardColumns.map(
           (col) => html`
             <ft-kanban-column
               .stage=${col.stage}
-              .tasks=${this.getColumnTasks(col.stage)}
+              .tasks=${col.tasks}
               .label=${col.label}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
@@ -312,11 +336,11 @@ export class FtKanbanView extends LitElement {
                       @column-add-task=${this.onColumnAddTask}
                       @column-nav=${this.onColumnNav}
                     >
-                      ${ON_HOLD_STAGES.map(
+                      ${onHoldColumns.map(
                         (col) => html`
                           <ft-kanban-column
                             .stage=${col.stage}
-                            .tasks=${this.getColumnTasks(col.stage)}
+                            .tasks=${col.tasks}
                             .label=${col.label}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
