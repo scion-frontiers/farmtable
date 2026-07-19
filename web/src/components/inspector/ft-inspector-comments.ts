@@ -131,13 +131,14 @@ export class FtInspectorComments extends LitElement {
   }
 
   private onKeyDown(e: KeyboardEvent) {
-    if (e.key !== 'Enter' || e.shiftKey) return;
-    e.preventDefault();
-    this.submitComment();
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      this.submitComment();
+    }
   }
 
   private async submitComment() {
-    const body = this.draft.trim();
+    const body = this.trimmedDraft;
     if (!body) {
       this.errorMessage = 'Enter a comment before submitting.';
       return;
@@ -164,6 +165,10 @@ export class FtInspectorComments extends LitElement {
     return comment.author.name.trim() || comment.author.id || 'Unknown author';
   }
 
+  private get trimmedDraft(): string {
+    return this.draft.trim();
+  }
+
   render() {
     const count = this.loaded ? this.comments.length : '';
     const summary = `Comments${count !== '' ? ` (${count})` : ''}`;
@@ -172,7 +177,7 @@ export class FtInspectorComments extends LitElement {
       <sl-details summary=${summary} @sl-show=${this.onExpand}>
         ${this.errorMessage
           ? html`
-              <sl-alert variant="danger" open>
+              <sl-alert variant="danger" open closable>
                 ${this.errorMessage}
               </sl-alert>
             `
@@ -205,6 +210,7 @@ export class FtInspectorComments extends LitElement {
         <div class="comment-form">
           <sl-textarea
             label="Add comment"
+            placeholder="Ctrl+Enter to submit"
             rows="3"
             resize="auto"
             value=${this.draft}
@@ -217,7 +223,7 @@ export class FtInspectorComments extends LitElement {
               size="small"
               variant="primary"
               ?loading=${this.submitting}
-              ?disabled=${!this.draft.trim() || this.submitting}
+              ?disabled=${!this.trimmedDraft || this.submitting}
               @click=${this.submitComment}
             >
               Add comment
