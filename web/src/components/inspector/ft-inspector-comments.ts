@@ -149,7 +149,7 @@ export class FtInspectorComments extends LitElement {
     this.errorMessage = '';
     try {
       const comment = await this.client.addComment(this.taskId, body);
-      this.comments = [...this.comments, comment];
+      this.comments = [comment, ...this.comments];
       this.loaded = true;
       this.draft = '';
       await this.updateComplete;
@@ -177,7 +177,7 @@ export class FtInspectorComments extends LitElement {
       <sl-details summary=${summary} @sl-show=${this.onExpand}>
         ${this.errorMessage
           ? html`
-              <sl-alert variant="danger" open closable>
+              <sl-alert variant="danger" open closable @sl-after-hide=${() => { this.errorMessage = ''; }}>
                 ${this.errorMessage}
               </sl-alert>
             `
