@@ -2,7 +2,6 @@ import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { platformLabel } from '../util/platform-label.js';
-import type { GrpcFarmTableClient } from '../gen/grpc-client.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
@@ -328,8 +327,7 @@ export class FtToolbar extends LitElement {
 
     this.exporting = true;
     try {
-      const client = this.unscopedClient as GrpcFarmTableClient;
-      const result = await client.exportCollection(this.collectionId, false);
+      const result = await this.unscopedClient.exportCollection(this.collectionId, false);
 
       const collName = this.currentCollection?.name ?? 'collection';
       const safeName = collName.replace(/[^a-zA-Z0-9_-]/g, '-');

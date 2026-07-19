@@ -1,6 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import type { GrpcFarmTableClient } from '../gen/grpc-client.js';
+import type { FarmTableServiceClient } from '../gen/service.js';
+
+const MAX_IMPORT_SIZE = 50 * 1024 * 1024;
 
 export interface CollectionImportDetail {
   collectionId: string;
@@ -78,7 +80,7 @@ export class FtImportCollectionDialog extends LitElement {
     }
   `;
 
-  @property({ attribute: false }) client: any;
+  @property({ attribute: false }) client?: FarmTableServiceClient;
 
   @query('sl-dialog')
   private dialog!: ShoelaceDialog;
@@ -88,9 +90,6 @@ export class FtImportCollectionDialog extends LitElement {
 
   @query('sl-input[name="name"]')
   private nameInput!: ShoelaceInput;
-
-  @state()
-  private open = false;
 
   @state()
   private file: File | null = null;
@@ -110,7 +109,6 @@ export class FtImportCollectionDialog extends LitElement {
   private fileText = '';
 
   async show() {
-    this.open = true;
     await this.updateComplete;
     await this.dialog.show();
   }
@@ -133,6 +131,12 @@ export class FtImportCollectionDialog extends LitElement {
     this.fileText = '';
 
     if (!file) return;
+    if (file.size > MAX_IMPORT_SIZE) {
+      this.file = null;
+      this.error = 'File too large. Maximum import size is 50 MB.';
+      this.fileInput.value = '';
+      return;
+    }
 
     try {
       const text = await this.readFile(file);
@@ -206,8 +210,7 @@ export class FtImportCollectionDialog extends LitElement {
     this.error = '';
     try {
       const data = new TextEncoder().encode(this.fileText);
-      const grpcClient = this.client as GrpcFarmTableClient;
-      const result = await grpcClient.importCollection(data, name, false);
+      const result = await this.client.importCollection(data, name, false);
       const message = this.successMessage(result.warnings);
 
       this.dispatchEvent(
@@ -230,7 +233,6 @@ export class FtImportCollectionDialog extends LitElement {
   }
 
   private onAfterHide() {
-    this.open = false;
     this.file = null;
     this.preview = null;
     this.collectionName = '';
@@ -250,7 +252,6 @@ export class FtImportCollectionDialog extends LitElement {
     return html`
       <sl-dialog
         label="Import Collection"
-        ?open=${this.open}
         @sl-after-hide=${this.onAfterHide}
         @sl-request-close=${this.onRequestClose}
       >
