@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Task, User } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
@@ -117,9 +117,29 @@ export class FtInspectorMeta extends LitElement {
   /** Cached user list from listUsers(); cleared when the client changes. */
   private userCache: User[] | null = null;
 
+  private prevTaskId = '';
+
+  override willUpdate(changedProps: PropertyValues<this>) {
+    if (!changedProps.has('task')) return;
+
+    // task is an object reference; guard by ID so store refreshes for the same task keep edits intact.
+    const nextTaskId = this.task?.id ?? '';
+    if (nextTaskId !== this.prevTaskId) {
+      this.prevTaskId = nextTaskId;
+      this.resetEditState();
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeDismissListener();
+    document.removeEventListener('keydown', this.onDocumentKeyDown);
+  }
+
   private async startDateEdit(field: EditableDateField) {
     this.editingDate = field;
     this.dateDraft = this.dateInputValue(this.task[field]);
+    this.addDismissListener();
     await this.updateComplete;
     this.renderRoot.querySelector<HTMLElement>('sl-input.date-input')?.focus();
   }
@@ -145,6 +165,7 @@ export class FtInspectorMeta extends LitElement {
     const currentValue = this.dateInputValue(this.task[field]);
     const nextValue = this.dateDraft ? `${this.dateDraft}T00:00:00.000Z` : null;
     this.editingDate = null;
+    this.removeDismissListenerIfIdle();
 
     if (this.dateDraft === currentValue) return;
     // TS cannot narrow this computed date field key to the matching update shape.
@@ -160,6 +181,7 @@ export class FtInspectorMeta extends LitElement {
   private cancelDateEdit() {
     this.editingDate = null;
     this.dateDraft = '';
+    this.removeDismissListenerIfIdle();
   }
 
   private onLabelRemove(e: Event) {
@@ -170,6 +192,7 @@ export class FtInspectorMeta extends LitElement {
   private async startLabelAdd() {
     this.addingLabel = true;
     this.labelDraft = '';
+    this.addDismissListener();
     await this.updateComplete;
     this.renderRoot.querySelector<HTMLElement>('sl-input.label-input')?.focus();
   }
@@ -194,6 +217,7 @@ export class FtInspectorMeta extends LitElement {
 
     this.addingLabel = false;
     this.labelDraft = '';
+    this.removeDismissListenerIfIdle();
 
     if (this.task.labels.includes(label)) return;
     this.dispatchTaskUpdate({ addLabels: [label] });
@@ -202,6 +226,7 @@ export class FtInspectorMeta extends LitElement {
   private cancelLabelAdd() {
     this.addingLabel = false;
     this.labelDraft = '';
+    this.removeDismissListenerIfIdle();
   }
 
   private onAssigneeRemove(e: Event) {
@@ -219,6 +244,7 @@ export class FtInspectorMeta extends LitElement {
   private async startAssigneePick() {
     if (!this.client) return; // S-4: no-op when client is absent
     this.pickingAssignee = true;
+    this.addDismissListener();
     try {
       if (!this.userCache) {
         this.userCache = await this.client.listUsers();
@@ -231,12 +257,14 @@ export class FtInspectorMeta extends LitElement {
 
   private cancelAssigneePick() {
     this.pickingAssignee = false;
+    this.removeDismissListenerIfIdle();
   }
 
   private onAssigneeSelect(userId: string) {
     const currentIds = this.task.assignees.map((u) => u.id);
     if (currentIds.includes(userId)) return;
     this.pickingAssignee = false;
+    this.removeDismissListenerIfIdle();
     this.dispatchTaskUpdate({ assigneeIds: [...currentIds, userId] });
   }
 
@@ -250,11 +278,6 @@ export class FtInspectorMeta extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     document.addEventListener('keydown', this.onDocumentKeyDown);
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('keydown', this.onDocumentKeyDown);
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
@@ -272,6 +295,40 @@ export class FtInspectorMeta extends LitElement {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '';
     return date.toISOString().slice(0, 10);
+  }
+
+  private resetEditState() {
+    this.editingDate = null;
+    this.dateDraft = '';
+    this.addingLabel = false;
+    this.labelDraft = '';
+    this.pickingAssignee = false;
+    this.availableUsers = []; // Clear rendered list; intentionally keep userCache for next pick.
+    this.removeDismissListener();
+  }
+
+  private onDocumentPointerDown = (e: PointerEvent) => {
+    if (!this.hasActiveEditor()) return;
+    if (e.composedPath().includes(this)) return;
+    this.resetEditState();
+  };
+
+  private hasActiveEditor() {
+    return this.editingDate !== null || this.addingLabel || this.pickingAssignee;
+  }
+
+  private addDismissListener() {
+    document.addEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
+  }
+
+  private removeDismissListenerIfIdle() {
+    if (!this.hasActiveEditor()) {
+      this.removeDismissListener();
+    }
+  }
+
+  private removeDismissListener() {
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
   }
 
   private renderDateRow(label: string, field: EditableDateField, value: string | undefined) {

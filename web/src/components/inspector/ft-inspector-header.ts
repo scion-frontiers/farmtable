@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
 import { TaskPhase, TaskStage, TaskPriority } from '../../gen/types.js';
@@ -119,6 +119,23 @@ export class FtInspectorHeader extends LitElement {
   @state()
   private isEditingPriority = false;
 
+  private prevTaskId = '';
+
+  override willUpdate(changedProps: PropertyValues<this>) {
+    if (!changedProps.has('task')) return;
+
+    // task is an object reference; guard by ID so store refreshes for the same task keep edits intact.
+    const nextTaskId = this.task?.id ?? '';
+    if (nextTaskId !== this.prevTaskId) {
+      this.prevTaskId = nextTaskId;
+      this.resetEditState();
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+  }
+
   private stopInspectorInteraction(e: Event) {
     e.stopPropagation();
   }
@@ -151,6 +168,19 @@ export class FtInspectorHeader extends LitElement {
     this.isEditingPriority = false;
   }
 
+  private onPriorityKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      // Complements sl-after-hide, which handles native popup close/outside-click dismissal.
+      e.preventDefault();
+      e.stopPropagation();
+      this.onPriorityBlur();
+    }
+  }
+
+  private resetEditState() {
+    this.isEditingPriority = false;
+  }
+
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
     this.dispatchEvent(
       new CustomEvent('task-update', {
@@ -170,6 +200,7 @@ export class FtInspectorHeader extends LitElement {
         hoist
         @mousedown=${this.stopInspectorInteraction}
         @click=${this.stopInspectorInteraction}
+        @keydown=${this.onPriorityKeyDown}
         @sl-change=${this.onPriorityChange}
         @sl-after-hide=${this.onPriorityBlur}
       >
