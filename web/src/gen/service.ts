@@ -13,10 +13,12 @@ import {
   IdentityStatus,
 } from './types.js';
 
-export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 'startDate'> & {
+export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 'startDate' | 'labels'> & {
   parentTaskId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
+  addLabels?: string[];
+  removeLabels?: string[];
 };
 export interface CreateTaskFields {
   name: string;
@@ -35,7 +37,7 @@ export interface FarmTableServiceClient {
 }
 
 export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Task {
-  const { parentTaskId, dueDate, startDate, ...rest } = fields;
+  const { parentTaskId, dueDate, startDate, addLabels, removeLabels, ...rest } = fields;
   const updated: Task = { ...task, ...rest };
 
   if (parentTaskId === null) {
@@ -54,6 +56,19 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
     delete updated.startDate;
   } else if (startDate !== undefined) {
     updated.startDate = startDate;
+  }
+
+  if (addLabels !== undefined) {
+    const labels = new Set(updated.labels);
+    for (const label of addLabels) {
+      labels.add(label);
+    }
+    updated.labels = [...labels];
+  }
+
+  if (removeLabels !== undefined) {
+    const labelsToRemove = new Set(removeLabels);
+    updated.labels = updated.labels.filter((label) => !labelsToRemove.has(label));
   }
 
   return updated;

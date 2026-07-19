@@ -185,6 +185,8 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     } else if (fields.parentTaskId !== undefined) {
       request.parentTaskId = fields.parentTaskId;
     }
+    if (fields.addLabels?.length) request.addLabels = fields.addLabels;
+    if (fields.removeLabels?.length) request.removeLabels = fields.removeLabels;
     if (fields.version !== undefined) request.version = fields.version;
 
     const response = await this.unary(methods.updateTask, request);
