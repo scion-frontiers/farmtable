@@ -3,20 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import type { Task, Relationship } from '../../gen/types.js';
 import { RelationshipType } from '../../gen/types.js';
 import type { TaskStore } from '../../store/task-store.js';
-
-const REL_GROUP_LABEL: Record<number, string> = {
-  [RelationshipType.BLOCKED_BY]: 'Blocked by',
-  [RelationshipType.BLOCKS]: 'Blocks',
-  [RelationshipType.RELATED]: 'Related',
-  [RelationshipType.DUPLICATE]: 'Duplicate of',
-};
-
-const REL_GROUP_ORDER = [
-  RelationshipType.BLOCKED_BY,
-  RelationshipType.BLOCKS,
-  RelationshipType.RELATED,
-  RelationshipType.DUPLICATE,
-];
+import { REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
 
 @customElement('ft-inspector-relations')
 export class FtInspectorRelations extends LitElement {
