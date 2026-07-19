@@ -39,6 +39,25 @@ export class FtInspector extends LitElement {
       flex: 1;
       overflow-y: auto;
     }
+    sl-tab-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    sl-tab-group::part(body) {
+      flex: 1;
+      overflow: hidden;
+    }
+    sl-tab-panel {
+      height: 100%;
+      overflow-y: auto;
+    }
+    sl-tab-panel::part(base) {
+      padding: 0.5rem 0 0;
+      height: 100%;
+      overflow-y: auto;
+    }
     sl-divider {
       --spacing: 0.75rem;
     }
@@ -111,48 +130,62 @@ export class FtInspector extends LitElement {
         ></sl-icon-button>
       </div>
 
-      <div class="body" tabindex="0">
-        <ft-inspector-header .task=${task}></ft-inspector-header>
+      <sl-tab-group>
+        <sl-tab slot="nav" panel="general" active>General</sl-tab>
+        <sl-tab slot="nav" panel="relationships">Relationships</sl-tab>
 
-        <sl-divider></sl-divider>
+        <sl-tab-panel name="general" active>
+          <div class="body" tabindex="0">
+            <ft-inspector-header .task=${task}></ft-inspector-header>
 
-        <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
+            <sl-divider></sl-divider>
 
-        <sl-divider></sl-divider>
+            <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
 
-        <ft-inspector-desc
-          taskId=${task.id}
-          .description=${task.description}
-        ></ft-inspector-desc>
+            <sl-divider></sl-divider>
 
-        ${task.relationships.length > 0
-          ? html`
-              <sl-divider></sl-divider>
-              <ft-inspector-relations .task=${task} .store=${this.store}></ft-inspector-relations>
-            `
-          : nothing}
+            <ft-inspector-desc
+              taskId=${task.id}
+              .description=${task.description}
+            ></ft-inspector-desc>
 
-        ${task.codeContext
-          ? html`
-              <sl-divider></sl-divider>
-              <ft-inspector-code .codeContext=${task.codeContext}></ft-inspector-code>
-            `
-          : nothing}
+            ${task.relationships.length > 0
+              ? html`
+                  <sl-divider></sl-divider>
+                  <ft-inspector-relations .task=${task} .store=${this.store}></ft-inspector-relations>
+                `
+              : nothing}
 
-        <sl-divider></sl-divider>
+            ${task.codeContext
+              ? html`
+                  <sl-divider></sl-divider>
+                  <ft-inspector-code .codeContext=${task.codeContext}></ft-inspector-code>
+                `
+              : nothing}
 
-        <ft-inspector-comments
-          taskId=${this.taskId}
-          .client=${this.client}
-        ></ft-inspector-comments>
+            <sl-divider></sl-divider>
 
-        <sl-divider></sl-divider>
+            <ft-inspector-comments
+              taskId=${this.taskId}
+              .client=${this.client}
+            ></ft-inspector-comments>
 
-        <ft-inspector-changes
-          taskId=${this.taskId}
-          .client=${this.client}
-        ></ft-inspector-changes>
-      </div>
+            <sl-divider></sl-divider>
+
+            <ft-inspector-changes
+              taskId=${this.taskId}
+              .client=${this.client}
+            ></ft-inspector-changes>
+          </div>
+        </sl-tab-panel>
+
+        <sl-tab-panel name="relationships">
+          <ft-inspector-relationships
+            .task=${task}
+            .store=${this.store}
+          ></ft-inspector-relationships>
+        </sl-tab-panel>
+      </sl-tab-group>
     `;
   }
 }
