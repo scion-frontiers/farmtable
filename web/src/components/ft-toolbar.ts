@@ -1,10 +1,18 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { TaskPhase, type User } from '../gen/types.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-collection-picker.js';
+import './ft-new-collection-dialog.js';
+
+type NewCollectionDialog = HTMLElement & {
+  show(): Promise<void>;
+  close(): void;
+  setCreating(v: boolean): void;
+  setError(msg: string): void;
+};
 
 // UNSPECIFIED is the protobuf default, not a user-selectable task phase.
 const PHASE_OPTIONS = [
@@ -85,6 +93,9 @@ export class FtToolbar extends LitElement {
   @state()
   private usersLoading = false;
 
+  @query('ft-new-collection-dialog')
+  private newCollectionDialog!: NewCollectionDialog;
+
   private userLoadToken = 0;
 
   override updated(changedProps: PropertyValues<this>) {
@@ -104,6 +115,12 @@ export class FtToolbar extends LitElement {
           .collectionId=${this.collectionId}
           @collection-select=${this.onCollectionSelect}
         ></ft-collection-picker>
+        <sl-icon-button
+          class="toolbar-icon-button"
+          name="plus-circle"
+          label="New collection"
+          @click=${this.onNewCollectionClick}
+        ></sl-icon-button>
       </div>
 
       <span class="title">Farm Table</span>
@@ -170,7 +187,35 @@ export class FtToolbar extends LitElement {
       ></sl-icon-button>
 
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
+
+      <ft-new-collection-dialog
+        @collection-create=${this.onCollectionCreate}
+      ></ft-new-collection-dialog>
     `;
+  }
+
+  private async onNewCollectionClick() {
+    await this.newCollectionDialog.show();
+  }
+
+  private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
+    const dialog = this.newCollectionDialog;
+    dialog.setError('');
+    dialog.setCreating(true);
+    try {
+      const collection = await this.unscopedClient!.createCollection(e.detail.name);
+      dialog.close();
+      this.dispatchEvent(new CustomEvent('collection-select', {
+        detail: { collectionId: collection.id },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (error) {
+      dialog.setError('Failed to create collection. Please try again.');
+      console.warn('Failed to create collection', error);
+    } finally {
+      dialog.setCreating(false);
+    }
   }
 
   private onToggleTheme() {
