@@ -2098,6 +2098,44 @@
                 }
               }
             },
+            "UpdateCollectionRequest": {
+              "oneofs": {
+                "_name": {
+                  "oneof": [
+                    "name"
+                  ]
+                },
+                "_description": {
+                  "oneof": [
+                    "description"
+                  ]
+                }
+              },
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1,
+                  "options": {
+                    "(buf.validate.field).string.uuid": true
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "(buf.validate.field).string.min_len": 1,
+                    "proto3_optional": true
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "id": 3,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                }
+              }
+            },
             "GetReadyTasksRequest": {
               "oneofs": {
                 "_collectionId": {
@@ -2926,6 +2964,10 @@
                 },
                 "CreateCollection": {
                   "requestType": "CreateCollectionRequest",
+                  "responseType": "Collection"
+                },
+                "UpdateCollection": {
+                  "requestType": "UpdateCollectionRequest",
                   "responseType": "Collection"
                 },
                 "GetReadyTasks": {

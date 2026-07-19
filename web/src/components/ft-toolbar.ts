@@ -1,16 +1,25 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { TaskPhase, type Collection, type User } from '../gen/types.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
+import type { FtCollectionPicker } from './ft-collection-picker.js';
 import './ft-collection-picker.js';
 import './ft-new-collection-dialog.js';
+import './ft-collection-settings-dialog.js';
 
 type NewCollectionDialog = HTMLElement & {
   show(): Promise<void>;
   close(): void;
   setCreating(v: boolean): void;
+  setError(msg: string): void;
+};
+
+type CollectionSettingsDialog = HTMLElement & {
+  show(collection: Collection): Promise<void>;
+  close(): void;
+  setSaving(v: boolean): void;
   setError(msg: string): void;
 };
 
@@ -96,6 +105,12 @@ export class FtToolbar extends LitElement {
   @query('ft-new-collection-dialog')
   private newCollectionDialog!: NewCollectionDialog;
 
+  @query('ft-collection-settings-dialog')
+  private collectionSettingsDialog!: CollectionSettingsDialog;
+
+  @query('ft-collection-picker')
+  private collectionPicker!: FtCollectionPicker;
+
   private userLoadToken = 0;
 
   override updated(changedProps: PropertyValues<this>) {
@@ -120,6 +135,12 @@ export class FtToolbar extends LitElement {
           name="plus-circle"
           label="New collection"
           @click=${this.onNewCollectionClick}
+        ></sl-icon-button>
+        <sl-icon-button
+          class="toolbar-icon-button"
+          name="gear"
+          label="Collection settings"
+          @click=${this.onCollectionSettingsClick}
         ></sl-icon-button>
       </div>
 
@@ -191,11 +212,25 @@ export class FtToolbar extends LitElement {
       <ft-new-collection-dialog
         @collection-create=${this.onCollectionCreate}
       ></ft-new-collection-dialog>
+      <ft-collection-settings-dialog
+        @collection-update=${this.onCollectionUpdate}
+      ></ft-collection-settings-dialog>
     `;
   }
 
   private async onNewCollectionClick() {
     await this.newCollectionDialog.show();
+  }
+
+  private async onCollectionSettingsClick() {
+    if (!this.unscopedClient || !this.collectionId) return;
+
+    try {
+      const collection = await this.unscopedClient.getCollection(this.collectionId);
+      await this.collectionSettingsDialog.show(collection);
+    } catch (error) {
+      console.warn('Failed to load collection settings', error);
+    }
   }
 
   private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
@@ -219,6 +254,29 @@ export class FtToolbar extends LitElement {
       console.warn('Failed to create collection', error);
     } finally {
       dialog.setCreating(false);
+    }
+  }
+
+  private async onCollectionUpdate(e: CustomEvent<{ id: string; name: string; description?: string }>) {
+    const dialog = this.collectionSettingsDialog;
+    if (!this.unscopedClient) {
+      dialog.setError('Service not available. Please reload.');
+      return;
+    }
+    dialog.setError('');
+    dialog.setSaving(true);
+    try {
+      await this.unscopedClient.updateCollection(e.detail.id, {
+        name: e.detail.name,
+        description: e.detail.description ?? '',
+      });
+      dialog.close();
+      await this.collectionPicker.refresh();
+    } catch (error) {
+      dialog.setError('Failed to update collection. Please try again.');
+      console.warn('Failed to update collection', error);
+    } finally {
+      dialog.setSaving(false);
     }
   }
 

@@ -692,6 +692,12 @@ message CreateCollectionRequest {
   optional string description = 2;
 }
 
+message UpdateCollectionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  optional string name = 2 [(buf.validate.field).string.min_len = 1];
+  optional string description = 3;
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Graph Query RPC Messages
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -956,6 +962,7 @@ service FarmTableService {
   // Creates a collection in the built-in backend. External platform
   // collections are created through the admin/setup flow.
   rpc CreateCollection(CreateCollectionRequest) returns (Collection);
+  rpc UpdateCollection(UpdateCollectionRequest) returns (Collection);
 
   // ── Graph Queries ──
 

@@ -883,6 +883,24 @@ func (s *EntStore) CreateCollection(ctx context.Context, p CreateCollectionParam
 	return c, nil
 }
 
+func (s *EntStore) UpdateCollection(ctx context.Context, id uuid.UUID, p UpdateCollectionParams) (*ent.Collection, error) {
+	update := s.client.Collection.UpdateOneID(id)
+	if p.Name != nil {
+		update.SetName(*p.Name)
+	}
+	if p.Description != nil {
+		update.SetDescription(*p.Description)
+	}
+	c, err := update.Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("updating collection: %w", err)
+	}
+	return c, nil
+}
+
 func (s *EntStore) GetCollection(ctx context.Context, id uuid.UUID) (*ent.Collection, error) {
 	c, err := s.client.Collection.Get(ctx, id)
 	if err != nil {

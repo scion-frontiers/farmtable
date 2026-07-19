@@ -520,6 +520,10 @@ func (s *GitHubPassThroughStore) CreateCollection(ctx context.Context, p store.C
 	return s.syntheticCollection(), nil
 }
 
+func (s *GitHubPassThroughStore) UpdateCollection(ctx context.Context, id uuid.UUID, p store.UpdateCollectionParams) (*ent.Collection, error) {
+	return nil, fmt.Errorf("update collection: %w", store.ErrNotImplemented)
+}
+
 func (s *GitHubPassThroughStore) GetCollection(ctx context.Context, id uuid.UUID) (*ent.Collection, error) {
 	return s.syntheticCollection(), nil
 }

@@ -128,6 +128,10 @@ export class FtCollectionPicker extends LitElement {
     }
   }
 
+  async refresh() {
+    await this.loadCollections();
+  }
+
   render() {
     const currentCollection = this.collections.find((collection) => collection.id === this.collectionId);
     const triggerLabel = currentCollection?.name ?? (this.isLoading ? 'Loading collection' : 'Select collection');

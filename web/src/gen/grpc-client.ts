@@ -113,6 +113,7 @@ const methods = {
   listCollections: unaryMethod('ListCollections', 'ListCollectionsRequest', 'ListCollectionsResponse'),
   getCollection: unaryMethod('GetCollection', 'GetCollectionRequest', 'Collection'),
   createCollection: unaryMethod('CreateCollection', 'CreateCollectionRequest', 'Collection'),
+  updateCollection: unaryMethod('UpdateCollection', 'UpdateCollectionRequest', 'Collection'),
   listUsers: unaryMethod('ListUsers', 'ListUsersRequest', 'ListUsersResponse'),
   watchTasks: streamMethod('WatchTasks', 'WatchTasksRequest', 'TaskEvent'),
 };
@@ -146,6 +147,11 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
 
   async createCollection(name: string): Promise<Collection> {
     const response = await this.unary(methods.createCollection, { name });
+    return toCollection(response);
+  }
+
+  async updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection> {
+    const response = await this.unary(methods.updateCollection, { id, ...fields });
     return toCollection(response);
   }
 

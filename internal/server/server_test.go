@@ -78,6 +78,38 @@ func TestRPC_CreateAndGetTask(t *testing.T) {
 	}
 }
 
+func TestRPC_UpdateCollection(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
+		Name:        "collection before",
+		Description: strPtr("description before"),
+	})
+	if err != nil {
+		t.Fatalf("CreateCollection: %v", err)
+	}
+
+	updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
+		Id:          created.GetId(),
+		Name:        strPtr("collection after"),
+		Description: strPtr("description after"),
+	})
+	if err != nil {
+		t.Fatalf("UpdateCollection: %v", err)
+	}
+	if updated.GetId() != created.GetId() {
+		t.Errorf("id = %q, want %q", updated.GetId(), created.GetId())
+	}
+	if updated.GetName() != "collection after" {
+		t.Errorf("name = %q, want %q", updated.GetName(), "collection after")
+	}
+	if updated.GetDescription() != "description after" {
+		t.Errorf("description = %q, want %q", updated.GetDescription(), "description after")
+	}
+}
+
 func TestRPC_CreateTask_InvalidInput(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
