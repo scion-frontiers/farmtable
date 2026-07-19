@@ -138,8 +138,10 @@ export class FtInspectorMeta extends LitElement {
     this.dateDraft = '';
   }
 
-  private removeLabel(label: string) {
-    this.dispatchTaskUpdate({ removeLabels: [label] });
+  private onLabelRemove(e: Event) {
+    const tag = e.currentTarget as HTMLElement;
+    const label = tag.textContent?.trim();
+    if (label) this.dispatchTaskUpdate({ removeLabels: [label] });
   }
 
   private async startLabelAdd() {
@@ -210,7 +212,7 @@ export class FtInspectorMeta extends LitElement {
                     class="date-input"
                     size="small"
                     type="date"
-                    value=${this.dateDraft}
+                    .value=${this.dateDraft}
                     @input=${this.onDateInput}
                     @keydown=${this.onDateKeyDown}
                   ></sl-input>
@@ -264,7 +266,7 @@ export class FtInspectorMeta extends LitElement {
                   size="small"
                   variant="neutral"
                   removable
-                  @sl-remove=${() => this.removeLabel(label)}
+                  @sl-remove=${this.onLabelRemove}
                 >
                   ${label}
                 </sl-tag>
@@ -276,9 +278,10 @@ export class FtInspectorMeta extends LitElement {
               <sl-input
                 class="label-input"
                 size="small"
-                value=${this.labelDraft}
+                .value=${this.labelDraft}
                 @input=${this.onLabelInput}
                 @keydown=${this.onLabelKeyDown}
+                @sl-blur=${this.cancelLabelAdd}
               ></sl-input>
               <sl-icon-button
                 name="check2"

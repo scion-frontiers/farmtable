@@ -58,6 +58,7 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
     updated.startDate = startDate;
   }
 
+  // addLabels is applied before removeLabels — order matters if both are present.
   if (addLabels !== undefined) {
     const labels = new Set(updated.labels);
     for (const label of addLabels) {
