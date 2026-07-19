@@ -7,6 +7,7 @@ import { TaskPriority, RelationshipType } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 
 const PRIORITY_VARIANT: Record<number, string> = {
+  [TaskPriority.UNSPECIFIED]: 'neutral',
   [TaskPriority.URGENT]: 'danger',
   [TaskPriority.HIGH]: 'warning',
   [TaskPriority.NORMAL]: 'primary',
@@ -249,7 +250,10 @@ export class FtTaskCard extends LitElement {
 
   private onPriorityChange(e: Event) {
     e.stopPropagation();
-    const nextPriority = Number((e.currentTarget as HTMLInputElement).value) as TaskPriority;
+    const raw = Number((e.currentTarget as HTMLInputElement).value);
+    if (Number.isNaN(raw)) return;
+
+    const nextPriority = raw as TaskPriority;
     this.isEditingPriority = false;
 
     if (nextPriority === (this.task.priority ?? TaskPriority.UNSPECIFIED)) return;
@@ -281,7 +285,7 @@ export class FtTaskCard extends LitElement {
         @mousedown=${this.stopCardInteraction}
         @click=${this.stopCardInteraction}
         @sl-change=${this.onPriorityChange}
-        @sl-blur=${this.onPriorityBlur}
+        @sl-after-hide=${this.onPriorityBlur}
       >
         ${PRIORITY_OPTIONS.map(
           (option) => html`
@@ -315,7 +319,7 @@ export class FtTaskCard extends LitElement {
 
     const priority = t.priority ?? TaskPriority.UNSPECIFIED;
     const priorityVariant = PRIORITY_VARIANT[priority] ?? 'neutral';
-    const priorityLabel = PRIORITY_LABEL[priority];
+    const priorityLabel = PRIORITY_LABEL[priority] ?? 'Unknown';
 
     const visibleLabels = t.labels.slice(0, MAX_LABELS);
     const overflowCount = t.labels.length - MAX_LABELS;
@@ -337,6 +341,7 @@ export class FtTaskCard extends LitElement {
                   <sl-input
                     class="title-input"
                     size="small"
+                    maxlength="200"
                     value=${this.titleDraft}
                     @mousedown=${this.stopCardInteraction}
                     @click=${this.stopCardInteraction}
