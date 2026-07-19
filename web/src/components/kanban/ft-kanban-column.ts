@@ -122,17 +122,17 @@ export class FtKanbanColumn extends LitElement {
   @state()
   private activeCardIndex = 0;
 
+  @state()
+  private _sortedTasks: Task[] = [];
+
   private _dragEnterCount = 0;
 
   protected updated(changedProperties: PropertyValues<this>) {
     if (!changedProperties.has('tasks')) return;
 
-    const lastIndex = this.tasks.length - 1;
+    this._sortedTasks = sortTasks(this.tasks);
+    const lastIndex = this._sortedTasks.length - 1;
     this.activeCardIndex = Math.max(0, Math.min(this.activeCardIndex, lastIndex));
-  }
-
-  private get sortedTasks(): Task[] {
-    return sortTasks(this.tasks);
   }
 
   private onDragEnter() {
@@ -249,7 +249,7 @@ export class FtKanbanColumn extends LitElement {
   }
 
   render() {
-    const sorted = this.sortedTasks;
+    const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
 
     return html`
@@ -267,6 +267,8 @@ export class FtKanbanColumn extends LitElement {
       </div>
       <div
         class=${classMap({ cards: true, dragover: this.isDragOver })}
+        role="listbox"
+        aria-label=${this.label}
         @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}

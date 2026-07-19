@@ -361,8 +361,9 @@ export class FtTaskCard extends LitElement {
       <div
         class=${classMap({ 'card-shell': true, selected: this.selected })}
         tabindex=${this.cardTabIndex}
-        role="button"
+        role="option"
         aria-label=${`Task: ${this.task.name}`}
+        aria-selected=${String(this.selected)}
         draggable=${String(!this.isEditingTitle && !this.isEditingPriority)}
         @dragstart=${this.onDragStart}
         @dragend=${this.onDragEnd}
