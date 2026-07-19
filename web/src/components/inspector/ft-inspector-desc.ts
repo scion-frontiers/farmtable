@@ -3,10 +3,13 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector-desc')
 export class FtInspectorDesc extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: block;
     }
@@ -65,7 +68,8 @@ export class FtInspectorDesc extends LitElement {
     sl-textarea {
       --sl-input-font-size-medium: 0.875rem;
     }
-  `;
+  `,
+  ];
 
   @property()
   description?: string;
@@ -106,6 +110,7 @@ export class FtInspectorDesc extends LitElement {
   private onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelEdit();
     } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();

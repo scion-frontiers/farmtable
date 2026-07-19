@@ -3,12 +3,15 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { Task, User } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import { formatDate } from '../../util/format.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
 
 @customElement('ft-inspector-meta')
 export class FtInspectorMeta extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: block;
     }
@@ -88,7 +91,8 @@ export class FtInspectorMeta extends LitElement {
     .assignee-option:hover {
       background: var(--sl-color-neutral-100);
     }
-  `;
+  `,
+  ];
 
   @property({ attribute: false })
   task!: Task;
@@ -133,7 +137,7 @@ export class FtInspectorMeta extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.removeDismissListener();
-    document.removeEventListener('keydown', this.onDocumentKeyDown);
+    document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   private async startDateEdit(field: EditableDateField) {
@@ -154,6 +158,7 @@ export class FtInspectorMeta extends LitElement {
       this.saveDateEdit();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelDateEdit();
     }
   }
@@ -207,6 +212,7 @@ export class FtInspectorMeta extends LitElement {
       this.saveLabelAdd();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelLabelAdd();
     }
   }
@@ -271,13 +277,14 @@ export class FtInspectorMeta extends LitElement {
   private onDocumentKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && this.pickingAssignee) {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelAssigneePick();
     }
   };
 
   override connectedCallback() {
     super.connectedCallback();
-    document.addEventListener('keydown', this.onDocumentKeyDown);
+    document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {

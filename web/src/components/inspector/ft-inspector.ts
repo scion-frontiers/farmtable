@@ -3,10 +3,13 @@ import { customElement, property } from 'lit/decorators.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { TaskStore } from '../../store/task-store.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector')
 export class FtInspector extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -27,9 +30,7 @@ export class FtInspector extends LitElement {
       font-weight: 600;
     }
     .close-btn {
-      cursor: pointer;
       color: var(--sl-color-neutral-500);
-      font-size: 1.125rem;
     }
     .close-btn:hover {
       color: var(--sl-color-neutral-900);
@@ -41,7 +42,8 @@ export class FtInspector extends LitElement {
     sl-divider {
       --spacing: 0.75rem;
     }
-  `;
+  `,
+  ];
 
   @property()
   taskId = '';
@@ -54,15 +56,29 @@ export class FtInspector extends LitElement {
 
   private storeCtrl?: TaskStoreController;
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     if (!this.storeCtrl) {
       this.storeCtrl = new TaskStoreController(this, this.store);
     }
+    this.addEventListener('keydown', this.onBodyKeyDown);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onBodyKeyDown);
   }
 
   private onClose() {
     this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
+  }
+
+  private onBodyKeyDown(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    this.onClose();
   }
 
   render() {
@@ -71,7 +87,12 @@ export class FtInspector extends LitElement {
       return html`
         <div class="header-bar">
           <span class="header-label">Inspector</span>
-          <sl-icon class="close-btn" name="x-lg" @click=${this.onClose}></sl-icon>
+          <sl-icon-button
+            class="close-btn"
+            name="x-lg"
+            label="Close inspector"
+            @click=${this.onClose}
+          ></sl-icon-button>
         </div>
         <div style="color: var(--sl-color-neutral-400); font-style: italic; padding: 1rem 0;">
           Task not found
@@ -82,7 +103,12 @@ export class FtInspector extends LitElement {
     return html`
       <div class="header-bar">
         <span class="header-label">Inspector</span>
-        <sl-icon class="close-btn" name="x-lg" @click=${this.onClose}></sl-icon>
+        <sl-icon-button
+          class="close-btn"
+          name="x-lg"
+          label="Close inspector"
+          @click=${this.onClose}
+        ></sl-icon-button>
       </div>
 
       <div class="body" tabindex="0">
