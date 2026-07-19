@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import type { Task } from '../../gen/types.js';
-import type { UpdateTaskFields } from '../../gen/service.js';
+import type { Task, User } from '../../gen/types.js';
+import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import { formatDate } from '../../util/format.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
@@ -34,12 +34,6 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.375rem;
       flex-wrap: wrap;
       justify-content: flex-end;
-    }
-    .assignee {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.8125rem;
     }
     .labels {
       display: flex;
@@ -76,10 +70,31 @@ export class FtInspectorMeta extends LitElement {
       --sl-input-height-small: 1.75rem;
       --sl-input-font-size-small: 0.8125rem;
     }
+    .assignee-picker {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      margin-top: 0.25rem;
+    }
+    .assignee-option {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      border-radius: var(--sl-border-radius-small);
+    }
+    .assignee-option:hover {
+      background: var(--sl-color-neutral-100);
+    }
   `;
 
   @property({ attribute: false })
   task!: Task;
+
+  @property({ attribute: false })
+  client?: FarmTableServiceClient;
 
   @state()
   private editingDate: EditableDateField | null = null;
@@ -92,6 +107,15 @@ export class FtInspectorMeta extends LitElement {
 
   @state()
   private labelDraft = '';
+
+  @state()
+  private pickingAssignee = false;
+
+  @state()
+  private availableUsers: User[] = [];
+
+  /** Cached user list from listUsers(); cleared when the client changes. */
+  private userCache: User[] | null = null;
 
   private async startDateEdit(field: EditableDateField) {
     this.editingDate = field;
@@ -180,6 +204,59 @@ export class FtInspectorMeta extends LitElement {
     this.labelDraft = '';
   }
 
+  private onAssigneeRemove(e: Event) {
+    const userId = (e.currentTarget as HTMLElement).dataset.userId;
+    if (!userId) return;
+    const currentIds = this.task.assignees.map((u) => u.id);
+    const newIds = currentIds.filter((id) => id !== userId);
+    if (newIds.length === 0) {
+      this.dispatchTaskUpdate({ clearAssignees: true });
+    } else {
+      this.dispatchTaskUpdate({ assigneeIds: newIds });
+    }
+  }
+
+  private async startAssigneePick() {
+    if (!this.client) return; // S-4: no-op when client is absent
+    this.pickingAssignee = true;
+    try {
+      if (!this.userCache) {
+        this.userCache = await this.client.listUsers();
+      }
+      this.availableUsers = this.userCache;
+    } catch {
+      this.availableUsers = [];
+    }
+  }
+
+  private cancelAssigneePick() {
+    this.pickingAssignee = false;
+  }
+
+  private onAssigneeSelect(userId: string) {
+    const currentIds = this.task.assignees.map((u) => u.id);
+    if (currentIds.includes(userId)) return;
+    this.pickingAssignee = false;
+    this.dispatchTaskUpdate({ assigneeIds: [...currentIds, userId] });
+  }
+
+  private onDocumentKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.pickingAssignee) {
+      e.preventDefault();
+      this.cancelAssigneePick();
+    }
+  };
+
+  override connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener('keydown', this.onDocumentKeyDown);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.onDocumentKeyDown);
+  }
+
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
     this.dispatchEvent(
       new CustomEvent('task-update', {
@@ -253,6 +330,65 @@ export class FtInspectorMeta extends LitElement {
     `;
   }
 
+  private renderAssignees() {
+    const assignees = this.task.assignees;
+    const assignedIds = new Set(assignees.map((u) => u.id));
+    const unassignedUsers = this.availableUsers.filter((u) => !assignedIds.has(u.id));
+
+    return html`
+      <span class="assignees">
+        ${assignees.length > 0
+          ? assignees.map(
+              (u) => html`
+                <sl-tag
+                  data-user-id=${u.id}
+                  size="small"
+                  variant="neutral"
+                  removable
+                  @sl-remove=${this.onAssigneeRemove}
+                >
+                  ${u.name}
+                </sl-tag>
+              `,
+            )
+          : html`<span class="empty">Unassigned</span>`}
+        ${this.pickingAssignee
+          ? html`
+              <sl-icon-button
+                name="x-lg"
+                label="Cancel assignee pick"
+                @click=${this.cancelAssigneePick}
+              ></sl-icon-button>
+              <div class="assignee-picker">
+                ${unassignedUsers.length > 0
+                  ? unassignedUsers.map(
+                      (u) => html`
+                        <span class="assignee-option" @click=${() => this.onAssigneeSelect(u.id)}>
+                          <sl-avatar
+                            initials=${u.name.slice(0, 2)}
+                            label=${u.name}
+                            style="--size: 1.4rem; font-size: 0.55rem;"
+                          ></sl-avatar>
+                          ${u.name}
+                        </span>
+                      `,
+                    )
+                  : html`<span class="empty">No users available</span>`}
+              </div>
+            `
+          : this.client
+            ? html`
+                <sl-icon-button
+                  name="plus-lg"
+                  label="Add assignee"
+                  @click=${this.startAssigneePick}
+                ></sl-icon-button>
+              `
+            : nothing}
+      </span>
+    `;
+  }
+
   private renderLabels() {
     const labels = this.task.labels;
 
@@ -311,24 +447,7 @@ export class FtInspectorMeta extends LitElement {
     return html`
       <div class="row">
         <span class="label">Assignees</span>
-        <span class="value">
-          ${t.assignees.length > 0
-            ? html`<span class="assignees">
-                ${t.assignees.map(
-                  (u) => html`
-                    <span class="assignee">
-                      <sl-avatar
-                        initials=${u.name.slice(0, 2)}
-                        label=${u.name}
-                        style="--size: 1.4rem; font-size: 0.55rem;"
-                      ></sl-avatar>
-                      ${u.name}
-                    </span>
-                  `,
-                )}
-              </span>`
-            : html`<span class="empty">Unassigned</span>`}
-        </span>
+        <span class="value">${this.renderAssignees()}</span>
       </div>
 
       ${t.type
