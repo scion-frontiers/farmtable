@@ -123,6 +123,8 @@ export class FtApp extends LitElement {
                   <ft-tree-view
                     .store=${this.taskStore}
                     .client=${this.client}
+                    .phaseFilter=${this.phaseFilter}
+                    .assigneeFilter=${this.assigneeFilter}
                     selected-task-id=${this.selectedTaskId ?? ''}
                     @task-select=${this.onTaskSelect}
                   ></ft-tree-view>

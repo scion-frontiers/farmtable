@@ -5,6 +5,7 @@ import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
 
+// UNSPECIFIED is the protobuf default, not a user-selectable task phase.
 const PHASE_OPTIONS = [
   { value: TaskPhase.OPEN, label: 'Open' },
   { value: TaskPhase.IN_PROGRESS, label: 'In Progress' },
@@ -67,6 +68,9 @@ export class FtToolbar extends LitElement {
   @state()
   private users: User[] = [];
 
+  @state()
+  private usersLoading = false;
+
   private userLoadToken = 0;
 
   override updated(changedProps: PropertyValues<this>) {
@@ -76,6 +80,9 @@ export class FtToolbar extends LitElement {
   }
 
   render() {
+    // Tree view does not consume task filters yet, so keep the current filter state visible but disabled.
+    const filtersDisabled = this.currentView === 'tree';
+
     return html`
       <span class="title">Farm Table</span>
 
@@ -86,6 +93,7 @@ export class FtToolbar extends LitElement {
           clearable
           hoist
           value=${this.phaseFilter === null ? '' : String(this.phaseFilter)}
+          ?disabled=${filtersDisabled}
           @sl-change=${this.onPhaseFilterChange}
         >
           ${PHASE_OPTIONS.map(
@@ -101,8 +109,12 @@ export class FtToolbar extends LitElement {
           clearable
           hoist
           value=${this.assigneeFilter ?? ''}
+          ?disabled=${filtersDisabled}
           @sl-change=${this.onAssigneeFilterChange}
         >
+          ${this.usersLoading
+            ? html`<sl-option value="" disabled>Loading users...</sl-option>`
+            : null}
           <sl-option value=${UNASSIGNED_FILTER_VALUE}>Unassigned</sl-option>
           ${this.users.map(
             (user) => html`
@@ -161,17 +173,21 @@ export class FtToolbar extends LitElement {
 
     if (!this.client) {
       this.users = [];
+      this.usersLoading = false;
       return;
     }
 
+    this.usersLoading = true;
     try {
       const users = await this.client.listUsers();
       if (token === this.userLoadToken) {
         this.users = users;
+        this.usersLoading = false;
       }
     } catch (error) {
       if (token === this.userLoadToken) {
         this.users = [];
+        this.usersLoading = false;
       }
       console.warn('Failed to load toolbar assignee filters', error);
     }
@@ -179,14 +195,18 @@ export class FtToolbar extends LitElement {
 
   private onPhaseFilterChange(e: Event) {
     const value = this.selectValue(e);
-    this.phaseFilter = value ? Number(value) as TaskPhase : null;
-    this.dispatchFilterChange();
+    this.dispatchFilterChange({
+      phase: value ? Number(value) as TaskPhase : null,
+      assigneeId: this.assigneeFilter,
+    });
   }
 
   private onAssigneeFilterChange(e: Event) {
     const value = this.selectValue(e);
-    this.assigneeFilter = value || null;
-    this.dispatchFilterChange();
+    this.dispatchFilterChange({
+      phase: this.phaseFilter,
+      assigneeId: value || null,
+    });
   }
 
   private selectValue(e: Event): string {
@@ -194,13 +214,10 @@ export class FtToolbar extends LitElement {
     return Array.isArray(target.value) ? target.value[0] ?? '' : target.value;
   }
 
-  private dispatchFilterChange() {
+  private dispatchFilterChange(detail: TaskFilterChangeDetail) {
     this.dispatchEvent(
       new CustomEvent<TaskFilterChangeDetail>('filter-change', {
-        detail: {
-          phase: this.phaseFilter,
-          assigneeId: this.assigneeFilter,
-        },
+        detail,
         bubbles: true,
         composed: true,
       }),

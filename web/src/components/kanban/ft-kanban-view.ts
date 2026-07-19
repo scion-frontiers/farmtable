@@ -150,13 +150,6 @@ export class FtKanbanView extends LitElement {
     return task.assignees.some((assignee) => assignee.id === this.assigneeFilter);
   }
 
-  private get onHoldTotal(): number {
-    return ON_HOLD_STAGES.reduce(
-      (sum, col) => sum + this.getColumnTasks(col.stage).length,
-      0,
-    );
-  }
-
   private async onStageChange(e: CustomEvent) {
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
     const task = this.store.getTask(taskId);
@@ -287,7 +280,15 @@ export class FtKanbanView extends LitElement {
   }
 
   render() {
-    const onHoldTotal = this.onHoldTotal;
+    const boardColumns = BOARD_COLUMNS.map((col) => ({
+      ...col,
+      tasks: this.getColumnTasks(col.stage),
+    }));
+    const onHoldColumns = ON_HOLD_STAGES.map((col) => ({
+      ...col,
+      tasks: this.getColumnTasks(col.stage),
+    }));
+    const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
 
     return html`
       <div class="view-header">
@@ -304,11 +305,11 @@ export class FtKanbanView extends LitElement {
         @column-add-task=${this.onColumnAddTask}
         @column-nav=${this.onColumnNav}
       >
-        ${BOARD_COLUMNS.map(
+        ${boardColumns.map(
           (col) => html`
             <ft-kanban-column
               .stage=${col.stage}
-              .tasks=${this.getColumnTasks(col.stage)}
+              .tasks=${col.tasks}
               .label=${col.label}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
@@ -335,11 +336,11 @@ export class FtKanbanView extends LitElement {
                       @column-add-task=${this.onColumnAddTask}
                       @column-nav=${this.onColumnNav}
                     >
-                      ${ON_HOLD_STAGES.map(
+                      ${onHoldColumns.map(
                         (col) => html`
                           <ft-kanban-column
                             .stage=${col.stage}
-                            .tasks=${this.getColumnTasks(col.stage)}
+                            .tasks=${col.tasks}
                             .label=${col.label}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
