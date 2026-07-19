@@ -345,7 +345,8 @@ export class MockFarmTableClient implements FarmTableServiceClient {
   }
 
   async updateTask(id: string, fields: UpdateTaskFields): Promise<Task> {
-    const task = MOCK_TASKS.find((t) => t.id === id);
+    const taskIndex = MOCK_TASKS.findIndex((t) => t.id === id);
+    const task = MOCK_TASKS[taskIndex];
     if (!task) throw new Error(`Task not found: ${id}`);
     const { parentTaskId, ...rest } = fields;
     const updated: Task = { ...task, ...rest };
@@ -354,6 +355,7 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     } else if (parentTaskId !== undefined) {
       updated.parentTaskId = parentTaskId;
     }
+    MOCK_TASKS[taskIndex] = updated;
     return updated;
   }
 
