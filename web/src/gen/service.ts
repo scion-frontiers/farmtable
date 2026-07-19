@@ -13,7 +13,7 @@ import {
   IdentityStatus,
 } from './types.js';
 
-export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 'startDate' | 'labels'> & {
+export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 'startDate' | 'labels' | 'assignees'> & {
   parentTaskId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
@@ -78,12 +78,13 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
   if (clearAssignees) {
     updated.assignees = [];
   } else if (assigneeIds !== undefined) {
-    updated.assignees = assigneeIds.map((id) => ({
+    const existingById = new Map(task.assignees.map((u) => [u.id, u]));
+    updated.assignees = assigneeIds.map((id) => existingById.get(id) ?? {
       id,
       name: id,
       type: UserType.HUMAN,
       status: IdentityStatus.ACTIVE,
-    }));
+    });
   }
 
   return updated;

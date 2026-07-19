@@ -35,12 +35,6 @@ export class FtInspectorMeta extends LitElement {
       flex-wrap: wrap;
       justify-content: flex-end;
     }
-    .assignee {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.8125rem;
-    }
     .labels {
       display: flex;
       gap: 0.25rem;
@@ -119,6 +113,9 @@ export class FtInspectorMeta extends LitElement {
 
   @state()
   private availableUsers: User[] = [];
+
+  /** Cached user list from listUsers(); cleared when the client changes. */
+  private userCache: User[] | null = null;
 
   private async startDateEdit(field: EditableDateField) {
     this.editingDate = field;
@@ -220,27 +217,44 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startAssigneePick() {
+    if (!this.client) return; // S-4: no-op when client is absent
     this.pickingAssignee = true;
-    if (this.client) {
-      try {
-        this.availableUsers = await this.client.listUsers();
-      } catch {
-        this.availableUsers = [];
+    try {
+      if (!this.userCache) {
+        this.userCache = await this.client.listUsers();
       }
+      this.availableUsers = this.userCache;
+    } catch {
+      this.availableUsers = [];
     }
   }
 
   private cancelAssigneePick() {
     this.pickingAssignee = false;
-    this.availableUsers = [];
   }
 
   private onAssigneeSelect(userId: string) {
     const currentIds = this.task.assignees.map((u) => u.id);
     if (currentIds.includes(userId)) return;
     this.pickingAssignee = false;
-    this.availableUsers = [];
     this.dispatchTaskUpdate({ assigneeIds: [...currentIds, userId] });
+  }
+
+  private onDocumentKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.pickingAssignee) {
+      e.preventDefault();
+      this.cancelAssigneePick();
+    }
+  };
+
+  override connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener('keydown', this.onDocumentKeyDown);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.onDocumentKeyDown);
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
@@ -362,13 +376,15 @@ export class FtInspectorMeta extends LitElement {
                   : html`<span class="empty">No users available</span>`}
               </div>
             `
-          : html`
-              <sl-icon-button
-                name="plus-lg"
-                label="Add assignee"
-                @click=${this.startAssigneePick}
-              ></sl-icon-button>
-            `}
+          : this.client
+            ? html`
+                <sl-icon-button
+                  name="plus-lg"
+                  label="Add assignee"
+                  @click=${this.startAssigneePick}
+                ></sl-icon-button>
+              `
+            : nothing}
       </span>
     `;
   }
