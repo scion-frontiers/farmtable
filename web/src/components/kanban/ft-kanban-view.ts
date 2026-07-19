@@ -113,9 +113,6 @@ export class FtKanbanView extends LitElement {
   @state()
   private onHoldExpanded = false;
 
-  @state()
-  private isCreatingTask = false;
-
   connectedCallback() {
     super.connectedCallback();
     this.storeController = new TaskStoreController(this, this.store);
@@ -165,19 +162,23 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onTaskCreate(e: CustomEvent<TaskCreateDetail>) {
-    if (!this.client || this.isCreatingTask) return;
-
     const dialog = e.currentTarget as FtAddTaskDialog;
-    this.isCreatingTask = true;
+
+    if (!this.client) {
+      dialog.setError('Failed to create task. Please try again.');
+      return;
+    }
+
     dialog.setCreating(true);
 
     try {
-      await this.client.createTask(e.detail);
+      const task = await this.client.createTask(e.detail);
+      this.store.upsert(task);
       dialog.close();
     } catch (error) {
       console.error('Failed to create task', error);
+      dialog.setError('Failed to create task. Please try again.');
     } finally {
-      this.isCreatingTask = false;
       dialog.setCreating(false);
     }
   }

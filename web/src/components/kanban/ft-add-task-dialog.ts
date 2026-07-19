@@ -45,6 +45,9 @@ export class FtAddTaskDialog extends LitElement {
   @state()
   private isCreating = false;
 
+  @state()
+  private errorMessage = '';
+
   async show() {
     await this.updateComplete;
     await this.dialog.show();
@@ -59,9 +62,17 @@ export class FtAddTaskDialog extends LitElement {
     this.isCreating = isCreating;
   }
 
+  setError(message: string) {
+    this.errorMessage = message;
+  }
+
   private onCancel() {
     if (this.isCreating) return;
     this.close();
+  }
+
+  private onCreateClick() {
+    this.renderRoot.querySelector('form')?.requestSubmit();
   }
 
   private onSubmit(e: Event) {
@@ -71,6 +82,7 @@ export class FtAddTaskDialog extends LitElement {
 
     this.nameInput.value = name;
     if (!this.nameInput.reportValidity()) return;
+    this.errorMessage = '';
 
     this.dispatchEvent(
       new CustomEvent<TaskCreateDetail>('task-create', {
@@ -83,41 +95,60 @@ export class FtAddTaskDialog extends LitElement {
 
   private onAfterHide() {
     this.isCreating = false;
+    this.errorMessage = '';
     this.nameInput.value = '';
     this.descriptionInput.value = '';
   }
 
+  private onRequestClose(e: Event) {
+    if (this.isCreating) e.preventDefault();
+  }
+
   render() {
     return html`
-      <sl-dialog label="Add Task" @sl-after-hide=${this.onAfterHide}>
-        <form @submit=${this.onSubmit}>
+      <sl-dialog
+        label="Add Task"
+        @sl-after-hide=${this.onAfterHide}
+        @sl-request-close=${this.onRequestClose}
+      >
+        <form id="add-task-form" @submit=${this.onSubmit}>
+          ${this.errorMessage
+            ? html`
+                <sl-alert variant="danger" open>
+                  <sl-icon slot="icon" name="exclamation-triangle"></sl-icon>
+                  ${this.errorMessage}
+                </sl-alert>
+              `
+            : null}
           <sl-input
             name="name"
             label="Name"
             required
+            maxlength="255"
             autocomplete="off"
             ?disabled=${this.isCreating}
           ></sl-input>
           <sl-textarea
             name="description"
             label="Description"
+            maxlength="10000"
             resize="vertical"
             ?disabled=${this.isCreating}
           ></sl-textarea>
-          <div class="actions" slot="footer">
-            <sl-button ?disabled=${this.isCreating} @click=${this.onCancel}>
-              Cancel
-            </sl-button>
-            <sl-button
-              type="submit"
-              variant="primary"
-              ?loading=${this.isCreating}
-              ?disabled=${this.isCreating}
-            >
-              Create
-            </sl-button>
-          </div>
         </form>
+        <div class="actions" slot="footer">
+          <sl-button ?disabled=${this.isCreating} @click=${this.onCancel}>
+            Cancel
+          </sl-button>
+          <sl-button
+            variant="primary"
+            ?loading=${this.isCreating}
+            ?disabled=${this.isCreating}
+            @click=${this.onCreateClick}
+          >
+            Create
+          </sl-button>
+        </div>
       </sl-dialog>
     `;
   }
