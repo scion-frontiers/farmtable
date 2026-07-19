@@ -256,6 +256,7 @@ export class FtKanbanColumn extends LitElement {
   render() {
     const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
+    // NOTE(i18n): Hardcoded English; extract if i18n is added.
     const countLabel =
       this.totalCount > 0 && sorted.length !== this.totalCount
         ? `${sorted.length} of ${this.totalCount}`
@@ -265,7 +266,7 @@ export class FtKanbanColumn extends LitElement {
       <div class="header">
         <span class="color-dot" style="background: ${color}"></span>
         ${this.label}
-        <span class="count">${countLabel}</span>
+        <span class="count" aria-label=${`${countLabel} tasks`}>${countLabel}</span>
         <sl-icon-button
           class="add-task-button"
           name="plus"
