@@ -274,15 +274,16 @@ export class FtKanbanColumn extends LitElement {
         >${countLabel}</span
       >
     `;
-    const filteredCountTooltip =
-      `${sorted.length} tasks visible out of ${this.totalCount} total (filter active)`;
+    const filteredCountTooltip = isFiltered
+      ? `${sorted.length} tasks visible out of ${this.totalCount} total (filter active)`
+      : '';
 
     return html`
       <div class="header">
         <span class="color-dot" style="background: ${color}"></span>
         ${this.label}
         ${isFiltered
-          ? html`<sl-tooltip class="count-tooltip" content=${filteredCountTooltip}
+          ? html`<sl-tooltip class="count-tooltip" content=${filteredCountTooltip} hoist placement="bottom"
               >${countChip}</sl-tooltip
             >`
           : countChip}
