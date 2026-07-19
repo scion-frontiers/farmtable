@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
@@ -79,9 +79,21 @@ export class FtInspectorDesc extends LitElement {
   @state()
   private draft = '';
 
+  override willUpdate(changedProps: PropertyValues<this>) {
+    if (changedProps.has('taskId')) {
+      this.resetEditState();
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeDismissListener();
+  }
+
   private async startEdit() {
     this.draft = this.description ?? '';
     this.isEditing = true;
+    this.addDismissListener();
     await this.updateComplete;
     this.renderRoot.querySelector<HTMLElement>('sl-textarea')?.focus();
   }
@@ -103,6 +115,7 @@ export class FtInspectorDesc extends LitElement {
   private saveEdit() {
     const nextDescription = this.draft.trim();
     this.isEditing = false;
+    this.removeDismissListener();
     if (nextDescription === (this.description ?? '').trim()) return;
 
     this.dispatchTaskUpdate({ description: nextDescription });
@@ -111,6 +124,27 @@ export class FtInspectorDesc extends LitElement {
   private cancelEdit() {
     this.draft = this.description ?? '';
     this.isEditing = false;
+    this.removeDismissListener();
+  }
+
+  private resetEditState() {
+    this.isEditing = false;
+    this.draft = '';
+    this.removeDismissListener();
+  }
+
+  private onDocumentPointerDown = (e: PointerEvent) => {
+    if (!this.isEditing) return;
+    if (e.composedPath().includes(this)) return;
+    this.cancelEdit();
+  };
+
+  private addDismissListener() {
+    document.addEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
+  }
+
+  private removeDismissListener() {
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {

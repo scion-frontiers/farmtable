@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
 import { TaskPhase, TaskStage, TaskPriority } from '../../gen/types.js';
@@ -119,6 +119,23 @@ export class FtInspectorHeader extends LitElement {
   @state()
   private isEditingPriority = false;
 
+  private prevTaskId = '';
+
+  override willUpdate(changedProps: PropertyValues<this>) {
+    if (!changedProps.has('task')) return;
+
+    const nextTaskId = this.task?.id ?? '';
+    if (nextTaskId !== this.prevTaskId) {
+      this.prevTaskId = nextTaskId;
+      this.resetEditState();
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeDismissListener();
+  }
+
   private stopInspectorInteraction(e: Event) {
     e.stopPropagation();
   }
@@ -126,6 +143,7 @@ export class FtInspectorHeader extends LitElement {
   private async startPriorityEdit(e: Event) {
     e.stopPropagation();
     this.isEditingPriority = true;
+    this.addDismissListener();
     await this.updateComplete;
     const select = this.renderRoot.querySelector<HTMLElement & { focus: () => void; show?: () => void }>(
       'sl-select.priority-select',
@@ -141,6 +159,7 @@ export class FtInspectorHeader extends LitElement {
 
     const nextPriority = raw as TaskPriority;
     this.isEditingPriority = false;
+    this.removeDismissListener();
 
     if (nextPriority === (this.task.priority ?? TaskPriority.UNSPECIFIED)) return;
 
@@ -149,6 +168,34 @@ export class FtInspectorHeader extends LitElement {
 
   private onPriorityBlur() {
     this.isEditingPriority = false;
+    this.removeDismissListener();
+  }
+
+  private onPriorityKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.onPriorityBlur();
+    }
+  }
+
+  private resetEditState() {
+    this.isEditingPriority = false;
+    this.removeDismissListener();
+  }
+
+  private onDocumentPointerDown = (e: PointerEvent) => {
+    if (!this.isEditingPriority) return;
+    if (e.composedPath().includes(this)) return;
+    this.onPriorityBlur();
+  };
+
+  private addDismissListener() {
+    document.addEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
+  }
+
+  private removeDismissListener() {
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
@@ -170,6 +217,7 @@ export class FtInspectorHeader extends LitElement {
         hoist
         @mousedown=${this.stopInspectorInteraction}
         @click=${this.stopInspectorInteraction}
+        @keydown=${this.onPriorityKeyDown}
         @sl-change=${this.onPriorityChange}
         @sl-after-hide=${this.onPriorityBlur}
       >
