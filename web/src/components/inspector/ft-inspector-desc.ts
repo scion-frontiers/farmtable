@@ -1,7 +1,8 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
+import type { UpdateTaskFields } from '../../gen/service.js';
 
 @customElement('ft-inspector-desc')
 export class FtInspectorDesc extends LitElement {
@@ -9,10 +10,30 @@ export class FtInspectorDesc extends LitElement {
     :host {
       display: block;
     }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      color: var(--sl-color-neutral-500);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
     .content {
       font-size: 0.875rem;
       line-height: 1.6;
       color: var(--sl-color-neutral-700);
+      cursor: text;
     }
     .content p {
       margin: 0 0 0.5rem;
@@ -39,17 +60,123 @@ export class FtInspectorDesc extends LitElement {
       color: var(--sl-color-neutral-400);
       font-style: italic;
       font-size: 0.875rem;
+      cursor: text;
+    }
+    sl-textarea {
+      --sl-input-font-size-medium: 0.875rem;
     }
   `;
 
   @property()
   description?: string;
 
-  render() {
-    if (!this.description) {
-      return html`<span class="empty">No description</span>`;
+  @property()
+  taskId = '';
+
+  @state()
+  private isEditing = false;
+
+  @state()
+  private draft = '';
+
+  private async startEdit() {
+    this.draft = this.description ?? '';
+    this.isEditing = true;
+    await this.updateComplete;
+    this.renderRoot.querySelector<HTMLElement>('sl-textarea')?.focus();
+  }
+
+  private onDraftInput(e: Event) {
+    this.draft = (e.currentTarget as HTMLInputElement).value;
+  }
+
+  private onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.cancelEdit();
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      this.saveEdit();
     }
-    return html`<div class="content">${unsafeHTML(renderMarkdown(this.description))}</div>`;
+  }
+
+  private saveEdit() {
+    const nextDescription = this.draft.trim();
+    this.isEditing = false;
+    if (nextDescription === (this.description ?? '')) return;
+
+    this.dispatchTaskUpdate({ description: nextDescription });
+  }
+
+  private cancelEdit() {
+    this.draft = this.description ?? '';
+    this.isEditing = false;
+  }
+
+  private dispatchTaskUpdate(fields: UpdateTaskFields) {
+    this.dispatchEvent(
+      new CustomEvent('task-update', {
+        detail: { taskId: this.taskId, fields },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  render() {
+    if (this.isEditing) {
+      return html`
+        <div class="section-header">
+          <span class="section-title">Description</span>
+          <span class="actions">
+            <sl-icon-button
+              name="check2"
+              label="Save description"
+              @click=${this.saveEdit}
+            ></sl-icon-button>
+            <sl-icon-button
+              name="x-lg"
+              label="Cancel description edit"
+              @click=${this.cancelEdit}
+            ></sl-icon-button>
+          </span>
+        </div>
+        <sl-textarea
+          rows="7"
+          resize="auto"
+          value=${this.draft}
+          @input=${this.onDraftInput}
+          @keydown=${this.onKeyDown}
+        ></sl-textarea>
+      `;
+    }
+
+    if (!this.description) {
+      return html`
+        <div class="section-header">
+          <span class="section-title">Description</span>
+          <sl-icon-button
+            name="pencil"
+            label="Edit description"
+            @click=${this.startEdit}
+          ></sl-icon-button>
+        </div>
+        <span class="empty" @click=${this.startEdit}>No description</span>
+      `;
+    }
+    return html`
+      <div class="section-header">
+        <span class="section-title">Description</span>
+        <sl-icon-button
+          name="pencil"
+          label="Edit description"
+          @click=${this.startEdit}
+        ></sl-icon-button>
+      </div>
+      <div class="content" @dblclick=${this.startEdit}>
+        ${unsafeHTML(renderMarkdown(this.description))}
+      </div>
+    `;
   }
 }
 

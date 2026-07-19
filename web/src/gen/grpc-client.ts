@@ -170,8 +170,16 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     if (fields.stage !== undefined) request.stage = fields.stage;
     if (fields.priority !== undefined) request.priority = fields.priority;
     if (fields.type !== undefined) request.type = fields.type;
-    if (fields.dueDate !== undefined) request.dueDate = timestampFromIso(fields.dueDate);
-    if (fields.startDate !== undefined) request.startDate = timestampFromIso(fields.startDate);
+    if (fields.dueDate === null) {
+      request.clearDueDate = true;
+    } else if (fields.dueDate !== undefined) {
+      request.dueDate = timestampFromIso(fields.dueDate);
+    }
+    if (fields.startDate === null) {
+      request.clearStartDate = true;
+    } else if (fields.startDate !== undefined) {
+      request.startDate = timestampFromIso(fields.startDate);
+    }
     if (fields.parentTaskId === null) {
       request.clearParent = true;
     } else if (fields.parentTaskId !== undefined) {

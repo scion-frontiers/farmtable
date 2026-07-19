@@ -157,12 +157,22 @@ export class FtKanbanView extends LitElement {
     const task = this.store.getTask(taskId);
     if (!task) return;
 
-    const { parentTaskId, ...rest } = fields;
+    const { parentTaskId, dueDate, startDate, ...rest } = fields;
     const updated: Task = { ...task, ...rest };
     if (parentTaskId === null) {
       delete updated.parentTaskId;
     } else if (parentTaskId !== undefined) {
       updated.parentTaskId = parentTaskId;
+    }
+    if (dueDate === null) {
+      delete updated.dueDate;
+    } else if (dueDate !== undefined) {
+      updated.dueDate = dueDate;
+    }
+    if (startDate === null) {
+      delete updated.startDate;
+    } else if (startDate !== undefined) {
+      updated.startDate = startDate;
     }
 
     this.store.upsert(updated);
