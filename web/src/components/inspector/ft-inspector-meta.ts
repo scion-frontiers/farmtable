@@ -46,6 +46,7 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.25rem;
       flex-wrap: wrap;
       justify-content: flex-end;
+      align-items: center;
     }
     .empty {
       color: var(--sl-color-neutral-400);
@@ -70,6 +71,11 @@ export class FtInspectorMeta extends LitElement {
       --sl-input-height-small: 1.75rem;
       --sl-input-font-size-small: 0.8125rem;
     }
+    sl-input.label-input {
+      width: 8rem;
+      --sl-input-height-small: 1.75rem;
+      --sl-input-font-size-small: 0.8125rem;
+    }
   `;
 
   @property({ attribute: false })
@@ -80,6 +86,12 @@ export class FtInspectorMeta extends LitElement {
 
   @state()
   private dateDraft = '';
+
+  @state()
+  private addingLabel = false;
+
+  @state()
+  private labelDraft = '';
 
   private async startDateEdit(field: EditableDateField) {
     this.editingDate = field;
@@ -126,6 +138,48 @@ export class FtInspectorMeta extends LitElement {
     this.dateDraft = '';
   }
 
+  private onLabelRemove(e: Event) {
+    const label = (e.currentTarget as HTMLElement).dataset.label;
+    if (label) this.dispatchTaskUpdate({ removeLabels: [label] });
+  }
+
+  private async startLabelAdd() {
+    this.addingLabel = true;
+    this.labelDraft = '';
+    await this.updateComplete;
+    this.renderRoot.querySelector<HTMLElement>('sl-input.label-input')?.focus();
+  }
+
+  private onLabelInput(e: Event) {
+    this.labelDraft = (e.currentTarget as HTMLInputElement).value;
+  }
+
+  private onLabelKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      this.saveLabelAdd();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.cancelLabelAdd();
+    }
+  }
+
+  private saveLabelAdd() {
+    const label = this.labelDraft.trim();
+    if (!label) return;
+
+    this.addingLabel = false;
+    this.labelDraft = '';
+
+    if (this.task.labels.includes(label)) return;
+    this.dispatchTaskUpdate({ addLabels: [label] });
+  }
+
+  private cancelLabelAdd() {
+    this.addingLabel = false;
+    this.labelDraft = '';
+  }
+
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
     this.dispatchEvent(
       new CustomEvent('task-update', {
@@ -157,7 +211,7 @@ export class FtInspectorMeta extends LitElement {
                     class="date-input"
                     size="small"
                     type="date"
-                    value=${this.dateDraft}
+                    .value=${this.dateDraft}
                     @input=${this.onDateInput}
                     @keydown=${this.onDateKeyDown}
                   ></sl-input>
@@ -199,6 +253,58 @@ export class FtInspectorMeta extends LitElement {
     `;
   }
 
+  private renderLabels() {
+    const labels = this.task.labels;
+
+    return html`
+      <span class="labels">
+        ${labels.length > 0
+          ? labels.map(
+              (label) => html`
+                <sl-tag
+                  data-label=${label}
+                  size="small"
+                  variant="neutral"
+                  removable
+                  @sl-remove=${this.onLabelRemove}
+                >
+                  ${label}
+                </sl-tag>
+              `,
+            )
+          : html`<span class="empty">None</span>`}
+        ${this.addingLabel
+          ? html`
+              <sl-input
+                class="label-input"
+                size="small"
+                maxlength="100"
+                .value=${this.labelDraft}
+                @input=${this.onLabelInput}
+                @keydown=${this.onLabelKeyDown}
+              ></sl-input>
+              <sl-icon-button
+                name="check2"
+                label="Add label"
+                @click=${this.saveLabelAdd}
+              ></sl-icon-button>
+              <sl-icon-button
+                name="x-lg"
+                label="Cancel label add"
+                @click=${this.cancelLabelAdd}
+              ></sl-icon-button>
+            `
+          : html`
+              <sl-icon-button
+                name="plus-lg"
+                label="Add label"
+                @click=${this.startLabelAdd}
+              ></sl-icon-button>
+            `}
+      </span>
+    `;
+  }
+
   render() {
     const t = this.task;
 
@@ -234,17 +340,7 @@ export class FtInspectorMeta extends LitElement {
 
       <div class="row">
         <span class="label">Labels</span>
-        <span class="value">
-          ${t.labels.length > 0
-            ? html`
-              <span class="labels">
-                ${t.labels.map(
-                  (l) => html`<sl-tag size="small" variant="neutral">${l}</sl-tag>`,
-                )}
-              </span>
-            `
-            : html`<span class="empty">None</span>`}
-        </span>
+        <span class="value">${this.renderLabels()}</span>
       </div>
 
       ${this.renderDateRow('Due date', 'dueDate', t.dueDate)}
