@@ -1,6 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { state } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
 import { TaskPhase, TaskStage, TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
@@ -137,7 +136,7 @@ export class FtInspectorHeader extends LitElement {
 
   private onPriorityChange(e: Event) {
     e.stopPropagation();
-    const raw = Number((e.currentTarget as HTMLInputElement).value);
+    const raw = Number((e.currentTarget as Element & { value: string }).value);
     if (Number.isNaN(raw)) return;
 
     const nextPriority = raw as TaskPriority;
@@ -188,6 +187,7 @@ export class FtInspectorHeader extends LitElement {
       <button
         class="priority-button"
         type="button"
+        aria-label="Edit priority, current: ${priorityLabel}"
         title="Edit priority"
         @mousedown=${this.stopInspectorInteraction}
         @click=${this.startPriorityEdit}
