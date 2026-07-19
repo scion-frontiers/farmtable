@@ -216,6 +216,7 @@ export class FtApp extends LitElement {
     const url = new URL(window.location.href);
     url.searchParams.set('view', view);
     window.history.pushState({}, '', url);
+    // Skip applyRoute() — view-only change doesn't need collection revalidation.
     this.currentView = view;
   }
 
@@ -282,8 +283,9 @@ export class FtApp extends LitElement {
 
   private async applyRoute() {
     const token = ++this.routeToken;
-    const collectionId = this.currentCollectionIdFromUrl();
-    this.currentView = this.currentViewFromUrl();
+    const params = new URLSearchParams(window.location.search);
+    const collectionId = params.get('collection');
+    this.currentView = params.get('view') === 'tree' ? 'tree' : 'kanban';
 
     if (!collectionId) {
       this.showCollectionList('');
@@ -344,15 +346,6 @@ export class FtApp extends LitElement {
     this.streamManager = undefined;
   }
 
-  private currentCollectionIdFromUrl(): string | null {
-    return new URLSearchParams(window.location.search).get('collection');
-  }
-
-  private currentViewFromUrl(): 'kanban' | 'tree' {
-    const view = new URLSearchParams(window.location.search).get('view');
-    return view === 'tree' ? 'tree' : 'kanban';
-  }
-
   private onCollectionSelect = (e: CustomEvent) => {
     const collectionId = e.detail.collectionId as string;
     const url = new URL(window.location.href);
@@ -368,6 +361,7 @@ export class FtApp extends LitElement {
   private removeCollectionFromUrl() {
     const url = new URL(window.location.href);
     url.searchParams.delete('collection');
+    url.searchParams.delete('view');
     window.history.replaceState({}, '', url);
   }
 
