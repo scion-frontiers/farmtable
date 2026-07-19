@@ -115,7 +115,6 @@ export class FtNewCollectionDialog extends LitElement {
             name="name"
             label="Name"
             required
-            minlength="1"
             maxlength="255"
             autocomplete="off"
             ?disabled=${this.isCreating}

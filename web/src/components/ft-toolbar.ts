@@ -200,10 +200,14 @@ export class FtToolbar extends LitElement {
 
   private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
     const dialog = this.newCollectionDialog;
+    if (!this.unscopedClient) {
+      dialog.setError('Service not available. Please reload.');
+      return;
+    }
     dialog.setError('');
     dialog.setCreating(true);
     try {
-      const collection = await this.unscopedClient!.createCollection(e.detail.name);
+      const collection = await this.unscopedClient.createCollection(e.detail.name);
       dialog.close();
       this.dispatchEvent(new CustomEvent('collection-select', {
         detail: { collectionId: collection.id },
