@@ -74,6 +74,16 @@ export class FtKanbanColumn extends LitElement {
       letter-spacing: 0;
       text-transform: none;
     }
+    .count.filtered {
+      background: var(--sl-color-primary-100);
+      color: var(--sl-color-primary-700);
+    }
+    .count-tooltip {
+      margin-left: auto;
+    }
+    .count-tooltip .count {
+      margin-left: 0;
+    }
     .add-task-button {
       --sl-input-height-small: 1.5rem;
       color: var(--sl-color-neutral-600);
@@ -256,17 +266,27 @@ export class FtKanbanColumn extends LitElement {
   render() {
     const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
+    const isFiltered = this.totalCount > 0 && sorted.length !== this.totalCount;
     // NOTE(i18n): Hardcoded English; extract if i18n is added.
-    const countLabel =
-      this.totalCount > 0 && sorted.length !== this.totalCount
-        ? `${sorted.length} of ${this.totalCount}`
-        : `${sorted.length}`;
+    const countLabel = isFiltered ? `${sorted.length} of ${this.totalCount}` : `${sorted.length}`;
+    const countChip = html`
+      <span class=${classMap({ count: true, filtered: isFiltered })} aria-label=${`${countLabel} tasks`}
+        >${countLabel}</span
+      >
+    `;
+    const filteredCountTooltip = isFiltered
+      ? `${sorted.length} tasks visible out of ${this.totalCount} total (filter active)`
+      : '';
 
     return html`
       <div class="header">
         <span class="color-dot" style="background: ${color}"></span>
         ${this.label}
-        <span class="count" aria-label=${`${countLabel} tasks`}>${countLabel}</span>
+        ${isFiltered
+          ? html`<sl-tooltip class="count-tooltip" content=${filteredCountTooltip} hoist placement="bottom"
+              >${countChip}</sl-tooltip
+            >`
+          : countChip}
         <sl-icon-button
           class="add-task-button"
           name="plus"

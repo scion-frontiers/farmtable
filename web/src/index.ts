@@ -18,6 +18,7 @@ import '@shoelace-style/shoelace/dist/components/details/details.js';
 import '@shoelace-style/shoelace/dist/components/dialog/dialog.js';
 import '@shoelace-style/shoelace/dist/components/input/input.js';
 import '@shoelace-style/shoelace/dist/components/textarea/textarea.js';
+import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
 
 import './styles/theme.css';
 import './components/ft-connection-badge.js';
