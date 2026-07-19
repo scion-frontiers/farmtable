@@ -74,6 +74,7 @@ export class FtInspectorMeta extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 0.125rem;
+      min-width: 0;
     }
     .date-cell .label {
       color: var(--sl-color-neutral-500);
@@ -99,7 +100,6 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.125rem;
     }
     sl-input.date-input {
-      width: 9rem;
       --sl-input-height-small: 1.75rem;
       --sl-input-font-size-small: 0.8125rem;
     }
