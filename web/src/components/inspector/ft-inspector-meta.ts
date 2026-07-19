@@ -60,6 +60,12 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.25rem;
       flex-wrap: wrap;
     }
+    sl-icon-button:focus-visible,
+    sl-icon-button::part(base):focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: var(--sl-border-radius-medium);
+    }
     sl-input.date-input {
       width: 9rem;
       --sl-input-height-small: 1.75rem;
@@ -133,7 +139,7 @@ export class FtInspectorMeta extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.removeDismissListener();
-    document.removeEventListener('keydown', this.onDocumentKeyDown);
+    document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   private async startDateEdit(field: EditableDateField) {
@@ -154,6 +160,7 @@ export class FtInspectorMeta extends LitElement {
       this.saveDateEdit();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelDateEdit();
     }
   }
@@ -207,6 +214,7 @@ export class FtInspectorMeta extends LitElement {
       this.saveLabelAdd();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelLabelAdd();
     }
   }
@@ -271,13 +279,14 @@ export class FtInspectorMeta extends LitElement {
   private onDocumentKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && this.pickingAssignee) {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelAssigneePick();
     }
   };
 
   override connectedCallback() {
     super.connectedCallback();
-    document.addEventListener('keydown', this.onDocumentKeyDown);
+    document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {

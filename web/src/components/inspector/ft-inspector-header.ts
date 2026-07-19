@@ -106,6 +106,12 @@ export class FtInspectorHeader extends LitElement {
       outline-offset: 2px;
       border-radius: 999px;
     }
+    sl-icon-button:focus-visible,
+    sl-icon-button::part(base):focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: var(--sl-border-radius-medium);
+    }
     sl-select.priority-select {
       width: 7rem;
       --sl-input-height-small: 1.5rem;
@@ -130,10 +136,6 @@ export class FtInspectorHeader extends LitElement {
       this.prevTaskId = nextTaskId;
       this.resetEditState();
     }
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
   }
 
   private stopInspectorInteraction(e: Event) {

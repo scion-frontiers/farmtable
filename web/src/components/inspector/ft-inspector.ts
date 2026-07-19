@@ -27,12 +27,16 @@ export class FtInspector extends LitElement {
       font-weight: 600;
     }
     .close-btn {
-      cursor: pointer;
       color: var(--sl-color-neutral-500);
-      font-size: 1.125rem;
     }
     .close-btn:hover {
       color: var(--sl-color-neutral-900);
+    }
+    sl-icon-button:focus-visible,
+    sl-icon-button::part(base):focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: var(--sl-border-radius-medium);
     }
     .body {
       flex: 1;
@@ -65,13 +69,25 @@ export class FtInspector extends LitElement {
     this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
   }
 
+  private onBodyKeyDown(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return;
+
+    e.preventDefault();
+    this.onClose();
+  }
+
   render() {
     const task = this.store.getTask(this.taskId);
     if (!task) {
       return html`
         <div class="header-bar">
           <span class="header-label">Inspector</span>
-          <sl-icon class="close-btn" name="x-lg" @click=${this.onClose}></sl-icon>
+          <sl-icon-button
+            class="close-btn"
+            name="x-lg"
+            label="Close inspector"
+            @click=${this.onClose}
+          ></sl-icon-button>
         </div>
         <div style="color: var(--sl-color-neutral-400); font-style: italic; padding: 1rem 0;">
           Task not found
@@ -82,10 +98,15 @@ export class FtInspector extends LitElement {
     return html`
       <div class="header-bar">
         <span class="header-label">Inspector</span>
-        <sl-icon class="close-btn" name="x-lg" @click=${this.onClose}></sl-icon>
+        <sl-icon-button
+          class="close-btn"
+          name="x-lg"
+          label="Close inspector"
+          @click=${this.onClose}
+        ></sl-icon-button>
       </div>
 
-      <div class="body" tabindex="0">
+      <div class="body" tabindex="0" @keydown=${this.onBodyKeyDown}>
         <ft-inspector-header .task=${task}></ft-inspector-header>
 
         <sl-divider></sl-divider>

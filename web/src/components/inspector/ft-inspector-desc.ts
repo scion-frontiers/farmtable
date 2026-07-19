@@ -29,6 +29,12 @@ export class FtInspectorDesc extends LitElement {
       align-items: center;
       gap: 0.25rem;
     }
+    sl-icon-button:focus-visible,
+    sl-icon-button::part(base):focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: var(--sl-border-radius-medium);
+    }
     .content {
       font-size: 0.875rem;
       line-height: 1.6;
@@ -106,6 +112,7 @@ export class FtInspectorDesc extends LitElement {
   private onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       this.cancelEdit();
     } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
