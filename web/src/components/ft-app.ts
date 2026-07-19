@@ -70,6 +70,7 @@ export class FtApp extends LitElement {
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();
+    // FtApp owns the global "?" toggle; ft-shortcut-overlay owns modal keys like Escape and Tab.
     document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
@@ -179,11 +180,11 @@ export class FtApp extends LitElement {
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== '?' || e.defaultPrevented || this.shortcutOverlayOpen) return;
+    if (e.key !== '?' || e.defaultPrevented) return;
     if (this.isEditableEventTarget(e)) return;
 
     e.preventDefault();
-    this.shortcutOverlayOpen = true;
+    this.shortcutOverlayOpen = !this.shortcutOverlayOpen;
   };
 
   private isEditableEventTarget(e: KeyboardEvent): boolean {

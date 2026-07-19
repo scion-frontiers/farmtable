@@ -11,6 +11,12 @@ interface ShortcutGroup {
 
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
+    heading: 'General',
+    shortcuts: [
+      { keys: ['?'], description: 'Toggle this keyboard shortcuts overlay' },
+    ],
+  },
+  {
     heading: 'Kanban board',
     shortcuts: [
       { keys: ['Tab'], description: 'Focus a task card' },
@@ -28,6 +34,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
 ];
+
+let overlayId = 0;
 
 @customElement('ft-shortcut-overlay')
 export class FtShortcutOverlay extends LitElement {
@@ -54,6 +62,9 @@ export class FtShortcutOverlay extends LitElement {
       background: var(--sl-color-neutral-0);
       box-shadow: var(--sl-shadow-large);
       color: var(--sl-color-neutral-900);
+    }
+    .panel:focus {
+      outline: none;
     }
     .header {
       display: flex;
@@ -148,16 +159,21 @@ export class FtShortcutOverlay extends LitElement {
   @property({ type: Boolean, reflect: true })
   open = false;
 
+  private previouslyFocusedElement: HTMLElement | null = null;
+  private readonly titleId = `shortcut-overlay-title-${++overlayId}`;
+
   protected updated(changedProperties: PropertyValues<this>) {
     if (!changedProperties.has('open')) return;
 
     if (this.open) {
+      this.previouslyFocusedElement = this.activeElement();
       this.addDismissListeners();
       void this.updateComplete.then(() => {
         this.renderRoot.querySelector<HTMLElement>('.close-button')?.focus();
       });
     } else {
       this.removeDismissListeners();
+      this.restoreFocus();
     }
   }
 
@@ -167,11 +183,15 @@ export class FtShortcutOverlay extends LitElement {
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || !this.open) return;
+    if (!this.open) return;
 
-    e.preventDefault();
-    e.stopPropagation();
-    this.requestClose();
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.requestClose();
+    } else if (e.key === 'Tab') {
+      this.trapFocus(e);
+    }
   };
 
   private onDocumentPointerDown = (e: PointerEvent) => {
@@ -197,6 +217,65 @@ export class FtShortcutOverlay extends LitElement {
     this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
   }
 
+  private activeElement(): HTMLElement | null {
+    let activeElement: Element | null = document.activeElement;
+
+    while (activeElement?.shadowRoot?.activeElement) {
+      activeElement = activeElement.shadowRoot.activeElement;
+    }
+
+    return activeElement instanceof HTMLElement ? activeElement : null;
+  }
+
+  private restoreFocus() {
+    const element = this.previouslyFocusedElement;
+    this.previouslyFocusedElement = null;
+
+    if (element?.isConnected) {
+      element.focus();
+    }
+  }
+
+  private trapFocus(e: KeyboardEvent) {
+    const focusableElements = this.focusableElements();
+    if (focusableElements.length === 0) {
+      e.preventDefault();
+      this.renderRoot.querySelector<HTMLElement>('.panel')?.focus();
+      return;
+    }
+
+    const active = this.activeElement();
+    const currentIndex = active ? focusableElements.indexOf(active) : -1;
+    const lastIndex = focusableElements.length - 1;
+    const shouldWrapBackward = e.shiftKey && currentIndex <= 0;
+    const shouldWrapForward = !e.shiftKey && currentIndex === lastIndex;
+
+    if (!shouldWrapBackward && !shouldWrapForward) return;
+
+    e.preventDefault();
+    focusableElements[shouldWrapBackward ? lastIndex : 0].focus();
+  }
+
+  private focusableElements(): HTMLElement[] {
+    const panel = this.renderRoot.querySelector<HTMLElement>('.panel');
+    if (!panel) return [];
+
+    return Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        [
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          'sl-button:not([disabled])',
+          'sl-icon-button:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(','),
+      ),
+    ).filter((element) => element.offsetParent !== null);
+  }
+
   private renderShortcutGroup(group: ShortcutGroup) {
     return html`
       <section>
@@ -220,12 +299,13 @@ export class FtShortcutOverlay extends LitElement {
       <div class="backdrop">
         <div
           class="panel"
+          tabindex="-1"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="shortcut-overlay-title"
+          aria-labelledby=${this.titleId}
         >
           <div class="header">
-            <h2 id="shortcut-overlay-title">Keyboard Shortcuts</h2>
+            <h2 id=${this.titleId}>Keyboard Shortcuts</h2>
             <sl-icon-button
               class="close-button"
               name="x-lg"
