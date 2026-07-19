@@ -33,6 +33,7 @@ export interface FarmTableServiceClient {
   listCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection>;
   createCollection(name: string): Promise<Collection>;
+  updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection>;
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
@@ -408,6 +409,15 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     };
     MOCK_COLLECTIONS.unshift(collection);
     return { ...collection };
+  }
+
+  async updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection> {
+    const collectionIndex = MOCK_COLLECTIONS.findIndex((item) => item.id === id);
+    const collection = MOCK_COLLECTIONS[collectionIndex];
+    if (!collection) throw new Error(`Collection not found: ${id}`);
+    const updated = { ...collection, ...fields, updatedAt: new Date().toISOString() };
+    MOCK_COLLECTIONS[collectionIndex] = updated;
+    return { ...updated };
   }
 
   async listTasks(): Promise<Task[]> {

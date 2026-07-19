@@ -120,6 +120,11 @@ type CreateCollectionParams struct {
 	Platform    string
 }
 
+type UpdateCollectionParams struct {
+	Name        *string
+	Description *string
+}
+
 type ListCollectionsParams struct {
 	Platform      *collection.Platform
 	Limit         int
@@ -158,6 +163,7 @@ type Store interface {
 	CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error
 	CreateCollection(ctx context.Context, p CreateCollectionParams) (*ent.Collection, error)
+	UpdateCollection(ctx context.Context, id uuid.UUID, p UpdateCollectionParams) (*ent.Collection, error)
 	GetCollection(ctx context.Context, id uuid.UUID) (*ent.Collection, error)
 	ListCollections(ctx context.Context, p ListCollectionsParams) ([]*ent.Collection, int, error)
 	AddComment(ctx context.Context, p AddCommentParams) (*ent.Comment, error)

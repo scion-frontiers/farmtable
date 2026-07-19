@@ -811,6 +811,36 @@ func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateC
 	return collectionToProto(c), nil
 }
 
+func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateCollectionRequest) (*pb.Collection, error) {
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
+	}
+	p := store.UpdateCollectionParams{}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "collection name must not be empty")
+		}
+		p.Name = &name
+	}
+	if req.Description != nil {
+		p.Description = req.Description
+	}
+	if req.Name == nil && req.Description == nil {
+		c, err := s.store.GetCollection(ctx, id)
+		if err != nil {
+			return nil, storeErr(err, "collection")
+		}
+		return collectionToProto(c), nil
+	}
+	c, err := s.store.UpdateCollection(ctx, id, p)
+	if err != nil {
+		return nil, storeErr(err, "collection")
+	}
+	return collectionToProto(c), nil
+}
+
 // ── Audit Trail ──
 
 func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesRequest) (*pb.ListChangesResponse, error) {
