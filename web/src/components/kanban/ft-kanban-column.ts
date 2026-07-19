@@ -127,7 +127,7 @@ export class FtKanbanColumn extends LitElement {
   protected updated(changedProperties: PropertyValues<this>) {
     if (!changedProperties.has('tasks')) return;
 
-    const lastIndex = this.sortedTasks.length - 1;
+    const lastIndex = this.tasks.length - 1;
     this.activeCardIndex = Math.max(0, Math.min(this.activeCardIndex, lastIndex));
   }
 
@@ -194,12 +194,23 @@ export class FtKanbanColumn extends LitElement {
     return Array.from(this.renderRoot.querySelectorAll<FtTaskCard>('ft-task-card'));
   }
 
-  private onCardFocus(index: number) {
+  private cardIndexFromEvent(e: Event): number | null {
+    const index = Number((e.currentTarget as HTMLElement).dataset.cardIndex);
+    return Number.isNaN(index) ? null : index;
+  }
+
+  private onCardFocusHandler(e: FocusEvent) {
+    const index = this.cardIndexFromEvent(e);
+    if (index === null) return;
+
     this.activeCardIndex = index;
   }
 
-  private onCardKeyDown(e: KeyboardEvent, index: number) {
+  private onCardKeyDownHandler(e: KeyboardEvent) {
     if (e.defaultPrevented) return;
+
+    const index = this.cardIndexFromEvent(e);
+    if (index === null) return;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -216,7 +227,7 @@ export class FtKanbanColumn extends LitElement {
         break;
       case 'End':
         e.preventDefault();
-        void this.focusCardAt(this.sortedTasks.length - 1);
+        void this.focusCardAt(this.cardElements.length - 1);
         break;
       case 'ArrowLeft':
       case 'ArrowRight':
@@ -267,8 +278,9 @@ export class FtKanbanColumn extends LitElement {
               .task=${task}
               ?selected=${task.id === this.selectedTaskId}
               card-tab-index=${index === this.activeCardIndex ? 0 : -1}
-              @focusin=${() => this.onCardFocus(index)}
-              @keydown=${(e: KeyboardEvent) => this.onCardKeyDown(e, index)}
+              data-card-index=${index}
+              @focusin=${this.onCardFocusHandler}
+              @keydown=${this.onCardKeyDownHandler}
             ></ft-task-card>
           `,
         )}

@@ -251,6 +251,8 @@ export class FtKanbanView extends LitElement {
   }
 
   private columnsForStage(stage: TaskStage): ColumnDef[] {
+    // Board columns and on-hold columns are separate keyboard regions by design.
+    // Arrow navigation stays within the currently visible section.
     if (BOARD_COLUMNS.some((col) => col.stage === stage)) return BOARD_COLUMNS;
     return ON_HOLD_STAGES;
   }

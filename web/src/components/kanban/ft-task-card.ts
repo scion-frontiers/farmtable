@@ -55,15 +55,15 @@ export class FtTaskCard extends LitElement {
       opacity: 0.5;
     }
     .card-shell {
-      --sl-focus-ring: 2px solid var(--sl-color-primary-500);
-      --sl-focus-ring-offset: 2px;
+      --ft-focus-ring: 2px solid var(--sl-color-primary-500);
+      --ft-focus-ring-offset: 2px;
     }
     .card-shell:focus {
       outline: none;
     }
     .card-shell:focus-visible sl-card {
-      outline: var(--sl-focus-ring);
-      outline-offset: var(--sl-focus-ring-offset);
+      outline: var(--ft-focus-ring);
+      outline-offset: var(--ft-focus-ring-offset);
       border-radius: var(--sl-border-radius-medium);
     }
     .selected sl-card,
@@ -361,6 +361,8 @@ export class FtTaskCard extends LitElement {
       <div
         class=${classMap({ 'card-shell': true, selected: this.selected })}
         tabindex=${this.cardTabIndex}
+        role="button"
+        aria-label=${`Task: ${this.task.name}`}
         draggable=${String(!this.isEditingTitle && !this.isEditingPriority)}
         @dragstart=${this.onDragStart}
         @dragend=${this.onDragEnd}
