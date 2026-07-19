@@ -1,7 +1,8 @@
 import { LitElement, css, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
-import { Platform, type Collection } from '../gen/types.js';
+import type { Collection } from '../gen/types.js';
+import { platformLabel } from '../util/platform-label.js';
 
 @customElement('ft-collection-picker')
 export class FtCollectionPicker extends LitElement {
@@ -13,7 +14,6 @@ export class FtCollectionPicker extends LitElement {
       align-items: center;
       max-width: 18rem;
       position: relative;
-      z-index: 30;
     }
 
     sl-dropdown,
@@ -59,7 +59,7 @@ export class FtCollectionPicker extends LitElement {
     }
 
     sl-menu-item.current::part(base) {
-      background: rgb(239, 246, 255);
+      background: var(--sl-color-primary-50);
       color: var(--sl-color-primary-800);
     }
 
@@ -122,6 +122,7 @@ export class FtCollectionPicker extends LitElement {
   private loadToken = 0;
 
   protected override updated(changedProperties: PropertyValues<this>) {
+    // TODO: Consider re-fetching on @sl-show for freshness.
     if (changedProperties.has('client') && this.client !== changedProperties.get('client')) {
       void this.loadCollections();
     }
@@ -133,9 +134,8 @@ export class FtCollectionPicker extends LitElement {
 
     return html`
       <sl-dropdown placement="bottom-start" hoist>
-        <sl-button slot="trigger" size="small">
+        <sl-button slot="trigger" size="small" caret>
           <span class="trigger-label">${triggerLabel}</span>
-          <sl-icon slot="suffix" name="chevron-down"></sl-icon>
         </sl-button>
 
         <sl-menu @sl-select=${this.onMenuSelect}>
@@ -173,7 +173,7 @@ export class FtCollectionPicker extends LitElement {
           ></sl-icon>
           <span class="item-label">
             <span class="name">${collection.name}</span>
-            <span class="platform">${this.platformLabel(collection.platform)}</span>
+            <span class="platform">${platformLabel(collection.platform)}</span>
           </span>
         </sl-menu-item>
       `;
@@ -220,25 +220,6 @@ export class FtCollectionPicker extends LitElement {
       bubbles: true,
       composed: true,
     }));
-  }
-
-  private platformLabel(platform: Platform): string {
-    switch (platform) {
-      case Platform.FARMTABLE:
-        return 'Farm Table';
-      case Platform.GITHUB:
-        return 'GitHub';
-      case Platform.LINEAR:
-        return 'Linear';
-      case Platform.JIRA:
-        return 'Jira';
-      case Platform.ASANA:
-        return 'Asana';
-      case Platform.BEADS:
-        return 'Beads';
-      default:
-        return 'Unknown platform';
-    }
   }
 }
 

@@ -190,7 +190,7 @@ export class FtToolbar extends LitElement {
     );
   }
 
-  private onCollectionSelect(e: CustomEvent) {
+  private onCollectionSelect(e: CustomEvent<{ collectionId: string }>) {
     e.stopPropagation();
     this.dispatchEvent(new CustomEvent('collection-select', {
       detail: e.detail,
