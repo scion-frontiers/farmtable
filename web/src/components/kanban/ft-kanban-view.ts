@@ -161,6 +161,13 @@ export class FtKanbanView extends LitElement {
     await dialog?.show();
   }
 
+  private async onColumnAddTask(e: CustomEvent) {
+    const { stage, label } = e.detail as { stage: TaskStage; label: string };
+    const dialog = this.renderRoot.querySelector<FtAddTaskDialog>('ft-add-task-dialog');
+    dialog?.setTarget(stage, label);
+    await dialog?.show();
+  }
+
   private async onTaskCreate(e: CustomEvent<TaskCreateDetail>) {
     const dialog = e.currentTarget as FtAddTaskDialog;
 
@@ -173,7 +180,11 @@ export class FtKanbanView extends LitElement {
 
     try {
       const task = await this.client.createTask(e.detail);
-      this.store.upsert(task);
+      this.store.upsert(
+        e.detail.stage
+          ? { ...task, stage: e.detail.stage, phase: phaseForStage(e.detail.stage) }
+          : task,
+      );
       dialog.close();
     } catch (error) {
       console.error('Failed to create task', error);
@@ -194,7 +205,11 @@ export class FtKanbanView extends LitElement {
         </sl-button>
       </div>
 
-      <div class="board" @stage-change=${this.onStageChange}>
+      <div
+        class="board"
+        @stage-change=${this.onStageChange}
+        @column-add-task=${this.onColumnAddTask}
+      >
         ${BOARD_COLUMNS.map(
           (col) => html`
             <ft-kanban-column
@@ -219,7 +234,11 @@ export class FtKanbanView extends LitElement {
               </div>
               ${this.onHoldExpanded
                 ? html`
-                    <div class="on-hold-columns" @stage-change=${this.onStageChange}>
+                    <div
+                      class="on-hold-columns"
+                      @stage-change=${this.onStageChange}
+                      @column-add-task=${this.onColumnAddTask}
+                    >
                       ${ON_HOLD_STAGES.map(
                         (col) => html`
                           <ft-kanban-column

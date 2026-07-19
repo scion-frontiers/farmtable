@@ -71,6 +71,20 @@ export class FtKanbanColumn extends LitElement {
       font-size: 0.7rem;
       font-weight: 600;
     }
+    .add-task-button {
+      --sl-input-height-small: 1.5rem;
+      color: var(--sl-color-neutral-600);
+      opacity: 0.35;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .header:hover .add-task-button,
+    .add-task-button:focus-visible {
+      opacity: 0.85;
+    }
+    .add-task-button:hover {
+      color: var(--sl-color-primary-600);
+      opacity: 1;
+    }
     .cards {
       flex: 1;
       overflow-y: auto;
@@ -136,6 +150,17 @@ export class FtKanbanColumn extends LitElement {
     );
   }
 
+  private onAddTaskClick(e: MouseEvent) {
+    e.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent('column-add-task', {
+        detail: { stage: this.stage, label: this.label },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   render() {
     const sorted = sortTasks(this.tasks);
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
@@ -145,6 +170,12 @@ export class FtKanbanColumn extends LitElement {
         <span class="color-dot" style="background: ${color}"></span>
         ${this.label}
         <span class="count">${sorted.length}</span>
+        <sl-icon-button
+          class="add-task-button"
+          name="plus"
+          label=${`Add task to ${this.label}`}
+          @click=${this.onAddTaskClick}
+        ></sl-icon-button>
       </div>
       <div
         class=${classMap({ cards: true, dragover: this.isDragOver })}

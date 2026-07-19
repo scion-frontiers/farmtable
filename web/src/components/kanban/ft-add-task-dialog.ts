@@ -1,9 +1,11 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, query, state } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
+import type { TaskStage } from '../../gen/types.js';
 
 export interface TaskCreateDetail {
   name: string;
   description?: string;
+  stage?: TaskStage;
 }
 
 type ShoelaceDialog = HTMLElement & {
@@ -48,6 +50,12 @@ export class FtAddTaskDialog extends LitElement {
   @state()
   private errorMessage = '';
 
+  @property({ type: Number })
+  targetStage: TaskStage | null = null;
+
+  @property()
+  targetStageLabel = '';
+
   async show() {
     await this.updateComplete;
     await this.dialog.show();
@@ -64,6 +72,11 @@ export class FtAddTaskDialog extends LitElement {
 
   setError(message: string) {
     this.errorMessage = message;
+  }
+
+  setTarget(stage: TaskStage, label: string) {
+    this.targetStage = stage;
+    this.targetStageLabel = label;
   }
 
   private onCancel() {
@@ -86,7 +99,11 @@ export class FtAddTaskDialog extends LitElement {
 
     this.dispatchEvent(
       new CustomEvent<TaskCreateDetail>('task-create', {
-        detail: { name, description: description || undefined },
+        detail: {
+          name,
+          description: description || undefined,
+          stage: this.targetStage ?? undefined,
+        },
         bubbles: true,
         composed: true,
       }),
@@ -96,6 +113,8 @@ export class FtAddTaskDialog extends LitElement {
   private onAfterHide() {
     this.isCreating = false;
     this.errorMessage = '';
+    this.targetStage = null;
+    this.targetStageLabel = '';
     this.nameInput.value = '';
     this.descriptionInput.value = '';
   }
@@ -107,7 +126,7 @@ export class FtAddTaskDialog extends LitElement {
   render() {
     return html`
       <sl-dialog
-        label="Add Task"
+        label=${this.targetStage ? `Add Task to ${this.targetStageLabel}` : 'Add Task'}
         @sl-after-hide=${this.onAfterHide}
         @sl-request-close=${this.onRequestClose}
       >
