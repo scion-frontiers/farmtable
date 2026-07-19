@@ -38,6 +38,7 @@ export interface FarmTableServiceClient {
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
   updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
+  addComment(taskId: string, body: string): Promise<Comment>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
   listUsers(): Promise<User[]>;
@@ -463,6 +464,20 @@ export class MockFarmTableClient implements FarmTableServiceClient {
 
   async listUsers(): Promise<User[]> {
     return Object.values(MOCK_USERS);
+  }
+
+  async addComment(taskId: string, body: string): Promise<Comment> {
+    await delay(300);
+    const comment: Comment = {
+      id: crypto.randomUUID(),
+      taskId,
+      author: MOCK_USERS.u1,
+      body,
+      attachments: [],
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_COMMENTS[taskId] = [...(MOCK_COMMENTS[taskId] ?? []), comment];
+    return { ...comment };
   }
 
   async listComments(taskId: string): Promise<Comment[]> {
