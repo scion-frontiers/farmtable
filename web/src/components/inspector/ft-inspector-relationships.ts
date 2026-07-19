@@ -1,53 +1,9 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { Task, Relationship } from '../../gen/types.js';
-import { RelationshipType, TaskStage } from '../../gen/types.js';
+import type { Task } from '../../gen/types.js';
+import { RelationshipType } from '../../gen/types.js';
 import type { TaskStore } from '../../store/task-store.js';
-
-const REL_GROUP_LABEL: Record<number, string> = {
-  [RelationshipType.BLOCKED_BY]: 'Blocked by',
-  [RelationshipType.BLOCKS]: 'Blocks',
-  [RelationshipType.RELATED]: 'Related',
-  [RelationshipType.DUPLICATE]: 'Duplicate of',
-};
-
-const REL_GROUP_ORDER = [
-  RelationshipType.BLOCKED_BY,
-  RelationshipType.BLOCKS,
-  RelationshipType.RELATED,
-  RelationshipType.DUPLICATE,
-];
-
-const STAGE_LABEL: Record<number, string> = {
-  [TaskStage.TRIAGE]: 'Triage',
-  [TaskStage.BACKLOG]: 'Backlog',
-  [TaskStage.READY]: 'Ready',
-  [TaskStage.WORKING]: 'Working',
-  [TaskStage.IN_REVIEW]: 'In Review',
-  [TaskStage.IN_QA]: 'In QA',
-  [TaskStage.DEPLOYING]: 'Deploying',
-  [TaskStage.BLOCKED]: 'Blocked',
-  [TaskStage.WAITING_FOR_INPUT]: 'Waiting',
-  [TaskStage.DEFERRED]: 'Deferred',
-  [TaskStage.SCHEDULED]: 'Scheduled',
-  [TaskStage.COMPLETED]: 'Completed',
-  [TaskStage.WONT_FIX]: "Won't Fix",
-  [TaskStage.DUPLICATE]: 'Duplicate',
-  [TaskStage.CANCELLED]: 'Cancelled',
-};
-
-const STAGE_COLOR: Record<number, string> = {
-  [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
-  [TaskStage.BACKLOG]: 'var(--ft-stage-backlog)',
-  [TaskStage.READY]: 'var(--ft-stage-ready)',
-  [TaskStage.WORKING]: 'var(--ft-stage-working)',
-  [TaskStage.IN_REVIEW]: 'var(--ft-stage-in-review)',
-  [TaskStage.IN_QA]: 'var(--ft-stage-in-qa)',
-  [TaskStage.DEPLOYING]: 'var(--ft-stage-deploying)',
-  [TaskStage.BLOCKED]: 'var(--ft-stage-blocked)',
-  [TaskStage.COMPLETED]: 'var(--ft-stage-completed)',
-  [TaskStage.CANCELLED]: 'var(--ft-stage-cancelled)',
-};
+import { STAGE_LABEL, STAGE_COLOR, REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
 
 @customElement('ft-inspector-relationships')
 export class FtInspectorRelationships extends LitElement {
@@ -83,6 +39,10 @@ export class FtInspectorRelationships extends LitElement {
     }
     .entry:hover {
       background: var(--sl-color-neutral-100);
+    }
+    .entry:focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
     }
     .entry-name {
       flex: 1;
@@ -126,6 +86,13 @@ export class FtInspectorRelationships extends LitElement {
     );
   }
 
+  private onEntryKeyDown(taskId: string, e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.onClickTask(taskId);
+    }
+  }
+
   private renderStageBadge(task: Task) {
     const label = STAGE_LABEL[task.stage] ?? '';
     const color = STAGE_COLOR[task.stage] ?? 'var(--sl-color-neutral-500)';
@@ -135,7 +102,12 @@ export class FtInspectorRelationships extends LitElement {
 
   private renderEntry(task: Task) {
     return html`
-      <div class="entry" @click=${() => this.onClickTask(task.id)}>
+      <div class="entry"
+        tabindex="0"
+        role="button"
+        @click=${() => this.onClickTask(task.id)}
+        @keydown=${(e: KeyboardEvent) => this.onEntryKeyDown(task.id, e)}
+      >
         <span class="entry-name">${task.name}</span>
         ${this.renderStageBadge(task)}
       </div>
