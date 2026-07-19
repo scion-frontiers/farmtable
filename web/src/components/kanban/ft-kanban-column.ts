@@ -114,6 +114,13 @@ export class FtKanbanColumn extends LitElement {
       outline-offset: -2px;
       border-radius: 0.25rem;
     }
+    .empty-filter-message {
+      color: var(--sl-color-neutral-500);
+      font-size: 0.8rem;
+      line-height: 1.4;
+      padding: 0.75rem 0.25rem;
+      text-align: center;
+    }
   `;
 
   @property({ type: Number })
@@ -316,6 +323,12 @@ export class FtKanbanColumn extends LitElement {
             ></ft-task-card>
           `,
         )}
+        ${isFiltered && sorted.length === 0
+          ? html`<div class="empty-filter-message">
+              <!-- NOTE(i18n): Hardcoded English; extract if i18n is added. -->
+              No visible tasks match this filter.
+            </div>`
+          : ''}
       </div>
     `;
   }
