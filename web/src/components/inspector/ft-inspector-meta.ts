@@ -122,6 +122,7 @@ export class FtInspectorMeta extends LitElement {
   override willUpdate(changedProps: PropertyValues<this>) {
     if (!changedProps.has('task')) return;
 
+    // task is an object reference; guard by ID so store refreshes for the same task keep edits intact.
     const nextTaskId = this.task?.id ?? '';
     if (nextTaskId !== this.prevTaskId) {
       this.prevTaskId = nextTaskId;
@@ -302,7 +303,7 @@ export class FtInspectorMeta extends LitElement {
     this.addingLabel = false;
     this.labelDraft = '';
     this.pickingAssignee = false;
-    this.availableUsers = [];
+    this.availableUsers = []; // Clear rendered list; intentionally keep userCache for next pick.
     this.removeDismissListener();
   }
 

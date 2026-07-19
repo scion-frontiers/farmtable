@@ -124,6 +124,7 @@ export class FtInspectorHeader extends LitElement {
   override willUpdate(changedProps: PropertyValues<this>) {
     if (!changedProps.has('task')) return;
 
+    // task is an object reference; guard by ID so store refreshes for the same task keep edits intact.
     const nextTaskId = this.task?.id ?? '';
     if (nextTaskId !== this.prevTaskId) {
       this.prevTaskId = nextTaskId;
@@ -133,7 +134,6 @@ export class FtInspectorHeader extends LitElement {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    this.removeDismissListener();
   }
 
   private stopInspectorInteraction(e: Event) {
@@ -143,7 +143,6 @@ export class FtInspectorHeader extends LitElement {
   private async startPriorityEdit(e: Event) {
     e.stopPropagation();
     this.isEditingPriority = true;
-    this.addDismissListener();
     await this.updateComplete;
     const select = this.renderRoot.querySelector<HTMLElement & { focus: () => void; show?: () => void }>(
       'sl-select.priority-select',
@@ -159,7 +158,6 @@ export class FtInspectorHeader extends LitElement {
 
     const nextPriority = raw as TaskPriority;
     this.isEditingPriority = false;
-    this.removeDismissListener();
 
     if (nextPriority === (this.task.priority ?? TaskPriority.UNSPECIFIED)) return;
 
@@ -168,11 +166,11 @@ export class FtInspectorHeader extends LitElement {
 
   private onPriorityBlur() {
     this.isEditingPriority = false;
-    this.removeDismissListener();
   }
 
   private onPriorityKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
+      // Complements sl-after-hide, which handles native popup close/outside-click dismissal.
       e.preventDefault();
       e.stopPropagation();
       this.onPriorityBlur();
@@ -181,21 +179,6 @@ export class FtInspectorHeader extends LitElement {
 
   private resetEditState() {
     this.isEditingPriority = false;
-    this.removeDismissListener();
-  }
-
-  private onDocumentPointerDown = (e: PointerEvent) => {
-    if (!this.isEditingPriority) return;
-    if (e.composedPath().includes(this)) return;
-    this.onPriorityBlur();
-  };
-
-  private addDismissListener() {
-    document.addEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
-  }
-
-  private removeDismissListener() {
-    document.removeEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {

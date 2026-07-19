@@ -80,6 +80,7 @@ export class FtInspectorDesc extends LitElement {
   private draft = '';
 
   override willUpdate(changedProps: PropertyValues<this>) {
+    // taskId is a string primitive; Lit's equality check detects identity changes directly.
     if (changedProps.has('taskId')) {
       this.resetEditState();
     }
