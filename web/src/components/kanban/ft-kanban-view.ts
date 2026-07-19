@@ -271,10 +271,12 @@ export class FtKanbanView extends LitElement {
     const boardColumns = BOARD_COLUMNS.map((col) => ({
       ...col,
       tasks: this.getColumnTasks(col.stage),
+      totalCount: this.store.getByStage(col.stage).length,
     }));
     const onHoldColumns = ON_HOLD_STAGES.map((col) => ({
       ...col,
       tasks: this.getColumnTasks(col.stage),
+      totalCount: this.store.getByStage(col.stage).length,
     }));
     const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
 
@@ -299,6 +301,7 @@ export class FtKanbanView extends LitElement {
               .stage=${col.stage}
               .tasks=${col.tasks}
               .label=${col.label}
+              .totalCount=${col.totalCount}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
           `,
@@ -330,6 +333,7 @@ export class FtKanbanView extends LitElement {
                             .stage=${col.stage}
                             .tasks=${col.tasks}
                             .label=${col.label}
+                            .totalCount=${col.totalCount}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
                         `,

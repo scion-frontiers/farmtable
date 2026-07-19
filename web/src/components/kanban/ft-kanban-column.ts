@@ -71,6 +71,8 @@ export class FtKanbanColumn extends LitElement {
       padding: 0.1rem 0.45rem;
       font-size: 0.7rem;
       font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
     }
     .add-task-button {
       --sl-input-height-small: 1.5rem;
@@ -112,6 +114,9 @@ export class FtKanbanColumn extends LitElement {
 
   @property()
   label = '';
+
+  @property({ type: Number, attribute: 'total-count' })
+  totalCount = 0;
 
   @property({ attribute: 'selected-task-id' })
   selectedTaskId: string | null = null;
@@ -251,12 +256,16 @@ export class FtKanbanColumn extends LitElement {
   render() {
     const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
+    const countLabel =
+      this.totalCount > 0 && sorted.length !== this.totalCount
+        ? `${sorted.length} of ${this.totalCount}`
+        : `${sorted.length}`;
 
     return html`
       <div class="header">
         <span class="color-dot" style="background: ${color}"></span>
         ${this.label}
-        <span class="count">${sorted.length}</span>
+        <span class="count">${countLabel}</span>
         <sl-icon-button
           class="add-task-button"
           name="plus"
