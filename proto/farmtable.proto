@@ -698,6 +698,37 @@ message UpdateCollectionRequest {
   optional string description = 3;
 }
 
+message ExportCollectionRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  bool include_changes = 2;
+}
+
+message ExportCollectionResponse {
+  bytes data = 1;
+  repeated string warnings = 2;
+}
+
+message ImportCollectionRequest {
+  bytes data = 1 [(buf.validate.field).bytes.min_len = 2];
+  optional string name = 2 [(buf.validate.field).string.min_len = 1];
+  bool dry_run = 3;
+}
+
+message ImportCollectionResponse {
+  string collection_id = 1;
+  ImportStats stats = 2;
+  repeated string warnings = 3;
+}
+
+message ImportStats {
+  int32 users_matched = 1;
+  int32 users_created = 2;
+  int32 tasks = 3;
+  int32 comments = 4;
+  int32 relationships = 5;
+  int32 changes = 6;
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Graph Query RPC Messages
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -963,6 +994,8 @@ service FarmTableService {
   // collections are created through the admin/setup flow.
   rpc CreateCollection(CreateCollectionRequest) returns (Collection);
   rpc UpdateCollection(UpdateCollectionRequest) returns (Collection);
+  rpc ExportCollection(ExportCollectionRequest) returns (ExportCollectionResponse);
+  rpc ImportCollection(ImportCollectionRequest) returns (ImportCollectionResponse);
 
   // ── Graph Queries ──
 

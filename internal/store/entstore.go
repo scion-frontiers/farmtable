@@ -481,6 +481,19 @@ func (s *EntStore) ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Tas
 	return tasks, total, nil
 }
 
+func (s *EntStore) ListAllTasksForCollection(ctx context.Context, p ListAllTasksForCollectionParams) ([]*ent.Task, error) {
+	// Export path helper: loads the entire collection task set into memory.
+	// Consider streaming export for very large collections in a later phase.
+	tasks, err := s.client.Task.Query().
+		Where(task.CollectionIDEQ(p.CollectionID)).
+		Order(task.ByCreatedAt(), task.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all tasks for collection: %w", err)
+	}
+	return tasks, nil
+}
+
 func hasAllLabels(taskLabels, required []string) bool {
 	set := make(map[string]struct{}, len(taskLabels))
 	for _, l := range taskLabels {
@@ -984,6 +997,50 @@ func (s *EntStore) ListComments(ctx context.Context, p ListCommentsParams) ([]*e
 	return comments, total, nil
 }
 
+func (s *EntStore) ListAllCommentsForTask(ctx context.Context, p ListAllCommentsForTaskParams) ([]*ent.Comment, error) {
+	// Export path helper: loads all comments for the task into memory.
+	// Consider streaming export for very large collections in a later phase.
+	comments, err := s.client.Comment.Query().
+		Where(comment.TaskIDEQ(p.TaskID)).
+		Order(comment.ByCreatedAt(), comment.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all comments for task: %w", err)
+	}
+	return comments, nil
+}
+
+func (s *EntStore) ListAllCommentsForCollection(ctx context.Context, p ListAllCommentsForCollectionParams) ([]*ent.Comment, error) {
+	// Export path helper: loads all comments for the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
+	comments, err := s.client.Comment.Query().
+		Where(comment.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
+		Order(comment.ByCreatedAt(), comment.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all comments for collection: %w", err)
+	}
+	return comments, nil
+}
+
+func (s *EntStore) ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
+	// Export path helper: loads all relationships touching the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
+	relationships, err := s.client.Relationship.Query().
+		Where(
+			relationship.Or(
+				relationship.HasSourceTaskWith(task.CollectionIDEQ(p.CollectionID)),
+				relationship.HasTargetTaskWith(task.CollectionIDEQ(p.CollectionID)),
+			),
+		).
+		Order(relationship.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all relationships for collection: %w", err)
+	}
+	return relationships, nil
+}
+
 type fieldChange struct {
 	Field    string
 	OldValue string
@@ -1186,6 +1243,31 @@ func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.Use
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
 	return u, nil
+}
+
+func (s *EntStore) GetUserByEmail(ctx context.Context, email string) ([]*ent.User, error) {
+	users, err := s.client.User.Query().
+		Where(user.EmailEQ(email)).
+		Order(user.ByCreatedAt(), user.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting users by email: %w", err)
+	}
+	return users, nil
+}
+
+func (s *EntStore) GetUsersByIDs(ctx context.Context, ids []uuid.UUID) ([]*ent.User, error) {
+	if len(ids) == 0 {
+		return []*ent.User{}, nil
+	}
+	users, err := s.client.User.Query().
+		Where(user.IDIn(ids...)).
+		Order(user.ByCreatedAt(), user.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting users by ids: %w", err)
+	}
+	return users, nil
 }
 
 func (s *EntStore) GetUser(ctx context.Context, id uuid.UUID) (*ent.User, error) {
@@ -1451,6 +1533,180 @@ func (s *EntStore) ListChanges(ctx context.Context, p ListChangesParams) ([]*ent
 		return nil, 0, fmt.Errorf("listing changes: %w", err)
 	}
 	return changes, total, nil
+}
+
+func (s *EntStore) ListAllChangesForTask(ctx context.Context, p ListAllChangesForTaskParams) ([]*ent.Change, error) {
+	// Export path helper: loads all changes for the task into memory.
+	// Consider streaming export for very large collections in a later phase.
+	changes, err := s.client.Change.Query().
+		Where(change.TaskIDEQ(p.TaskID)).
+		Order(change.ByCreatedAt(), change.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all changes for task: %w", err)
+	}
+	return changes, nil
+}
+
+func (s *EntStore) ListAllChangesForCollection(ctx context.Context, p ListAllChangesForCollectionParams) ([]*ent.Change, error) {
+	// Export path helper: loads all changes for the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
+	changes, err := s.client.Change.Query().
+		Where(change.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
+		Order(change.ByCreatedAt(), change.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all changes for collection: %w", err)
+	}
+	return changes, nil
+}
+
+func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParams) (*ent.Collection, error) {
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, imported := range p.Users {
+		create := tx.User.Create().
+			SetID(imported.ID).
+			SetDisplayName(imported.DisplayName).
+			SetType(imported.Type).
+			SetStatus(imported.Status)
+		if imported.Email != nil {
+			create.SetEmail(*imported.Email)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return nil, fmt.Errorf("creating imported user %s: %w", imported.ID, err)
+		}
+	}
+
+	collCreate := tx.Collection.Create().
+		SetName(p.Collection.Name).
+		SetDescription(p.Collection.Description).
+		SetPlatform(p.Collection.Platform)
+	if !p.Collection.CreatedAt.IsZero() {
+		collCreate.SetCreatedAt(p.Collection.CreatedAt)
+	}
+	if !p.Collection.UpdatedAt.IsZero() {
+		collCreate.SetUpdatedAt(p.Collection.UpdatedAt)
+	}
+	coll, err := collCreate.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("creating imported collection: %w", err)
+	}
+
+	for _, imported := range p.Tasks {
+		create := tx.Task.Create().
+			SetID(imported.ID).
+			SetTitle(imported.Title).
+			SetDescription(imported.Description).
+			SetCollectionID(coll.ID).
+			SetPhase(imported.Phase).
+			SetStage(imported.Stage).
+			SetNativeLabel(imported.NativeLabel).
+			SetType(imported.Type).
+			SetVersion(imported.Version)
+		if imported.Priority != nil {
+			create.SetPriority(*imported.Priority)
+		}
+		if imported.AssigneeID != nil {
+			create.SetAssigneeID(*imported.AssigneeID)
+		}
+		if imported.ParentTaskID != nil {
+			create.SetParentTaskID(*imported.ParentTaskID)
+		}
+		if imported.StartDate != nil {
+			create.SetStartDate(*imported.StartDate)
+		}
+		if imported.DueDate != nil {
+			create.SetDueDate(*imported.DueDate)
+		}
+		if imported.ClosedAt != nil {
+			create.SetClosedAt(*imported.ClosedAt)
+		}
+		if !imported.CreatedAt.IsZero() {
+			create.SetCreatedAt(imported.CreatedAt)
+		}
+		if !imported.UpdatedAt.IsZero() {
+			create.SetUpdatedAt(imported.UpdatedAt)
+		}
+		if imported.AcceptanceCriteria != nil {
+			create.SetAcceptanceCriteria(*imported.AcceptanceCriteria)
+		}
+		if imported.Labels != nil {
+			create.SetLabels(imported.Labels)
+		}
+		if imported.Repo != "" {
+			create.SetRepo(imported.Repo)
+		}
+		if imported.Branch != "" {
+			create.SetBranch(imported.Branch)
+		}
+		if imported.CIStatus != nil {
+			create.SetCiStatus(*imported.CIStatus)
+		}
+		if imported.PullRequests != nil {
+			create.SetPullRequests(imported.PullRequests)
+		}
+		if imported.RemoteData != nil {
+			create.SetRemoteData(imported.RemoteData)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return nil, fmt.Errorf("creating imported task %s: %w", imported.ID, err)
+		}
+	}
+
+	for _, imported := range p.Comments {
+		create := tx.Comment.Create().
+			SetID(imported.ID).
+			SetTaskID(imported.TaskID).
+			SetAuthorID(imported.AuthorID).
+			SetBody(imported.Body)
+		if !imported.CreatedAt.IsZero() {
+			create.SetCreatedAt(imported.CreatedAt)
+		}
+		if !imported.UpdatedAt.IsZero() {
+			create.SetUpdatedAt(imported.UpdatedAt)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return nil, fmt.Errorf("creating imported comment %s: %w", imported.ID, err)
+		}
+	}
+
+	for _, imported := range p.Relationships {
+		_, err := tx.Relationship.Create().
+			SetID(imported.ID).
+			SetSourceTaskID(imported.SourceTaskID).
+			SetTargetTaskID(imported.TargetTaskID).
+			SetType(imported.Type).
+			Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("creating imported relationship %s: %w", imported.ID, err)
+		}
+	}
+
+	for _, imported := range p.Changes {
+		create := tx.Change.Create().
+			SetID(imported.ID).
+			SetTaskID(imported.TaskID).
+			SetAuthorID(imported.AuthorID).
+			SetFieldName(imported.FieldName).
+			SetOldValue(imported.OldValue).
+			SetNewValue(imported.NewValue)
+		if !imported.CreatedAt.IsZero() {
+			create.SetCreatedAt(imported.CreatedAt)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return nil, fmt.Errorf("creating imported change %s: %w", imported.ID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("committing collection import: %w", err)
+	}
+	return s.GetCollection(ctx, coll.ID)
 }
 
 // ── Graph Query Methods ──

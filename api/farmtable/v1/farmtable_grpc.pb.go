@@ -40,6 +40,8 @@ const (
 	FarmTableService_GetCollection_FullMethodName     = "/farmtable.v1.FarmTableService/GetCollection"
 	FarmTableService_CreateCollection_FullMethodName  = "/farmtable.v1.FarmTableService/CreateCollection"
 	FarmTableService_UpdateCollection_FullMethodName  = "/farmtable.v1.FarmTableService/UpdateCollection"
+	FarmTableService_ExportCollection_FullMethodName  = "/farmtable.v1.FarmTableService/ExportCollection"
+	FarmTableService_ImportCollection_FullMethodName  = "/farmtable.v1.FarmTableService/ImportCollection"
 	FarmTableService_GetReadyTasks_FullMethodName     = "/farmtable.v1.FarmTableService/GetReadyTasks"
 	FarmTableService_GetBlockedTasks_FullMethodName   = "/farmtable.v1.FarmTableService/GetBlockedTasks"
 	FarmTableService_GetDependencyTree_FullMethodName = "/farmtable.v1.FarmTableService/GetDependencyTree"
@@ -81,6 +83,8 @@ type FarmTableServiceClient interface {
 	// collections are created through the admin/setup flow.
 	CreateCollection(ctx context.Context, in *CreateCollectionRequest, opts ...grpc.CallOption) (*Collection, error)
 	UpdateCollection(ctx context.Context, in *UpdateCollectionRequest, opts ...grpc.CallOption) (*Collection, error)
+	ExportCollection(ctx context.Context, in *ExportCollectionRequest, opts ...grpc.CallOption) (*ExportCollectionResponse, error)
+	ImportCollection(ctx context.Context, in *ImportCollectionRequest, opts ...grpc.CallOption) (*ImportCollectionResponse, error)
 	// List tasks ready to work on: OPEN phase, stage ready, and all blocking
 	// dependencies resolved (CLOSED phase). The primary "what should I work
 	// on next?" query for agents.
@@ -261,6 +265,26 @@ func (c *farmTableServiceClient) UpdateCollection(ctx context.Context, in *Updat
 	return out, nil
 }
 
+func (c *farmTableServiceClient) ExportCollection(ctx context.Context, in *ExportCollectionRequest, opts ...grpc.CallOption) (*ExportCollectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExportCollectionResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_ExportCollection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *farmTableServiceClient) ImportCollection(ctx context.Context, in *ImportCollectionRequest, opts ...grpc.CallOption) (*ImportCollectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportCollectionResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_ImportCollection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *farmTableServiceClient) GetReadyTasks(ctx context.Context, in *GetReadyTasksRequest, opts ...grpc.CallOption) (*GetReadyTasksResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetReadyTasksResponse)
@@ -417,6 +441,8 @@ type FarmTableServiceServer interface {
 	// collections are created through the admin/setup flow.
 	CreateCollection(context.Context, *CreateCollectionRequest) (*Collection, error)
 	UpdateCollection(context.Context, *UpdateCollectionRequest) (*Collection, error)
+	ExportCollection(context.Context, *ExportCollectionRequest) (*ExportCollectionResponse, error)
+	ImportCollection(context.Context, *ImportCollectionRequest) (*ImportCollectionResponse, error)
 	// List tasks ready to work on: OPEN phase, stage ready, and all blocking
 	// dependencies resolved (CLOSED phase). The primary "what should I work
 	// on next?" query for agents.
@@ -491,6 +517,12 @@ func (UnimplementedFarmTableServiceServer) CreateCollection(context.Context, *Cr
 }
 func (UnimplementedFarmTableServiceServer) UpdateCollection(context.Context, *UpdateCollectionRequest) (*Collection, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCollection not implemented")
+}
+func (UnimplementedFarmTableServiceServer) ExportCollection(context.Context, *ExportCollectionRequest) (*ExportCollectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExportCollection not implemented")
+}
+func (UnimplementedFarmTableServiceServer) ImportCollection(context.Context, *ImportCollectionRequest) (*ImportCollectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportCollection not implemented")
 }
 func (UnimplementedFarmTableServiceServer) GetReadyTasks(context.Context, *GetReadyTasksRequest) (*GetReadyTasksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetReadyTasks not implemented")
@@ -819,6 +851,42 @@ func _FarmTableService_UpdateCollection_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FarmTableService_ExportCollection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExportCollectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).ExportCollection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_ExportCollection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).ExportCollection(ctx, req.(*ExportCollectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FarmTableService_ImportCollection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportCollectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).ImportCollection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_ImportCollection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).ImportCollection(ctx, req.(*ImportCollectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FarmTableService_GetReadyTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetReadyTasksRequest)
 	if err := dec(in); err != nil {
@@ -1094,6 +1162,14 @@ var FarmTableService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateCollection",
 			Handler:    _FarmTableService_UpdateCollection_Handler,
+		},
+		{
+			MethodName: "ExportCollection",
+			Handler:    _FarmTableService_ExportCollection_Handler,
+		},
+		{
+			MethodName: "ImportCollection",
+			Handler:    _FarmTableService_ImportCollection_Handler,
 		},
 		{
 			MethodName: "GetReadyTasks",
