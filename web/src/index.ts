@@ -19,12 +19,16 @@ import '@shoelace-style/shoelace/dist/components/dialog/dialog.js';
 import '@shoelace-style/shoelace/dist/components/input/input.js';
 import '@shoelace-style/shoelace/dist/components/textarea/textarea.js';
 import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
+import '@shoelace-style/shoelace/dist/components/dropdown/dropdown.js';
+import '@shoelace-style/shoelace/dist/components/menu/menu.js';
+import '@shoelace-style/shoelace/dist/components/menu-item/menu-item.js';
 
 import './styles/theme.css';
 import './components/ft-connection-badge.js';
 import './components/ft-toolbar.js';
 import './components/ft-shortcut-overlay.js';
 import './components/ft-collection-list.js';
+import './components/ft-collection-picker.js';
 import './components/kanban/ft-task-card.js';
 import './components/kanban/ft-kanban-column.js';
 import './components/kanban/ft-add-task-dialog.js';

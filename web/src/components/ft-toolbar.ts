@@ -4,6 +4,7 @@ import { TaskPhase, type User } from '../gen/types.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
+import './ft-collection-picker.js';
 
 // UNSPECIFIED is the protobuf default, not a user-selectable task phase.
 const PHASE_OPTIONS = [
@@ -19,6 +20,8 @@ export class FtToolbar extends LitElement {
     :host {
       display: flex;
       align-items: center;
+      position: relative;
+      z-index: 100;
       padding: 0.75rem 1rem;
       gap: 1rem;
       border-bottom: 1px solid var(--sl-color-neutral-200);
@@ -28,6 +31,11 @@ export class FtToolbar extends LitElement {
       font-weight: 600;
       font-size: 1.1rem;
       margin-right: auto;
+    }
+    .collection-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .filters {
       display: flex;
@@ -57,6 +65,12 @@ export class FtToolbar extends LitElement {
   client?: FarmTableServiceClient;
 
   @property({ attribute: false })
+  unscopedClient?: FarmTableServiceClient;
+
+  @property()
+  collectionId = '';
+
+  @property({ attribute: false })
   phaseFilter: TaskPhase | null = null;
 
   @property({ attribute: false })
@@ -84,6 +98,14 @@ export class FtToolbar extends LitElement {
     const filtersDisabled = this.currentView === 'tree';
 
     return html`
+      <div class="collection-controls">
+        <ft-collection-picker
+          .client=${this.unscopedClient}
+          .collectionId=${this.collectionId}
+          @collection-select=${this.onCollectionSelect}
+        ></ft-collection-picker>
+      </div>
+
       <span class="title">Farm Table</span>
 
       <div class="filters">
@@ -166,6 +188,15 @@ export class FtToolbar extends LitElement {
         composed: true,
       })
     );
+  }
+
+  private onCollectionSelect(e: CustomEvent) {
+    e.stopPropagation();
+    this.dispatchEvent(new CustomEvent('collection-select', {
+      detail: e.detail,
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   private async loadUsers() {
