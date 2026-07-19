@@ -1,7 +1,8 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
-import { Platform, type Collection } from '../gen/types.js';
+import type { Collection } from '../gen/types.js';
+import { platformLabel } from '../util/platform-label.js';
 
 @customElement('ft-collection-list')
 export class FtCollectionList extends LitElement {
@@ -134,7 +135,7 @@ export class FtCollectionList extends LitElement {
                       @click=${() => this.selectCollection(collection)}
                     >
                       <span class="name">${collection.name}</span>
-                      <span class="meta">${this.platformLabel(collection.platform)}</span>
+                      <span class="meta">${platformLabel(collection.platform)}</span>
                     </button>
                   `)}
                 </div>
@@ -173,25 +174,6 @@ export class FtCollectionList extends LitElement {
       bubbles: true,
       composed: true,
     }));
-  }
-
-  private platformLabel(platform: Platform): string {
-    switch (platform) {
-      case Platform.FARMTABLE:
-        return 'Farm Table';
-      case Platform.GITHUB:
-        return 'GitHub';
-      case Platform.LINEAR:
-        return 'Linear';
-      case Platform.JIRA:
-        return 'Jira';
-      case Platform.ASANA:
-        return 'Asana';
-      case Platform.BEADS:
-        return 'Beads';
-      default:
-        return 'Unknown platform';
-    }
   }
 }
 
