@@ -30,7 +30,6 @@ import './styles/theme.css';
 import './components/ft-connection-badge.js';
 import './components/ft-toolbar.js';
 import './components/ft-shortcut-overlay.js';
-import './components/ft-import-collection-dialog.js';
 import './components/ft-collection-list.js';
 import './components/kanban/ft-task-card.js';
 import './components/kanban/ft-kanban-column.js';
