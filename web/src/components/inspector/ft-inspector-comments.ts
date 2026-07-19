@@ -50,6 +50,21 @@ export class FtInspectorComments extends LitElement {
       font-style: italic;
       padding: 0.5rem 0;
     }
+    .comment-form {
+      display: grid;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+    }
+    sl-textarea {
+      --sl-input-font-size-medium: 0.8125rem;
+    }
+    .comment-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    sl-alert {
+      font-size: 0.8125rem;
+    }
   `;
 
   @property()
@@ -67,12 +82,23 @@ export class FtInspectorComments extends LitElement {
   @state()
   private loaded = false;
 
+  @state()
+  private draft = '';
+
+  @state()
+  private submitting = false;
+
+  @state()
+  private errorMessage = '';
+
   private cachedTaskId = '';
 
   updated(changed: Map<string, unknown>) {
     if (changed.has('taskId') && this.taskId !== this.cachedTaskId) {
       this.loaded = false;
       this.comments = [];
+      this.draft = '';
+      this.errorMessage = '';
       this.cachedTaskId = this.taskId;
       const details = this.shadowRoot?.querySelector('sl-details');
       if (details?.open) {
@@ -85,13 +111,62 @@ export class FtInspectorComments extends LitElement {
     if (this.loaded && this.cachedTaskId === this.taskId) return;
     if (!this.client || !this.taskId) return;
     this.loading = true;
+    this.errorMessage = '';
     try {
       this.comments = await this.client.listComments(this.taskId);
       this.cachedTaskId = this.taskId;
       this.loaded = true;
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
     } finally {
       this.loading = false;
     }
+  }
+
+  private onDraftInput(e: Event) {
+    this.draft = (e.currentTarget as unknown as { value: string }).value;
+    if (this.errorMessage) {
+      this.errorMessage = '';
+    }
+  }
+
+  private onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      this.submitComment();
+    }
+  }
+
+  private async submitComment() {
+    const body = this.trimmedDraft;
+    if (!body) {
+      this.errorMessage = 'Enter a comment before submitting.';
+      return;
+    }
+    if (!this.client || !this.taskId || this.submitting) return;
+
+    this.submitting = true;
+    this.errorMessage = '';
+    try {
+      const comment = await this.client.addComment(this.taskId, body);
+      this.comments = [comment, ...this.comments];
+      this.loaded = true;
+      this.draft = '';
+      await this.updateComplete;
+      this.renderRoot.querySelector<HTMLElement>('sl-textarea')?.focus();
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'Failed to add comment';
+    } finally {
+      this.submitting = false;
+    }
+  }
+
+  private authorName(comment: Comment) {
+    return comment.author.name.trim() || comment.author.id || 'Unknown author';
+  }
+
+  private get trimmedDraft(): string {
+    return this.draft.trim();
   }
 
   render() {
@@ -100,28 +175,61 @@ export class FtInspectorComments extends LitElement {
 
     return html`
       <sl-details summary=${summary} @sl-show=${this.onExpand}>
+        ${this.errorMessage
+          ? html`
+              <sl-alert variant="danger" open closable @sl-after-hide=${() => { this.errorMessage = ''; }}>
+                ${this.errorMessage}
+              </sl-alert>
+            `
+          : nothing}
         ${this.loading
           ? html`<sl-spinner style="font-size: 1rem;"></sl-spinner>`
           : this.loaded && this.comments.length === 0
             ? html`<div class="empty">No comments</div>`
             : this.comments.map(
-                (c) => html`
-                  <div class="comment">
-                    <div class="comment-header">
-                      <sl-avatar
-                        initials=${c.author.name.slice(0, 2)}
-                        label=${c.author.name}
-                        style="--size: 1.4rem; font-size: 0.55rem;"
-                      ></sl-avatar>
-                      <span class="comment-author">${c.author.name}</span>
-                      <span class="comment-time">${formatTimestamp(c.createdAt)}</span>
+                (c) => {
+                  const authorName = this.authorName(c);
+                  return html`
+                    <div class="comment">
+                      <div class="comment-header">
+                        <sl-avatar
+                          initials=${authorName.slice(0, 2)}
+                          label=${authorName}
+                          style="--size: 1.4rem; font-size: 0.55rem;"
+                        ></sl-avatar>
+                        <span class="comment-author">${authorName}</span>
+                        <span class="comment-time">${formatTimestamp(c.createdAt)}</span>
+                      </div>
+                      <div class="comment-body">
+                        ${unsafeHTML(renderMarkdown(c.body))}
+                      </div>
                     </div>
-                    <div class="comment-body">
-                      ${unsafeHTML(renderMarkdown(c.body))}
-                    </div>
-                  </div>
-                `,
+                  `;
+                }
               )}
+        <div class="comment-form">
+          <sl-textarea
+            label="Add comment"
+            placeholder="Ctrl+Enter to submit"
+            rows="3"
+            resize="auto"
+            value=${this.draft}
+            ?disabled=${this.submitting}
+            @input=${this.onDraftInput}
+            @keydown=${this.onKeyDown}
+          ></sl-textarea>
+          <div class="comment-actions">
+            <sl-button
+              size="small"
+              variant="primary"
+              ?loading=${this.submitting}
+              ?disabled=${!this.trimmedDraft || this.submitting}
+              @click=${this.submitComment}
+            >
+              Add comment
+            </sl-button>
+          </div>
+        </div>
       </sl-details>
     `;
   }
