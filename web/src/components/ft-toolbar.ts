@@ -34,6 +34,14 @@ export class FtToolbar extends LitElement {
     .theme-toggle:hover {
       color: var(--sl-color-neutral-900);
     }
+    .help-toggle {
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: var(--sl-color-neutral-600);
+    }
+    .help-toggle:hover {
+      color: var(--sl-color-neutral-900);
+    }
   `;
 
   @property()
@@ -79,6 +87,13 @@ export class FtToolbar extends LitElement {
         @click=${this.onToggleTheme}
       ></sl-icon-button>
 
+      <sl-icon-button
+        class="help-toggle"
+        name="question-circle"
+        label="Show keyboard shortcuts"
+        @click=${this.onShortcutHelpClick}
+      ></sl-icon-button>
+
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
     `;
   }
@@ -97,6 +112,15 @@ export class FtToolbar extends LitElement {
         bubbles: true,
         composed: true,
       })
+    );
+  }
+
+  private onShortcutHelpClick() {
+    this.dispatchEvent(
+      new CustomEvent('shortcut-help-open', {
+        bubbles: true,
+        composed: true,
+      }),
     );
   }
 }

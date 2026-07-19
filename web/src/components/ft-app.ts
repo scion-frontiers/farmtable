@@ -61,18 +61,23 @@ export class FtApp extends LitElement {
   @state()
   private connectionStatus: ConnectionStatus = 'disconnected';
 
+  @state()
+  private shortcutOverlayOpen = false;
+
   connectedCallback() {
     super.connectedCallback();
     this.client = createGrpcFarmTableClient();
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();
+    document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.stop();
+    document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
 
   render() {
@@ -83,6 +88,7 @@ export class FtApp extends LitElement {
         .currentView=${this.currentView}
         .connectionStatus=${this.connectionStatus}
         @view-change=${this.onViewChange}
+        @shortcut-help-open=${this.onShortcutHelpOpen}
       ></ft-toolbar>
 
       <div class="content">
@@ -123,6 +129,11 @@ export class FtApp extends LitElement {
             `
           : null}
       </div>
+
+      <ft-shortcut-overlay
+        .open=${this.shortcutOverlayOpen}
+        @close=${this.onShortcutHelpClose}
+      ></ft-shortcut-overlay>
     `;
   }
 
@@ -157,6 +168,40 @@ export class FtApp extends LitElement {
 
   private onInspectorClose() {
     this.selectedTaskId = null;
+  }
+
+  private onShortcutHelpOpen() {
+    this.shortcutOverlayOpen = true;
+  }
+
+  private onShortcutHelpClose() {
+    this.shortcutOverlayOpen = false;
+  }
+
+  private onDocumentKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== '?' || e.defaultPrevented || this.shortcutOverlayOpen) return;
+    if (this.isEditableEventTarget(e)) return;
+
+    e.preventDefault();
+    this.shortcutOverlayOpen = true;
+  };
+
+  private isEditableEventTarget(e: KeyboardEvent): boolean {
+    const path = e.composedPath();
+    return path.some((target) => {
+      if (!(target instanceof HTMLElement)) return false;
+
+      const tagName = target.tagName.toLowerCase();
+      return (
+        target.isContentEditable ||
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        tagName === 'sl-input' ||
+        tagName === 'sl-textarea' ||
+        tagName === 'sl-select'
+      );
+    });
   }
 }
 
