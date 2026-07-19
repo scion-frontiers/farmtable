@@ -6,9 +6,12 @@ import {
   type CodeContext,
   type Attachment,
   type Comment,
+  type Collection,
+  type CustomFieldDefinition,
   type CustomFieldValue,
   type PullRequest,
   type Relationship,
+  type StatusMapping,
   type Task,
   type TaskEvent,
   type User,
@@ -108,6 +111,7 @@ const methods = {
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
   listChanges: unaryMethod('ListChanges', 'ListChangesRequest', 'ListChangesResponse'),
   listCollections: unaryMethod('ListCollections', 'ListCollectionsRequest', 'ListCollectionsResponse'),
+  getCollection: unaryMethod('GetCollection', 'GetCollectionRequest', 'Collection'),
   listUsers: unaryMethod('ListUsers', 'ListUsersRequest', 'ListUsersResponse'),
   watchTasks: streamMethod('WatchTasks', 'WatchTasksRequest', 'TaskEvent'),
 };
@@ -127,6 +131,16 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     this.serverUrl = options.serverUrl ?? window.location.origin;
     this.token = options.token ?? '';
     this.collectionId = options.collectionId;
+  }
+
+  async listCollections(): Promise<Collection[]> {
+    const response = await this.unary(methods.listCollections, { pageSize: 200 });
+    return asArray(response.items).map((item) => toCollection(asRecord(item)));
+  }
+
+  async getCollection(id: string): Promise<Collection> {
+    const response = await this.unary(methods.getCollection, { id });
+    return toCollection(response);
   }
 
   async listTasks(): Promise<Task[]> {
@@ -308,6 +322,15 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
 }
 
 export function createGrpcFarmTableClient(): GrpcFarmTableClient {
+  return createGrpcFarmTableClientWithOptions();
+}
+
+export interface CreateGrpcFarmTableClientOptions {
+  collectionId?: string | null;
+  readStoredCollectionId?: boolean;
+}
+
+export function createGrpcFarmTableClientWithOptions(options: CreateGrpcFarmTableClientOptions = {}): GrpcFarmTableClient {
   const globalConfig = window as Window & {
     FARMTABLE_TOKEN?: string;
     FARMTABLE_SERVER_URL?: string;
@@ -315,7 +338,14 @@ export function createGrpcFarmTableClient(): GrpcFarmTableClient {
   };
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token') ?? globalConfig.FARMTABLE_TOKEN ?? localStorage.getItem('farmtable.token') ?? '';
-  const collectionId = params.get('collection') ?? globalConfig.FARMTABLE_COLLECTION_ID ?? localStorage.getItem('farmtable.collectionId') ?? undefined;
+  const storedCollectionId = options.readStoredCollectionId === false
+    ? undefined
+    : globalConfig.FARMTABLE_COLLECTION_ID ?? localStorage.getItem('farmtable.collectionId') ?? undefined;
+  const urlCollectionId = params.get('collection') ?? undefined;
+  // Precedence: explicit option > URL ?collection= param > stored global/localStorage.
+  const collectionId = options.collectionId === null
+    ? undefined
+    : options.collectionId ?? urlCollectionId ?? storedCollectionId;
 
   return new GrpcFarmTableClient({
     serverUrl: globalConfig.FARMTABLE_SERVER_URL ?? window.location.origin,
@@ -353,6 +383,40 @@ function toTask(record: ProtoRecord): Task {
     updatedAt: timestampToIso(record.updatedAt),
     closedAt: timestampToIso(record.closedAt),
     version: stringField(record.version),
+  };
+}
+
+function toCollection(record: ProtoRecord): Collection {
+  return {
+    id: stringField(record.id),
+    name: stringField(record.name),
+    description: optionalString(record.description),
+    platform: numberField(record.platform),
+    remoteId: optionalString(record.remoteId),
+    workspaceId: optionalString(record.workspaceId),
+    linkedAccountId: optionalString(record.linkedAccountId),
+    statusMappings: asArray(record.statusMappings).map((item) => toStatusMapping(asRecord(item))),
+    customFieldDefinitions: asArray(record.customFieldDefinitions).map((item) => toCustomFieldDefinition(asRecord(item))),
+    remoteData: record.remoteData ? structToRecord(asRecord(record.remoteData)) : undefined,
+    createdAt: timestampToIso(record.createdAt) ?? '',
+    updatedAt: timestampToIso(record.updatedAt),
+  };
+}
+
+function toStatusMapping(record: ProtoRecord): StatusMapping {
+  return {
+    nativeStatus: stringField(record.nativeStatus),
+    phase: numberField(record.phase),
+    stage: numberField(record.stage),
+  };
+}
+
+function toCustomFieldDefinition(record: ProtoRecord): CustomFieldDefinition {
+  return {
+    fieldId: stringField(record.fieldId),
+    fieldName: stringField(record.fieldName),
+    fieldType: numberField(record.fieldType),
+    required: Boolean(record.required),
   };
 }
 

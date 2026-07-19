@@ -6,7 +6,7 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
 import { TaskPhase, type User } from '../gen/types.js';
-import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
+import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
 
@@ -49,14 +49,22 @@ export class FtApp extends LitElement {
 
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
-  private streamManager!: StreamManager;
+  private streamManager?: StreamManager;
   private client!: FarmTableServiceClient;
+  private unscopedClient!: FarmTableServiceClient;
   private onStatusChanged = ((e: CustomEvent) => {
     this.connectionStatus = e.detail.status;
   }) as EventListener;
+  private routeToken = 0;
 
   @state()
   private currentView: 'kanban' | 'tree' = 'kanban';
+
+  @state()
+  private routeView: 'landing' | 'validating' | 'board' = 'validating';
+
+  @state()
+  private collectionErrorMessage = '';
 
   @state()
   private selectedTaskId: string | null = null;
@@ -80,13 +88,15 @@ export class FtApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.client = createGrpcFarmTableClient();
-    this.streamManager = new StreamManager(this.client, this.taskStore);
-    this.streamManager.addEventListener('status-changed', this.onStatusChanged);
-    this.streamManager.start();
-    void this.loadUsers();
+    this.unscopedClient = createGrpcFarmTableClientWithOptions({
+      collectionId: null,
+      readStoredCollectionId: false,
+    });
+    this.client = this.unscopedClient;
+    void this.applyRoute();
     // FtApp owns the global "?" toggle; ft-shortcut-overlay owns modal keys like Escape and Tab.
     document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
+    window.addEventListener('popstate', this.onPopState);
   }
 
   disconnectedCallback() {
@@ -94,9 +104,28 @@ export class FtApp extends LitElement {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.stop();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
+    window.removeEventListener('popstate', this.onPopState);
   }
 
   render() {
+    if (this.routeView !== 'board') {
+      return html`
+        ${this.routeView === 'validating'
+          ? html`<div class="placeholder"><sl-spinner style="font-size: 2rem;"></sl-spinner></div>`
+          : html`
+              <ft-collection-list
+                .client=${this.unscopedClient}
+                .errorMessage=${this.collectionErrorMessage}
+                @collection-select=${this.onCollectionSelect}
+              ></ft-collection-list>
+            `}
+        <ft-shortcut-overlay
+          .open=${this.shortcutOverlayOpen}
+          @close=${this.onShortcutHelpClose}
+        ></ft-shortcut-overlay>
+      `;
+    }
+
     const allTasks = this.storeController.taskStore.allTasks;
     const totalCount = allTasks.length;
     const filteredCount =
@@ -239,6 +268,89 @@ export class FtApp extends LitElement {
 
   private onShortcutHelpClose() {
     this.shortcutOverlayOpen = false;
+  }
+
+  private async applyRoute() {
+    const token = ++this.routeToken;
+    const collectionId = this.currentCollectionIdFromUrl();
+
+    if (!collectionId) {
+      this.showCollectionList('');
+      return;
+    }
+
+    this.routeView = 'validating';
+    this.collectionErrorMessage = '';
+
+    try {
+      await this.unscopedClient.getCollection(collectionId);
+      if (token !== this.routeToken) return;
+      this.showBoard(collectionId);
+    } catch (error) {
+      if (token !== this.routeToken) return;
+      console.warn('Collection from URL was not found', error);
+      this.removeCollectionFromUrl();
+      this.showCollectionList('Collection not found. Choose an available collection.');
+    }
+  }
+
+  private showCollectionList(errorMessage: string) {
+    this.stopStream();
+    this.client = this.unscopedClient;
+    this.taskStore.clear();
+    this.selectedTaskId = null;
+    this.users = [];
+    this.connectionStatus = 'disconnected';
+    this.collectionErrorMessage = errorMessage;
+    this.routeView = 'landing';
+  }
+
+  private showBoard(collectionId: string) {
+    this.stopStream();
+    this.phaseFilter = null;
+    this.assigneeFilter = null;
+    this.client = createGrpcFarmTableClientWithOptions({
+      collectionId,
+      readStoredCollectionId: false,
+    });
+    this.taskStore.clear();
+    this.selectedTaskId = null;
+    this.connectionStatus = 'disconnected';
+    this.collectionErrorMessage = '';
+    this.routeView = 'board';
+
+    this.streamManager = new StreamManager(this.client, this.taskStore);
+    this.streamManager.addEventListener('status-changed', this.onStatusChanged);
+    void this.streamManager.start();
+    void this.loadUsers();
+  }
+
+  private stopStream() {
+    this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.stop();
+    this.streamManager = undefined;
+  }
+
+  private currentCollectionIdFromUrl(): string | null {
+    return new URLSearchParams(window.location.search).get('collection');
+  }
+
+  private onCollectionSelect = (e: CustomEvent) => {
+    const collectionId = e.detail.collectionId as string;
+    const url = new URL(window.location.href);
+    url.searchParams.set('collection', collectionId);
+    window.history.pushState({}, '', url);
+    void this.applyRoute();
+  };
+
+  private onPopState = () => {
+    void this.applyRoute();
+  };
+
+  private removeCollectionFromUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('collection');
+    window.history.replaceState({}, '', url);
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
