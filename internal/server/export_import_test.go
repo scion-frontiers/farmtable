@@ -103,14 +103,27 @@ func TestRPC_ExportImportCollection_RoundTrip(t *testing.T) {
 	if _, err := client.UpdateTask(ctx, &pb.UpdateTaskRequest{Id: parent.GetId(), Version: strPtr(parent.GetVersion()), AddBlocks: []string{child.GetId()}}); err != nil {
 		t.Fatalf("UpdateTask AddBlocks: %v", err)
 	}
+	if _, err := s.UpdateTask(ctx, uuid.MustParse(parent.GetId()), store.UpdateTaskParams{
+		AcceptanceCriteria: strPtr("done means exported changes survive"),
+	}, alice.ID); err != nil {
+		t.Fatalf("UpdateTask acceptance criteria: %v", err)
+	}
 	if _, err := s.AddComment(ctx, store.AddCommentParams{TaskID: uuid.MustParse(parent.GetId()), AuthorID: alice.ID, Body: "Looks ready"}); err != nil {
 		t.Fatalf("AddComment: %v", err)
 	}
 
-	exported, err := client.ExportCollection(ctx, &pb.ExportCollectionRequest{Id: coll.GetId()})
+	exported, err := client.ExportCollection(ctx, &pb.ExportCollectionRequest{Id: coll.GetId(), IncludeChanges: true})
 	if err != nil {
 		t.Fatalf("ExportCollection: %v", err)
 	}
+	var exportedDoc testExportDoc
+	if err := json.Unmarshal(exported.GetData(), &exportedDoc); err != nil {
+		t.Fatalf("unmarshal export: %v", err)
+	}
+	if len(exportedDoc.Changes) != 1 {
+		t.Fatalf("exported changes = %d, want 1", len(exportedDoc.Changes))
+	}
+	originalChangeID := exportedDoc.Changes[0]["id"].(string)
 	imported, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: exported.GetData(), Name: strPtr("restored")})
 	if err != nil {
 		t.Fatalf("ImportCollection: %v", err)
@@ -120,6 +133,9 @@ func TestRPC_ExportImportCollection_RoundTrip(t *testing.T) {
 	}
 	if imported.GetStats().GetTasks() != 2 || imported.GetStats().GetComments() != 1 || imported.GetStats().GetRelationships() != 1 {
 		t.Fatalf("stats = %+v, want 2 tasks, 1 comment, 1 relationship", imported.GetStats())
+	}
+	if imported.GetStats().GetChanges() != 1 {
+		t.Fatalf("changes = %d, want 1", imported.GetStats().GetChanges())
 	}
 	if imported.GetStats().GetUsersMatched() != 1 {
 		t.Fatalf("users_matched = %d, want 1", imported.GetStats().GetUsersMatched())
@@ -154,6 +170,16 @@ func TestRPC_ExportImportCollection_RoundTrip(t *testing.T) {
 	}
 	if len(comments) != 1 || comments[0].Body != "Looks ready" || comments[0].AuthorID != alice.ID {
 		t.Fatalf("imported comments = %+v, want one Alice comment", comments)
+	}
+	changes, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: byTitle["Parent"].ID})
+	if err != nil {
+		t.Fatalf("ListAllChangesForTask: %v", err)
+	}
+	if len(changes) != 1 || changes[0].FieldName != "acceptance_criteria" || changes[0].AuthorID != alice.ID {
+		t.Fatalf("imported changes = %+v, want one Alice acceptance_criteria change", changes)
+	}
+	if changes[0].ID.String() == originalChangeID {
+		t.Fatalf("change id was not remapped: %s", changes[0].ID)
 	}
 	rels, err := s.ListAllRelationshipsForCollection(ctx, store.ListAllRelationshipsForCollectionParams{CollectionID: uuid.MustParse(imported.GetCollectionId())})
 	if err != nil {

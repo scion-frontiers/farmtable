@@ -3,10 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func newCollectionCmd(globals *globalFlags) *cobra.Command {
@@ -190,7 +193,7 @@ func newCollectionExportCmd(globals *globalFlags) *cobra.Command {
 				fmt.Fprintln(os.Stderr, warning)
 			}
 			if out != "" {
-				if err := os.WriteFile(out, resp.GetData(), 0o644); err != nil {
+				if err := os.WriteFile(out, resp.GetData(), 0o600); err != nil {
 					return exitError(ExitGeneral, "IO_ERROR", fmt.Sprintf("writing export file: %v", err))
 				}
 				return nil
@@ -266,16 +269,24 @@ func newCollectionImportCmd(globals *globalFlags) *cobra.Command {
 }
 
 func readCollectionImportData(arg string) ([]byte, error) {
-	if arg == "-" || (len(arg) > 0 && arg[0] == '@') {
-		value, err := readInputValue(arg)
-		return []byte(value), err
+	if arg == "-" {
+		return io.ReadAll(os.Stdin)
 	}
-	return os.ReadFile(arg)
+	path := arg
+	if len(arg) > 0 && arg[0] == '@' {
+		path = arg[1:]
+	}
+	return os.ReadFile(path)
 }
 
 func resolveCollectionIDArg(ctx context.Context, client pb.FarmTableServiceClient, arg string) (string, error) {
-	if _, err := client.GetCollection(ctx, &pb.GetCollectionRequest{Id: arg}); err == nil {
+	_, err := client.GetCollection(ctx, &pb.GetCollectionRequest{Id: arg})
+	if err == nil {
 		return arg, nil
+	}
+	code := status.Code(err)
+	if code != codes.InvalidArgument && code != codes.NotFound {
+		return "", handleGRPCError(err)
 	}
 	pageToken := ""
 	for {

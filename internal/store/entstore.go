@@ -482,10 +482,10 @@ func (s *EntStore) ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Tas
 }
 
 func (s *EntStore) ListAllTasksForCollection(ctx context.Context, p ListAllTasksForCollectionParams) ([]*ent.Task, error) {
+	// Export path helper: loads the entire collection task set into memory.
+	// Consider streaming export for very large collections in a later phase.
 	tasks, err := s.client.Task.Query().
 		Where(task.CollectionIDEQ(p.CollectionID)).
-		WithSourceRelationships().
-		WithTargetRelationships().
 		Order(task.ByCreatedAt(), task.ByID()).
 		All(ctx)
 	if err != nil {
@@ -998,6 +998,8 @@ func (s *EntStore) ListComments(ctx context.Context, p ListCommentsParams) ([]*e
 }
 
 func (s *EntStore) ListAllCommentsForTask(ctx context.Context, p ListAllCommentsForTaskParams) ([]*ent.Comment, error) {
+	// Export path helper: loads all comments for the task into memory.
+	// Consider streaming export for very large collections in a later phase.
 	comments, err := s.client.Comment.Query().
 		Where(comment.TaskIDEQ(p.TaskID)).
 		Order(comment.ByCreatedAt(), comment.ByID()).
@@ -1009,6 +1011,8 @@ func (s *EntStore) ListAllCommentsForTask(ctx context.Context, p ListAllComments
 }
 
 func (s *EntStore) ListAllCommentsForCollection(ctx context.Context, p ListAllCommentsForCollectionParams) ([]*ent.Comment, error) {
+	// Export path helper: loads all comments for the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
 	comments, err := s.client.Comment.Query().
 		Where(comment.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
 		Order(comment.ByCreatedAt(), comment.ByID()).
@@ -1020,6 +1024,8 @@ func (s *EntStore) ListAllCommentsForCollection(ctx context.Context, p ListAllCo
 }
 
 func (s *EntStore) ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
+	// Export path helper: loads all relationships touching the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
 	relationships, err := s.client.Relationship.Query().
 		Where(
 			relationship.Or(
@@ -1530,6 +1536,8 @@ func (s *EntStore) ListChanges(ctx context.Context, p ListChangesParams) ([]*ent
 }
 
 func (s *EntStore) ListAllChangesForTask(ctx context.Context, p ListAllChangesForTaskParams) ([]*ent.Change, error) {
+	// Export path helper: loads all changes for the task into memory.
+	// Consider streaming export for very large collections in a later phase.
 	changes, err := s.client.Change.Query().
 		Where(change.TaskIDEQ(p.TaskID)).
 		Order(change.ByCreatedAt(), change.ByID()).
@@ -1541,6 +1549,8 @@ func (s *EntStore) ListAllChangesForTask(ctx context.Context, p ListAllChangesFo
 }
 
 func (s *EntStore) ListAllChangesForCollection(ctx context.Context, p ListAllChangesForCollectionParams) ([]*ent.Change, error) {
+	// Export path helper: loads all changes for the collection into memory.
+	// Consider streaming export for very large collections in a later phase.
 	changes, err := s.client.Change.Query().
 		Where(change.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
 		Order(change.ByCreatedAt(), change.ByID()).
