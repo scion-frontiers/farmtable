@@ -108,6 +108,7 @@ const methods = {
   getTask: unaryMethod('GetTask', 'GetTaskRequest', 'GetTaskResponse'),
   createTask: unaryMethod('CreateTask', 'CreateTaskRequest', 'Task'),
   updateTask: unaryMethod('UpdateTask', 'UpdateTaskRequest', 'Task'),
+  addComment: unaryMethod('AddComment', 'AddCommentRequest', 'Comment'),
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
   listChanges: unaryMethod('ListChanges', 'ListChangesRequest', 'ListChangesResponse'),
   listCollections: unaryMethod('ListCollections', 'ListCollectionsRequest', 'ListCollectionsResponse'),
@@ -229,6 +230,11 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
       order: SortOrder.DESC,
     });
     return asArray(response.items).map((item) => toComment(asRecord(item)));
+  }
+
+  async addComment(taskId: string, body: string): Promise<Comment> {
+    const response = await this.unary(methods.addComment, { taskId, body });
+    return toComment(response);
   }
 
   async listChanges(taskId: string): Promise<Change[]> {

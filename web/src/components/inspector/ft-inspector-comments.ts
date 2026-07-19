@@ -50,6 +50,21 @@ export class FtInspectorComments extends LitElement {
       font-style: italic;
       padding: 0.5rem 0;
     }
+    .comment-form {
+      display: grid;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+    }
+    sl-textarea {
+      --sl-input-font-size-medium: 0.8125rem;
+    }
+    .comment-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    sl-alert {
+      font-size: 0.8125rem;
+    }
   `;
 
   @property()
@@ -67,12 +82,23 @@ export class FtInspectorComments extends LitElement {
   @state()
   private loaded = false;
 
+  @state()
+  private draft = '';
+
+  @state()
+  private submitting = false;
+
+  @state()
+  private errorMessage = '';
+
   private cachedTaskId = '';
 
   updated(changed: Map<string, unknown>) {
     if (changed.has('taskId') && this.taskId !== this.cachedTaskId) {
       this.loaded = false;
       this.comments = [];
+      this.draft = '';
+      this.errorMessage = '';
       this.cachedTaskId = this.taskId;
       const details = this.shadowRoot?.querySelector('sl-details');
       if (details?.open) {
@@ -85,12 +111,52 @@ export class FtInspectorComments extends LitElement {
     if (this.loaded && this.cachedTaskId === this.taskId) return;
     if (!this.client || !this.taskId) return;
     this.loading = true;
+    this.errorMessage = '';
     try {
       this.comments = await this.client.listComments(this.taskId);
       this.cachedTaskId = this.taskId;
       this.loaded = true;
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
     } finally {
       this.loading = false;
+    }
+  }
+
+  private onDraftInput(e: Event) {
+    this.draft = (e.currentTarget as unknown as { value: string }).value;
+    if (this.errorMessage) {
+      this.errorMessage = '';
+    }
+  }
+
+  private onKeyDown(e: KeyboardEvent) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    this.submitComment();
+  }
+
+  private async submitComment() {
+    const body = this.draft.trim();
+    if (!body) {
+      this.errorMessage = 'Enter a comment before submitting.';
+      return;
+    }
+    if (!this.client || !this.taskId || this.submitting) return;
+
+    this.submitting = true;
+    this.errorMessage = '';
+    try {
+      const comment = await this.client.addComment(this.taskId, body);
+      this.comments = [...this.comments, comment];
+      this.loaded = true;
+      this.draft = '';
+      await this.updateComplete;
+      this.renderRoot.querySelector<HTMLElement>('sl-textarea')?.focus();
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'Failed to add comment';
+    } finally {
+      this.submitting = false;
     }
   }
 
@@ -100,6 +166,13 @@ export class FtInspectorComments extends LitElement {
 
     return html`
       <sl-details summary=${summary} @sl-show=${this.onExpand}>
+        ${this.errorMessage
+          ? html`
+              <sl-alert variant="danger" open>
+                ${this.errorMessage}
+              </sl-alert>
+            `
+          : nothing}
         ${this.loading
           ? html`<sl-spinner style="font-size: 1rem;"></sl-spinner>`
           : this.loaded && this.comments.length === 0
@@ -122,6 +195,28 @@ export class FtInspectorComments extends LitElement {
                   </div>
                 `,
               )}
+        <div class="comment-form">
+          <sl-textarea
+            label="Add comment"
+            rows="3"
+            resize="auto"
+            value=${this.draft}
+            ?disabled=${this.submitting}
+            @input=${this.onDraftInput}
+            @keydown=${this.onKeyDown}
+          ></sl-textarea>
+          <div class="comment-actions">
+            <sl-button
+              size="small"
+              variant="primary"
+              ?loading=${this.submitting}
+              ?disabled=${!this.draft.trim() || this.submitting}
+              @click=${this.submitComment}
+            >
+              Add comment
+            </sl-button>
+          </div>
+        </div>
       </sl-details>
     `;
   }
