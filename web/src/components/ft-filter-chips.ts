@@ -19,6 +19,9 @@ export class FtFilterChips extends LitElement {
       border-bottom: 1px solid var(--sl-color-neutral-200);
       background: var(--sl-color-neutral-0);
     }
+    :host([hidden]) {
+      display: none !important;
+    }
     .chips {
       display: flex;
       align-items: center;
@@ -45,10 +48,11 @@ export class FtFilterChips extends LitElement {
 
   render() {
     const activeFilterCount = Number(this.phaseFilter !== null) + Number(this.assigneeFilter !== null);
+    this.hidden = activeFilterCount === 0;
     if (activeFilterCount === 0) return nothing;
 
     return html`
-      <div class="chips" aria-label="Active filters">
+      <div class="chips" role="group" aria-label="Active filters">
         ${this.phaseFilter !== null
           ? html`
               <sl-tag

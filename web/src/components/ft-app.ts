@@ -115,7 +115,7 @@ export class FtApp extends LitElement {
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
         .users=${this.users}
-        @filter-clear=${this.onFilterClear}
+        @filter-clear=${this.onFilterChange}
       ></ft-filter-chips>
 
       <div class="content">
@@ -178,13 +178,9 @@ export class FtApp extends LitElement {
     this.assigneeFilter = assigneeId;
   }
 
-  private onFilterClear(e: CustomEvent) {
-    const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
-    this.phaseFilter = phase;
-    this.assigneeFilter = assigneeId;
-  }
-
   private async loadUsers() {
+    // TODO: ft-toolbar also calls listUsers() independently. Consider consolidating
+    // into a single app-level user list passed to both toolbar and filter chips.
     const token = ++this.userLoadToken;
 
     try {
