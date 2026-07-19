@@ -155,6 +155,7 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     };
 
     if (fields.description !== undefined) request.description = fields.description;
+    if (fields.stage !== undefined) request.stage = fields.stage;
 
     const response = await this.unary(methods.createTask, request);
     return toTask(response);

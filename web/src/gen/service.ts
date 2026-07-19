@@ -17,6 +17,7 @@ export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId'> & { parentTas
 export interface CreateTaskFields {
   name: string;
   description?: string;
+  stage?: TaskStage;
 }
 
 export interface FarmTableServiceClient {
@@ -32,6 +33,32 @@ export interface FarmTableServiceClient {
 const COLLECTION_ID = '00000000-0000-0000-0000-000000000001';
 
 const NOW = new Date().toISOString();
+
+export function phaseForStage(stage: TaskStage): TaskPhase {
+  switch (stage) {
+    case TaskStage.TRIAGE:
+    case TaskStage.BACKLOG:
+    case TaskStage.READY:
+      return TaskPhase.OPEN;
+    case TaskStage.WORKING:
+    case TaskStage.IN_REVIEW:
+    case TaskStage.IN_QA:
+    case TaskStage.DEPLOYING:
+      return TaskPhase.IN_PROGRESS;
+    case TaskStage.BLOCKED:
+    case TaskStage.WAITING_FOR_INPUT:
+    case TaskStage.DEFERRED:
+    case TaskStage.SCHEDULED:
+      return TaskPhase.ON_HOLD;
+    case TaskStage.COMPLETED:
+    case TaskStage.WONT_FIX:
+    case TaskStage.DUPLICATE:
+    case TaskStage.CANCELLED:
+      return TaskPhase.CLOSED;
+    default:
+      return TaskPhase.UNSPECIFIED;
+  }
+}
 
 const MOCK_TASKS: Task[] = [
   {
@@ -296,12 +323,13 @@ export class MockFarmTableClient implements FarmTableServiceClient {
   }
 
   async createTask(fields: CreateTaskFields): Promise<Task> {
+    const stage = fields.stage ?? TaskStage.TRIAGE;
     const task: Task = {
       id: crypto.randomUUID(),
       name: fields.name,
       description: fields.description,
-      phase: TaskPhase.OPEN,
-      stage: TaskStage.TRIAGE,
+      phase: phaseForStage(stage),
+      stage,
       priority: TaskPriority.NORMAL,
       assignees: [],
       labels: [],
