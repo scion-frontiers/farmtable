@@ -52,10 +52,10 @@ export class FtFilterChips extends LitElement {
   @property({ attribute: false })
   users: User[] = [];
 
-  @property({ type: Number })
+  @property({ attribute: false })
   filteredCount = 0;
 
-  @property({ type: Number })
+  @property({ attribute: false })
   totalCount = 0;
 
   render() {
