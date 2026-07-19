@@ -7,6 +7,7 @@ import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
+import type { FtKanbanColumn } from './ft-kanban-column.js';
 
 // TODO(test-coverage): Add component tests for the column-add-task event flow.
 
@@ -14,6 +15,12 @@ interface ColumnDef {
   stage: TaskStage;
   label: string;
   phase: TaskPhase;
+}
+
+interface ColumnNavDetail {
+  direction: 'left' | 'right';
+  fromIndex: number;
+  stage: TaskStage;
 }
 
 const BOARD_COLUMNS: ColumnDef[] = [
@@ -219,6 +226,43 @@ export class FtKanbanView extends LitElement {
     }
   }
 
+  private onColumnNav(e: CustomEvent<ColumnNavDetail>) {
+    const { direction, fromIndex, stage } = e.detail;
+    const columns = this.columnsForStage(stage);
+    const sourceIndex = columns.findIndex((col) => col.stage === stage);
+    if (sourceIndex === -1) return;
+
+    const step = direction === 'left' ? -1 : 1;
+    for (
+      let columnIndex = sourceIndex + step;
+      columnIndex >= 0 && columnIndex < columns.length;
+      columnIndex += step
+    ) {
+      const target = columns[columnIndex];
+      const count = this.getColumnTasks(target.stage).length;
+      if (count === 0) continue;
+
+      const targetColumn = this.renderedColumnForStage(target.stage);
+      if (!targetColumn) return;
+
+      void targetColumn.focusTaskAt(Math.min(fromIndex, count - 1));
+      return;
+    }
+  }
+
+  private columnsForStage(stage: TaskStage): ColumnDef[] {
+    // Board columns and on-hold columns are separate keyboard regions by design.
+    // Arrow navigation stays within the currently visible section.
+    if (BOARD_COLUMNS.some((col) => col.stage === stage)) return BOARD_COLUMNS;
+    return ON_HOLD_STAGES;
+  }
+
+  private renderedColumnForStage(stage: TaskStage): FtKanbanColumn | undefined {
+    return Array.from(
+      this.renderRoot.querySelectorAll<FtKanbanColumn>('ft-kanban-column'),
+    ).find((column) => column.stage === stage);
+  }
+
   render() {
     const onHoldTotal = this.onHoldTotal;
 
@@ -235,6 +279,7 @@ export class FtKanbanView extends LitElement {
         @stage-change=${this.onStageChange}
         @task-update=${this.onTaskUpdate}
         @column-add-task=${this.onColumnAddTask}
+        @column-nav=${this.onColumnNav}
       >
         ${BOARD_COLUMNS.map(
           (col) => html`
@@ -265,6 +310,7 @@ export class FtKanbanView extends LitElement {
                       @stage-change=${this.onStageChange}
                       @task-update=${this.onTaskUpdate}
                       @column-add-task=${this.onColumnAddTask}
+                      @column-nav=${this.onColumnNav}
                     >
                       ${ON_HOLD_STAGES.map(
                         (col) => html`
