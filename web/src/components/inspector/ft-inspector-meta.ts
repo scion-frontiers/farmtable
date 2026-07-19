@@ -63,8 +63,43 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.25rem;
       flex-wrap: wrap;
     }
+    .date-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem 0.75rem;
+      padding: 0.375rem 0;
+      font-size: 0.8125rem;
+    }
+    .date-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      min-width: 0;
+    }
+    .date-cell .label {
+      color: var(--sl-color-neutral-500);
+      font-size: 0.75rem;
+    }
+    .date-cell .value {
+      text-align: left;
+      word-break: break-word;
+    }
+    .date-cell .date-value {
+      justify-content: flex-start;
+    }
+    .date-cell .date-editor {
+      justify-content: flex-start;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .date-cell sl-input.date-input {
+      width: 100%;
+    }
+    .date-cell .edit-buttons {
+      display: flex;
+      gap: 0.125rem;
+    }
     sl-input.date-input {
-      width: 9rem;
       --sl-input-height-small: 1.75rem;
       --sl-input-font-size-small: 0.8125rem;
     }
@@ -338,11 +373,11 @@ export class FtInspectorMeta extends LitElement {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, { capture: true });
   }
 
-  private renderDateRow(label: string, field: EditableDateField, value: string | undefined) {
+  private renderDateCell(label: string, field: EditableDateField, value: string | undefined) {
     const isEditing = this.editingDate === field;
 
     return html`
-      <div class="row">
+      <div class="date-cell">
         <span class="label">${label}</span>
         <span class="value">
           ${isEditing
@@ -356,16 +391,18 @@ export class FtInspectorMeta extends LitElement {
                     @input=${this.onDateInput}
                     @keydown=${this.onDateKeyDown}
                   ></sl-input>
-                  <sl-icon-button
-                    name="check2"
-                    label="Save ${label}"
-                    @click=${this.saveDateEdit}
-                  ></sl-icon-button>
-                  <sl-icon-button
-                    name="x-lg"
-                    label="Cancel ${label} edit"
-                    @click=${this.cancelDateEdit}
-                  ></sl-icon-button>
+                  <span class="edit-buttons">
+                    <sl-icon-button
+                      name="check2"
+                      label="Save ${label}"
+                      @click=${this.saveDateEdit}
+                    ></sl-icon-button>
+                    <sl-icon-button
+                      name="x-lg"
+                      label="Cancel ${label} edit"
+                      @click=${this.cancelDateEdit}
+                    ></sl-icon-button>
+                  </span>
                 </span>
               `
             : html`
@@ -390,6 +427,15 @@ export class FtInspectorMeta extends LitElement {
                 </span>
               `}
         </span>
+      </div>
+    `;
+  }
+
+  private renderReadOnlyDateCell(label: string, value: string | undefined) {
+    return html`
+      <div class="date-cell">
+        <span class="label">${label}</span>
+        <span class="value">${value ? formatDate(value) : '—'}</span>
       </div>
     `;
   }
@@ -526,21 +572,12 @@ export class FtInspectorMeta extends LitElement {
         <span class="value">${this.renderLabels()}</span>
       </div>
 
-      ${this.renderDateRow('Due date', 'dueDate', t.dueDate)}
-
-      ${this.renderDateRow('Start date', 'startDate', t.startDate)}
-
-      <div class="row">
-        <span class="label">Created</span>
-        <span class="value">${formatDate(t.createdAt)}</span>
+      <div class="date-grid">
+        ${this.renderDateCell('Start date', 'startDate', t.startDate)}
+        ${this.renderDateCell('Due date', 'dueDate', t.dueDate)}
+        ${this.renderReadOnlyDateCell('Created', t.createdAt)}
+        ${this.renderReadOnlyDateCell('Updated', t.updatedAt)}
       </div>
-
-      ${t.updatedAt
-        ? html`<div class="row">
-            <span class="label">Updated</span>
-            <span class="value">${formatDate(t.updatedAt)}</span>
-          </div>`
-        : nothing}
     `;
   }
 }
