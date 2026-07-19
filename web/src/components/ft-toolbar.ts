@@ -1,6 +1,6 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { TaskPhase, type Collection, type User } from '../gen/types.js';
+import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
@@ -102,6 +102,9 @@ export class FtToolbar extends LitElement {
   @state()
   private usersLoading = false;
 
+  @state()
+  private currentCollection?: Collection;
+
   @query('ft-new-collection-dialog')
   private newCollectionDialog!: NewCollectionDialog;
 
@@ -112,10 +115,14 @@ export class FtToolbar extends LitElement {
   private collectionPicker!: FtCollectionPicker;
 
   private userLoadToken = 0;
+  private collectionLoadToken = 0;
 
   override updated(changedProps: PropertyValues<this>) {
     if (changedProps.has('client')) {
       void this.loadUsers();
+    }
+    if (changedProps.has('unscopedClient') || changedProps.has('collectionId')) {
+      void this.loadCurrentCollection();
     }
   }
 
@@ -136,12 +143,16 @@ export class FtToolbar extends LitElement {
           label="New collection"
           @click=${this.onNewCollectionClick}
         ></sl-icon-button>
-        <sl-icon-button
-          class="toolbar-icon-button"
-          name="gear"
-          label="Collection settings"
-          @click=${this.onCollectionSettingsClick}
-        ></sl-icon-button>
+        ${this.currentCollection?.platform === Platform.FARMTABLE
+          ? html`
+              <sl-icon-button
+                class="toolbar-icon-button"
+                name="gear"
+                label="Collection settings"
+                @click=${this.onCollectionSettingsClick}
+              ></sl-icon-button>
+            `
+          : null}
       </div>
 
       <span class="title">Farm Table</span>
@@ -226,7 +237,7 @@ export class FtToolbar extends LitElement {
     if (!this.unscopedClient || !this.collectionId) return;
 
     try {
-      const collection = await this.unscopedClient.getCollection(this.collectionId);
+      const collection = this.currentCollection ?? await this.unscopedClient.getCollection(this.collectionId);
       await this.collectionSettingsDialog.show(collection);
     } catch (error) {
       console.warn('Failed to load collection settings', error);
@@ -266,10 +277,15 @@ export class FtToolbar extends LitElement {
     dialog.setError('');
     dialog.setSaving(true);
     try {
-      await this.unscopedClient.updateCollection(e.detail.id, {
-        name: e.detail.name,
-        description: e.detail.description ?? '',
-      });
+      const fields: { name?: string; description?: string } = {};
+      if (!this.currentCollection || e.detail.name !== this.currentCollection.name) {
+        fields.name = e.detail.name;
+      }
+      if (e.detail.description !== (this.currentCollection?.description ?? '')) {
+        fields.description = e.detail.description;
+      }
+      const collection = await this.unscopedClient.updateCollection(e.detail.id, fields);
+      this.currentCollection = collection;
       dialog.close();
       await this.collectionPicker.refresh();
     } catch (error) {
@@ -277,6 +293,27 @@ export class FtToolbar extends LitElement {
       console.warn('Failed to update collection', error);
     } finally {
       dialog.setSaving(false);
+    }
+  }
+
+  private async loadCurrentCollection() {
+    const token = ++this.collectionLoadToken;
+
+    if (!this.unscopedClient || !this.collectionId) {
+      this.currentCollection = undefined;
+      return;
+    }
+
+    try {
+      const collection = await this.unscopedClient.getCollection(this.collectionId);
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = collection;
+      }
+    } catch (error) {
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = undefined;
+      }
+      console.warn('Failed to load current collection for toolbar', error);
     }
   }
 

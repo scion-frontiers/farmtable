@@ -818,10 +818,21 @@ func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateC
 	}
 	p := store.UpdateCollectionParams{}
 	if req.Name != nil {
-		p.Name = req.Name
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "collection name must not be empty")
+		}
+		p.Name = &name
 	}
 	if req.Description != nil {
 		p.Description = req.Description
+	}
+	if req.Name == nil && req.Description == nil {
+		c, err := s.store.GetCollection(ctx, id)
+		if err != nil {
+			return nil, storeErr(err, "collection")
+		}
+		return collectionToProto(c), nil
 	}
 	c, err := s.store.UpdateCollection(ctx, id, p)
 	if err != nil {

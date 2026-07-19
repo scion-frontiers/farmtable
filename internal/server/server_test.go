@@ -79,35 +79,164 @@ func TestRPC_CreateAndGetTask(t *testing.T) {
 }
 
 func TestRPC_UpdateCollection(t *testing.T) {
-	client, cleanup := testutil.NewTestServer(t)
-	defer cleanup()
-	ctx := context.Background()
+	t.Run("updates name and description", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+		ctx := context.Background()
 
-	created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
-		Name:        "collection before",
-		Description: strPtr("description before"),
-	})
-	if err != nil {
-		t.Fatalf("CreateCollection: %v", err)
-	}
+		created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
+			Name:        "collection before",
+			Description: strPtr("description before"),
+		})
+		if err != nil {
+			t.Fatalf("CreateCollection: %v", err)
+		}
 
-	updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
-		Id:          created.GetId(),
-		Name:        strPtr("collection after"),
-		Description: strPtr("description after"),
+		updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
+			Id:          created.GetId(),
+			Name:        strPtr("collection after"),
+			Description: strPtr("description after"),
+		})
+		if err != nil {
+			t.Fatalf("UpdateCollection: %v", err)
+		}
+		if updated.GetId() != created.GetId() {
+			t.Errorf("id = %q, want %q", updated.GetId(), created.GetId())
+		}
+		if updated.GetName() != "collection after" {
+			t.Errorf("name = %q, want %q", updated.GetName(), "collection after")
+		}
+		if updated.GetDescription() != "description after" {
+			t.Errorf("description = %q, want %q", updated.GetDescription(), "description after")
+		}
 	})
-	if err != nil {
-		t.Fatalf("UpdateCollection: %v", err)
-	}
-	if updated.GetId() != created.GetId() {
-		t.Errorf("id = %q, want %q", updated.GetId(), created.GetId())
-	}
-	if updated.GetName() != "collection after" {
-		t.Errorf("name = %q, want %q", updated.GetName(), "collection after")
-	}
-	if updated.GetDescription() != "description after" {
-		t.Errorf("description = %q, want %q", updated.GetDescription(), "description after")
-	}
+
+	t.Run("updates only name", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
+			Name:        "old name",
+			Description: strPtr("description stays"),
+		})
+		if err != nil {
+			t.Fatalf("CreateCollection: %v", err)
+		}
+
+		updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
+			Id:   created.GetId(),
+			Name: strPtr("new name"),
+		})
+		if err != nil {
+			t.Fatalf("UpdateCollection: %v", err)
+		}
+		if updated.GetName() != "new name" {
+			t.Errorf("name = %q, want %q", updated.GetName(), "new name")
+		}
+		if updated.GetDescription() != "description stays" {
+			t.Errorf("description = %q, want %q", updated.GetDescription(), "description stays")
+		}
+	})
+
+	t.Run("updates only description", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
+			Name:        "name stays",
+			Description: strPtr("old description"),
+		})
+		if err != nil {
+			t.Fatalf("CreateCollection: %v", err)
+		}
+
+		updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
+			Id:          created.GetId(),
+			Description: strPtr("new description"),
+		})
+		if err != nil {
+			t.Fatalf("UpdateCollection: %v", err)
+		}
+		if updated.GetName() != "name stays" {
+			t.Errorf("name = %q, want %q", updated.GetName(), "name stays")
+		}
+		if updated.GetDescription() != "new description" {
+			t.Errorf("description = %q, want %q", updated.GetDescription(), "new description")
+		}
+	})
+
+	t.Run("returns current collection for no-op update", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{
+			Name:        "no-op name",
+			Description: strPtr("no-op description"),
+		})
+		if err != nil {
+			t.Fatalf("CreateCollection: %v", err)
+		}
+
+		updated, err := client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{Id: created.GetId()})
+		if err != nil {
+			t.Fatalf("UpdateCollection: %v", err)
+		}
+		if updated.GetName() != "no-op name" {
+			t.Errorf("name = %q, want %q", updated.GetName(), "no-op name")
+		}
+		if updated.GetDescription() != "no-op description" {
+			t.Errorf("description = %q, want %q", updated.GetDescription(), "no-op description")
+		}
+	})
+
+	t.Run("returns not found for nonexistent collection", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+
+		_, err := client.UpdateCollection(context.Background(), &pb.UpdateCollectionRequest{
+			Id:   "00000000-0000-0000-0000-000000000099",
+			Name: strPtr("new name"),
+		})
+		if err == nil {
+			t.Fatal("expected not found error")
+		}
+		st, ok := status.FromError(err)
+		if !ok {
+			t.Fatalf("expected gRPC status error, got %v", err)
+		}
+		if st.Code() != codes.NotFound {
+			t.Errorf("code = %v, want NotFound", st.Code())
+		}
+	})
+
+	t.Run("rejects empty name", func(t *testing.T) {
+		client, cleanup := testutil.NewTestServer(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		created, err := client.CreateCollection(ctx, &pb.CreateCollectionRequest{Name: "valid name"})
+		if err != nil {
+			t.Fatalf("CreateCollection: %v", err)
+		}
+
+		_, err = client.UpdateCollection(ctx, &pb.UpdateCollectionRequest{
+			Id:   created.GetId(),
+			Name: strPtr("   "),
+		})
+		if err == nil {
+			t.Fatal("expected invalid argument error")
+		}
+		st, ok := status.FromError(err)
+		if !ok {
+			t.Fatalf("expected gRPC status error, got %v", err)
+		}
+		if st.Code() != codes.InvalidArgument {
+			t.Errorf("code = %v, want InvalidArgument", st.Code())
+		}
+	})
 }
 
 func TestRPC_CreateTask_InvalidInput(t *testing.T) {
