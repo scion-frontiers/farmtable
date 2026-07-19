@@ -1008,6 +1008,17 @@ func (s *EntStore) ListAllCommentsForTask(ctx context.Context, p ListAllComments
 	return comments, nil
 }
 
+func (s *EntStore) ListAllCommentsForCollection(ctx context.Context, p ListAllCommentsForCollectionParams) ([]*ent.Comment, error) {
+	comments, err := s.client.Comment.Query().
+		Where(comment.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
+		Order(comment.ByCreatedAt(), comment.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all comments for collection: %w", err)
+	}
+	return comments, nil
+}
+
 func (s *EntStore) ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
 	relationships, err := s.client.Relationship.Query().
 		Where(
@@ -1235,6 +1246,20 @@ func (s *EntStore) GetUserByEmail(ctx context.Context, email string) ([]*ent.Use
 		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting users by email: %w", err)
+	}
+	return users, nil
+}
+
+func (s *EntStore) GetUsersByIDs(ctx context.Context, ids []uuid.UUID) ([]*ent.User, error) {
+	if len(ids) == 0 {
+		return []*ent.User{}, nil
+	}
+	users, err := s.client.User.Query().
+		Where(user.IDIn(ids...)).
+		Order(user.ByCreatedAt(), user.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting users by ids: %w", err)
 	}
 	return users, nil
 }
@@ -1515,12 +1540,37 @@ func (s *EntStore) ListAllChangesForTask(ctx context.Context, p ListAllChangesFo
 	return changes, nil
 }
 
+func (s *EntStore) ListAllChangesForCollection(ctx context.Context, p ListAllChangesForCollectionParams) ([]*ent.Change, error) {
+	changes, err := s.client.Change.Query().
+		Where(change.HasTaskWith(task.CollectionIDEQ(p.CollectionID))).
+		Order(change.ByCreatedAt(), change.ByID()).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing all changes for collection: %w", err)
+	}
+	return changes, nil
+}
+
 func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParams) (*ent.Collection, error) {
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
 	defer tx.Rollback()
+
+	for _, imported := range p.Users {
+		create := tx.User.Create().
+			SetID(imported.ID).
+			SetDisplayName(imported.DisplayName).
+			SetType(imported.Type).
+			SetStatus(imported.Status)
+		if imported.Email != nil {
+			create.SetEmail(*imported.Email)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return nil, fmt.Errorf("creating imported user %s: %w", imported.ID, err)
+		}
+	}
 
 	collCreate := tx.Collection.Create().
 		SetName(p.Collection.Name).

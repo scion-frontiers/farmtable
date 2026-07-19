@@ -709,7 +709,7 @@ message ExportCollectionResponse {
 }
 
 message ImportCollectionRequest {
-  bytes data = 1;
+  bytes data = 1 [(buf.validate.field).bytes.min_len = 2];
   optional string name = 2 [(buf.validate.field).string.min_len = 1];
   bool dry_run = 3;
 }

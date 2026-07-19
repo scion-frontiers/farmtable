@@ -6871,9 +6871,9 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x0finclude_changes\x18\x02 \x01(\bR\x0eincludeChanges\"J\n" +
 	"\x18ExportCollectionResponse\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1a\n" +
-	"\bwarnings\x18\x02 \x03(\tR\bwarnings\"q\n" +
-	"\x17ImportCollectionRequest\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\x12 \n" +
+	"\bwarnings\x18\x02 \x03(\tR\bwarnings\"z\n" +
+	"\x17ImportCollectionRequest\x12\x1b\n" +
+	"\x04data\x18\x01 \x01(\fB\a\xbaH\x04z\x02\x10\x02R\x04data\x12 \n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01H\x00R\x04name\x88\x01\x01\x12\x17\n" +
 	"\adry_run\x18\x03 \x01(\bR\x06dryRunB\a\n" +
 	"\x05_name\"\x8c\x01\n" +

@@ -216,7 +216,7 @@ func newCollectionImportCmd(globals *globalFlags) *cobra.Command {
 	var dryRun bool
 
 	cmd := &cobra.Command{
-		Use:   "import <file>",
+		Use:   "import <file|-|@path>",
 		Short: "Import a farmtable collection",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

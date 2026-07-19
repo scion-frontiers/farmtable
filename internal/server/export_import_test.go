@@ -188,6 +188,9 @@ func TestRPC_ExportCollection_DropsCrossCollectionRelationships(t *testing.T) {
 	if err := json.Unmarshal(exported.GetData(), &doc); err != nil {
 		t.Fatalf("unmarshal export: %v", err)
 	}
+	if doc.Users == nil {
+		t.Fatal("users = nil, want empty array")
+	}
 	if len(doc.Relationships) != 0 {
 		t.Fatalf("relationships exported = %d, want 0", len(doc.Relationships))
 	}
@@ -233,9 +236,12 @@ func TestRPC_ImportCollection_DryRunDoesNotCreateCollection(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
+	userID := uuid.New().String()
 	taskID := uuid.New().String()
-	doc := minimalImportDoc("dry run", nil, []map[string]interface{}{
-		{"id": taskID, "title": "Task", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+	doc := minimalImportDoc("dry run", []map[string]interface{}{
+		{"id": userID, "display_name": "Dry Run User", "email": "dryrun@example.com", "type": "human", "status": "active"},
+	}, []map[string]interface{}{
+		{"id": taskID, "title": "Task", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "assignee_id": userID, "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
 	}, nil, nil, nil)
 	data, _ := json.Marshal(doc)
 
@@ -251,9 +257,141 @@ func TestRPC_ImportCollection_DryRunDoesNotCreateCollection(t *testing.T) {
 	if resp.GetStats().GetTasks() != 1 {
 		t.Fatalf("tasks = %d, want 1", resp.GetStats().GetTasks())
 	}
+	if resp.GetStats().GetUsersCreated() != 1 {
+		t.Fatalf("users_created = %d, want 1", resp.GetStats().GetUsersCreated())
+	}
+	if len(resp.GetWarnings()) != 1 || resp.GetWarnings()[0] != "Would create 1 new users" {
+		t.Fatalf("warnings = %v, want dry-run would-create warning", resp.GetWarnings())
+	}
 	if before.GetTotalCount() != after.GetTotalCount() {
 		t.Fatalf("collection count changed from %d to %d during dry-run", before.GetTotalCount(), after.GetTotalCount())
 	}
+}
+
+func TestRPC_ImportCollection_CreatesUsersAtomically(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	userID := uuid.New().String()
+	taskA := uuid.New().String()
+	taskB := uuid.New().String()
+	relA := uuid.New().String()
+	relB := uuid.New().String()
+	doc := minimalImportDoc("rollback", []map[string]interface{}{
+		{"id": userID, "display_name": "Rollback User", "email": "rollback@example.com", "type": "human", "status": "active"},
+	}, []map[string]interface{}{
+		{"id": taskA, "title": "A", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "assignee_id": userID, "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+		{"id": taskB, "title": "B", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+	}, nil, []map[string]interface{}{
+		{"id": relA, "source_task_id": taskA, "target_task_id": taskB, "type": "blocks"},
+		{"id": relB, "source_task_id": taskA, "target_task_id": taskB, "type": "blocks"},
+	}, nil)
+	data, _ := json.Marshal(doc)
+
+	_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	assertCode(t, err, codes.Internal)
+	users, err := s.GetUserByEmail(ctx, "rollback@example.com")
+	if err != nil {
+		t.Fatalf("GetUserByEmail: %v", err)
+	}
+	if len(users) != 0 {
+		t.Fatalf("users with rollback email = %d, want 0 after failed import", len(users))
+	}
+}
+
+func TestRPC_ImportCollection_ImportsChanges(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	userID := uuid.New().String()
+	taskID := uuid.New().String()
+	changeID := uuid.New().String()
+	doc := minimalImportDoc("changes", []map[string]interface{}{
+		{"id": userID, "display_name": "Change Author", "email": "change@example.com", "type": "human", "status": "active"},
+	}, []map[string]interface{}{
+		{"id": taskID, "title": "Task", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+	}, nil, nil, []map[string]interface{}{
+		{"id": changeID, "task_id": taskID, "author_id": userID, "field_name": "title", "old_value": "Old", "new_value": "Task"},
+	})
+	data, _ := json.Marshal(doc)
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	if err != nil {
+		t.Fatalf("ImportCollection: %v", err)
+	}
+	if resp.GetStats().GetChanges() != 1 || resp.GetStats().GetUsersCreated() != 1 {
+		t.Fatalf("stats = %+v, want one change and one created user", resp.GetStats())
+	}
+	tasks, _ := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{CollectionID: uuid.MustParse(resp.GetCollectionId())})
+	changes, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: tasks[0].ID})
+	if err != nil {
+		t.Fatalf("ListAllChangesForTask: %v", err)
+	}
+	if len(changes) != 1 || changes[0].FieldName != "title" || changes[0].OldValue != "Old" || changes[0].NewValue != "Task" {
+		t.Fatalf("changes = %+v, want imported title change", changes)
+	}
+	if changes[0].ID.String() == changeID {
+		t.Fatalf("change id was not remapped: %s", changes[0].ID)
+	}
+}
+
+func TestRPC_ImportCollection_AmbiguousEmailCreatesNewUser(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	first, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "One", Email: strPtr("ambiguous@example.com"), Type: "human", Status: "active"})
+	second, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "Two", Email: strPtr("ambiguous@example.com"), Type: "human", Status: "active"})
+	userID := uuid.New().String()
+	taskID := uuid.New().String()
+	commentID := uuid.New().String()
+	doc := minimalImportDoc("ambiguous email", []map[string]interface{}{
+		{"id": userID, "display_name": "Imported", "email": "ambiguous@example.com", "type": "human", "status": "active"},
+	}, []map[string]interface{}{
+		{"id": taskID, "title": "Task", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+	}, []map[string]interface{}{
+		{"id": commentID, "task_id": taskID, "author_id": userID, "body": "ambiguous"},
+	}, nil, nil)
+	data, _ := json.Marshal(doc)
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	if err != nil {
+		t.Fatalf("ImportCollection: %v", err)
+	}
+	if resp.GetStats().GetUsersMatched() != 0 || resp.GetStats().GetUsersCreated() != 1 {
+		t.Fatalf("stats = %+v, want one newly created user", resp.GetStats())
+	}
+	tasks, _ := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{CollectionID: uuid.MustParse(resp.GetCollectionId())})
+	comments, _ := s.ListAllCommentsForTask(ctx, store.ListAllCommentsForTaskParams{TaskID: tasks[0].ID})
+	if len(comments) != 1 {
+		t.Fatalf("comments = %d, want 1", len(comments))
+	}
+	if comments[0].AuthorID == first.ID || comments[0].AuthorID == second.ID {
+		t.Fatalf("ambiguous email reused existing user %s", comments[0].AuthorID)
+	}
+	users, _ := s.GetUserByEmail(ctx, "ambiguous@example.com")
+	if len(users) != 3 {
+		t.Fatalf("users with ambiguous email = %d, want 3", len(users))
+	}
+}
+
+func TestRPC_ImportCollection_RejectsParentCycle(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	taskA := uuid.New().String()
+	taskB := uuid.New().String()
+	doc := minimalImportDoc("cycle", nil, []map[string]interface{}{
+		{"id": taskA, "title": "A", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "parent_task_id": taskB, "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+		{"id": taskB, "title": "B", "description": "", "phase": "open", "stage": "triage", "native_label": "triage", "type": "", "parent_task_id": taskA, "labels": []string{}, "repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": nil},
+	}, nil, nil, nil)
+	data, _ := json.Marshal(doc)
+
+	_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	assertCode(t, err, codes.InvalidArgument)
 }
 
 func TestRPC_ImportExportCollection_Errors(t *testing.T) {
@@ -280,6 +418,12 @@ func TestRPC_ImportExportCollection_Errors(t *testing.T) {
 	data, _ = json.Marshal(nonFarmtableDoc)
 	_, err = client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
 	assertCode(t, err, codes.FailedPrecondition)
+
+	unknownFieldDoc := minimalImportDoc("unknown", nil, nil, nil, nil, nil)
+	unknownFieldDoc["taks"] = []map[string]interface{}{}
+	data, _ = json.Marshal(unknownFieldDoc)
+	_, err = client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	assertCode(t, err, codes.InvalidArgument)
 }
 
 func minimalImportDoc(name string, users, tasks, comments, relationships, changes []map[string]interface{}) map[string]interface{} {

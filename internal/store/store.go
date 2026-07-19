@@ -162,8 +162,16 @@ type ListAllCommentsForTaskParams struct {
 	TaskID uuid.UUID
 }
 
+type ListAllCommentsForCollectionParams struct {
+	CollectionID uuid.UUID
+}
+
 type ListAllChangesForTaskParams struct {
 	TaskID uuid.UUID
+}
+
+type ListAllChangesForCollectionParams struct {
+	CollectionID uuid.UUID
 }
 
 type ListAllRelationshipsForCollectionParams struct {
@@ -171,6 +179,7 @@ type ListAllRelationshipsForCollectionParams struct {
 }
 
 type ImportCollectionParams struct {
+	Users         []ImportUser
 	Collection    ImportCollection
 	Tasks         []ImportTask
 	Comments      []ImportComment
@@ -184,6 +193,14 @@ type ImportCollection struct {
 	Platform    collection.Platform
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type ImportUser struct {
+	ID          uuid.UUID
+	DisplayName string
+	Email       *string
+	Type        string
+	Status      string
 }
 
 type ImportTask struct {
@@ -257,7 +274,9 @@ type Store interface {
 	ListComments(ctx context.Context, p ListCommentsParams) ([]*ent.Comment, int, error)
 	ListChanges(ctx context.Context, p ListChangesParams) ([]*ent.Change, int, error)
 	ListAllCommentsForTask(ctx context.Context, p ListAllCommentsForTaskParams) ([]*ent.Comment, error)
+	ListAllCommentsForCollection(ctx context.Context, p ListAllCommentsForCollectionParams) ([]*ent.Comment, error)
 	ListAllChangesForTask(ctx context.Context, p ListAllChangesForTaskParams) ([]*ent.Change, error)
+	ListAllChangesForCollection(ctx context.Context, p ListAllChangesForCollectionParams) ([]*ent.Change, error)
 	ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error)
 	ImportCollection(ctx context.Context, p ImportCollectionParams) (*ent.Collection, error)
 	GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error)
@@ -268,6 +287,7 @@ type Store interface {
 	GetUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
 	GetUserByName(ctx context.Context, name string) (*ent.User, error)
 	GetUserByEmail(ctx context.Context, email string) ([]*ent.User, error)
+	GetUsersByIDs(ctx context.Context, ids []uuid.UUID) ([]*ent.User, error)
 	ListUsers(ctx context.Context, p ListUsersParams) ([]*ent.User, int, error)
 
 	// API Tokens

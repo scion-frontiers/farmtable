@@ -635,6 +635,10 @@ func (s *GitHubPassThroughStore) ListAllCommentsForTask(ctx context.Context, p s
 	return nil, fmt.Errorf("list all comments for task: %w", store.ErrNotImplemented)
 }
 
+func (s *GitHubPassThroughStore) ListAllCommentsForCollection(ctx context.Context, p store.ListAllCommentsForCollectionParams) ([]*ent.Comment, error) {
+	return nil, fmt.Errorf("list all comments for collection: %w", store.ErrNotImplemented)
+}
+
 // ── Audit Trail ──
 
 func (s *GitHubPassThroughStore) ListChanges(ctx context.Context, p store.ListChangesParams) ([]*ent.Change, int, error) {
@@ -643,6 +647,10 @@ func (s *GitHubPassThroughStore) ListChanges(ctx context.Context, p store.ListCh
 
 func (s *GitHubPassThroughStore) ListAllChangesForTask(ctx context.Context, p store.ListAllChangesForTaskParams) ([]*ent.Change, error) {
 	return nil, fmt.Errorf("list all changes for task: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ListAllChangesForCollection(ctx context.Context, p store.ListAllChangesForCollectionParams) ([]*ent.Change, error) {
+	return nil, fmt.Errorf("list all changes for collection: %w", store.ErrNotImplemented)
 }
 
 func (s *GitHubPassThroughStore) ListAllRelationshipsForCollection(ctx context.Context, p store.ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
@@ -766,6 +774,10 @@ func (s *GitHubPassThroughStore) GetUserByName(ctx context.Context, name string)
 
 func (s *GitHubPassThroughStore) GetUserByEmail(ctx context.Context, email string) ([]*ent.User, error) {
 	return nil, fmt.Errorf("get user by email: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) GetUsersByIDs(ctx context.Context, ids []uuid.UUID) ([]*ent.User, error) {
+	return nil, fmt.Errorf("get users by ids: %w", store.ErrNotImplemented)
 }
 
 func (s *GitHubPassThroughStore) ListUsers(ctx context.Context, p store.ListUsersParams) ([]*ent.User, int, error) {

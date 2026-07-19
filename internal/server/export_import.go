@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -129,6 +130,7 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 			CreatedAt:   coll.CreatedAt,
 			UpdatedAt:   coll.UpdatedAt,
 		},
+		Users:         []exportUser{},
 		Tasks:         make([]exportTask, 0, len(tasks)),
 		Comments:      []exportComment{},
 		Relationships: []exportRelationship{},
@@ -142,12 +144,27 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 		}
 	}
 
-	for _, t := range tasks {
-		comments, err := s.store.ListAllCommentsForTask(ctx, store.ListAllCommentsForTaskParams{TaskID: t.ID})
+	comments, err := s.store.ListAllCommentsForCollection(ctx, store.ListAllCommentsForCollectionParams{CollectionID: coll.ID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing comments: %v", err)
+	}
+	commentsByTask := make(map[uuid.UUID][]*ent.Comment)
+	for _, c := range comments {
+		commentsByTask[c.TaskID] = append(commentsByTask[c.TaskID], c)
+	}
+	var changesByTask map[uuid.UUID][]*ent.Change
+	if req.GetIncludeChanges() {
+		changes, err := s.store.ListAllChangesForCollection(ctx, store.ListAllChangesForCollectionParams{CollectionID: coll.ID})
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "listing comments: %v", err)
+			return nil, status.Errorf(codes.Internal, "listing changes: %v", err)
 		}
-		for _, c := range comments {
+		changesByTask = make(map[uuid.UUID][]*ent.Change)
+		for _, c := range changes {
+			changesByTask[c.TaskID] = append(changesByTask[c.TaskID], c)
+		}
+	}
+	for _, t := range tasks {
+		for _, c := range commentsByTask[t.ID] {
 			doc.Comments = append(doc.Comments, exportComment{
 				ID:        c.ID.String(),
 				TaskID:    c.TaskID.String(),
@@ -159,11 +176,7 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 			userIDs[c.AuthorID] = struct{}{}
 		}
 		if req.GetIncludeChanges() {
-			changes, err := s.store.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: t.ID})
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "listing changes: %v", err)
-			}
-			for _, c := range changes {
+			for _, c := range changesByTask[t.ID] {
 				doc.Changes = append(doc.Changes, exportChange{
 					ID:        c.ID.String(),
 					TaskID:    c.TaskID.String(),
@@ -203,18 +216,28 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 		userIDList = append(userIDList, id)
 	}
 	sort.Slice(userIDList, func(i, j int) bool { return userIDList[i].String() < userIDList[j].String() })
-	for _, id := range userIDList {
-		u, err := s.store.GetUser(ctx, id)
+	if len(userIDList) > 0 {
+		users, err := s.store.GetUsersByIDs(ctx, userIDList)
 		if err != nil {
-			return nil, storeErr(err, "user")
+			return nil, status.Errorf(codes.Internal, "getting users: %v", err)
 		}
-		doc.Users = append(doc.Users, exportUser{
-			ID:          u.ID.String(),
-			DisplayName: u.DisplayName,
-			Email:       u.Email,
-			Type:        u.Type,
-			Status:      u.Status,
-		})
+		usersByID := make(map[uuid.UUID]*ent.User, len(users))
+		for _, u := range users {
+			usersByID[u.ID] = u
+		}
+		for _, id := range userIDList {
+			u, ok := usersByID[id]
+			if !ok {
+				return nil, storeErr(store.ErrNotFound, "user")
+			}
+			doc.Users = append(doc.Users, exportUser{
+				ID:          u.ID.String(),
+				DisplayName: u.DisplayName,
+				Email:       u.Email,
+				Type:        u.Type,
+				Status:      u.Status,
+			})
+		}
 	}
 
 	data, err := json.MarshalIndent(doc, "", "  ")
@@ -230,7 +253,9 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 
 func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportCollectionRequest) (*pb.ImportCollectionResponse, error) {
 	var doc exportDocument
-	if err := json.Unmarshal(req.GetData(), &doc); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(req.GetData()))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&doc); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid export JSON: %v", err)
 	}
 	if doc.FormatVersion != 1 {
@@ -276,10 +301,11 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	userMapping, usersMatched, usersCreated, warnings, err := s.resolveImportUsers(ctx, doc.Users, userIDs, req.GetDryRun())
+	userMapping, usersToCreate, usersMatched, usersCreated, warnings, err := s.resolveImportUsers(ctx, doc.Users, userIDs, req.GetDryRun())
 	if err != nil {
 		return nil, err
 	}
+	importParams.Users = usersToCreate
 	stats := &pb.ImportStats{
 		UsersMatched:  int32(usersMatched),
 		UsersCreated:  int32(usersCreated),
@@ -445,8 +471,9 @@ func validateImportReferences(doc exportDocument, taskMapping map[string]uuid.UU
 	return userIDs, nil
 }
 
-func (s *FarmTableService) resolveImportUsers(ctx context.Context, users []exportUser, requiredUserIDs map[string]struct{}, dryRun bool) (map[string]uuid.UUID, int, int, []string, error) {
+func (s *FarmTableService) resolveImportUsers(ctx context.Context, users []exportUser, requiredUserIDs map[string]struct{}, dryRun bool) (map[string]uuid.UUID, []store.ImportUser, int, int, []string, error) {
 	mapping := make(map[string]uuid.UUID, len(users))
+	var usersToCreate []store.ImportUser
 	matched := 0
 	created := 0
 	var warnings []string
@@ -455,12 +482,12 @@ func (s *FarmTableService) resolveImportUsers(ctx context.Context, users []expor
 			continue
 		}
 		if _, err := uuid.Parse(exported.ID); err != nil {
-			return nil, 0, 0, nil, status.Errorf(codes.InvalidArgument, "invalid user id %q: %v", exported.ID, err)
+			return nil, nil, 0, 0, nil, status.Errorf(codes.InvalidArgument, "invalid user id %q: %v", exported.ID, err)
 		}
 		if exported.Email != nil && *exported.Email != "" {
 			matches, err := s.store.GetUserByEmail(ctx, *exported.Email)
 			if err != nil {
-				return nil, 0, 0, nil, status.Errorf(codes.Internal, "looking up user by email: %v", err)
+				return nil, nil, 0, 0, nil, status.Errorf(codes.Internal, "looking up user by email: %v", err)
 			}
 			if len(matches) == 1 {
 				mapping[exported.ID] = matches[0].ID
@@ -468,29 +495,34 @@ func (s *FarmTableService) resolveImportUsers(ctx context.Context, users []expor
 				continue
 			}
 			if len(matches) > 1 {
-				warnings = append(warnings, fmt.Sprintf("Ambiguous email %q matched %d users; created a new user", *exported.Email, len(matches)))
+				action := "created"
+				if dryRun {
+					action = "would create"
+				}
+				warnings = append(warnings, fmt.Sprintf("Ambiguous email %q matched %d users; %s a new user", *exported.Email, len(matches), action))
 			}
 		}
 		created++
-		if dryRun {
-			mapping[exported.ID] = uuid.New()
-			continue
+		newID := uuid.New()
+		mapping[exported.ID] = newID
+		if !dryRun {
+			usersToCreate = append(usersToCreate, store.ImportUser{
+				ID:          newID,
+				DisplayName: exported.DisplayName,
+				Email:       exported.Email,
+				Type:        exported.Type,
+				Status:      exported.Status,
+			})
 		}
-		u, err := s.store.CreateUser(ctx, store.CreateUserParams{
-			DisplayName: exported.DisplayName,
-			Email:       exported.Email,
-			Type:        exported.Type,
-			Status:      exported.Status,
-		})
-		if err != nil {
-			return nil, 0, 0, nil, status.Errorf(codes.Internal, "creating user: %v", err)
-		}
-		mapping[exported.ID] = u.ID
 	}
 	if created > 0 {
-		warnings = append(warnings, fmt.Sprintf("Created %d new users", created))
+		if dryRun {
+			warnings = append(warnings, fmt.Sprintf("Would create %d new users", created))
+		} else {
+			warnings = append(warnings, fmt.Sprintf("Created %d new users", created))
+		}
 	}
-	return mapping, matched, created, warnings, nil
+	return mapping, usersToCreate, matched, created, warnings, nil
 }
 
 func orderImportTasks(tasks []exportTask) ([]exportTask, error) {
