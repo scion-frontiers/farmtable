@@ -69,7 +69,7 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
 
   if (removeLabels !== undefined) {
     const labelsToRemove = new Set(removeLabels);
-    updated.labels = updated.labels.filter((label) => !labelsToRemove.has(label));
+    updated.labels = (updated.labels ?? []).filter((label) => !labelsToRemove.has(label));
   }
 
   return updated;

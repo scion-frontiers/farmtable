@@ -139,8 +139,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private onLabelRemove(e: Event) {
-    const tag = e.currentTarget as HTMLElement;
-    const label = tag.textContent?.trim();
+    const label = (e.currentTarget as HTMLElement).dataset.label;
     if (label) this.dispatchTaskUpdate({ removeLabels: [label] });
   }
 
@@ -263,6 +262,7 @@ export class FtInspectorMeta extends LitElement {
           ? labels.map(
               (label) => html`
                 <sl-tag
+                  data-label=${label}
                   size="small"
                   variant="neutral"
                   removable
@@ -278,10 +278,10 @@ export class FtInspectorMeta extends LitElement {
               <sl-input
                 class="label-input"
                 size="small"
+                maxlength="100"
                 .value=${this.labelDraft}
                 @input=${this.onLabelInput}
                 @keydown=${this.onLabelKeyDown}
-                @sl-blur=${this.cancelLabelAdd}
               ></sl-input>
               <sl-icon-button
                 name="check2"
