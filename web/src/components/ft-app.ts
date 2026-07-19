@@ -3,7 +3,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
-import { type FarmTableServiceClient } from '../gen/service.js';
+import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
+import type { UpdateTaskFields } from '../gen/service.js';
 import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
 
 @customElement('ft-app')
@@ -116,6 +117,7 @@ export class FtApp extends LitElement {
                   .client=${this.client}
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
+                  @task-update=${this.onTaskUpdate}
                 ></ft-inspector>
               </div>
             `
@@ -130,6 +132,27 @@ export class FtApp extends LitElement {
 
   private onTaskSelect(e: CustomEvent) {
     this.selectedTaskId = e.detail.taskId;
+  }
+
+  private async onTaskUpdate(e: CustomEvent) {
+    const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
+    await this.applyTaskUpdate(taskId, fields);
+  }
+
+  private async applyTaskUpdate(taskId: string, fields: UpdateTaskFields) {
+    const task = this.taskStore.getTask(taskId);
+    if (!task) return;
+
+    const updated = applyTaskUpdateFields(task, fields);
+    this.taskStore.upsert(updated);
+
+    try {
+      await this.client.updateTask(taskId, fields);
+    } catch (error) {
+      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
+      console.warn('Failed to update task; rolled back optimistic change', error);
+      this.taskStore.upsert(task);
+    }
   }
 
   private onInspectorClose() {

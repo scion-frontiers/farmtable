@@ -4,7 +4,7 @@ import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import { TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
-import { phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
+import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 
@@ -157,13 +157,7 @@ export class FtKanbanView extends LitElement {
     const task = this.store.getTask(taskId);
     if (!task) return;
 
-    const { parentTaskId, ...rest } = fields;
-    const updated: Task = { ...task, ...rest };
-    if (parentTaskId === null) {
-      delete updated.parentTaskId;
-    } else if (parentTaskId !== undefined) {
-      updated.parentTaskId = parentTaskId;
-    }
+    const updated = applyTaskUpdateFields(task, fields);
 
     this.store.upsert(updated);
 

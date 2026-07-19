@@ -94,7 +94,10 @@ export class FtInspector extends LitElement {
 
         <sl-divider></sl-divider>
 
-        <ft-inspector-desc .description=${task.description}></ft-inspector-desc>
+        <ft-inspector-desc
+          taskId=${task.id}
+          .description=${task.description}
+        ></ft-inspector-desc>
 
         ${task.relationships.length > 0
           ? html`
