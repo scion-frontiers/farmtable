@@ -126,7 +126,7 @@ export class FtAddTaskDialog extends LitElement {
   render() {
     return html`
       <sl-dialog
-        label=${this.targetStage ? `Add Task to ${this.targetStageLabel}` : 'Add Task'}
+        label=${this.targetStage != null ? `Add Task to ${this.targetStageLabel}` : 'Add Task'}
         @sl-after-hide=${this.onAfterHide}
         @sl-request-close=${this.onRequestClose}
       >

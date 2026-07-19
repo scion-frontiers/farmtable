@@ -173,6 +173,7 @@ export class FtKanbanColumn extends LitElement {
         <sl-icon-button
           class="add-task-button"
           name="plus"
+          size="small"
           label=${`Add task to ${this.label}`}
           @click=${this.onAddTaskClick}
         ></sl-icon-button>

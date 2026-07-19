@@ -34,7 +34,7 @@ const COLLECTION_ID = '00000000-0000-0000-0000-000000000001';
 
 const NOW = new Date().toISOString();
 
-function phaseForStage(stage: TaskStage): TaskPhase {
+export function phaseForStage(stage: TaskStage): TaskPhase {
   switch (stage) {
     case TaskStage.TRIAGE:
     case TaskStage.BACKLOG:
@@ -45,10 +45,18 @@ function phaseForStage(stage: TaskStage): TaskPhase {
     case TaskStage.IN_QA:
     case TaskStage.DEPLOYING:
       return TaskPhase.IN_PROGRESS;
+    case TaskStage.BLOCKED:
+    case TaskStage.WAITING_FOR_INPUT:
+    case TaskStage.DEFERRED:
+    case TaskStage.SCHEDULED:
+      return TaskPhase.ON_HOLD;
     case TaskStage.COMPLETED:
+    case TaskStage.WONT_FIX:
+    case TaskStage.DUPLICATE:
+    case TaskStage.CANCELLED:
       return TaskPhase.CLOSED;
     default:
-      return TaskPhase.OPEN;
+      return TaskPhase.UNSPECIFIED;
   }
 }
 
