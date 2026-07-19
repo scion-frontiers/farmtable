@@ -1,4 +1,4 @@
-import { LitElement, html, css, type PropertyValues } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
@@ -324,11 +324,11 @@ export class FtKanbanColumn extends LitElement {
           `,
         )}
         ${isFiltered && sorted.length === 0
-          ? html`<div class="empty-filter-message">
+          ? html`<div class="empty-filter-message" role="status">
               <!-- NOTE(i18n): Hardcoded English; extract if i18n is added. -->
               No visible tasks match this filter.
             </div>`
-          : ''}
+          : nothing}
       </div>
     `;
   }
