@@ -19,6 +19,8 @@ export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 
   startDate?: string | null;
   addLabels?: string[];
   removeLabels?: string[];
+  assigneeIds?: string[];
+  clearAssignees?: boolean;
 };
 export interface CreateTaskFields {
   name: string;
@@ -33,11 +35,12 @@ export interface FarmTableServiceClient {
   updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
+  listUsers(): Promise<User[]>;
   watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent>;
 }
 
 export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Task {
-  const { parentTaskId, dueDate, startDate, addLabels, removeLabels, ...rest } = fields;
+  const { parentTaskId, dueDate, startDate, addLabels, removeLabels, assigneeIds, clearAssignees, ...rest } = fields;
   const updated: Task = { ...task, ...rest };
 
   if (parentTaskId === null) {
@@ -70,6 +73,17 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
   if (removeLabels !== undefined) {
     const labelsToRemove = new Set(removeLabels);
     updated.labels = (updated.labels ?? []).filter((label) => !labelsToRemove.has(label));
+  }
+
+  if (clearAssignees) {
+    updated.assignees = [];
+  } else if (assigneeIds !== undefined) {
+    updated.assignees = assigneeIds.map((id) => ({
+      id,
+      name: id,
+      type: UserType.HUMAN,
+      status: IdentityStatus.ACTIVE,
+    }));
   }
 
   return updated;
@@ -396,6 +410,10 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     const updated = applyTaskUpdateFields(task, fields);
     MOCK_TASKS[taskIndex] = updated;
     return updated;
+  }
+
+  async listUsers(): Promise<User[]> {
+    return Object.values(MOCK_USERS);
   }
 
   async listComments(taskId: string): Promise<Comment[]> {

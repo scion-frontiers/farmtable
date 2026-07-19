@@ -90,7 +90,7 @@ export class FtInspector extends LitElement {
 
         <sl-divider></sl-divider>
 
-        <ft-inspector-meta .task=${task}></ft-inspector-meta>
+        <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
 
         <sl-divider></sl-divider>
 

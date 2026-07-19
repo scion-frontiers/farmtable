@@ -108,6 +108,7 @@ const methods = {
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
   listChanges: unaryMethod('ListChanges', 'ListChangesRequest', 'ListChangesResponse'),
   listCollections: unaryMethod('ListCollections', 'ListCollectionsRequest', 'ListCollectionsResponse'),
+  listUsers: unaryMethod('ListUsers', 'ListUsersRequest', 'ListUsersResponse'),
   watchTasks: streamMethod('WatchTasks', 'WatchTasksRequest', 'TaskEvent'),
 };
 
@@ -188,10 +189,17 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     // Empty arrays are intentionally skipped — the proto treats empty repeated fields as no-ops.
     if (fields.addLabels?.length) request.addLabels = fields.addLabels;
     if (fields.removeLabels?.length) request.removeLabels = fields.removeLabels;
+    if (fields.assigneeIds?.length) request.assigneeIds = fields.assigneeIds;
+    if (fields.clearAssignees) request.clearAssignees = true;
     if (fields.version !== undefined) request.version = fields.version;
 
     const response = await this.unary(methods.updateTask, request);
     return toTask(response);
+  }
+
+  async listUsers(): Promise<User[]> {
+    const response = await this.unary(methods.listUsers, { pageSize: 200 });
+    return asArray(response.items).map((item) => toUser(asRecord(item)));
   }
 
   async listComments(taskId: string): Promise<Comment[]> {
