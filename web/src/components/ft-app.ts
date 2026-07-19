@@ -5,7 +5,9 @@ import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
+import { TaskPhase } from '../gen/types.js';
 import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
+import type { TaskFilterChangeDetail } from './task-filters.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -64,6 +66,12 @@ export class FtApp extends LitElement {
   @state()
   private shortcutOverlayOpen = false;
 
+  @state()
+  private phaseFilter: TaskPhase | null = null;
+
+  @state()
+  private assigneeFilter: string | null = null;
+
   connectedCallback() {
     super.connectedCallback();
     this.client = createGrpcFarmTableClient();
@@ -88,7 +96,11 @@ export class FtApp extends LitElement {
       <ft-toolbar
         .currentView=${this.currentView}
         .connectionStatus=${this.connectionStatus}
+        .client=${this.client}
+        .phaseFilter=${this.phaseFilter}
+        .assigneeFilter=${this.assigneeFilter}
         @view-change=${this.onViewChange}
+        @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
       ></ft-toolbar>
 
@@ -101,6 +113,8 @@ export class FtApp extends LitElement {
                   <ft-kanban-view
                     .store=${this.taskStore}
                     .client=${this.client}
+                    .phaseFilter=${this.phaseFilter}
+                    .assigneeFilter=${this.assigneeFilter}
                     selected-task-id=${this.selectedTaskId ?? ''}
                     @task-select=${this.onTaskSelect}
                   ></ft-kanban-view>
@@ -140,6 +154,12 @@ export class FtApp extends LitElement {
 
   private onViewChange(e: CustomEvent) {
     this.currentView = e.detail.view;
+  }
+
+  private onFilterChange(e: CustomEvent) {
+    const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
+    this.phaseFilter = phase;
+    this.assigneeFilter = assigneeId;
   }
 
   private onTaskSelect(e: CustomEvent) {

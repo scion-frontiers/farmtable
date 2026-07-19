@@ -1,6 +1,16 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { TaskPhase, type User } from '../gen/types.js';
+import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
+import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
+
+const PHASE_OPTIONS = [
+  { value: TaskPhase.OPEN, label: 'Open' },
+  { value: TaskPhase.IN_PROGRESS, label: 'In Progress' },
+  { value: TaskPhase.ON_HOLD, label: 'On Hold' },
+  { value: TaskPhase.CLOSED, label: 'Closed' },
+] as const;
 
 @customElement('ft-toolbar')
 export class FtToolbar extends LitElement {
@@ -42,24 +52,63 @@ export class FtToolbar extends LitElement {
   @property()
   connectionStatus: ConnectionStatus = 'disconnected';
 
+  @property({ attribute: false })
+  client?: FarmTableServiceClient;
+
+  @property({ attribute: false })
+  phaseFilter: TaskPhase | null = null;
+
+  @property({ attribute: false })
+  assigneeFilter: string | null = null;
+
   @state()
   private isDark = document.documentElement.classList.contains('sl-theme-dark');
+
+  @state()
+  private users: User[] = [];
+
+  private userLoadToken = 0;
+
+  override updated(changedProps: PropertyValues<this>) {
+    if (changedProps.has('client')) {
+      void this.loadUsers();
+    }
+  }
 
   render() {
     return html`
       <span class="title">Farm Table</span>
 
       <div class="filters">
-        <sl-select placeholder="Phase" size="small" clearable>
-          <sl-option value="open">Open</sl-option>
-          <sl-option value="in_progress">In Progress</sl-option>
-          <sl-option value="on_hold">On Hold</sl-option>
-          <sl-option value="closed">Closed</sl-option>
+        <sl-select
+          placeholder="Phase"
+          size="small"
+          clearable
+          hoist
+          value=${this.phaseFilter === null ? '' : String(this.phaseFilter)}
+          @sl-change=${this.onPhaseFilterChange}
+        >
+          ${PHASE_OPTIONS.map(
+            (option) => html`
+              <sl-option value=${String(option.value)}>${option.label}</sl-option>
+            `,
+          )}
         </sl-select>
 
-        <sl-select placeholder="Assignee" size="small" clearable>
-          <sl-option value="me">Me</sl-option>
-          <sl-option value="unassigned">Unassigned</sl-option>
+        <sl-select
+          placeholder="Assignee"
+          size="small"
+          clearable
+          hoist
+          value=${this.assigneeFilter ?? ''}
+          @sl-change=${this.onAssigneeFilterChange}
+        >
+          <sl-option value=${UNASSIGNED_FILTER_VALUE}>Unassigned</sl-option>
+          ${this.users.map(
+            (user) => html`
+              <sl-option value=${user.id}>${user.name || user.email || user.id}</sl-option>
+            `,
+          )}
         </sl-select>
       </div>
 
@@ -104,6 +153,57 @@ export class FtToolbar extends LitElement {
         bubbles: true,
         composed: true,
       })
+    );
+  }
+
+  private async loadUsers() {
+    const token = ++this.userLoadToken;
+
+    if (!this.client) {
+      this.users = [];
+      return;
+    }
+
+    try {
+      const users = await this.client.listUsers();
+      if (token === this.userLoadToken) {
+        this.users = users;
+      }
+    } catch (error) {
+      if (token === this.userLoadToken) {
+        this.users = [];
+      }
+      console.warn('Failed to load toolbar assignee filters', error);
+    }
+  }
+
+  private onPhaseFilterChange(e: Event) {
+    const value = this.selectValue(e);
+    this.phaseFilter = value ? Number(value) as TaskPhase : null;
+    this.dispatchFilterChange();
+  }
+
+  private onAssigneeFilterChange(e: Event) {
+    const value = this.selectValue(e);
+    this.assigneeFilter = value || null;
+    this.dispatchFilterChange();
+  }
+
+  private selectValue(e: Event): string {
+    const target = e.currentTarget as HTMLElement & { value: string | string[] };
+    return Array.isArray(target.value) ? target.value[0] ?? '' : target.value;
+  }
+
+  private dispatchFilterChange() {
+    this.dispatchEvent(
+      new CustomEvent<TaskFilterChangeDetail>('filter-change', {
+        detail: {
+          phase: this.phaseFilter,
+          assigneeId: this.assigneeFilter,
+        },
+        bubbles: true,
+        composed: true,
+      }),
     );
   }
 
