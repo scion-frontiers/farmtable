@@ -3,10 +3,13 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector-desc')
 export class FtInspectorDesc extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: block;
     }
@@ -28,12 +31,6 @@ export class FtInspectorDesc extends LitElement {
       display: flex;
       align-items: center;
       gap: 0.25rem;
-    }
-    sl-icon-button:focus-visible,
-    sl-icon-button::part(base):focus-visible {
-      outline: 2px solid var(--sl-color-primary-500);
-      outline-offset: 2px;
-      border-radius: var(--sl-border-radius-medium);
     }
     .content {
       font-size: 0.875rem;
@@ -71,7 +68,8 @@ export class FtInspectorDesc extends LitElement {
     sl-textarea {
       --sl-input-font-size-medium: 0.875rem;
     }
-  `;
+  `,
+  ];
 
   @property()
   description?: string;

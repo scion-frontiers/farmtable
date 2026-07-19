@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
 import { TaskPhase, TaskStage, TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 const PHASE_LABEL: Record<number, string> = {
   [TaskPhase.OPEN]: 'Open',
@@ -68,7 +69,9 @@ const PRIORITY_OPTIONS = [
 
 @customElement('ft-inspector-header')
 export class FtInspectorHeader extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: block;
     }
@@ -106,18 +109,13 @@ export class FtInspectorHeader extends LitElement {
       outline-offset: 2px;
       border-radius: 999px;
     }
-    sl-icon-button:focus-visible,
-    sl-icon-button::part(base):focus-visible {
-      outline: 2px solid var(--sl-color-primary-500);
-      outline-offset: 2px;
-      border-radius: var(--sl-border-radius-medium);
-    }
     sl-select.priority-select {
       width: 7rem;
       --sl-input-height-small: 1.5rem;
       --sl-input-font-size-small: 0.75rem;
     }
-  `;
+  `,
+  ];
 
   @property({ attribute: false })
   task!: Task;

@@ -3,10 +3,13 @@ import { customElement, property } from 'lit/decorators.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { TaskStore } from '../../store/task-store.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector')
 export class FtInspector extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -32,12 +35,6 @@ export class FtInspector extends LitElement {
     .close-btn:hover {
       color: var(--sl-color-neutral-900);
     }
-    sl-icon-button:focus-visible,
-    sl-icon-button::part(base):focus-visible {
-      outline: 2px solid var(--sl-color-primary-500);
-      outline-offset: 2px;
-      border-radius: var(--sl-border-radius-medium);
-    }
     .body {
       flex: 1;
       overflow-y: auto;
@@ -45,7 +42,8 @@ export class FtInspector extends LitElement {
     sl-divider {
       --spacing: 0.75rem;
     }
-  `;
+  `,
+  ];
 
   @property()
   taskId = '';
@@ -58,11 +56,17 @@ export class FtInspector extends LitElement {
 
   private storeCtrl?: TaskStoreController;
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     if (!this.storeCtrl) {
       this.storeCtrl = new TaskStoreController(this, this.store);
     }
+    this.addEventListener('keydown', this.onBodyKeyDown);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onBodyKeyDown);
   }
 
   private onClose() {
@@ -73,6 +77,7 @@ export class FtInspector extends LitElement {
     if (e.key !== 'Escape') return;
 
     e.preventDefault();
+    e.stopPropagation();
     this.onClose();
   }
 
@@ -106,7 +111,7 @@ export class FtInspector extends LitElement {
         ></sl-icon-button>
       </div>
 
-      <div class="body" tabindex="0" @keydown=${this.onBodyKeyDown}>
+      <div class="body" tabindex="0">
         <ft-inspector-header .task=${task}></ft-inspector-header>
 
         <sl-divider></sl-divider>

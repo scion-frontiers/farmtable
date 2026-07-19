@@ -3,12 +3,15 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { Task, User } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import { formatDate } from '../../util/format.js';
+import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
 
 @customElement('ft-inspector-meta')
 export class FtInspectorMeta extends LitElement {
-  static styles = css`
+  static styles = [
+    iconButtonFocusStyles,
+    css`
     :host {
       display: block;
     }
@@ -60,12 +63,6 @@ export class FtInspectorMeta extends LitElement {
       gap: 0.25rem;
       flex-wrap: wrap;
     }
-    sl-icon-button:focus-visible,
-    sl-icon-button::part(base):focus-visible {
-      outline: 2px solid var(--sl-color-primary-500);
-      outline-offset: 2px;
-      border-radius: var(--sl-border-radius-medium);
-    }
     sl-input.date-input {
       width: 9rem;
       --sl-input-height-small: 1.75rem;
@@ -94,7 +91,8 @@ export class FtInspectorMeta extends LitElement {
     .assignee-option:hover {
       background: var(--sl-color-neutral-100);
     }
-  `;
+  `,
+  ];
 
   @property({ attribute: false })
   task!: Task;
