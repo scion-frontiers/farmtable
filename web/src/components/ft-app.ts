@@ -5,9 +5,10 @@ import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { TaskPhase } from '../gen/types.js';
+import { TaskPhase, type User } from '../gen/types.js';
 import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
 import type { TaskFilterChangeDetail } from './task-filters.js';
+import './ft-filter-chips.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -72,12 +73,18 @@ export class FtApp extends LitElement {
   @state()
   private assigneeFilter: string | null = null;
 
+  @state()
+  private users: User[] = [];
+
+  private userLoadToken = 0;
+
   connectedCallback() {
     super.connectedCallback();
     this.client = createGrpcFarmTableClient();
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     this.streamManager.start();
+    void this.loadUsers();
     // FtApp owns the global "?" toggle; ft-shortcut-overlay owns modal keys like Escape and Tab.
     document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
   }
@@ -103,6 +110,13 @@ export class FtApp extends LitElement {
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
       ></ft-toolbar>
+
+      <ft-filter-chips
+        .phaseFilter=${this.phaseFilter}
+        .assigneeFilter=${this.assigneeFilter}
+        .users=${this.users}
+        @filter-clear=${this.onFilterClear}
+      ></ft-filter-chips>
 
       <div class="content">
         <div class="main">
@@ -162,6 +176,28 @@ export class FtApp extends LitElement {
     const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
     this.phaseFilter = phase;
     this.assigneeFilter = assigneeId;
+  }
+
+  private onFilterClear(e: CustomEvent) {
+    const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
+    this.phaseFilter = phase;
+    this.assigneeFilter = assigneeId;
+  }
+
+  private async loadUsers() {
+    const token = ++this.userLoadToken;
+
+    try {
+      const users = await this.client.listUsers();
+      if (token === this.userLoadToken) {
+        this.users = users;
+      }
+    } catch (error) {
+      if (token === this.userLoadToken) {
+        this.users = [];
+      }
+      console.warn('Failed to load active filter chip users', error);
+    }
   }
 
   private onTaskSelect(e: CustomEvent) {
