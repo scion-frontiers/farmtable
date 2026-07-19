@@ -9,6 +9,7 @@ import {
   type Collection,
   type CustomFieldDefinition,
   type CustomFieldValue,
+  type ImportStats,
   type PullRequest,
   type Relationship,
   type StatusMapping,
@@ -115,6 +116,8 @@ const methods = {
   getCollection: unaryMethod('GetCollection', 'GetCollectionRequest', 'Collection'),
   createCollection: unaryMethod('CreateCollection', 'CreateCollectionRequest', 'Collection'),
   updateCollection: unaryMethod('UpdateCollection', 'UpdateCollectionRequest', 'Collection'),
+  exportCollection: unaryMethod('ExportCollection', 'ExportCollectionRequest', 'ExportCollectionResponse'),
+  importCollection: unaryMethod('ImportCollection', 'ImportCollectionRequest', 'ImportCollectionResponse'),
   listUsers: unaryMethod('ListUsers', 'ListUsersRequest', 'ListUsersResponse'),
   watchTasks: streamMethod('WatchTasks', 'WatchTasksRequest', 'TaskEvent'),
 };
@@ -154,6 +157,50 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
   async updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection> {
     const response = await this.unary(methods.updateCollection, { id, ...fields });
     return toCollection(response);
+  }
+
+  async exportCollection(id: string, includeChanges: boolean = false): Promise<{ data: Uint8Array; warnings: string[] }> {
+    const response = await this.unary(methods.exportCollection, { id, includeChanges });
+    let data: Uint8Array;
+    if (response.data instanceof Uint8Array) {
+      data = response.data;
+    } else if (typeof response.data === 'string') {
+      const binary = atob(response.data);
+      data = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        data[i] = binary.charCodeAt(i);
+      }
+    } else {
+      data = new Uint8Array();
+    }
+    return {
+      data,
+      warnings: asArray(response.warnings).map(stringField),
+    };
+  }
+
+  async importCollection(data: Uint8Array, name?: string, dryRun: boolean = false): Promise<{ collectionId: string; stats: ImportStats; warnings: string[] }> {
+    const request: ProtoRecord = {
+      data,
+      dryRun,
+    };
+    if (name !== undefined) {
+      request.name = name;
+    }
+    const response = await this.unary(methods.importCollection, request);
+    const statsRecord = asRecord(response.stats);
+    return {
+      collectionId: stringField(response.collectionId),
+      stats: {
+        usersMatched: numberField(statsRecord.usersMatched),
+        usersCreated: numberField(statsRecord.usersCreated),
+        tasks: numberField(statsRecord.tasks),
+        comments: numberField(statsRecord.comments),
+        relationships: numberField(statsRecord.relationships),
+        changes: numberField(statsRecord.changes),
+      },
+      warnings: asArray(response.warnings).map(stringField),
+    };
   }
 
   async listTasks(): Promise<Task[]> {

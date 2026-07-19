@@ -256,6 +256,15 @@ export interface Collection {
   updatedAt?: string;
 }
 
+export interface ImportStats {
+  usersMatched: number;
+  usersCreated: number;
+  tasks: number;
+  comments: number;
+  relationships: number;
+  changes: number;
+}
+
 export interface Comment {
   id: string;
   taskId: string;

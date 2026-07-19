@@ -1,6 +1,7 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
+import type { GrpcFarmTableClient } from '../gen/grpc-client.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
@@ -8,6 +9,7 @@ import type { FtCollectionPicker } from './ft-collection-picker.js';
 import './ft-collection-picker.js';
 import './ft-new-collection-dialog.js';
 import './ft-collection-settings-dialog.js';
+import './ft-import-collection-dialog.js';
 
 type NewCollectionDialog = HTMLElement & {
   show(): Promise<void>;
@@ -21,6 +23,11 @@ type CollectionSettingsDialog = HTMLElement & {
   close(): void;
   setSaving(v: boolean): void;
   setError(msg: string): void;
+};
+
+type ImportCollectionDialog = HTMLElement & {
+  show(): Promise<void>;
+  close(): void;
 };
 
 // UNSPECIFIED is the protobuf default, not a user-selectable task phase.
@@ -103,6 +110,9 @@ export class FtToolbar extends LitElement {
   private usersLoading = false;
 
   @state()
+  private exporting = false;
+
+  @state()
   private currentCollection?: Collection;
 
   @query('ft-new-collection-dialog')
@@ -110,6 +120,9 @@ export class FtToolbar extends LitElement {
 
   @query('ft-collection-settings-dialog')
   private collectionSettingsDialog!: CollectionSettingsDialog;
+
+  @query('ft-import-collection-dialog')
+  private importCollectionDialog!: ImportCollectionDialog;
 
   @query('ft-collection-picker')
   private collectionPicker!: FtCollectionPicker;
@@ -151,8 +164,21 @@ export class FtToolbar extends LitElement {
                 label="Collection settings"
                 @click=${this.onCollectionSettingsClick}
               ></sl-icon-button>
+              <sl-icon-button
+                class="toolbar-icon-button"
+                name="download"
+                label="Export collection"
+                ?loading=${this.exporting}
+                @click=${this.onExportClick}
+              ></sl-icon-button>
             `
           : null}
+        <sl-icon-button
+          class="toolbar-icon-button"
+          name="upload"
+          label="Import collection"
+          @click=${this.onImportClick}
+        ></sl-icon-button>
       </div>
 
       <span class="title">Farm Table</span>
@@ -226,6 +252,10 @@ export class FtToolbar extends LitElement {
       <ft-collection-settings-dialog
         @collection-update=${this.onCollectionUpdate}
       ></ft-collection-settings-dialog>
+      <ft-import-collection-dialog
+        .client=${this.unscopedClient}
+        @collection-import=${this.onCollectionImport}
+      ></ft-import-collection-dialog>
     `;
   }
 
@@ -242,6 +272,44 @@ export class FtToolbar extends LitElement {
     } catch (error) {
       console.warn('Failed to load collection settings', error);
     }
+  }
+
+  private async onExportClick() {
+    if (this.exporting || !this.unscopedClient || !this.collectionId) return;
+
+    this.exporting = true;
+    try {
+      const client = this.unscopedClient as GrpcFarmTableClient;
+      const result = await client.exportCollection(this.collectionId, false);
+
+      const collName = this.currentCollection?.name ?? 'collection';
+      const safeName = collName.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const date = new Date().toISOString().slice(0, 10);
+      const filename = safeName + '-' + date + '.json';
+
+      const jsonString = new TextDecoder().decode(result.data);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (result.warnings.length > 0) {
+        this.showToast('warning', 'Export warnings: ' + result.warnings.join(', '));
+      }
+    } catch (error) {
+      this.showToast('danger', 'Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      this.exporting = false;
+    }
+  }
+
+  private onImportClick() {
+    void this.importCollectionDialog.show();
   }
 
   private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
@@ -266,6 +334,16 @@ export class FtToolbar extends LitElement {
     } finally {
       dialog.setCreating(false);
     }
+  }
+
+  private onCollectionImport(e: CustomEvent<{ collectionId: string; message: string }>) {
+    this.importCollectionDialog.close();
+    this.showToast('success', e.detail.message);
+    this.dispatchEvent(new CustomEvent('collection-select', {
+      detail: { collectionId: e.detail.collectionId },
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   private async onCollectionUpdate(e: CustomEvent<{ id: string; name: string; description?: string }>) {
@@ -406,6 +484,20 @@ export class FtToolbar extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private showToast(variant: string, message: string) {
+    const alert = Object.assign(document.createElement('sl-alert'), {
+      variant,
+      closable: true,
+      duration: 5000,
+    });
+    const icon = document.createElement('sl-icon');
+    icon.slot = 'icon';
+    icon.setAttribute('name', variant === 'danger' ? 'exclamation-triangle' : 'info-circle');
+    alert.append(icon, document.createTextNode(message));
+    document.body.appendChild(alert);
+    void (alert as HTMLElement & { toast(): Promise<void> }).toast();
   }
 }
 
