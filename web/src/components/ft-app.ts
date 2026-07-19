@@ -3,9 +3,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
-import { type FarmTableServiceClient } from '../gen/service.js';
+import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import type { Task } from '../gen/types.js';
 import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
 
 @customElement('ft-app')
@@ -144,7 +143,7 @@ export class FtApp extends LitElement {
     const task = this.taskStore.getTask(taskId);
     if (!task) return;
 
-    const updated = this.optimisticTask(task, fields);
+    const updated = applyTaskUpdateFields(task, fields);
     this.taskStore.upsert(updated);
 
     try {
@@ -154,31 +153,6 @@ export class FtApp extends LitElement {
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.taskStore.upsert(task);
     }
-  }
-
-  private optimisticTask(task: Task, fields: UpdateTaskFields): Task {
-    const { parentTaskId, dueDate, startDate, ...rest } = fields;
-    const updated: Task = { ...task, ...rest };
-
-    if (parentTaskId === null) {
-      delete updated.parentTaskId;
-    } else if (parentTaskId !== undefined) {
-      updated.parentTaskId = parentTaskId;
-    }
-
-    if (dueDate === null) {
-      delete updated.dueDate;
-    } else if (dueDate !== undefined) {
-      updated.dueDate = dueDate;
-    }
-
-    if (startDate === null) {
-      delete updated.startDate;
-    } else if (startDate !== undefined) {
-      updated.startDate = startDate;
-    }
-
-    return updated;
   }
 
   private onInspectorClose() {

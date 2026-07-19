@@ -34,6 +34,31 @@ export interface FarmTableServiceClient {
   watchTasks(signal?: AbortSignal): AsyncIterable<TaskEvent>;
 }
 
+export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Task {
+  const { parentTaskId, dueDate, startDate, ...rest } = fields;
+  const updated: Task = { ...task, ...rest };
+
+  if (parentTaskId === null) {
+    delete updated.parentTaskId;
+  } else if (parentTaskId !== undefined) {
+    updated.parentTaskId = parentTaskId;
+  }
+
+  if (dueDate === null) {
+    delete updated.dueDate;
+  } else if (dueDate !== undefined) {
+    updated.dueDate = dueDate;
+  }
+
+  if (startDate === null) {
+    delete updated.startDate;
+  } else if (startDate !== undefined) {
+    updated.startDate = startDate;
+  }
+
+  return updated;
+}
+
 const COLLECTION_ID = '00000000-0000-0000-0000-000000000001';
 
 const NOW = new Date().toISOString();
@@ -352,23 +377,7 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     const taskIndex = MOCK_TASKS.findIndex((t) => t.id === id);
     const task = MOCK_TASKS[taskIndex];
     if (!task) throw new Error(`Task not found: ${id}`);
-    const { parentTaskId, dueDate, startDate, ...rest } = fields;
-    const updated: Task = { ...task, ...rest };
-    if (parentTaskId === null) {
-      delete updated.parentTaskId;
-    } else if (parentTaskId !== undefined) {
-      updated.parentTaskId = parentTaskId;
-    }
-    if (dueDate === null) {
-      delete updated.dueDate;
-    } else if (dueDate !== undefined) {
-      updated.dueDate = dueDate;
-    }
-    if (startDate === null) {
-      delete updated.startDate;
-    } else if (startDate !== undefined) {
-      updated.startDate = startDate;
-    }
+    const updated = applyTaskUpdateFields(task, fields);
     MOCK_TASKS[taskIndex] = updated;
     return updated;
   }
