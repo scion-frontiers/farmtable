@@ -26,12 +26,12 @@ export class FtToolbar extends LitElement {
     sl-select {
       min-width: 120px;
     }
-    .theme-toggle {
+    .toolbar-icon-button {
       cursor: pointer;
       font-size: 1.25rem;
       color: var(--sl-color-neutral-600);
     }
-    .theme-toggle:hover {
+    .toolbar-icon-button:hover {
       color: var(--sl-color-neutral-900);
     }
   `;
@@ -73,10 +73,17 @@ export class FtToolbar extends LitElement {
       </sl-radio-group>
 
       <sl-icon-button
-        class="theme-toggle"
+        class="toolbar-icon-button"
         name=${this.isDark ? 'sun' : 'moon'}
         label=${this.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         @click=${this.onToggleTheme}
+      ></sl-icon-button>
+
+      <sl-icon-button
+        class="toolbar-icon-button"
+        name="question-circle"
+        label="Show keyboard shortcuts"
+        @click=${this.onShortcutHelpClick}
       ></sl-icon-button>
 
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
@@ -97,6 +104,15 @@ export class FtToolbar extends LitElement {
         bubbles: true,
         composed: true,
       })
+    );
+  }
+
+  private onShortcutHelpClick() {
+    this.dispatchEvent(
+      new CustomEvent('shortcut-help-open', {
+        bubbles: true,
+        composed: true,
+      }),
     );
   }
 }
