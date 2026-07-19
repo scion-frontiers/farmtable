@@ -64,6 +64,9 @@ export class FtApp extends LitElement {
   private routeView: 'landing' | 'validating' | 'board' = 'validating';
 
   @state()
+  private currentCollectionId: string | null = null;
+
+  @state()
   private collectionErrorMessage = '';
 
   @state()
@@ -139,11 +142,14 @@ export class FtApp extends LitElement {
         .currentView=${this.currentView}
         .connectionStatus=${this.connectionStatus}
         .client=${this.client}
+        .unscopedClient=${this.unscopedClient}
+        .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
+        @collection-select=${this.onCollectionSelect}
       ></ft-toolbar>
 
       <ft-filter-chips
@@ -297,6 +303,7 @@ export class FtApp extends LitElement {
   private showCollectionList(errorMessage: string) {
     this.stopStream();
     this.client = this.unscopedClient;
+    this.currentCollectionId = null;
     this.taskStore.clear();
     this.selectedTaskId = null;
     this.users = [];
@@ -309,6 +316,7 @@ export class FtApp extends LitElement {
     this.stopStream();
     this.phaseFilter = null;
     this.assigneeFilter = null;
+    this.currentCollectionId = collectionId;
     this.client = createGrpcFarmTableClientWithOptions({
       collectionId,
       readStoredCollectionId: false,
