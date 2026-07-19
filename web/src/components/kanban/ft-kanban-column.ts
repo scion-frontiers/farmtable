@@ -1,8 +1,9 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
 import { TaskStage, TaskPriority } from '../../gen/types.js';
+import type { FtTaskCard } from './ft-task-card.js';
 
 const STAGE_COLOR: Record<number, string> = {
   [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
@@ -118,7 +119,21 @@ export class FtKanbanColumn extends LitElement {
   @state()
   private isDragOver = false;
 
+  @state()
+  private activeCardIndex = 0;
+
   private _dragEnterCount = 0;
+
+  protected updated(changedProperties: PropertyValues<this>) {
+    if (!changedProperties.has('tasks')) return;
+
+    const lastIndex = this.sortedTasks.length - 1;
+    this.activeCardIndex = Math.max(0, Math.min(this.activeCardIndex, lastIndex));
+  }
+
+  private get sortedTasks(): Task[] {
+    return sortTasks(this.tasks);
+  }
 
   private onDragEnter() {
     this._dragEnterCount++;
@@ -161,8 +176,69 @@ export class FtKanbanColumn extends LitElement {
     );
   }
 
+  private async focusCardAt(index: number) {
+    const cards = this.cardElements;
+    if (cards.length === 0) return;
+
+    const nextIndex = Math.max(0, Math.min(index, cards.length - 1));
+    this.activeCardIndex = nextIndex;
+    await this.updateComplete;
+    this.cardElements[nextIndex]?.focusCard();
+  }
+
+  public async focusTaskAt(index: number) {
+    await this.focusCardAt(index);
+  }
+
+  private get cardElements(): FtTaskCard[] {
+    return Array.from(this.renderRoot.querySelectorAll<FtTaskCard>('ft-task-card'));
+  }
+
+  private onCardFocus(index: number) {
+    this.activeCardIndex = index;
+  }
+
+  private onCardKeyDown(e: KeyboardEvent, index: number) {
+    if (e.defaultPrevented) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        void this.focusCardAt(index + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        void this.focusCardAt(index - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        void this.focusCardAt(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        void this.focusCardAt(this.sortedTasks.length - 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowRight':
+        e.preventDefault();
+        this.activeCardIndex = index;
+        this.dispatchEvent(
+          new CustomEvent('column-nav', {
+            detail: {
+              direction: e.key === 'ArrowLeft' ? 'left' : 'right',
+              fromIndex: index,
+              stage: this.stage,
+            },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+    }
+  }
+
   render() {
-    const sorted = sortTasks(this.tasks);
+    const sorted = this.sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
 
     return html`
@@ -186,10 +262,13 @@ export class FtKanbanColumn extends LitElement {
         @drop=${this.onDrop}
       >
         ${sorted.map(
-          (task) => html`
+          (task, index) => html`
             <ft-task-card
               .task=${task}
               ?selected=${task.id === this.selectedTaskId}
+              card-tab-index=${index === this.activeCardIndex ? 0 : -1}
+              @focusin=${() => this.onCardFocus(index)}
+              @keydown=${(e: KeyboardEvent) => this.onCardKeyDown(e, index)}
             ></ft-task-card>
           `,
         )}

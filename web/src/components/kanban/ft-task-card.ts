@@ -54,6 +54,18 @@ export class FtTaskCard extends LitElement {
     :host([dragging]) sl-card {
       opacity: 0.5;
     }
+    .card-shell {
+      --sl-focus-ring: 2px solid var(--sl-color-primary-500);
+      --sl-focus-ring-offset: 2px;
+    }
+    .card-shell:focus {
+      outline: none;
+    }
+    .card-shell:focus-visible sl-card {
+      outline: var(--sl-focus-ring);
+      outline-offset: var(--sl-focus-ring-offset);
+      border-radius: var(--sl-border-radius-medium);
+    }
     .selected sl-card,
     .selected sl-card::part(base) {
       border-color: var(--sl-color-primary-500);
@@ -149,6 +161,9 @@ export class FtTaskCard extends LitElement {
   @property({ type: Boolean })
   selected = false;
 
+  @property({ type: Number, attribute: 'card-tab-index' })
+  cardTabIndex = 0;
+
   @state()
   private isEditingTitle = false;
 
@@ -179,6 +194,18 @@ export class FtTaskCard extends LitElement {
   }
 
   private onClick() {
+    this.dispatchTaskSelect();
+  }
+
+  private onKeyDown(e: KeyboardEvent) {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+
+    e.preventDefault();
+    this.dispatchTaskSelect();
+  }
+
+  private dispatchTaskSelect() {
     this.dispatchEvent(
       new CustomEvent('task-select', {
         detail: { taskId: this.task.id },
@@ -186,6 +213,10 @@ export class FtTaskCard extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  public focusCard() {
+    this.renderRoot.querySelector<HTMLElement>('.card-shell')?.focus();
   }
 
   private stopCardInteraction(e: Event) {
@@ -328,11 +359,13 @@ export class FtTaskCard extends LitElement {
 
     return html`
       <div
-        class=${classMap({ selected: this.selected })}
+        class=${classMap({ 'card-shell': true, selected: this.selected })}
+        tabindex=${this.cardTabIndex}
         draggable=${String(!this.isEditingTitle && !this.isEditingPriority)}
         @dragstart=${this.onDragStart}
         @dragend=${this.onDragEnd}
         @click=${this.onClick}
+        @keydown=${this.onKeyDown}
       >
         <sl-card>
           <div class="title" @dblclick=${this.startTitleEdit}>
