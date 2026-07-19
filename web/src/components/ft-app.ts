@@ -7,7 +7,7 @@ import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/servi
 import type { UpdateTaskFields } from '../gen/service.js';
 import { TaskPhase, type User } from '../gen/types.js';
 import { createGrpcFarmTableClient } from '../gen/grpc-client.js';
-import type { TaskFilterChangeDetail } from './task-filters.js';
+import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
 
 @customElement('ft-app')
@@ -97,7 +97,13 @@ export class FtApp extends LitElement {
   }
 
   render() {
-    const taskCount = this.storeController.taskStore.allTasks.length;
+    const allTasks = this.storeController.taskStore.allTasks;
+    const totalCount = allTasks.length;
+    const filteredCount =
+      this.phaseFilter !== null || this.assigneeFilter !== null
+        ? allTasks.filter((task) => matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter))
+            .length
+        : totalCount;
 
     return html`
       <ft-toolbar
@@ -115,6 +121,8 @@ export class FtApp extends LitElement {
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
         .users=${this.users}
+        .filteredCount=${filteredCount}
+        .totalCount=${totalCount}
         @filter-clear=${this.onFilterChange}
       ></ft-filter-chips>
 

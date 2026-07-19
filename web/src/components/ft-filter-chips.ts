@@ -35,6 +35,12 @@ export class FtFilterChips extends LitElement {
     sl-button::part(base) {
       min-height: var(--sl-input-height-small);
     }
+    .task-count {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--sl-color-neutral-500);
+      white-space: nowrap;
+    }
   `;
 
   @property({ attribute: false })
@@ -45,6 +51,12 @@ export class FtFilterChips extends LitElement {
 
   @property({ attribute: false })
   users: User[] = [];
+
+  @property({ attribute: false })
+  filteredCount = 0;
+
+  @property({ attribute: false })
+  totalCount = 0;
 
   render() {
     const activeFilterCount = Number(this.phaseFilter !== null) + Number(this.assigneeFilter !== null);
@@ -77,6 +89,7 @@ export class FtFilterChips extends LitElement {
               </sl-tag>
             `
           : nothing}
+        <span class="task-count">${this.filteredCount} of ${this.totalCount} tasks</span>
         ${activeFilterCount >= 2
           ? html`
               <sl-button size="small" variant="text" @click=${this.clearAllFilters}>
