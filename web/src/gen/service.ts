@@ -2,6 +2,7 @@ import {
   type Task,
   type Comment,
   type Change,
+  type Collection,
   type TaskEvent,
   type User,
   TaskPhase,
@@ -29,6 +30,8 @@ export interface CreateTaskFields {
 }
 
 export interface FarmTableServiceClient {
+  listCollections(): Promise<Collection[]>;
+  getCollection(id: string): Promise<Collection>;
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
@@ -93,6 +96,17 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
 const COLLECTION_ID = '00000000-0000-0000-0000-000000000001';
 
 const NOW = new Date().toISOString();
+
+const MOCK_COLLECTIONS: Collection[] = [
+  {
+    id: COLLECTION_ID,
+    name: 'Farm Table',
+    platform: Platform.FARMTABLE,
+    statusMappings: [],
+    customFieldDefinitions: [],
+    createdAt: NOW,
+  },
+];
 
 export function phaseForStage(stage: TaskStage): TaskPhase {
   switch (stage) {
@@ -372,6 +386,16 @@ const MOCK_CHANGES: Record<string, Change[]> = {
 };
 
 export class MockFarmTableClient implements FarmTableServiceClient {
+  async listCollections(): Promise<Collection[]> {
+    return MOCK_COLLECTIONS.map((collection) => ({ ...collection }));
+  }
+
+  async getCollection(id: string): Promise<Collection> {
+    const collection = MOCK_COLLECTIONS.find((item) => item.id === id || item.name === id);
+    if (!collection) throw new Error(`Collection not found: ${id}`);
+    return { ...collection };
+  }
+
   async listTasks(): Promise<Task[]> {
     return [...MOCK_TASKS];
   }
