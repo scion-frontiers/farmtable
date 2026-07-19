@@ -342,6 +342,7 @@ export function createGrpcFarmTableClientWithOptions(options: CreateGrpcFarmTabl
     ? undefined
     : globalConfig.FARMTABLE_COLLECTION_ID ?? localStorage.getItem('farmtable.collectionId') ?? undefined;
   const urlCollectionId = params.get('collection') ?? undefined;
+  // Precedence: explicit option > URL ?collection= param > stored global/localStorage.
   const collectionId = options.collectionId === null
     ? undefined
     : options.collectionId ?? urlCollectionId ?? storedCollectionId;

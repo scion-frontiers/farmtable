@@ -102,7 +102,7 @@ export class FtCollectionList extends LitElement {
   private loadToken = 0;
 
   protected updated(changedProperties: Map<PropertyKey, unknown>) {
-    if (changedProperties.has('client')) {
+    if (changedProperties.has('client') && this.client !== changedProperties.get('client')) {
       void this.loadCollections();
     }
   }
@@ -113,6 +113,7 @@ export class FtCollectionList extends LitElement {
         <h1>Select a collection</h1>
         <p class="lede">Choose which collection to open.</p>
 
+        <!-- Shoelace renders sl-alert with role="alert" internally. -->
         ${this.errorMessage
           ? html`<sl-alert variant="warning" open>${this.errorMessage}</sl-alert>`
           : null}

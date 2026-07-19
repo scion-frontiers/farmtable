@@ -307,6 +307,8 @@ export class FtApp extends LitElement {
 
   private showBoard(collectionId: string) {
     this.stopStream();
+    this.phaseFilter = null;
+    this.assigneeFilter = null;
     this.client = createGrpcFarmTableClientWithOptions({
       collectionId,
       readStoredCollectionId: false,

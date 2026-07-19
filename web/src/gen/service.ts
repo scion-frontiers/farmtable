@@ -391,7 +391,7 @@ export class MockFarmTableClient implements FarmTableServiceClient {
   }
 
   async getCollection(id: string): Promise<Collection> {
-    const collection = MOCK_COLLECTIONS.find((item) => item.id === id || item.name === id);
+    const collection = MOCK_COLLECTIONS.find((item) => item.id === id);
     if (!collection) throw new Error(`Collection not found: ${id}`);
     return { ...collection };
   }
