@@ -212,7 +212,11 @@ export class FtApp extends LitElement {
   }
 
   private onViewChange(e: CustomEvent) {
-    this.currentView = e.detail.view;
+    const view = e.detail.view as 'kanban' | 'tree';
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', view);
+    window.history.pushState({}, '', url);
+    this.currentView = view;
   }
 
   private onFilterChange(e: CustomEvent) {
@@ -279,6 +283,7 @@ export class FtApp extends LitElement {
   private async applyRoute() {
     const token = ++this.routeToken;
     const collectionId = this.currentCollectionIdFromUrl();
+    this.currentView = this.currentViewFromUrl();
 
     if (!collectionId) {
       this.showCollectionList('');
@@ -341,6 +346,11 @@ export class FtApp extends LitElement {
 
   private currentCollectionIdFromUrl(): string | null {
     return new URLSearchParams(window.location.search).get('collection');
+  }
+
+  private currentViewFromUrl(): 'kanban' | 'tree' {
+    const view = new URLSearchParams(window.location.search).get('view');
+    return view === 'tree' ? 'tree' : 'kanban';
   }
 
   private onCollectionSelect = (e: CustomEvent) => {
