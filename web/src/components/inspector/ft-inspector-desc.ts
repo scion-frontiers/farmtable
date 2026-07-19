@@ -87,7 +87,7 @@ export class FtInspectorDesc extends LitElement {
   }
 
   private onDraftInput(e: Event) {
-    this.draft = (e.currentTarget as HTMLInputElement).value;
+    this.draft = (e.currentTarget as unknown as { value: string }).value;
   }
 
   private onKeyDown(e: KeyboardEvent) {
@@ -103,7 +103,7 @@ export class FtInspectorDesc extends LitElement {
   private saveEdit() {
     const nextDescription = this.draft.trim();
     this.isEditing = false;
-    if (nextDescription === (this.description ?? '')) return;
+    if (nextDescription === (this.description ?? '').trim()) return;
 
     this.dispatchTaskUpdate({ description: nextDescription });
   }
@@ -174,6 +174,7 @@ export class FtInspectorDesc extends LitElement {
         ></sl-icon-button>
       </div>
       <div class="content" @dblclick=${this.startEdit}>
+        <!-- renderMarkdown sanitizes with DOMPurify before this HTML is injected. -->
         ${unsafeHTML(renderMarkdown(this.description))}
       </div>
     `;

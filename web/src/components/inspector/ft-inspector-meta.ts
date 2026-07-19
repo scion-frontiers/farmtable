@@ -75,9 +75,6 @@ export class FtInspectorMeta extends LitElement {
   @property({ attribute: false })
   task!: Task;
 
-  @property()
-  taskId = '';
-
   @state()
   private editingDate: EditableDateField | null = null;
 
@@ -114,6 +111,7 @@ export class FtInspectorMeta extends LitElement {
     this.editingDate = null;
 
     if (this.dateDraft === currentValue) return;
+    // TS cannot narrow this computed date field key to the matching update shape.
     this.dispatchTaskUpdate({ [field]: nextValue } as UpdateTaskFields);
   }
 
@@ -131,7 +129,7 @@ export class FtInspectorMeta extends LitElement {
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
     this.dispatchEvent(
       new CustomEvent('task-update', {
-        detail: { taskId: this.taskId, fields },
+        detail: { taskId: this.task.id, fields },
         bubbles: true,
         composed: true,
       }),
