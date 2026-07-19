@@ -32,6 +32,7 @@ export interface CreateTaskFields {
 export interface FarmTableServiceClient {
   listCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection>;
+  createCollection(name: string): Promise<Collection>;
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
@@ -393,6 +394,19 @@ export class MockFarmTableClient implements FarmTableServiceClient {
   async getCollection(id: string): Promise<Collection> {
     const collection = MOCK_COLLECTIONS.find((item) => item.id === id);
     if (!collection) throw new Error(`Collection not found: ${id}`);
+    return { ...collection };
+  }
+
+  async createCollection(name: string): Promise<Collection> {
+    const collection: Collection = {
+      id: crypto.randomUUID(),
+      name,
+      platform: Platform.FARMTABLE,
+      statusMappings: [],
+      customFieldDefinitions: [],
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_COLLECTIONS.unshift(collection);
     return { ...collection };
   }
 
