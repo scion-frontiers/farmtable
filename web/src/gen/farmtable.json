@@ -2162,6 +2162,102 @@
                 }
               }
             },
+            "ExportCollectionRequest": {
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "id": 1
+                },
+                "includeChanges": {
+                  "type": "bool",
+                  "id": 2
+                }
+              }
+            },
+            "ExportCollectionResponse": {
+              "fields": {
+                "data": {
+                  "type": "bytes",
+                  "id": 1
+                },
+                "warnings": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 2
+                }
+              }
+            },
+            "ImportCollectionRequest": {
+              "oneofs": {
+                "_name": {
+                  "oneof": [
+                    "name"
+                  ]
+                }
+              },
+              "fields": {
+                "data": {
+                  "type": "bytes",
+                  "id": 1
+                },
+                "name": {
+                  "type": "string",
+                  "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "dryRun": {
+                  "type": "bool",
+                  "id": 3
+                }
+              }
+            },
+            "ImportCollectionResponse": {
+              "fields": {
+                "collectionId": {
+                  "type": "string",
+                  "id": 1
+                },
+                "stats": {
+                  "type": "ImportStats",
+                  "id": 2
+                },
+                "warnings": {
+                  "rule": "repeated",
+                  "type": "string",
+                  "id": 3
+                }
+              }
+            },
+            "ImportStats": {
+              "fields": {
+                "usersMatched": {
+                  "type": "int32",
+                  "id": 1
+                },
+                "usersCreated": {
+                  "type": "int32",
+                  "id": 2
+                },
+                "tasks": {
+                  "type": "int32",
+                  "id": 3
+                },
+                "comments": {
+                  "type": "int32",
+                  "id": 4
+                },
+                "relationships": {
+                  "type": "int32",
+                  "id": 5
+                },
+                "changes": {
+                  "type": "int32",
+                  "id": 6
+                }
+              }
+            },
             "GetReadyTasksRequest": {
               "oneofs": {
                 "_collectionId": {
@@ -2995,6 +3091,14 @@
                 "UpdateCollection": {
                   "requestType": "UpdateCollectionRequest",
                   "responseType": "Collection"
+                },
+                "ExportCollection": {
+                  "requestType": "ExportCollectionRequest",
+                  "responseType": "ExportCollectionResponse"
+                },
+                "ImportCollection": {
+                  "requestType": "ImportCollectionRequest",
+                  "responseType": "ImportCollectionResponse"
                 },
                 "GetReadyTasks": {
                   "requestType": "GetReadyTasksRequest",
