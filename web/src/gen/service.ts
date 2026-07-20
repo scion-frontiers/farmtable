@@ -32,7 +32,7 @@ export interface CreateTaskFields {
 export interface FarmTableServiceClient {
   listCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection>;
-  createCollection(name: string): Promise<Collection>;
+  createCollection(name: string, opts?: { platform?: number; remoteId?: string }): Promise<Collection>;
   updateCollection(id: string, fields: { name?: string; description?: string }): Promise<Collection>;
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
@@ -399,7 +399,7 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     return { ...collection };
   }
 
-  async createCollection(name: string): Promise<Collection> {
+  async createCollection(name: string, opts?: { platform?: number; remoteId?: string }): Promise<Collection> {
     const collection: Collection = {
       id: crypto.randomUUID(),
       name,

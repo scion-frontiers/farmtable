@@ -274,7 +274,8 @@ export class FtToolbar extends LitElement {
   }
 
   private renderExternalLink(collection: Collection) {
-    if (collection.platform === Platform.GITHUB && collection.remoteId) {
+    const GITHUB_REPO_RE = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+    if (collection.platform === Platform.GITHUB && collection.remoteId && GITHUB_REPO_RE.test(collection.remoteId)) {
       const url = `https://github.com/${collection.remoteId}`;
       return html`
         <a href=${url} target="_blank" rel="noopener" class="external-link" title="View on GitHub">
@@ -283,7 +284,7 @@ export class FtToolbar extends LitElement {
         </a>
       `;
     }
-    // Other non-farmtable platforms: show badge without link.
+    // Other non-farmtable platforms (or GitHub without valid remoteId): show badge without link.
     if (collection.platform !== Platform.FARMTABLE) {
       return html`
         <span class="platform-badge">${platformLabel(collection.platform)}</span>
