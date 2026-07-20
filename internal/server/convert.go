@@ -374,6 +374,9 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 	if c.Description != "" {
 		pc.Description = &c.Description
 	}
+	if c.RemoteID != "" {
+		pc.RemoteId = &c.RemoteID
+	}
 	return pc
 }
 

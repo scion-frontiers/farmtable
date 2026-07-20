@@ -798,10 +798,26 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 }
 
 func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateCollectionRequest) (*pb.Collection, error) {
+	platform := "farmtable"
+	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		platform = string(platformFromProto(*req.Platform))
+	}
+
+	remoteID := ""
+	if req.RemoteId != nil {
+		remoteID = *req.RemoteId
+	}
+
+	// Non-farmtable collections must have a remote_id.
+	if platform != "farmtable" && remoteID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "remote_id is required for %s platform collections", platform)
+	}
+
 	p := store.CreateCollectionParams{
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
-		Platform:    "farmtable",
+		Platform:    platform,
+		RemoteID:    remoteID,
 	}
 
 	c, err := s.store.CreateCollection(ctx, p)

@@ -2079,6 +2079,16 @@
                   "oneof": [
                     "description"
                   ]
+                },
+                "_platform": {
+                  "oneof": [
+                    "platform"
+                  ]
+                },
+                "_remoteId": {
+                  "oneof": [
+                    "remoteId"
+                  ]
                 }
               },
               "fields": {
@@ -2092,6 +2102,22 @@
                 "description": {
                   "type": "string",
                   "id": 2,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "platform": {
+                  "type": "Platform",
+                  "id": 3,
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "remoteId": {
+                  "type": "string",
+                  "id": 4,
+                  "protoName": "remote_id",
                   "options": {
                     "proto3_optional": true
                   }

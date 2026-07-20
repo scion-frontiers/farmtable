@@ -889,6 +889,10 @@ func (s *EntStore) CreateCollection(ctx context.Context, p CreateCollectionParam
 		create.SetPlatform(collectionPlatform(p.Platform))
 	}
 
+	if p.RemoteID != "" {
+		create.SetRemoteID(p.RemoteID)
+	}
+
 	c, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating collection: %w", err)

@@ -56,6 +56,20 @@ func (_c *CollectionCreate) SetNillablePlatform(v *collection.Platform) *Collect
 	return _c
 }
 
+// SetRemoteID sets the "remote_id" field.
+func (_c *CollectionCreate) SetRemoteID(v string) *CollectionCreate {
+	_c.mutation.SetRemoteID(v)
+	return _c
+}
+
+// SetNillableRemoteID sets the "remote_id" field if the given value is not nil.
+func (_c *CollectionCreate) SetNillableRemoteID(v *string) *CollectionCreate {
+	if v != nil {
+		_c.SetRemoteID(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CollectionCreate) SetCreatedAt(v time.Time) *CollectionCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -156,6 +170,10 @@ func (_c *CollectionCreate) defaults() {
 		v := collection.DefaultPlatform
 		_c.mutation.SetPlatform(v)
 	}
+	if _, ok := _c.mutation.RemoteID(); !ok {
+		v := collection.DefaultRemoteID
+		_c.mutation.SetRemoteID(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := collection.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -240,6 +258,10 @@ func (_c *CollectionCreate) createSpec() (*Collection, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Platform(); ok {
 		_spec.SetField(collection.FieldPlatform, field.TypeEnum, value)
 		_node.Platform = value
+	}
+	if value, ok := _c.mutation.RemoteID(); ok {
+		_spec.SetField(collection.FieldRemoteID, field.TypeString, value)
+		_node.RemoteID = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(collection.FieldCreatedAt, field.TypeTime, value)

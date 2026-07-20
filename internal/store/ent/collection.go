@@ -24,6 +24,8 @@ type Collection struct {
 	Description string `json:"description,omitempty"`
 	// Platform holds the value of the "platform" field.
 	Platform collection.Platform `json:"platform,omitempty"`
+	// RemoteID holds the value of the "remote_id" field.
+	RemoteID string `json:"remote_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -57,7 +59,7 @@ func (*Collection) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case collection.FieldName, collection.FieldDescription, collection.FieldPlatform:
+		case collection.FieldName, collection.FieldDescription, collection.FieldPlatform, collection.FieldRemoteID:
 			values[i] = new(sql.NullString)
 		case collection.FieldCreatedAt, collection.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -101,6 +103,12 @@ func (_m *Collection) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field platform", values[i])
 			} else if value.Valid {
 				_m.Platform = collection.Platform(value.String)
+			}
+		case collection.FieldRemoteID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field remote_id", values[i])
+			} else if value.Valid {
+				_m.RemoteID = value.String
 			}
 		case collection.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -163,6 +171,9 @@ func (_m *Collection) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("platform=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Platform))
+	builder.WriteString(", ")
+	builder.WriteString("remote_id=")
+	builder.WriteString(_m.RemoteID)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

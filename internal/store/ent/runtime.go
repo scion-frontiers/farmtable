@@ -70,12 +70,16 @@ func init() {
 	collectionDescDescription := collectionFields[2].Descriptor()
 	// collection.DefaultDescription holds the default value on creation for the description field.
 	collection.DefaultDescription = collectionDescDescription.Default.(string)
+	// collectionDescRemoteID is the schema descriptor for remote_id field.
+	collectionDescRemoteID := collectionFields[4].Descriptor()
+	// collection.DefaultRemoteID holds the default value on creation for the remote_id field.
+	collection.DefaultRemoteID = collectionDescRemoteID.Default.(string)
 	// collectionDescCreatedAt is the schema descriptor for created_at field.
-	collectionDescCreatedAt := collectionFields[4].Descriptor()
+	collectionDescCreatedAt := collectionFields[5].Descriptor()
 	// collection.DefaultCreatedAt holds the default value on creation for the created_at field.
 	collection.DefaultCreatedAt = collectionDescCreatedAt.Default.(func() time.Time)
 	// collectionDescUpdatedAt is the schema descriptor for updated_at field.
-	collectionDescUpdatedAt := collectionFields[5].Descriptor()
+	collectionDescUpdatedAt := collectionFields[6].Descriptor()
 	// collection.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	collection.DefaultUpdatedAt = collectionDescUpdatedAt.Default.(func() time.Time)
 	// collection.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

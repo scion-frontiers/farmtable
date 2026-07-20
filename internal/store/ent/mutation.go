@@ -1443,6 +1443,7 @@ type CollectionMutation struct {
 	name          *string
 	description   *string
 	platform      *collection.Platform
+	remote_id     *string
 	created_at    *time.Time
 	updated_at    *time.Time
 	clearedFields map[string]struct{}
@@ -1679,6 +1680,55 @@ func (m *CollectionMutation) ResetPlatform() {
 	m.platform = nil
 }
 
+// SetRemoteID sets the "remote_id" field.
+func (m *CollectionMutation) SetRemoteID(s string) {
+	m.remote_id = &s
+}
+
+// RemoteID returns the value of the "remote_id" field in the mutation.
+func (m *CollectionMutation) RemoteID() (r string, exists bool) {
+	v := m.remote_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteID returns the old "remote_id" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldRemoteID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteID: %w", err)
+	}
+	return oldValue.RemoteID, nil
+}
+
+// ClearRemoteID clears the value of the "remote_id" field.
+func (m *CollectionMutation) ClearRemoteID() {
+	m.remote_id = nil
+	m.clearedFields[collection.FieldRemoteID] = struct{}{}
+}
+
+// RemoteIDCleared returns if the "remote_id" field was cleared in this mutation.
+func (m *CollectionMutation) RemoteIDCleared() bool {
+	_, ok := m.clearedFields[collection.FieldRemoteID]
+	return ok
+}
+
+// ResetRemoteID resets all changes to the "remote_id" field.
+func (m *CollectionMutation) ResetRemoteID() {
+	m.remote_id = nil
+	delete(m.clearedFields, collection.FieldRemoteID)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CollectionMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -1839,7 +1889,7 @@ func (m *CollectionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CollectionMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.name != nil {
 		fields = append(fields, collection.FieldName)
 	}
@@ -1848,6 +1898,9 @@ func (m *CollectionMutation) Fields() []string {
 	}
 	if m.platform != nil {
 		fields = append(fields, collection.FieldPlatform)
+	}
+	if m.remote_id != nil {
+		fields = append(fields, collection.FieldRemoteID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, collection.FieldCreatedAt)
@@ -1869,6 +1922,8 @@ func (m *CollectionMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case collection.FieldPlatform:
 		return m.Platform()
+	case collection.FieldRemoteID:
+		return m.RemoteID()
 	case collection.FieldCreatedAt:
 		return m.CreatedAt()
 	case collection.FieldUpdatedAt:
@@ -1888,6 +1943,8 @@ func (m *CollectionMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldDescription(ctx)
 	case collection.FieldPlatform:
 		return m.OldPlatform(ctx)
+	case collection.FieldRemoteID:
+		return m.OldRemoteID(ctx)
 	case collection.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case collection.FieldUpdatedAt:
@@ -1921,6 +1978,13 @@ func (m *CollectionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPlatform(v)
+		return nil
+	case collection.FieldRemoteID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteID(v)
 		return nil
 	case collection.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -1969,6 +2033,9 @@ func (m *CollectionMutation) ClearedFields() []string {
 	if m.FieldCleared(collection.FieldDescription) {
 		fields = append(fields, collection.FieldDescription)
 	}
+	if m.FieldCleared(collection.FieldRemoteID) {
+		fields = append(fields, collection.FieldRemoteID)
+	}
 	return fields
 }
 
@@ -1986,6 +2053,9 @@ func (m *CollectionMutation) ClearField(name string) error {
 	case collection.FieldDescription:
 		m.ClearDescription()
 		return nil
+	case collection.FieldRemoteID:
+		m.ClearRemoteID()
+		return nil
 	}
 	return fmt.Errorf("unknown Collection nullable field %s", name)
 }
@@ -2002,6 +2072,9 @@ func (m *CollectionMutation) ResetField(name string) error {
 		return nil
 	case collection.FieldPlatform:
 		m.ResetPlatform()
+		return nil
+	case collection.FieldRemoteID:
+		m.ResetRemoteID()
 		return nil
 	case collection.FieldCreatedAt:
 		m.ResetCreatedAt()

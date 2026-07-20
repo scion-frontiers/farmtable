@@ -1,6 +1,7 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
+import { platformLabel } from '../util/platform-label.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
@@ -69,6 +70,31 @@ export class FtToolbar extends LitElement {
     }
     .toolbar-icon-button:hover {
       color: var(--sl-color-neutral-900);
+    }
+    .external-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--sl-color-primary-600);
+      text-decoration: none;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-primary-50);
+    }
+    .external-link:hover {
+      color: var(--sl-color-primary-700);
+      background: var(--sl-color-primary-100);
+    }
+    .external-link sl-icon {
+      font-size: 0.75rem;
+    }
+    .platform-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-neutral-100);
+      color: var(--sl-color-neutral-700);
     }
   `;
 
@@ -152,6 +178,9 @@ export class FtToolbar extends LitElement {
                 @click=${this.onCollectionSettingsClick}
               ></sl-icon-button>
             `
+          : null}
+        ${this.currentCollection && this.currentCollection.platform !== Platform.FARMTABLE
+          ? this.renderExternalLink(this.currentCollection)
           : null}
       </div>
 
@@ -242,6 +271,26 @@ export class FtToolbar extends LitElement {
     } catch (error) {
       console.warn('Failed to load collection settings', error);
     }
+  }
+
+  private renderExternalLink(collection: Collection) {
+    const GITHUB_REPO_RE = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+    if (collection.platform === Platform.GITHUB && collection.remoteId && GITHUB_REPO_RE.test(collection.remoteId)) {
+      const url = `https://github.com/${collection.remoteId}`;
+      return html`
+        <a href=${url} target="_blank" rel="noopener" class="external-link" title="View on GitHub">
+          <sl-icon name="box-arrow-up-right"></sl-icon>
+          <span>View on GitHub</span>
+        </a>
+      `;
+    }
+    // Other non-farmtable platforms (or GitHub without valid remoteId): show badge without link.
+    if (collection.platform !== Platform.FARMTABLE) {
+      return html`
+        <span class="platform-badge">${platformLabel(collection.platform)}</span>
+      `;
+    }
+    return null;
   }
 
   private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
