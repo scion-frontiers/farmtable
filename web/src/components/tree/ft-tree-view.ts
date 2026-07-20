@@ -87,14 +87,6 @@ export class FtTreeView extends LitElement {
     .drag-invalid {
       opacity: 0.3;
     }
-    .empty-state {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: var(--sl-color-neutral-500, #94a3b8);
-      font-size: 1.1rem;
-    }
   `;
 
   @property({ attribute: false })
@@ -538,7 +530,11 @@ export class FtTreeView extends LitElement {
 
   render() {
     if (this.store.allTasks.length === 0) {
-      return html`<div class="empty-state">No tasks to display</div>`;
+      return html`<ft-empty-state
+        icon="diagram-3"
+        heading="No tasks to display"
+        subtitle="Tasks will appear here when added to this collection"
+      ></ft-empty-state>`;
     }
 
     this.runLayout();

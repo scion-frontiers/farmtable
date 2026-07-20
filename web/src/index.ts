@@ -28,6 +28,7 @@ import '@shoelace-style/shoelace/dist/components/menu-item/menu-item.js';
 
 import './styles/theme.css';
 import './components/ft-connection-badge.js';
+import './components/ft-empty-state.js';
 import './components/ft-toolbar.js';
 import './components/ft-shortcut-overlay.js';
 import './components/ft-collection-list.js';
