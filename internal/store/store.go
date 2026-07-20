@@ -119,6 +119,7 @@ type CreateCollectionParams struct {
 	Name        string
 	Description string
 	Platform    string
+	RemoteID    string
 }
 
 type UpdateCollectionParams struct {

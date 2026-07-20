@@ -690,6 +690,8 @@ message GetCollectionRequest {
 message CreateCollectionRequest {
   string name = 1 [(buf.validate.field).string.min_len = 1];
   optional string description = 2;
+  optional Platform platform = 3 [(buf.validate.field).enum = {defined_only: true}];
+  optional string remote_id = 4;
 }
 
 message UpdateCollectionRequest {

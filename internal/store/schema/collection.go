@@ -19,6 +19,7 @@ func (Collection) Fields() []ent.Field {
 		field.Enum("platform").
 			Values("farmtable", "github", "linear", "jira", "asana", "beads").
 			Default("farmtable"),
+		field.String("remote_id").Optional().Default(""),
 		field.Time("created_at").Default(timeNow).Immutable(),
 		field.Time("updated_at").Default(timeNow).UpdateDefault(timeNow),
 	}

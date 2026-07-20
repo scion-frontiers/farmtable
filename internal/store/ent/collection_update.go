@@ -78,6 +78,26 @@ func (_u *CollectionUpdate) SetNillablePlatform(v *collection.Platform) *Collect
 	return _u
 }
 
+// SetRemoteID sets the "remote_id" field.
+func (_u *CollectionUpdate) SetRemoteID(v string) *CollectionUpdate {
+	_u.mutation.SetRemoteID(v)
+	return _u
+}
+
+// SetNillableRemoteID sets the "remote_id" field if the given value is not nil.
+func (_u *CollectionUpdate) SetNillableRemoteID(v *string) *CollectionUpdate {
+	if v != nil {
+		_u.SetRemoteID(*v)
+	}
+	return _u
+}
+
+// ClearRemoteID clears the value of the "remote_id" field.
+func (_u *CollectionUpdate) ClearRemoteID() *CollectionUpdate {
+	_u.mutation.ClearRemoteID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *CollectionUpdate) SetUpdatedAt(v time.Time) *CollectionUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -200,6 +220,12 @@ func (_u *CollectionUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if value, ok := _u.mutation.Platform(); ok {
 		_spec.SetField(collection.FieldPlatform, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.RemoteID(); ok {
+		_spec.SetField(collection.FieldRemoteID, field.TypeString, value)
+	}
+	if _u.mutation.RemoteIDCleared() {
+		_spec.ClearField(collection.FieldRemoteID, field.TypeString)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(collection.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -313,6 +339,26 @@ func (_u *CollectionUpdateOne) SetNillablePlatform(v *collection.Platform) *Coll
 	if v != nil {
 		_u.SetPlatform(*v)
 	}
+	return _u
+}
+
+// SetRemoteID sets the "remote_id" field.
+func (_u *CollectionUpdateOne) SetRemoteID(v string) *CollectionUpdateOne {
+	_u.mutation.SetRemoteID(v)
+	return _u
+}
+
+// SetNillableRemoteID sets the "remote_id" field if the given value is not nil.
+func (_u *CollectionUpdateOne) SetNillableRemoteID(v *string) *CollectionUpdateOne {
+	if v != nil {
+		_u.SetRemoteID(*v)
+	}
+	return _u
+}
+
+// ClearRemoteID clears the value of the "remote_id" field.
+func (_u *CollectionUpdateOne) ClearRemoteID() *CollectionUpdateOne {
+	_u.mutation.ClearRemoteID()
 	return _u
 }
 
@@ -467,6 +513,12 @@ func (_u *CollectionUpdateOne) sqlSave(ctx context.Context) (_node *Collection, 
 	}
 	if value, ok := _u.mutation.Platform(); ok {
 		_spec.SetField(collection.FieldPlatform, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.RemoteID(); ok {
+		_spec.SetField(collection.FieldRemoteID, field.TypeString, value)
+	}
+	if _u.mutation.RemoteIDCleared() {
+		_spec.ClearField(collection.FieldRemoteID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(collection.FieldUpdatedAt, field.TypeTime, value)

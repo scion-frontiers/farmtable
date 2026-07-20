@@ -66,6 +66,11 @@ func Description(v string) predicate.Collection {
 	return predicate.Collection(sql.FieldEQ(FieldDescription, v))
 }
 
+// RemoteID applies equality check predicate on the "remote_id" field. It's identical to RemoteIDEQ.
+func RemoteID(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldEQ(FieldRemoteID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Collection {
 	return predicate.Collection(sql.FieldEQ(FieldCreatedAt, v))
@@ -234,6 +239,81 @@ func PlatformIn(vs ...Platform) predicate.Collection {
 // PlatformNotIn applies the NotIn predicate on the "platform" field.
 func PlatformNotIn(vs ...Platform) predicate.Collection {
 	return predicate.Collection(sql.FieldNotIn(FieldPlatform, vs...))
+}
+
+// RemoteIDEQ applies the EQ predicate on the "remote_id" field.
+func RemoteIDEQ(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldEQ(FieldRemoteID, v))
+}
+
+// RemoteIDNEQ applies the NEQ predicate on the "remote_id" field.
+func RemoteIDNEQ(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldNEQ(FieldRemoteID, v))
+}
+
+// RemoteIDIn applies the In predicate on the "remote_id" field.
+func RemoteIDIn(vs ...string) predicate.Collection {
+	return predicate.Collection(sql.FieldIn(FieldRemoteID, vs...))
+}
+
+// RemoteIDNotIn applies the NotIn predicate on the "remote_id" field.
+func RemoteIDNotIn(vs ...string) predicate.Collection {
+	return predicate.Collection(sql.FieldNotIn(FieldRemoteID, vs...))
+}
+
+// RemoteIDGT applies the GT predicate on the "remote_id" field.
+func RemoteIDGT(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldGT(FieldRemoteID, v))
+}
+
+// RemoteIDGTE applies the GTE predicate on the "remote_id" field.
+func RemoteIDGTE(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldGTE(FieldRemoteID, v))
+}
+
+// RemoteIDLT applies the LT predicate on the "remote_id" field.
+func RemoteIDLT(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldLT(FieldRemoteID, v))
+}
+
+// RemoteIDLTE applies the LTE predicate on the "remote_id" field.
+func RemoteIDLTE(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldLTE(FieldRemoteID, v))
+}
+
+// RemoteIDContains applies the Contains predicate on the "remote_id" field.
+func RemoteIDContains(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldContains(FieldRemoteID, v))
+}
+
+// RemoteIDHasPrefix applies the HasPrefix predicate on the "remote_id" field.
+func RemoteIDHasPrefix(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldHasPrefix(FieldRemoteID, v))
+}
+
+// RemoteIDHasSuffix applies the HasSuffix predicate on the "remote_id" field.
+func RemoteIDHasSuffix(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldHasSuffix(FieldRemoteID, v))
+}
+
+// RemoteIDIsNil applies the IsNil predicate on the "remote_id" field.
+func RemoteIDIsNil() predicate.Collection {
+	return predicate.Collection(sql.FieldIsNull(FieldRemoteID))
+}
+
+// RemoteIDNotNil applies the NotNil predicate on the "remote_id" field.
+func RemoteIDNotNil() predicate.Collection {
+	return predicate.Collection(sql.FieldNotNull(FieldRemoteID))
+}
+
+// RemoteIDEqualFold applies the EqualFold predicate on the "remote_id" field.
+func RemoteIDEqualFold(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldEqualFold(FieldRemoteID, v))
+}
+
+// RemoteIDContainsFold applies the ContainsFold predicate on the "remote_id" field.
+func RemoteIDContainsFold(v string) predicate.Collection {
+	return predicate.Collection(sql.FieldContainsFold(FieldRemoteID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

@@ -146,8 +146,8 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     return toCollection(response);
   }
 
-  async createCollection(name: string): Promise<Collection> {
-    const response = await this.unary(methods.createCollection, { name });
+  async createCollection(name: string, opts?: { platform?: number; remoteId?: string }): Promise<Collection> {
+    const response = await this.unary(methods.createCollection, { name, ...opts });
     return toCollection(response);
   }
 

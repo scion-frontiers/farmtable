@@ -22,6 +22,8 @@ const (
 	FieldDescription = "description"
 	// FieldPlatform holds the string denoting the platform field in the database.
 	FieldPlatform = "platform"
+	// FieldRemoteID holds the string denoting the remote_id field in the database.
+	FieldRemoteID = "remote_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldPlatform,
+	FieldRemoteID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -64,6 +67,8 @@ var (
 	NameValidator func(string) error
 	// DefaultDescription holds the default value on creation for the "description" field.
 	DefaultDescription string
+	// DefaultRemoteID holds the default value on creation for the "remote_id" field.
+	DefaultRemoteID string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -125,6 +130,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByPlatform orders the results by the platform field.
 func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPlatform, opts...).ToFunc()
+}
+
+// ByRemoteID orders the results by the remote_id field.
+func ByRemoteID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRemoteID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
