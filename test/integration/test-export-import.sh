@@ -13,6 +13,12 @@ SOURCE_COLLECTION_NAME="test-integration-${STAMP}-export"
 SOURCE_COLLECTION_DESCRIPTION="Disposable CLI integration export source ${STAMP}"
 IMPORTED_COLLECTION_NAME="test-integration-${STAMP}-reimported"
 EXPORT_FILE="/tmp/test-export-${STAMP}.json"
+
+cleanup() {
+  rm -f "$EXPORT_FILE"
+}
+trap cleanup EXIT
+
 TASK_ONE_NAME="test export import alpha ${STAMP}"
 TASK_TWO_NAME="test export import beta ${STAMP}"
 TASK_ONE_DESCRIPTION="Alpha task exported and reimported ${STAMP}"

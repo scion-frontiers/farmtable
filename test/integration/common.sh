@@ -26,7 +26,7 @@ setup_integration_env() {
 }
 
 test_stamp() {
-  printf '%s-%s' "$(date -u +%Y%m%d%H%M%S)" "$$"
+  printf '%s-%s-%s' "$(date -u +%Y%m%d%H%M%S)" "$$" "$RANDOM"
 }
 
 pass() {
