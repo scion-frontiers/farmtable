@@ -1,4 +1,4 @@
-import { LitElement, html, svg, css } from 'lit';
+import { LitElement, html, svg, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import dagre from '@dagrejs/dagre';
 import { TaskStore } from '../../store/task-store.js';
@@ -168,8 +168,13 @@ export class FtTreeView extends LitElement {
     }
   }
 
-  updated() {
-    if (this.needsCenter && this.layoutNodes.length > 0) {
+  updated(changedProps: PropertyValues<this>) {
+    // When selectedTaskId changes, center the viewport on the selected node
+    // instead of centering the entire graph.
+    if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
+      this.centerOnNode(this.selectedTaskId);
+      this.needsCenter = false;
+    } else if (this.needsCenter && this.layoutNodes.length > 0) {
       const container = this.renderRoot.querySelector('.canvas-container');
       if (container) {
         const rect = container.getBoundingClientRect();
@@ -181,6 +186,20 @@ export class FtTreeView extends LitElement {
         }
       }
     }
+  }
+
+  /**
+   * Pan the viewport so that the given node is centered, keeping the
+   * current zoom level. Mirrors centerGraph() but targets a single node.
+   */
+  private centerOnNode(taskId: string) {
+    const node = this.layoutNodes.find((n) => n.id === taskId);
+    if (!node) return;
+
+    const vbW = this.containerWidth / this.scale;
+    const vbH = this.containerHeight / this.scale;
+    this.panX = node.x - vbW / 2;
+    this.panY = node.y - vbH / 2;
   }
 
   // ── Layout ──
