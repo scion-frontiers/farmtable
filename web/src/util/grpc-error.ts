@@ -5,18 +5,11 @@ import { grpc } from '@improbable-eng/grpc-web';
  * the status code without fragile string-matching on the message.
  */
 export class GrpcError extends Error {
-  readonly code: number;
+  readonly code: grpc.Code;
 
-  constructor(code: number, message?: string) {
+  constructor(code: grpc.Code, message?: string) {
     super(message || `gRPC error code ${code}`);
     this.name = 'GrpcError';
     this.code = code;
   }
-}
-
-/**
- * Returns true when a gRPC error carries the Unimplemented status code (12).
- */
-export function isUnimplementedError(err: unknown): boolean {
-  return err instanceof GrpcError && err.code === grpc.Code.Unimplemented;
 }
