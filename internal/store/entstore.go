@@ -22,6 +22,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
@@ -1736,6 +1737,114 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 	return s.GetCollection(ctx, coll.ID)
 }
 
+// ── LinkedAccount Methods ──
+
+func (s *EntStore) CreateLinkedAccount(ctx context.Context, p CreateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	create := s.client.LinkedAccount.Create().
+		SetCollectionID(p.CollectionID).
+		SetPlatform(linkedaccount.Platform(p.Platform)).
+		SetAuthToken(p.AuthToken).
+		SetAuthMethod(linkedaccount.AuthMethod(p.AuthMethod))
+
+	if len(p.Scopes) > 0 {
+		create.SetScopes(p.Scopes)
+	}
+	if p.RemoteUserID != "" {
+		create.SetRemoteUserID(p.RemoteUserID)
+	}
+	if p.ExpiresAt != nil {
+		create.SetExpiresAt(*p.ExpiresAt)
+	}
+
+	la, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("creating linked account: %w", err)
+	}
+	return la, nil
+}
+
+func (s *EntStore) GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.LinkedAccount, error) {
+	la, err := s.client.LinkedAccount.Get(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("getting linked account: %w", err)
+	}
+	return la, nil
+}
+
+func (s *EntStore) DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error {
+	err := s.client.LinkedAccount.DeleteOneID(id).Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("deleting linked account: %w", err)
+	}
+	return nil
+}
+
+func (s *EntStore) ListLinkedAccounts(ctx context.Context, p ListLinkedAccountsParams) ([]*ent.LinkedAccount, int, error) {
+	q := s.client.LinkedAccount.Query()
+
+	if p.CollectionID != nil {
+		q = q.Where(linkedaccount.CollectionIDEQ(*p.CollectionID))
+	}
+	if p.Platform != nil {
+		q = q.Where(linkedaccount.PlatformEQ(linkedaccount.Platform(*p.Platform)))
+	}
+	if p.Status != nil {
+		q = q.Where(linkedaccount.StatusEQ(linkedaccount.Status(*p.Status)))
+	}
+
+	total, err := q.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("counting linked accounts: %w", err)
+	}
+
+	if p.LastID != "" {
+		lastID, parseErr := uuid.Parse(p.LastID)
+		if parseErr != nil {
+			return nil, 0, fmt.Errorf("invalid cursor last_id: %w", parseErr)
+		}
+		// Look up the cursor record to get its created_at for keyset pagination.
+		cursor, curErr := s.client.LinkedAccount.Get(ctx, lastID)
+		if curErr != nil {
+			return nil, 0, fmt.Errorf("looking up cursor record: %w", curErr)
+		}
+		q = q.Where(keysetPredLinkedAccount(cursor.CreatedAt.Format(time.RFC3339Nano), lastID))
+	}
+
+	if p.Limit > 0 {
+		q = q.Limit(p.Limit)
+	}
+
+	accounts, err := q.Order(linkedaccount.ByCreatedAt(), linkedaccount.ByID()).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing linked accounts: %w", err)
+	}
+	return accounts, total, nil
+}
+
+func keysetPredLinkedAccount(lastSortValue string, lastID uuid.UUID) predicate.LinkedAccount {
+	return predicate.LinkedAccount(func(s *entsql.Selector) {
+		colRef := s.C(linkedaccount.FieldCreatedAt)
+		idRef := s.C(linkedaccount.FieldID)
+		var sortVal interface{} = lastSortValue
+		if t, err := time.Parse(time.RFC3339Nano, lastSortValue); err == nil {
+			sortVal = t
+		}
+		s.Where(entsql.Or(
+			entsql.GT(colRef, sortVal),
+			entsql.And(
+				entsql.EQ(colRef, sortVal),
+				entsql.GT(idRef, lastID),
+			),
+		))
+	})
+}
+
 // Truncate deletes all rows from all tables in FK-safe order.
 // It is intended for recycling ephemeral in-memory stores.
 func (s *EntStore) Truncate(ctx context.Context) error {
@@ -1748,6 +1857,9 @@ func (s *EntStore) Truncate(ctx context.Context) error {
 	}
 	if _, err := s.client.Relationship.Delete().Exec(ctx); err != nil {
 		return fmt.Errorf("truncating relationships: %w", err)
+	}
+	if _, err := s.client.LinkedAccount.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating linked_accounts: %w", err)
 	}
 	if _, err := s.client.ApiToken.Delete().Exec(ctx); err != nil {
 		return fmt.Errorf("truncating api_tokens: %w", err)
