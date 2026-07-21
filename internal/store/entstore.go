@@ -1736,6 +1736,34 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 	return s.GetCollection(ctx, coll.ID)
 }
 
+// Truncate deletes all rows from all tables in FK-safe order.
+// It is intended for recycling ephemeral in-memory stores.
+func (s *EntStore) Truncate(ctx context.Context) error {
+	// Delete in FK-dependency order: children before parents.
+	if _, err := s.client.Change.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating changes: %w", err)
+	}
+	if _, err := s.client.Comment.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating comments: %w", err)
+	}
+	if _, err := s.client.Relationship.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating relationships: %w", err)
+	}
+	if _, err := s.client.ApiToken.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating api_tokens: %w", err)
+	}
+	if _, err := s.client.Task.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating tasks: %w", err)
+	}
+	if _, err := s.client.Collection.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating collections: %w", err)
+	}
+	if _, err := s.client.User.Delete().Exec(ctx); err != nil {
+		return fmt.Errorf("truncating users: %w", err)
+	}
+	return nil
+}
+
 // ── Graph Query Methods ──
 
 func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
