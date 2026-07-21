@@ -112,6 +112,20 @@ export class FtToolbar extends LitElement {
       color: var(--sl-color-neutral-500);
       white-space: nowrap;
     }
+    .read-only-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-warning-100);
+      color: var(--sl-color-warning-700);
+      font-weight: 500;
+    }
+    .read-only-badge sl-icon {
+      font-size: 0.75rem;
+    }
     .view-switcher sl-radio-button::part(button) {
       padding: 0.25rem 0.5rem;
       font-size: 1.1rem;
@@ -141,6 +155,9 @@ export class FtToolbar extends LitElement {
 
   @property()
   collectionId = '';
+
+  @property({ type: Boolean })
+  readOnly = false;
 
   @property({ attribute: false })
   phaseFilter: TaskPhase | null = null;
@@ -240,6 +257,7 @@ export class FtToolbar extends LitElement {
           label="Import collection"
           @click=${this.onImportClick}
         ></sl-icon-button>
+        ${this.readOnly ? html`<span class="read-only-badge"><sl-icon name="lock"></sl-icon>Read-only</span>` : null}
       </div>
 
       <span class="title">Farm Table</span>

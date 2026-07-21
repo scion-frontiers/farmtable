@@ -85,6 +85,9 @@ export class FtInspector extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   private storeCtrl?: TaskStoreController;
 
   override connectedCallback() {
@@ -156,7 +159,7 @@ export class FtInspector extends LitElement {
 
         <sl-tab-panel name="general" active>
           <div class="body" tabindex="0">
-            <ft-inspector-header .task=${task}></ft-inspector-header>
+            <ft-inspector-header .task=${task} ?readOnly=${this.readOnly}></ft-inspector-header>
 
             <sl-details
               summary="Properties"
@@ -164,7 +167,7 @@ export class FtInspector extends LitElement {
               @sl-show=${() => this.persistSectionState('metadata', true)}
               @sl-hide=${() => this.persistSectionState('metadata', false)}
             >
-              <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
+              <ft-inspector-meta .task=${task} .client=${this.client} ?readOnly=${this.readOnly}></ft-inspector-meta>
             </sl-details>
 
             <sl-details
@@ -176,6 +179,7 @@ export class FtInspector extends LitElement {
               <ft-inspector-desc
                 taskId=${task.id}
                 .description=${task.description}
+                ?readOnly=${this.readOnly}
                 hide-title
               ></ft-inspector-desc>
             </sl-details>
@@ -209,6 +213,7 @@ export class FtInspector extends LitElement {
             <ft-inspector-comments
               taskId=${this.taskId}
               .client=${this.client}
+              ?readOnly=${this.readOnly}
             ></ft-inspector-comments>
 
             <ft-inspector-changes

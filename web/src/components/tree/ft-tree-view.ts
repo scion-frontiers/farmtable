@@ -98,6 +98,9 @@ export class FtTreeView extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   private storeCtrl!: TaskStoreController;
 
   @state() private focusRootId: string | null = null;
@@ -430,6 +433,7 @@ export class FtTreeView extends LitElement {
   // ── Drag-and-drop ──
 
   private onDragStartCapture(e: DragEvent) {
+    if (this.readOnly) return;
     const taskId = e.dataTransfer?.getData('application/ft-task-id');
     if (!taskId) {
       const node = (e.target as Element).closest?.('ft-tree-node') as
@@ -443,6 +447,7 @@ export class FtTreeView extends LitElement {
   }
 
   private onForeignDragStart(e: DragEvent, taskId: string) {
+    if (this.readOnly) return;
     this.draggedTaskId = taskId;
     this._dragDescendants = getDescendantIds(taskId, this.store);
     e.dataTransfer!.setData('application/ft-task-id', taskId);
@@ -462,6 +467,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onNodeDrop(e: DragEvent, targetId: string) {
+    if (this.readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     const taskId =
@@ -485,6 +491,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onCanvasDrop(e: DragEvent) {
+    if (this.readOnly) return;
     const taskId =
       this.draggedTaskId ||
       e.dataTransfer!.getData('application/ft-task-id');
@@ -506,6 +513,7 @@ export class FtTreeView extends LitElement {
     taskId: string,
     newParentId: string | null,
   ) {
+    if (this.readOnly) return;
     const task = this.store.getTask(taskId);
     if (!task) return;
 
@@ -598,6 +606,7 @@ export class FtTreeView extends LitElement {
                   <ft-tree-node
                     .task=${n.task}
                     ?selected=${this.selectedTaskId === n.id}
+                    ?readOnly=${this.readOnly}
                     .childCount=${this.store.getChildren(n.id).length}
                     ?expanded=${this.expandedNodes.has(n.id)}
                     @toggle-expand=${this.onToggleExpand}
