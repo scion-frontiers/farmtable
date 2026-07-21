@@ -153,11 +153,32 @@ export class FtKanbanColumn extends LitElement {
   private _dragEnterCount = 0;
 
   protected updated(changedProperties: PropertyValues<this>) {
-    if (!changedProperties.has('tasks')) return;
+    if (changedProperties.has('tasks')) {
+      this._sortedTasks = sortTasks(this.tasks);
+      const lastIndex = this._sortedTasks.length - 1;
+      this.activeCardIndex = Math.max(0, Math.min(this.activeCardIndex, lastIndex));
+    }
 
-    this._sortedTasks = sortTasks(this.tasks);
-    const lastIndex = this._sortedTasks.length - 1;
-    this.activeCardIndex = Math.max(0, Math.min(this.activeCardIndex, lastIndex));
+    if (changedProperties.has('selectedTaskId') && this.selectedTaskId) {
+      void this.scrollToSelectedCard();
+    }
+  }
+
+  /**
+   * Scroll the selected task card into view within this column.
+   * Uses scrollIntoView which cascades through scrollable ancestors,
+   * handling both the vertical scroll within the column's .cards container
+   * and the horizontal scroll within the parent board.
+   */
+  private async scrollToSelectedCard() {
+    const hasTask = this._sortedTasks.some((t) => t.id === this.selectedTaskId);
+    if (!hasTask) return;
+
+    await this.updateComplete;
+    const card = this.cardElements.find((c) => c.selected);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
   }
 
   private onDragEnter() {
