@@ -21,15 +21,18 @@ export class FtApp extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100vh;
+      overflow: hidden;
       font-family: var(--sl-font-sans);
     }
     .content {
       flex: 1;
       display: flex;
+      min-height: 0;
       overflow: hidden;
     }
     .main {
       flex: 1;
+      min-width: 0;
       overflow: auto;
       padding: 1rem;
     }

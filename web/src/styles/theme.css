@@ -35,6 +35,6 @@ body {
 }
 
 ft-app {
-  display: block;
+  display: flex;
   height: 100%;
 }
