@@ -39,6 +39,7 @@ import './components/kanban/ft-kanban-view.js';
 import './components/tree/ft-tree-node.js';
 import './components/tree/ft-hierarchy-nav.js';
 import './components/tree/ft-tree-view.js';
+import './components/ready-queue/ft-ready-queue-view.js';
 import './components/inspector/ft-inspector-header.js';
 import './components/inspector/ft-inspector-meta.js';
 import './components/inspector/ft-inspector-desc.js';

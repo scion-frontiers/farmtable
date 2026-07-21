@@ -10,6 +10,7 @@ import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
+import './ready-queue/ft-ready-queue-view.js';
 import './ft-command-palette.js';
 
 @customElement('ft-app')
@@ -60,7 +61,7 @@ export class FtApp extends LitElement {
   private routeToken = 0;
 
   @state()
-  private currentView: 'kanban' | 'tree' | 'dashboard' = 'kanban';
+  private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' = 'kanban';
 
   @state()
   private routeView: 'landing' | 'validating' | 'board' = 'validating';
@@ -211,6 +212,16 @@ export class FtApp extends LitElement {
             .store=${this.taskStore}
           ></ft-dashboard-view>
         `;
+      case 'ready-queue':
+        return html`
+          <ft-ready-queue-view
+            .store=${this.taskStore}
+            .phaseFilter=${this.phaseFilter}
+            .assigneeFilter=${this.assigneeFilter}
+            selected-task-id=${this.selectedTaskId ?? ''}
+            @task-select=${this.onTaskSelect}
+          ></ft-ready-queue-view>
+        `;
       case 'tree':
         return html`
           <ft-tree-view
@@ -238,7 +249,7 @@ export class FtApp extends LitElement {
   }
 
   private onViewChange(e: CustomEvent) {
-    const view = e.detail.view as 'kanban' | 'tree' | 'dashboard';
+    const view = e.detail.view as 'kanban' | 'tree' | 'dashboard' | 'ready-queue';
     const url = new URL(window.location.href);
     url.searchParams.set('view', view);
     window.history.pushState({}, '', url);
@@ -312,8 +323,8 @@ export class FtApp extends LitElement {
     const params = new URLSearchParams(window.location.search);
     const collectionId = params.get('collection');
     const viewParam = params.get('view');
-    const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard']);
-    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard') : 'kanban';
+    const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue']);
+    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue') : 'kanban';
 
     if (!collectionId) {
       this.showCollectionList('');

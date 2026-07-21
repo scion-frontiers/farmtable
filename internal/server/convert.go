@@ -257,7 +257,7 @@ func taskToProto(t *ent.Task) *pb.Task {
 	if edges := t.Edges.TargetRelationships; len(edges) > 0 {
 		for _, r := range edges {
 			pt.Relationships = append(pt.Relationships, &pb.Relationship{
-				Type:         relationshipTypeToProto(r.Type),
+				Type:         invertRelationshipType(relationshipTypeToProto(r.Type)),
 				TargetTaskId: r.SourceTaskID.String(),
 			})
 		}
@@ -334,6 +334,21 @@ func relationshipTypeToProto(rt relationship.Type) pb.RelationshipType {
 		return pb.RelationshipType_RELATIONSHIP_TYPE_DUPLICATE
 	default:
 		return pb.RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+	}
+}
+
+// invertRelationshipType returns the inverse proto relationship type.
+// Used when serializing TargetRelationships so that, e.g., a BLOCKED_BY
+// record where this task is the target becomes a BLOCKS from this task's
+// perspective.
+func invertRelationshipType(rt pb.RelationshipType) pb.RelationshipType {
+	switch rt {
+	case pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKS:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKED_BY
+	case pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKED_BY:
+		return pb.RelationshipType_RELATIONSHIP_TYPE_BLOCKS
+	default:
+		return rt // RELATED, DUPLICATE are symmetric
 	}
 }
 
