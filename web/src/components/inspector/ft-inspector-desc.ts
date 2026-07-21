@@ -84,6 +84,9 @@ export class FtInspectorDesc extends LitElement {
   @property({ type: Boolean, attribute: 'hide-title' })
   hideTitle = false;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @state()
   private isEditing = false;
 
@@ -103,6 +106,7 @@ export class FtInspectorDesc extends LitElement {
   }
 
   private async startEdit() {
+    if (this.readOnly) return;
     this.draft = this.description ?? '';
     this.isEditing = true;
     this.addDismissListener();
@@ -202,25 +206,25 @@ export class FtInspectorDesc extends LitElement {
       return html`
         <div class="section-header">
           ${this.hideTitle ? nothing : html`<span class="section-title">Description</span>`}
-          <sl-icon-button
+          ${this.readOnly ? nothing : html`<sl-icon-button
             name="pencil"
             label="Edit description"
             @click=${this.startEdit}
-          ></sl-icon-button>
+          ></sl-icon-button>`}
         </div>
-        <span class="empty" @click=${this.startEdit}>No description</span>
+        <span class="empty" @click=${this.readOnly ? undefined : this.startEdit}>No description</span>
       `;
     }
     return html`
       <div class="section-header">
         ${this.hideTitle ? nothing : html`<span class="section-title">Description</span>`}
-        <sl-icon-button
+        ${this.readOnly ? nothing : html`<sl-icon-button
           name="pencil"
           label="Edit description"
           @click=${this.startEdit}
-        ></sl-icon-button>
+        ></sl-icon-button>`}
       </div>
-      <div class="content" @dblclick=${this.startEdit}>
+      <div class="content" @dblclick=${this.readOnly ? undefined : this.startEdit}>
         <!-- renderMarkdown sanitizes with DOMPurify before this HTML is injected. -->
         ${unsafeHTML(renderMarkdown(this.description))}
       </div>

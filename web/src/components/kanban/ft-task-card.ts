@@ -161,6 +161,9 @@ export class FtTaskCard extends LitElement {
   @property({ type: Boolean })
   selected = false;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @property({ type: Number, attribute: 'card-tab-index' })
   cardTabIndex = 0;
 
@@ -180,7 +183,7 @@ export class FtTaskCard extends LitElement {
   }
 
   private onDragStart(e: DragEvent) {
-    if (this.isEditingTitle || this.isEditingPriority) {
+    if (this.readOnly || this.isEditingTitle || this.isEditingPriority) {
       e.preventDefault();
       return;
     }
@@ -224,6 +227,7 @@ export class FtTaskCard extends LitElement {
   }
 
   private async startTitleEdit(e?: Event) {
+    if (this.readOnly) return;
     e?.stopPropagation();
     this.titleDraft = this.task.name;
     this.isEditingTitle = true;
@@ -269,6 +273,7 @@ export class FtTaskCard extends LitElement {
   }
 
   private async startPriorityEdit(e: Event) {
+    if (this.readOnly) return;
     e.stopPropagation();
     this.isEditingPriority = true;
     await this.updateComplete;
@@ -364,7 +369,7 @@ export class FtTaskCard extends LitElement {
         role="option"
         aria-label=${`Task: ${this.task.name}`}
         aria-selected=${String(this.selected)}
-        draggable=${String(!this.isEditingTitle && !this.isEditingPriority)}
+        draggable=${String(!this.readOnly && !this.isEditingTitle && !this.isEditingPriority)}
         @dragstart=${this.onDragStart}
         @dragend=${this.onDragEnd}
         @click=${this.onClick}
@@ -388,14 +393,14 @@ export class FtTaskCard extends LitElement {
                 `
               : html`
                   <span class="title-text">${title}</span>
-                  <sl-icon-button
+                  ${this.readOnly ? nothing : html`<sl-icon-button
                     class="title-edit-button"
                     name="pencil"
                     size="small"
                     label="Edit title"
                     @mousedown=${this.stopCardInteraction}
                     @click=${this.startTitleEdit}
-                  ></sl-icon-button>
+                  ></sl-icon-button>`}
                 `}
           </div>
           <div class="meta">

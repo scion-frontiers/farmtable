@@ -5,7 +5,7 @@ import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -93,7 +93,16 @@ export class FtApp extends LitElement {
   @state()
   private users: User[] = [];
 
+  @state()
+  private currentCollection?: Collection;
+
+  private collectionLoadToken = 0;
+
   private userLoadToken = 0;
+
+  private get isReadOnly(): boolean {
+    return this.currentCollection !== undefined && this.currentCollection.platform !== Platform.FARMTABLE;
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -152,6 +161,7 @@ export class FtApp extends LitElement {
         .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
+        ?readOnly=${this.isReadOnly}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
@@ -179,6 +189,7 @@ export class FtApp extends LitElement {
                   taskId=${this.selectedTaskId}
                   .store=${this.taskStore}
                   .client=${this.client}
+                  ?readOnly=${this.isReadOnly}
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
                   @task-update=${this.onTaskUpdate}
@@ -229,6 +240,7 @@ export class FtApp extends LitElement {
             .client=${this.client}
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-tree-view>
@@ -241,6 +253,7 @@ export class FtApp extends LitElement {
             .client=${this.client}
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-kanban-view>
@@ -286,6 +299,7 @@ export class FtApp extends LitElement {
   }
 
   private async onTaskUpdate(e: CustomEvent) {
+    if (this.isReadOnly) return;
     const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
     await this.applyTaskUpdate(taskId, fields);
   }
@@ -353,6 +367,7 @@ export class FtApp extends LitElement {
     this.taskStore.clear();
     this.selectedTaskId = null;
     this.users = [];
+    this.currentCollection = undefined;
     this.connectionStatus = 'disconnected';
     this.collectionErrorMessage = errorMessage;
     this.routeView = 'landing';
@@ -377,12 +392,32 @@ export class FtApp extends LitElement {
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     void this.streamManager.start();
     void this.loadUsers();
+    void this.loadCurrentCollection();
   }
 
   private stopStream() {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.stop();
     this.streamManager = undefined;
+  }
+
+  private async loadCurrentCollection() {
+    const token = ++this.collectionLoadToken;
+    if (!this.currentCollectionId) {
+      this.currentCollection = undefined;
+      return;
+    }
+    try {
+      const collection = await this.unscopedClient.getCollection(this.currentCollectionId);
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = collection;
+      }
+    } catch (error) {
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = undefined;
+      }
+      console.warn('Failed to load current collection', error);
+    }
   }
 
   private onCollectionSelect = (e: CustomEvent) => {

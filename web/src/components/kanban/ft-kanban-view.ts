@@ -120,6 +120,9 @@ export class FtKanbanView extends LitElement {
   @property({ attribute: false })
   assigneeFilter: string | null = null;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   private storeController!: TaskStoreController;
 
   @state()
@@ -139,6 +142,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onStageChange(e: CustomEvent) {
+    if (this.readOnly) return;
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
     const task = this.store.getTask(taskId);
     if (!task || task.stage === stage) return;
@@ -164,6 +168,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onTaskUpdate(e: CustomEvent) {
+    if (this.readOnly) return;
     const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
     const task = this.store.getTask(taskId);
     if (!task) return;
@@ -287,12 +292,12 @@ export class FtKanbanView extends LitElement {
     const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
 
     return html`
-      <div class="view-header">
+      ${this.readOnly ? nothing : html`<div class="view-header">
         <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
           <sl-icon name="plus" slot="prefix"></sl-icon>
           Add Task
         </sl-button>
-      </div>
+      </div>`}
 
       <div
         class="board"
@@ -308,6 +313,7 @@ export class FtKanbanView extends LitElement {
               .tasks=${col.tasks}
               .label=${col.label}
               .totalCount=${col.totalCount}
+              ?readOnly=${this.readOnly}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
           `,
@@ -340,6 +346,7 @@ export class FtKanbanView extends LitElement {
                             .tasks=${col.tasks}
                             .label=${col.label}
                             .totalCount=${col.totalCount}
+                            ?readOnly=${this.readOnly}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
                         `,
