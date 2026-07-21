@@ -98,6 +98,9 @@ export class FtTreeView extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   private storeCtrl!: TaskStoreController;
 
   @state() private focusRootId: string | null = null;
@@ -430,6 +433,7 @@ export class FtTreeView extends LitElement {
   // ── Drag-and-drop ──
 
   private onDragStartCapture(e: DragEvent) {
+    if (this.readOnly) return;
     const taskId = e.dataTransfer?.getData('application/ft-task-id');
     if (!taskId) {
       const node = (e.target as Element).closest?.('ft-tree-node') as
@@ -443,6 +447,7 @@ export class FtTreeView extends LitElement {
   }
 
   private onForeignDragStart(e: DragEvent, taskId: string) {
+    if (this.readOnly) return;
     this.draggedTaskId = taskId;
     this._dragDescendants = getDescendantIds(taskId, this.store);
     e.dataTransfer!.setData('application/ft-task-id', taskId);
