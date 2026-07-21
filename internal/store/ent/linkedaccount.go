@@ -36,6 +36,8 @@ type LinkedAccount struct {
 	Status linkedaccount.Status `json:"status,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -73,7 +75,7 @@ func (*LinkedAccount) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case linkedaccount.FieldPlatform, linkedaccount.FieldAuthToken, linkedaccount.FieldAuthMethod, linkedaccount.FieldRemoteUserID, linkedaccount.FieldStatus:
 			values[i] = new(sql.NullString)
-		case linkedaccount.FieldCreatedAt, linkedaccount.FieldExpiresAt:
+		case linkedaccount.FieldCreatedAt, linkedaccount.FieldUpdatedAt, linkedaccount.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
 		case linkedaccount.FieldID, linkedaccount.FieldCollectionID:
 			values[i] = new(uuid.UUID)
@@ -148,6 +150,12 @@ func (_m *LinkedAccount) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
+		case linkedaccount.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
+			}
 		case linkedaccount.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
@@ -218,6 +226,9 @@ func (_m *LinkedAccount) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.ExpiresAt; v != nil {
 		builder.WriteString("expires_at=")

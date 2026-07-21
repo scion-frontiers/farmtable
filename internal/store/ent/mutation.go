@@ -2871,6 +2871,7 @@ type LinkedAccountMutation struct {
 	remote_user_id    *string
 	status            *linkedaccount.Status
 	created_at        *time.Time
+	updated_at        *time.Time
 	expires_at        *time.Time
 	clearedFields     map[string]struct{}
 	collection        *uuid.UUID
@@ -3314,6 +3315,42 @@ func (m *LinkedAccountMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (m *LinkedAccountMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *LinkedAccountMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *LinkedAccountMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (m *LinkedAccountMutation) SetExpiresAt(t time.Time) {
 	m.expires_at = &t
@@ -3424,7 +3461,7 @@ func (m *LinkedAccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LinkedAccountMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.collection != nil {
 		fields = append(fields, linkedaccount.FieldCollectionID)
 	}
@@ -3448,6 +3485,9 @@ func (m *LinkedAccountMutation) Fields() []string {
 	}
 	if m.created_at != nil {
 		fields = append(fields, linkedaccount.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, linkedaccount.FieldUpdatedAt)
 	}
 	if m.expires_at != nil {
 		fields = append(fields, linkedaccount.FieldExpiresAt)
@@ -3476,6 +3516,8 @@ func (m *LinkedAccountMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case linkedaccount.FieldCreatedAt:
 		return m.CreatedAt()
+	case linkedaccount.FieldUpdatedAt:
+		return m.UpdatedAt()
 	case linkedaccount.FieldExpiresAt:
 		return m.ExpiresAt()
 	}
@@ -3503,6 +3545,8 @@ func (m *LinkedAccountMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldStatus(ctx)
 	case linkedaccount.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
+	case linkedaccount.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	case linkedaccount.FieldExpiresAt:
 		return m.OldExpiresAt(ctx)
 	}
@@ -3569,6 +3613,13 @@ func (m *LinkedAccountMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
+		return nil
+	case linkedaccount.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	case linkedaccount.FieldExpiresAt:
 		v, ok := value.(time.Time)
@@ -3670,6 +3721,9 @@ func (m *LinkedAccountMutation) ResetField(name string) error {
 		return nil
 	case linkedaccount.FieldCreatedAt:
 		m.ResetCreatedAt()
+		return nil
+	case linkedaccount.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	case linkedaccount.FieldExpiresAt:
 		m.ResetExpiresAt()

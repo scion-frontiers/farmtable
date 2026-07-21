@@ -94,6 +94,20 @@ func (_c *LinkedAccountCreate) SetNillableCreatedAt(v *time.Time) *LinkedAccount
 	return _c
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *LinkedAccountCreate) SetUpdatedAt(v time.Time) *LinkedAccountCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *LinkedAccountCreate) SetNillableUpdatedAt(v *time.Time) *LinkedAccountCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_c *LinkedAccountCreate) SetExpiresAt(v time.Time) *LinkedAccountCreate {
 	_c.mutation.SetExpiresAt(v)
@@ -174,6 +188,10 @@ func (_c *LinkedAccountCreate) defaults() {
 		v := linkedaccount.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := linkedaccount.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := linkedaccount.DefaultID()
 		_c.mutation.SetID(v)
@@ -214,6 +232,9 @@ func (_c *LinkedAccountCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "LinkedAccount.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "LinkedAccount.updated_at"`)}
 	}
 	if len(_c.mutation.CollectionIDs()) == 0 {
 		return &ValidationError{Name: "collection", err: errors.New(`ent: missing required edge "LinkedAccount.collection"`)}
@@ -280,6 +301,10 @@ func (_c *LinkedAccountCreate) createSpec() (*LinkedAccount, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(linkedaccount.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(linkedaccount.FieldExpiresAt, field.TypeTime, value)

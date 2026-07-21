@@ -119,6 +119,12 @@ func init() {
 	linkedaccountDescCreatedAt := linkedaccountFields[8].Descriptor()
 	// linkedaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
 	linkedaccount.DefaultCreatedAt = linkedaccountDescCreatedAt.Default.(func() time.Time)
+	// linkedaccountDescUpdatedAt is the schema descriptor for updated_at field.
+	linkedaccountDescUpdatedAt := linkedaccountFields[9].Descriptor()
+	// linkedaccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	linkedaccount.DefaultUpdatedAt = linkedaccountDescUpdatedAt.Default.(func() time.Time)
+	// linkedaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	linkedaccount.UpdateDefaultUpdatedAt = linkedaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// linkedaccountDescID is the schema descriptor for id field.
 	linkedaccountDescID := linkedaccountFields[0].Descriptor()
 	// linkedaccount.DefaultID holds the default value on creation for the id field.
