@@ -150,6 +150,9 @@ export class FtTreeNode extends LitElement {
   @property({ type: Boolean })
   selected = false;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @property({ type: Number })
   childCount = 0;
 
@@ -192,7 +195,7 @@ export class FtTreeNode extends LitElement {
       <div
         class="node ${this.selected ? 'selected' : ''}"
         style="--node-stage-color: ${stageColor}; --node-priority-color: ${priorityColor}"
-        draggable="true"
+        draggable=${this.readOnly ? 'false' : 'true'}
         @dragstart=${this.onDragStart}
       >
         <div class="title">${title}</div>

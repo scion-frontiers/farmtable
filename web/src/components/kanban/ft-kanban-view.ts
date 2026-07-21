@@ -200,6 +200,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onColumnAddTask(e: CustomEvent) {
+    if (this.readOnly) return;
     const { stage, label } = e.detail as { stage: TaskStage; label: string };
     const dialog = this.renderRoot.querySelector<FtAddTaskDialog>('ft-add-task-dialog');
     dialog?.setTarget(stage, label);
@@ -207,6 +208,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onTaskCreate(e: CustomEvent<TaskCreateDetail>) {
+    if (this.readOnly) return;
     const dialog = e.currentTarget as FtAddTaskDialog;
 
     if (!this.client) {

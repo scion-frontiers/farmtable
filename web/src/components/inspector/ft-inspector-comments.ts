@@ -70,6 +70,9 @@ export class FtInspectorComments extends LitElement {
   @property()
   taskId = '';
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
@@ -147,6 +150,7 @@ export class FtInspectorComments extends LitElement {
   }
 
   private async submitComment() {
+    if (this.readOnly) return;
     const body = this.trimmedDraft;
     if (!body) {
       this.errorMessage = 'Enter a comment before submitting.';
@@ -216,7 +220,7 @@ export class FtInspectorComments extends LitElement {
                   `;
                 }
               )}
-        <div class="comment-form">
+        ${this.readOnly ? nothing : html`<div class="comment-form">
           <sl-textarea
             label="Add comment"
             placeholder="Ctrl+Enter to submit"
@@ -238,7 +242,7 @@ export class FtInspectorComments extends LitElement {
               Add comment
             </sl-button>
           </div>
-        </div>
+        </div>`}
       </sl-details>
     `;
   }

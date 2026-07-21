@@ -195,6 +195,7 @@ export class FtKanbanColumn extends LitElement {
   }
 
   private onAddTaskClick(e: MouseEvent) {
+    if (this.readOnly) return;
     e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('column-add-task', {

@@ -467,6 +467,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onNodeDrop(e: DragEvent, targetId: string) {
+    if (this.readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     const taskId =
@@ -490,6 +491,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onCanvasDrop(e: DragEvent) {
+    if (this.readOnly) return;
     const taskId =
       this.draggedTaskId ||
       e.dataTransfer!.getData('application/ft-task-id');
@@ -511,6 +513,7 @@ export class FtTreeView extends LitElement {
     taskId: string,
     newParentId: string | null,
   ) {
+    if (this.readOnly) return;
     const task = this.store.getTask(taskId);
     if (!task) return;
 
@@ -603,6 +606,7 @@ export class FtTreeView extends LitElement {
                   <ft-tree-node
                     .task=${n.task}
                     ?selected=${this.selectedTaskId === n.id}
+                    ?readOnly=${this.readOnly}
                     .childCount=${this.store.getChildren(n.id).length}
                     ?expanded=${this.expandedNodes.has(n.id)}
                     @toggle-expand=${this.onToggleExpand}
