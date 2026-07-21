@@ -499,3 +499,108 @@ func TestWatchTasks_InvalidFilters(t *testing.T) {
 		})
 	}
 }
+
+func TestWatchTasks_ExternalCollectionReturnsUnimplemented(t *testing.T) {
+	client, cleanup := testutil.NewTestServerWithStreaming(t)
+	defer cleanup()
+
+	platforms := []pb.Platform{
+		pb.Platform_PLATFORM_GITHUB,
+		pb.Platform_PLATFORM_LINEAR,
+		pb.Platform_PLATFORM_JIRA,
+		pb.Platform_PLATFORM_ASANA,
+	}
+
+	for _, plat := range platforms {
+		t.Run(plat.String(), func(t *testing.T) {
+			p := plat
+			remoteID := "remote-123"
+			coll, err := client.CreateCollection(context.Background(), &pb.CreateCollectionRequest{
+				Name:     "ext-" + plat.String(),
+				Platform: &p,
+				RemoteId: &remoteID,
+			})
+			if err != nil {
+				t.Fatalf("CreateCollection: %v", err)
+			}
+			collID := coll.GetId()
+
+			stream, err := client.WatchTasks(context.Background(), &pb.WatchTasksRequest{
+				CollectionId: &collID,
+			})
+			if err != nil {
+				t.Fatalf("WatchTasks: %v", err)
+			}
+
+			_, err = stream.Recv()
+			if err == nil {
+				t.Fatal("expected Unimplemented error for external collection")
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected gRPC status error, got %v", err)
+			}
+			if st.Code() != codes.Unimplemented {
+				t.Errorf("code = %v, want Unimplemented", st.Code())
+			}
+		})
+	}
+}
+
+func TestWatchTasks_FarmtableCollectionAllowed(t *testing.T) {
+	client, cleanup := testutil.NewTestServerWithStreaming(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client) // default platform = farmtable
+
+	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "farmtable-task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	stream, err := client.WatchTasks(ctx, &pb.WatchTasksRequest{
+		CollectionId:   &collID,
+		IncludeInitial: true,
+	})
+	if err != nil {
+		t.Fatalf("WatchTasks: %v", err)
+	}
+
+	event := recvEvent(t, stream, 5*time.Second)
+	if event.GetEventType() != pb.TaskEventType_TASK_EVENT_TYPE_INITIAL {
+		t.Errorf("event type = %v, want INITIAL", event.GetEventType())
+	}
+}
+
+func TestWatchTasks_NoCollectionFilterAllowed(t *testing.T) {
+	client, cleanup := testutil.NewTestServerWithStreaming(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+
+	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "unfiltered-task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	// No collection_id filter — should proceed normally.
+	stream, err := client.WatchTasks(ctx, &pb.WatchTasksRequest{
+		IncludeInitial: true,
+	})
+	if err != nil {
+		t.Fatalf("WatchTasks: %v", err)
+	}
+
+	event := recvEvent(t, stream, 5*time.Second)
+	if event.GetEventType() != pb.TaskEventType_TASK_EVENT_TYPE_INITIAL {
+		t.Errorf("event type = %v, want INITIAL", event.GetEventType())
+	}
+}
