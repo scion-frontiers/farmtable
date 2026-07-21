@@ -3,9 +3,10 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
+import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -53,10 +54,21 @@ export class FtApp extends LitElement {
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
   private streamManager?: StreamManager;
+  private pollManager?: PollManager;
   private client!: FarmTableServiceClient;
   private unscopedClient!: FarmTableServiceClient;
   private onStatusChanged = ((e: CustomEvent) => {
     this.connectionStatus = e.detail.status;
+  }) as EventListener;
+  private onWatchUnsupported = (() => {
+    this.switchToPolling();
+  }) as EventListener;
+  private onPollRefreshEnd = ((e: CustomEvent) => {
+    this.lastRefreshed = e.detail.lastRefreshed as Date;
+    this.isRefreshing = false;
+  }) as EventListener;
+  private onPollRefreshStart = (() => {
+    this.isRefreshing = true;
   }) as EventListener;
   private routeToken = 0;
 
@@ -93,7 +105,25 @@ export class FtApp extends LitElement {
   @state()
   private users: User[] = [];
 
+  @state()
+  private currentCollection?: Collection;
+
+  private collectionLoadToken = 0;
+
+  @state()
+  private isPolling = false;
+
+  @state()
+  private lastRefreshed: Date | null = null;
+
+  @state()
+  private isRefreshing = false;
+
   private userLoadToken = 0;
+
+  private get isReadOnly(): boolean {
+    return this.currentCollection !== undefined && this.currentCollection.platform !== Platform.FARMTABLE;
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -111,7 +141,9 @@ export class FtApp extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
+    this.stopPolling();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
     window.removeEventListener('popstate', this.onPopState);
   }
@@ -152,6 +184,7 @@ export class FtApp extends LitElement {
         .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
+        ?readOnly=${this.isReadOnly}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
@@ -179,6 +212,7 @@ export class FtApp extends LitElement {
                   taskId=${this.selectedTaskId}
                   .store=${this.taskStore}
                   .client=${this.client}
+                  ?readOnly=${this.isReadOnly}
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
                   @task-update=${this.onTaskUpdate}
@@ -229,6 +263,7 @@ export class FtApp extends LitElement {
             .client=${this.client}
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-tree-view>
@@ -241,6 +276,7 @@ export class FtApp extends LitElement {
             .client=${this.client}
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-kanban-view>
@@ -286,6 +322,7 @@ export class FtApp extends LitElement {
   }
 
   private async onTaskUpdate(e: CustomEvent) {
+    if (this.isReadOnly) return;
     const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
     await this.applyTaskUpdate(taskId, fields);
   }
@@ -350,6 +387,7 @@ export class FtApp extends LitElement {
     this.stopStream();
     this.client = this.unscopedClient;
     this.currentCollectionId = null;
+    this.currentCollection = undefined;
     this.taskStore.clear();
     this.selectedTaskId = null;
     this.users = [];
@@ -377,12 +415,34 @@ export class FtApp extends LitElement {
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
     void this.streamManager.start();
     void this.loadUsers();
+    void this.loadCurrentCollection();
   }
 
   private stopStream() {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.stop();
     this.streamManager = undefined;
+  }
+
+  private async loadCurrentCollection() {
+    const token = ++this.collectionLoadToken;
+
+    if (!this.currentCollectionId) {
+      this.currentCollection = undefined;
+      return;
+    }
+
+    try {
+      const collection = await this.unscopedClient.getCollection(this.currentCollectionId);
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = collection;
+      }
+    } catch (error) {
+      if (token === this.collectionLoadToken) {
+        this.currentCollection = undefined;
+      }
+      console.warn('Failed to load current collection', error);
+    }
   }
 
   private onCollectionSelect = (e: CustomEvent) => {

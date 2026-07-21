@@ -53,6 +53,49 @@ func NewTestServer(t *testing.T) (pb.FarmTableServiceClient, func()) {
 	return client, cleanup
 }
 
+// NewTestServerWithEphemeralPool creates a test gRPC server with an
+// EphemeralStorePool configured, enabling ephemeral graph query routing
+// for external collections.
+func NewTestServerWithEphemeralPool(t *testing.T) (pb.FarmTableServiceClient, func()) {
+	t.Helper()
+	s, storeCleanup := NewTestStore(t)
+	pool := store.NewEphemeralStorePool(2)
+
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
+	)
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test", server.WithEphemeralPool(pool)))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
+	)
+	if err != nil {
+		pool.Close()
+		srv.Stop()
+		storeCleanup()
+		t.Fatalf("dialing bufconn: %v", err)
+	}
+
+	client := pb.NewFarmTableServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
+		srv.Stop()
+		pool.Close()
+		storeCleanup()
+	}
+	return client, cleanup
+}
+
 func NewTestServerWithStreaming(t *testing.T) (pb.FarmTableServiceClient, func()) {
 	t.Helper()
 	s, storeCleanup := NewTestStore(t)
