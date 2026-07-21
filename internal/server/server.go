@@ -857,6 +857,133 @@ func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateC
 	return collectionToProto(c), nil
 }
 
+// ── Linked Accounts ──
+
+func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.CreateLinkedAccountRequest) (*pb.CreateLinkedAccountResponse, error) {
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+
+	platform := linkedAccountPlatformFromProto(req.GetPlatform())
+	if platform == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "platform is required")
+	}
+
+	authMethod := linkedAccountAuthMethodFromProto(req.GetAuthMethod())
+	if authMethod == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "auth_method is required")
+	}
+
+	if req.GetAuthToken() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "auth_token is required")
+	}
+
+	p := store.CreateLinkedAccountParams{
+		CollectionID: collID,
+		Platform:     platform,
+		AuthToken:    req.GetAuthToken(),
+		AuthMethod:   authMethod,
+		Scopes:       req.GetScopes(),
+		RemoteUserID: req.GetRemoteUserId(),
+	}
+	if req.GetExpiresAt() != nil {
+		t := req.GetExpiresAt().AsTime()
+		p.ExpiresAt = &t
+	}
+
+	la, err := s.store.CreateLinkedAccount(ctx, p)
+	if err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	return &pb.CreateLinkedAccountResponse{
+		LinkedAccount: linkedAccountToProto(la),
+	}, nil
+}
+
+func (s *FarmTableService) GetLinkedAccount(ctx context.Context, req *pb.GetLinkedAccountRequest) (*pb.GetLinkedAccountResponse, error) {
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
+	}
+
+	la, err := s.store.GetLinkedAccount(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	return &pb.GetLinkedAccountResponse{
+		LinkedAccount: linkedAccountToProto(la),
+	}, nil
+}
+
+func (s *FarmTableService) DeleteLinkedAccount(ctx context.Context, req *pb.DeleteLinkedAccountRequest) (*pb.DeleteLinkedAccountResponse, error) {
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
+	}
+
+	if err := s.store.DeleteLinkedAccount(ctx, id); err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	return &pb.DeleteLinkedAccountResponse{}, nil
+}
+
+func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListLinkedAccountsRequest) (*pb.ListLinkedAccountsResponse, error) {
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	p := store.ListLinkedAccountsParams{
+		Limit: pageSize,
+	}
+
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		p.CollectionID = &cid
+	}
+	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		plat := linkedAccountPlatformFromProto(*req.Platform)
+		p.Platform = &plat
+	}
+	if req.Status != nil && *req.Status != pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_UNSPECIFIED {
+		st := linkedAccountStatusFromProto(*req.Status)
+		p.Status = &st
+	}
+
+	if req.GetPageToken() != "" {
+		cursor, err := decodeCursor(req.GetPageToken())
+		if err != nil {
+			return nil, err
+		}
+		p.LastID = cursor.LastID
+	}
+
+	accounts, total, err := s.store.ListLinkedAccounts(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing linked accounts: %v", err)
+	}
+
+	resp := &pb.ListLinkedAccountsResponse{
+		TotalCount: int32(total),
+	}
+	for _, la := range accounts {
+		resp.Items = append(resp.Items, linkedAccountToProto(la))
+	}
+	if len(accounts) > 0 && len(accounts) == pageSize {
+		last := accounts[len(accounts)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
 // ── Audit Trail ──
 
 func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesRequest) (*pb.ListChangesResponse, error) {

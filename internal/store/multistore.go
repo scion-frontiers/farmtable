@@ -3,9 +3,13 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 	"sync"
 
+	"github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
@@ -39,7 +43,8 @@ func (m *MultiStore) RegisterPlatform(collectionID uuid.UUID, s Store) {
 }
 
 // storeFor returns the platform store for the given collection ID, or
-// the primary store if no platform is registered.
+// the primary store if no platform is registered. It does not perform
+// lazy resolution (use storeForCtx when a context is available).
 func (m *MultiStore) storeFor(collectionID uuid.UUID) Store {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -47,6 +52,87 @@ func (m *MultiStore) storeFor(collectionID uuid.UUID) Store {
 		return s
 	}
 	return m.primary
+}
+
+// storeForCtx returns the platform store for the given collection ID.
+// If no store is registered it attempts lazy resolution via
+// LinkedAccounts in the primary store. On success the constructed store
+// is cached for subsequent requests.
+func (m *MultiStore) storeForCtx(ctx context.Context, collectionID uuid.UUID) Store {
+	// Fast path: check under read lock.
+	m.mu.RLock()
+	if s, ok := m.platforms[collectionID]; ok {
+		m.mu.RUnlock()
+		return s
+	}
+	m.mu.RUnlock()
+
+	// Attempt lazy resolution.
+	if s := m.lazyResolve(ctx, collectionID); s != nil {
+		return s
+	}
+	return m.primary
+}
+
+// lazyResolve checks the primary store for a LinkedAccount associated
+// with the given collection, and if found, constructs and caches the
+// appropriate platform store. Returns nil if no linked account exists
+// or the platform is unsupported.
+func (m *MultiStore) lazyResolve(ctx context.Context, collectionID uuid.UUID) Store {
+	// Look up the collection to determine its platform and remote ID.
+	coll, err := m.primary.GetCollection(ctx, collectionID)
+	if err != nil {
+		return nil
+	}
+	if coll.Platform == collection.PlatformFarmtable {
+		return nil // native collections don't need lazy resolution
+	}
+
+	// Look up linked accounts for this collection.
+	accounts, _, err := m.primary.ListLinkedAccounts(ctx, ListLinkedAccountsParams{
+		CollectionID: &collectionID,
+	})
+	if err != nil || len(accounts) == 0 {
+		return nil
+	}
+
+	account := accounts[0] // use the first linked account
+	var s Store
+
+	switch coll.Platform {
+	case collection.PlatformGithub:
+		owner, repo, ok := parseOwnerRepo(coll.RemoteID)
+		if !ok {
+			log.Printf("multistore: invalid RemoteID %q for github collection %s", coll.RemoteID, collectionID)
+			return nil
+		}
+		cid := collectionID
+		s = github.NewPassThroughStore(account.AuthToken, owner, repo, nil, &cid)
+	default:
+		log.Printf("multistore: unsupported platform %q for lazy registration (collection %s)", coll.Platform, collectionID)
+		return nil
+	}
+
+	// Cache under write lock (double-check to avoid overwriting a
+	// concurrent registration).
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.platforms[collectionID]; ok {
+		// Another goroutine registered first; close ours and use theirs.
+		s.Close()
+		return existing
+	}
+	m.platforms[collectionID] = s
+	return s
+}
+
+// parseOwnerRepo splits a "owner/repo" string into its two components.
+func parseOwnerRepo(remoteID string) (owner, repo string, ok bool) {
+	parts := strings.SplitN(remoteID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }
 
 // storeForTask resolves the store for a task ID by looking up the
