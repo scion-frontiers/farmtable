@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -240,8 +241,11 @@ func printSummary(collectionID, rootTitle string, engine *decomposer.Engine, ser
 		dashServer = os.Getenv("FARMTABLE_SERVER")
 	}
 	if dashServer != "" {
-		// Strip port for URL.
-		host := strings.Split(dashServer, ":")[0]
+		// Strip port for URL (handles both IPv4 and IPv6 addresses).
+		host := dashServer
+		if h, _, err := net.SplitHostPort(dashServer); err == nil {
+			host = h
+		}
 		if host != "" {
 			fmt.Printf("Dashboard:      https://%s/?collection=%s\n", host, collectionID)
 		}

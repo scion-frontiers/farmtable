@@ -207,35 +207,42 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	return firstErr
 }
 
-// callLLMWithRetry acquires the semaphore, calls the LLM with exponential backoff
-// retry for transient errors, and releases the semaphore immediately after.
+// callLLMWithRetry calls the LLM with exponential backoff retry for transient
+// errors. The semaphore is acquired only around the actual LLM call and released
+// immediately after — NOT held during backoff sleep. This ensures a stalled
+// retry does not block other goroutines from making LLM calls.
 func (e *Engine) callLLMWithRetry(ctx context.Context, messages []Message) (string, error) {
 	const maxRetries = 3
-
-	// Acquire semaphore — bounds concurrent LLM calls globally.
-	select {
-	case e.sem <- struct{}{}:
-	case <-ctx.Done():
-		return "", ctx.Err()
-	}
 
 	var response string
 	var err error
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
+			// Sleep BEFORE re-acquiring the semaphore so the slot is free
+			// for other goroutines during the backoff window.
 			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * time.Second
 			e.logf("Retrying LLM call (attempt %d/%d) after %v...", attempt+1, maxRetries+1, backoff)
 			select {
 			case <-time.After(backoff):
 			case <-ctx.Done():
-				<-e.sem
 				return "", ctx.Err()
 			}
 		}
 
+		// Acquire semaphore — bounds concurrent LLM calls globally.
+		select {
+		case e.sem <- struct{}{}:
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+
 		response, err = e.llm.Complete(ctx, messages)
+
+		// Release semaphore IMMEDIATELY after LLM call returns.
+		<-e.sem
+
 		if err == nil {
-			break
+			return response, nil
 		}
 
 		// Check if error is transient.
@@ -247,9 +254,6 @@ func (e *Engine) callLLMWithRetry(ctx context.Context, messages []Message) (stri
 		// Non-transient error — don't retry.
 		break
 	}
-
-	// Release semaphore IMMEDIATELY after LLM call returns.
-	<-e.sem
 
 	return response, err
 }

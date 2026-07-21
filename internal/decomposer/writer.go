@@ -113,15 +113,25 @@ func (w *GRPCWriter) ResolveCollection(ctx context.Context, collectionFlag strin
 		return collectionFlag, nil
 	}
 
-	// Otherwise search by name.
-	resp, err := w.client.ListCollections(ctx, &pb.ListCollectionsRequest{})
-	if err != nil {
-		return "", fmt.Errorf("listing collections: %w", err)
-	}
-	for _, c := range resp.GetItems() {
-		if strings.EqualFold(c.GetName(), collectionFlag) {
-			w.collectionID = c.GetId()
-			return c.GetId(), nil
+	// Otherwise search by name, paginating through all collections.
+	var pageToken string
+	for {
+		resp, err := w.client.ListCollections(ctx, &pb.ListCollectionsRequest{
+			PageSize:  100,
+			PageToken: pageToken,
+		})
+		if err != nil {
+			return "", fmt.Errorf("listing collections: %w", err)
+		}
+		for _, c := range resp.GetItems() {
+			if strings.EqualFold(c.GetName(), collectionFlag) {
+				w.collectionID = c.GetId()
+				return c.GetId(), nil
+			}
+		}
+		pageToken = resp.GetNextPageToken()
+		if pageToken == "" {
+			break
 		}
 	}
 

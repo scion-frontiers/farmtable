@@ -3,6 +3,7 @@ package decomposer
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"google.golang.org/genai"
 )
@@ -36,10 +37,16 @@ func (e *LLMError) IsTransient() bool {
 
 // GenAIClient implements Inferencer using Google's GenAI SDK (Vertex AI).
 // Auth uses Application Default Credentials (ADC) — no explicit API key needed.
+// The underlying genai.Client is created once on first use and reused for all
+// subsequent calls, avoiding repeated ADC resolution and TLS setup.
 type GenAIClient struct {
 	Project  string
 	Location string
 	Model    string
+
+	once    sync.Once
+	client  *genai.Client
+	initErr error
 }
 
 const (
@@ -61,13 +68,21 @@ func NewGenAIClient(project, location, model string) *GenAIClient {
 	return &GenAIClient{Project: project, Location: location, Model: model}
 }
 
+// getClient returns the shared genai.Client, initializing it on first call.
+func (c *GenAIClient) getClient(ctx context.Context) (*genai.Client, error) {
+	c.once.Do(func() {
+		c.client, c.initErr = genai.NewClient(ctx, &genai.ClientConfig{
+			Project:  c.Project,
+			Location: c.Location,
+			Backend:  genai.BackendVertexAI,
+		})
+	})
+	return c.client, c.initErr
+}
+
 // Complete sends a GenerateContent request via the Google GenAI SDK.
 func (c *GenAIClient) Complete(ctx context.Context, messages []Message) (string, error) {
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		Project:  c.Project,
-		Location: c.Location,
-		Backend:  genai.BackendVertexAI,
-	})
+	client, err := c.getClient(ctx)
 	if err != nil {
 		return "", fmt.Errorf("creating GenAI client: %w", err)
 	}

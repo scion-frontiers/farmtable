@@ -8,7 +8,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
+
+// anthropicHTTPClient is a shared HTTP client with a timeout to prevent
+// indefinite hangs if the Anthropic API stalls after accepting a connection.
+var anthropicHTTPClient = &http.Client{
+	Timeout: 120 * time.Second,
+}
 
 // AnthropicClient implements Inferencer using the Anthropic Messages API.
 type AnthropicClient struct {
@@ -96,13 +103,13 @@ func (c *AnthropicClient) Complete(ctx context.Context, messages []Message) (str
 	req.Header.Set("x-api-key", c.APIKey)
 	req.Header.Set("anthropic-version", anthropicAPIVersion)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := anthropicHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1 MB cap
 	if err != nil {
 		return "", fmt.Errorf("reading response: %w", err)
 	}
