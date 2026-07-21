@@ -5,6 +5,7 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/convert"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
