@@ -28,6 +28,8 @@ func newRootCmd() *cobra.Command {
 		provider    string
 		model       string
 		apiKey      string
+		project     string
+		location    string
 		promptFile  string
 		maxDepth    int
 		concurrency int
@@ -47,7 +49,7 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(args[0], collection, server, token, provider, model, apiKey,
-				promptFile, maxDepth, concurrency, verbose)
+				project, location, promptFile, maxDepth, concurrency, verbose)
 		},
 	}
 
@@ -60,9 +62,11 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	cmd.Flags().StringVar(&token, "token", "", "Auth token (or FARMTABLE_TOKEN env)")
 
 	// LLM.
-	cmd.Flags().StringVar(&provider, "provider", "anthropic", "LLM provider: \"anthropic\" or \"openai\"")
+	cmd.Flags().StringVar(&provider, "provider", "genai", `LLM provider: "genai" or "anthropic" (default: "genai")`)
 	cmd.Flags().StringVar(&model, "model", "", "Model name (default: provider-specific)")
-	cmd.Flags().StringVar(&apiKey, "api-key", "", "LLM API key (or ANTHROPIC_API_KEY / OPENAI_API_KEY env)")
+	cmd.Flags().StringVar(&apiKey, "api-key", "", "LLM API key (for anthropic provider: or ANTHROPIC_API_KEY env)")
+	cmd.Flags().StringVar(&project, "project", "", "Google Cloud project (or GOOGLE_CLOUD_PROJECT env; for genai provider)")
+	cmd.Flags().StringVar(&location, "location", "", "Google Cloud location (or GOOGLE_CLOUD_LOCATION env; default: us-central1)")
 	cmd.Flags().StringVar(&promptFile, "prompt-file", "", "Path to custom system prompt file (overrides embedded default)")
 
 	// Engine.
@@ -74,7 +78,7 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 }
 
 func run(inputArg, collection, server, token, provider, model, apiKey,
-	promptFile string, maxDepth, concurrency int, verbose bool) error {
+	project, location, promptFile string, maxDepth, concurrency int, verbose bool) error {
 
 	// Read input.
 	inputText, err := readInput(inputArg)
@@ -96,7 +100,7 @@ func run(inputArg, collection, server, token, provider, model, apiKey,
 	}
 
 	// Create LLM client.
-	llm, err := createLLM(provider, model, apiKey)
+	llm, err := createLLM(provider, model, apiKey, project, location)
 	if err != nil {
 		return err
 	}
@@ -168,14 +172,26 @@ func readInput(arg string) (string, error) {
 	return string(data), nil
 }
 
-func createLLM(provider, model, apiKey string) (decomposer.Inferencer, error) {
+func createLLM(provider, model, apiKey, project, location string) (decomposer.Inferencer, error) {
 	switch provider {
+	case "genai":
+		// Resolve project from flag → env.
+		if project == "" {
+			project = os.Getenv("GOOGLE_CLOUD_PROJECT")
+		}
+		if project == "" {
+			return nil, fmt.Errorf("genai provider requires --project or GOOGLE_CLOUD_PROJECT env var")
+		}
+		// Resolve location from flag → env.
+		if location == "" {
+			location = os.Getenv("GOOGLE_CLOUD_LOCATION")
+		}
+		fmt.Fprintf(os.Stderr, "Using GenAI provider (project=%s, location=%s)\n", project, location)
+		return decomposer.NewGenAIClient(project, location, model), nil
 	case "anthropic":
 		return decomposer.NewAnthropicClient(apiKey, model), nil
-	case "openai":
-		return decomposer.NewOpenAIClient(apiKey, model), nil
 	default:
-		return nil, fmt.Errorf("unknown provider %q: must be \"anthropic\" or \"openai\"", provider)
+		return nil, fmt.Errorf("unknown provider %q: must be \"genai\" or \"anthropic\"", provider)
 	}
 }
 
@@ -219,11 +235,11 @@ func printSummary(collectionID, rootTitle string, engine *decomposer.Engine, ser
 	fmt.Printf("Root task:      %s\n", rootTitle)
 	fmt.Printf("Tasks created:  %d (%d terminal, %d non-terminal)\n", total, terminal, nonTerminal)
 	fmt.Printf("Max depth:      %d\n", maxDepth)
-	if server != "" {
-		dashServer := server
-		if os.Getenv("FARMTABLE_SERVER") != "" && server == "" {
-			dashServer = os.Getenv("FARMTABLE_SERVER")
-		}
+	dashServer := server
+	if dashServer == "" {
+		dashServer = os.Getenv("FARMTABLE_SERVER")
+	}
+	if dashServer != "" {
 		// Strip port for URL.
 		host := strings.Split(dashServer, ":")[0]
 		if host != "" {
