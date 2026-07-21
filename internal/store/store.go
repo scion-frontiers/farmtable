@@ -301,6 +301,12 @@ type Store interface {
 	RevokeAPIToken(ctx context.Context, id uuid.UUID) error
 	UpdateTokenLastUsed(ctx context.Context, id uuid.UUID) error
 
+	// LinkedAccounts
+	CreateLinkedAccount(ctx context.Context, p CreateLinkedAccountParams) (*ent.LinkedAccount, error)
+	GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.LinkedAccount, error)
+	DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error
+	ListLinkedAccounts(ctx context.Context, p ListLinkedAccountsParams) ([]*ent.LinkedAccount, int, error)
+
 	Close() error
 }
 
@@ -370,4 +376,24 @@ type ListAPITokensParams struct {
 	Limit         int
 	LastID        string
 	LastSortValue string
+}
+
+// ── LinkedAccount Params ──
+
+type CreateLinkedAccountParams struct {
+	CollectionID uuid.UUID
+	Platform     string
+	AuthToken    string
+	AuthMethod   string
+	Scopes       []string
+	RemoteUserID string
+	ExpiresAt    *time.Time
+}
+
+type ListLinkedAccountsParams struct {
+	CollectionID *uuid.UUID
+	Platform     *string
+	Status       *string
+	Limit        int
+	LastID       string
 }
