@@ -23,6 +23,9 @@ func newCollectionCmd(globals *globalFlags) *cobra.Command {
 		newCollectionCreateCmd(globals),
 		newCollectionExportCmd(globals),
 		newCollectionImportCmd(globals),
+		newCollectionLinkCmd(globals),
+		newCollectionUnlinkCmd(globals),
+		newCollectionLinksCmd(globals),
 	)
 	return cmd
 }
