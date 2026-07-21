@@ -4,6 +4,7 @@ import (
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -454,4 +455,114 @@ func changeToProto(c *ent.Change) *pb.Change {
 		ch.NewValue, _ = structpb.NewValue(c.NewValue)
 	}
 	return ch
+}
+
+// ── LinkedAccount conversions ──
+
+// linkedAccountToProto converts an ent LinkedAccount to the proto representation.
+// SECURITY: auth_token is intentionally omitted from the response.
+func linkedAccountToProto(la *ent.LinkedAccount) *pb.LinkedAccount {
+	pla := &pb.LinkedAccount{
+		Id:           la.ID.String(),
+		CollectionId: la.CollectionID.String(),
+		Platform:     linkedAccountPlatformToProto(la.Platform),
+		AuthMethod:   linkedAccountAuthMethodToProto(la.AuthMethod),
+		Scopes:       la.Scopes,
+		Status:       linkedAccountStatusToProto(la.Status),
+		CreatedAt:    timestamppb.New(la.CreatedAt),
+		UpdatedAt:    timestamppb.New(la.UpdatedAt),
+	}
+	if la.RemoteUserID != "" {
+		pla.RemoteUserId = &la.RemoteUserID
+	}
+	if la.ExpiresAt != nil {
+		pla.ExpiresAt = timestamppb.New(*la.ExpiresAt)
+	}
+	return pla
+}
+
+func linkedAccountPlatformToProto(p linkedaccount.Platform) pb.Platform {
+	switch p {
+	case linkedaccount.PlatformGithub:
+		return pb.Platform_PLATFORM_GITHUB
+	case linkedaccount.PlatformLinear:
+		return pb.Platform_PLATFORM_LINEAR
+	case linkedaccount.PlatformJira:
+		return pb.Platform_PLATFORM_JIRA
+	case linkedaccount.PlatformAsana:
+		return pb.Platform_PLATFORM_ASANA
+	case linkedaccount.PlatformBeads:
+		return pb.Platform_PLATFORM_BEADS
+	default:
+		return pb.Platform_PLATFORM_UNSPECIFIED
+	}
+}
+
+func linkedAccountPlatformFromProto(p pb.Platform) string {
+	switch p {
+	case pb.Platform_PLATFORM_GITHUB:
+		return "github"
+	case pb.Platform_PLATFORM_LINEAR:
+		return "linear"
+	case pb.Platform_PLATFORM_JIRA:
+		return "jira"
+	case pb.Platform_PLATFORM_ASANA:
+		return "asana"
+	case pb.Platform_PLATFORM_BEADS:
+		return "beads"
+	default:
+		return ""
+	}
+}
+
+func linkedAccountAuthMethodToProto(am linkedaccount.AuthMethod) pb.AuthMethod {
+	switch am {
+	case linkedaccount.AuthMethodPat:
+		return pb.AuthMethod_AUTH_METHOD_PAT
+	case linkedaccount.AuthMethodOauth:
+		return pb.AuthMethod_AUTH_METHOD_OAUTH2_PKCE
+	case linkedaccount.AuthMethodGithubApp:
+		return pb.AuthMethod_AUTH_METHOD_GITHUB_APP
+	default:
+		return pb.AuthMethod_AUTH_METHOD_UNSPECIFIED
+	}
+}
+
+func linkedAccountAuthMethodFromProto(am pb.AuthMethod) string {
+	switch am {
+	case pb.AuthMethod_AUTH_METHOD_PAT:
+		return "pat"
+	case pb.AuthMethod_AUTH_METHOD_OAUTH2_PKCE:
+		return "oauth"
+	case pb.AuthMethod_AUTH_METHOD_GITHUB_APP:
+		return "github_app"
+	default:
+		return ""
+	}
+}
+
+func linkedAccountStatusToProto(s linkedaccount.Status) pb.LinkedAccountStatus {
+	switch s {
+	case linkedaccount.StatusActive:
+		return pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_ACTIVE
+	case linkedaccount.StatusExpired:
+		return pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_EXPIRED
+	case linkedaccount.StatusRevoked:
+		return pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_REVOKED
+	default:
+		return pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_UNSPECIFIED
+	}
+}
+
+func linkedAccountStatusFromProto(s pb.LinkedAccountStatus) string {
+	switch s {
+	case pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_ACTIVE:
+		return "active"
+	case pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_EXPIRED:
+		return "expired"
+	case pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_REVOKED:
+		return "revoked"
+	default:
+		return ""
+	}
 }
