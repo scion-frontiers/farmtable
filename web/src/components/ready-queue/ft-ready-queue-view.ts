@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { TaskStore } from '../../store/task-store.js';
@@ -169,6 +169,23 @@ export class FtReadyQueueView extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     new TaskStoreController(this, this.store);
+  }
+
+  protected updated(changedProps: PropertyValues<this>) {
+    if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
+      void this.scrollToSelectedRow();
+    }
+  }
+
+  /**
+   * Scroll the selected queue row into view after render completes.
+   */
+  private async scrollToSelectedRow() {
+    await this.updateComplete;
+    const row = this.renderRoot.querySelector<HTMLElement>('.queue-row.selected');
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   /**
