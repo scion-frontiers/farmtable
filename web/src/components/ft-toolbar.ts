@@ -102,6 +102,19 @@ export class FtToolbar extends LitElement {
       background: var(--sl-color-neutral-100);
       color: var(--sl-color-neutral-700);
     }
+    .view-switcher sl-radio-button::part(button) {
+      padding: 0.25rem 0.5rem;
+      font-size: 1.1rem;
+      line-height: 1;
+      min-width: 2rem;
+      min-height: 2rem;
+    }
+    .view-switcher sl-radio-button::part(label) {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
   `;
 
   @property()
@@ -250,12 +263,21 @@ export class FtToolbar extends LitElement {
       </div>
 
       <sl-radio-group
+        class="view-switcher"
         value=${this.currentView}
         size="small"
         @sl-change=${this.onViewChange}
       >
-        <sl-radio-button value="kanban">Kanban</sl-radio-button>
-        <sl-radio-button value="tree">Tree</sl-radio-button>
+        <sl-tooltip content="Kanban view">
+          <sl-radio-button value="kanban" aria-label="Kanban view">
+            <sl-icon name="kanban" label="Kanban view"></sl-icon>
+          </sl-radio-button>
+        </sl-tooltip>
+        <sl-tooltip content="Tree view">
+          <sl-radio-button value="tree" aria-label="Tree view">
+            <sl-icon name="diagram-3" label="Tree view"></sl-icon>
+          </sl-radio-button>
+        </sl-tooltip>
       </sl-radio-group>
 
       <sl-icon-button
