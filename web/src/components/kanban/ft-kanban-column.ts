@@ -99,8 +99,6 @@ export class FtKanbanColumn extends LitElement {
       opacity: 1;
     }
     .cards {
-      flex: 1;
-      overflow-y: auto;
       padding: 0 0.5rem 0.5rem;
       display: flex;
       flex-direction: column;
@@ -166,9 +164,9 @@ export class FtKanbanColumn extends LitElement {
 
   /**
    * Scroll the selected task card into view within this column.
-   * Uses scrollIntoView which cascades through scrollable ancestors,
-   * handling both the vertical scroll within the column's .cards container
-   * and the horizontal scroll within the parent board.
+   * Uses scrollIntoView which cascades through scrollable ancestors —
+   * vertically via the .main container (the single scroll region) and
+   * horizontally via the .board container.
    */
   private async scrollToSelectedCard() {
     const hasTask = this._sortedTasks.some((t) => t.id === this.selectedTaskId);
