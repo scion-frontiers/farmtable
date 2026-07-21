@@ -296,7 +296,7 @@ func startGitHubPassThrough(repo string) (pb.FarmTableServiceClient, io.Closer, 
 		cfg = github.DefaultConfig()
 	}
 
-	s := github.NewPassThroughStore(token, owner, repoName, cfg)
+	s := github.NewPassThroughStore(token, owner, repoName, cfg, nil)
 
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer(
