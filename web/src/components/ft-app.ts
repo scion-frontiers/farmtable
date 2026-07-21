@@ -6,7 +6,7 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
+import { Platform, RelationshipType, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -32,6 +32,19 @@ export class FtApp extends LitElement {
       flex: 1;
       overflow: auto;
       padding: 1rem;
+      position: relative;
+    }
+    .dim-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      pointer-events: none;
+      animation: dim-fade-in 0.2s ease-out;
+    }
+    @keyframes dim-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     .placeholder {
       display: flex;
@@ -117,6 +130,11 @@ export class FtApp extends LitElement {
   @state()
   private currentCollection?: Collection;
 
+  @state()
+  private dimOverlayVisible = false;
+
+  private dimOverlayTimer: ReturnType<typeof setTimeout> | null = null;
+
   private collectionLoadToken = 0;
 
   private userLoadToken = 0;
@@ -144,6 +162,7 @@ export class FtApp extends LitElement {
     this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
     this.stopPolling();
+    this.hideDimOverlay();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
     window.removeEventListener('popstate', this.onPopState);
   }
@@ -207,6 +226,7 @@ export class FtApp extends LitElement {
       <div class="content">
         <div class="main">
           ${this.renderMainView()}
+          ${this.dimOverlayVisible ? html`<div class="dim-overlay"></div>` : null}
         </div>
 
         ${this.selectedTaskId
@@ -295,12 +315,22 @@ export class FtApp extends LitElement {
     window.history.pushState({}, '', url);
     // Skip applyRoute() — view-only change doesn't need collection revalidation.
     this.currentView = view;
+    if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
+      this.showDimOverlay();
+    } else {
+      this.hideDimOverlay();
+    }
   }
 
   private onFilterChange(e: CustomEvent) {
     const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
     this.phaseFilter = phase;
     this.assigneeFilter = assigneeId;
+    if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
+      this.showDimOverlay();
+    } else {
+      this.hideDimOverlay();
+    }
   }
 
   private async loadUsers() {
@@ -323,7 +353,81 @@ export class FtApp extends LitElement {
 
   private onTaskSelect(e: CustomEvent) {
     this.selectedTaskId = e.detail.taskId;
+
+    if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
+      this.showDimOverlay();
+    } else {
+      this.hideDimOverlay();
+    }
   }
+
+  /**
+   * Check whether the selected task would appear in the currently active view.
+   * Used to decide whether to show a dim overlay indicating the task is
+   * not scrollable-to in the main panel.
+   */
+  private isTaskVisibleInCurrentView(taskId: string): boolean {
+    const task = this.taskStore.getTask(taskId);
+    if (!task) return false;
+
+    // Dashboard has no individual task selection.
+    if (this.currentView === 'dashboard') return false;
+
+    // Task must pass the active phase + assignee filters.
+    if (!matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter)) {
+      return false;
+    }
+
+    // Ready-queue only shows OPEN / IN_PROGRESS tasks that are not blocked.
+    if (this.currentView === 'ready-queue') {
+      if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
+        return false;
+      }
+      // A ready-queue task must not be blocked by any non-closed task.
+      for (const rel of task.relationships) {
+        if (rel.type !== RelationshipType.BLOCKED_BY) continue;
+        const blocker = this.taskStore.getTask(rel.targetTaskId);
+        if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private showDimOverlay() {
+    this.dimOverlayVisible = true;
+    this.clearDimOverlayTimer();
+    this.dimOverlayTimer = setTimeout(() => {
+      this.hideDimOverlay();
+    }, 2500);
+    // Defer listener registration so the triggering event itself doesn't
+    // immediately dismiss the overlay.
+    requestAnimationFrame(() => {
+      if (!this.dimOverlayVisible) return;
+      document.addEventListener('click', this.onDimOverlayInteraction, { capture: true });
+      document.addEventListener('keydown', this.onDimOverlayInteraction, { capture: true });
+    });
+  }
+
+  private hideDimOverlay() {
+    this.dimOverlayVisible = false;
+    this.clearDimOverlayTimer();
+    document.removeEventListener('click', this.onDimOverlayInteraction, { capture: true });
+    document.removeEventListener('keydown', this.onDimOverlayInteraction, { capture: true });
+  }
+
+  private clearDimOverlayTimer() {
+    if (this.dimOverlayTimer) {
+      clearTimeout(this.dimOverlayTimer);
+      this.dimOverlayTimer = null;
+    }
+  }
+
+  private onDimOverlayInteraction = () => {
+    this.hideDimOverlay();
+  };
 
   private async onTaskUpdate(e: CustomEvent) {
     if (this.isReadOnly) return;
@@ -349,6 +453,7 @@ export class FtApp extends LitElement {
 
   private onInspectorClose() {
     this.selectedTaskId = null;
+    this.hideDimOverlay();
   }
 
   private onShortcutHelpOpen() {
