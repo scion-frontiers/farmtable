@@ -20,6 +20,8 @@ type Tx struct {
 	Collection *CollectionClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
+	// LinkedAccount is the client for interacting with the LinkedAccount builders.
+	LinkedAccount *LinkedAccountClient
 	// Relationship is the client for interacting with the Relationship builders.
 	Relationship *RelationshipClient
 	// Task is the client for interacting with the Task builders.
@@ -161,6 +163,7 @@ func (tx *Tx) init() {
 	tx.Change = NewChangeClient(tx.config)
 	tx.Collection = NewCollectionClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)
+	tx.LinkedAccount = NewLinkedAccountClient(tx.config)
 	tx.Relationship = NewRelationshipClient(tx.config)
 	tx.Task = NewTaskClient(tx.config)
 	tx.User = NewUserClient(tx.config)
