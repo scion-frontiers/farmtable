@@ -35,10 +35,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s, err := store.NewEntStore(ctx, storeOpts)
+	entStore, err := store.NewEntStore(ctx, storeOpts)
 	if err != nil {
 		log.Fatalf("Failed to initialize store: %v", err)
 	}
+
+	// Wrap EntStore with MultiStore so platform-specific stores can be
+	// registered later (e.g. via lazy registration in B3). With no
+	// platform stores registered the MultiStore passes all operations
+	// through to the primary EntStore.
+	s := store.NewMultiStore(entStore)
 	defer s.Close()
 
 	var lookup server.TokenLookup
