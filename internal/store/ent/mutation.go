@@ -1446,6 +1446,7 @@ type CollectionMutation struct {
 	description            *string
 	platform               *collection.Platform
 	remote_id              *string
+	remote_data            *map[string]interface{}
 	created_at             *time.Time
 	updated_at             *time.Time
 	clearedFields          map[string]struct{}
@@ -1734,6 +1735,55 @@ func (m *CollectionMutation) ResetRemoteID() {
 	delete(m.clearedFields, collection.FieldRemoteID)
 }
 
+// SetRemoteData sets the "remote_data" field.
+func (m *CollectionMutation) SetRemoteData(value map[string]interface{}) {
+	m.remote_data = &value
+}
+
+// RemoteData returns the value of the "remote_data" field in the mutation.
+func (m *CollectionMutation) RemoteData() (r map[string]interface{}, exists bool) {
+	v := m.remote_data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteData returns the old "remote_data" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldRemoteData(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteData: %w", err)
+	}
+	return oldValue.RemoteData, nil
+}
+
+// ClearRemoteData clears the value of the "remote_data" field.
+func (m *CollectionMutation) ClearRemoteData() {
+	m.remote_data = nil
+	m.clearedFields[collection.FieldRemoteData] = struct{}{}
+}
+
+// RemoteDataCleared returns if the "remote_data" field was cleared in this mutation.
+func (m *CollectionMutation) RemoteDataCleared() bool {
+	_, ok := m.clearedFields[collection.FieldRemoteData]
+	return ok
+}
+
+// ResetRemoteData resets all changes to the "remote_data" field.
+func (m *CollectionMutation) ResetRemoteData() {
+	m.remote_data = nil
+	delete(m.clearedFields, collection.FieldRemoteData)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CollectionMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -1948,7 +1998,7 @@ func (m *CollectionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CollectionMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.name != nil {
 		fields = append(fields, collection.FieldName)
 	}
@@ -1960,6 +2010,9 @@ func (m *CollectionMutation) Fields() []string {
 	}
 	if m.remote_id != nil {
 		fields = append(fields, collection.FieldRemoteID)
+	}
+	if m.remote_data != nil {
+		fields = append(fields, collection.FieldRemoteData)
 	}
 	if m.created_at != nil {
 		fields = append(fields, collection.FieldCreatedAt)
@@ -1983,6 +2036,8 @@ func (m *CollectionMutation) Field(name string) (ent.Value, bool) {
 		return m.Platform()
 	case collection.FieldRemoteID:
 		return m.RemoteID()
+	case collection.FieldRemoteData:
+		return m.RemoteData()
 	case collection.FieldCreatedAt:
 		return m.CreatedAt()
 	case collection.FieldUpdatedAt:
@@ -2004,6 +2059,8 @@ func (m *CollectionMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldPlatform(ctx)
 	case collection.FieldRemoteID:
 		return m.OldRemoteID(ctx)
+	case collection.FieldRemoteData:
+		return m.OldRemoteData(ctx)
 	case collection.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case collection.FieldUpdatedAt:
@@ -2044,6 +2101,13 @@ func (m *CollectionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRemoteID(v)
+		return nil
+	case collection.FieldRemoteData:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteData(v)
 		return nil
 	case collection.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -2095,6 +2159,9 @@ func (m *CollectionMutation) ClearedFields() []string {
 	if m.FieldCleared(collection.FieldRemoteID) {
 		fields = append(fields, collection.FieldRemoteID)
 	}
+	if m.FieldCleared(collection.FieldRemoteData) {
+		fields = append(fields, collection.FieldRemoteData)
+	}
 	return fields
 }
 
@@ -2115,6 +2182,9 @@ func (m *CollectionMutation) ClearField(name string) error {
 	case collection.FieldRemoteID:
 		m.ClearRemoteID()
 		return nil
+	case collection.FieldRemoteData:
+		m.ClearRemoteData()
+		return nil
 	}
 	return fmt.Errorf("unknown Collection nullable field %s", name)
 }
@@ -2134,6 +2204,9 @@ func (m *CollectionMutation) ResetField(name string) error {
 		return nil
 	case collection.FieldRemoteID:
 		m.ResetRemoteID()
+		return nil
+	case collection.FieldRemoteData:
+		m.ResetRemoteData()
 		return nil
 	case collection.FieldCreatedAt:
 		m.ResetCreatedAt()
