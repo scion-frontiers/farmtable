@@ -1,8 +1,8 @@
 import { LitElement, css, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
-import type { Collection } from '../gen/types.js';
-import { platformLabel } from '../util/platform-label.js';
+import { Platform, type Collection } from '../gen/types.js';
+import { collectionDisplayName, platformIcon, platformLabel } from '../util/platform-label.js';
 
 @customElement('ft-collection-picker')
 export class FtCollectionPicker extends LitElement {
@@ -79,13 +79,37 @@ export class FtCollectionPicker extends LitElement {
       visibility: hidden;
     }
 
+    .platform-icon {
+      font-size: 1rem;
+      color: var(--sl-color-neutral-600);
+    }
+
     .name {
       overflow-wrap: anywhere;
     }
 
     .platform {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
       color: var(--sl-color-neutral-600);
       font-size: var(--sl-font-size-x-small);
+    }
+
+    .platform sl-icon {
+      font-size: 0.7rem;
+    }
+
+    .external-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--sl-color-neutral-600);
+      font-size: var(--sl-font-size-x-small);
+    }
+
+    .external-badge sl-icon {
+      font-size: 0.7rem;
     }
 
     .loading,
@@ -134,11 +158,17 @@ export class FtCollectionPicker extends LitElement {
 
   render() {
     const currentCollection = this.collections.find((collection) => collection.id === this.collectionId);
-    const triggerLabel = currentCollection?.name ?? (this.isLoading ? 'Loading collection' : 'Select collection');
+    const triggerLabel = currentCollection
+      ? collectionDisplayName(currentCollection.name, currentCollection.platform, currentCollection.remoteId)
+      : (this.isLoading ? 'Loading collection' : 'Select collection');
+    const triggerIcon = currentCollection ? platformIcon(currentCollection.platform) : null;
 
     return html`
       <sl-dropdown placement="bottom-start" hoist>
         <sl-button slot="trigger" size="small" caret>
+          ${triggerIcon
+            ? html`<sl-icon name=${triggerIcon} slot="prefix" class="platform-icon"></sl-icon>`
+            : null}
           <span class="trigger-label">${triggerLabel}</span>
         </sl-button>
 
@@ -164,6 +194,7 @@ export class FtCollectionPicker extends LitElement {
 
     return this.collections.map((collection) => {
       const isCurrent = collection.id === this.collectionId;
+      const isExternal = collection.platform !== Platform.FARMTABLE;
       return html`
         <sl-menu-item
           class=${isCurrent ? 'current' : ''}
@@ -177,7 +208,12 @@ export class FtCollectionPicker extends LitElement {
           ></sl-icon>
           <span class="item-label">
             <span class="name">${collection.name}</span>
-            <span class="platform">${platformLabel(collection.platform)}</span>
+            <span class=${isExternal ? 'external-badge' : 'platform'}>
+              <sl-icon name=${platformIcon(collection.platform)} aria-hidden="true"></sl-icon>
+              ${isExternal && collection.remoteId
+                ? html`${platformLabel(collection.platform)}: ${collection.remoteId}`
+                : platformLabel(collection.platform)}
+            </span>
           </span>
         </sl-menu-item>
       `;

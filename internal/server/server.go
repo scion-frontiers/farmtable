@@ -27,16 +27,23 @@ import (
 
 type FarmTableService struct {
 	pb.UnimplementedFarmTableServiceServer
-	store     store.Store
-	version   string
-	startedAt time.Time
-	eventBus  *streaming.EventBus
+	store         store.Store
+	version       string
+	startedAt     time.Time
+	eventBus      *streaming.EventBus
+	ephemeralPool *store.EphemeralStorePool
 }
 
 type ServiceOption func(*FarmTableService)
 
 func WithEventBus(eb *streaming.EventBus) ServiceOption {
 	return func(s *FarmTableService) { s.eventBus = eb }
+}
+
+// WithEphemeralPool configures a pool of in-memory SQLite stores used for
+// ephemeral graph queries against external collections.
+func WithEphemeralPool(p *store.EphemeralStorePool) ServiceOption {
+	return func(s *FarmTableService) { s.ephemeralPool = p }
 }
 
 func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *FarmTableService {
