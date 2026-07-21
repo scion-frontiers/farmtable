@@ -3,9 +3,10 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
+import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -53,10 +54,21 @@ export class FtApp extends LitElement {
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
   private streamManager?: StreamManager;
+  private pollManager?: PollManager;
   private client!: FarmTableServiceClient;
   private unscopedClient!: FarmTableServiceClient;
   private onStatusChanged = ((e: CustomEvent) => {
     this.connectionStatus = e.detail.status;
+  }) as EventListener;
+  private onWatchUnsupported = (() => {
+    this.switchToPolling();
+  }) as EventListener;
+  private onPollRefreshEnd = ((e: CustomEvent) => {
+    this.lastRefreshed = e.detail.lastRefreshed as Date;
+    this.isRefreshing = false;
+  }) as EventListener;
+  private onPollRefreshStart = (() => {
+    this.isRefreshing = true;
   }) as EventListener;
   private routeToken = 0;
 
@@ -93,7 +105,25 @@ export class FtApp extends LitElement {
   @state()
   private users: User[] = [];
 
+  @state()
+  private currentCollection?: Collection;
+
+  private collectionLoadToken = 0;
+
+  @state()
+  private isPolling = false;
+
+  @state()
+  private lastRefreshed: Date | null = null;
+
+  @state()
+  private isRefreshing = false;
+
   private userLoadToken = 0;
+
+  private get isReadOnly(): boolean {
+    return this.currentCollection !== undefined && this.currentCollection.platform !== Platform.FARMTABLE;
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -111,7 +141,9 @@ export class FtApp extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
+    this.stopPolling();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
     window.removeEventListener('popstate', this.onPopState);
   }
@@ -152,10 +184,15 @@ export class FtApp extends LitElement {
         .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
+        ?readOnly=${this.isReadOnly}
+        ?isPolling=${this.isPolling}
+        .lastRefreshed=${this.lastRefreshed}
+        ?isRefreshing=${this.isRefreshing}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
         @collection-select=${this.onCollectionSelect}
+        @manual-refresh=${this.onManualRefresh}
       ></ft-toolbar>
 
       <ft-filter-chips
@@ -179,6 +216,7 @@ export class FtApp extends LitElement {
                   taskId=${this.selectedTaskId}
                   .store=${this.taskStore}
                   .client=${this.client}
+                  ?readOnly=${this.isReadOnly}
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
                   @task-update=${this.onTaskUpdate}
@@ -253,7 +291,6 @@ export class FtApp extends LitElement {
     const url = new URL(window.location.href);
     url.searchParams.set('view', view);
     window.history.pushState({}, '', url);
-    // Skip applyRoute() — view-only change doesn't need collection revalidation.
     this.currentView = view;
   }
 
@@ -264,10 +301,7 @@ export class FtApp extends LitElement {
   }
 
   private async loadUsers() {
-    // TODO: ft-toolbar also calls listUsers() independently. Consider consolidating
-    // into a single app-level user list passed to both toolbar and filter chips.
     const token = ++this.userLoadToken;
-
     try {
       const users = await this.client.listUsers();
       if (token === this.userLoadToken) {
@@ -293,14 +327,11 @@ export class FtApp extends LitElement {
   private async applyTaskUpdate(taskId: string, fields: UpdateTaskFields) {
     const task = this.taskStore.getTask(taskId);
     if (!task) return;
-
     const updated = applyTaskUpdateFields(task, fields);
     this.taskStore.upsert(updated);
-
     try {
       await this.client.updateTask(taskId, fields);
     } catch (error) {
-      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.taskStore.upsert(task);
     }
@@ -348,6 +379,7 @@ export class FtApp extends LitElement {
 
   private showCollectionList(errorMessage: string) {
     this.stopStream();
+    this.stopPolling();
     this.client = this.unscopedClient;
     this.currentCollectionId = null;
     this.taskStore.clear();
@@ -360,6 +392,7 @@ export class FtApp extends LitElement {
 
   private showBoard(collectionId: string) {
     this.stopStream();
+    this.stopPolling();
     this.phaseFilter = null;
     this.assigneeFilter = null;
     this.currentCollectionId = collectionId;
@@ -375,15 +408,50 @@ export class FtApp extends LitElement {
 
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
+    this.streamManager.addEventListener('watch-unsupported', this.onWatchUnsupported);
     void this.streamManager.start();
     void this.loadUsers();
   }
 
   private stopStream() {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
     this.streamManager = undefined;
   }
+
+  /**
+   * Called when WatchTasks returns Unimplemented for this collection.
+   * Tears down the stream and starts periodic ListTasks polling.
+   */
+  private switchToPolling(): void {
+    this.stopStream();
+    this.isPolling = true;
+    this.connectionStatus = 'polling';
+
+    this.pollManager = new PollManager(this.client, this.taskStore);
+    this.pollManager.addEventListener('refresh-start', this.onPollRefreshStart);
+    this.pollManager.addEventListener('refresh-end', this.onPollRefreshEnd);
+    void this.pollManager.start();
+  }
+
+  private stopPolling(): void {
+    if (this.pollManager) {
+      this.pollManager.removeEventListener('refresh-start', this.onPollRefreshStart);
+      this.pollManager.removeEventListener('refresh-end', this.onPollRefreshEnd);
+      this.pollManager.stop();
+      this.pollManager = undefined;
+    }
+    this.isPolling = false;
+    this.lastRefreshed = null;
+    this.isRefreshing = false;
+  }
+
+  private onManualRefresh = () => {
+    if (this.pollManager) {
+      void this.pollManager.refresh();
+    }
+  };
 
   private onCollectionSelect = (e: CustomEvent) => {
     const collectionId = e.detail.collectionId as string;
@@ -409,8 +477,6 @@ export class FtApp extends LitElement {
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
-    // Cmd+K / Ctrl+K — open command palette.
-    // Intentionally fires from editable targets (modifier key prevents accidental activation).
     if (e.key === 'k' && (e.metaKey || e.ctrlKey) && !e.defaultPrevented) {
       e.preventDefault();
       if (this.routeView === 'board') {
@@ -430,7 +496,6 @@ export class FtApp extends LitElement {
     const path = e.composedPath();
     return path.some((target) => {
       if (!(target instanceof HTMLElement)) return false;
-
       const tagName = target.tagName.toLowerCase();
       return (
         target.isContentEditable ||

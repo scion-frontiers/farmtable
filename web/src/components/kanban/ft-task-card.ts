@@ -161,6 +161,9 @@ export class FtTaskCard extends LitElement {
   @property({ type: Boolean })
   selected = false;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @property({ type: Number, attribute: 'card-tab-index' })
   cardTabIndex = 0;
 
