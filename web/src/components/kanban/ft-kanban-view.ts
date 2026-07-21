@@ -62,7 +62,7 @@ export class FtKanbanView extends LitElement {
       gap: 0.75rem;
       flex: 1;
       min-height: 0;
-      overflow-x: auto;
+      overflow: auto;
       padding-bottom: 0.5rem;
     }
     .view-header {
@@ -94,7 +94,8 @@ export class FtKanbanView extends LitElement {
     .on-hold-columns {
       display: flex;
       gap: 0.75rem;
-      overflow-x: auto;
+      min-height: 0;
+      overflow: auto;
       padding-bottom: 0.5rem;
     }
     .on-hold-count {
