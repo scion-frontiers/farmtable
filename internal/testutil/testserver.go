@@ -128,6 +128,45 @@ func NewTestServerPostgres(t *testing.T) (pb.FarmTableServiceClient, func()) {
 	return client, cleanup
 }
 
+// NewTestServerWithMultiStore creates a gRPC test server backed by a
+// MultiStore. The caller can configure the MultiStore (e.g. register
+// platform stores, set a resolver) before calling this function.
+func NewTestServerWithMultiStore(t *testing.T, ms *store.MultiStore) (pb.FarmTableServiceClient, func()) {
+	t.Helper()
+
+	eventBus := streaming.NewEventBus()
+
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
+	)
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(ms, "test", server.WithEventBus(eventBus)))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
+	)
+	if err != nil {
+		srv.Stop()
+		t.Fatalf("dialing bufconn: %v", err)
+	}
+
+	client := pb.NewFarmTableServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
+		srv.Stop()
+	}
+	return client, cleanup
+}
+
 func NewTestServerWithAuth(t *testing.T, s *store.EntStore) (pb.FarmTableServiceClient, *grpc.Server, func()) {
 	t.Helper()
 

@@ -84,6 +84,9 @@ export class FtInspectorDesc extends LitElement {
   @property({ type: Boolean, attribute: 'hide-title' })
   hideTitle = false;
 
+  @property({ type: Boolean, reflect: true })
+  readOnly = false;
+
   @state()
   private isEditing = false;
 
@@ -103,6 +106,7 @@ export class FtInspectorDesc extends LitElement {
   }
 
   private async startEdit() {
+    if (this.readOnly) return;
     this.draft = this.description ?? '';
     this.isEditing = true;
     this.addDismissListener();

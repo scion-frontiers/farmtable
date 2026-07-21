@@ -132,6 +132,9 @@ export class FtInspectorMeta extends LitElement {
   @property({ attribute: false })
   task!: Task;
 
+  @property({ type: Boolean, reflect: true })
+  readOnly = false;
+
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
@@ -176,6 +179,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startDateEdit(field: EditableDateField) {
+    if (this.readOnly) return;
     this.editingDate = field;
     this.dateDraft = this.dateInputValue(this.task[field]);
     this.addDismissListener();
@@ -225,11 +229,13 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private onLabelRemove(e: Event) {
+    if (this.readOnly) return;
     const label = (e.currentTarget as HTMLElement).dataset.label;
     if (label) this.dispatchTaskUpdate({ removeLabels: [label] });
   }
 
   private async startLabelAdd() {
+    if (this.readOnly) return;
     this.addingLabel = true;
     this.labelDraft = '';
     this.addDismissListener();
@@ -271,6 +277,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private onAssigneeRemove(e: Event) {
+    if (this.readOnly) return;
     const userId = (e.currentTarget as HTMLElement).dataset.userId;
     if (!userId) return;
     const currentIds = this.task.assignees.map((u) => u.id);
@@ -283,6 +290,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startAssigneePick() {
+    if (this.readOnly) return;
     if (!this.client) return; // S-4: no-op when client is absent
     this.pickingAssignee = true;
     this.addDismissListener();
@@ -454,7 +462,7 @@ export class FtInspectorMeta extends LitElement {
                   data-user-id=${u.id}
                   size="small"
                   variant="neutral"
-                  removable
+                  ?removable=${!this.readOnly}
                   @sl-remove=${this.onAssigneeRemove}
                 >
                   ${u.name}
@@ -462,39 +470,41 @@ export class FtInspectorMeta extends LitElement {
               `,
             )
           : html`<span class="empty">Unassigned</span>`}
-        ${this.pickingAssignee
-          ? html`
-              <sl-icon-button
-                name="x-lg"
-                label="Cancel assignee pick"
-                @click=${this.cancelAssigneePick}
-              ></sl-icon-button>
-              <div class="assignee-picker">
-                ${unassignedUsers.length > 0
-                  ? unassignedUsers.map(
-                      (u) => html`
-                        <span class="assignee-option" @click=${() => this.onAssigneeSelect(u.id)}>
-                          <sl-avatar
-                            initials=${u.name.slice(0, 2)}
-                            label=${u.name}
-                            style="--size: 1.4rem; font-size: 0.55rem;"
-                          ></sl-avatar>
-                          ${u.name}
-                        </span>
-                      `,
-                    )
-                  : html`<span class="empty">No users available</span>`}
-              </div>
-            `
-          : this.client
+        ${this.readOnly
+          ? nothing
+          : this.pickingAssignee
             ? html`
                 <sl-icon-button
-                  name="plus-lg"
-                  label="Add assignee"
-                  @click=${this.startAssigneePick}
+                  name="x-lg"
+                  label="Cancel assignee pick"
+                  @click=${this.cancelAssigneePick}
                 ></sl-icon-button>
+                <div class="assignee-picker">
+                  ${unassignedUsers.length > 0
+                    ? unassignedUsers.map(
+                        (u) => html`
+                          <span class="assignee-option" @click=${() => this.onAssigneeSelect(u.id)}>
+                            <sl-avatar
+                              initials=${u.name.slice(0, 2)}
+                              label=${u.name}
+                              style="--size: 1.4rem; font-size: 0.55rem;"
+                            ></sl-avatar>
+                            ${u.name}
+                          </span>
+                        `,
+                      )
+                    : html`<span class="empty">No users available</span>`}
+                </div>
               `
-            : nothing}
+            : this.client
+              ? html`
+                  <sl-icon-button
+                    name="plus-lg"
+                    label="Add assignee"
+                    @click=${this.startAssigneePick}
+                  ></sl-icon-button>
+                `
+              : nothing}
       </span>
     `;
   }
@@ -511,7 +521,7 @@ export class FtInspectorMeta extends LitElement {
                   data-label=${label}
                   size="small"
                   variant="neutral"
-                  removable
+                  ?removable=${!this.readOnly}
                   @sl-remove=${this.onLabelRemove}
                 >
                   ${label}
@@ -519,34 +529,36 @@ export class FtInspectorMeta extends LitElement {
               `,
             )
           : html`<span class="empty">None</span>`}
-        ${this.addingLabel
-          ? html`
-              <sl-input
-                class="label-input"
-                size="small"
-                maxlength="100"
-                .value=${this.labelDraft}
-                @input=${this.onLabelInput}
-                @keydown=${this.onLabelKeyDown}
-              ></sl-input>
-              <sl-icon-button
-                name="check2"
-                label="Add label"
-                @click=${this.saveLabelAdd}
-              ></sl-icon-button>
-              <sl-icon-button
-                name="x-lg"
-                label="Cancel label add"
-                @click=${this.cancelLabelAdd}
-              ></sl-icon-button>
-            `
-          : html`
-              <sl-icon-button
-                name="plus-lg"
-                label="Add label"
-                @click=${this.startLabelAdd}
-              ></sl-icon-button>
-            `}
+        ${this.readOnly
+          ? nothing
+          : this.addingLabel
+            ? html`
+                <sl-input
+                  class="label-input"
+                  size="small"
+                  maxlength="100"
+                  .value=${this.labelDraft}
+                  @input=${this.onLabelInput}
+                  @keydown=${this.onLabelKeyDown}
+                ></sl-input>
+                <sl-icon-button
+                  name="check2"
+                  label="Add label"
+                  @click=${this.saveLabelAdd}
+                ></sl-icon-button>
+                <sl-icon-button
+                  name="x-lg"
+                  label="Cancel label add"
+                  @click=${this.cancelLabelAdd}
+                ></sl-icon-button>
+              `
+            : html`
+                <sl-icon-button
+                  name="plus-lg"
+                  label="Add label"
+                  @click=${this.startLabelAdd}
+                ></sl-icon-button>
+              `}
       </span>
     `;
   }
@@ -573,8 +585,12 @@ export class FtInspectorMeta extends LitElement {
       </div>
 
       <div class="date-grid">
-        ${this.renderDateCell('Start date', 'startDate', t.startDate)}
-        ${this.renderDateCell('Due date', 'dueDate', t.dueDate)}
+        ${this.readOnly
+          ? this.renderReadOnlyDateCell('Start date', t.startDate)
+          : this.renderDateCell('Start date', 'startDate', t.startDate)}
+        ${this.readOnly
+          ? this.renderReadOnlyDateCell('Due date', t.dueDate)
+          : this.renderDateCell('Due date', 'dueDate', t.dueDate)}
         ${this.renderReadOnlyDateCell('Created', t.createdAt)}
         ${this.renderReadOnlyDateCell('Updated', t.updatedAt)}
       </div>
