@@ -3,12 +3,29 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 	"sync"
 
 	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
+
+// PlatformResolver constructs a platform-specific Store for a
+// collection on demand. It is called by MultiStore during lazy
+// registration when a request targets an external collection that has
+// no registered store yet.
+//
+// The resolver receives the collection's platform type, the
+// LinkedAccount's auth token, and the collection's RemoteID (e.g.
+// "owner/repo" for GitHub). collectionID should be threaded through to
+// the constructed store so IDs stay stable.
+//
+// Returning (nil, nil) signals that the platform is unsupported; the
+// caller falls through to the primary store.
+type PlatformResolver func(platform collection.Platform, token string, remoteID string, collectionID uuid.UUID) (Store, error)
 
 // MultiStore wraps a primary EntStore and routes operations to
 // platform-specific stores based on collection ID. Task, comment, and
@@ -17,6 +34,7 @@ import (
 // primary store.
 type MultiStore struct {
 	primary   Store
+	resolver  PlatformResolver
 	mu        sync.RWMutex
 	platforms map[uuid.UUID]Store
 }
@@ -29,6 +47,16 @@ func NewMultiStore(primary Store) *MultiStore {
 	}
 }
 
+// SetResolver configures a PlatformResolver for lazy on-demand
+// registration of platform stores. When a request targets a collection
+// with no registered store, the MultiStore looks up the collection's
+// LinkedAccount in the primary store and calls the resolver to
+// construct the appropriate platform store. The resulting store is
+// cached for subsequent requests.
+func (m *MultiStore) SetResolver(r PlatformResolver) {
+	m.resolver = r
+}
+
 // RegisterPlatform associates a collection ID with a platform-specific
 // store. Subsequent task/comment/graph operations for that collection
 // will be routed to the registered store.
@@ -39,7 +67,8 @@ func (m *MultiStore) RegisterPlatform(collectionID uuid.UUID, s Store) {
 }
 
 // storeFor returns the platform store for the given collection ID, or
-// the primary store if no platform is registered.
+// the primary store if no platform is registered. It does not perform
+// lazy resolution (use storeForCtx when a context is available).
 func (m *MultiStore) storeFor(collectionID uuid.UUID) Store {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -49,13 +78,96 @@ func (m *MultiStore) storeFor(collectionID uuid.UUID) Store {
 	return m.primary
 }
 
+// storeForCtx returns the platform store for the given collection ID.
+// If no store is registered it attempts lazy resolution via
+// LinkedAccounts in the primary store. On success the constructed store
+// is cached for subsequent requests.
+func (m *MultiStore) storeForCtx(ctx context.Context, collectionID uuid.UUID) Store {
+	// Fast path: check under read lock.
+	m.mu.RLock()
+	if s, ok := m.platforms[collectionID]; ok {
+		m.mu.RUnlock()
+		return s
+	}
+	m.mu.RUnlock()
+
+	// Attempt lazy resolution (no-op when resolver is nil).
+	if s := m.lazyResolve(ctx, collectionID); s != nil {
+		return s
+	}
+	return m.primary
+}
+
+// lazyResolve checks the primary store for a LinkedAccount associated
+// with the given collection, and if found, uses the PlatformResolver to
+// construct and cache the appropriate platform store. Returns nil if no
+// resolver is configured, no linked account exists, or the platform is
+// unsupported.
+func (m *MultiStore) lazyResolve(ctx context.Context, collectionID uuid.UUID) Store {
+	if m.resolver == nil {
+		return nil
+	}
+
+	// Look up the collection to determine its platform and remote ID.
+	coll, err := m.primary.GetCollection(ctx, collectionID)
+	if err != nil {
+		return nil
+	}
+	if coll.Platform == collection.PlatformFarmtable {
+		return nil // native collections don't need lazy resolution
+	}
+
+	// Look up linked accounts for this collection.
+	accounts, _, err := m.primary.ListLinkedAccounts(ctx, ListLinkedAccountsParams{
+		CollectionID: &collectionID,
+	})
+	if err != nil || len(accounts) == 0 {
+		return nil
+	}
+
+	account := accounts[0] // use the first linked account
+
+	s, err := m.resolver(coll.Platform, account.AuthToken, coll.RemoteID, collectionID)
+	if err != nil {
+		log.Printf("multistore: lazy resolve failed for collection %s (platform=%s): %v",
+			collectionID, coll.Platform, err)
+		return nil
+	}
+	if s == nil {
+		// Resolver signalled unsupported platform.
+		return nil
+	}
+
+	// Cache under write lock (double-check to avoid overwriting a
+	// concurrent registration).
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.platforms[collectionID]; ok {
+		// Another goroutine registered first; close ours and use theirs.
+		_ = s.Close()
+		return existing
+	}
+	m.platforms[collectionID] = s
+	return s
+}
+
+// ParseOwnerRepo splits a "owner/repo" string into its two components.
+// Exported so that PlatformResolver implementations can use it.
+func ParseOwnerRepo(remoteID string) (owner, repo string, ok bool) {
+	parts := strings.SplitN(remoteID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
+}
+
 // storeForTask resolves the store for a task ID by looking up the
 // task's collection in the primary store first.
 func (m *MultiStore) storeForTask(ctx context.Context, taskID uuid.UUID) (Store, error) {
 	// Try primary first to find the task's collection ID.
 	t, err := m.primary.GetTask(ctx, taskID)
 	if err == nil {
-		return m.storeFor(t.CollectionID), nil
+		return m.storeForCtx(ctx, t.CollectionID), nil
 	}
 
 	// If not found in primary, scan platform stores.
@@ -69,7 +181,7 @@ func (m *MultiStore) storeForTask(ctx context.Context, taskID uuid.UUID) (Store,
 	for collID, s := range stores {
 		_, lookErr := s.GetTask(ctx, taskID)
 		if lookErr == nil {
-			return m.storeFor(collID), nil
+			return m.storeForCtx(ctx, collID), nil
 		}
 	}
 	return nil, fmt.Errorf("resolving store for task %s: %w", taskID, ErrNotFound)
@@ -78,11 +190,11 @@ func (m *MultiStore) storeForTask(ctx context.Context, taskID uuid.UUID) (Store,
 // ── Task Operations (routed by collection) ──
 
 func (m *MultiStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error) {
-	return m.storeFor(p.CollectionID).CreateTask(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).CreateTask(ctx, p)
 }
 
 func (m *MultiStore) InsertTasksAfter(ctx context.Context, p InsertTasksAfterParams) (*InsertTasksAfterResult, error) {
-	return m.storeFor(p.CollectionID).InsertTasksAfter(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).InsertTasksAfter(ctx, p)
 }
 
 func (m *MultiStore) GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, error) {
@@ -95,13 +207,13 @@ func (m *MultiStore) GetTask(ctx context.Context, id uuid.UUID) (*ent.Task, erro
 
 func (m *MultiStore) ListTasks(ctx context.Context, p ListTasksParams) ([]*ent.Task, int, error) {
 	if p.CollectionID != nil {
-		return m.storeFor(*p.CollectionID).ListTasks(ctx, p)
+		return m.storeForCtx(ctx, *p.CollectionID).ListTasks(ctx, p)
 	}
 	return m.primary.ListTasks(ctx, p)
 }
 
 func (m *MultiStore) ListAllTasksForCollection(ctx context.Context, p ListAllTasksForCollectionParams) ([]*ent.Task, error) {
-	return m.storeFor(p.CollectionID).ListAllTasksForCollection(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).ListAllTasksForCollection(ctx, p)
 }
 
 func (m *MultiStore) UpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskParams, actorID uuid.UUID) (*ent.Task, error) {
@@ -186,7 +298,7 @@ func (m *MultiStore) ListAllCommentsForTask(ctx context.Context, p ListAllCommen
 }
 
 func (m *MultiStore) ListAllCommentsForCollection(ctx context.Context, p ListAllCommentsForCollectionParams) ([]*ent.Comment, error) {
-	return m.storeFor(p.CollectionID).ListAllCommentsForCollection(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).ListAllCommentsForCollection(ctx, p)
 }
 
 // ── Change Operations (routed by task → collection) ──
@@ -208,27 +320,27 @@ func (m *MultiStore) ListAllChangesForTask(ctx context.Context, p ListAllChanges
 }
 
 func (m *MultiStore) ListAllChangesForCollection(ctx context.Context, p ListAllChangesForCollectionParams) ([]*ent.Change, error) {
-	return m.storeFor(p.CollectionID).ListAllChangesForCollection(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).ListAllChangesForCollection(ctx, p)
 }
 
 // ── Relationship Operations (routed by collection) ──
 
 func (m *MultiStore) ListAllRelationshipsForCollection(ctx context.Context, p ListAllRelationshipsForCollectionParams) ([]*ent.Relationship, error) {
-	return m.storeFor(p.CollectionID).ListAllRelationshipsForCollection(ctx, p)
+	return m.storeForCtx(ctx, p.CollectionID).ListAllRelationshipsForCollection(ctx, p)
 }
 
 // ── Graph Query Operations (routed by collection when available) ──
 
 func (m *MultiStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
 	if p.CollectionID != nil {
-		return m.storeFor(*p.CollectionID).GetReadyTasks(ctx, p)
+		return m.storeForCtx(ctx, *p.CollectionID).GetReadyTasks(ctx, p)
 	}
 	return m.primary.GetReadyTasks(ctx, p)
 }
 
 func (m *MultiStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error) {
 	if p.CollectionID != nil {
-		return m.storeFor(*p.CollectionID).GetBlockedTasks(ctx, p)
+		return m.storeForCtx(ctx, *p.CollectionID).GetBlockedTasks(ctx, p)
 	}
 	return m.primary.GetBlockedTasks(ctx, p)
 }
