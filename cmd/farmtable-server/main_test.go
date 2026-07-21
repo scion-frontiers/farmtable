@@ -1,6 +1,11 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/testutil"
+)
 
 func TestServerPortPrefersCloudRunPort(t *testing.T) {
 	t.Setenv("PORT", "9090")
@@ -26,6 +31,36 @@ func TestServerPortDefaultsTo8080(t *testing.T) {
 
 	if got := serverPort(); got != "8080" {
 		t.Fatalf("serverPort() = %q, want 8080", got)
+	}
+}
+
+func TestMultiStoreWrapsEntStore(t *testing.T) {
+	entStore, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+
+	// This mirrors the server startup wiring: wrap EntStore with MultiStore.
+	ms := store.NewMultiStore(entStore)
+	defer ms.Close()
+
+	// Verify the MultiStore satisfies the Store interface.
+	var _ store.Store = ms
+
+	// Verify basic operations pass through to the underlying EntStore.
+	ctx := t.Context()
+	coll, err := ms.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "test-passthrough",
+		Platform: "farmtable",
+	})
+	if err != nil {
+		t.Fatalf("CreateCollection via MultiStore: %v", err)
+	}
+
+	got, err := entStore.GetCollection(ctx, coll.ID)
+	if err != nil {
+		t.Fatalf("GetCollection from EntStore: %v", err)
+	}
+	if got.Name != "test-passthrough" {
+		t.Errorf("name = %q, want %q", got.Name, "test-passthrough")
 	}
 }
 
