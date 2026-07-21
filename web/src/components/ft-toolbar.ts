@@ -118,7 +118,7 @@ export class FtToolbar extends LitElement {
   `;
 
   @property()
-  currentView: 'kanban' | 'tree' | 'dashboard' = 'kanban';
+  currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' = 'kanban';
 
   @property()
   connectionStatus: ConnectionStatus = 'disconnected';
@@ -277,6 +277,11 @@ export class FtToolbar extends LitElement {
         <sl-tooltip content="Tree view">
           <sl-radio-button value="tree" aria-label="Tree view">
             <sl-icon name="diagram-3" label="Tree view"></sl-icon>
+          </sl-radio-button>
+        </sl-tooltip>
+        <sl-tooltip content="Ready Queue">
+          <sl-radio-button value="ready-queue" aria-label="Ready Queue">
+            <sl-icon name="list-check" label="Ready Queue"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
         <sl-tooltip content="Dashboard view">
