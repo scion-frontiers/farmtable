@@ -50,7 +50,7 @@ type GenAIClient struct {
 }
 
 const (
-	defaultGenAIModel    = "gemini-2.5-pro"
+	defaultGenAIModel    = "gemini-3.6-flash"
 	defaultGenAILocation = "us-central1"
 	defaultGenAIMaxToks  = 8192
 )
