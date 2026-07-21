@@ -2,7 +2,23 @@ import type { FarmTableServiceClient } from '../gen/service.js';
 import { TaskEventType } from '../gen/types.js';
 import type { TaskStore } from './task-store.js';
 
-export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'error' | 'reconnecting';
+export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'error' | 'reconnecting' | 'polling';
+
+/**
+ * Returns true when a gRPC error message indicates codes.Unimplemented \u2014 the
+ * server-side signal that WatchTasks is not supported (e.g. external platform
+ * collections).
+ */
+function isUnimplementedError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message;
+  return (
+    msg.includes('Unimplemented') ||
+    msg.includes('code 12') ||
+    msg.includes('code 12:') ||
+    /gRPC.*(?:failed|error).*\b12\b/.test(msg)
+  );
+}
 
 export class StreamManager extends EventTarget {
   private client: FarmTableServiceClient;
@@ -63,7 +79,7 @@ export class StreamManager extends EventTarget {
           this.attempt = 0;
           this.setStatus('live');
         } else if (event.eventType === TaskEventType.HEARTBEAT) {
-          // heartbeat — timer already reset above
+          // heartbeat \u2014 timer already reset above
         } else if (event.eventType === TaskEventType.DELETED) {
           this.store.delete(event.task.id);
         } else {
@@ -76,6 +92,17 @@ export class StreamManager extends EventTarget {
       }
     } catch (err) {
       if (this.abortController?.signal.aborted) return;
+
+      // Detect codes.Unimplemented \u2014 means the collection's platform store
+      // does not support WatchTasks. Notify the app so it can fall back to
+      // polling-based refresh.
+      if (isUnimplementedError(err)) {
+        console.info('WatchTasks returned Unimplemented \u2014 falling back to polling.');
+        this.setStatus('disconnected');
+        this.dispatchEvent(new CustomEvent('watch-unsupported'));
+        return;
+      }
+
       console.error('Stream error:', err);
       this.setStatus('error');
       this.scheduleReconnect();
@@ -102,7 +129,7 @@ export class StreamManager extends EventTarget {
   private resetHeartbeat(): void {
     this.clearHeartbeat();
     this.heartbeatTimer = setTimeout(() => {
-      console.warn('Heartbeat timeout — no events for 45s. Reconnecting.');
+      console.warn('Heartbeat timeout \u2014 no events for 45s. Reconnecting.');
       this.resync();
     }, StreamManager.HEARTBEAT_TIMEOUT);
   }
