@@ -9,6 +9,7 @@ import { TaskPhase, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
+import './ft-dashboard-view.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -58,7 +59,7 @@ export class FtApp extends LitElement {
   private routeToken = 0;
 
   @state()
-  private currentView: 'kanban' | 'tree' = 'kanban';
+  private currentView: 'kanban' | 'tree' | 'dashboard' = 'kanban';
 
   @state()
   private routeView: 'landing' | 'validating' | 'board' = 'validating';
@@ -163,29 +164,7 @@ export class FtApp extends LitElement {
 
       <div class="content">
         <div class="main">
-          ${this.taskStore.isLoading
-            ? html`<div class="placeholder"><sl-spinner style="font-size: 2rem;"></sl-spinner></div>`
-            : this.currentView === 'kanban'
-              ? html`
-                  <ft-kanban-view
-                    .store=${this.taskStore}
-                    .client=${this.client}
-                    .phaseFilter=${this.phaseFilter}
-                    .assigneeFilter=${this.assigneeFilter}
-                    selected-task-id=${this.selectedTaskId ?? ''}
-                    @task-select=${this.onTaskSelect}
-                  ></ft-kanban-view>
-                `
-              : html`
-                  <ft-tree-view
-                    .store=${this.taskStore}
-                    .client=${this.client}
-                    .phaseFilter=${this.phaseFilter}
-                    .assigneeFilter=${this.assigneeFilter}
-                    selected-task-id=${this.selectedTaskId ?? ''}
-                    @task-select=${this.onTaskSelect}
-                  ></ft-tree-view>
-                `}
+          ${this.renderMainView()}
         </div>
 
         ${this.selectedTaskId
@@ -211,8 +190,45 @@ export class FtApp extends LitElement {
     `;
   }
 
+  private renderMainView() {
+    if (this.taskStore.isLoading) {
+      return html`<div class="placeholder"><sl-spinner style="font-size: 2rem;"></sl-spinner></div>`;
+    }
+    switch (this.currentView) {
+      case 'dashboard':
+        return html`
+          <ft-dashboard-view
+            .store=${this.taskStore}
+          ></ft-dashboard-view>
+        `;
+      case 'tree':
+        return html`
+          <ft-tree-view
+            .store=${this.taskStore}
+            .client=${this.client}
+            .phaseFilter=${this.phaseFilter}
+            .assigneeFilter=${this.assigneeFilter}
+            selected-task-id=${this.selectedTaskId ?? ''}
+            @task-select=${this.onTaskSelect}
+          ></ft-tree-view>
+        `;
+      case 'kanban':
+      default:
+        return html`
+          <ft-kanban-view
+            .store=${this.taskStore}
+            .client=${this.client}
+            .phaseFilter=${this.phaseFilter}
+            .assigneeFilter=${this.assigneeFilter}
+            selected-task-id=${this.selectedTaskId ?? ''}
+            @task-select=${this.onTaskSelect}
+          ></ft-kanban-view>
+        `;
+    }
+  }
+
   private onViewChange(e: CustomEvent) {
-    const view = e.detail.view as 'kanban' | 'tree';
+    const view = e.detail.view as 'kanban' | 'tree' | 'dashboard';
     const url = new URL(window.location.href);
     url.searchParams.set('view', view);
     window.history.pushState({}, '', url);
@@ -285,7 +301,9 @@ export class FtApp extends LitElement {
     const token = ++this.routeToken;
     const params = new URLSearchParams(window.location.search);
     const collectionId = params.get('collection');
-    this.currentView = params.get('view') === 'tree' ? 'tree' : 'kanban';
+    const viewParam = params.get('view');
+    const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard']);
+    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard') : 'kanban';
 
     if (!collectionId) {
       this.showCollectionList('');

@@ -118,7 +118,7 @@ export class FtToolbar extends LitElement {
   `;
 
   @property()
-  currentView: 'kanban' | 'tree' = 'kanban';
+  currentView: 'kanban' | 'tree' | 'dashboard' = 'kanban';
 
   @property()
   connectionStatus: ConnectionStatus = 'disconnected';
@@ -178,8 +178,9 @@ export class FtToolbar extends LitElement {
   }
 
   render() {
-    // Tree view does not consume task filters yet, so keep the current filter state visible but disabled.
-    const filtersDisabled = this.currentView === 'tree';
+    // Tree view and dashboard view do not consume task filters, so keep the
+    // current filter state visible but disabled.
+    const filtersDisabled = this.currentView === 'tree' || this.currentView === 'dashboard';
 
     return html`
       <div class="collection-controls">
@@ -276,6 +277,11 @@ export class FtToolbar extends LitElement {
         <sl-tooltip content="Tree view">
           <sl-radio-button value="tree" aria-label="Tree view">
             <sl-icon name="diagram-3" label="Tree view"></sl-icon>
+          </sl-radio-button>
+        </sl-tooltip>
+        <sl-tooltip content="Dashboard view">
+          <sl-radio-button value="dashboard" aria-label="Dashboard view">
+            <sl-icon name="bar-chart-line" label="Dashboard view"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
       </sl-radio-group>

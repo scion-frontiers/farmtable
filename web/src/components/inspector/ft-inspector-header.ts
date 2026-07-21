@@ -5,28 +5,13 @@ import { TaskPhase, TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 import { STAGE_LABEL, STAGE_COLOR } from './inspector-stage-utils.js';
+import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
 
 const PHASE_LABEL: Record<number, string> = {
   [TaskPhase.OPEN]: 'Open',
   [TaskPhase.IN_PROGRESS]: 'In Progress',
   [TaskPhase.ON_HOLD]: 'On Hold',
   [TaskPhase.CLOSED]: 'Closed',
-};
-
-const PRIORITY_VARIANT: Record<number, string> = {
-  [TaskPriority.UNSPECIFIED]: 'neutral',
-  [TaskPriority.URGENT]: 'danger',
-  [TaskPriority.HIGH]: 'warning',
-  [TaskPriority.NORMAL]: 'primary',
-  [TaskPriority.LOW]: 'neutral',
-};
-
-const PRIORITY_LABEL: Record<number, string> = {
-  [TaskPriority.UNSPECIFIED]: 'No priority',
-  [TaskPriority.URGENT]: 'Urgent',
-  [TaskPriority.HIGH]: 'High',
-  [TaskPriority.NORMAL]: 'Normal',
-  [TaskPriority.LOW]: 'Low',
 };
 
 const PRIORITY_OPTIONS = [
