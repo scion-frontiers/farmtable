@@ -36,14 +36,14 @@ export class FtEmptyState extends LitElement {
   @property()
   subtitle = '';
 
-  @property({ attribute: 'icon-color' })
-  iconColor = '';
+  connectedCallback() {
+    super.connectedCallback();
+    this.setAttribute('role', 'status');
+  }
 
   render() {
-    const iconStyle = this.iconColor ? `color: ${this.iconColor}` : '';
-
     return html`
-      <sl-icon name=${this.icon} style=${iconStyle || nothing}></sl-icon>
+      <sl-icon name=${this.icon} aria-hidden="true"></sl-icon>
       <span class="heading">${this.heading}</span>
       ${this.subtitle
         ? html`<span class="subtitle">${this.subtitle}</span>`
