@@ -32,12 +32,13 @@ type exportDocument struct {
 }
 
 type exportCollection struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Platform    string    `json:"platform"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Platform    string         `json:"platform"`
+	RemoteData  map[string]any `json:"remote_data,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type exportUser struct {
@@ -127,6 +128,7 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 			Name:        coll.Name,
 			Description: coll.Description,
 			Platform:    string(coll.Platform),
+			RemoteData:  coll.RemoteData,
 			CreatedAt:   coll.CreatedAt,
 			UpdatedAt:   coll.UpdatedAt,
 		},
@@ -286,6 +288,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 			Name:        doc.Collection.Name,
 			Description: doc.Collection.Description,
 			Platform:    collection.PlatformFarmtable,
+			RemoteData:  doc.Collection.RemoteData,
 			CreatedAt:   doc.Collection.CreatedAt,
 			UpdatedAt:   doc.Collection.UpdatedAt,
 		},

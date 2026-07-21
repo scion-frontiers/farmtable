@@ -20,6 +20,7 @@ func (Collection) Fields() []ent.Field {
 			Values("farmtable", "github", "linear", "jira", "asana", "beads").
 			Default("farmtable"),
 		field.String("remote_id").Optional().Default(""),
+		field.JSON("remote_data", map[string]any{}).Optional(),
 		field.Time("created_at").Default(timeNow).Immutable(),
 		field.Time("updated_at").Default(timeNow).UpdateDefault(timeNow),
 	}

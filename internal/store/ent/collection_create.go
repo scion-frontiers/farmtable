@@ -70,6 +70,12 @@ func (_c *CollectionCreate) SetNillableRemoteID(v *string) *CollectionCreate {
 	return _c
 }
 
+// SetRemoteData sets the "remote_data" field.
+func (_c *CollectionCreate) SetRemoteData(v map[string]interface{}) *CollectionCreate {
+	_c.mutation.SetRemoteData(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CollectionCreate) SetCreatedAt(v time.Time) *CollectionCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -262,6 +268,10 @@ func (_c *CollectionCreate) createSpec() (*Collection, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.RemoteID(); ok {
 		_spec.SetField(collection.FieldRemoteID, field.TypeString, value)
 		_node.RemoteID = value
+	}
+	if value, ok := _c.mutation.RemoteData(); ok {
+		_spec.SetField(collection.FieldRemoteData, field.TypeJSON, value)
+		_node.RemoteData = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(collection.FieldCreatedAt, field.TypeTime, value)

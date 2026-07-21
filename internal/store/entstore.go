@@ -892,6 +892,9 @@ func (s *EntStore) CreateCollection(ctx context.Context, p CreateCollectionParam
 	if p.RemoteID != "" {
 		create.SetRemoteID(p.RemoteID)
 	}
+	if p.RemoteData != nil {
+		create.SetRemoteData(p.RemoteData)
+	}
 
 	c, err := create.Save(ctx)
 	if err != nil {
@@ -907,6 +910,23 @@ func (s *EntStore) UpdateCollection(ctx context.Context, id uuid.UUID, p UpdateC
 	}
 	if p.Description != nil {
 		update.SetDescription(*p.Description)
+	}
+	if p.RemoteData != nil {
+		old, err := s.client.Collection.Get(ctx, id)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("getting collection for update: %w", err)
+		}
+		remoteData := make(map[string]any, len(old.RemoteData)+len(p.RemoteData))
+		for key, value := range old.RemoteData {
+			remoteData[key] = value
+		}
+		for key, value := range p.RemoteData {
+			remoteData[key] = value
+		}
+		update.SetRemoteData(remoteData)
 	}
 	c, err := update.Save(ctx)
 	if err != nil {
@@ -1590,6 +1610,9 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 		SetName(p.Collection.Name).
 		SetDescription(p.Collection.Description).
 		SetPlatform(p.Collection.Platform)
+	if p.Collection.RemoteData != nil {
+		collCreate.SetRemoteData(p.Collection.RemoteData)
+	}
 	if !p.Collection.CreatedAt.IsZero() {
 		collCreate.SetCreatedAt(p.Collection.CreatedAt)
 	}

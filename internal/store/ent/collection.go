@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,6 +27,8 @@ type Collection struct {
 	Platform collection.Platform `json:"platform,omitempty"`
 	// RemoteID holds the value of the "remote_id" field.
 	RemoteID string `json:"remote_id,omitempty"`
+	// RemoteData holds the value of the "remote_data" field.
+	RemoteData map[string]interface{} `json:"remote_data,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -59,6 +62,8 @@ func (*Collection) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case collection.FieldRemoteData:
+			values[i] = new([]byte)
 		case collection.FieldName, collection.FieldDescription, collection.FieldPlatform, collection.FieldRemoteID:
 			values[i] = new(sql.NullString)
 		case collection.FieldCreatedAt, collection.FieldUpdatedAt:
@@ -109,6 +114,14 @@ func (_m *Collection) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field remote_id", values[i])
 			} else if value.Valid {
 				_m.RemoteID = value.String
+			}
+		case collection.FieldRemoteData:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field remote_data", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.RemoteData); err != nil {
+					return fmt.Errorf("unmarshal field remote_data: %w", err)
+				}
 			}
 		case collection.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -174,6 +187,9 @@ func (_m *Collection) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("remote_id=")
 	builder.WriteString(_m.RemoteID)
+	builder.WriteString(", ")
+	builder.WriteString("remote_data=")
+	builder.WriteString(fmt.Sprintf("%v", _m.RemoteData))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

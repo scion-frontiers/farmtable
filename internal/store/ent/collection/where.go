@@ -316,6 +316,16 @@ func RemoteIDContainsFold(v string) predicate.Collection {
 	return predicate.Collection(sql.FieldContainsFold(FieldRemoteID, v))
 }
 
+// RemoteDataIsNil applies the IsNil predicate on the "remote_data" field.
+func RemoteDataIsNil() predicate.Collection {
+	return predicate.Collection(sql.FieldIsNull(FieldRemoteData))
+}
+
+// RemoteDataNotNil applies the NotNil predicate on the "remote_data" field.
+func RemoteDataNotNil() predicate.Collection {
+	return predicate.Collection(sql.FieldNotNull(FieldRemoteData))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Collection {
 	return predicate.Collection(sql.FieldEQ(FieldCreatedAt, v))
