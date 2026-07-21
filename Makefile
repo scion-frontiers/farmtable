@@ -1,4 +1,4 @@
-.PHONY: generate build test lint web web-dev dashboard
+.PHONY: generate build test lint web web-dev dashboard decomposer
 
 generate:
 	buf generate
@@ -22,3 +22,6 @@ web-dev:
 dashboard: web
 	go build -o bin/ft ./cmd/ft
 	./bin/ft dashboard
+
+decomposer:
+	go build -o bin/decomposer ./cmd/decomposer
