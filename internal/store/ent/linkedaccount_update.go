@@ -139,6 +139,12 @@ func (_u *LinkedAccountUpdate) SetNillableStatus(v *linkedaccount.Status) *Linke
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *LinkedAccountUpdate) SetUpdatedAt(v time.Time) *LinkedAccountUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_u *LinkedAccountUpdate) SetExpiresAt(v time.Time) *LinkedAccountUpdate {
 	_u.mutation.SetExpiresAt(v)
@@ -177,6 +183,7 @@ func (_u *LinkedAccountUpdate) ClearCollection() *LinkedAccountUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LinkedAccountUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -199,6 +206,14 @@ func (_u *LinkedAccountUpdate) Exec(ctx context.Context) error {
 func (_u *LinkedAccountUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *LinkedAccountUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := linkedaccount.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -265,6 +280,9 @@ func (_u *LinkedAccountUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(linkedaccount.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(linkedaccount.FieldExpiresAt, field.TypeTime, value)
@@ -429,6 +447,12 @@ func (_u *LinkedAccountUpdateOne) SetNillableStatus(v *linkedaccount.Status) *Li
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *LinkedAccountUpdateOne) SetUpdatedAt(v time.Time) *LinkedAccountUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_u *LinkedAccountUpdateOne) SetExpiresAt(v time.Time) *LinkedAccountUpdateOne {
 	_u.mutation.SetExpiresAt(v)
@@ -480,6 +504,7 @@ func (_u *LinkedAccountUpdateOne) Select(field string, fields ...string) *Linked
 
 // Save executes the query and returns the updated LinkedAccount entity.
 func (_u *LinkedAccountUpdateOne) Save(ctx context.Context) (*LinkedAccount, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -502,6 +527,14 @@ func (_u *LinkedAccountUpdateOne) Exec(ctx context.Context) error {
 func (_u *LinkedAccountUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *LinkedAccountUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := linkedaccount.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -585,6 +618,9 @@ func (_u *LinkedAccountUpdateOne) sqlSave(ctx context.Context) (_node *LinkedAcc
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(linkedaccount.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(linkedaccount.FieldExpiresAt, field.TypeTime, value)

@@ -26,6 +26,7 @@ func (LinkedAccount) Fields() []ent.Field {
 			Values("active", "expired", "revoked").
 			Default("active"),
 		field.Time("created_at").Default(timeNow).Immutable(),
+		field.Time("updated_at").Default(timeNow).UpdateDefault(timeNow),
 		field.Time("expires_at").Optional().Nillable(),
 	}
 }

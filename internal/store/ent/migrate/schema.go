@@ -132,6 +132,7 @@ var (
 		{Name: "remote_user_id", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "expired", "revoked"}, Default: "active"},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_id", Type: field.TypeUUID},
 	}
@@ -143,7 +144,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "linked_accounts_collections_linked_accounts",
-				Columns:    []*schema.Column{LinkedAccountsColumns[9]},
+				Columns:    []*schema.Column{LinkedAccountsColumns[10]},
 				RefColumns: []*schema.Column{CollectionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
