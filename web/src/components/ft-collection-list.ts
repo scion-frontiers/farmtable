@@ -1,8 +1,8 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
-import type { Collection } from '../gen/types.js';
-import { platformLabel } from '../util/platform-label.js';
+import { Platform, type Collection } from '../gen/types.js';
+import { platformIcon, platformLabel } from '../util/platform-label.js';
 
 @customElement('ft-collection-list')
 export class FtCollectionList extends LitElement {
@@ -72,10 +72,16 @@ export class FtCollectionList extends LitElement {
     }
 
     .meta {
-      display: block;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
       margin-top: 0.25rem;
       color: var(--sl-color-neutral-600);
       font-size: 0.875rem;
+    }
+
+    .meta sl-icon {
+      font-size: 0.8rem;
     }
 
     .empty,
@@ -128,16 +134,24 @@ export class FtCollectionList extends LitElement {
             ? html`<div class="empty">No collections are available.</div>`
             : html`
                 <div class="list">
-                  ${this.collections.map((collection) => html`
-                    <button
-                      class="collection"
-                      type="button"
-                      @click=${() => this.selectCollection(collection)}
-                    >
-                      <span class="name">${collection.name}</span>
-                      <span class="meta">${platformLabel(collection.platform)}</span>
-                    </button>
-                  `)}
+                  ${this.collections.map((collection) => {
+                    const isExternal = collection.platform !== Platform.FARMTABLE;
+                    return html`
+                      <button
+                        class="collection"
+                        type="button"
+                        @click=${() => this.selectCollection(collection)}
+                      >
+                        <span class="name">${collection.name}</span>
+                        <span class="meta">
+                          <sl-icon name=${platformIcon(collection.platform)} aria-hidden="true"></sl-icon>
+                          ${isExternal && collection.remoteId
+                            ? html`${platformLabel(collection.platform)}: ${collection.remoteId}`
+                            : platformLabel(collection.platform)}
+                        </span>
+                      </button>
+                    `;
+                  })}
                 </div>
               `}
       </main>
