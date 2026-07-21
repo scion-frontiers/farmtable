@@ -1,4 +1,6 @@
 import { grpc } from '@improbable-eng/grpc-web';
+import { GrpcError } from './grpc-error.js';
+export { GrpcError } from './grpc-error.js';
 import protobuf from 'protobufjs';
 import farmtableDescriptor from './farmtable.json';
 import {
@@ -321,7 +323,7 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
       onEnd: (code, message) => {
         done = true;
         if (code !== grpc.Code.OK && code !== grpc.Code.Canceled) {
-          error = new Error(message || `gRPC stream failed with code ${code}`);
+          error = new GrpcError(code, message || `gRPC stream failed with code ${code}`);
         }
         wake();
       },
@@ -367,7 +369,7 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
         metadata: this.metadata(),
         onEnd: (output) => {
           if (output.status !== grpc.Code.OK) {
-            reject(new Error(output.statusMessage || `gRPC request failed with code ${output.status}`));
+            reject(new GrpcError(output.status, output.statusMessage || `gRPC request failed with code ${output.status}`));
             return;
           }
           if (!output.message) {
