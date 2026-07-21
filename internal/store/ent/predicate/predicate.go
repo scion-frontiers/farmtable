@@ -18,6 +18,9 @@ type Collection func(*sql.Selector)
 // Comment is the predicate function for comment builders.
 type Comment func(*sql.Selector)
 
+// LinkedAccount is the predicate function for linkedaccount builders.
+type LinkedAccount func(*sql.Selector)
+
 // Relationship is the predicate function for relationship builders.
 type Relationship func(*sql.Selector)
 

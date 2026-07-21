@@ -43,9 +43,11 @@ type Collection struct {
 type CollectionEdges struct {
 	// Tasks holds the value of the tasks edge.
 	Tasks []*Task `json:"tasks,omitempty"`
+	// LinkedAccounts holds the value of the linked_accounts edge.
+	LinkedAccounts []*LinkedAccount `json:"linked_accounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // TasksOrErr returns the Tasks value or an error if the edge
@@ -55,6 +57,15 @@ func (e CollectionEdges) TasksOrErr() ([]*Task, error) {
 		return e.Tasks, nil
 	}
 	return nil, &NotLoadedError{edge: "tasks"}
+}
+
+// LinkedAccountsOrErr returns the LinkedAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e CollectionEdges) LinkedAccountsOrErr() ([]*LinkedAccount, error) {
+	if e.loadedTypes[1] {
+		return e.LinkedAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "linked_accounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -151,6 +162,11 @@ func (_m *Collection) Value(name string) (ent.Value, error) {
 // QueryTasks queries the "tasks" edge of the Collection entity.
 func (_m *Collection) QueryTasks() *TaskQuery {
 	return NewCollectionClient(_m.config).QueryTasks(_m)
+}
+
+// QueryLinkedAccounts queries the "linked_accounts" edge of the Collection entity.
+func (_m *Collection) QueryLinkedAccounts() *LinkedAccountQuery {
+	return NewCollectionClient(_m.config).QueryLinkedAccounts(_m)
 }
 
 // Update returns a builder for updating this Collection.

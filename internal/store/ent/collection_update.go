@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
@@ -131,6 +132,21 @@ func (_u *CollectionUpdate) AddTasks(v ...*Task) *CollectionUpdate {
 	return _u.AddTaskIDs(ids...)
 }
 
+// AddLinkedAccountIDs adds the "linked_accounts" edge to the LinkedAccount entity by IDs.
+func (_u *CollectionUpdate) AddLinkedAccountIDs(ids ...uuid.UUID) *CollectionUpdate {
+	_u.mutation.AddLinkedAccountIDs(ids...)
+	return _u
+}
+
+// AddLinkedAccounts adds the "linked_accounts" edges to the LinkedAccount entity.
+func (_u *CollectionUpdate) AddLinkedAccounts(v ...*LinkedAccount) *CollectionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddLinkedAccountIDs(ids...)
+}
+
 // Mutation returns the CollectionMutation object of the builder.
 func (_u *CollectionUpdate) Mutation() *CollectionMutation {
 	return _u.mutation
@@ -155,6 +171,27 @@ func (_u *CollectionUpdate) RemoveTasks(v ...*Task) *CollectionUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTaskIDs(ids...)
+}
+
+// ClearLinkedAccounts clears all "linked_accounts" edges to the LinkedAccount entity.
+func (_u *CollectionUpdate) ClearLinkedAccounts() *CollectionUpdate {
+	_u.mutation.ClearLinkedAccounts()
+	return _u
+}
+
+// RemoveLinkedAccountIDs removes the "linked_accounts" edge to LinkedAccount entities by IDs.
+func (_u *CollectionUpdate) RemoveLinkedAccountIDs(ids ...uuid.UUID) *CollectionUpdate {
+	_u.mutation.RemoveLinkedAccountIDs(ids...)
+	return _u
+}
+
+// RemoveLinkedAccounts removes "linked_accounts" edges to LinkedAccount entities.
+func (_u *CollectionUpdate) RemoveLinkedAccounts(v ...*LinkedAccount) *CollectionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveLinkedAccountIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -292,6 +329,51 @@ func (_u *CollectionUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.LinkedAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedLinkedAccountsIDs(); len(nodes) > 0 && !_u.mutation.LinkedAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.LinkedAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{collection.Label}
@@ -413,6 +495,21 @@ func (_u *CollectionUpdateOne) AddTasks(v ...*Task) *CollectionUpdateOne {
 	return _u.AddTaskIDs(ids...)
 }
 
+// AddLinkedAccountIDs adds the "linked_accounts" edge to the LinkedAccount entity by IDs.
+func (_u *CollectionUpdateOne) AddLinkedAccountIDs(ids ...uuid.UUID) *CollectionUpdateOne {
+	_u.mutation.AddLinkedAccountIDs(ids...)
+	return _u
+}
+
+// AddLinkedAccounts adds the "linked_accounts" edges to the LinkedAccount entity.
+func (_u *CollectionUpdateOne) AddLinkedAccounts(v ...*LinkedAccount) *CollectionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddLinkedAccountIDs(ids...)
+}
+
 // Mutation returns the CollectionMutation object of the builder.
 func (_u *CollectionUpdateOne) Mutation() *CollectionMutation {
 	return _u.mutation
@@ -437,6 +534,27 @@ func (_u *CollectionUpdateOne) RemoveTasks(v ...*Task) *CollectionUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTaskIDs(ids...)
+}
+
+// ClearLinkedAccounts clears all "linked_accounts" edges to the LinkedAccount entity.
+func (_u *CollectionUpdateOne) ClearLinkedAccounts() *CollectionUpdateOne {
+	_u.mutation.ClearLinkedAccounts()
+	return _u
+}
+
+// RemoveLinkedAccountIDs removes the "linked_accounts" edge to LinkedAccount entities by IDs.
+func (_u *CollectionUpdateOne) RemoveLinkedAccountIDs(ids ...uuid.UUID) *CollectionUpdateOne {
+	_u.mutation.RemoveLinkedAccountIDs(ids...)
+	return _u
+}
+
+// RemoveLinkedAccounts removes "linked_accounts" edges to LinkedAccount entities.
+func (_u *CollectionUpdateOne) RemoveLinkedAccounts(v ...*LinkedAccount) *CollectionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveLinkedAccountIDs(ids...)
 }
 
 // Where appends a list predicates to the CollectionUpdate builder.
@@ -597,6 +715,51 @@ func (_u *CollectionUpdateOne) sqlSave(ctx context.Context) (_node *Collection, 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.LinkedAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedLinkedAccountsIDs(); len(nodes) > 0 && !_u.mutation.LinkedAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.LinkedAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

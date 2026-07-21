@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 )
@@ -131,6 +132,21 @@ func (_c *CollectionCreate) AddTasks(v ...*Task) *CollectionCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddTaskIDs(ids...)
+}
+
+// AddLinkedAccountIDs adds the "linked_accounts" edge to the LinkedAccount entity by IDs.
+func (_c *CollectionCreate) AddLinkedAccountIDs(ids ...uuid.UUID) *CollectionCreate {
+	_c.mutation.AddLinkedAccountIDs(ids...)
+	return _c
+}
+
+// AddLinkedAccounts adds the "linked_accounts" edges to the LinkedAccount entity.
+func (_c *CollectionCreate) AddLinkedAccounts(v ...*LinkedAccount) *CollectionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddLinkedAccountIDs(ids...)
 }
 
 // Mutation returns the CollectionMutation object of the builder.
@@ -290,6 +306,22 @@ func (_c *CollectionCreate) createSpec() (*Collection, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(task.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.LinkedAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   collection.LinkedAccountsTable,
+			Columns: []string{collection.LinkedAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaccount.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -429,6 +429,29 @@ func HasTasksWith(preds ...predicate.Task) predicate.Collection {
 	})
 }
 
+// HasLinkedAccounts applies the HasEdge predicate on the "linked_accounts" edge.
+func HasLinkedAccounts() predicate.Collection {
+	return predicate.Collection(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, LinkedAccountsTable, LinkedAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLinkedAccountsWith applies the HasEdge predicate on the "linked_accounts" edge with a given conditions (other predicates).
+func HasLinkedAccountsWith(preds ...predicate.LinkedAccount) predicate.Collection {
+	return predicate.Collection(func(s *sql.Selector) {
+		step := newLinkedAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Collection) predicate.Collection {
 	return predicate.Collection(sql.AndPredicates(predicates...))
