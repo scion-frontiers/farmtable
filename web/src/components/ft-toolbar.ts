@@ -106,6 +106,8 @@ export class FtToolbar extends LitElement {
       padding: 0.25rem 0.5rem;
       font-size: 1.1rem;
       line-height: 1;
+      min-width: 2rem;
+      min-height: 2rem;
     }
     .view-switcher sl-radio-button::part(label) {
       display: inline-flex;
@@ -267,12 +269,12 @@ export class FtToolbar extends LitElement {
         @sl-change=${this.onViewChange}
       >
         <sl-tooltip content="Kanban view">
-          <sl-radio-button value="kanban">
+          <sl-radio-button value="kanban" aria-label="Kanban view">
             <sl-icon name="kanban" label="Kanban view"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
         <sl-tooltip content="Tree view">
-          <sl-radio-button value="tree">
+          <sl-radio-button value="tree" aria-label="Tree view">
             <sl-icon name="diagram-3" label="Tree view"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
