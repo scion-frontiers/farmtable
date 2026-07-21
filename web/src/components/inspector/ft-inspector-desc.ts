@@ -1,4 +1,4 @@
-import { LitElement, html, css, type PropertyValues } from 'lit';
+import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
@@ -31,6 +31,10 @@ export class FtInspectorDesc extends LitElement {
       display: flex;
       align-items: center;
       gap: 0.25rem;
+      margin-left: auto;
+    }
+    .section-header > sl-icon-button {
+      margin-left: auto;
     }
     .content {
       font-size: 0.875rem;
@@ -76,6 +80,9 @@ export class FtInspectorDesc extends LitElement {
 
   @property()
   taskId = '';
+
+  @property({ type: Boolean, attribute: 'hide-title' })
+  hideTitle = false;
 
   @state()
   private isEditing = false;
@@ -167,7 +174,7 @@ export class FtInspectorDesc extends LitElement {
     if (this.isEditing) {
       return html`
         <div class="section-header">
-          <span class="section-title">Description</span>
+          ${this.hideTitle ? nothing : html`<span class="section-title">Description</span>`}
           <span class="actions">
             <sl-icon-button
               name="check2"
@@ -194,7 +201,7 @@ export class FtInspectorDesc extends LitElement {
     if (!this.description) {
       return html`
         <div class="section-header">
-          <span class="section-title">Description</span>
+          ${this.hideTitle ? nothing : html`<span class="section-title">Description</span>`}
           <sl-icon-button
             name="pencil"
             label="Edit description"
@@ -206,7 +213,7 @@ export class FtInspectorDesc extends LitElement {
     }
     return html`
       <div class="section-header">
-        <span class="section-title">Description</span>
+        ${this.hideTitle ? nothing : html`<span class="section-title">Description</span>`}
         <sl-icon-button
           name="pencil"
           label="Edit description"

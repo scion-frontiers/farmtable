@@ -107,7 +107,12 @@ export class FtInspectorComments extends LitElement {
     }
   }
 
+  private isSectionOpen(): boolean {
+    return localStorage.getItem('inspector.collapse.comments') !== 'false';
+  }
+
   private async onExpand() {
+    localStorage.setItem('inspector.collapse.comments', 'true');
     if (this.loaded && this.cachedTaskId === this.taskId) return;
     if (!this.client || !this.taskId) return;
     this.loading = true;
@@ -121,6 +126,10 @@ export class FtInspectorComments extends LitElement {
     } finally {
       this.loading = false;
     }
+  }
+
+  private onCollapse() {
+    localStorage.setItem('inspector.collapse.comments', 'false');
   }
 
   private onDraftInput(e: Event) {
@@ -174,7 +183,7 @@ export class FtInspectorComments extends LitElement {
     const summary = `Comments${count !== '' ? ` (${count})` : ''}`;
 
     return html`
-      <sl-details summary=${summary} @sl-show=${this.onExpand}>
+      <sl-details summary=${summary} ?open=${this.isSectionOpen()} @sl-show=${this.onExpand} @sl-hide=${this.onCollapse}>
         ${this.errorMessage
           ? html`
               <sl-alert variant="danger" open closable @sl-after-hide=${() => { this.errorMessage = ''; }}>
