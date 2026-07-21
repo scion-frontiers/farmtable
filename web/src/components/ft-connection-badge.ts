@@ -46,6 +46,8 @@ export class FtConnectionBadge extends LitElement {
         return { dot: 'spinner', label: 'Loading tasks...' };
       case 'live':
         return { dot: 'green', label: 'Live' };
+      case 'polling':
+        return { dot: 'green', label: 'Polling' };
       case 'reconnecting':
         return { dot: 'yellow', label: 'Reconnecting...' };
       case 'disconnected':

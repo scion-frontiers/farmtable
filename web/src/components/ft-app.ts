@@ -3,9 +3,10 @@ import { customElement, state } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js';
+import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -53,10 +54,21 @@ export class FtApp extends LitElement {
   private taskStore = new TaskStore();
   private storeController = new TaskStoreController(this, this.taskStore);
   private streamManager?: StreamManager;
+  private pollManager?: PollManager;
   private client!: FarmTableServiceClient;
   private unscopedClient!: FarmTableServiceClient;
   private onStatusChanged = ((e: CustomEvent) => {
     this.connectionStatus = e.detail.status;
+  }) as EventListener;
+  private onWatchUnsupported = (() => {
+    this.switchToPolling();
+  }) as EventListener;
+  private onPollRefreshEnd = ((e: CustomEvent) => {
+    this.lastRefreshed = e.detail.lastRefreshed as Date;
+    this.isRefreshing = false;
+  }) as EventListener;
+  private onPollRefreshStart = (() => {
+    this.isRefreshing = true;
   }) as EventListener;
   private routeToken = 0;
 
@@ -93,6 +105,15 @@ export class FtApp extends LitElement {
   @state()
   private users: User[] = [];
 
+  @state()
+  private isPolling = false;
+
+  @state()
+  private lastRefreshed: Date | null = null;
+
+  @state()
+  private isRefreshing = false;
+
   private userLoadToken = 0;
 
   connectedCallback() {
@@ -111,7 +132,9 @@ export class FtApp extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
+    this.stopPolling();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
     window.removeEventListener('popstate', this.onPopState);
   }
@@ -152,10 +175,14 @@ export class FtApp extends LitElement {
         .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
+        ?isPolling=${this.isPolling}
+        .lastRefreshed=${this.lastRefreshed}
+        ?isRefreshing=${this.isRefreshing}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
         @collection-select=${this.onCollectionSelect}
+        @manual-refresh=${this.onManualRefresh}
       ></ft-toolbar>
 
       <ft-filter-chips
@@ -348,6 +375,7 @@ export class FtApp extends LitElement {
 
   private showCollectionList(errorMessage: string) {
     this.stopStream();
+    this.stopPolling();
     this.client = this.unscopedClient;
     this.currentCollectionId = null;
     this.taskStore.clear();
@@ -360,6 +388,7 @@ export class FtApp extends LitElement {
 
   private showBoard(collectionId: string) {
     this.stopStream();
+    this.stopPolling();
     this.phaseFilter = null;
     this.assigneeFilter = null;
     this.currentCollectionId = collectionId;
@@ -375,15 +404,50 @@ export class FtApp extends LitElement {
 
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
+    this.streamManager.addEventListener('watch-unsupported', this.onWatchUnsupported);
     void this.streamManager.start();
     void this.loadUsers();
   }
 
   private stopStream() {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
+    this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
     this.streamManager = undefined;
   }
+
+  /**
+   * Called when WatchTasks returns Unimplemented for this collection.
+   * Tears down the stream and starts periodic ListTasks polling.
+   */
+  private switchToPolling(): void {
+    this.stopStream();
+    this.isPolling = true;
+    this.connectionStatus = 'polling';
+
+    this.pollManager = new PollManager(this.client, this.taskStore);
+    this.pollManager.addEventListener('refresh-start', this.onPollRefreshStart);
+    this.pollManager.addEventListener('refresh-end', this.onPollRefreshEnd);
+    void this.pollManager.start();
+  }
+
+  private stopPolling(): void {
+    if (this.pollManager) {
+      this.pollManager.removeEventListener('refresh-start', this.onPollRefreshStart);
+      this.pollManager.removeEventListener('refresh-end', this.onPollRefreshEnd);
+      this.pollManager.stop();
+      this.pollManager = undefined;
+    }
+    this.isPolling = false;
+    this.lastRefreshed = null;
+    this.isRefreshing = false;
+  }
+
+  private onManualRefresh = () => {
+    if (this.pollManager) {
+      void this.pollManager.refresh();
+    }
+  };
 
   private onCollectionSelect = (e: CustomEvent) => {
     const collectionId = e.detail.collectionId as string;
