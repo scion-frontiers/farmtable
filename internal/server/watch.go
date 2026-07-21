@@ -5,6 +5,7 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/convert"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/streaming"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -19,6 +20,23 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	}
 	if err := validateWatchTasksRequest(req); err != nil {
 		return err
+	}
+
+	// Guard: WatchTasks is not supported for external platform collections.
+	if req.CollectionId != nil {
+		collID, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		coll, err := s.store.GetCollection(stream.Context(), collID)
+		if err != nil {
+			return storeErr(err, "collection")
+		}
+		if coll.Platform != collection.PlatformFarmtable {
+			return status.Errorf(codes.Unimplemented,
+				"WatchTasks is not supported for external platform %q collections; use polling instead",
+				coll.Platform)
+		}
 	}
 
 	filter := buildFilter(req)
