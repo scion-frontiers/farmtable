@@ -1,6 +1,21 @@
 import { grpc } from '@improbable-eng/grpc-web';
 import protobuf from 'protobufjs';
 import farmtableDescriptor from './farmtable.json';
+
+/**
+ * A gRPC error that carries the numeric grpc.Code so callers can inspect
+ * the status code without fragile string-matching on the message.
+ */
+export class GrpcError extends Error {
+  readonly code: number;
+
+  constructor(code: number, message?: string) {
+    super(message || `gRPC error code ${code}`);
+    this.name = 'GrpcError';
+    this.code = code;
+  }
+}
+
 import {
   type Change,
   type CodeContext,
@@ -321,7 +336,7 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
       onEnd: (code, message) => {
         done = true;
         if (code !== grpc.Code.OK && code !== grpc.Code.Canceled) {
-          error = new Error(message || `gRPC stream failed with code ${code}`);
+          error = new GrpcError(code, message || `gRPC stream failed with code ${code}`);
         }
         wake();
       },
@@ -367,7 +382,7 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
         metadata: this.metadata(),
         onEnd: (output) => {
           if (output.status !== grpc.Code.OK) {
-            reject(new Error(output.statusMessage || `gRPC request failed with code ${output.status}`));
+            reject(new GrpcError(output.status, output.statusMessage || `gRPC request failed with code ${output.status}`));
             return;
           }
           if (!output.message) {

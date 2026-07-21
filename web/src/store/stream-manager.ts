@@ -1,3 +1,5 @@
+import { grpc } from '@improbable-eng/grpc-web';
+import { GrpcError } from '../gen/grpc-client.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import { TaskEventType } from '../gen/types.js';
 import type { TaskStore } from './task-store.js';
@@ -5,19 +7,12 @@ import type { TaskStore } from './task-store.js';
 export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'error' | 'reconnecting' | 'polling';
 
 /**
- * Returns true when a gRPC error message indicates codes.Unimplemented \u2014 the
- * server-side signal that WatchTasks is not supported (e.g. external platform
- * collections).
+ * Returns true when a gRPC error carries the Unimplemented status code (12) \u2014
+ * the server-side signal that WatchTasks is not supported (e.g. external
+ * platform collections).
  */
 function isUnimplementedError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message;
-  return (
-    msg.includes('Unimplemented') ||
-    msg.includes('code 12') ||
-    msg.includes('code 12:') ||
-    /gRPC.*(?:failed|error).*\b12\b/.test(msg)
-  );
+  return err instanceof GrpcError && err.code === grpc.Code.Unimplemented;
 }
 
 export class StreamManager extends EventTarget {

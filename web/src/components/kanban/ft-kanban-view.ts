@@ -61,6 +61,7 @@ export class FtKanbanView extends LitElement {
       display: flex;
       gap: 0.75rem;
       flex: 1;
+      min-height: 0;
       overflow-x: auto;
       padding-bottom: 0.5rem;
     }
