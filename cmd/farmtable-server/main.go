@@ -14,6 +14,7 @@ import (
 
 	farmtable "github.com/farmtable-io/farmtable"
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/serverapp"
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -45,6 +46,7 @@ func main() {
 	// platform stores registered the MultiStore passes all operations
 	// through to the primary EntStore.
 	s := store.NewMultiStore(entStore)
+	s.SetResolver(github.NewPlatformResolver())
 	defer s.Close()
 
 	var lookup server.TokenLookup
