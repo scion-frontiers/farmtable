@@ -3,6 +3,8 @@ import { customElement, property, state, query } from 'lit/decorators.js';
 import type { Task } from '../gen/types.js';
 import type { TaskStore } from '../store/task-store.js';
 
+const WORD_BOUNDARY_RE = /[\s\-_]/;
+
 /**
  * Simple fuzzy match: every character in the pattern must appear in order
  * within the target string (case-insensitive). Returns a score (lower is
@@ -25,7 +27,7 @@ function fuzzyScore(pattern: string, target: string): number {
       score += gap;
 
       // Bonus for matching at word boundaries (after space, dash, underscore, or start).
-      if (ti === 0 || /[\s\-_]/.test(t[ti - 1])) {
+      if (ti === 0 || WORD_BOUNDARY_RE.test(t[ti - 1])) {
         score -= 2;
       }
 
@@ -37,6 +39,26 @@ function fuzzyScore(pattern: string, target: string): number {
   // All pattern characters consumed?
   return pi === p.length ? score : -1;
 }
+
+/** Human-readable labels for TaskStage enum values. */
+const STAGE_NAMES: Record<number, string> = {
+  0: '',
+  1: 'Triage',
+  2: 'Backlog',
+  3: 'Ready',
+  4: 'Working',
+  5: 'In Review',
+  6: 'In QA',
+  7: 'Deploying',
+  8: 'Blocked',
+  9: 'Waiting',
+  10: 'Deferred',
+  11: 'Scheduled',
+  12: 'Completed',
+  13: "Won't Fix",
+  14: 'Duplicate',
+  15: 'Cancelled',
+};
 
 export interface CommandPaletteSelectDetail {
   taskId: string;
@@ -224,6 +246,7 @@ export class FtCommandPalette extends LitElement {
 
   private previouslyFocusedElement: HTMLElement | null = null;
   private readonly labelId = `command-palette-label-${++paletteId}`;
+  private readonly listboxId = `command-palette-listbox-${paletteId}`;
 
   protected updated(changedProperties: PropertyValues<this>) {
     if (!changedProperties.has('open')) return;
@@ -304,60 +327,47 @@ export class FtCommandPalette extends LitElement {
 
   // ── Search and filtering ──
 
+  /** Build a single searchable string from all relevant task fields. */
+  private searchableText(task: Task): string {
+    const parts = [task.name, task.id];
+    if (task.description) parts.push(task.description);
+    if (task.type) parts.push(task.type);
+    const stage = STAGE_NAMES[task.stage];
+    if (stage) parts.push(stage);
+    for (const assignee of task.assignees) {
+      if (assignee.name) parts.push(assignee.name);
+    }
+    return parts.join(' ');
+  }
+
   private filteredTasks(): Task[] {
     const tasks = this.store?.allTasks ?? [];
     const query = this.searchQuery.trim();
 
     if (!query) {
-      // Show all tasks sorted by most recently updated.
-      return [...tasks].sort((a, b) => {
-        const aTime = a.updatedAt ?? a.createdAt;
-        const bTime = b.updatedAt ?? b.createdAt;
-        return bTime.localeCompare(aTime);
-      });
+      return [];
     }
 
     const scored: Array<{ task: Task; score: number }> = [];
     for (const task of tasks) {
-      // Match against task name, or task ID.
+      // Score against name, id, and full searchable text; take the best match.
       const nameScore = fuzzyScore(query, task.name);
       const idScore = fuzzyScore(query, task.id);
-      const bestScore = nameScore >= 0 && idScore >= 0
-        ? Math.min(nameScore, idScore)
-        : nameScore >= 0
-          ? nameScore
-          : idScore;
+      const textScore = fuzzyScore(query, this.searchableText(task));
 
-      if (bestScore >= 0) {
-        scored.push({ task, score: bestScore });
-      }
+      const candidates = [nameScore, idScore, textScore].filter((s) => s >= 0);
+      if (candidates.length === 0) continue;
+
+      const bestScore = Math.min(...candidates);
+      scored.push({ task, score: bestScore });
     }
 
     scored.sort((a, b) => a.score - b.score);
-    return scored.map((s) => s.task);
+    return scored.map((s) => s.task).slice(0, 50);
   }
 
   private stageLabel(task: Task): string {
-    // Produce a human-friendly label from the TaskStage enum name.
-    const stageNames: Record<number, string> = {
-      0: '',
-      1: 'Triage',
-      2: 'Backlog',
-      3: 'Ready',
-      4: 'Working',
-      5: 'In Review',
-      6: 'In QA',
-      7: 'Deploying',
-      8: 'Blocked',
-      9: 'Waiting',
-      10: 'Deferred',
-      11: 'Scheduled',
-      12: 'Completed',
-      13: "Won't Fix",
-      14: 'Duplicate',
-      15: 'Cancelled',
-    };
-    return stageNames[task.stage] ?? '';
+    return STAGE_NAMES[task.stage] ?? '';
   }
 
   // ── Navigation ──
@@ -451,18 +461,19 @@ export class FtCommandPalette extends LitElement {
               @input=${this.onInput}
               role="combobox"
               aria-expanded="true"
-              aria-controls="command-palette-listbox"
+              aria-controls=${this.listboxId}
               aria-activedescendant=${results.length > 0 ? `cp-item-${this.activeIndex}` : ''}
             />
           </div>
 
-          <div class="results" id="command-palette-listbox" role="listbox">
+          <div class="results" id=${this.listboxId} role="listbox">
             ${results.length === 0
               ? html`<div class="empty">
-                  ${this.searchQuery.trim() ? 'No matching tasks' : 'No tasks available'}
+                  ${this.searchQuery.trim() ? 'No matching tasks' : 'Type to search tasks…'}
                 </div>`
-              : results.map(
-                  (task, i) => html`
+              : results.map((task, i) => {
+                  const stage = this.stageLabel(task);
+                  return html`
                     <div
                       id="cp-item-${i}"
                       class="result-item"
@@ -473,12 +484,12 @@ export class FtCommandPalette extends LitElement {
                     >
                       <span class="task-id">${this.shortId(task.id)}</span>
                       <span class="task-name">${task.name}</span>
-                      ${this.stageLabel(task)
-                        ? html`<span class="task-stage">${this.stageLabel(task)}</span>`
+                      ${stage
+                        ? html`<span class="task-stage">${stage}</span>`
                         : nothing}
                     </div>
-                  `,
-                )}
+                  `;
+                })}
           </div>
 
           <div class="footer">

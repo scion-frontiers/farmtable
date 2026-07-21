@@ -131,12 +131,6 @@ export class FtApp extends LitElement {
           .open=${this.shortcutOverlayOpen}
           @close=${this.onShortcutHelpClose}
         ></ft-shortcut-overlay>
-        <ft-command-palette
-          .open=${this.commandPaletteOpen}
-          .store=${this.taskStore}
-          @task-select=${this.onTaskSelect}
-          @close=${this.onCommandPaletteClose}
-        ></ft-command-palette>
       `;
     }
 
@@ -405,9 +399,12 @@ export class FtApp extends LitElement {
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
     // Cmd+K / Ctrl+K — open command palette.
+    // Intentionally fires from editable targets (modifier key prevents accidental activation).
     if (e.key === 'k' && (e.metaKey || e.ctrlKey) && !e.defaultPrevented) {
       e.preventDefault();
-      this.commandPaletteOpen = !this.commandPaletteOpen;
+      if (this.routeView === 'board') {
+        this.commandPaletteOpen = !this.commandPaletteOpen;
+      }
       return;
     }
 
