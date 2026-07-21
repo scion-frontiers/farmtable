@@ -36,18 +36,20 @@ export class FtInspector extends LitElement {
       color: var(--sl-color-neutral-900);
     }
     .body {
-      flex: 1;
-      overflow-y: auto;
+      padding-bottom: 1rem;
     }
     sl-tab-group {
       flex: 1;
-      display: flex;
-      flex-direction: column;
+      min-height: 0;
       overflow: hidden;
+    }
+    sl-tab-group::part(base) {
+      height: 100%;
     }
     sl-tab-group::part(body) {
       flex: 1;
       overflow: hidden;
+      min-height: 0;
     }
     sl-tab-panel {
       height: 100%;
