@@ -3,7 +3,6 @@ import protobuf from 'protobufjs';
 import farmtableDescriptor from './farmtable.json';
 
 import { GrpcError } from '../util/grpc-error.js';
-export { GrpcError } from '../util/grpc-error.js';
 import {
   type Change,
   type CodeContext,
@@ -22,6 +21,8 @@ import {
   SortOrder,
 } from './types.js';
 import type { CreateTaskFields, FarmTableServiceClient, UpdateTaskFields } from './service.js';
+
+export { GrpcError } from '../util/grpc-error.js';
 
 type ProtoRecord = Record<string, unknown>;
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
