@@ -822,6 +822,24 @@ func (s *GitHubPassThroughStore) UpdateTokenLastUsed(ctx context.Context, id uui
 	return nil
 }
 
+// ── Linked Accounts (not applicable in pass-through mode) ──
+
+func (s *GitHubPassThroughStore) CreateLinkedAccount(ctx context.Context, p store.CreateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	return nil, fmt.Errorf("create linked account: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.LinkedAccount, error) {
+	return nil, fmt.Errorf("get linked account: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error {
+	return fmt.Errorf("delete linked account: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ListLinkedAccounts(ctx context.Context, p store.ListLinkedAccountsParams) ([]*ent.LinkedAccount, int, error) {
+	return nil, 0, fmt.Errorf("list linked accounts: %w", store.ErrNotImplemented)
+}
+
 // ── Close ──
 
 func (s *GitHubPassThroughStore) Close() error {

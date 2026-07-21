@@ -307,6 +307,24 @@ func (m *MultiStore) UpdateTokenLastUsed(ctx context.Context, id uuid.UUID) erro
 	return m.primary.UpdateTokenLastUsed(ctx, id)
 }
 
+// ── LinkedAccount Operations (always primary) ──
+
+func (m *MultiStore) CreateLinkedAccount(ctx context.Context, p CreateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	return m.primary.CreateLinkedAccount(ctx, p)
+}
+
+func (m *MultiStore) GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.LinkedAccount, error) {
+	return m.primary.GetLinkedAccount(ctx, id)
+}
+
+func (m *MultiStore) DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error {
+	return m.primary.DeleteLinkedAccount(ctx, id)
+}
+
+func (m *MultiStore) ListLinkedAccounts(ctx context.Context, p ListLinkedAccountsParams) ([]*ent.LinkedAccount, int, error) {
+	return m.primary.ListLinkedAccounts(ctx, p)
+}
+
 // ── Lifecycle ──
 
 func (m *MultiStore) Close() error {
