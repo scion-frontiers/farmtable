@@ -58,6 +58,10 @@ export class FtInspector extends LitElement {
       height: 100%;
       overflow-y: auto;
     }
+    ft-inspector-header {
+      margin-bottom: 0.5rem;
+      flex-shrink: 0;
+    }
     sl-details,
     ft-inspector-comments,
     ft-inspector-changes {
@@ -153,14 +157,14 @@ export class FtInspector extends LitElement {
         ></sl-icon-button>
       </div>
 
+      <ft-inspector-header .task=${task} ?readOnly=${this.readOnly}></ft-inspector-header>
+
       <sl-tab-group>
         <sl-tab slot="nav" panel="general" active>General</sl-tab>
         <sl-tab slot="nav" panel="relationships">Relationships</sl-tab>
 
         <sl-tab-panel name="general" active>
           <div class="body" tabindex="0">
-            <ft-inspector-header .task=${task} ?readOnly=${this.readOnly}></ft-inspector-header>
-
             <sl-details
               summary="Properties"
               ?open=${this.isSectionOpen('metadata')}
