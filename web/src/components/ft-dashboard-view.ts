@@ -1,0 +1,219 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { TaskStore } from '../store/task-store.js';
+import { TaskStoreController } from '../store/task-store-controller.js';
+import { TaskPhase, TaskPriority } from '../gen/types.js';
+import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
+import './ft-empty-state.js';
+
+interface PhaseStat {
+  label: string;
+  count: number;
+}
+
+interface PriorityStat {
+  priority: TaskPriority;
+  label: string;
+  variant: string;
+  count: number;
+}
+
+@customElement('ft-dashboard-view')
+export class FtDashboardView extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      height: 100%;
+    }
+
+    .dashboard {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem 0;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--sl-color-neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-cards {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      border: 1px solid var(--sl-color-neutral-200);
+      border-radius: var(--sl-border-radius-medium);
+      padding: 1rem 1.25rem;
+      background: var(--sl-color-neutral-0);
+      text-align: center;
+    }
+
+    .stat-card.total {
+      border-color: var(--sl-color-primary-300);
+      background: var(--sl-color-primary-50);
+    }
+
+    .stat-count {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--sl-color-neutral-900);
+    }
+
+    .stat-card.total .stat-count {
+      color: var(--sl-color-primary-700);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--sl-color-neutral-500);
+      margin-top: 0.25rem;
+    }
+
+    .priority-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .priority-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .priority-count {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--sl-color-neutral-600);
+    }
+  `;
+
+  @property({ attribute: false })
+  store!: TaskStore;
+
+  private storeController!: TaskStoreController;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.storeController = new TaskStoreController(this, this.store);
+  }
+
+  private computePhaseStats(): PhaseStat[] {
+    const tasks = this.store.allTasks;
+    const counts: Record<number, number> = {
+      [TaskPhase.OPEN]: 0,
+      [TaskPhase.IN_PROGRESS]: 0,
+      [TaskPhase.ON_HOLD]: 0,
+      [TaskPhase.CLOSED]: 0,
+    };
+    for (const task of tasks) {
+      if (counts[task.phase] !== undefined) {
+        counts[task.phase]++;
+      }
+    }
+    return [
+      { label: 'Open', count: counts[TaskPhase.OPEN] },
+      { label: 'In Progress', count: counts[TaskPhase.IN_PROGRESS] },
+      { label: 'On Hold', count: counts[TaskPhase.ON_HOLD] },
+      { label: 'Closed', count: counts[TaskPhase.CLOSED] },
+    ];
+  }
+
+  private computePriorityStats(): PriorityStat[] {
+    const tasks = this.store.allTasks;
+    const counts: Record<number, number> = {
+      [TaskPriority.URGENT]: 0,
+      [TaskPriority.HIGH]: 0,
+      [TaskPriority.NORMAL]: 0,
+      [TaskPriority.LOW]: 0,
+      [TaskPriority.UNSPECIFIED]: 0,
+    };
+    for (const task of tasks) {
+      const p = task.priority ?? TaskPriority.UNSPECIFIED;
+      if (counts[p] !== undefined) {
+        counts[p]++;
+      }
+    }
+    const order = [
+      TaskPriority.URGENT,
+      TaskPriority.HIGH,
+      TaskPriority.NORMAL,
+      TaskPriority.LOW,
+      TaskPriority.UNSPECIFIED,
+    ];
+    return order.map((p) => ({
+      priority: p,
+      label: PRIORITY_LABEL[p] ?? 'Unknown',
+      variant: PRIORITY_VARIANT[p] ?? 'neutral',
+      count: counts[p],
+    }));
+  }
+
+  render() {
+    const tasks = this.store.allTasks;
+
+    if (tasks.length === 0) {
+      return html`
+        <ft-empty-state
+          icon="bar-chart"
+          heading="No tasks yet"
+          subtitle="Create tasks to see dashboard statistics"
+        ></ft-empty-state>
+      `;
+    }
+
+    const phaseStats = this.computePhaseStats();
+    const priorityStats = this.computePriorityStats();
+    const totalCount = tasks.length;
+
+    return html`
+      <div class="dashboard">
+        <div class="section-title">Tasks by Phase</div>
+        <div class="stat-cards">
+          ${phaseStats.map(
+            (stat) => html`
+              <div class="stat-card">
+                <div class="stat-count">${stat.count}</div>
+                <div class="stat-label">${stat.label}</div>
+              </div>
+            `,
+          )}
+          <div class="stat-card total">
+            <div class="stat-count">${totalCount}</div>
+            <div class="stat-label">Total</div>
+          </div>
+        </div>
+
+        <div class="section-title">Tasks by Priority</div>
+        <div class="priority-badges">
+          ${priorityStats.map(
+            (stat) => html`
+              <div class="priority-item">
+                <sl-badge variant=${stat.variant} pill>${stat.label}</sl-badge>
+                <span class="priority-count">${stat.count}</span>
+              </div>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'ft-dashboard-view': FtDashboardView;
+  }
+}
