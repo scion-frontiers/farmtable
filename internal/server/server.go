@@ -27,16 +27,23 @@ import (
 
 type FarmTableService struct {
 	pb.UnimplementedFarmTableServiceServer
-	store     store.Store
-	version   string
-	startedAt time.Time
-	eventBus  *streaming.EventBus
+	store         store.Store
+	version       string
+	startedAt     time.Time
+	eventBus      *streaming.EventBus
+	ephemeralPool *store.EphemeralStorePool
 }
 
 type ServiceOption func(*FarmTableService)
 
 func WithEventBus(eb *streaming.EventBus) ServiceOption {
 	return func(s *FarmTableService) { s.eventBus = eb }
+}
+
+// WithEphemeralPool configures a pool of in-memory SQLite stores used for
+// ephemeral graph queries against external collections.
+func WithEphemeralPool(p *store.EphemeralStorePool) ServiceOption {
+	return func(s *FarmTableService) { s.ephemeralPool = p }
 }
 
 func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *FarmTableService {
@@ -1144,6 +1151,33 @@ func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusReque
 // ── Graph Queries ──
 
 func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTasksRequest) (*pb.GetReadyTasksResponse, error) {
+	// Check for external collection routing.
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		_, route, err := s.resolveGraphRoute(ctx, cid)
+		if err != nil {
+			return nil, err
+		}
+		if route == graphRouteEphemeral {
+			ephSvc, cleanup, err := s.loadEphemeralStore(ctx, cid)
+			if err != nil {
+				return nil, err
+			}
+			defer cleanup()
+			ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+			}
+			cidStr := ephCID.String()
+			ephReq := *req
+			ephReq.CollectionId = &cidStr
+			return ephSvc.GetReadyTasks(ctx, &ephReq)
+		}
+	}
+
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -1214,6 +1248,33 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 }
 
 func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlockedTasksRequest) (*pb.GetBlockedTasksResponse, error) {
+	// Check for external collection routing.
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		_, route, err := s.resolveGraphRoute(ctx, cid)
+		if err != nil {
+			return nil, err
+		}
+		if route == graphRouteEphemeral {
+			ephSvc, cleanup, err := s.loadEphemeralStore(ctx, cid)
+			if err != nil {
+				return nil, err
+			}
+			defer cleanup()
+			ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+			}
+			cidStr := ephCID.String()
+			ephReq := *req
+			ephReq.CollectionId = &cidStr
+			return ephSvc.GetBlockedTasks(ctx, &ephReq)
+		}
+	}
+
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -1385,6 +1446,28 @@ func (s *FarmTableService) GetCriticalPath(ctx context.Context, req *pb.GetCriti
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
 	}
 
+	// Check for external collection routing.
+	_, route, routeErr := s.resolveGraphRoute(ctx, collID)
+	if routeErr != nil {
+		return nil, routeErr
+	}
+	if route == graphRouteEphemeral {
+		ephSvc, cleanup, err := s.loadEphemeralStore(ctx, collID)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanup()
+		ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+		}
+		ephReq := *req
+		ephReq.CollectionId = ephCID.String()
+		// Clear root_task_id since original IDs don't exist in the ephemeral store.
+		ephReq.RootTaskId = nil
+		return ephSvc.GetCriticalPath(ctx, &ephReq)
+	}
+
 	var startTasks []*struct {
 		id    uuid.UUID
 		title string
@@ -1532,6 +1615,26 @@ func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottle
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+
+	// Check for external collection routing.
+	_, route, routeErr := s.resolveGraphRoute(ctx, collID)
+	if routeErr != nil {
+		return nil, routeErr
+	}
+	if route == graphRouteEphemeral {
+		ephSvc, cleanup, err := s.loadEphemeralStore(ctx, collID)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanup()
+		ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+		}
+		ephReq := *req
+		ephReq.CollectionId = ephCID.String()
+		return ephSvc.GetBottlenecks(ctx, &ephReq)
 	}
 
 	limit := int(req.GetLimit())
