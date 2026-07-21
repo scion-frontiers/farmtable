@@ -32,16 +32,22 @@ type GitHubPassThroughStore struct {
 var _ store.Store = (*GitHubPassThroughStore)(nil)
 
 // NewPassThroughStore creates a store that proxies to GitHub Issues.
-func NewPassThroughStore(token, owner, repo string, cfg *GitHubConfig) *GitHubPassThroughStore {
+// If collectionID is non-nil the provided value is used; otherwise a
+// deterministic UUID is derived from the owner/repo pair.
+func NewPassThroughStore(token, owner, repo string, cfg *GitHubConfig, collectionID *uuid.UUID) *GitHubPassThroughStore {
 	if cfg == nil {
 		cfg = DefaultConfig()
+	}
+	cid := deterministicUUID(fmt.Sprintf("github:%s/%s", owner, repo))
+	if collectionID != nil {
+		cid = *collectionID
 	}
 	return &GitHubPassThroughStore{
 		gql:          newGraphQLClient(token, owner, repo, cfg),
 		mapper:       NewLabelMapper(cfg.GitHub.Labels),
 		owner:        owner,
 		repo:         repo,
-		collectionID: deterministicUUID(fmt.Sprintf("github:%s/%s", owner, repo)),
+		collectionID: cid,
 	}
 }
 
@@ -781,7 +787,7 @@ func (s *GitHubPassThroughStore) GetUsersByIDs(ctx context.Context, ids []uuid.U
 }
 
 func (s *GitHubPassThroughStore) ListUsers(ctx context.Context, p store.ListUsersParams) ([]*ent.User, int, error) {
-	return nil, 0, nil
+	return nil, 0, fmt.Errorf("list users: %w", store.ErrNotImplemented)
 }
 
 // ── API Tokens (not applicable in pass-through mode) ──
@@ -805,7 +811,7 @@ func (s *GitHubPassThroughStore) LookupToken(ctx context.Context, tokenHash stri
 }
 
 func (s *GitHubPassThroughStore) ListAPITokens(ctx context.Context, p store.ListAPITokensParams) ([]*ent.ApiToken, int, error) {
-	return nil, 0, nil
+	return nil, 0, fmt.Errorf("list API tokens: %w", store.ErrNotImplemented)
 }
 
 func (s *GitHubPassThroughStore) RevokeAPIToken(ctx context.Context, id uuid.UUID) error {
