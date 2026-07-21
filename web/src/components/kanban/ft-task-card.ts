@@ -333,6 +333,9 @@ export class FtTaskCard extends LitElement {
   }
 
   private renderPriorityBadge(priority: TaskPriority, label: string, variant: string) {
+    if (this.readOnly) {
+      return html`<sl-badge variant=${variant} pill>${label}</sl-badge>`;
+    }
     return html`
       <button
         class="priority-button"

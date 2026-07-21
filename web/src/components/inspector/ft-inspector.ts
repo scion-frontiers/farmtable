@@ -213,6 +213,7 @@ export class FtInspector extends LitElement {
             <ft-inspector-comments
               taskId=${this.taskId}
               .client=${this.client}
+              ?readOnly=${this.readOnly}
             ></ft-inspector-comments>
 
             <ft-inspector-changes
