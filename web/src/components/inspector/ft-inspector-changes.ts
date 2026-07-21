@@ -90,7 +90,12 @@ export class FtInspectorChanges extends LitElement {
     }
   }
 
+  private isSectionOpen(): boolean {
+    return localStorage.getItem('inspector.collapse.changes') !== 'false';
+  }
+
   private async onExpand() {
+    localStorage.setItem('inspector.collapse.changes', 'true');
     if (this.loaded && this.cachedTaskId === this.taskId) return;
     if (!this.client || !this.taskId) return;
     this.loading = true;
@@ -103,12 +108,16 @@ export class FtInspectorChanges extends LitElement {
     }
   }
 
+  private onCollapse() {
+    localStorage.setItem('inspector.collapse.changes', 'false');
+  }
+
   render() {
     const count = this.loaded ? this.changes.length : '';
     const summary = `Change History${count !== '' ? ` (${count})` : ''}`;
 
     return html`
-      <sl-details summary=${summary} @sl-show=${this.onExpand}>
+      <sl-details summary=${summary} ?open=${this.isSectionOpen()} @sl-show=${this.onExpand} @sl-hide=${this.onCollapse}>
         ${this.loading
           ? html`<sl-spinner style="font-size: 1rem;"></sl-spinner>`
           : this.loaded && this.changes.length === 0
