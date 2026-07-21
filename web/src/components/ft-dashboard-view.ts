@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
-import { TaskPhase, TaskPriority } from '../gen/types.js';
+import { TaskPhase, TaskPriority, type Task } from '../gen/types.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
 import './ft-empty-state.js';
 
@@ -38,7 +38,7 @@ export class FtDashboardView extends LitElement {
       color: var(--sl-color-neutral-500);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-bottom: 0.75rem;
+      margin: 0 0 0.75rem;
     }
 
     .stat-cards {
@@ -103,15 +103,12 @@ export class FtDashboardView extends LitElement {
   @property({ attribute: false })
   store!: TaskStore;
 
-  private storeController!: TaskStoreController;
-
   connectedCallback() {
     super.connectedCallback();
-    this.storeController = new TaskStoreController(this, this.store);
+    new TaskStoreController(this, this.store);
   }
 
-  private computePhaseStats(): PhaseStat[] {
-    const tasks = this.store.allTasks;
+  private computePhaseStats(tasks: Task[]): PhaseStat[] {
     const counts: Record<number, number> = {
       [TaskPhase.OPEN]: 0,
       [TaskPhase.IN_PROGRESS]: 0,
@@ -131,8 +128,7 @@ export class FtDashboardView extends LitElement {
     ];
   }
 
-  private computePriorityStats(): PriorityStat[] {
-    const tasks = this.store.allTasks;
+  private computePriorityStats(tasks: Task[]): PriorityStat[] {
     const counts: Record<number, number> = {
       [TaskPriority.URGENT]: 0,
       [TaskPriority.HIGH]: 0,
@@ -174,29 +170,29 @@ export class FtDashboardView extends LitElement {
       `;
     }
 
-    const phaseStats = this.computePhaseStats();
-    const priorityStats = this.computePriorityStats();
-    const totalCount = tasks.length;
+    const phaseStats = this.computePhaseStats(tasks);
+    const priorityStats = this.computePriorityStats(tasks);
+    const totalCount = phaseStats.reduce((sum, s) => sum + s.count, 0);
 
     return html`
       <div class="dashboard">
-        <div class="section-title">Tasks by Phase</div>
+        <h2 class="section-title">Tasks by Phase</h2>
         <div class="stat-cards">
           ${phaseStats.map(
             (stat) => html`
-              <div class="stat-card">
+              <div class="stat-card" role="group" aria-label="${stat.label}: ${stat.count}">
                 <div class="stat-count">${stat.count}</div>
                 <div class="stat-label">${stat.label}</div>
               </div>
             `,
           )}
-          <div class="stat-card total">
+          <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>
             <div class="stat-label">Total</div>
           </div>
         </div>
 
-        <div class="section-title">Tasks by Priority</div>
+        <h2 class="section-title">Tasks by Priority</h2>
         <div class="priority-badges">
           ${priorityStats.map(
             (stat) => html`
