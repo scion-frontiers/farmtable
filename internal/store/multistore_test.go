@@ -2,9 +2,12 @@ package store_test
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
@@ -840,5 +843,430 @@ func TestMultiStore_Close(t *testing.T) {
 
 	if err := ms.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
+	}
+}
+
+// ── Lazy Platform Registration ──
+
+// newLazySetup creates a MultiStore with a PlatformResolver that
+// returns a second EntStore when the collection platform is "github".
+// It creates a github-platform collection with RemoteID "owner/repo"
+// and a linked account, then wires up the resolver.
+func newLazySetup(t *testing.T) (
+	ms *store.MultiStore,
+	primary *store.EntStore,
+	lazyPlatform *store.EntStore,
+	collID uuid.UUID,
+	resolverCalls *atomic.Int32,
+	cleanup func(),
+) {
+	t.Helper()
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	lazyPlatform, cleanPlatform := testutil.NewTestStore(t)
+
+	ctx := context.Background()
+
+	// Create a github-typed collection in the primary store.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "gh-coll",
+		Platform: "github",
+		RemoteID: "myowner/myrepo",
+	})
+	if err != nil {
+		t.Fatalf("creating github collection: %v", err)
+	}
+	collID = coll.ID
+
+	// Create the same collection in the lazy platform store so task
+	// operations succeed (the resolver hands back this store).
+	_, err = lazyPlatform.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "gh-coll",
+		Platform: "github",
+	})
+	if err != nil {
+		t.Fatalf("creating platform collection: %v", err)
+	}
+
+	// Create a linked account for this collection.
+	_, err = primary.CreateLinkedAccount(ctx, store.CreateLinkedAccountParams{
+		CollectionID: collID,
+		Platform:     "github",
+		AuthToken:    "ghp_testtoken123",
+		AuthMethod:   "pat",
+	})
+	if err != nil {
+		t.Fatalf("creating linked account: %v", err)
+	}
+
+	resolverCalls = &atomic.Int32{}
+	ms = store.NewMultiStore(primary)
+	ms.SetResolver(func(platform collection.Platform, token string, remoteID string, cid uuid.UUID) (store.Store, error) {
+		resolverCalls.Add(1)
+		if platform != collection.PlatformGithub {
+			return nil, nil
+		}
+		// Verify the resolver receives correct parameters.
+		if token != "ghp_testtoken123" {
+			t.Errorf("resolver token = %q, want %q", token, "ghp_testtoken123")
+		}
+		if remoteID != "myowner/myrepo" {
+			t.Errorf("resolver remoteID = %q, want %q", remoteID, "myowner/myrepo")
+		}
+		// Return the pre-created platform store.
+		return lazyPlatform, nil
+	})
+
+	cleanup = func() {
+		cleanPlatform()
+		cleanPrimary()
+	}
+	return
+}
+
+func TestMultiStore_LazyRegistration_CreatesStoreOnFirstRequest(t *testing.T) {
+	ms, _, lazyPlatform, collID, resolverCalls, cleanup := newLazySetup(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Create a task via the MultiStore — this should trigger lazy resolution.
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Lazy task",
+		CollectionID: collID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+	if created.Title != "Lazy task" {
+		t.Errorf("title = %q, want %q", created.Title, "Lazy task")
+	}
+
+	// Verify the task exists in the lazy platform store.
+	got, err := lazyPlatform.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("lazyPlatform.GetTask: %v", err)
+	}
+	if got.Title != "Lazy task" {
+		t.Errorf("platform task title = %q, want %q", got.Title, "Lazy task")
+	}
+
+	// Resolver should have been called exactly once.
+	if calls := resolverCalls.Load(); calls != 1 {
+		t.Errorf("resolver calls = %d, want 1", calls)
+	}
+}
+
+func TestMultiStore_LazyRegistration_CachesOnSecondRequest(t *testing.T) {
+	ms, _, _, collID, resolverCalls, cleanup := newLazySetup(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// First request — triggers lazy resolution.
+	_, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "First",
+		CollectionID: collID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask 1: %v", err)
+	}
+
+	// Second request — should use cached store.
+	_, err = ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Second",
+		CollectionID: collID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask 2: %v", err)
+	}
+
+	// Resolver should have been called exactly once (cached on second).
+	if calls := resolverCalls.Load(); calls != 1 {
+		t.Errorf("resolver calls = %d, want 1 (should cache)", calls)
+	}
+}
+
+func TestMultiStore_LazyRegistration_NoLinkedAccountFallsToPrimary(t *testing.T) {
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	defer cleanPrimary()
+	ctx := context.Background()
+
+	// Create a github collection without any linked account.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "no-link",
+		Platform: "github",
+		RemoteID: "owner/repo",
+	})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+
+	resolverCalls := &atomic.Int32{}
+	ms := store.NewMultiStore(primary)
+	ms.SetResolver(func(platform collection.Platform, token string, remoteID string, cid uuid.UUID) (store.Store, error) {
+		resolverCalls.Add(1)
+		t.Error("resolver should not be called when no linked account exists")
+		return nil, nil
+	})
+
+	// Creating a task should fall through to primary since there's no
+	// linked account — lazy resolution doesn't call the resolver.
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Primary fallback",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	// Verify it went to primary.
+	got, err := primary.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("primary.GetTask: %v", err)
+	}
+	if got.Title != "Primary fallback" {
+		t.Errorf("title = %q, want %q", got.Title, "Primary fallback")
+	}
+
+	if calls := resolverCalls.Load(); calls != 0 {
+		t.Errorf("resolver calls = %d, want 0", calls)
+	}
+}
+
+func TestMultiStore_LazyRegistration_FarmtableSkipsResolver(t *testing.T) {
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	defer cleanPrimary()
+	ctx := context.Background()
+
+	// Create a farmtable-native collection.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "native",
+		Platform: "farmtable",
+	})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+
+	resolverCalls := &atomic.Int32{}
+	ms := store.NewMultiStore(primary)
+	ms.SetResolver(func(platform collection.Platform, token string, remoteID string, cid uuid.UUID) (store.Store, error) {
+		resolverCalls.Add(1)
+		t.Error("resolver should not be called for farmtable collections")
+		return nil, nil
+	})
+
+	_, err = ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Native task",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	if calls := resolverCalls.Load(); calls != 0 {
+		t.Errorf("resolver calls = %d, want 0", calls)
+	}
+}
+
+func TestMultiStore_LazyRegistration_UnsupportedPlatformFallsToPrimary(t *testing.T) {
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	defer cleanPrimary()
+	ctx := context.Background()
+
+	// Create a linear-typed collection.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "linear-coll",
+		Platform: "linear",
+		RemoteID: "some-linear-id",
+	})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+
+	// Create a linked account for it.
+	_, err = primary.CreateLinkedAccount(ctx, store.CreateLinkedAccountParams{
+		CollectionID: coll.ID,
+		Platform:     "linear",
+		AuthToken:    "lin_token",
+		AuthMethod:   "pat",
+	})
+	if err != nil {
+		t.Fatalf("creating linked account: %v", err)
+	}
+
+	ms := store.NewMultiStore(primary)
+	ms.SetResolver(func(platform collection.Platform, token string, remoteID string, cid uuid.UUID) (store.Store, error) {
+		// Only support github, return nil for everything else.
+		return nil, nil
+	})
+
+	// Should fall through to primary.
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Linear fallback",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	got, err := primary.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("primary.GetTask: %v", err)
+	}
+	if got.Title != "Linear fallback" {
+		t.Errorf("title = %q, want %q", got.Title, "Linear fallback")
+	}
+}
+
+func TestMultiStore_LazyRegistration_NoResolverFallsToPrimary(t *testing.T) {
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	defer cleanPrimary()
+	ctx := context.Background()
+
+	// Create a github collection with linked account but don't set a
+	// resolver — lazy resolution should be a no-op.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "no-resolver",
+		Platform: "github",
+		RemoteID: "owner/repo",
+	})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+	_, err = primary.CreateLinkedAccount(ctx, store.CreateLinkedAccountParams{
+		CollectionID: coll.ID,
+		Platform:     "github",
+		AuthToken:    "ghp_token",
+		AuthMethod:   "pat",
+	})
+	if err != nil {
+		t.Fatalf("creating linked account: %v", err)
+	}
+
+	ms := store.NewMultiStore(primary)
+	// No SetResolver call.
+
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "No resolver",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		NativeLabel:  "triage",
+		Type:         "task",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	// Should have gone to primary.
+	got, err := primary.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("primary.GetTask: %v", err)
+	}
+	if got.Title != "No resolver" {
+		t.Errorf("title = %q, want %q", got.Title, "No resolver")
+	}
+}
+
+func TestMultiStore_LazyRegistration_ConcurrentSafety(t *testing.T) {
+	primary, cleanPrimary := testutil.NewTestStore(t)
+	defer cleanPrimary()
+	ctx := context.Background()
+
+	// Create a github collection with a linked account.
+	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "concurrent-coll",
+		Platform: "github",
+		RemoteID: "owner/repo",
+	})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+	collID := coll.ID
+
+	_, err = primary.CreateLinkedAccount(ctx, store.CreateLinkedAccountParams{
+		CollectionID: collID,
+		Platform:     "github",
+		AuthToken:    "ghp_concurrent",
+		AuthMethod:   "pat",
+	})
+	if err != nil {
+		t.Fatalf("creating linked account: %v", err)
+	}
+
+	// The resolver creates a fresh in-memory store each invocation so
+	// the Close() in the double-check path doesn't break the winner.
+	var resolverCalls atomic.Int32
+	ms := store.NewMultiStore(primary)
+	ms.SetResolver(func(platform collection.Platform, token string, remoteID string, cid uuid.UUID) (store.Store, error) {
+		resolverCalls.Add(1)
+		s, clean := testutil.NewTestStore(t)
+		t.Cleanup(clean)
+		return s, nil
+	})
+
+	// Launch goroutines that all trigger lazy resolution concurrently.
+	const goroutines = 10
+	var wg sync.WaitGroup
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _, _ = ms.ListTasks(ctx, store.ListTasksParams{CollectionID: &collID})
+		}()
+	}
+	wg.Wait()
+
+	// Resolver may be called more than once due to races, but the
+	// cache should ensure the same store is used after the first
+	// registration. The main assertion is no panics or data races.
+	if calls := resolverCalls.Load(); calls < 1 {
+		t.Errorf("resolver calls = %d, want >= 1", calls)
+	}
+}
+
+func TestParseOwnerRepo(t *testing.T) {
+	tests := []struct {
+		input     string
+		wantOwner string
+		wantRepo  string
+		wantOK    bool
+	}{
+		{"owner/repo", "owner", "repo", true},
+		{"org/my-project", "org", "my-project", true},
+		{"owner/repo/extra", "owner", "repo/extra", true}, // SplitN(2)
+		{"noslash", "", "", false},
+		{"/repo", "", "", false},
+		{"owner/", "", "", false},
+		{"", "", "", false},
+	}
+	for _, tt := range tests {
+		owner, repo, ok := store.ParseOwnerRepo(tt.input)
+		if ok != tt.wantOK || owner != tt.wantOwner || repo != tt.wantRepo {
+			t.Errorf("ParseOwnerRepo(%q) = (%q, %q, %v), want (%q, %q, %v)",
+				tt.input, owner, repo, ok, tt.wantOwner, tt.wantRepo, tt.wantOK)
+		}
 	}
 }
