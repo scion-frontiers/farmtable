@@ -216,7 +216,6 @@ export class FtApp extends LitElement {
         return html`
           <ft-ready-queue-view
             .store=${this.taskStore}
-            .client=${this.client}
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
             selected-task-id=${this.selectedTaskId ?? ''}

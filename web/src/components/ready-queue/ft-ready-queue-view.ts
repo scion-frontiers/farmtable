@@ -9,7 +9,6 @@ import {
   RelationshipType,
   type Task,
 } from '../../gen/types.js';
-import type { FarmTableServiceClient } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
 import {
@@ -158,9 +157,6 @@ export class FtReadyQueueView extends LitElement {
   @property({ attribute: false })
   store!: TaskStore;
 
-  @property({ attribute: false })
-  client?: FarmTableServiceClient;
-
   @property({ attribute: 'selected-task-id' })
   selectedTaskId: string | null = null;
 
@@ -188,6 +184,7 @@ export class FtReadyQueueView extends LitElement {
     for (const rel of task.relationships) {
       if (rel.type !== RelationshipType.BLOCKED_BY) continue;
       const blocker = this.store.getTask(rel.targetTaskId);
+      // If the blocker is unknown (deleted, cross-collection, etc.), don't block.
       if (blocker && blocker.phase !== TaskPhase.CLOSED) {
         return false;
       }
