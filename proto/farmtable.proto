@@ -114,6 +114,14 @@ enum AuthMethod {
   AUTH_METHOD_LOCAL_PROCESS = 8;
 }
 
+// Status of a linked external platform account.
+enum LinkedAccountStatus {
+  LINKED_ACCOUNT_STATUS_UNSPECIFIED = 0;
+  LINKED_ACCOUNT_STATUS_ACTIVE = 1;
+  LINKED_ACCOUNT_STATUS_EXPIRED = 2;
+  LINKED_ACCOUNT_STATUS_REVOKED = 3;
+}
+
 enum CustomFieldType {
   CUSTOM_FIELD_TYPE_UNSPECIFIED = 0;
   CUSTOM_FIELD_TYPE_TEXT = 1;
@@ -417,20 +425,24 @@ message Change {
 message LinkedAccount {
   string id = 1 [(buf.validate.field).string.uuid = true];
 
-  Platform platform = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  string collection_id = 2 [(buf.validate.field).string.uuid = true];
 
-  AuthMethod auth_method = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  Platform platform = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  AuthMethod auth_method = 4 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
 
   // Granted permission scopes (least-privilege set).
-  repeated string scopes = 4;
+  repeated string scopes = 5;
 
-  optional string remote_user_id = 5;
+  optional string remote_user_id = 6;
 
-  IdentityStatus status = 6 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+  LinkedAccountStatus status = 7 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
 
-  google.protobuf.Timestamp created_at = 7 [(buf.validate.field).required = true];
+  google.protobuf.Timestamp created_at = 8 [(buf.validate.field).required = true];
 
-  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+
+  google.protobuf.Timestamp expires_at = 10;
 }
 
 // A normalized event emitted when a task changes in any connected platform.
@@ -732,6 +744,60 @@ message ImportStats {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LinkedAccount RPC Messages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+message CreateLinkedAccountRequest {
+  string collection_id = 1 [(buf.validate.field).string.uuid = true];
+
+  Platform platform = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  AuthMethod auth_method = 3 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}];
+
+  // Credential for the external platform. Sensitive — never returned in responses.
+  string auth_token = 4 [(buf.validate.field).string.min_len = 1];
+
+  repeated string scopes = 5;
+
+  optional string remote_user_id = 6;
+
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message CreateLinkedAccountResponse {
+  LinkedAccount linked_account = 1;
+}
+
+message GetLinkedAccountRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetLinkedAccountResponse {
+  LinkedAccount linked_account = 1;
+}
+
+message DeleteLinkedAccountRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteLinkedAccountResponse {}
+
+message ListLinkedAccountsRequest {
+  optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
+  optional Platform platform = 2 [(buf.validate.field).enum.defined_only = true];
+  optional LinkedAccountStatus status = 3 [(buf.validate.field).enum.defined_only = true];
+  int32 page_size = 4 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
+  string page_token = 5;
+}
+
+message ListLinkedAccountsResponse {
+  repeated LinkedAccount items = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
+  int32 total_count = 4;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Graph Query RPC Messages
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -998,6 +1064,13 @@ service FarmTableService {
   rpc UpdateCollection(UpdateCollectionRequest) returns (Collection);
   rpc ExportCollection(ExportCollectionRequest) returns (ExportCollectionResponse);
   rpc ImportCollection(ImportCollectionRequest) returns (ImportCollectionResponse);
+
+  // ── Linked Accounts ──
+
+  rpc CreateLinkedAccount(CreateLinkedAccountRequest) returns (CreateLinkedAccountResponse);
+  rpc GetLinkedAccount(GetLinkedAccountRequest) returns (GetLinkedAccountResponse);
+  rpc DeleteLinkedAccount(DeleteLinkedAccountRequest) returns (DeleteLinkedAccountResponse);
+  rpc ListLinkedAccounts(ListLinkedAccountsRequest) returns (ListLinkedAccountsResponse);
 
   // ── Graph Queries ──
 
