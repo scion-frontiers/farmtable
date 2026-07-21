@@ -6,7 +6,7 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
+import { Platform, RelationshipType, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
@@ -315,12 +315,22 @@ export class FtApp extends LitElement {
     window.history.pushState({}, '', url);
     // Skip applyRoute() — view-only change doesn't need collection revalidation.
     this.currentView = view;
+    if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
+      this.showDimOverlay();
+    } else {
+      this.hideDimOverlay();
+    }
   }
 
   private onFilterChange(e: CustomEvent) {
     const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
     this.phaseFilter = phase;
     this.assigneeFilter = assigneeId;
+    if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
+      this.showDimOverlay();
+    } else {
+      this.hideDimOverlay();
+    }
   }
 
   private async loadUsers() {
@@ -372,6 +382,14 @@ export class FtApp extends LitElement {
     if (this.currentView === 'ready-queue') {
       if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
         return false;
+      }
+      // A ready-queue task must not be blocked by any non-closed task.
+      for (const rel of task.relationships) {
+        if (rel.type !== RelationshipType.BLOCKED_BY) continue;
+        const blocker = this.taskStore.getTask(rel.targetTaskId);
+        if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          return false;
+        }
       }
     }
 
@@ -435,6 +453,7 @@ export class FtApp extends LitElement {
 
   private onInspectorClose() {
     this.selectedTaskId = null;
+    this.hideDimOverlay();
   }
 
   private onShortcutHelpOpen() {
