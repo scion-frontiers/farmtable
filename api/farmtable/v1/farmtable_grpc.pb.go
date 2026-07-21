@@ -25,35 +25,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FarmTableService_ListTasks_FullMethodName         = "/farmtable.v1.FarmTableService/ListTasks"
-	FarmTableService_GetTask_FullMethodName           = "/farmtable.v1.FarmTableService/GetTask"
-	FarmTableService_CreateTask_FullMethodName        = "/farmtable.v1.FarmTableService/CreateTask"
-	FarmTableService_InsertTasksAfter_FullMethodName  = "/farmtable.v1.FarmTableService/InsertTasksAfter"
-	FarmTableService_UpdateTask_FullMethodName        = "/farmtable.v1.FarmTableService/UpdateTask"
-	FarmTableService_ClaimTask_FullMethodName         = "/farmtable.v1.FarmTableService/ClaimTask"
-	FarmTableService_CloseTask_FullMethodName         = "/farmtable.v1.FarmTableService/CloseTask"
-	FarmTableService_DeleteTask_FullMethodName        = "/farmtable.v1.FarmTableService/DeleteTask"
-	FarmTableService_AddComment_FullMethodName        = "/farmtable.v1.FarmTableService/AddComment"
-	FarmTableService_ListComments_FullMethodName      = "/farmtable.v1.FarmTableService/ListComments"
-	FarmTableService_GetComment_FullMethodName        = "/farmtable.v1.FarmTableService/GetComment"
-	FarmTableService_ListCollections_FullMethodName   = "/farmtable.v1.FarmTableService/ListCollections"
-	FarmTableService_GetCollection_FullMethodName     = "/farmtable.v1.FarmTableService/GetCollection"
-	FarmTableService_CreateCollection_FullMethodName  = "/farmtable.v1.FarmTableService/CreateCollection"
-	FarmTableService_UpdateCollection_FullMethodName  = "/farmtable.v1.FarmTableService/UpdateCollection"
-	FarmTableService_ExportCollection_FullMethodName  = "/farmtable.v1.FarmTableService/ExportCollection"
-	FarmTableService_ImportCollection_FullMethodName  = "/farmtable.v1.FarmTableService/ImportCollection"
-	FarmTableService_GetReadyTasks_FullMethodName     = "/farmtable.v1.FarmTableService/GetReadyTasks"
-	FarmTableService_GetBlockedTasks_FullMethodName   = "/farmtable.v1.FarmTableService/GetBlockedTasks"
-	FarmTableService_GetDependencyTree_FullMethodName = "/farmtable.v1.FarmTableService/GetDependencyTree"
-	FarmTableService_GetCriticalPath_FullMethodName   = "/farmtable.v1.FarmTableService/GetCriticalPath"
-	FarmTableService_GetBottlenecks_FullMethodName    = "/farmtable.v1.FarmTableService/GetBottlenecks"
-	FarmTableService_ListChanges_FullMethodName       = "/farmtable.v1.FarmTableService/ListChanges"
-	FarmTableService_WhoAmI_FullMethodName            = "/farmtable.v1.FarmTableService/WhoAmI"
-	FarmTableService_ListUsers_FullMethodName         = "/farmtable.v1.FarmTableService/ListUsers"
-	FarmTableService_GetUser_FullMethodName           = "/farmtable.v1.FarmTableService/GetUser"
-	FarmTableService_GetStatus_FullMethodName         = "/farmtable.v1.FarmTableService/GetStatus"
-	FarmTableService_GetVersion_FullMethodName        = "/farmtable.v1.FarmTableService/GetVersion"
-	FarmTableService_WatchTasks_FullMethodName        = "/farmtable.v1.FarmTableService/WatchTasks"
+	FarmTableService_ListTasks_FullMethodName           = "/farmtable.v1.FarmTableService/ListTasks"
+	FarmTableService_GetTask_FullMethodName             = "/farmtable.v1.FarmTableService/GetTask"
+	FarmTableService_CreateTask_FullMethodName          = "/farmtable.v1.FarmTableService/CreateTask"
+	FarmTableService_InsertTasksAfter_FullMethodName    = "/farmtable.v1.FarmTableService/InsertTasksAfter"
+	FarmTableService_UpdateTask_FullMethodName          = "/farmtable.v1.FarmTableService/UpdateTask"
+	FarmTableService_ClaimTask_FullMethodName           = "/farmtable.v1.FarmTableService/ClaimTask"
+	FarmTableService_CloseTask_FullMethodName           = "/farmtable.v1.FarmTableService/CloseTask"
+	FarmTableService_DeleteTask_FullMethodName          = "/farmtable.v1.FarmTableService/DeleteTask"
+	FarmTableService_AddComment_FullMethodName          = "/farmtable.v1.FarmTableService/AddComment"
+	FarmTableService_ListComments_FullMethodName        = "/farmtable.v1.FarmTableService/ListComments"
+	FarmTableService_GetComment_FullMethodName          = "/farmtable.v1.FarmTableService/GetComment"
+	FarmTableService_ListCollections_FullMethodName     = "/farmtable.v1.FarmTableService/ListCollections"
+	FarmTableService_GetCollection_FullMethodName       = "/farmtable.v1.FarmTableService/GetCollection"
+	FarmTableService_CreateCollection_FullMethodName    = "/farmtable.v1.FarmTableService/CreateCollection"
+	FarmTableService_UpdateCollection_FullMethodName    = "/farmtable.v1.FarmTableService/UpdateCollection"
+	FarmTableService_ExportCollection_FullMethodName    = "/farmtable.v1.FarmTableService/ExportCollection"
+	FarmTableService_ImportCollection_FullMethodName    = "/farmtable.v1.FarmTableService/ImportCollection"
+	FarmTableService_CreateLinkedAccount_FullMethodName = "/farmtable.v1.FarmTableService/CreateLinkedAccount"
+	FarmTableService_GetLinkedAccount_FullMethodName    = "/farmtable.v1.FarmTableService/GetLinkedAccount"
+	FarmTableService_DeleteLinkedAccount_FullMethodName = "/farmtable.v1.FarmTableService/DeleteLinkedAccount"
+	FarmTableService_ListLinkedAccounts_FullMethodName  = "/farmtable.v1.FarmTableService/ListLinkedAccounts"
+	FarmTableService_GetReadyTasks_FullMethodName       = "/farmtable.v1.FarmTableService/GetReadyTasks"
+	FarmTableService_GetBlockedTasks_FullMethodName     = "/farmtable.v1.FarmTableService/GetBlockedTasks"
+	FarmTableService_GetDependencyTree_FullMethodName   = "/farmtable.v1.FarmTableService/GetDependencyTree"
+	FarmTableService_GetCriticalPath_FullMethodName     = "/farmtable.v1.FarmTableService/GetCriticalPath"
+	FarmTableService_GetBottlenecks_FullMethodName      = "/farmtable.v1.FarmTableService/GetBottlenecks"
+	FarmTableService_ListChanges_FullMethodName         = "/farmtable.v1.FarmTableService/ListChanges"
+	FarmTableService_WhoAmI_FullMethodName              = "/farmtable.v1.FarmTableService/WhoAmI"
+	FarmTableService_ListUsers_FullMethodName           = "/farmtable.v1.FarmTableService/ListUsers"
+	FarmTableService_GetUser_FullMethodName             = "/farmtable.v1.FarmTableService/GetUser"
+	FarmTableService_GetStatus_FullMethodName           = "/farmtable.v1.FarmTableService/GetStatus"
+	FarmTableService_GetVersion_FullMethodName          = "/farmtable.v1.FarmTableService/GetVersion"
+	FarmTableService_WatchTasks_FullMethodName          = "/farmtable.v1.FarmTableService/WatchTasks"
 )
 
 // FarmTableServiceClient is the client API for FarmTableService service.
@@ -85,6 +89,10 @@ type FarmTableServiceClient interface {
 	UpdateCollection(ctx context.Context, in *UpdateCollectionRequest, opts ...grpc.CallOption) (*Collection, error)
 	ExportCollection(ctx context.Context, in *ExportCollectionRequest, opts ...grpc.CallOption) (*ExportCollectionResponse, error)
 	ImportCollection(ctx context.Context, in *ImportCollectionRequest, opts ...grpc.CallOption) (*ImportCollectionResponse, error)
+	CreateLinkedAccount(ctx context.Context, in *CreateLinkedAccountRequest, opts ...grpc.CallOption) (*CreateLinkedAccountResponse, error)
+	GetLinkedAccount(ctx context.Context, in *GetLinkedAccountRequest, opts ...grpc.CallOption) (*GetLinkedAccountResponse, error)
+	DeleteLinkedAccount(ctx context.Context, in *DeleteLinkedAccountRequest, opts ...grpc.CallOption) (*DeleteLinkedAccountResponse, error)
+	ListLinkedAccounts(ctx context.Context, in *ListLinkedAccountsRequest, opts ...grpc.CallOption) (*ListLinkedAccountsResponse, error)
 	// List tasks ready to work on: OPEN phase, stage ready, and all blocking
 	// dependencies resolved (CLOSED phase). The primary "what should I work
 	// on next?" query for agents.
@@ -285,6 +293,46 @@ func (c *farmTableServiceClient) ImportCollection(ctx context.Context, in *Impor
 	return out, nil
 }
 
+func (c *farmTableServiceClient) CreateLinkedAccount(ctx context.Context, in *CreateLinkedAccountRequest, opts ...grpc.CallOption) (*CreateLinkedAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateLinkedAccountResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_CreateLinkedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *farmTableServiceClient) GetLinkedAccount(ctx context.Context, in *GetLinkedAccountRequest, opts ...grpc.CallOption) (*GetLinkedAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLinkedAccountResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_GetLinkedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *farmTableServiceClient) DeleteLinkedAccount(ctx context.Context, in *DeleteLinkedAccountRequest, opts ...grpc.CallOption) (*DeleteLinkedAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteLinkedAccountResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_DeleteLinkedAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *farmTableServiceClient) ListLinkedAccounts(ctx context.Context, in *ListLinkedAccountsRequest, opts ...grpc.CallOption) (*ListLinkedAccountsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLinkedAccountsResponse)
+	err := c.cc.Invoke(ctx, FarmTableService_ListLinkedAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *farmTableServiceClient) GetReadyTasks(ctx context.Context, in *GetReadyTasksRequest, opts ...grpc.CallOption) (*GetReadyTasksResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetReadyTasksResponse)
@@ -443,6 +491,10 @@ type FarmTableServiceServer interface {
 	UpdateCollection(context.Context, *UpdateCollectionRequest) (*Collection, error)
 	ExportCollection(context.Context, *ExportCollectionRequest) (*ExportCollectionResponse, error)
 	ImportCollection(context.Context, *ImportCollectionRequest) (*ImportCollectionResponse, error)
+	CreateLinkedAccount(context.Context, *CreateLinkedAccountRequest) (*CreateLinkedAccountResponse, error)
+	GetLinkedAccount(context.Context, *GetLinkedAccountRequest) (*GetLinkedAccountResponse, error)
+	DeleteLinkedAccount(context.Context, *DeleteLinkedAccountRequest) (*DeleteLinkedAccountResponse, error)
+	ListLinkedAccounts(context.Context, *ListLinkedAccountsRequest) (*ListLinkedAccountsResponse, error)
 	// List tasks ready to work on: OPEN phase, stage ready, and all blocking
 	// dependencies resolved (CLOSED phase). The primary "what should I work
 	// on next?" query for agents.
@@ -523,6 +575,18 @@ func (UnimplementedFarmTableServiceServer) ExportCollection(context.Context, *Ex
 }
 func (UnimplementedFarmTableServiceServer) ImportCollection(context.Context, *ImportCollectionRequest) (*ImportCollectionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ImportCollection not implemented")
+}
+func (UnimplementedFarmTableServiceServer) CreateLinkedAccount(context.Context, *CreateLinkedAccountRequest) (*CreateLinkedAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateLinkedAccount not implemented")
+}
+func (UnimplementedFarmTableServiceServer) GetLinkedAccount(context.Context, *GetLinkedAccountRequest) (*GetLinkedAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLinkedAccount not implemented")
+}
+func (UnimplementedFarmTableServiceServer) DeleteLinkedAccount(context.Context, *DeleteLinkedAccountRequest) (*DeleteLinkedAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteLinkedAccount not implemented")
+}
+func (UnimplementedFarmTableServiceServer) ListLinkedAccounts(context.Context, *ListLinkedAccountsRequest) (*ListLinkedAccountsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLinkedAccounts not implemented")
 }
 func (UnimplementedFarmTableServiceServer) GetReadyTasks(context.Context, *GetReadyTasksRequest) (*GetReadyTasksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetReadyTasks not implemented")
@@ -887,6 +951,78 @@ func _FarmTableService_ImportCollection_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FarmTableService_CreateLinkedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateLinkedAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).CreateLinkedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_CreateLinkedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).CreateLinkedAccount(ctx, req.(*CreateLinkedAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FarmTableService_GetLinkedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLinkedAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).GetLinkedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_GetLinkedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).GetLinkedAccount(ctx, req.(*GetLinkedAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FarmTableService_DeleteLinkedAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteLinkedAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).DeleteLinkedAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_DeleteLinkedAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).DeleteLinkedAccount(ctx, req.(*DeleteLinkedAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FarmTableService_ListLinkedAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLinkedAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FarmTableServiceServer).ListLinkedAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FarmTableService_ListLinkedAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FarmTableServiceServer).ListLinkedAccounts(ctx, req.(*ListLinkedAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FarmTableService_GetReadyTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetReadyTasksRequest)
 	if err := dec(in); err != nil {
@@ -1170,6 +1306,22 @@ var FarmTableService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ImportCollection",
 			Handler:    _FarmTableService_ImportCollection_Handler,
+		},
+		{
+			MethodName: "CreateLinkedAccount",
+			Handler:    _FarmTableService_CreateLinkedAccount_Handler,
+		},
+		{
+			MethodName: "GetLinkedAccount",
+			Handler:    _FarmTableService_GetLinkedAccount_Handler,
+		},
+		{
+			MethodName: "DeleteLinkedAccount",
+			Handler:    _FarmTableService_DeleteLinkedAccount_Handler,
+		},
+		{
+			MethodName: "ListLinkedAccounts",
+			Handler:    _FarmTableService_ListLinkedAccounts_Handler,
 		},
 		{
 			MethodName: "GetReadyTasks",
