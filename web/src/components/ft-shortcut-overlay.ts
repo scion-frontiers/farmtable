@@ -14,6 +14,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     heading: 'General',
     shortcuts: [
       { keys: ['?'], description: 'Toggle this keyboard shortcuts overlay' },
+      { keys: ['Cmd+K', 'Ctrl+K'], description: 'Open the command palette to search tasks' },
     ],
   },
   {
