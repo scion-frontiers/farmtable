@@ -120,11 +120,13 @@ type CreateCollectionParams struct {
 	Description string
 	Platform    string
 	RemoteID    string
+	RemoteData  map[string]any
 }
 
 type UpdateCollectionParams struct {
 	Name        *string
 	Description *string
+	RemoteData  map[string]any
 }
 
 type ListCollectionsParams struct {
@@ -192,6 +194,7 @@ type ImportCollection struct {
 	Name        string
 	Description string
 	Platform    collection.Platform
+	RemoteData  map[string]any
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

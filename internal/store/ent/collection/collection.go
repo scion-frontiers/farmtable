@@ -24,6 +24,8 @@ const (
 	FieldPlatform = "platform"
 	// FieldRemoteID holds the string denoting the remote_id field in the database.
 	FieldRemoteID = "remote_id"
+	// FieldRemoteData holds the string denoting the remote_data field in the database.
+	FieldRemoteData = "remote_data"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -48,6 +50,7 @@ var Columns = []string{
 	FieldDescription,
 	FieldPlatform,
 	FieldRemoteID,
+	FieldRemoteData,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }

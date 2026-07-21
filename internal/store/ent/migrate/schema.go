@@ -82,6 +82,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "platform", Type: field.TypeEnum, Enums: []string{"farmtable", "github", "linear", "jira", "asana", "beads"}, Default: "farmtable"},
 		{Name: "remote_id", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "remote_data", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}

@@ -392,6 +392,9 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 	if c.RemoteID != "" {
 		pc.RemoteId = &c.RemoteID
 	}
+	if c.RemoteData != nil {
+		pc.RemoteData, _ = structpb.NewStruct(c.RemoteData)
+	}
 	return pc
 }
 

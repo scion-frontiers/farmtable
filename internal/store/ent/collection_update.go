@@ -98,6 +98,18 @@ func (_u *CollectionUpdate) ClearRemoteID() *CollectionUpdate {
 	return _u
 }
 
+// SetRemoteData sets the "remote_data" field.
+func (_u *CollectionUpdate) SetRemoteData(v map[string]interface{}) *CollectionUpdate {
+	_u.mutation.SetRemoteData(v)
+	return _u
+}
+
+// ClearRemoteData clears the value of the "remote_data" field.
+func (_u *CollectionUpdate) ClearRemoteData() *CollectionUpdate {
+	_u.mutation.ClearRemoteData()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *CollectionUpdate) SetUpdatedAt(v time.Time) *CollectionUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -225,6 +237,12 @@ func (_u *CollectionUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	}
 	if _u.mutation.RemoteIDCleared() {
 		_spec.ClearField(collection.FieldRemoteID, field.TypeString)
+	}
+	if value, ok := _u.mutation.RemoteData(); ok {
+		_spec.SetField(collection.FieldRemoteData, field.TypeJSON, value)
+	}
+	if _u.mutation.RemoteDataCleared() {
+		_spec.ClearField(collection.FieldRemoteData, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(collection.FieldUpdatedAt, field.TypeTime, value)
@@ -359,6 +377,18 @@ func (_u *CollectionUpdateOne) SetNillableRemoteID(v *string) *CollectionUpdateO
 // ClearRemoteID clears the value of the "remote_id" field.
 func (_u *CollectionUpdateOne) ClearRemoteID() *CollectionUpdateOne {
 	_u.mutation.ClearRemoteID()
+	return _u
+}
+
+// SetRemoteData sets the "remote_data" field.
+func (_u *CollectionUpdateOne) SetRemoteData(v map[string]interface{}) *CollectionUpdateOne {
+	_u.mutation.SetRemoteData(v)
+	return _u
+}
+
+// ClearRemoteData clears the value of the "remote_data" field.
+func (_u *CollectionUpdateOne) ClearRemoteData() *CollectionUpdateOne {
+	_u.mutation.ClearRemoteData()
 	return _u
 }
 
@@ -519,6 +549,12 @@ func (_u *CollectionUpdateOne) sqlSave(ctx context.Context) (_node *Collection, 
 	}
 	if _u.mutation.RemoteIDCleared() {
 		_spec.ClearField(collection.FieldRemoteID, field.TypeString)
+	}
+	if value, ok := _u.mutation.RemoteData(); ok {
+		_spec.SetField(collection.FieldRemoteData, field.TypeJSON, value)
+	}
+	if _u.mutation.RemoteDataCleared() {
+		_spec.ClearField(collection.FieldRemoteData, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(collection.FieldUpdatedAt, field.TypeTime, value)
