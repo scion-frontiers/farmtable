@@ -58,8 +58,20 @@ export class FtInspector extends LitElement {
       height: 100%;
       overflow-y: auto;
     }
-    sl-divider {
-      --spacing: 0.75rem;
+    sl-details,
+    ft-inspector-comments,
+    ft-inspector-changes {
+      margin-top: 0.75rem;
+    }
+    sl-details::part(base) {
+      border: 1px solid var(--sl-color-neutral-200);
+      border-radius: var(--sl-border-radius-medium);
+    }
+    sl-details::part(header) {
+      padding: 0.5rem 0.75rem;
+    }
+    sl-details::part(content) {
+      padding: 0 0.75rem 0.75rem;
     }
   `,
   ];
@@ -86,6 +98,14 @@ export class FtInspector extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this.onBodyKeyDown);
+  }
+
+  private isSectionOpen(key: string): boolean {
+    return localStorage.getItem(`inspector.collapse.${key}`) !== 'false';
+  }
+
+  private persistSectionState(key: string, open: boolean) {
+    localStorage.setItem(`inspector.collapse.${key}`, String(open));
   }
 
   private onClose() {
@@ -138,39 +158,58 @@ export class FtInspector extends LitElement {
           <div class="body" tabindex="0">
             <ft-inspector-header .task=${task}></ft-inspector-header>
 
-            <sl-divider></sl-divider>
+            <sl-details
+              summary="Properties"
+              ?open=${this.isSectionOpen('metadata')}
+              @sl-show=${() => this.persistSectionState('metadata', true)}
+              @sl-hide=${() => this.persistSectionState('metadata', false)}
+            >
+              <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
+            </sl-details>
 
-            <ft-inspector-meta .task=${task} .client=${this.client}></ft-inspector-meta>
-
-            <sl-divider></sl-divider>
-
-            <ft-inspector-desc
-              taskId=${task.id}
-              .description=${task.description}
-            ></ft-inspector-desc>
+            <sl-details
+              summary="Description"
+              ?open=${this.isSectionOpen('description')}
+              @sl-show=${() => this.persistSectionState('description', true)}
+              @sl-hide=${() => this.persistSectionState('description', false)}
+            >
+              <ft-inspector-desc
+                taskId=${task.id}
+                .description=${task.description}
+                hide-title
+              ></ft-inspector-desc>
+            </sl-details>
 
             ${task.relationships.length > 0
               ? html`
-                  <sl-divider></sl-divider>
-                  <ft-inspector-relations .task=${task} .store=${this.store}></ft-inspector-relations>
+                  <sl-details
+                    summary="Relations"
+                    ?open=${this.isSectionOpen('relations')}
+                    @sl-show=${() => this.persistSectionState('relations', true)}
+                    @sl-hide=${() => this.persistSectionState('relations', false)}
+                  >
+                    <ft-inspector-relations .task=${task} .store=${this.store}></ft-inspector-relations>
+                  </sl-details>
                 `
               : nothing}
 
             ${task.codeContext
               ? html`
-                  <sl-divider></sl-divider>
-                  <ft-inspector-code .codeContext=${task.codeContext}></ft-inspector-code>
+                  <sl-details
+                    summary="Code"
+                    ?open=${this.isSectionOpen('code')}
+                    @sl-show=${() => this.persistSectionState('code', true)}
+                    @sl-hide=${() => this.persistSectionState('code', false)}
+                  >
+                    <ft-inspector-code .codeContext=${task.codeContext}></ft-inspector-code>
+                  </sl-details>
                 `
               : nothing}
-
-            <sl-divider></sl-divider>
 
             <ft-inspector-comments
               taskId=${this.taskId}
               .client=${this.client}
             ></ft-inspector-comments>
-
-            <sl-divider></sl-divider>
 
             <ft-inspector-changes
               taskId=${this.taskId}
