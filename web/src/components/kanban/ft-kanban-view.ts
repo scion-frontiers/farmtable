@@ -55,13 +55,10 @@ export class FtKanbanView extends LitElement {
     :host {
       display: flex;
       flex-direction: column;
-      height: 100%;
     }
     .board {
       display: flex;
       gap: 0.75rem;
-      flex: 1;
-      min-height: 0;
       overflow: auto;
       padding-bottom: 0.5rem;
     }
@@ -94,7 +91,6 @@ export class FtKanbanView extends LitElement {
     .on-hold-columns {
       display: flex;
       gap: 0.75rem;
-      min-height: 0;
       overflow: auto;
       padding-bottom: 0.5rem;
     }

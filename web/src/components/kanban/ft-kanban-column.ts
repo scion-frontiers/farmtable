@@ -100,7 +100,6 @@ export class FtKanbanColumn extends LitElement {
     }
     .cards {
       flex: 1;
-      overflow-y: auto;
       padding: 0 0.5rem 0.5rem;
       display: flex;
       flex-direction: column;
