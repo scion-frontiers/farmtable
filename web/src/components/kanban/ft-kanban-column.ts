@@ -138,6 +138,9 @@ export class FtKanbanColumn extends LitElement {
   @property({ attribute: 'selected-task-id' })
   selectedTaskId: string | null = null;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @state()
   private isDragOver = false;
 
@@ -158,21 +161,25 @@ export class FtKanbanColumn extends LitElement {
   }
 
   private onDragEnter() {
+    if (this.readOnly) return;
     this._dragEnterCount++;
     this.isDragOver = true;
   }
 
   private onDragOver(e: DragEvent) {
+    if (this.readOnly) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
   }
 
   private onDragLeave() {
+    if (this.readOnly) return;
     this._dragEnterCount--;
     this.isDragOver = this._dragEnterCount > 0;
   }
 
   private onDrop(e: DragEvent) {
+    if (this.readOnly) return;
     e.preventDefault();
     this._dragEnterCount = 0;
     this.isDragOver = false;
@@ -294,13 +301,13 @@ export class FtKanbanColumn extends LitElement {
               >${countChip}</sl-tooltip
             >`
           : countChip}
-        <sl-icon-button
+        ${this.readOnly ? nothing : html`<sl-icon-button
           class="add-task-button"
           name="plus"
           size="small"
           label=${`Add task to ${this.label}`}
           @click=${this.onAddTaskClick}
-        ></sl-icon-button>
+        ></sl-icon-button>`}
       </div>
       <div
         class=${classMap({ cards: true, dragover: this.isDragOver })}
@@ -316,6 +323,7 @@ export class FtKanbanColumn extends LitElement {
             <ft-task-card
               .task=${task}
               ?selected=${task.id === this.selectedTaskId}
+              ?readOnly=${this.readOnly}
               card-tab-index=${index === this.activeCardIndex ? 0 : -1}
               data-card-index=${index}
               @focusin=${this.onCardFocusHandler}

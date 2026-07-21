@@ -75,6 +75,9 @@ export class FtInspectorHeader extends LitElement {
   @property({ attribute: false })
   task!: Task;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @state()
   private isEditingPriority = false;
 
@@ -96,6 +99,7 @@ export class FtInspectorHeader extends LitElement {
   }
 
   private async startPriorityEdit(e: Event) {
+    if (this.readOnly) return;
     e.stopPropagation();
     this.isEditingPriority = true;
     await this.updateComplete;
@@ -201,9 +205,11 @@ export class FtInspectorHeader extends LitElement {
         ${stageLabel
           ? html`<span class="stage-badge" style="background:${stageColor}">${stageLabel}</span>`
           : nothing}
-        ${this.isEditingPriority
-          ? this.renderPriorityEditor(priority)
-          : this.renderPriorityBadge(priorityLabel, priorityVariant)}
+        ${this.readOnly
+          ? html`<sl-badge variant=${priorityVariant} pill>${priorityLabel}</sl-badge>`
+          : this.isEditingPriority
+            ? this.renderPriorityEditor(priority)
+            : this.renderPriorityBadge(priorityLabel, priorityVariant)}
       </div>
     `;
   }
