@@ -29,5 +29,6 @@ func (Collection) Fields() []ent.Field {
 func (Collection) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("tasks", Task.Type),
+		edge.To("linked_accounts", LinkedAccount.Type),
 	}
 }

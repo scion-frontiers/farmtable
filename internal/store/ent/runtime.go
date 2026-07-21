@@ -9,6 +9,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/store/ent/user"
@@ -108,6 +109,26 @@ func init() {
 	commentDescID := commentFields[0].Descriptor()
 	// comment.DefaultID holds the default value on creation for the id field.
 	comment.DefaultID = commentDescID.Default.(func() uuid.UUID)
+	linkedaccountFields := schema.LinkedAccount{}.Fields()
+	_ = linkedaccountFields
+	// linkedaccountDescRemoteUserID is the schema descriptor for remote_user_id field.
+	linkedaccountDescRemoteUserID := linkedaccountFields[6].Descriptor()
+	// linkedaccount.DefaultRemoteUserID holds the default value on creation for the remote_user_id field.
+	linkedaccount.DefaultRemoteUserID = linkedaccountDescRemoteUserID.Default.(string)
+	// linkedaccountDescCreatedAt is the schema descriptor for created_at field.
+	linkedaccountDescCreatedAt := linkedaccountFields[8].Descriptor()
+	// linkedaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	linkedaccount.DefaultCreatedAt = linkedaccountDescCreatedAt.Default.(func() time.Time)
+	// linkedaccountDescUpdatedAt is the schema descriptor for updated_at field.
+	linkedaccountDescUpdatedAt := linkedaccountFields[9].Descriptor()
+	// linkedaccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	linkedaccount.DefaultUpdatedAt = linkedaccountDescUpdatedAt.Default.(func() time.Time)
+	// linkedaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	linkedaccount.UpdateDefaultUpdatedAt = linkedaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// linkedaccountDescID is the schema descriptor for id field.
+	linkedaccountDescID := linkedaccountFields[0].Descriptor()
+	// linkedaccount.DefaultID holds the default value on creation for the id field.
+	linkedaccount.DefaultID = linkedaccountDescID.Default.(func() uuid.UUID)
 	relationshipFields := schema.Relationship{}.Fields()
 	_ = relationshipFields
 	// relationshipDescID is the schema descriptor for id field.

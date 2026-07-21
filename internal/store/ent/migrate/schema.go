@@ -122,6 +122,34 @@ var (
 			},
 		},
 	}
+	// LinkedAccountsColumns holds the columns for the "linked_accounts" table.
+	LinkedAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "platform", Type: field.TypeEnum, Enums: []string{"github", "linear", "jira", "asana", "beads"}},
+		{Name: "auth_token", Type: field.TypeString},
+		{Name: "auth_method", Type: field.TypeEnum, Enums: []string{"pat", "oauth", "github_app"}},
+		{Name: "scopes", Type: field.TypeJSON, Nullable: true},
+		{Name: "remote_user_id", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "expired", "revoked"}, Default: "active"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "collection_id", Type: field.TypeUUID},
+	}
+	// LinkedAccountsTable holds the schema information for the "linked_accounts" table.
+	LinkedAccountsTable = &schema.Table{
+		Name:       "linked_accounts",
+		Columns:    LinkedAccountsColumns,
+		PrimaryKey: []*schema.Column{LinkedAccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "linked_accounts_collections_linked_accounts",
+				Columns:    []*schema.Column{LinkedAccountsColumns[10]},
+				RefColumns: []*schema.Column{CollectionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// RelationshipsColumns holds the columns for the "relationships" table.
 	RelationshipsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -258,6 +286,7 @@ var (
 		ChangesTable,
 		CollectionsTable,
 		CommentsTable,
+		LinkedAccountsTable,
 		RelationshipsTable,
 		TasksTable,
 		UsersTable,
@@ -268,6 +297,7 @@ func init() {
 	APITokensTable.ForeignKeys[0].RefTable = UsersTable
 	ChangesTable.ForeignKeys[0].RefTable = TasksTable
 	CommentsTable.ForeignKeys[0].RefTable = TasksTable
+	LinkedAccountsTable.ForeignKeys[0].RefTable = CollectionsTable
 	RelationshipsTable.ForeignKeys[0].RefTable = TasksTable
 	RelationshipsTable.ForeignKeys[1].RefTable = TasksTable
 	TasksTable.ForeignKeys[0].RefTable = CollectionsTable

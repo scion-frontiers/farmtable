@@ -57,6 +57,18 @@ func (f CommentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CommentMutation", m)
 }
 
+// The LinkedAccountFunc type is an adapter to allow the use of ordinary
+// function as LinkedAccount mutator.
+type LinkedAccountFunc func(context.Context, *ent.LinkedAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LinkedAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LinkedAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LinkedAccountMutation", m)
+}
+
 // The RelationshipFunc type is an adapter to allow the use of ordinary
 // function as Relationship mutator.
 type RelationshipFunc func(context.Context, *ent.RelationshipMutation) (ent.Value, error)

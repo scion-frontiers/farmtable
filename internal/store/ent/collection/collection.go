@@ -32,6 +32,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeTasks holds the string denoting the tasks edge name in mutations.
 	EdgeTasks = "tasks"
+	// EdgeLinkedAccounts holds the string denoting the linked_accounts edge name in mutations.
+	EdgeLinkedAccounts = "linked_accounts"
 	// Table holds the table name of the collection in the database.
 	Table = "collections"
 	// TasksTable is the table that holds the tasks relation/edge.
@@ -41,6 +43,13 @@ const (
 	TasksInverseTable = "tasks"
 	// TasksColumn is the table column denoting the tasks relation/edge.
 	TasksColumn = "collection_id"
+	// LinkedAccountsTable is the table that holds the linked_accounts relation/edge.
+	LinkedAccountsTable = "linked_accounts"
+	// LinkedAccountsInverseTable is the table name for the LinkedAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "linkedaccount" package.
+	LinkedAccountsInverseTable = "linked_accounts"
+	// LinkedAccountsColumn is the table column denoting the linked_accounts relation/edge.
+	LinkedAccountsColumn = "collection_id"
 )
 
 // Columns holds all SQL columns for collection fields.
@@ -163,10 +172,31 @@ func ByTasks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTasksStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByLinkedAccountsCount orders the results by linked_accounts count.
+func ByLinkedAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newLinkedAccountsStep(), opts...)
+	}
+}
+
+// ByLinkedAccounts orders the results by linked_accounts terms.
+func ByLinkedAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLinkedAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newTasksStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TasksInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, TasksTable, TasksColumn),
+	)
+}
+func newLinkedAccountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LinkedAccountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LinkedAccountsTable, LinkedAccountsColumn),
 	)
 }

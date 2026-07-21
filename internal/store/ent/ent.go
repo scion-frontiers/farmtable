@@ -16,6 +16,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/store/ent/user"
@@ -79,13 +80,14 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			apitoken.Table:     apitoken.ValidColumn,
-			change.Table:       change.ValidColumn,
-			collection.Table:   collection.ValidColumn,
-			comment.Table:      comment.ValidColumn,
-			relationship.Table: relationship.ValidColumn,
-			task.Table:         task.ValidColumn,
-			user.Table:         user.ValidColumn,
+			apitoken.Table:      apitoken.ValidColumn,
+			change.Table:        change.ValidColumn,
+			collection.Table:    collection.ValidColumn,
+			comment.Table:       comment.ValidColumn,
+			linkedaccount.Table: linkedaccount.ValidColumn,
+			relationship.Table:  relationship.ValidColumn,
+			task.Table:          task.ValidColumn,
+			user.Table:          user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -15,6 +15,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
@@ -31,13 +32,14 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeApiToken     = "ApiToken"
-	TypeChange       = "Change"
-	TypeCollection   = "Collection"
-	TypeComment      = "Comment"
-	TypeRelationship = "Relationship"
-	TypeTask         = "Task"
-	TypeUser         = "User"
+	TypeApiToken      = "ApiToken"
+	TypeChange        = "Change"
+	TypeCollection    = "Collection"
+	TypeComment       = "Comment"
+	TypeLinkedAccount = "LinkedAccount"
+	TypeRelationship  = "Relationship"
+	TypeTask          = "Task"
+	TypeUser          = "User"
 )
 
 // ApiTokenMutation represents an operation that mutates the ApiToken nodes in the graph.
@@ -1437,23 +1439,26 @@ func (m *ChangeMutation) ResetEdge(name string) error {
 // CollectionMutation represents an operation that mutates the Collection nodes in the graph.
 type CollectionMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	name          *string
-	description   *string
-	platform      *collection.Platform
-	remote_id     *string
-	remote_data   *map[string]interface{}
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	tasks         map[uuid.UUID]struct{}
-	removedtasks  map[uuid.UUID]struct{}
-	clearedtasks  bool
-	done          bool
-	oldValue      func(context.Context) (*Collection, error)
-	predicates    []predicate.Collection
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	name                   *string
+	description            *string
+	platform               *collection.Platform
+	remote_id              *string
+	remote_data            *map[string]interface{}
+	created_at             *time.Time
+	updated_at             *time.Time
+	clearedFields          map[string]struct{}
+	tasks                  map[uuid.UUID]struct{}
+	removedtasks           map[uuid.UUID]struct{}
+	clearedtasks           bool
+	linked_accounts        map[uuid.UUID]struct{}
+	removedlinked_accounts map[uuid.UUID]struct{}
+	clearedlinked_accounts bool
+	done                   bool
+	oldValue               func(context.Context) (*Collection, error)
+	predicates             []predicate.Collection
 }
 
 var _ ent.Mutation = (*CollectionMutation)(nil)
@@ -1905,6 +1910,60 @@ func (m *CollectionMutation) ResetTasks() {
 	m.removedtasks = nil
 }
 
+// AddLinkedAccountIDs adds the "linked_accounts" edge to the LinkedAccount entity by ids.
+func (m *CollectionMutation) AddLinkedAccountIDs(ids ...uuid.UUID) {
+	if m.linked_accounts == nil {
+		m.linked_accounts = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.linked_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// ClearLinkedAccounts clears the "linked_accounts" edge to the LinkedAccount entity.
+func (m *CollectionMutation) ClearLinkedAccounts() {
+	m.clearedlinked_accounts = true
+}
+
+// LinkedAccountsCleared reports if the "linked_accounts" edge to the LinkedAccount entity was cleared.
+func (m *CollectionMutation) LinkedAccountsCleared() bool {
+	return m.clearedlinked_accounts
+}
+
+// RemoveLinkedAccountIDs removes the "linked_accounts" edge to the LinkedAccount entity by IDs.
+func (m *CollectionMutation) RemoveLinkedAccountIDs(ids ...uuid.UUID) {
+	if m.removedlinked_accounts == nil {
+		m.removedlinked_accounts = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.linked_accounts, ids[i])
+		m.removedlinked_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedLinkedAccounts returns the removed IDs of the "linked_accounts" edge to the LinkedAccount entity.
+func (m *CollectionMutation) RemovedLinkedAccountsIDs() (ids []uuid.UUID) {
+	for id := range m.removedlinked_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// LinkedAccountsIDs returns the "linked_accounts" edge IDs in the mutation.
+func (m *CollectionMutation) LinkedAccountsIDs() (ids []uuid.UUID) {
+	for id := range m.linked_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetLinkedAccounts resets all changes to the "linked_accounts" edge.
+func (m *CollectionMutation) ResetLinkedAccounts() {
+	m.linked_accounts = nil
+	m.clearedlinked_accounts = false
+	m.removedlinked_accounts = nil
+}
+
 // Where appends a list predicates to the CollectionMutation builder.
 func (m *CollectionMutation) Where(ps ...predicate.Collection) {
 	m.predicates = append(m.predicates, ps...)
@@ -2161,9 +2220,12 @@ func (m *CollectionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CollectionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.tasks != nil {
 		edges = append(edges, collection.EdgeTasks)
+	}
+	if m.linked_accounts != nil {
+		edges = append(edges, collection.EdgeLinkedAccounts)
 	}
 	return edges
 }
@@ -2178,15 +2240,24 @@ func (m *CollectionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case collection.EdgeLinkedAccounts:
+		ids := make([]ent.Value, 0, len(m.linked_accounts))
+		for id := range m.linked_accounts {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CollectionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedtasks != nil {
 		edges = append(edges, collection.EdgeTasks)
+	}
+	if m.removedlinked_accounts != nil {
+		edges = append(edges, collection.EdgeLinkedAccounts)
 	}
 	return edges
 }
@@ -2201,15 +2272,24 @@ func (m *CollectionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case collection.EdgeLinkedAccounts:
+		ids := make([]ent.Value, 0, len(m.removedlinked_accounts))
+		for id := range m.removedlinked_accounts {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CollectionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedtasks {
 		edges = append(edges, collection.EdgeTasks)
+	}
+	if m.clearedlinked_accounts {
+		edges = append(edges, collection.EdgeLinkedAccounts)
 	}
 	return edges
 }
@@ -2220,6 +2300,8 @@ func (m *CollectionMutation) EdgeCleared(name string) bool {
 	switch name {
 	case collection.EdgeTasks:
 		return m.clearedtasks
+	case collection.EdgeLinkedAccounts:
+		return m.clearedlinked_accounts
 	}
 	return false
 }
@@ -2238,6 +2320,9 @@ func (m *CollectionMutation) ResetEdge(name string) error {
 	switch name {
 	case collection.EdgeTasks:
 		m.ResetTasks()
+		return nil
+	case collection.EdgeLinkedAccounts:
+		m.ResetLinkedAccounts()
 		return nil
 	}
 	return fmt.Errorf("unknown Collection edge %s", name)
@@ -2843,6 +2928,955 @@ func (m *CommentMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Comment edge %s", name)
+}
+
+// LinkedAccountMutation represents an operation that mutates the LinkedAccount nodes in the graph.
+type LinkedAccountMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	platform          *linkedaccount.Platform
+	auth_token        *string
+	auth_method       *linkedaccount.AuthMethod
+	scopes            *[]string
+	appendscopes      []string
+	remote_user_id    *string
+	status            *linkedaccount.Status
+	created_at        *time.Time
+	updated_at        *time.Time
+	expires_at        *time.Time
+	clearedFields     map[string]struct{}
+	collection        *uuid.UUID
+	clearedcollection bool
+	done              bool
+	oldValue          func(context.Context) (*LinkedAccount, error)
+	predicates        []predicate.LinkedAccount
+}
+
+var _ ent.Mutation = (*LinkedAccountMutation)(nil)
+
+// linkedaccountOption allows management of the mutation configuration using functional options.
+type linkedaccountOption func(*LinkedAccountMutation)
+
+// newLinkedAccountMutation creates new mutation for the LinkedAccount entity.
+func newLinkedAccountMutation(c config, op Op, opts ...linkedaccountOption) *LinkedAccountMutation {
+	m := &LinkedAccountMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeLinkedAccount,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withLinkedAccountID sets the ID field of the mutation.
+func withLinkedAccountID(id uuid.UUID) linkedaccountOption {
+	return func(m *LinkedAccountMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *LinkedAccount
+		)
+		m.oldValue = func(ctx context.Context) (*LinkedAccount, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().LinkedAccount.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withLinkedAccount sets the old LinkedAccount of the mutation.
+func withLinkedAccount(node *LinkedAccount) linkedaccountOption {
+	return func(m *LinkedAccountMutation) {
+		m.oldValue = func(context.Context) (*LinkedAccount, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m LinkedAccountMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m LinkedAccountMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of LinkedAccount entities.
+func (m *LinkedAccountMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *LinkedAccountMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *LinkedAccountMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().LinkedAccount.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCollectionID sets the "collection_id" field.
+func (m *LinkedAccountMutation) SetCollectionID(u uuid.UUID) {
+	m.collection = &u
+}
+
+// CollectionID returns the value of the "collection_id" field in the mutation.
+func (m *LinkedAccountMutation) CollectionID() (r uuid.UUID, exists bool) {
+	v := m.collection
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectionID returns the old "collection_id" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldCollectionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectionID: %w", err)
+	}
+	return oldValue.CollectionID, nil
+}
+
+// ResetCollectionID resets all changes to the "collection_id" field.
+func (m *LinkedAccountMutation) ResetCollectionID() {
+	m.collection = nil
+}
+
+// SetPlatform sets the "platform" field.
+func (m *LinkedAccountMutation) SetPlatform(l linkedaccount.Platform) {
+	m.platform = &l
+}
+
+// Platform returns the value of the "platform" field in the mutation.
+func (m *LinkedAccountMutation) Platform() (r linkedaccount.Platform, exists bool) {
+	v := m.platform
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatform returns the old "platform" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldPlatform(ctx context.Context) (v linkedaccount.Platform, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatform is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatform requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatform: %w", err)
+	}
+	return oldValue.Platform, nil
+}
+
+// ResetPlatform resets all changes to the "platform" field.
+func (m *LinkedAccountMutation) ResetPlatform() {
+	m.platform = nil
+}
+
+// SetAuthToken sets the "auth_token" field.
+func (m *LinkedAccountMutation) SetAuthToken(s string) {
+	m.auth_token = &s
+}
+
+// AuthToken returns the value of the "auth_token" field in the mutation.
+func (m *LinkedAccountMutation) AuthToken() (r string, exists bool) {
+	v := m.auth_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthToken returns the old "auth_token" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldAuthToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthToken: %w", err)
+	}
+	return oldValue.AuthToken, nil
+}
+
+// ResetAuthToken resets all changes to the "auth_token" field.
+func (m *LinkedAccountMutation) ResetAuthToken() {
+	m.auth_token = nil
+}
+
+// SetAuthMethod sets the "auth_method" field.
+func (m *LinkedAccountMutation) SetAuthMethod(lm linkedaccount.AuthMethod) {
+	m.auth_method = &lm
+}
+
+// AuthMethod returns the value of the "auth_method" field in the mutation.
+func (m *LinkedAccountMutation) AuthMethod() (r linkedaccount.AuthMethod, exists bool) {
+	v := m.auth_method
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthMethod returns the old "auth_method" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldAuthMethod(ctx context.Context) (v linkedaccount.AuthMethod, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthMethod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthMethod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthMethod: %w", err)
+	}
+	return oldValue.AuthMethod, nil
+}
+
+// ResetAuthMethod resets all changes to the "auth_method" field.
+func (m *LinkedAccountMutation) ResetAuthMethod() {
+	m.auth_method = nil
+}
+
+// SetScopes sets the "scopes" field.
+func (m *LinkedAccountMutation) SetScopes(s []string) {
+	m.scopes = &s
+	m.appendscopes = nil
+}
+
+// Scopes returns the value of the "scopes" field in the mutation.
+func (m *LinkedAccountMutation) Scopes() (r []string, exists bool) {
+	v := m.scopes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScopes returns the old "scopes" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldScopes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScopes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
+	}
+	return oldValue.Scopes, nil
+}
+
+// AppendScopes adds s to the "scopes" field.
+func (m *LinkedAccountMutation) AppendScopes(s []string) {
+	m.appendscopes = append(m.appendscopes, s...)
+}
+
+// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
+func (m *LinkedAccountMutation) AppendedScopes() ([]string, bool) {
+	if len(m.appendscopes) == 0 {
+		return nil, false
+	}
+	return m.appendscopes, true
+}
+
+// ClearScopes clears the value of the "scopes" field.
+func (m *LinkedAccountMutation) ClearScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+	m.clearedFields[linkedaccount.FieldScopes] = struct{}{}
+}
+
+// ScopesCleared returns if the "scopes" field was cleared in this mutation.
+func (m *LinkedAccountMutation) ScopesCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldScopes]
+	return ok
+}
+
+// ResetScopes resets all changes to the "scopes" field.
+func (m *LinkedAccountMutation) ResetScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+	delete(m.clearedFields, linkedaccount.FieldScopes)
+}
+
+// SetRemoteUserID sets the "remote_user_id" field.
+func (m *LinkedAccountMutation) SetRemoteUserID(s string) {
+	m.remote_user_id = &s
+}
+
+// RemoteUserID returns the value of the "remote_user_id" field in the mutation.
+func (m *LinkedAccountMutation) RemoteUserID() (r string, exists bool) {
+	v := m.remote_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteUserID returns the old "remote_user_id" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldRemoteUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteUserID: %w", err)
+	}
+	return oldValue.RemoteUserID, nil
+}
+
+// ClearRemoteUserID clears the value of the "remote_user_id" field.
+func (m *LinkedAccountMutation) ClearRemoteUserID() {
+	m.remote_user_id = nil
+	m.clearedFields[linkedaccount.FieldRemoteUserID] = struct{}{}
+}
+
+// RemoteUserIDCleared returns if the "remote_user_id" field was cleared in this mutation.
+func (m *LinkedAccountMutation) RemoteUserIDCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldRemoteUserID]
+	return ok
+}
+
+// ResetRemoteUserID resets all changes to the "remote_user_id" field.
+func (m *LinkedAccountMutation) ResetRemoteUserID() {
+	m.remote_user_id = nil
+	delete(m.clearedFields, linkedaccount.FieldRemoteUserID)
+}
+
+// SetStatus sets the "status" field.
+func (m *LinkedAccountMutation) SetStatus(l linkedaccount.Status) {
+	m.status = &l
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *LinkedAccountMutation) Status() (r linkedaccount.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldStatus(ctx context.Context) (v linkedaccount.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *LinkedAccountMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *LinkedAccountMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *LinkedAccountMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *LinkedAccountMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *LinkedAccountMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *LinkedAccountMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *LinkedAccountMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *LinkedAccountMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *LinkedAccountMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *LinkedAccountMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[linkedaccount.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *LinkedAccountMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *LinkedAccountMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, linkedaccount.FieldExpiresAt)
+}
+
+// ClearCollection clears the "collection" edge to the Collection entity.
+func (m *LinkedAccountMutation) ClearCollection() {
+	m.clearedcollection = true
+	m.clearedFields[linkedaccount.FieldCollectionID] = struct{}{}
+}
+
+// CollectionCleared reports if the "collection" edge to the Collection entity was cleared.
+func (m *LinkedAccountMutation) CollectionCleared() bool {
+	return m.clearedcollection
+}
+
+// CollectionIDs returns the "collection" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CollectionID instead. It exists only for internal usage by the builders.
+func (m *LinkedAccountMutation) CollectionIDs() (ids []uuid.UUID) {
+	if id := m.collection; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCollection resets all changes to the "collection" edge.
+func (m *LinkedAccountMutation) ResetCollection() {
+	m.collection = nil
+	m.clearedcollection = false
+}
+
+// Where appends a list predicates to the LinkedAccountMutation builder.
+func (m *LinkedAccountMutation) Where(ps ...predicate.LinkedAccount) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the LinkedAccountMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *LinkedAccountMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.LinkedAccount, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *LinkedAccountMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *LinkedAccountMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (LinkedAccount).
+func (m *LinkedAccountMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *LinkedAccountMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.collection != nil {
+		fields = append(fields, linkedaccount.FieldCollectionID)
+	}
+	if m.platform != nil {
+		fields = append(fields, linkedaccount.FieldPlatform)
+	}
+	if m.auth_token != nil {
+		fields = append(fields, linkedaccount.FieldAuthToken)
+	}
+	if m.auth_method != nil {
+		fields = append(fields, linkedaccount.FieldAuthMethod)
+	}
+	if m.scopes != nil {
+		fields = append(fields, linkedaccount.FieldScopes)
+	}
+	if m.remote_user_id != nil {
+		fields = append(fields, linkedaccount.FieldRemoteUserID)
+	}
+	if m.status != nil {
+		fields = append(fields, linkedaccount.FieldStatus)
+	}
+	if m.created_at != nil {
+		fields = append(fields, linkedaccount.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, linkedaccount.FieldUpdatedAt)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, linkedaccount.FieldExpiresAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *LinkedAccountMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case linkedaccount.FieldCollectionID:
+		return m.CollectionID()
+	case linkedaccount.FieldPlatform:
+		return m.Platform()
+	case linkedaccount.FieldAuthToken:
+		return m.AuthToken()
+	case linkedaccount.FieldAuthMethod:
+		return m.AuthMethod()
+	case linkedaccount.FieldScopes:
+		return m.Scopes()
+	case linkedaccount.FieldRemoteUserID:
+		return m.RemoteUserID()
+	case linkedaccount.FieldStatus:
+		return m.Status()
+	case linkedaccount.FieldCreatedAt:
+		return m.CreatedAt()
+	case linkedaccount.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case linkedaccount.FieldExpiresAt:
+		return m.ExpiresAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *LinkedAccountMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case linkedaccount.FieldCollectionID:
+		return m.OldCollectionID(ctx)
+	case linkedaccount.FieldPlatform:
+		return m.OldPlatform(ctx)
+	case linkedaccount.FieldAuthToken:
+		return m.OldAuthToken(ctx)
+	case linkedaccount.FieldAuthMethod:
+		return m.OldAuthMethod(ctx)
+	case linkedaccount.FieldScopes:
+		return m.OldScopes(ctx)
+	case linkedaccount.FieldRemoteUserID:
+		return m.OldRemoteUserID(ctx)
+	case linkedaccount.FieldStatus:
+		return m.OldStatus(ctx)
+	case linkedaccount.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case linkedaccount.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case linkedaccount.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown LinkedAccount field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LinkedAccountMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case linkedaccount.FieldCollectionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectionID(v)
+		return nil
+	case linkedaccount.FieldPlatform:
+		v, ok := value.(linkedaccount.Platform)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatform(v)
+		return nil
+	case linkedaccount.FieldAuthToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthToken(v)
+		return nil
+	case linkedaccount.FieldAuthMethod:
+		v, ok := value.(linkedaccount.AuthMethod)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthMethod(v)
+		return nil
+	case linkedaccount.FieldScopes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScopes(v)
+		return nil
+	case linkedaccount.FieldRemoteUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteUserID(v)
+		return nil
+	case linkedaccount.FieldStatus:
+		v, ok := value.(linkedaccount.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case linkedaccount.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case linkedaccount.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case linkedaccount.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LinkedAccount field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *LinkedAccountMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *LinkedAccountMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LinkedAccountMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown LinkedAccount numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *LinkedAccountMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(linkedaccount.FieldScopes) {
+		fields = append(fields, linkedaccount.FieldScopes)
+	}
+	if m.FieldCleared(linkedaccount.FieldRemoteUserID) {
+		fields = append(fields, linkedaccount.FieldRemoteUserID)
+	}
+	if m.FieldCleared(linkedaccount.FieldExpiresAt) {
+		fields = append(fields, linkedaccount.FieldExpiresAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *LinkedAccountMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *LinkedAccountMutation) ClearField(name string) error {
+	switch name {
+	case linkedaccount.FieldScopes:
+		m.ClearScopes()
+		return nil
+	case linkedaccount.FieldRemoteUserID:
+		m.ClearRemoteUserID()
+		return nil
+	case linkedaccount.FieldExpiresAt:
+		m.ClearExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown LinkedAccount nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *LinkedAccountMutation) ResetField(name string) error {
+	switch name {
+	case linkedaccount.FieldCollectionID:
+		m.ResetCollectionID()
+		return nil
+	case linkedaccount.FieldPlatform:
+		m.ResetPlatform()
+		return nil
+	case linkedaccount.FieldAuthToken:
+		m.ResetAuthToken()
+		return nil
+	case linkedaccount.FieldAuthMethod:
+		m.ResetAuthMethod()
+		return nil
+	case linkedaccount.FieldScopes:
+		m.ResetScopes()
+		return nil
+	case linkedaccount.FieldRemoteUserID:
+		m.ResetRemoteUserID()
+		return nil
+	case linkedaccount.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case linkedaccount.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case linkedaccount.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case linkedaccount.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown LinkedAccount field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *LinkedAccountMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.collection != nil {
+		edges = append(edges, linkedaccount.EdgeCollection)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *LinkedAccountMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case linkedaccount.EdgeCollection:
+		if id := m.collection; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *LinkedAccountMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *LinkedAccountMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *LinkedAccountMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedcollection {
+		edges = append(edges, linkedaccount.EdgeCollection)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *LinkedAccountMutation) EdgeCleared(name string) bool {
+	switch name {
+	case linkedaccount.EdgeCollection:
+		return m.clearedcollection
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *LinkedAccountMutation) ClearEdge(name string) error {
+	switch name {
+	case linkedaccount.EdgeCollection:
+		m.ClearCollection()
+		return nil
+	}
+	return fmt.Errorf("unknown LinkedAccount unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *LinkedAccountMutation) ResetEdge(name string) error {
+	switch name {
+	case linkedaccount.EdgeCollection:
+		m.ResetCollection()
+		return nil
+	}
+	return fmt.Errorf("unknown LinkedAccount edge %s", name)
 }
 
 // RelationshipMutation represents an operation that mutates the Relationship nodes in the graph.

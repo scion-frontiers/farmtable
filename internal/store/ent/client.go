@@ -20,6 +20,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/change"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/comment"
+	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
 	"github.com/farmtable-io/farmtable/internal/store/ent/relationship"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/store/ent/user"
@@ -38,6 +39,8 @@ type Client struct {
 	Collection *CollectionClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
+	// LinkedAccount is the client for interacting with the LinkedAccount builders.
+	LinkedAccount *LinkedAccountClient
 	// Relationship is the client for interacting with the Relationship builders.
 	Relationship *RelationshipClient
 	// Task is the client for interacting with the Task builders.
@@ -59,6 +62,7 @@ func (c *Client) init() {
 	c.Change = NewChangeClient(c.config)
 	c.Collection = NewCollectionClient(c.config)
 	c.Comment = NewCommentClient(c.config)
+	c.LinkedAccount = NewLinkedAccountClient(c.config)
 	c.Relationship = NewRelationshipClient(c.config)
 	c.Task = NewTaskClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -152,15 +156,16 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		ApiToken:     NewApiTokenClient(cfg),
-		Change:       NewChangeClient(cfg),
-		Collection:   NewCollectionClient(cfg),
-		Comment:      NewCommentClient(cfg),
-		Relationship: NewRelationshipClient(cfg),
-		Task:         NewTaskClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		ApiToken:      NewApiTokenClient(cfg),
+		Change:        NewChangeClient(cfg),
+		Collection:    NewCollectionClient(cfg),
+		Comment:       NewCommentClient(cfg),
+		LinkedAccount: NewLinkedAccountClient(cfg),
+		Relationship:  NewRelationshipClient(cfg),
+		Task:          NewTaskClient(cfg),
+		User:          NewUserClient(cfg),
 	}, nil
 }
 
@@ -178,15 +183,16 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:          ctx,
-		config:       cfg,
-		ApiToken:     NewApiTokenClient(cfg),
-		Change:       NewChangeClient(cfg),
-		Collection:   NewCollectionClient(cfg),
-		Comment:      NewCommentClient(cfg),
-		Relationship: NewRelationshipClient(cfg),
-		Task:         NewTaskClient(cfg),
-		User:         NewUserClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		ApiToken:      NewApiTokenClient(cfg),
+		Change:        NewChangeClient(cfg),
+		Collection:    NewCollectionClient(cfg),
+		Comment:       NewCommentClient(cfg),
+		LinkedAccount: NewLinkedAccountClient(cfg),
+		Relationship:  NewRelationshipClient(cfg),
+		Task:          NewTaskClient(cfg),
+		User:          NewUserClient(cfg),
 	}, nil
 }
 
@@ -216,7 +222,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.ApiToken, c.Change, c.Collection, c.Comment, c.Relationship, c.Task, c.User,
+		c.ApiToken, c.Change, c.Collection, c.Comment, c.LinkedAccount, c.Relationship,
+		c.Task, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -226,7 +233,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.ApiToken, c.Change, c.Collection, c.Comment, c.Relationship, c.Task, c.User,
+		c.ApiToken, c.Change, c.Collection, c.Comment, c.LinkedAccount, c.Relationship,
+		c.Task, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -243,6 +251,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Collection.mutate(ctx, m)
 	case *CommentMutation:
 		return c.Comment.mutate(ctx, m)
+	case *LinkedAccountMutation:
+		return c.LinkedAccount.mutate(ctx, m)
 	case *RelationshipMutation:
 		return c.Relationship.mutate(ctx, m)
 	case *TaskMutation:
@@ -676,6 +686,22 @@ func (c *CollectionClient) QueryTasks(_m *Collection) *TaskQuery {
 	return query
 }
 
+// QueryLinkedAccounts queries the linked_accounts edge of a Collection.
+func (c *CollectionClient) QueryLinkedAccounts(_m *Collection) *LinkedAccountQuery {
+	query := (&LinkedAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(collection.Table, collection.FieldID, id),
+			sqlgraph.To(linkedaccount.Table, linkedaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, collection.LinkedAccountsTable, collection.LinkedAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CollectionClient) Hooks() []Hook {
 	return c.hooks.Collection
@@ -847,6 +873,155 @@ func (c *CommentClient) mutate(ctx context.Context, m *CommentMutation) (Value, 
 		return (&CommentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Comment mutation op: %q", m.Op())
+	}
+}
+
+// LinkedAccountClient is a client for the LinkedAccount schema.
+type LinkedAccountClient struct {
+	config
+}
+
+// NewLinkedAccountClient returns a client for the LinkedAccount from the given config.
+func NewLinkedAccountClient(c config) *LinkedAccountClient {
+	return &LinkedAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `linkedaccount.Hooks(f(g(h())))`.
+func (c *LinkedAccountClient) Use(hooks ...Hook) {
+	c.hooks.LinkedAccount = append(c.hooks.LinkedAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `linkedaccount.Intercept(f(g(h())))`.
+func (c *LinkedAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LinkedAccount = append(c.inters.LinkedAccount, interceptors...)
+}
+
+// Create returns a builder for creating a LinkedAccount entity.
+func (c *LinkedAccountClient) Create() *LinkedAccountCreate {
+	mutation := newLinkedAccountMutation(c.config, OpCreate)
+	return &LinkedAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LinkedAccount entities.
+func (c *LinkedAccountClient) CreateBulk(builders ...*LinkedAccountCreate) *LinkedAccountCreateBulk {
+	return &LinkedAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LinkedAccountClient) MapCreateBulk(slice any, setFunc func(*LinkedAccountCreate, int)) *LinkedAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LinkedAccountCreateBulk{err: fmt.Errorf("calling to LinkedAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LinkedAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LinkedAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LinkedAccount.
+func (c *LinkedAccountClient) Update() *LinkedAccountUpdate {
+	mutation := newLinkedAccountMutation(c.config, OpUpdate)
+	return &LinkedAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LinkedAccountClient) UpdateOne(_m *LinkedAccount) *LinkedAccountUpdateOne {
+	mutation := newLinkedAccountMutation(c.config, OpUpdateOne, withLinkedAccount(_m))
+	return &LinkedAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LinkedAccountClient) UpdateOneID(id uuid.UUID) *LinkedAccountUpdateOne {
+	mutation := newLinkedAccountMutation(c.config, OpUpdateOne, withLinkedAccountID(id))
+	return &LinkedAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LinkedAccount.
+func (c *LinkedAccountClient) Delete() *LinkedAccountDelete {
+	mutation := newLinkedAccountMutation(c.config, OpDelete)
+	return &LinkedAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LinkedAccountClient) DeleteOne(_m *LinkedAccount) *LinkedAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LinkedAccountClient) DeleteOneID(id uuid.UUID) *LinkedAccountDeleteOne {
+	builder := c.Delete().Where(linkedaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LinkedAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for LinkedAccount.
+func (c *LinkedAccountClient) Query() *LinkedAccountQuery {
+	return &LinkedAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLinkedAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LinkedAccount entity by its id.
+func (c *LinkedAccountClient) Get(ctx context.Context, id uuid.UUID) (*LinkedAccount, error) {
+	return c.Query().Where(linkedaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LinkedAccountClient) GetX(ctx context.Context, id uuid.UUID) *LinkedAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCollection queries the collection edge of a LinkedAccount.
+func (c *LinkedAccountClient) QueryCollection(_m *LinkedAccount) *CollectionQuery {
+	query := (&CollectionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(linkedaccount.Table, linkedaccount.FieldID, id),
+			sqlgraph.To(collection.Table, collection.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, linkedaccount.CollectionTable, linkedaccount.CollectionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LinkedAccountClient) Hooks() []Hook {
+	return c.hooks.LinkedAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *LinkedAccountClient) Interceptors() []Interceptor {
+	return c.inters.LinkedAccount
+}
+
+func (c *LinkedAccountClient) mutate(ctx context.Context, m *LinkedAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LinkedAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LinkedAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LinkedAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LinkedAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LinkedAccount mutation op: %q", m.Op())
 	}
 }
 
@@ -1412,10 +1587,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		ApiToken, Change, Collection, Comment, Relationship, Task, User []ent.Hook
+		ApiToken, Change, Collection, Comment, LinkedAccount, Relationship, Task,
+		User []ent.Hook
 	}
 	inters struct {
-		ApiToken, Change, Collection, Comment, Relationship, Task,
+		ApiToken, Change, Collection, Comment, LinkedAccount, Relationship, Task,
 		User []ent.Interceptor
 	}
 )
