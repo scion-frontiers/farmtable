@@ -10,6 +10,7 @@ import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
+import './ft-command-palette.js';
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -78,6 +79,9 @@ export class FtApp extends LitElement {
 
   @state()
   private shortcutOverlayOpen = false;
+
+  @state()
+  private commandPaletteOpen = false;
 
   @state()
   private phaseFilter: TaskPhase | null = null;
@@ -187,6 +191,12 @@ export class FtApp extends LitElement {
         .open=${this.shortcutOverlayOpen}
         @close=${this.onShortcutHelpClose}
       ></ft-shortcut-overlay>
+      <ft-command-palette
+        .open=${this.commandPaletteOpen}
+        .store=${this.taskStore}
+        @task-select=${this.onTaskSelect}
+        @close=${this.onCommandPaletteClose}
+      ></ft-command-palette>
     `;
   }
 
@@ -383,7 +393,21 @@ export class FtApp extends LitElement {
     window.history.replaceState({}, '', url);
   }
 
+  private onCommandPaletteClose() {
+    this.commandPaletteOpen = false;
+  }
+
   private onDocumentKeyDown = (e: KeyboardEvent) => {
+    // Cmd+K / Ctrl+K — open command palette.
+    // Intentionally fires from editable targets (modifier key prevents accidental activation).
+    if (e.key === 'k' && (e.metaKey || e.ctrlKey) && !e.defaultPrevented) {
+      e.preventDefault();
+      if (this.routeView === 'board') {
+        this.commandPaletteOpen = !this.commandPaletteOpen;
+      }
+      return;
+    }
+
     if (e.key !== '?' || e.defaultPrevented) return;
     if (this.isEditableEventTarget(e)) return;
 
