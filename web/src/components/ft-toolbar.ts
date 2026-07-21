@@ -102,6 +102,30 @@ export class FtToolbar extends LitElement {
       background: var(--sl-color-neutral-100);
       color: var(--sl-color-neutral-700);
     }
+    .read-only-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-warning-100);
+      color: var(--sl-color-warning-700);
+      font-weight: 500;
+    }
+    .read-only-badge sl-icon {
+      font-size: 0.75rem;
+    }
+    .refresh-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .last-refreshed {
+      font-size: 0.75rem;
+      color: var(--sl-color-neutral-500);
+      white-space: nowrap;
+    }
     .view-switcher sl-radio-button::part(button) {
       padding: 0.25rem 0.5rem;
       font-size: 1.1rem;
@@ -129,6 +153,9 @@ export class FtToolbar extends LitElement {
   @property({ attribute: false })
   unscopedClient?: FarmTableServiceClient;
 
+  @property({ type: Boolean, reflect: true })
+  readOnly = false;
+
   @property()
   collectionId = '';
 
@@ -137,6 +164,15 @@ export class FtToolbar extends LitElement {
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
+
+  @property({ type: Boolean, reflect: true })
+  isPolling = false;
+
+  @property({ attribute: false })
+  lastRefreshed: Date | null = null;
+
+  @property({ type: Boolean, reflect: true })
+  isRefreshing = false;
 
   @state()
   private isDark = document.documentElement.classList.contains('sl-theme-dark');
@@ -214,6 +250,12 @@ export class FtToolbar extends LitElement {
           : null}
         ${this.currentCollection && this.currentCollection.platform !== Platform.FARMTABLE
           ? this.renderExternalLink(this.currentCollection)
+          : null}
+        ${this.readOnly
+          ? html`<span class="read-only-badge">
+              <sl-icon name="lock"></sl-icon>
+              Read-only
+            </span>`
           : null}
         <sl-icon-button
           class="toolbar-icon-button"
@@ -305,6 +347,8 @@ export class FtToolbar extends LitElement {
         @click=${this.onShortcutHelpClick}
       ></sl-icon-button>
 
+      ${this.isPolling ? this.renderRefreshControls() : null}
+
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
 
       <ft-new-collection-dialog
@@ -318,6 +362,50 @@ export class FtToolbar extends LitElement {
         @collection-import=${this.onCollectionImport}
       ></ft-import-collection-dialog>
     `;
+  }
+
+  private renderRefreshControls() {
+    return html`
+      <div class="refresh-controls">
+        <sl-tooltip content="Refresh tasks now">
+          <sl-button
+            size="small"
+            variant="default"
+            ?loading=${this.isRefreshing}
+            ?disabled=${this.isRefreshing}
+            @click=${this.onRefreshClick}
+          >
+            <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+            Refresh
+          </sl-button>
+        </sl-tooltip>
+        ${this.lastRefreshed
+          ? html`<span class="last-refreshed">Updated ${this.formatRelativeTime(this.lastRefreshed)}</span>`
+          : null}
+      </div>
+    `;
+  }
+
+  private onRefreshClick() {
+    this.dispatchEvent(
+      new CustomEvent('manual-refresh', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private formatRelativeTime(date: Date): string {
+    const now = Date.now();
+    const diffMs = now - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+
+    if (diffSec < 5) return 'just now';
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    // Fallback: show the time.
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   }
 
   private async onNewCollectionClick() {

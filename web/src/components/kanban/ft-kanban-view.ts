@@ -114,6 +114,9 @@ export class FtKanbanView extends LitElement {
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
+  @property({ type: Boolean, reflect: true })
+  readOnly = false;
+
   @property({ attribute: false })
   phaseFilter: TaskPhase | null = null;
 
@@ -139,6 +142,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onStageChange(e: CustomEvent) {
+    if (this.readOnly) return;
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
     const task = this.store.getTask(taskId);
     if (!task || task.stage === stage) return;
@@ -164,6 +168,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onTaskUpdate(e: CustomEvent) {
+    if (this.readOnly) return;
     const { taskId, fields } = e.detail as { taskId: string; fields: UpdateTaskFields };
     const task = this.store.getTask(taskId);
     if (!task) return;
@@ -288,10 +293,14 @@ export class FtKanbanView extends LitElement {
 
     return html`
       <div class="view-header">
-        <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
-          <sl-icon name="plus" slot="prefix"></sl-icon>
-          Add Task
-        </sl-button>
+        ${this.readOnly
+          ? nothing
+          : html`
+              <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
+                <sl-icon name="plus" slot="prefix"></sl-icon>
+                Add Task
+              </sl-button>
+            `}
       </div>
 
       <div
@@ -308,6 +317,7 @@ export class FtKanbanView extends LitElement {
               .tasks=${col.tasks}
               .label=${col.label}
               .totalCount=${col.totalCount}
+              ?readOnly=${this.readOnly}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
           `,
@@ -340,6 +350,7 @@ export class FtKanbanView extends LitElement {
                             .tasks=${col.tasks}
                             .label=${col.label}
                             .totalCount=${col.totalCount}
+                            ?readOnly=${this.readOnly}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
                         `,

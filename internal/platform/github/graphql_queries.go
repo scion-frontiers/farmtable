@@ -473,7 +473,9 @@ func issueLabels(issue *issueNode) []string {
 
 func issueBuildRemoteData(owner, repo string, issue *issueNode) map[string]any {
 	rd := map[string]any{
+		"platform":   "github",
 		"remote_id":  fmt.Sprintf("%s/%s#%d", owner, repo, issue.Number),
+		"remote_url": issue.URL.String(),
 		"node_id":    issue.ID,
 		"html_url":   issue.URL.String(),
 		"number":     int(issue.Number),

@@ -132,6 +132,9 @@ export class FtInspectorMeta extends LitElement {
   @property({ attribute: false })
   task!: Task;
 
+  @property({ type: Boolean, reflect: true })
+  readOnly = false;
+
   @property({ attribute: false })
   client?: FarmTableServiceClient;
 
@@ -176,6 +179,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startDateEdit(field: EditableDateField) {
+    if (this.readOnly) return;
     this.editingDate = field;
     this.dateDraft = this.dateInputValue(this.task[field]);
     this.addDismissListener();
@@ -225,11 +229,13 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private onLabelRemove(e: Event) {
+    if (this.readOnly) return;
     const label = (e.currentTarget as HTMLElement).dataset.label;
     if (label) this.dispatchTaskUpdate({ removeLabels: [label] });
   }
 
   private async startLabelAdd() {
+    if (this.readOnly) return;
     this.addingLabel = true;
     this.labelDraft = '';
     this.addDismissListener();
