@@ -113,6 +113,29 @@ func platformToProto(p collection.Platform) pb.Platform {
 	}
 }
 
+// platformStringToProto maps a lowercase platform name (as stored in
+// RemoteData) to the corresponding proto enum value. Unknown or empty
+// strings fall back to PLATFORM_FARMTABLE so native tasks keep their
+// existing behaviour.
+func platformStringToProto(s string) pb.Platform {
+	switch s {
+	case "github":
+		return pb.Platform_PLATFORM_GITHUB
+	case "linear":
+		return pb.Platform_PLATFORM_LINEAR
+	case "jira":
+		return pb.Platform_PLATFORM_JIRA
+	case "asana":
+		return pb.Platform_PLATFORM_ASANA
+	case "beads":
+		return pb.Platform_PLATFORM_BEADS
+	case "farmtable":
+		return pb.Platform_PLATFORM_FARMTABLE
+	default:
+		return pb.Platform_PLATFORM_FARMTABLE
+	}
+}
+
 // User type conversions
 
 func userTypeToProto(t string) pb.UserType {
@@ -170,13 +193,20 @@ func userToProto(u *ent.User) *pb.User {
 // Entity → Proto conversions
 
 func taskToProto(t *ent.Task) *pb.Task {
+	platform := pb.Platform_PLATFORM_FARMTABLE
+	if t.RemoteData != nil {
+		if p, ok := t.RemoteData["platform"].(string); ok {
+			platform = platformStringToProto(p)
+		}
+	}
+
 	pt := &pb.Task{
 		Id:           t.ID.String(),
 		Name:         t.Title,
 		Phase:        phaseToProto(t.Phase),
 		Stage:        stageToProto(t.Stage),
 		CollectionId: t.CollectionID.String(),
-		Platform:     pb.Platform_PLATFORM_FARMTABLE,
+		Platform:     platform,
 		CreatedAt:    timestamppb.New(t.CreatedAt),
 		UpdatedAt:    timestamppb.New(t.UpdatedAt),
 		Version:      t.Version,
