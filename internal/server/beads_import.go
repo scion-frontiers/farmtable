@@ -19,7 +19,7 @@ type beadsIssue struct {
 	Title              string            `json:"title"`
 	Description        string            `json:"description"`
 	Status             string            `json:"status"`
-	Priority           int               `json:"priority"`
+	Priority           *int              `json:"priority"`
 	IssueType          string            `json:"issue_type"`
 	Assignee           string            `json:"assignee"`
 	Owner              string            `json:"owner"`
@@ -236,7 +236,10 @@ func convertBeadsToExportDocument(issues []beadsIssue, collectionName string) (e
 		}
 
 		phase, stage := beadsStatusToPhaseStage(issue.Status)
-		priority := beadsPriorityToFarmtable(issue.Priority)
+		var priority *string
+		if issue.Priority != nil {
+			priority = beadsPriorityToFarmtable(*issue.Priority)
+		}
 		taskType := beadsTypeToFarmtable(issue.IssueType)
 
 		// Build description: append design and notes if present.
@@ -436,6 +439,10 @@ func detectImportFormat(data []byte) string {
 				Title string `json:"title"`
 			}
 			if err := json.Unmarshal(line, &probe); err == nil {
+				// Known limitation: a JSON object with "title" but no
+				// "format_version" would be detected as Beads format even
+				// if it's not actually a Beads export. This is acceptable
+				// because the server-side parser validates the full structure.
 				if probe.Type == "issue" || probe.Title != "" {
 					return "beads"
 				}
@@ -456,7 +463,10 @@ func deduplicateRelationships(rels []exportRelationship) []exportRelationship {
 	seen := make(map[relKey]bool)
 	var result []exportRelationship
 	for _, r := range rels {
-		// For relates_to, normalize direction.
+		// For relates_to, normalize direction so (A,B) and (B,A) are treated
+		// as the same edge — relates_to is symmetric.
+		// Blocks and duplicates are NOT normalized because they are
+		// directional: "A blocks B" is distinct from "B blocks A".
 		k := relKey{r.SourceTaskID, r.TargetTaskID, r.Type}
 		if r.Type == string(relationship.TypeRelatesTo) {
 			if r.SourceTaskID > r.TargetTaskID {
