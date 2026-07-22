@@ -107,10 +107,11 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
         .filter((r) => r.type === RelationshipType.BLOCKS)
         .map((r) => r.targetTaskId),
     );
-    for (const targetId of addBlocks) {
-      if (!existing.has(targetId)) {
-        updated.relationships = [...updated.relationships, { type: RelationshipType.BLOCKS, targetTaskId: targetId }];
-      }
+    const toAdd = addBlocks
+      .filter((id) => !existing.has(id))
+      .map((id) => ({ type: RelationshipType.BLOCKS, targetTaskId: id }));
+    if (toAdd.length) {
+      updated.relationships = [...updated.relationships, ...toAdd];
     }
   }
 
@@ -120,10 +121,11 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
         .filter((r) => r.type === RelationshipType.BLOCKED_BY)
         .map((r) => r.targetTaskId),
     );
-    for (const targetId of addBlockedBy) {
-      if (!existing.has(targetId)) {
-        updated.relationships = [...updated.relationships, { type: RelationshipType.BLOCKED_BY, targetTaskId: targetId }];
-      }
+    const toAdd = addBlockedBy
+      .filter((id) => !existing.has(id))
+      .map((id) => ({ type: RelationshipType.BLOCKED_BY, targetTaskId: id }));
+    if (toAdd.length) {
+      updated.relationships = [...updated.relationships, ...toAdd];
     }
   }
 

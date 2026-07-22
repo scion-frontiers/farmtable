@@ -121,6 +121,9 @@ export class FtApp extends LitElement {
   private addRelationshipTaskId = '';
 
   @state()
+  private addRelationshipDefaultType: RelationshipType | undefined = undefined;
+
+  @state()
   private phaseFilter: TaskPhase | null = null;
 
   @state()
@@ -303,6 +306,7 @@ export class FtApp extends LitElement {
         .store=${this.taskStore}
         .mode=${this.commandPaletteMode}
         .excludeTaskId=${this.addRelationshipTaskId}
+        .defaultRelationshipType=${this.addRelationshipDefaultType}
         @task-select=${this.onTaskSelect}
         @relationship-add=${this.onRelationshipAdd}
         @close=${this.onCommandPaletteClose}
@@ -778,16 +782,19 @@ export class FtApp extends LitElement {
     this.commandPaletteOpen = false;
     this.commandPaletteMode = 'navigate';
     this.addRelationshipTaskId = '';
+    this.addRelationshipDefaultType = undefined;
   }
 
   private onOpenAddRelationship(e: CustomEvent) {
-    const { taskId } = e.detail as { taskId: string };
+    const { taskId, relationshipType } = e.detail as { taskId: string; relationshipType?: RelationshipType };
     this.addRelationshipTaskId = taskId;
+    this.addRelationshipDefaultType = relationshipType;
     this.commandPaletteMode = 'add-relationship';
     this.commandPaletteOpen = true;
   }
 
   private async onRelationshipAdd(e: CustomEvent) {
+    if (this.isReadOnly) return;
     const { targetTaskId, relationshipType } = e.detail as {
       targetTaskId: string;
       relationshipType: RelationshipType;

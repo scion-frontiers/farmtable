@@ -6,6 +6,9 @@ import type { TaskStore } from '../../store/task-store.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { STAGE_LABEL, STAGE_COLOR, REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
 
+/** Relationship types that can be added via the UI (proto-supported mutations). */
+const ADDABLE_TYPES = new Set([RelationshipType.BLOCKS, RelationshipType.BLOCKED_BY]);
+
 @customElement('ft-inspector-relationships')
 export class FtInspectorRelationships extends LitElement {
   static styles = css`
@@ -82,7 +85,8 @@ export class FtInspectorRelationships extends LitElement {
       transition: opacity 0.15s;
       flex-shrink: 0;
     }
-    .entry:hover .delete-btn {
+    .entry:hover .delete-btn,
+    .entry:focus-within .delete-btn {
       opacity: 1;
     }
     .delete-btn:hover {
@@ -137,11 +141,11 @@ export class FtInspectorRelationships extends LitElement {
     );
   }
 
-  private onAddRelationship() {
+  private onAddRelationship(relType: RelationshipType) {
     if (this.readOnly) return;
     this.dispatchEvent(
       new CustomEvent('open-add-relationship', {
-        detail: { taskId: this.task.id },
+        detail: { taskId: this.task.id, relationshipType: relType },
         bubbles: true,
         composed: true,
       }),
@@ -224,16 +228,17 @@ export class FtInspectorRelationships extends LitElement {
       ${this.renderSection('Children', children, false)}
       ${REL_GROUP_ORDER.map((type) => {
         const tasks = grouped.get(type) ?? [];
+        const canAdd = canEdit && ADDABLE_TYPES.has(type);
         return html`
           <div class="section">
             <div class="section-header">
               <div class="section-label">${REL_GROUP_LABEL[type]}</div>
-              ${canEdit
+              ${canAdd
                 ? html`<sl-icon-button
                     class="add-btn"
                     name="plus-lg"
                     label="Add relationship"
-                    @click=${() => this.onAddRelationship()}
+                    @click=${() => this.onAddRelationship(type)}
                   ></sl-icon-button>`
                 : nothing}
             </div>

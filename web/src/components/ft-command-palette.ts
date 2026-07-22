@@ -177,7 +177,7 @@ export class FtCommandPalette extends LitElement {
       color: var(--sl-color-primary-600);
     }
 
-    .rel-type-pill[aria-selected='true'] {
+    .rel-type-pill[aria-checked='true'] {
       background: var(--sl-color-primary-50);
       border-color: var(--sl-color-primary-500);
       color: var(--sl-color-primary-700);
@@ -299,6 +299,9 @@ export class FtCommandPalette extends LitElement {
   @property({ type: String })
   excludeTaskId = '';
 
+  @property({ attribute: false })
+  defaultRelationshipType?: RelationshipType;
+
   @state()
   private searchQuery = '';
 
@@ -321,7 +324,7 @@ export class FtCommandPalette extends LitElement {
     if (this.open) {
       this.searchQuery = '';
       this.activeIndex = 0;
-      this.relationshipType = RelationshipType.BLOCKS;
+      this.relationshipType = this.defaultRelationshipType ?? RelationshipType.BLOCKS;
       this.previouslyFocusedElement = this.deepActiveElement();
       this.addDismissListeners();
       void this.updateComplete.then(() => {
@@ -556,13 +559,14 @@ export class FtCommandPalette extends LitElement {
 
           ${isRelMode
             ? html`
-                <div class="rel-type-row">
+                <div class="rel-type-row" role="radiogroup" aria-label="Relationship type">
                   <span class="rel-type-label">Type</span>
                   ${REL_TYPE_LABELS.map(
                     ({ type, label }) => html`
                       <button
                         class="rel-type-pill"
-                        aria-selected=${type === this.relationshipType ? 'true' : 'false'}
+                        role="radio"
+                        aria-checked=${type === this.relationshipType ? 'true' : 'false'}
                         @click=${() => this.onRelTypePillClick(type)}
                       >
                         ${label}
