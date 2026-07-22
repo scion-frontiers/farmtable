@@ -234,13 +234,10 @@ export class FtTreeView extends LitElement {
    * Smoothly animate panX/panY and scale from their current values to the
    * targets over 750 ms with ease-in-out easing.
    *
-   * The pan is recalculated each frame using the interpolated scale so the
-   * focal point (nodeX, nodeY) stays visually centered throughout the
-   * animation — no jumpy/janky artifacts.
-   *
-   * `targetPanX`/`targetPanY` are only used on the final frame as a
-   * floating-point drift guard — intermediate frames compute pan from
-   * `nodeX`/`nodeY` directly.
+   * The viewport center is interpolated from its starting position to the
+   * target node position.  At each frame, pan is derived from this
+   * interpolated center and the interpolated scale so that the camera
+   * moves and zooms smoothly without any frame-0 jump.
    *
    * If called while an animation is already running the current animation
    * is cancelled and a fresh 750 ms animation starts from the current
@@ -256,7 +253,15 @@ export class FtTreeView extends LitElement {
     // Cancel any in-progress animation and snapshot current position.
     this.cancelPanAnimation();
 
+    const startPanX = this.panX;
+    const startPanY = this.panY;
     const startScale = this.scale;
+
+    // Compute the current viewport center in world-space so we can
+    // interpolate it smoothly toward the target node position.
+    const startCenterX = startPanX + this.containerWidth / startScale / 2;
+    const startCenterY = startPanY + this.containerHeight / startScale / 2;
+
     const duration = FtTreeView.PAN_DURATION_MS;
     let startTime: number | null = null;
 
@@ -266,15 +271,17 @@ export class FtTreeView extends LitElement {
       const t = Math.min(elapsed / duration, 1);
       const easedT = FtTreeView.easeInOut(t);
 
-      // Interpolate scale and recompute pan from the focal node position
-      // so the node stays centered at every intermediate zoom level.
+      // Interpolate scale and viewport center, then derive pan so the
+      // camera moves and zooms in one coordinated motion.
       const curScale = startScale + (targetScale - startScale) * easedT;
+      const curCenterX = startCenterX + (nodeX - startCenterX) * easedT;
+      const curCenterY = startCenterY + (nodeY - startCenterY) * easedT;
       const curVbW = this.containerWidth / curScale;
       const curVbH = this.containerHeight / curScale;
 
       this.scale = curScale;
-      this.panX = nodeX - curVbW / 2;
-      this.panY = nodeY - curVbH / 2;
+      this.panX = curCenterX - curVbW / 2;
+      this.panY = curCenterY - curVbH / 2;
 
       if (t < 1) {
         this.animationFrameId = requestAnimationFrame(step);
