@@ -1,6 +1,5 @@
 import { LitElement, html, svg, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import dagre from '@dagrejs/dagre';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import { RelationshipType, TaskPhase } from '../../gen/types.js';
@@ -43,16 +42,23 @@ interface LayoutEdge {
   points: Array<{ x: number; y: number }>;
 }
 
-function edgePath(points: Array<{ x: number; y: number }>): string {
-  if (points.length === 0) return '';
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const midX = (prev.x + curr.x) / 2;
-    d += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-  return d;
+/**
+ * Build an SVG cubic-bezier path from the right-center of a source node
+ * to the left-center of a target node. Control points are placed at ~40%
+ * of the horizontal gap for a smooth S-curve.
+ */
+function edgePath(
+  src: { x: number; y: number; width: number },
+  tgt: { x: number; y: number; width: number },
+): string {
+  const startX = src.x + src.width / 2;
+  const startY = src.y;
+  const endX = tgt.x - tgt.width / 2;
+  const endY = tgt.y;
+  const dx = endX - startX;
+  const cx1 = startX + dx * 0.4;
+  const cx2 = endX - dx * 0.4;
+  return `M ${startX} ${startY} C ${cx1} ${startY}, ${cx2} ${endY}, ${endX} ${endY}`;
 }
 
 /**
@@ -396,6 +402,15 @@ export class FtDependencyView extends LitElement {
       .join('|');
   }
 
+  /** Horizontal gap between layer columns. */
+  private static readonly LAYER_GAP = 100;
+  /** Vertical gap between nodes within the same layer. */
+  private static readonly NODE_GAP = 40;
+  /** Left margin for the leftmost layer. */
+  private static readonly MARGIN_LEFT = 40;
+  /** Top margin for the topmost node in each layer. */
+  private static readonly MARGIN_TOP = 40;
+
   private runLayout() {
     const tasks = this.getVisibleTasks();
     const key = this.structureKey(tasks);
@@ -413,61 +428,64 @@ export class FtDependencyView extends LitElement {
     this.lastStructureKey = key;
     this.needsCenter = true;
 
-    // Compute layers for rank assignment
+    // Compute layers — layer 0 = unblocked, layer N = 1 + max(blocker layers)
     const layers = computeLayers(tasks, this.store);
-
-    const g = new dagre.graphlib.Graph({ directed: true, multigraph: true });
-    g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 80 });
-    g.setDefaultEdgeLabel(() => ({}));
-
     const taskSet = new Set(tasks.map((t) => t.id));
 
+    // Group tasks by layer
+    const layerBuckets = new Map<number, Task[]>();
     for (const task of tasks) {
       const layer = layers.get(task.id) ?? 0;
-      g.setNode(task.id, {
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        task,
-        rank: layer,
-      });
+      let bucket = layerBuckets.get(layer);
+      if (!bucket) {
+        bucket = [];
+        layerBuckets.set(layer, bucket);
+      }
+      bucket.push(task);
     }
 
-    // Edges: draw from blocker → blocked task (left → right)
-    for (const task of tasks) {
-      for (const rel of task.relationships) {
-        if (rel.type === RelationshipType.BLOCKED_BY && taskSet.has(rel.targetTaskId)) {
-          const blocker = this.store.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
-            // Edge from blocker to this task (LR: blocker is to the left)
-            g.setEdge(rel.targetTaskId, task.id, { type: 'dependency' }, 'd');
-          }
-        }
+    // Manual layout: X based on layer, Y based on index within layer
+    const { LAYER_GAP, NODE_GAP, MARGIN_LEFT, MARGIN_TOP } = FtDependencyView;
+    this.layoutNodes = [];
+
+    for (const [layer, bucket] of layerBuckets) {
+      const x = MARGIN_LEFT + NODE_WIDTH / 2 + layer * (NODE_WIDTH + LAYER_GAP);
+      for (let i = 0; i < bucket.length; i++) {
+        const y = MARGIN_TOP + NODE_HEIGHT / 2 + i * (NODE_HEIGHT + NODE_GAP);
+        this.layoutNodes.push({
+          id: bucket[i].id,
+          x,
+          y,
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+          task: bucket[i],
+        });
       }
     }
 
-    dagre.layout(g);
-
-    this.layoutNodes = g.nodes().map((id) => {
-      const n = g.node(id) as Record<string, unknown>;
-      return {
-        id,
-        x: n.x as number,
-        y: n.y as number,
-        width: n.width as number,
-        height: n.height as number,
-        task: n.task as Task,
-      };
-    });
-
+    // Build edge list: blocker → blocked (left → right)
+    const nodeMap = new Map(this.layoutNodes.map((n) => [n.id, n]));
     this.layoutEdges = [];
-    for (const edgeObj of g.edges()) {
-      const e = g.edge(edgeObj) as Record<string, unknown>;
-      const pts = (e.points as Array<{ x: number; y: number }>) || [];
-      this.layoutEdges.push({
-        from: edgeObj.v,
-        to: edgeObj.w,
-        points: pts,
-      });
+    for (const task of tasks) {
+      for (const rel of task.relationships) {
+        if (rel.type !== RelationshipType.BLOCKED_BY) continue;
+        if (!taskSet.has(rel.targetTaskId)) continue;
+        const blocker = this.store.getTask(rel.targetTaskId);
+        if (!blocker || blocker.phase === TaskPhase.CLOSED) continue;
+        const src = nodeMap.get(rel.targetTaskId);
+        const tgt = nodeMap.get(task.id);
+        if (src && tgt) {
+          this.layoutEdges.push({
+            from: rel.targetTaskId,
+            to: task.id,
+            // Store source/target rects for edgePath(); not used as polyline points
+            points: [
+              { x: src.x, y: src.y },
+              { x: tgt.x, y: tgt.y },
+            ],
+          });
+        }
+      }
     }
   }
 
@@ -728,13 +746,15 @@ export class FtDependencyView extends LitElement {
           @mousedown=${this.onMouseDown}
         >
           <g class="edges">
-            ${this.layoutEdges.map(
-              (e) =>
-                svg`<path
-                  d="${edgePath(e.points)}"
-                  class="edge-dependency"
-                />`,
-            )}
+            ${this.layoutEdges.map((e) => {
+              const src = this.layoutNodes.find((n) => n.id === e.from);
+              const tgt = this.layoutNodes.find((n) => n.id === e.to);
+              if (!src || !tgt) return null;
+              return svg`<path
+                d="${edgePath(src, tgt)}"
+                class="edge-dependency"
+              />`;
+            })}
           </g>
           <g class="nodes">
             ${this.layoutNodes.map((n) => {
