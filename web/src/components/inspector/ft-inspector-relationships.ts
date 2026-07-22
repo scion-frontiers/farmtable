@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
 import { RelationshipType } from '../../gen/types.js';
 import type { TaskStore } from '../../store/task-store.js';
+import type { UpdateTaskFields } from '../../gen/service.js';
 import { STAGE_LABEL, STAGE_COLOR, REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
 
 @customElement('ft-inspector-relationships')
@@ -18,13 +19,25 @@ export class FtInspectorRelationships extends LitElement {
     .section:last-child {
       margin-bottom: 0;
     }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
     .section-label {
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--sl-color-neutral-500);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-bottom: 0.25rem;
+    }
+    .add-btn {
+      font-size: 0.875rem;
+      color: var(--sl-color-neutral-400);
+    }
+    .add-btn:hover {
+      color: var(--sl-color-primary-600);
     }
     .entry {
       display: flex;
@@ -62,6 +75,19 @@ export class FtInspectorRelationships extends LitElement {
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .delete-btn {
+      font-size: 0.75rem;
+      color: var(--sl-color-neutral-400);
+      opacity: 0;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .entry:hover .delete-btn {
+      opacity: 1;
+    }
+    .delete-btn:hover {
+      color: var(--sl-color-danger-600);
+    }
     .none {
       font-style: italic;
       color: var(--sl-color-neutral-400);
@@ -75,6 +101,9 @@ export class FtInspectorRelationships extends LitElement {
 
   @property({ attribute: false })
   store!: TaskStore;
+
+  @property({ type: Boolean })
+  readOnly = false;
 
   private onClickTask(taskId: string) {
     this.dispatchEvent(
@@ -93,6 +122,32 @@ export class FtInspectorRelationships extends LitElement {
     }
   }
 
+  private onRemoveRelationship(targetTaskId: string, e: Event) {
+    e.stopPropagation();
+    if (this.readOnly) return;
+    this.dispatchEvent(
+      new CustomEvent('task-update', {
+        detail: {
+          taskId: this.task.id,
+          fields: { removeRelationships: [targetTaskId] } as UpdateTaskFields,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private onAddRelationship() {
+    if (this.readOnly) return;
+    this.dispatchEvent(
+      new CustomEvent('open-add-relationship', {
+        detail: { taskId: this.task.id },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private renderStageBadge(task: Task) {
     const label = STAGE_LABEL[task.stage] ?? '';
     const color = STAGE_COLOR[task.stage] ?? 'var(--sl-color-neutral-500)';
@@ -100,7 +155,7 @@ export class FtInspectorRelationships extends LitElement {
     return html`<span class="stage-badge" style="background:${color}">${label}</span>`;
   }
 
-  private renderEntry(task: Task) {
+  private renderEntry(task: Task, showDelete: boolean) {
     return html`
       <div class="entry"
         tabindex="0"
@@ -110,6 +165,14 @@ export class FtInspectorRelationships extends LitElement {
       >
         <span class="entry-name">${task.name}</span>
         ${this.renderStageBadge(task)}
+        ${showDelete
+          ? html`<sl-icon-button
+              class="delete-btn"
+              name="trash"
+              label="Remove relationship"
+              @click=${(e: Event) => this.onRemoveRelationship(task.id, e)}
+            ></sl-icon-button>`
+          : nothing}
       </div>
     `;
   }
@@ -118,12 +181,14 @@ export class FtInspectorRelationships extends LitElement {
     return html`<div class="none">None</div>`;
   }
 
-  private renderSection(label: string, tasks: Task[]) {
+  private renderSection(label: string, tasks: Task[], showDelete: boolean) {
     return html`
       <div class="section">
-        <div class="section-label">${label}</div>
+        <div class="section-header">
+          <div class="section-label">${label}</div>
+        </div>
         ${tasks.length > 0
-          ? tasks.map((t) => this.renderEntry(t))
+          ? tasks.map((t) => this.renderEntry(t, showDelete))
           : this.renderNone()}
       </div>
     `;
@@ -152,12 +217,31 @@ export class FtInspectorRelationships extends LitElement {
       else grouped.set(r.type, [target]);
     }
 
+    const canEdit = !this.readOnly;
+
     return html`
-      ${this.renderSection('Parent', parentTasks)}
-      ${this.renderSection('Children', children)}
+      ${this.renderSection('Parent', parentTasks, false)}
+      ${this.renderSection('Children', children, false)}
       ${REL_GROUP_ORDER.map((type) => {
         const tasks = grouped.get(type) ?? [];
-        return this.renderSection(REL_GROUP_LABEL[type], tasks);
+        return html`
+          <div class="section">
+            <div class="section-header">
+              <div class="section-label">${REL_GROUP_LABEL[type]}</div>
+              ${canEdit
+                ? html`<sl-icon-button
+                    class="add-btn"
+                    name="plus-lg"
+                    label="Add relationship"
+                    @click=${() => this.onAddRelationship()}
+                  ></sl-icon-button>`
+                : nothing}
+            </div>
+            ${tasks.length > 0
+              ? tasks.map((t) => this.renderEntry(t, canEdit))
+              : this.renderNone()}
+          </div>
+        `;
       })}
     `;
   }
