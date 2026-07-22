@@ -127,6 +127,16 @@ export class FtTreeView extends LitElement {
   private lastStructureKey = '';
   private needsCenter = true;
 
+  /** Active animation frame ID for pan animation, null when idle. */
+  private animationFrameId: number | null = null;
+
+  private cancelPanAnimation() {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
   private resizeObserver?: ResizeObserver;
 
   connectedCallback() {
@@ -141,6 +151,7 @@ export class FtTreeView extends LitElement {
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
     this.resizeObserver?.disconnect();
+    this.cancelPanAnimation();
   }
 
   firstUpdated() {
@@ -190,7 +201,7 @@ export class FtTreeView extends LitElement {
 
   /**
    * Pan the viewport so that the given node is centered, keeping the
-   * current zoom level. Mirrors centerGraph() but targets a single node.
+   * current zoom level.  Animates smoothly over 750 ms with ease-in-out.
    */
   private centerOnNode(taskId: string) {
     const node = this.layoutNodes.find((n) => n.id === taskId);
@@ -198,8 +209,60 @@ export class FtTreeView extends LitElement {
 
     const vbW = this.containerWidth / this.scale;
     const vbH = this.containerHeight / this.scale;
-    this.panX = node.x - vbW / 2;
-    this.panY = node.y - vbH / 2;
+    const targetPanX = node.x - vbW / 2;
+    const targetPanY = node.y - vbH / 2;
+    this.animatePanTo(targetPanX, targetPanY);
+  }
+
+  // ── Pan Animation ──
+
+  private static readonly PAN_DURATION_MS = 750;
+
+  private static easeInOut(t: number): number {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  /**
+   * Smoothly animate panX/panY from their current values to the target
+   * over 750 ms with ease-in-out easing.
+   *
+   * If called while an animation is already running the current animation
+   * is cancelled and a fresh 750 ms animation starts from the current
+   * (interpolated) position — no jumping, no queueing.
+   */
+  private animatePanTo(targetPanX: number, targetPanY: number) {
+    // Cancel any in-progress animation and snapshot current position.
+    this.cancelPanAnimation();
+
+    const startPanX = this.panX;
+    const startPanY = this.panY;
+    const duration = FtTreeView.PAN_DURATION_MS;
+    let startTime: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const easedT = FtTreeView.easeInOut(t);
+
+      // NOTE: Setting @state() props triggers Lit update cycles (~45 during
+      // the animation). Lit batches these to at most one render per frame,
+      // which is efficient for attribute-only viewBox changes. If perf
+      // becomes an issue with large trees, consider direct setAttribute().
+      this.panX = startPanX + (targetPanX - startPanX) * easedT;
+      this.panY = startPanY + (targetPanY - startPanY) * easedT;
+
+      if (t < 1) {
+        this.animationFrameId = requestAnimationFrame(step);
+      } else {
+        // Guard against floating-point drift — explicitly set exact targets.
+        this.panX = targetPanX;
+        this.panY = targetPanY;
+        this.animationFrameId = null;
+      }
+    };
+
+    this.animationFrameId = requestAnimationFrame(step);
   }
 
   // ── Layout ──
@@ -308,6 +371,7 @@ export class FtTreeView extends LitElement {
   }
 
   private centerGraph() {
+    this.cancelPanAnimation();
     if (this.layoutNodes.length === 0) return;
 
     const pad = 40;
@@ -352,6 +416,7 @@ export class FtTreeView extends LitElement {
     if (e.button !== 0) return;
     const tgt = e.target as Element;
     if (tgt.closest('ft-tree-node') || tgt.closest('foreignObject')) return;
+    this.cancelPanAnimation();
     this.isPanning = true;
     this.panStartX = e.clientX;
     this.panStartY = e.clientY;
@@ -374,6 +439,7 @@ export class FtTreeView extends LitElement {
 
   private onWheel(e: WheelEvent) {
     e.preventDefault();
+    this.cancelPanAnimation();
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
 
