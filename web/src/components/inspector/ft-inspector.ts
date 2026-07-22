@@ -163,7 +163,7 @@ export class FtInspector extends LitElement {
         ></sl-icon-button>
       </div>
 
-      <ft-inspector-header .task=${task} ?readOnly=${this.readOnly}></ft-inspector-header>
+      <ft-inspector-header .task=${task} ?readOnly=${this.readOnly} .capabilities=${this.capabilities}></ft-inspector-header>
 
       <sl-tab-group>
         <sl-tab slot="nav" panel="general" active>General</sl-tab>
@@ -225,6 +225,7 @@ export class FtInspector extends LitElement {
               taskId=${this.taskId}
               .client=${this.client}
               ?readOnly=${this.readOnly}
+              .capabilities=${this.capabilities}
             ></ft-inspector-comments>
 
             <ft-inspector-changes

@@ -459,7 +459,7 @@ export class FtInspectorMeta extends LitElement {
       <div class="date-cell">
         <span class="label">${label}</span>
         <sl-tooltip content=${tooltip} hoist>
-          <span class="value">${value ? formatDate(value) : '—'}</span>
+          <span class="value" style="cursor: not-allowed; opacity: 0.6;">${value ? formatDate(value) : '—'}</span>
         </sl-tooltip>
       </div>
     `;
@@ -601,12 +601,12 @@ export class FtInspectorMeta extends LitElement {
         ${this.readOnly
           ? this.renderReadOnlyDateCell('Start date', t.startDate)
           : this.capabilities?.canEditDates === false
-            ? this.renderDisabledDateCell('Start date', t.startDate, CAPABILITY_TOOLTIPS.canEditDates)
+            ? this.renderDisabledDateCell('Start date', t.startDate, CAPABILITY_TOOLTIPS.canEditDates ?? 'Not available')
             : this.renderDateCell('Start date', 'startDate', t.startDate)}
         ${this.readOnly
           ? this.renderReadOnlyDateCell('Due date', t.dueDate)
           : this.capabilities?.canEditDates === false
-            ? this.renderDisabledDateCell('Due date', t.dueDate, CAPABILITY_TOOLTIPS.canEditDates)
+            ? this.renderDisabledDateCell('Due date', t.dueDate, CAPABILITY_TOOLTIPS.canEditDates ?? 'Not available')
             : this.renderDateCell('Due date', 'dueDate', t.dueDate)}
         ${this.renderReadOnlyDateCell('Created', t.createdAt)}
         ${this.renderReadOnlyDateCell('Updated', t.updatedAt)}

@@ -144,7 +144,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onStageChange(e: CustomEvent) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canChangeStage === false) return;
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
     const task = this.store.getTask(taskId);
     if (!task || task.stage === stage) return;
@@ -202,7 +202,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onColumnAddTask(e: CustomEvent) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canCreateTask === false) return;
     const { stage, label } = e.detail as { stage: TaskStage; label: string };
     const dialog = this.renderRoot.querySelector<FtAddTaskDialog>('ft-add-task-dialog');
     dialog?.setTarget(stage, label);
@@ -210,7 +210,7 @@ export class FtKanbanView extends LitElement {
   }
 
   private async onTaskCreate(e: CustomEvent<TaskCreateDetail>) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canCreateTask === false) return;
     const dialog = e.currentTarget as FtAddTaskDialog;
 
     if (!this.client) {

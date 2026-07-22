@@ -20,7 +20,7 @@ export interface CollectionCapabilities {
 }
 
 /** All capabilities enabled — used for Farmtable-platform collections. */
-export const ALL_ENABLED: CollectionCapabilities = {
+export const ALL_ENABLED: Readonly<CollectionCapabilities> = Object.freeze({
   canEditTitle: true,
   canEditDescription: true,
   canChangeStage: true,
@@ -36,10 +36,10 @@ export const ALL_ENABLED: CollectionCapabilities = {
   canEditRelationships: true,
   canEditCodeContext: true,
   canDragReorder: true,
-};
+});
 
 /** GitHub-specific capabilities — true for mappable operations, false for unmappable. */
-export const GITHUB_CAPABILITIES: CollectionCapabilities = {
+export const GITHUB_CAPABILITIES: Readonly<CollectionCapabilities> = Object.freeze({
   canEditTitle: true,
   canEditDescription: true,
   canChangeStage: true,
@@ -55,10 +55,10 @@ export const GITHUB_CAPABILITIES: CollectionCapabilities = {
   canEditRelationships: false,
   canEditCodeContext: false,
   canDragReorder: false,
-};
+});
 
 /** All capabilities disabled — used for unknown platforms or read-only external collections. */
-export const ALL_DISABLED: CollectionCapabilities = {
+export const ALL_DISABLED: Readonly<CollectionCapabilities> = Object.freeze({
   canEditTitle: false,
   canEditDescription: false,
   canChangeStage: false,
@@ -74,10 +74,10 @@ export const ALL_DISABLED: CollectionCapabilities = {
   canEditRelationships: false,
   canEditCodeContext: false,
   canDragReorder: false,
-};
+});
 
 /** Tooltip messages for disabled capabilities, keyed by capability name. */
-export const CAPABILITY_TOOLTIPS: Record<string, string> = {
+export const CAPABILITY_TOOLTIPS: Partial<Record<keyof CollectionCapabilities, string>> = {
   canDeleteTask: 'GitHub does not support deleting issues',
   canEditDates: 'No native date fields on GitHub issues',
   canEditAcceptance: 'No acceptance criteria field on GitHub issues',
