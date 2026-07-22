@@ -339,8 +339,10 @@ export class FtApp extends LitElement {
         return html`
           <ft-dependency-view
             .store=${this.taskStore}
+            ?readOnly=${this.isReadOnly}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @dependency-drop=${this.onDependencyDrop}
           ></ft-dependency-view>
         `;
       case 'tree':
@@ -811,6 +813,20 @@ export class FtApp extends LitElement {
     }
 
     await this.applyTaskUpdate(taskId, fields);
+  }
+
+  /**
+   * Handle a dependency-drop event from the dependency view.
+   * Creates a BLOCKED_BY relationship: the dragged task becomes blocked by
+   * the drop-target task.
+   */
+  private async onDependencyDrop(e: CustomEvent) {
+    if (this.isReadOnly) return;
+    const { sourceTaskId, targetTaskId } = e.detail as {
+      sourceTaskId: string;
+      targetTaskId: string;
+    };
+    await this.applyTaskUpdate(sourceTaskId, { addBlockedBy: [targetTaskId] });
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {

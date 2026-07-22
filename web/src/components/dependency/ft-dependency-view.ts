@@ -145,6 +145,12 @@ export class FtDependencyView extends LitElement {
       fill: none;
       stroke-dasharray: 6 3;
     }
+    .drop-highlight {
+      pointer-events: none;
+    }
+    foreignObject {
+      transition: opacity 0.15s;
+    }
   `;
 
   @property({ attribute: false })
@@ -155,10 +161,19 @@ export class FtDependencyView extends LitElement {
 
   private storeCtrl!: TaskStoreController;
 
+  @property({ type: Boolean })
+  readOnly = false;
+
   @state() private panX = 0;
   @state() private panY = 0;
   @state() private scale = 1;
   @state() private isPanning = false;
+
+  /** Task ID of the node currently being dragged. */
+  @state() private draggingNodeId: string | null = null;
+
+  /** Task ID of the node currently hovered during a drag. */
+  @state() private dragOverNodeId: string | null = null;
 
   private containerWidth = 800;
   private containerHeight = 600;
@@ -176,6 +191,9 @@ export class FtDependencyView extends LitElement {
   private animationFrameId: number | null = null;
 
   private resizeObserver?: ResizeObserver;
+
+  /** Per-node drag-enter counters to avoid flicker from child element events. */
+  private _dragEnterCounters = new Map<string, number>();
 
   private boundOnWheel = this.onWheel.bind(this);
   private wheelListenerAttached = false;
@@ -549,6 +567,137 @@ export class FtDependencyView extends LitElement {
     );
   }
 
+  // ── Drag-and-Drop for relationship building ──
+
+  // Note: ft-tree-node also has a dragstart handler that fires first
+  // (bubbles up from its inner <div>). We intentionally override
+  // effectAllowed and set our own data key ('application/ft-task-id') so the two
+  // DnD systems (tree-reparent vs dependency-build) don't conflict.
+  private onNodeDragStart(taskId: string, e: DragEvent) {
+    if (this.readOnly) return;
+    e.dataTransfer!.setData('application/ft-task-id', taskId);
+    e.dataTransfer!.effectAllowed = 'link';
+    this.draggingNodeId = taskId;
+  }
+
+  private onNodeDragEnd() {
+    this.draggingNodeId = null;
+    this.dragOverNodeId = null;
+    this._dragEnterCounters.clear();
+  }
+
+  private onNodeDragOver(e: DragEvent) {
+    if (this.readOnly) return;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'link';
+  }
+
+  private onNodeDragEnter(taskId: string) {
+    if (this.readOnly) return;
+    const count = (this._dragEnterCounters.get(taskId) ?? 0) + 1;
+    this._dragEnterCounters.set(taskId, count);
+    this.dragOverNodeId = taskId;
+  }
+
+  private onNodeDragLeave(taskId: string) {
+    if (this.readOnly) return;
+    const count = (this._dragEnterCounters.get(taskId) ?? 0) - 1;
+    this._dragEnterCounters.set(taskId, Math.max(0, count));
+    if (count <= 0) {
+      this._dragEnterCounters.delete(taskId);
+      if (this.dragOverNodeId === taskId) {
+        this.dragOverNodeId = null;
+      }
+    }
+  }
+
+  private onNodeDrop(targetTaskId: string, e: DragEvent) {
+    if (this.readOnly) return;
+    e.preventDefault();
+    this._dragEnterCounters.clear();
+    this.dragOverNodeId = null;
+    this.draggingNodeId = null;
+
+    const sourceTaskId = e.dataTransfer!.getData('application/ft-task-id');
+    if (!sourceTaskId) return;
+
+    // Self-drop: no-op
+    if (sourceTaskId === targetTaskId) return;
+
+    // Already exists: no-op
+    const sourceTask = this.store.getTask(sourceTaskId);
+    if (sourceTask) {
+      const alreadyExists = sourceTask.relationships.some(
+        (r) => r.type === RelationshipType.BLOCKED_BY && r.targetTaskId === targetTaskId,
+      );
+      if (alreadyExists) return;
+    }
+
+    // Cycle detection: check if source transitively blocks target
+    if (this.wouldCreateCycle(sourceTaskId, targetTaskId)) {
+      this.showCycleWarning();
+      return;
+    }
+
+    // Dispatch event to ft-app
+    this.dispatchEvent(
+      new CustomEvent('dependency-drop', {
+        detail: { sourceTaskId, targetTaskId },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Check if adding 'sourceId BLOCKED_BY targetId' would create a cycle.
+   *
+   * A cycle exists if sourceId already transitively blocks targetId
+   * through BLOCKS relationships. Creating sourceId BLOCKED_BY targetId
+   * (i.e. targetId BLOCKS sourceId) would then form:
+   *   targetId → sourceId → ... → targetId
+   */
+  private wouldCreateCycle(sourceId: string, targetId: string): boolean {
+    const visited = new Set<string>();
+    const stack = [sourceId];
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (current === targetId) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      const task = this.store.getTask(current);
+      if (!task) continue;
+
+      for (const rel of task.relationships) {
+        if (rel.type === RelationshipType.BLOCKS && !visited.has(rel.targetTaskId)) {
+          stack.push(rel.targetTaskId);
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /** Show a warning toast when a drop would create a circular dependency. */
+  private showCycleWarning() {
+    const alert = Object.assign(document.createElement('sl-alert'), {
+      variant: 'warning',
+      closable: true,
+      duration: 5000,
+    });
+    const icon = document.createElement('sl-icon');
+    icon.slot = 'icon';
+    icon.setAttribute('name', 'exclamation-triangle');
+    alert.append(
+      icon,
+      document.createTextNode('Cannot add dependency: would create a circular dependency'),
+    );
+    document.body.appendChild(alert);
+    void (alert as HTMLElement & { toast(): Promise<void> }).toast();
+  }
+
   // ── Render ──
 
   render() {
@@ -589,18 +738,43 @@ export class FtDependencyView extends LitElement {
           </g>
           <g class="nodes">
             ${this.layoutNodes.map((n) => {
+              const isDropTarget =
+                this.dragOverNodeId === n.id && this.draggingNodeId !== n.id;
+              const isDragging = this.draggingNodeId === n.id;
               return svg`
+                ${isDropTarget
+                  ? svg`<rect
+                      x="${n.x - n.width / 2 - 4}"
+                      y="${n.y - n.height / 2 - 4}"
+                      width="${n.width + 8}"
+                      height="${n.height + 8}"
+                      rx="10"
+                      fill="rgba(59, 130, 246, 0.08)"
+                      stroke="var(--sl-color-primary-400, #818cf8)"
+                      stroke-width="2"
+                      stroke-dasharray="6 3"
+                      class="drop-highlight"
+                    />`
+                  : null}
                 <foreignObject
                   x="${n.x - n.width / 2}"
                   y="${n.y - n.height / 2}"
                   width="${n.width}"
                   height="${n.height}"
+                  data-task-id="${n.id}"
+                  style="${isDragging ? 'opacity: 0.4' : ''}"
                   @click=${() => this.onNodeClick(n.id)}
+                  @dragstart=${(e: DragEvent) => this.onNodeDragStart(n.id, e)}
+                  @dragend=${() => this.onNodeDragEnd()}
+                  @dragover=${(e: DragEvent) => this.onNodeDragOver(e)}
+                  @dragenter=${() => this.onNodeDragEnter(n.id)}
+                  @dragleave=${() => this.onNodeDragLeave(n.id)}
+                  @drop=${(e: DragEvent) => this.onNodeDrop(n.id, e)}
                 >
                   <ft-tree-node
                     .task=${n.task}
                     ?selected=${this.selectedTaskId === n.id}
-                    readOnly
+                    ?readOnly=${this.readOnly}
                     .childCount=${0}
                   ></ft-tree-node>
                 </foreignObject>
