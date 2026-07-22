@@ -285,6 +285,9 @@ export class FtDependencyView extends LitElement {
 
   // ── Pan Animation ──
 
+  /** Fraction of viewport width the selected node should occupy after zoom. */
+  private static readonly TARGET_NODE_VIEWPORT_FRACTION = 0.20;
+
   private static readonly PAN_DURATION_MS = 750;
 
   private static easeInOut(t: number): number {
@@ -299,29 +302,49 @@ export class FtDependencyView extends LitElement {
   }
 
   /**
-   * Pan the viewport so that the given node is centered, keeping the
-   * current zoom level. Animates smoothly over 750 ms with ease-in-out.
+   * Pan and zoom the viewport so that the given node is centered and its
+   * rendered width ≈ 20% of the viewport width.  Animates smoothly over
+   * 750 ms with ease-in-out.
    */
   private centerOnNode(taskId: string) {
     const node = this.layoutNodes.find((n) => n.id === taskId);
     if (!node) return;
 
-    const vbW = this.containerWidth / this.scale;
-    const vbH = this.containerHeight / this.scale;
-    const targetPanX = node.x - vbW / 2;
-    const targetPanY = node.y - vbH / 2;
-    this.animatePanTo(targetPanX, targetPanY);
+    // Compute target scale so that NODE_WIDTH occupies the target fraction of viewport.
+    const targetScale = Math.min(3, Math.max(0.3,
+      (FtDependencyView.TARGET_NODE_VIEWPORT_FRACTION * this.containerWidth) / NODE_WIDTH));
+
+    // Pan target is computed using the target scale so the node is centered
+    // at the final zoom level.
+    const targetVbW = this.containerWidth / targetScale;
+    const targetVbH = this.containerHeight / targetScale;
+    const targetPanX = node.x - targetVbW / 2;
+    const targetPanY = node.y - targetVbH / 2;
+    this.animatePanZoomTo(targetPanX, targetPanY, targetScale, node.x, node.y);
   }
 
   /**
-   * Smoothly animate panX/panY from their current values to the target
-   * over 750 ms with ease-in-out easing.
+   * Smoothly animate panX/panY and scale from their current values to the
+   * targets over 750 ms with ease-in-out easing.
+   *
+   * The pan is recalculated each frame using the interpolated scale so the
+   * focal point (nodeX, nodeY) stays visually centered throughout the
+   * animation — no jumpy/janky artifacts.
+   *
+   * `targetPanX`/`targetPanY` are only used on the final frame as a
+   * floating-point drift guard — intermediate frames compute pan from
+   * `nodeX`/`nodeY` directly.
    */
-  private animatePanTo(targetPanX: number, targetPanY: number) {
+  private animatePanZoomTo(
+    targetPanX: number,
+    targetPanY: number,
+    targetScale: number,
+    nodeX: number,
+    nodeY: number,
+  ) {
     this.cancelPanAnimation();
 
-    const startPanX = this.panX;
-    const startPanY = this.panY;
+    const startScale = this.scale;
     const duration = FtDependencyView.PAN_DURATION_MS;
     let startTime: number | null = null;
 
@@ -331,12 +354,20 @@ export class FtDependencyView extends LitElement {
       const t = Math.min(elapsed / duration, 1);
       const easedT = FtDependencyView.easeInOut(t);
 
-      this.panX = startPanX + (targetPanX - startPanX) * easedT;
-      this.panY = startPanY + (targetPanY - startPanY) * easedT;
+      // Interpolate scale and recompute pan from the focal node position
+      // so the node stays centered at every intermediate zoom level.
+      const curScale = startScale + (targetScale - startScale) * easedT;
+      const curVbW = this.containerWidth / curScale;
+      const curVbH = this.containerHeight / curScale;
+
+      this.scale = curScale;
+      this.panX = nodeX - curVbW / 2;
+      this.panY = nodeY - curVbH / 2;
 
       if (t < 1) {
         this.animationFrameId = requestAnimationFrame(step);
       } else {
+        this.scale = targetScale;
         this.panX = targetPanX;
         this.panY = targetPanY;
         this.animationFrameId = null;
@@ -780,6 +811,7 @@ export class FtDependencyView extends LitElement {
               const isDropTarget =
                 this.dragOverNodeId === n.id && this.draggingNodeId !== n.id;
               const isDragging = this.draggingNodeId === n.id;
+              const isSelected = this.selectedTaskId === n.id;
               return svg`
                 ${isDropTarget
                   ? svg`<rect
@@ -801,6 +833,7 @@ export class FtDependencyView extends LitElement {
                   width="${n.width}"
                   height="${n.height}"
                   data-task-id="${n.id}"
+                  overflow="${isSelected ? 'visible' : 'hidden'}"
                   style="${isDragging ? 'opacity: 0.4' : ''}"
                   @click=${() => this.onNodeClick(n.id)}
                   @dragstart=${(e: DragEvent) => this.onNodeDragStart(n.id, e)}

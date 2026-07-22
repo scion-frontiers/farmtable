@@ -78,7 +78,9 @@ export class FtTreeNode extends LitElement {
     }
     .node.selected {
       border-color: var(--sl-color-primary-500);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+      border-width: 3px;
+      border-left-width: 5px;
+      box-shadow: 0 0 0 3px transparent, 0 0 0 6px rgba(99, 102, 241, 0.45);
     }
     .title {
       font-weight: 600;

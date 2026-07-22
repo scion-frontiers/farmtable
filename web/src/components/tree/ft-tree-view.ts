@@ -198,21 +198,31 @@ export class FtTreeView extends LitElement {
   }
 
   /**
-   * Pan the viewport so that the given node is centered, keeping the
-   * current zoom level.  Animates smoothly over 750 ms with ease-in-out.
+   * Pan and zoom the viewport so that the given node is centered and its
+   * rendered width ≈ 20% of the viewport width.  Animates smoothly over
+   * 750 ms with ease-in-out.
    */
   private centerOnNode(taskId: string) {
     const node = this.layoutNodes.find((n) => n.id === taskId);
     if (!node) return;
 
-    const vbW = this.containerWidth / this.scale;
-    const vbH = this.containerHeight / this.scale;
-    const targetPanX = node.x - vbW / 2;
-    const targetPanY = node.y - vbH / 2;
-    this.animatePanTo(targetPanX, targetPanY);
+    // Compute target scale so that NODE_WIDTH occupies the target fraction of viewport.
+    const targetScale = Math.min(3, Math.max(0.3,
+      (FtTreeView.TARGET_NODE_VIEWPORT_FRACTION * this.containerWidth) / NODE_WIDTH));
+
+    // Pan target is computed using the target scale so the node is centered
+    // at the final zoom level.
+    const targetVbW = this.containerWidth / targetScale;
+    const targetVbH = this.containerHeight / targetScale;
+    const targetPanX = node.x - targetVbW / 2;
+    const targetPanY = node.y - targetVbH / 2;
+    this.animatePanZoomTo(targetPanX, targetPanY, targetScale, node.x, node.y);
   }
 
-  // ── Pan Animation ──
+  // ── Pan/Zoom Animation ──
+
+  /** Fraction of viewport width the selected node should occupy after zoom. */
+  private static readonly TARGET_NODE_VIEWPORT_FRACTION = 0.20;
 
   private static readonly PAN_DURATION_MS = 750;
 
@@ -221,19 +231,32 @@ export class FtTreeView extends LitElement {
   }
 
   /**
-   * Smoothly animate panX/panY from their current values to the target
-   * over 750 ms with ease-in-out easing.
+   * Smoothly animate panX/panY and scale from their current values to the
+   * targets over 750 ms with ease-in-out easing.
+   *
+   * The pan is recalculated each frame using the interpolated scale so the
+   * focal point (nodeX, nodeY) stays visually centered throughout the
+   * animation — no jumpy/janky artifacts.
+   *
+   * `targetPanX`/`targetPanY` are only used on the final frame as a
+   * floating-point drift guard — intermediate frames compute pan from
+   * `nodeX`/`nodeY` directly.
    *
    * If called while an animation is already running the current animation
    * is cancelled and a fresh 750 ms animation starts from the current
    * (interpolated) position — no jumping, no queueing.
    */
-  private animatePanTo(targetPanX: number, targetPanY: number) {
+  private animatePanZoomTo(
+    targetPanX: number,
+    targetPanY: number,
+    targetScale: number,
+    nodeX: number,
+    nodeY: number,
+  ) {
     // Cancel any in-progress animation and snapshot current position.
     this.cancelPanAnimation();
 
-    const startPanX = this.panX;
-    const startPanY = this.panY;
+    const startScale = this.scale;
     const duration = FtTreeView.PAN_DURATION_MS;
     let startTime: number | null = null;
 
@@ -243,17 +266,21 @@ export class FtTreeView extends LitElement {
       const t = Math.min(elapsed / duration, 1);
       const easedT = FtTreeView.easeInOut(t);
 
-      // NOTE: Setting @state() props triggers Lit update cycles (~45 during
-      // the animation). Lit batches these to at most one render per frame,
-      // which is efficient for attribute-only viewBox changes. If perf
-      // becomes an issue with large trees, consider direct setAttribute().
-      this.panX = startPanX + (targetPanX - startPanX) * easedT;
-      this.panY = startPanY + (targetPanY - startPanY) * easedT;
+      // Interpolate scale and recompute pan from the focal node position
+      // so the node stays centered at every intermediate zoom level.
+      const curScale = startScale + (targetScale - startScale) * easedT;
+      const curVbW = this.containerWidth / curScale;
+      const curVbH = this.containerHeight / curScale;
+
+      this.scale = curScale;
+      this.panX = nodeX - curVbW / 2;
+      this.panY = nodeY - curVbH / 2;
 
       if (t < 1) {
         this.animationFrameId = requestAnimationFrame(step);
       } else {
         // Guard against floating-point drift — explicitly set exact targets.
+        this.scale = targetScale;
         this.panX = targetPanX;
         this.panY = targetPanY;
         this.animationFrameId = null;
@@ -700,6 +727,7 @@ export class FtTreeView extends LitElement {
               if (isDropTarget) cls = 'drop-target';
               if (isInvalid) cls = 'drag-invalid';
 
+              const isSelected = this.selectedTaskId === n.id;
               return svg`
                 <foreignObject
                   x="${n.x - n.width / 2}"
@@ -707,6 +735,7 @@ export class FtTreeView extends LitElement {
                   width="${n.width}"
                   height="${n.height}"
                   class="${cls}"
+                  overflow="${isSelected ? 'visible' : 'hidden'}"
                   @click=${() => this.onNodeClick(n.id)}
                   @dblclick=${() => this.onNodeDblClick(n.id)}
                   @dragstart=${(ev: DragEvent) => this.onForeignDragStart(ev, n.id)}
