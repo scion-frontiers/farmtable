@@ -617,12 +617,28 @@ export class FtApp extends LitElement {
       const collection = await this.unscopedClient.getCollection(this.currentCollectionId);
       if (token === this.collectionLoadToken) {
         this.currentCollection = collection;
+        this.reconfigurePollInterval();
       }
     } catch (error) {
       if (token === this.collectionLoadToken) {
         this.currentCollection = undefined;
+        this.reconfigurePollInterval();
       }
       console.warn('Failed to load current collection', error);
+    }
+  }
+
+  /**
+   * Reconfigure the poll interval based on the current collection's writable
+   * status.  Called after currentCollection is set so the interval is correct
+   * even when switchToPolling() fired before the collection loaded.
+   */
+  private reconfigurePollInterval(): void {
+    if (this.pollManager) {
+      const interval = this.isExternalWritable
+        ? 15_000
+        : PollManager.DEFAULT_INTERVAL_MS;
+      this.pollManager.setInterval(interval);
     }
   }
   private onCollectionSelect = (e: CustomEvent) => {

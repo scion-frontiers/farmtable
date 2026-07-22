@@ -19,8 +19,8 @@ export class PollManager extends EventTarget {
   private _isRefreshing = false;
   private pollToken = 0;
 
-  /** Task IDs with in-flight writes — sweep skips these. */
-  private dirtyTasks = new Set<string>();
+  /** Task IDs with in-flight writes — sweep skips these (reference-counted). */
+  private dirtyTasks = new Map<string, number>();
 
   /** Default polling interval: 30 seconds. */
   static DEFAULT_INTERVAL_MS = 30_000;
@@ -53,12 +53,17 @@ export class PollManager extends EventTarget {
 
   /** Mark a task as dirty (in-flight write). Sweep skips dirty tasks. */
   markDirty(taskId: string): void {
-    this.dirtyTasks.add(taskId);
+    this.dirtyTasks.set(taskId, (this.dirtyTasks.get(taskId) ?? 0) + 1);
   }
 
   /** Clear dirty flag (write completed or rolled back). */
   clearDirty(taskId: string): void {
-    this.dirtyTasks.delete(taskId);
+    const count = (this.dirtyTasks.get(taskId) ?? 0) - 1;
+    if (count <= 0) {
+      this.dirtyTasks.delete(taskId);
+    } else {
+      this.dirtyTasks.set(taskId, count);
+    }
   }
 
   /**
@@ -69,6 +74,15 @@ export class PollManager extends EventTarget {
     this.stop();
     await this.refresh();
     this.timer = setInterval(() => void this.refresh(), this.intervalMs);
+  }
+
+  /** Update the polling interval. Restarts the timer if currently running. */
+  setInterval(ms: number): void {
+    this.intervalMs = ms;
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+      this.timer = setInterval(() => void this.refresh(), this.intervalMs);
+    }
   }
 
   /** Stop polling and clean up the interval timer. */
