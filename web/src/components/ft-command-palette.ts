@@ -398,15 +398,11 @@ export class FtCommandPalette extends LitElement {
 
   // ── Search and filtering ──
 
-  /** Build a single searchable string from all relevant task fields. */
+  /** Build a single searchable string from title and labels only. */
   private searchableText(task: Task): string {
-    const parts = [task.name, task.id];
-    if (task.description) parts.push(task.description);
-    if (task.type) parts.push(task.type);
-    const stage = STAGE_NAMES[task.stage];
-    if (stage) parts.push(stage);
-    for (const assignee of task.assignees) {
-      if (assignee.name) parts.push(assignee.name);
+    const parts = [task.name];
+    for (const label of task.labels) {
+      if (label) parts.push(label);
     }
     return parts.join(' ');
   }
@@ -424,12 +420,13 @@ export class FtCommandPalette extends LitElement {
       // Exclude the current task in add-relationship mode.
       if (this.mode === 'add-relationship' && task.id === this.excludeTaskId) continue;
 
-      // Score against name, id, and full searchable text; take the best match.
+      // Score against title, each label, and combined title+labels text; take the best match.
+      // fuzzyScore returns -1 for no match; valid matches can score negative (boundary bonuses).
       const nameScore = fuzzyScore(query, task.name);
-      const idScore = fuzzyScore(query, task.id);
+      const labelScores = task.labels.map((label) => fuzzyScore(query, label));
       const textScore = fuzzyScore(query, this.searchableText(task));
 
-      const candidates = [nameScore, idScore, textScore].filter((s) => s >= 0);
+      const candidates = [nameScore, ...labelScores, textScore].filter((s) => s !== -1);
       if (candidates.length === 0) continue;
 
       const bestScore = Math.min(...candidates);
