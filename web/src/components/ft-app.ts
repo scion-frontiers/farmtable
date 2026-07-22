@@ -51,6 +51,11 @@ export class FtApp extends LitElement {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
+    .landing {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+    }
     .placeholder {
       display: flex;
       align-items: center;
@@ -221,11 +226,13 @@ export class FtApp extends LitElement {
         ${this.routeView === 'validating'
           ? html`<div class="placeholder"><sl-spinner style="font-size: 2rem;"></sl-spinner></div>`
           : html`
-              <ft-collection-list
-                .client=${this.unscopedClient}
-                .errorMessage=${this.collectionErrorMessage}
-                @collection-select=${this.onCollectionSelect}
-              ></ft-collection-list>
+              <div class="landing">
+                <ft-collection-list
+                  .client=${this.unscopedClient}
+                  .errorMessage=${this.collectionErrorMessage}
+                  @collection-select=${this.onCollectionSelect}
+                ></ft-collection-list>
+              </div>
             `}
         <ft-shortcut-overlay
           .open=${this.shortcutOverlayOpen}
