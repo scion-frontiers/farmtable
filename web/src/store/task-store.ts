@@ -57,6 +57,10 @@ export class TaskStore extends EventTarget {
   }
 
   upsert(task: Task, _changes?: Change[]): void {
+    const existing = this.tasks.get(task.id);
+    if (existing && !_changes && JSON.stringify(existing) === JSON.stringify(task)) {
+      return;
+    }
     this.tasks.set(task.id, task);
     this.dispatchEvent(new CustomEvent('tasks-changed', { detail: { task } }));
   }

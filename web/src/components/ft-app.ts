@@ -91,7 +91,7 @@ export class FtApp extends LitElement {
     this.isRefreshing = false;
   }) as EventListener;
   private onPollRefreshStart = (() => {
-    this.isRefreshing = true;
+    // no-op: background polls should not trigger the refresh spinner
   }) as EventListener;
   private routeToken = 0;
 
@@ -796,6 +796,7 @@ export class FtApp extends LitElement {
 
   private onManualRefresh = () => {
     if (this.pollManager) {
+      this.isRefreshing = true;
       void this.pollManager.refresh();
     }
   };
