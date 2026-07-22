@@ -3,7 +3,6 @@ import { customElement, property, state } from 'lit/decorators.js';
 import dagre from '@dagrejs/dagre';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
-import { RelationshipType } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 
@@ -23,7 +22,7 @@ interface LayoutEdge {
   from: string;
   to: string;
   points: Array<{ x: number; y: number }>;
-  type: 'hierarchy' | 'dependency';
+  type: 'hierarchy';
 }
 
 function edgePath(points: Array<{ x: number; y: number }>): string {
@@ -74,12 +73,6 @@ export class FtTreeView extends LitElement {
       stroke: var(--sl-color-neutral-400, #64748b);
       stroke-width: 2;
       fill: none;
-    }
-    .edge-dependency {
-      stroke: var(--sl-color-primary-500, #6366f1);
-      stroke-width: 1.5;
-      fill: none;
-      stroke-dasharray: 6 3;
     }
     .drop-target {
       filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.6));
@@ -299,10 +292,7 @@ export class FtTreeView extends LitElement {
   private structureKey(tasks: Task[]): string {
     const expanded = [...this.expandedNodes].sort().join(',');
     return tasks
-      .map(
-        (t) =>
-          `${t.id}:${t.parentTaskId ?? ''}:${t.relationships.map((r) => `${r.type}-${r.targetTaskId}`).join(',')}`,
-      )
+      .map((t) => `${t.id}:${t.parentTaskId ?? ''}`)
       .sort()
       .join('|') + '||' + expanded;
   }
@@ -336,11 +326,6 @@ export class FtTreeView extends LitElement {
       if (task.parentTaskId && taskSet.has(task.parentTaskId)) {
         g.setEdge(task.parentTaskId, task.id, { type: 'hierarchy' }, 'h');
       }
-      for (const rel of task.relationships) {
-        if (rel.type === RelationshipType.BLOCKS && taskSet.has(rel.targetTaskId)) {
-          g.setEdge(task.id, rel.targetTaskId, { type: 'dependency' }, 'd');
-        }
-      }
     }
 
     dagre.layout(g);
@@ -365,7 +350,7 @@ export class FtTreeView extends LitElement {
         from: edgeObj.v,
         to: edgeObj.w,
         points: pts,
-        type: (edgeObj as { name?: string }).name === 'd' ? 'dependency' : 'hierarchy',
+        type: 'hierarchy' as const,
       });
     }
   }
@@ -661,7 +646,7 @@ export class FtTreeView extends LitElement {
               (e) =>
                 svg`<path
                   d="${edgePath(e.points)}"
-                  class=${e.type === 'hierarchy' ? 'edge-hierarchy' : 'edge-dependency'}
+                  class="edge-hierarchy"
                 />`,
             )}
           </g>
