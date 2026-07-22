@@ -195,19 +195,6 @@ export class FtInspector extends LitElement {
               ></ft-inspector-desc>
             </sl-details>
 
-            ${task.relationships.length > 0
-              ? html`
-                  <sl-details
-                    summary="Relations"
-                    ?open=${this.isSectionOpen('relations')}
-                    @sl-show=${() => this.persistSectionState('relations', true)}
-                    @sl-hide=${() => this.persistSectionState('relations', false)}
-                  >
-                    <ft-inspector-relations .task=${task} .store=${this.store}></ft-inspector-relations>
-                  </sl-details>
-                `
-              : nothing}
-
             ${task.codeContext
               ? html`
                   <sl-details
