@@ -500,6 +500,144 @@ func minimalImportDoc(name string, users, tasks, comments, relationships, change
 	}
 }
 
+func TestRPC_ImportCollection_BeadsJSONL(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	jsonl := `{"_type":"issue","id":"epic-1","title":"Epic Task","description":"An epic","status":"open","priority":0,"issue_type":"epic","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}
+{"_type":"issue","id":"task-1","title":"Child Task","description":"A task under the epic","status":"in_progress","priority":2,"issue_type":"task","assignee":"Alice","started_at":"2026-01-03T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z","dependencies":[{"issue_id":"task-1","depends_on_id":"epic-1","type":"parent-child","created_at":"2026-01-01T00:00:00Z","created_by":"root","metadata":"{}"}]}
+{"_type":"issue","id":"task-2","title":"Blocked Task","description":"Blocked by task-1","status":"closed","priority":1,"issue_type":"bug","closed_at":"2026-01-05T00:00:00Z","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-05T00:00:00Z","dependencies":[{"issue_id":"task-2","depends_on_id":"epic-1","type":"parent-child","created_at":"2026-01-01T00:00:00Z","created_by":"root","metadata":"{}"},{"issue_id":"task-2","depends_on_id":"task-1","type":"blocks","created_at":"2026-01-01T00:00:00Z","created_by":"root","metadata":"{}"}],"comments":[{"id":"c1","issue_id":"task-2","author":"Bob","text":"Fixed it","created_at":"2026-01-04T00:00:00Z"}]}`
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{
+		Data: []byte(jsonl),
+		Name: strPtr("Beads Test"),
+	})
+	if err != nil {
+		t.Fatalf("ImportCollection Beads: %v", err)
+	}
+	if resp.GetCollectionId() == "" {
+		t.Fatal("collection_id is empty")
+	}
+	if resp.GetStats().GetTasks() != 3 {
+		t.Fatalf("tasks = %d, want 3", resp.GetStats().GetTasks())
+	}
+	if resp.GetStats().GetComments() != 1 {
+		t.Fatalf("comments = %d, want 1", resp.GetStats().GetComments())
+	}
+	if resp.GetStats().GetRelationships() != 1 {
+		t.Fatalf("relationships = %d, want 1 (blocks)", resp.GetStats().GetRelationships())
+	}
+
+	// Verify imported tasks.
+	tasks, err := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{CollectionID: uuid.MustParse(resp.GetCollectionId())})
+	if err != nil {
+		t.Fatalf("ListAllTasksForCollection: %v", err)
+	}
+	if len(tasks) != 3 {
+		t.Fatalf("imported tasks = %d, want 3", len(tasks))
+	}
+	byTitle := map[string]*ent.Task{}
+	for _, task := range tasks {
+		byTitle[task.Title] = task
+	}
+
+	// Verify epic.
+	epic := byTitle["Epic Task"]
+	if epic == nil {
+		t.Fatal("missing epic task")
+	}
+	if epic.Type != "epic" {
+		t.Errorf("epic type = %q, want %q", epic.Type, "epic")
+	}
+	if epic.Priority == nil || string(*epic.Priority) != "urgent" {
+		t.Errorf("epic priority = %v, want urgent", epic.Priority)
+	}
+
+	// Verify child task has parent set.
+	child := byTitle["Child Task"]
+	if child == nil {
+		t.Fatal("missing child task")
+	}
+	if child.ParentTaskID == nil || *child.ParentTaskID != epic.ID {
+		t.Errorf("child parent = %v, want %s", child.ParentTaskID, epic.ID)
+	}
+	if string(child.Phase) != "in_progress" {
+		t.Errorf("child phase = %q, want %q", child.Phase, "in_progress")
+	}
+	if string(child.Stage) != "working" {
+		t.Errorf("child stage = %q, want %q", child.Stage, "working")
+	}
+
+	// Verify blocked task has correct status mapping.
+	blocked := byTitle["Blocked Task"]
+	if blocked == nil {
+		t.Fatal("missing blocked task")
+	}
+	if string(blocked.Phase) != "closed" {
+		t.Errorf("blocked phase = %q, want %q", blocked.Phase, "closed")
+	}
+	if blocked.ClosedAt == nil {
+		t.Error("blocked closed_at is nil, want non-nil")
+	}
+	if blocked.Type != "bug" {
+		t.Errorf("blocked type = %q, want %q", blocked.Type, "bug")
+	}
+
+	// Verify comment was imported.
+	comments, err := s.ListAllCommentsForTask(ctx, store.ListAllCommentsForTaskParams{TaskID: blocked.ID})
+	if err != nil {
+		t.Fatalf("ListAllCommentsForTask: %v", err)
+	}
+	if len(comments) != 1 || comments[0].Body != "Fixed it" {
+		t.Fatalf("comments = %+v, want one 'Fixed it' comment", comments)
+	}
+
+	// Verify relationships.
+	rels, err := s.ListAllRelationshipsForCollection(ctx, store.ListAllRelationshipsForCollectionParams{CollectionID: uuid.MustParse(resp.GetCollectionId())})
+	if err != nil {
+		t.Fatalf("ListAllRelationshipsForCollection: %v", err)
+	}
+	if len(rels) != 1 {
+		t.Fatalf("relationships = %d, want 1", len(rels))
+	}
+}
+
+func TestRPC_ImportCollection_BeadsJSONL_DryRun(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	jsonl := `{"_type":"issue","id":"test-1","title":"Test Issue","status":"open","priority":2,"issue_type":"task","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}`
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{
+		Data:   []byte(jsonl),
+		Name:   strPtr("Dry Run Beads"),
+		DryRun: true,
+	})
+	if err != nil {
+		t.Fatalf("ImportCollection dry-run: %v", err)
+	}
+	if resp.GetCollectionId() != "" {
+		t.Fatalf("collection_id = %q, want empty for dry-run", resp.GetCollectionId())
+	}
+	if resp.GetStats().GetTasks() != 1 {
+		t.Fatalf("tasks = %d, want 1", resp.GetStats().GetTasks())
+	}
+}
+
+func TestRPC_ImportCollection_UnsupportedFormat(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{
+		Data: []byte("this is not json or jsonl"),
+		Name: strPtr("Bad Format"),
+	})
+	assertCode(t, err, codes.InvalidArgument)
+}
+
 func assertCode(t *testing.T, err error, code codes.Code) {
 	t.Helper()
 	if err == nil {

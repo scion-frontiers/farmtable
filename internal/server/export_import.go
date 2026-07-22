@@ -254,20 +254,46 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 }
 
 func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportCollectionRequest) (*pb.ImportCollectionResponse, error) {
+	format := detectImportFormat(req.GetData())
+
 	var doc exportDocument
-	decoder := json.NewDecoder(bytes.NewReader(req.GetData()))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&doc); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid export JSON: %v", err)
-	}
-	if doc.FormatVersion != 1 {
-		return nil, status.Errorf(codes.InvalidArgument, "unsupported format_version: %d", doc.FormatVersion)
-	}
-	if doc.Generator != "" && doc.Generator != "farmtable" {
-		return nil, status.Errorf(codes.InvalidArgument, "unsupported generator: %s", doc.Generator)
-	}
-	if doc.Collection.Platform != string(collection.PlatformFarmtable) {
-		return nil, status.Error(codes.FailedPrecondition, "import only supports farmtable platform collections")
+	var beadsWarnings []string
+
+	switch format {
+	case "beads":
+		issues, parseWarnings, err := parseBeadsJSONL(req.GetData())
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid Beads JSONL: %v", err)
+		}
+		beadsWarnings = parseWarnings
+		collName := "Beads Import"
+		if req.Name != nil && req.GetName() != "" {
+			collName = req.GetName()
+		}
+		converted, convertWarnings, err := convertBeadsToExportDocument(issues, collName)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "converting Beads data: %v", err)
+		}
+		beadsWarnings = append(beadsWarnings, convertWarnings...)
+		converted.Relationships = deduplicateRelationships(converted.Relationships)
+		doc = converted
+	case "farmtable":
+		decoder := json.NewDecoder(bytes.NewReader(req.GetData()))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&doc); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid export JSON: %v", err)
+		}
+		if doc.FormatVersion != 1 {
+			return nil, status.Errorf(codes.InvalidArgument, "unsupported format_version: %d", doc.FormatVersion)
+		}
+		if doc.Generator != "" && doc.Generator != "farmtable" {
+			return nil, status.Errorf(codes.InvalidArgument, "unsupported generator: %s", doc.Generator)
+		}
+		if doc.Collection.Platform != string(collection.PlatformFarmtable) {
+			return nil, status.Error(codes.FailedPrecondition, "import only supports farmtable platform collections")
+		}
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "unsupported import format: data must be Farmtable JSON or Beads JSONL")
 	}
 
 	taskMapping := make(map[string]uuid.UUID, len(doc.Tasks))
@@ -346,6 +372,8 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		}
 		importParams.Changes = append(importParams.Changes, imported)
 	}
+
+	warnings = append(beadsWarnings, warnings...)
 
 	if req.GetDryRun() {
 		return &pb.ImportCollectionResponse{Stats: stats, Warnings: warnings}, nil
