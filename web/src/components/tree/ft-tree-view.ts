@@ -127,6 +127,9 @@ export class FtTreeView extends LitElement {
   private lastStructureKey = '';
   private needsCenter = true;
 
+  /** Active animation frame ID for pan animation, null when idle. */
+  private animationFrameId: number | null = null;
+
   private resizeObserver?: ResizeObserver;
 
   connectedCallback() {
@@ -141,6 +144,10 @@ export class FtTreeView extends LitElement {
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
     this.resizeObserver?.disconnect();
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
   }
 
   firstUpdated() {
@@ -190,7 +197,7 @@ export class FtTreeView extends LitElement {
 
   /**
    * Pan the viewport so that the given node is centered, keeping the
-   * current zoom level. Mirrors centerGraph() but targets a single node.
+   * current zoom level.  Animates smoothly over 750 ms with ease-in-out.
    */
   private centerOnNode(taskId: string) {
     const node = this.layoutNodes.find((n) => n.id === taskId);
@@ -198,8 +205,59 @@ export class FtTreeView extends LitElement {
 
     const vbW = this.containerWidth / this.scale;
     const vbH = this.containerHeight / this.scale;
-    this.panX = node.x - vbW / 2;
-    this.panY = node.y - vbH / 2;
+    const targetPanX = node.x - vbW / 2;
+    const targetPanY = node.y - vbH / 2;
+    this.animatePanTo(targetPanX, targetPanY);
+  }
+
+  // ── Pan Animation ──
+
+  private static readonly PAN_DURATION_MS = 750;
+
+  private easeInOut(t: number): number {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  /**
+   * Smoothly animate panX/panY from their current values to the target
+   * over 750 ms with ease-in-out easing.
+   *
+   * If called while an animation is already running the current animation
+   * is cancelled and a fresh 750 ms animation starts from the current
+   * (interpolated) position — no jumping, no queueing.
+   */
+  private animatePanTo(targetPanX: number, targetPanY: number) {
+    // Cancel any in-progress animation and snapshot current position.
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    const startPanX = this.panX;
+    const startPanY = this.panY;
+    const duration = FtTreeView.PAN_DURATION_MS;
+    let startTime: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const easedT = this.easeInOut(t);
+
+      this.panX = startPanX + (targetPanX - startPanX) * easedT;
+      this.panY = startPanY + (targetPanY - startPanY) * easedT;
+
+      if (t < 1) {
+        this.animationFrameId = requestAnimationFrame(step);
+      } else {
+        // Ensure exact final values
+        this.panX = targetPanX;
+        this.panY = targetPanY;
+        this.animationFrameId = null;
+      }
+    };
+
+    this.animationFrameId = requestAnimationFrame(step);
   }
 
   // ── Layout ──
