@@ -5,7 +5,9 @@ import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import { RelationshipType, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
+import { isReady } from '../../utils/task-ready.js';
 import '../tree/ft-tree-node.js';
+import '../ft-empty-state.js';
 
 /**
  * Dependency Tree View — left-to-right layered DAG of blocking relationships.
@@ -43,29 +45,14 @@ interface LayoutEdge {
 
 function edgePath(points: Array<{ x: number; y: number }>): string {
   if (points.length === 0) return '';
-  return points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ');
-}
-
-/**
- * Determine if a task is "ready" (unblocked) — same logic as the Ready Queue.
- * Phase is OPEN or IN_PROGRESS, and no BLOCKED_BY relationship targeting a
- * non-CLOSED task.
- */
-function isReady(task: Task, store: TaskStore): boolean {
-  if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
-    return false;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const midX = (prev.x + curr.x) / 2;
+    d += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
   }
-  for (const rel of task.relationships) {
-    if (rel.type !== RelationshipType.BLOCKED_BY) continue;
-    const blocker = store.getTask(rel.targetTaskId);
-    // Unknown/deleted blockers don't block.
-    if (blocker && blocker.phase !== TaskPhase.CLOSED) {
-      return false;
-    }
-  }
-  return true;
+  return d;
 }
 
 /**
@@ -90,9 +77,10 @@ function computeLayers(
 
     if (computing.has(taskId)) {
       console.warn(
-        `[ft-dependency-view] Cycle detected involving task ${taskId}; capping at layer ${MAX_LAYER_DEPTH}`,
+        `[ft-dependency-view] Cycle detected involving task ${taskId}; placing at layer 0`,
       );
-      return MAX_LAYER_DEPTH;
+      layers.set(taskId, 0);
+      return 0;
     }
 
     const task = store.getTask(taskId);
@@ -189,6 +177,8 @@ export class FtDependencyView extends LitElement {
 
   private resizeObserver?: ResizeObserver;
 
+  private boundOnWheel = this.onWheel.bind(this);
+
   // ── Lifecycle ──
 
   connectedCallback() {
@@ -196,9 +186,15 @@ export class FtDependencyView extends LitElement {
     this.storeCtrl = new TaskStoreController(this, this.store);
     window.addEventListener('mousemove', this.handleMouseMove);
     window.addEventListener('mouseup', this.handleMouseUp);
+    this.updateComplete.then(() => {
+      const svgEl = this.renderRoot.querySelector('svg');
+      svgEl?.addEventListener('wheel', this.boundOnWheel, { passive: false });
+    });
   }
 
   disconnectedCallback() {
+    const svgEl = this.renderRoot.querySelector('svg');
+    svgEl?.removeEventListener('wheel', this.boundOnWheel);
     super.disconnectedCallback();
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
@@ -229,6 +225,11 @@ export class FtDependencyView extends LitElement {
       this.centerGraph();
       this.needsCenter = false;
     }
+  }
+
+  protected willUpdate(_changedProperties: PropertyValues): void {
+    super.willUpdate(_changedProperties);
+    this.runLayout();
   }
 
   updated(changedProps: PropertyValues<this>) {
@@ -323,15 +324,14 @@ export class FtDependencyView extends LitElement {
    * CLOSED tasks are excluded entirely.
    */
   private getVisibleTasks(): Task[] {
-    // Start by finding all non-closed tasks (includes ON_HOLD / blocked)
-    const nonClosedTasks = this.store.allTasks.filter(
-      (t) => t.phase !== TaskPhase.CLOSED,
-    );
-
-    // Collect IDs of tasks involved in active blocking relationships
+    // Single pass over non-closed tasks: collect those involved in active
+    // blocking relationships and those that are ready (Layer 0).
     const involvedIds = new Set<string>();
 
-    for (const task of nonClosedTasks) {
+    for (const task of this.store.allTasks) {
+      if (task.phase === TaskPhase.CLOSED) continue;
+
+      // Check blocking relationships
       for (const rel of task.relationships) {
         if (rel.type === RelationshipType.BLOCKED_BY) {
           const blocker = this.store.getTask(rel.targetTaskId);
@@ -348,10 +348,8 @@ export class FtDependencyView extends LitElement {
           }
         }
       }
-    }
 
-    // Layer 0 = all unblocked tasks (same as Ready Queue: OPEN/IN_PROGRESS only)
-    for (const task of nonClosedTasks) {
+      // Layer 0 = unblocked tasks (Ready Queue definition)
       if (isReady(task, this.store)) {
         involvedIds.add(task.id);
       }
@@ -366,7 +364,7 @@ export class FtDependencyView extends LitElement {
     return tasks
       .map(
         (t) =>
-          `${t.id}:${t.relationships.map((r) => `${r.type}-${r.targetTaskId}`).join(',')}`,
+          `${t.id}:${t.phase}:${t.relationships.map((r) => `${r.type}-${r.targetTaskId}`).join(',')}`,
       )
       .sort()
       .join('|');
@@ -554,8 +552,6 @@ export class FtDependencyView extends LitElement {
       ></ft-empty-state>`;
     }
 
-    this.runLayout();
-
     if (this.layoutNodes.length === 0) {
       return html`<ft-empty-state
         icon="diagram-3"
@@ -573,7 +569,6 @@ export class FtDependencyView extends LitElement {
           class=${this.isPanning ? 'panning' : ''}
           viewBox="${this.panX} ${this.panY} ${vbW} ${vbH}"
           @mousedown=${this.onMouseDown}
-          @wheel=${this.onWheel}
         >
           <g class="edges">
             ${this.layoutEdges.map(

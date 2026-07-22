@@ -9,6 +9,7 @@ import {
   RelationshipType,
   type Task,
 } from '../../gen/types.js';
+import { isReady } from '../../utils/task-ready.js';
 import { matchesTaskFilters } from '../task-filters.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
 import {
@@ -188,26 +189,9 @@ export class FtReadyQueueView extends LitElement {
     }
   }
 
-  /**
-   * Determine whether a task is "ready":
-   * - Phase is OPEN or IN_PROGRESS
-   * - Not blocked by any open (non-CLOSED) task
-   */
+  /** Delegate to shared isReady() utility. */
   private isReady(task: Task): boolean {
-    if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
-      return false;
-    }
-
-    for (const rel of task.relationships) {
-      if (rel.type !== RelationshipType.BLOCKED_BY) continue;
-      const blocker = this.store.getTask(rel.targetTaskId);
-      // If the blocker is unknown (deleted, cross-collection, etc.), don't block.
-      if (blocker && blocker.phase !== TaskPhase.CLOSED) {
-        return false;
-      }
-    }
-
-    return true;
+    return isReady(task, this.store);
   }
 
   /**

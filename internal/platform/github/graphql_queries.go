@@ -29,6 +29,7 @@ type issueNode struct {
 
 	Assignees struct {
 		Nodes []struct {
+			ID    githubv4.ID
 			Login githubv4.String
 		}
 	} `graphql:"assignees(first: 10)"`

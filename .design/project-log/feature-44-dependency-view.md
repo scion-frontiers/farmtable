@@ -34,3 +34,26 @@ New component rather than mode flag on existing tree view — the layout algorit
 - Created test data with 4-layer blocking chain (A→B→C→D), fan-in (E,F→G), and mixed-layer dependencies (J blocked by I in layer 1 and E in layer 0 → J in layer 2)
 - Verified both web build (`tsc --noEmit && vite build`) and Go build pass
 - Captured verification screenshots demonstrating multi-layer rendering, multiple blocker lines, view switcher icon, and animated centering
+
+## Code Review Round 1 Fixes (2026-07-22)
+
+Addressed all findings from code review (2 CRITICAL, 5 IMPORTANT, 6 NITPICK):
+
+### Critical
+- **C1**: Cycle detection no longer inflates all downstream layers to MAX_LAYER_DEPTH (50). Cycles now cache at layer 0 to prevent cascading.
+- **C2**: `isTaskVisibleInCurrentView` now uses `!== CLOSED` (matching `getVisibleTasks`) so ON_HOLD blocked tasks render and are selectable.
+
+### Important
+- **I1**: Removed unrelated write-through feature reverts that were accidentally included from a pre-rebase state.
+- **I2**: Added missing `ft-empty-state.js` import for standalone use safety.
+- **I3**: Structure key now includes `t.phase` so phase changes invalidate the layout cache.
+- **I4**: Moved `runLayout()` from `render()` to `willUpdate()` to follow Lit best practices.
+- **I5**: Wheel listener uses explicit `{ passive: false }` binding in `connectedCallback()` instead of declarative `@wheel`.
+
+### Nitpick
+- **N1**: Extracted `isReady()` to shared `web/src/utils/task-ready.ts`; updated both dependency view and ready-queue view to use it.
+- **N2**: Consolidated `getVisibleTasks()` from two passes to a single loop.
+- **N3**: Kept `diagram-3` with `rotate(90deg)` per spec requirement.
+- **N4**: Edge paths now use cubic bezier curves for smoother LR flow.
+- **N5**: Restored accidentally-deleted `passthrough-write-p1.md` project log (part of I1).
+- **N6**: No change needed (empty-string attribute is handled correctly).
