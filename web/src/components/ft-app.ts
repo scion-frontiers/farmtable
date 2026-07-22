@@ -12,6 +12,7 @@ import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
+import './dependency/ft-dependency-view.js';
 import './ft-command-palette.js';
 
 @customElement('ft-app')
@@ -89,7 +90,7 @@ export class FtApp extends LitElement {
   private routeToken = 0;
 
   @state()
-  private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' = 'kanban';
+  private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies' = 'kanban';
 
   @state()
   private routeView: 'landing' | 'validating' | 'board' = 'validating';
@@ -307,6 +308,14 @@ export class FtApp extends LitElement {
             @task-select=${this.onTaskSelect}
           ></ft-ready-queue-view>
         `;
+      case 'dependencies':
+        return html`
+          <ft-dependency-view
+            .store=${this.taskStore}
+            selected-task-id=${this.selectedTaskId ?? ''}
+            @task-select=${this.onTaskSelect}
+          ></ft-dependency-view>
+        `;
       case 'tree':
         return html`
           <ft-tree-view
@@ -336,7 +345,7 @@ export class FtApp extends LitElement {
   }
 
   private onViewChange(e: CustomEvent) {
-    const view = e.detail.view as 'kanban' | 'tree' | 'dashboard' | 'ready-queue';
+    const view = e.detail.view as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies';
     const url = new URL(window.location.href);
     url.searchParams.set('view', view);
     window.history.pushState({}, '', url);
@@ -399,6 +408,46 @@ export class FtApp extends LitElement {
 
     // Dashboard has no individual task selection.
     if (this.currentView === 'dashboard') return false;
+
+    // Dependencies view shows non-closed tasks in blocking relationships.
+    if (this.currentView === 'dependencies') {
+      if (task.phase === TaskPhase.CLOSED) {
+        return false;
+      }
+      // Visible if the task is involved in any active blocking relationship,
+      // or if it is an unblocked (Layer 0 / ready) task.
+      let involved = false;
+      for (const rel of task.relationships) {
+        if (rel.type === RelationshipType.BLOCKED_BY) {
+          const blocker = this.taskStore.getTask(rel.targetTaskId);
+          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+            involved = true;
+            break;
+          }
+        }
+        if (rel.type === RelationshipType.BLOCKS) {
+          const target = this.taskStore.getTask(rel.targetTaskId);
+          if (target && target.phase !== TaskPhase.CLOSED) {
+            involved = true;
+            break;
+          }
+        }
+      }
+      // Layer 0 = unblocked OPEN/IN_PROGRESS tasks (matches isReady() in getVisibleTasks)
+      if (!involved && (task.phase === TaskPhase.OPEN || task.phase === TaskPhase.IN_PROGRESS)) {
+        let isBlocked = false;
+        for (const rel of task.relationships) {
+          if (rel.type !== RelationshipType.BLOCKED_BY) continue;
+          const blocker = this.taskStore.getTask(rel.targetTaskId);
+          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+            isBlocked = true;
+            break;
+          }
+        }
+        involved = !isBlocked;
+      }
+      return involved;
+    }
 
     // Task must pass the active phase + assignee filters.
     if (!matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter)) {
@@ -499,8 +548,8 @@ export class FtApp extends LitElement {
     const params = new URLSearchParams(window.location.search);
     const collectionId = params.get('collection');
     const viewParam = params.get('view');
-    const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue']);
-    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue') : 'kanban';
+    const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
+    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : 'kanban';
 
     if (!collectionId) {
       this.showCollectionList('');
