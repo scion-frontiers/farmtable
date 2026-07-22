@@ -115,6 +115,12 @@ export class FtApp extends LitElement {
   private commandPaletteOpen = false;
 
   @state()
+  private commandPaletteMode: 'navigate' | 'add-relationship' = 'navigate';
+
+  @state()
+  private addRelationshipTaskId = '';
+
+  @state()
   private phaseFilter: TaskPhase | null = null;
 
   @state()
@@ -281,6 +287,7 @@ export class FtApp extends LitElement {
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
                   @task-update=${this.onTaskUpdate}
+                  @open-add-relationship=${this.onOpenAddRelationship}
                 ></ft-inspector>
               </div>
             `
@@ -294,7 +301,10 @@ export class FtApp extends LitElement {
       <ft-command-palette
         .open=${this.commandPaletteOpen}
         .store=${this.taskStore}
+        .mode=${this.commandPaletteMode}
+        .excludeTaskId=${this.addRelationshipTaskId}
         @task-select=${this.onTaskSelect}
+        @relationship-add=${this.onRelationshipAdd}
         @close=${this.onCommandPaletteClose}
       ></ft-command-palette>
     `;
@@ -766,6 +776,34 @@ export class FtApp extends LitElement {
 
   private onCommandPaletteClose() {
     this.commandPaletteOpen = false;
+    this.commandPaletteMode = 'navigate';
+    this.addRelationshipTaskId = '';
+  }
+
+  private onOpenAddRelationship(e: CustomEvent) {
+    const { taskId } = e.detail as { taskId: string };
+    this.addRelationshipTaskId = taskId;
+    this.commandPaletteMode = 'add-relationship';
+    this.commandPaletteOpen = true;
+  }
+
+  private async onRelationshipAdd(e: CustomEvent) {
+    const { targetTaskId, relationshipType } = e.detail as {
+      targetTaskId: string;
+      relationshipType: RelationshipType;
+    };
+    const taskId = this.addRelationshipTaskId;
+    if (!taskId) return;
+
+    let fields: UpdateTaskFields;
+    if (relationshipType === RelationshipType.BLOCKED_BY) {
+      fields = { addBlockedBy: [targetTaskId] };
+    } else {
+      // Default to BLOCKS for any type (BLOCKS is the only other proto-supported type).
+      fields = { addBlocks: [targetTaskId] };
+    }
+
+    await this.applyTaskUpdate(taskId, fields);
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
@@ -774,7 +812,15 @@ export class FtApp extends LitElement {
     if (e.key === 'k' && (e.metaKey || e.ctrlKey) && !e.defaultPrevented) {
       e.preventDefault();
       if (this.routeView === 'board') {
-        this.commandPaletteOpen = !this.commandPaletteOpen;
+        if (this.commandPaletteOpen) {
+          this.commandPaletteOpen = false;
+          this.commandPaletteMode = 'navigate';
+          this.addRelationshipTaskId = '';
+        } else {
+          this.commandPaletteMode = 'navigate';
+          this.addRelationshipTaskId = '';
+          this.commandPaletteOpen = true;
+        }
       }
       return;
     }

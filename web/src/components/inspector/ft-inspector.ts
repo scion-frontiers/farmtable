@@ -239,6 +239,7 @@ export class FtInspector extends LitElement {
           <ft-inspector-relationships
             .task=${task}
             .store=${this.store}
+            ?readOnly=${this.readOnly}
           ></ft-inspector-relationships>
         </sl-tab-panel>
       </sl-tab-group>
