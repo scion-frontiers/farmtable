@@ -1,15 +1,22 @@
 import { LitElement, css, html } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import { Platform, type Collection } from '../gen/types.js';
 import { platformIcon, platformLabel } from '../util/platform-label.js';
+import './ft-new-collection-dialog.js';
+
+type NewCollectionDialog = HTMLElement & {
+  show(): Promise<void>;
+  close(): void;
+  setCreating(v: boolean): void;
+  setError(msg: string): void;
+};
 
 @customElement('ft-collection-list')
 export class FtCollectionList extends LitElement {
   static styles = css`
     :host {
       display: block;
-      min-height: 100vh;
       background: var(--sl-color-neutral-0);
       color: var(--sl-color-neutral-900);
       font-family: var(--sl-font-sans);
@@ -29,8 +36,20 @@ export class FtCollectionList extends LitElement {
     }
 
     .lede {
-      margin: 0 0 1.5rem;
+      margin: 0;
       color: var(--sl-color-neutral-600);
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .header-text {
+      flex: 1;
     }
 
     sl-alert {
@@ -91,6 +110,9 @@ export class FtCollectionList extends LitElement {
     }
   `;
 
+  @query('ft-new-collection-dialog')
+  private newCollectionDialog!: NewCollectionDialog;
+
   @property({ attribute: false })
   client!: FarmTableServiceClient;
 
@@ -117,8 +139,16 @@ export class FtCollectionList extends LitElement {
   render() {
     return html`
       <main class="shell">
-        <h1>Select a collection</h1>
-        <p class="lede">Choose which collection to open.</p>
+        <div class="header">
+          <div class="header-text">
+            <h1>Select a collection</h1>
+            <p class="lede">Choose which collection to open.</p>
+          </div>
+          <sl-button variant="primary" @click=${this.onNewProjectClick}>
+            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+            New Project
+          </sl-button>
+        </div>
 
         <!-- Shoelace renders sl-alert with role="alert" internally. -->
         ${this.errorMessage
@@ -154,6 +184,10 @@ export class FtCollectionList extends LitElement {
                   })}
                 </div>
               `}
+
+        <ft-new-collection-dialog
+          @collection-create=${this.onCollectionCreate}
+        ></ft-new-collection-dialog>
       </main>
     `;
   }
@@ -179,6 +213,34 @@ export class FtCollectionList extends LitElement {
       if (token === this.loadToken) {
         this.isLoading = false;
       }
+    }
+  }
+
+  private async onNewProjectClick() {
+    await this.newCollectionDialog.show();
+  }
+
+  private async onCollectionCreate(e: CustomEvent<{ name: string }>) {
+    const dialog = this.newCollectionDialog;
+    if (!this.client) {
+      dialog.setError('Service not available. Please reload.');
+      return;
+    }
+    dialog.setError('');
+    dialog.setCreating(true);
+    try {
+      const collection = await this.client.createCollection(e.detail.name);
+      dialog.close();
+      this.dispatchEvent(new CustomEvent('collection-select', {
+        detail: { collectionId: collection.id },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (error) {
+      dialog.setError('Failed to create collection. Please try again.');
+      console.warn('Failed to create collection', error);
+    } finally {
+      dialog.setCreating(false);
     }
   }
 
