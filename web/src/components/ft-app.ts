@@ -559,7 +559,9 @@ export class FtApp extends LitElement {
       for (const targetId of fields.addBlocks) {
         const target = this.taskStore.getTask(targetId);
         if (target) {
-          reciprocalSnapshots.push({ id: targetId, original: target });
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
           if (!target.relationships.some(r => r.type === RelationshipType.BLOCKED_BY && r.targetTaskId === taskId)) {
             this.taskStore.upsert({
               ...target,
@@ -573,7 +575,9 @@ export class FtApp extends LitElement {
       for (const targetId of fields.addBlockedBy) {
         const target = this.taskStore.getTask(targetId);
         if (target) {
-          reciprocalSnapshots.push({ id: targetId, original: target });
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
           if (!target.relationships.some(r => r.type === RelationshipType.BLOCKS && r.targetTaskId === taskId)) {
             this.taskStore.upsert({
               ...target,
@@ -587,10 +591,23 @@ export class FtApp extends LitElement {
       for (const targetId of fields.removeRelationships) {
         const target = this.taskStore.getTask(targetId);
         if (target) {
-          reciprocalSnapshots.push({ id: targetId, original: target });
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
+          // Find the relationship type(s) being removed from the source task
+          // and remove only the reciprocal type from the target.
+          const removedTypes = new Set(
+            task.relationships
+              .filter(r => r.targetTaskId === targetId)
+              .map(r => r.type === RelationshipType.BLOCKS ? RelationshipType.BLOCKED_BY
+                      : r.type === RelationshipType.BLOCKED_BY ? RelationshipType.BLOCKS
+                      : r.type),
+          );
           this.taskStore.upsert({
             ...target,
-            relationships: target.relationships.filter(r => r.targetTaskId !== taskId),
+            relationships: target.relationships.filter(
+              r => !(r.targetTaskId === taskId && removedTypes.has(r.type)),
+            ),
           });
         }
       }
