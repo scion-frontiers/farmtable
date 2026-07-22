@@ -143,7 +143,30 @@ export class FtApp extends LitElement {
   private userLoadToken = 0;
 
   private get isReadOnly(): boolean {
-    return this.currentCollection !== undefined && this.currentCollection.platform !== Platform.FARMTABLE;
+    if (!this.currentCollection) return false;
+    if (this.currentCollection.platform === Platform.FARMTABLE) return false;
+    // External collections: check per-collection writable setting
+    return !this.isCollectionWritable(this.currentCollection);
+  }
+
+  /**
+   * Whether the current collection is a writable external collection.
+   * Used by the toolbar to show "↔ GitHub" instead of "🔒 Read-only".
+   */
+  private get isExternalWritable(): boolean {
+    if (!this.currentCollection) return false;
+    if (this.currentCollection.platform === Platform.FARMTABLE) return false;
+    return this.isCollectionWritable(this.currentCollection);
+  }
+
+  private isCollectionWritable(coll: Collection): boolean {
+    // Check remote_data for explicit writable flag
+    const rd = coll.remoteData;
+    if (rd && typeof rd === 'object' && 'writable' in rd) {
+      return rd.writable === true;
+    }
+    // Default: external collections are read-only unless explicitly enabled
+    return false;
   }
 
   connectedCallback() {
@@ -210,6 +233,7 @@ export class FtApp extends LitElement {
         .lastRefreshed=${this.lastRefreshed}
         ?isRefreshing=${this.isRefreshing}
         ?readOnly=${this.isReadOnly}
+        ?externalWritable=${this.isExternalWritable}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
@@ -444,6 +468,7 @@ export class FtApp extends LitElement {
 
     const updated = applyTaskUpdateFields(task, fields);
     this.taskStore.upsert(updated);
+    this.pollManager?.markDirty(taskId);
 
     try {
       await this.client.updateTask(taskId, fields);
@@ -451,6 +476,8 @@ export class FtApp extends LitElement {
       // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.taskStore.upsert(task);
+    } finally {
+      this.pollManager?.clearDirty(taskId);
     }
   }
 
@@ -549,7 +576,14 @@ export class FtApp extends LitElement {
     this.isPolling = true;
     this.connectionStatus = 'polling';
 
-    this.pollManager = new PollManager(this.client, this.taskStore);
+    // Shorter interval for writable external collections (user expects to see
+    // their changes reflected quickly). Read-only external collections keep the
+    // default 30s interval.
+    const interval = this.isExternalWritable
+      ? 15_000
+      : PollManager.DEFAULT_INTERVAL_MS;
+
+    this.pollManager = new PollManager(this.client, this.taskStore, interval);
     this.pollManager.addEventListener('refresh-start', this.onPollRefreshStart);
     this.pollManager.addEventListener('refresh-end', this.onPollRefreshEnd);
     void this.pollManager.start();

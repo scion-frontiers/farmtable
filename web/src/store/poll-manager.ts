@@ -19,6 +19,9 @@ export class PollManager extends EventTarget {
   private _isRefreshing = false;
   private pollToken = 0;
 
+  /** Task IDs with in-flight writes — sweep skips these. */
+  private dirtyTasks = new Set<string>();
+
   /** Default polling interval: 30 seconds. */
   static DEFAULT_INTERVAL_MS = 30_000;
 
@@ -46,6 +49,16 @@ export class PollManager extends EventTarget {
   /** True while a ListTasks request is in-flight. */
   get isRefreshing(): boolean {
     return this._isRefreshing;
+  }
+
+  /** Mark a task as dirty (in-flight write). Sweep skips dirty tasks. */
+  markDirty(taskId: string): void {
+    this.dirtyTasks.add(taskId);
+  }
+
+  /** Clear dirty flag (write completed or rolled back). */
+  clearDirty(taskId: string): void {
+    this.dirtyTasks.delete(taskId);
   }
 
   /**
@@ -87,11 +100,25 @@ export class PollManager extends EventTarget {
       // Guard against stale responses when stop() was called mid-flight.
       if (token !== this.pollToken) return;
 
-      // Replace the store contents with the fresh snapshot.
-      this.store.clear();
+      // Merge-based refresh: update non-dirty tasks, remove stale ones.
+      // This avoids overwriting in-flight optimistic updates and prevents
+      // the brief "empty board" flash that clear() causes.
+      const freshIds = new Set<string>();
       for (const task of tasks) {
-        this.store.upsert(task);
+        freshIds.add(task.id);
+        if (!this.dirtyTasks.has(task.id)) {
+          this.store.upsert(task);
+        }
       }
+
+      // Remove tasks that are gone from the remote source
+      // (but not dirty ones — they may have just been created or updated).
+      for (const existing of this.store.allTasks) {
+        if (!freshIds.has(existing.id) && !this.dirtyTasks.has(existing.id)) {
+          this.store.delete(existing.id);
+        }
+      }
+
       this.store.snapshotComplete();
 
       this._lastRefreshed = new Date();

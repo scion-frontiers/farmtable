@@ -367,7 +367,27 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 	}
 
 	if p.AssigneeID != nil {
-		_ = s.gql.updateIssueAssignees(ctx, issueID, nil)
+		// Build UUID → GitHub node ID reverse lookup from already-fetched issue data.
+		// The deterministic UUID is generated via s.userUUID(login), so we scan
+		// all issue assignees to find the one whose UUID matches the target.
+		var assigneeNodeID githubv4.ID
+		for _, issue := range issues {
+			for _, a := range issue.Assignees.Nodes {
+				if s.userUUID(string(a.Login)) == *p.AssigneeID {
+					assigneeNodeID = a.ID
+					break
+				}
+			}
+			if assigneeNodeID != nil {
+				break
+			}
+		}
+		if assigneeNodeID != nil {
+			_ = s.gql.updateIssueAssignees(ctx, issueID, []githubv4.ID{assigneeNodeID})
+		} else {
+			// Assignee UUID not found among current issue assignees — clear assignees.
+			_ = s.gql.updateIssueAssignees(ctx, issueID, nil)
+		}
 	}
 
 	if p.ClearParent || p.ParentTaskID != nil {
