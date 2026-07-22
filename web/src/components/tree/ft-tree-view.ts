@@ -130,6 +130,13 @@ export class FtTreeView extends LitElement {
   /** Active animation frame ID for pan animation, null when idle. */
   private animationFrameId: number | null = null;
 
+  private cancelPanAnimation() {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
   private resizeObserver?: ResizeObserver;
 
   connectedCallback() {
@@ -144,10 +151,7 @@ export class FtTreeView extends LitElement {
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
     this.resizeObserver?.disconnect();
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
+    this.cancelPanAnimation();
   }
 
   firstUpdated() {
@@ -214,7 +218,7 @@ export class FtTreeView extends LitElement {
 
   private static readonly PAN_DURATION_MS = 750;
 
-  private easeInOut(t: number): number {
+  private static easeInOut(t: number): number {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   }
 
@@ -228,10 +232,7 @@ export class FtTreeView extends LitElement {
    */
   private animatePanTo(targetPanX: number, targetPanY: number) {
     // Cancel any in-progress animation and snapshot current position.
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
+    this.cancelPanAnimation();
 
     const startPanX = this.panX;
     const startPanY = this.panY;
@@ -242,15 +243,19 @@ export class FtTreeView extends LitElement {
       if (startTime === null) startTime = timestamp;
       const elapsed = timestamp - startTime;
       const t = Math.min(elapsed / duration, 1);
-      const easedT = this.easeInOut(t);
+      const easedT = FtTreeView.easeInOut(t);
 
+      // NOTE: Setting @state() props triggers Lit update cycles (~45 during
+      // the animation). Lit batches these to at most one render per frame,
+      // which is efficient for attribute-only viewBox changes. If perf
+      // becomes an issue with large trees, consider direct setAttribute().
       this.panX = startPanX + (targetPanX - startPanX) * easedT;
       this.panY = startPanY + (targetPanY - startPanY) * easedT;
 
       if (t < 1) {
         this.animationFrameId = requestAnimationFrame(step);
       } else {
-        // Ensure exact final values
+        // Guard against floating-point drift — explicitly set exact targets.
         this.panX = targetPanX;
         this.panY = targetPanY;
         this.animationFrameId = null;
@@ -366,6 +371,7 @@ export class FtTreeView extends LitElement {
   }
 
   private centerGraph() {
+    this.cancelPanAnimation();
     if (this.layoutNodes.length === 0) return;
 
     const pad = 40;
@@ -410,6 +416,7 @@ export class FtTreeView extends LitElement {
     if (e.button !== 0) return;
     const tgt = e.target as Element;
     if (tgt.closest('ft-tree-node') || tgt.closest('foreignObject')) return;
+    this.cancelPanAnimation();
     this.isPanning = true;
     this.panStartX = e.clientX;
     this.panStartY = e.clientY;
@@ -432,6 +439,7 @@ export class FtTreeView extends LitElement {
 
   private onWheel(e: WheelEvent) {
     e.preventDefault();
+    this.cancelPanAnimation();
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
 
