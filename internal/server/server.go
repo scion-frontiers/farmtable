@@ -576,6 +576,23 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 			Task:      proto,
 			Timestamp: timestamppb.Now(),
 		})
+		// Publish events for relationship target tasks so all clients see the reciprocal immediately.
+		seen := make(map[uuid.UUID]bool)
+		for _, lists := range [][]uuid.UUID{p.AddBlocks, p.AddBlockedBy, p.RemoveRelationships} {
+			for _, targetID := range lists {
+				if seen[targetID] {
+					continue
+				}
+				seen[targetID] = true
+				if tt, err := s.store.GetTask(ctx, targetID); err == nil {
+					s.eventBus.Publish(&pb.TaskEvent{
+						EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+						Task:      taskToProto(tt),
+						Timestamp: timestamppb.Now(),
+					})
+				}
+			}
+		}
 	}
 	return proto, nil
 }

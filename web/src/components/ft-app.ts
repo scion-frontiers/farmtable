@@ -6,7 +6,7 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { Platform, RelationshipType, TaskPhase, type Collection, type User } from '../gen/types.js';
+import { Platform, RelationshipType, TaskPhase, type Collection, type Task, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { getCapabilities, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
@@ -552,11 +552,77 @@ export class FtApp extends LitElement {
     this.taskStore.upsert(updated);
     this.pollManager?.markDirty(taskId);
 
+    // Synthesize reciprocal relationships on target tasks so the UI reflects them instantly.
+    const reciprocalSnapshots: Array<{ id: string; original: Task }> = [];
+
+    if (fields.addBlocks?.length) {
+      for (const targetId of fields.addBlocks) {
+        const target = this.taskStore.getTask(targetId);
+        if (target) {
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
+          if (!target.relationships.some(r => r.type === RelationshipType.BLOCKED_BY && r.targetTaskId === taskId)) {
+            this.taskStore.upsert({
+              ...target,
+              relationships: [...target.relationships, { type: RelationshipType.BLOCKED_BY, targetTaskId: taskId }],
+            });
+          }
+        }
+      }
+    }
+    if (fields.addBlockedBy?.length) {
+      for (const targetId of fields.addBlockedBy) {
+        const target = this.taskStore.getTask(targetId);
+        if (target) {
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
+          if (!target.relationships.some(r => r.type === RelationshipType.BLOCKS && r.targetTaskId === taskId)) {
+            this.taskStore.upsert({
+              ...target,
+              relationships: [...target.relationships, { type: RelationshipType.BLOCKS, targetTaskId: taskId }],
+            });
+          }
+        }
+      }
+    }
+    if (fields.removeRelationships?.length) {
+      for (const targetId of fields.removeRelationships) {
+        const target = this.taskStore.getTask(targetId);
+        if (target) {
+          if (!reciprocalSnapshots.some(s => s.id === targetId)) {
+            reciprocalSnapshots.push({ id: targetId, original: target });
+          }
+          // Find the relationship type(s) being removed from the source task
+          // and remove only the reciprocal type from the target.
+          const removedTypes = new Set(
+            task.relationships
+              .filter(r => r.targetTaskId === targetId)
+              .map(r => r.type === RelationshipType.BLOCKS ? RelationshipType.BLOCKED_BY
+                      : r.type === RelationshipType.BLOCKED_BY ? RelationshipType.BLOCKS
+                      : r.type),
+          );
+          this.taskStore.upsert({
+            ...target,
+            relationships: target.relationships.filter(
+              r => !(r.targetTaskId === taskId && removedTypes.has(r.type)),
+            ),
+          });
+        }
+      }
+    }
+
     try {
       await this.client.updateTask(taskId, fields);
     } catch (error) {
+      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.taskStore.upsert(task);
+      // Roll back reciprocal changes on target tasks.
+      for (const snap of reciprocalSnapshots) {
+        this.taskStore.upsert(snap.original);
+      }
       this.showWriteError(error);
     } finally {
       this.pollManager?.clearDirty(taskId);
