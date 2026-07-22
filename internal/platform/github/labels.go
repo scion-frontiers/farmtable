@@ -69,6 +69,7 @@ type LabelMapper struct {
 	enabled         bool
 	stageToLabel    map[task.Stage]string
 	priorityToLabel map[task.Priority]string
+	typeToLabel     map[string]string
 
 	// Pull-direction lookup tables (label -> value), built from defaults
 	// plus custom config overrides. Keys are lowercased for case-insensitive matching.
@@ -86,6 +87,7 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 		enabled:         cfg.Enabled,
 		stageToLabel:    make(map[task.Stage]string),
 		priorityToLabel: make(map[task.Priority]string),
+		typeToLabel:     make(map[string]string),
 		labelToStage:    make(map[string]task.Stage),
 		labelToPriority: make(map[string]task.Priority),
 		labelToType:     make(map[string]string),
@@ -135,14 +137,16 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 
 	// --- Type mappings ---
 
-	// Defaults.
+	// Defaults: each type value maps to itself as a label.
 	for label, typ := range defaultTypeLabels {
 		m.labelToType[label] = typ
+		m.typeToLabel[typ] = label
 	}
 
 	// Custom config overrides.
 	for label, typ := range cfg.Types {
 		m.labelToType[strings.ToLower(label)] = typ
+		m.typeToLabel[typ] = strings.ToLower(label)
 	}
 
 	return m
@@ -307,6 +311,57 @@ func (m *LabelMapper) PriorityLabelSwap(currentLabels []string, newPriority task
 	}
 	if !found {
 		add = append(add, newLabel)
+	}
+
+	return add, remove
+}
+
+// TypeToLabel returns the GitHub label name for a given task type.
+// Unlike StageToLabel/PriorityToLabel (which return generated fallback labels
+// for unknown enum values), TypeToLabel returns "" for unknown types because
+// types are open-ended strings — generating a label for an arbitrary string
+// would create orphaned labels on GitHub. The caller (TypeLabelSwap) guards
+// against the empty return with a newLabel != "" check.
+func (m *LabelMapper) TypeToLabel(typ string) string {
+	if !m.enabled {
+		return ""
+	}
+
+	if label, ok := m.typeToLabel[typ]; ok {
+		return label
+	}
+	return ""
+}
+
+// TypeLabelSwap computes the label add/remove sets needed to transition
+// an issue from its current labels to a new type.
+func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add []string, remove []string) {
+	if !m.enabled {
+		return nil, nil
+	}
+
+	newLabel := m.TypeToLabel(newType)
+
+	for _, raw := range currentLabels {
+		key := m.stripForMatch(raw)
+		if _, isType := m.labelToType[key]; isType {
+			if raw != newLabel {
+				remove = append(remove, raw)
+			}
+		}
+	}
+
+	if newLabel != "" {
+		found := false
+		for _, raw := range currentLabels {
+			if raw == newLabel {
+				found = true
+				break
+			}
+		}
+		if !found {
+			add = append(add, newLabel)
+		}
 	}
 
 	return add, remove

@@ -163,9 +163,13 @@ export class FtKanbanView extends LitElement {
         console.warn('No client configured — stage change is local only');
       }
     } catch (error) {
-      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task stage; rolled back optimistic change', error);
       this.store.upsert({ ...task, stage: oldStage, phase: oldPhase });
+      this.dispatchEvent(new CustomEvent('write-error', {
+        bubbles: true,
+        composed: true,
+        detail: { error },
+      }));
     }
   }
 
@@ -186,9 +190,13 @@ export class FtKanbanView extends LitElement {
         console.warn('No client configured — task update is local only');
       }
     } catch (error) {
-      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.store.upsert(task);
+      this.dispatchEvent(new CustomEvent('write-error', {
+        bubbles: true,
+        composed: true,
+        detail: { error },
+      }));
     }
   }
 

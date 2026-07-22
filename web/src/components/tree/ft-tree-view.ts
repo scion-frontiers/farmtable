@@ -606,9 +606,16 @@ export class FtTreeView extends LitElement {
           : { parentTaskId: null };
         await this.client.updateTask(taskId, fields);
       }
-    } catch {
+    } catch (error) {
       this.store.upsert({ ...task, parentTaskId: oldParentId });
       this.lastStructureKey = '';
+      this.dispatchEvent(
+        new CustomEvent('write-error', {
+          detail: { error },
+          bubbles: true,
+          composed: true,
+        }),
+      );
     }
   }
 

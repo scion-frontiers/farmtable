@@ -340,6 +340,7 @@ export class FtApp extends LitElement {
             .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @write-error=${this.onWriteError}
           ></ft-tree-view>
         `;
       case 'kanban':
@@ -354,6 +355,7 @@ export class FtApp extends LitElement {
             .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @write-error=${this.onWriteError}
           ></ft-kanban-view>
         `;
     }
@@ -537,12 +539,50 @@ export class FtApp extends LitElement {
     try {
       await this.client.updateTask(taskId, fields);
     } catch (error) {
-      // TODO(ui-feedback): Show a toast/snackbar when an optimistic save rolls back.
       console.warn('Failed to update task; rolled back optimistic change', error);
       this.taskStore.upsert(task);
+      this.showWriteError(error);
     } finally {
       this.pollManager?.clearDirty(taskId);
     }
+  }
+
+  /** Map a write error to a user-friendly message and show it as a toast. */
+  private showWriteError(error: unknown) {
+    const raw =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : String(error);
+
+    let message: string;
+
+    if (/permission|403|forbidden/i.test(raw)) {
+      message = 'GitHub rejected this edit — your token may not have write access';
+    } else if (/rate.?limit|429|too many requests/i.test(raw)) {
+      message = 'GitHub rate limit reached — please wait before making more edits';
+    } else if (/network|fetch|ECONNREFUSED|unavailable|deadline/i.test(raw)) {
+      message = 'Could not reach the server — your change will retry on the next sync';
+    } else {
+      message = `Failed to save changes: ${raw}`;
+    }
+
+    const alert = Object.assign(document.createElement('sl-alert'), {
+      variant: 'danger',
+      closable: true,
+      duration: 8000,
+    });
+    const icon = document.createElement('sl-icon');
+    icon.slot = 'icon';
+    icon.setAttribute('name', 'exclamation-triangle');
+    alert.append(icon, document.createTextNode(message));
+    document.body.appendChild(alert);
+    void (alert as HTMLElement & { toast(): Promise<void> }).toast();
+  }
+
+  private onWriteError(e: CustomEvent) {
+    this.showWriteError(e.detail.error);
   }
 
   private onInspectorClose() {

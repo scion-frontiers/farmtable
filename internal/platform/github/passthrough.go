@@ -366,6 +366,42 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 	}
 
+	if p.Type != nil {
+		if err := s.ensureLabelIndex(ctx); err != nil {
+			return nil, err
+		}
+		currentLabels := issueLabels(target)
+		add, remove := s.mapper.TypeLabelSwap(currentLabels, *p.Type)
+
+		removeIDs := s.labelNamesToIDs(remove)
+		if len(removeIDs) > 0 {
+			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
+		}
+		addIDs := s.labelNamesToIDs(add)
+		if len(addIDs) > 0 {
+			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		}
+	}
+
+	if len(p.AddLabels) > 0 {
+		if err := s.ensureLabelIndex(ctx); err != nil {
+			return nil, err
+		}
+		addIDs := s.labelNamesToIDs(p.AddLabels)
+		if len(addIDs) > 0 {
+			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		}
+	}
+	if len(p.RemoveLabels) > 0 {
+		if err := s.ensureLabelIndex(ctx); err != nil {
+			return nil, err
+		}
+		removeIDs := s.labelNamesToIDs(p.RemoveLabels)
+		if len(removeIDs) > 0 {
+			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
+		}
+	}
+
 	if p.AssigneeID != nil {
 		// Build UUID → GitHub node ID reverse lookup from already-fetched issue data.
 		// The deterministic UUID is generated via s.userUUID(login), so we scan
