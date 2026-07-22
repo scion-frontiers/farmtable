@@ -5,6 +5,7 @@ import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { Task } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 80;
@@ -93,6 +94,9 @@ export class FtTreeView extends LitElement {
 
   @property({ type: Boolean })
   readOnly = false;
+
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
 
   private storeCtrl!: TaskStoreController;
 
@@ -502,8 +506,12 @@ export class FtTreeView extends LitElement {
 
   // ── Drag-and-drop ──
 
+  private get isReparentDisabled(): boolean {
+    return this.readOnly || this.capabilities?.canChangeParent === false;
+  }
+
   private onDragStartCapture(e: DragEvent) {
-    if (this.readOnly) return;
+    if (this.isReparentDisabled) return;
     const taskId = e.dataTransfer?.getData('application/ft-task-id');
     if (!taskId) {
       const node = (e.target as Element).closest?.('ft-tree-node') as
@@ -517,7 +525,7 @@ export class FtTreeView extends LitElement {
   }
 
   private onForeignDragStart(e: DragEvent, taskId: string) {
-    if (this.readOnly) return;
+    if (this.isReparentDisabled) return;
     this.draggedTaskId = taskId;
     this._dragDescendants = getDescendantIds(taskId, this.store);
     e.dataTransfer!.setData('application/ft-task-id', taskId);
@@ -537,7 +545,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onNodeDrop(e: DragEvent, targetId: string) {
-    if (this.readOnly) return;
+    if (this.isReparentDisabled) return;
     e.preventDefault();
     e.stopPropagation();
     const taskId =
@@ -561,7 +569,7 @@ export class FtTreeView extends LitElement {
   }
 
   private async onCanvasDrop(e: DragEvent) {
-    if (this.readOnly) return;
+    if (this.isReparentDisabled) return;
     const taskId =
       this.draggedTaskId ||
       e.dataTransfer!.getData('application/ft-task-id');
@@ -583,7 +591,7 @@ export class FtTreeView extends LitElement {
     taskId: string,
     newParentId: string | null,
   ) {
-    if (this.readOnly) return;
+    if (this.isReparentDisabled) return;
     const task = this.store.getTask(taskId);
     if (!task) return;
 

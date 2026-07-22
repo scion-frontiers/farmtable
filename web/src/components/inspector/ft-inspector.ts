@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { TaskStore } from '../../store/task-store.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector')
@@ -94,6 +95,9 @@ export class FtInspector extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
+
   private storeCtrl?: TaskStoreController;
 
   override connectedCallback() {
@@ -173,7 +177,7 @@ export class FtInspector extends LitElement {
               @sl-show=${() => this.persistSectionState('metadata', true)}
               @sl-hide=${() => this.persistSectionState('metadata', false)}
             >
-              <ft-inspector-meta .task=${task} .client=${this.client} ?readOnly=${this.readOnly}></ft-inspector-meta>
+              <ft-inspector-meta .task=${task} .client=${this.client} ?readOnly=${this.readOnly} .capabilities=${this.capabilities}></ft-inspector-meta>
             </sl-details>
 
             <sl-details
@@ -186,6 +190,7 @@ export class FtInspector extends LitElement {
                 taskId=${task.id}
                 .description=${task.description}
                 ?readOnly=${this.readOnly}
+                .capabilities=${this.capabilities}
                 hide-title
               ></ft-inspector-desc>
             </sl-details>

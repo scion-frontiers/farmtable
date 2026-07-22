@@ -7,6 +7,7 @@ import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
 
@@ -120,6 +121,9 @@ export class FtKanbanView extends LitElement {
 
   @property({ type: Boolean })
   readOnly = false;
+
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
 
   private storeController!: TaskStoreController;
 
@@ -292,7 +296,7 @@ export class FtKanbanView extends LitElement {
     const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
 
     return html`
-      ${this.readOnly ? nothing : html`<div class="view-header">
+      ${this.readOnly || this.capabilities?.canCreateTask === false ? nothing : html`<div class="view-header">
         <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
           <sl-icon name="plus" slot="prefix"></sl-icon>
           Add Task
@@ -314,6 +318,7 @@ export class FtKanbanView extends LitElement {
               .label=${col.label}
               .totalCount=${col.totalCount}
               ?readOnly=${this.readOnly}
+              .capabilities=${this.capabilities}
               selected-task-id=${this.selectedTaskId ?? ''}
             ></ft-kanban-column>
           `,
@@ -347,6 +352,7 @@ export class FtKanbanView extends LitElement {
                             .label=${col.label}
                             .totalCount=${col.totalCount}
                             ?readOnly=${this.readOnly}
+                            .capabilities=${this.capabilities}
                             selected-task-id=${this.selectedTaskId ?? ''}
                           ></ft-kanban-column>
                         `,

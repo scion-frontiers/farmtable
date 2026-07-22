@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { Task, User } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import { formatDate } from '../../util/format.js';
+import { CAPABILITY_TOOLTIPS, type CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
@@ -138,6 +139,9 @@ export class FtInspectorMeta extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
+
   @state()
   private editingDate: EditableDateField | null = null;
 
@@ -179,7 +183,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startDateEdit(field: EditableDateField) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canEditDates === false) return;
     this.editingDate = field;
     this.dateDraft = this.dateInputValue(this.task[field]);
     this.addDismissListener();
@@ -217,7 +221,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private clearDateEdit(field: EditableDateField) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canEditDates === false) return;
     this.editingDate = null;
     if (!this.task[field]) return;
     this.dispatchTaskUpdate({ [field]: null } as UpdateTaskFields);
@@ -278,7 +282,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private onAssigneeRemove(e: Event) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canChangeAssignee === false) return;
     const userId = (e.currentTarget as HTMLElement).dataset.userId;
     if (!userId) return;
     const currentIds = this.task.assignees.map((u) => u.id);
@@ -291,7 +295,7 @@ export class FtInspectorMeta extends LitElement {
   }
 
   private async startAssigneePick() {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canChangeAssignee === false) return;
     if (!this.client) return; // S-4: no-op when client is absent
     this.pickingAssignee = true;
     this.addDismissListener();
@@ -449,6 +453,18 @@ export class FtInspectorMeta extends LitElement {
     `;
   }
 
+  /** Render a date cell as read-only with a tooltip explaining why editing is disabled. */
+  private renderDisabledDateCell(label: string, value: string | undefined, tooltip: string) {
+    return html`
+      <div class="date-cell">
+        <span class="label">${label}</span>
+        <sl-tooltip content=${tooltip} hoist>
+          <span class="value">${value ? formatDate(value) : '—'}</span>
+        </sl-tooltip>
+      </div>
+    `;
+  }
+
   private renderAssignees() {
     const assignees = this.task.assignees;
     const assignedIds = new Set(assignees.map((u) => u.id));
@@ -463,7 +479,7 @@ export class FtInspectorMeta extends LitElement {
                   data-user-id=${u.id}
                   size="small"
                   variant="neutral"
-                  ?removable=${!this.readOnly}
+                  ?removable=${!this.readOnly && this.capabilities?.canChangeAssignee !== false}
                   @sl-remove=${this.onAssigneeRemove}
                 >
                   ${u.name}
@@ -495,7 +511,7 @@ export class FtInspectorMeta extends LitElement {
                   : html`<span class="empty">No users available</span>`}
               </div>
             `
-          : this.client && !this.readOnly
+          : this.client && !this.readOnly && this.capabilities?.canChangeAssignee !== false
             ? html`
                 <sl-icon-button
                   name="plus-lg"
@@ -584,10 +600,14 @@ export class FtInspectorMeta extends LitElement {
       <div class="date-grid">
         ${this.readOnly
           ? this.renderReadOnlyDateCell('Start date', t.startDate)
-          : this.renderDateCell('Start date', 'startDate', t.startDate)}
+          : this.capabilities?.canEditDates === false
+            ? this.renderDisabledDateCell('Start date', t.startDate, CAPABILITY_TOOLTIPS.canEditDates)
+            : this.renderDateCell('Start date', 'startDate', t.startDate)}
         ${this.readOnly
           ? this.renderReadOnlyDateCell('Due date', t.dueDate)
-          : this.renderDateCell('Due date', 'dueDate', t.dueDate)}
+          : this.capabilities?.canEditDates === false
+            ? this.renderDisabledDateCell('Due date', t.dueDate, CAPABILITY_TOOLTIPS.canEditDates)
+            : this.renderDateCell('Due date', 'dueDate', t.dueDate)}
         ${this.renderReadOnlyDateCell('Created', t.createdAt)}
         ${this.renderReadOnlyDateCell('Updated', t.updatedAt)}
       </div>
