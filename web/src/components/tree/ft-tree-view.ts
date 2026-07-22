@@ -6,6 +6,7 @@ import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { Task } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
+import '../minimap/ft-minimap.js';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 80;
@@ -619,6 +620,31 @@ export class FtTreeView extends LitElement {
     }
   }
 
+  // ── Minimap ──
+
+  private onMinimapPan(e: CustomEvent<{ panX: number; panY: number }>) {
+    this.cancelPanAnimation();
+    this.panX = e.detail.panX;
+    this.panY = e.detail.panY;
+  }
+
+  private onMinimapWheel(e: CustomEvent<{ deltaY: number }>) {
+    this.cancelPanAnimation();
+    const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
+
+    // Anchor zoom to viewport center — the cursor is over the minimap,
+    // not the main canvas, so clientX/Y would give a wrong anchor.
+    const vbW = this.containerWidth / this.scale;
+    const vbH = this.containerHeight / this.scale;
+    const centerX = this.panX + vbW / 2;
+    const centerY = this.panY + vbH / 2;
+
+    this.panX = centerX - this.containerWidth / newScale / 2;
+    this.panY = centerY - this.containerHeight / newScale / 2;
+    this.scale = newScale;
+  }
+
   // ── Render ──
 
   render() {
@@ -701,6 +727,17 @@ export class FtTreeView extends LitElement {
             })}
           </g>
         </svg>
+        <ft-minimap
+          .nodes=${this.layoutNodes}
+          .edges=${this.layoutEdges}
+          .panX=${this.panX}
+          .panY=${this.panY}
+          .scale=${this.scale}
+          .containerWidth=${this.containerWidth}
+          .containerHeight=${this.containerHeight}
+          @minimap-pan=${this.onMinimapPan}
+          @minimap-wheel=${this.onMinimapWheel}
+        ></ft-minimap>
       </div>
     `;
   }

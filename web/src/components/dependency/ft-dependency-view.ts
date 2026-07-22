@@ -7,6 +7,7 @@ import type { Task } from '../../gen/types.js';
 import { isReady } from '../../utils/task-ready.js';
 import '../tree/ft-tree-node.js';
 import '../ft-empty-state.js';
+import '../minimap/ft-minimap.js';
 
 /**
  * Dependency Tree View — left-to-right layered DAG of blocking relationships.
@@ -709,6 +710,31 @@ export class FtDependencyView extends LitElement {
     void (alert as HTMLElement & { toast(): Promise<void> }).toast();
   }
 
+  // ── Minimap ──
+
+  private onMinimapPan(e: CustomEvent<{ panX: number; panY: number }>) {
+    this.cancelPanAnimation();
+    this.panX = e.detail.panX;
+    this.panY = e.detail.panY;
+  }
+
+  private onMinimapWheel(e: CustomEvent<{ deltaY: number }>) {
+    this.cancelPanAnimation();
+    const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
+
+    // Anchor zoom to viewport center — the cursor is over the minimap,
+    // not the main canvas, so clientX/Y would give a wrong anchor.
+    const vbW = this.containerWidth / this.scale;
+    const vbH = this.containerHeight / this.scale;
+    const centerX = this.panX + vbW / 2;
+    const centerY = this.panY + vbH / 2;
+
+    this.panX = centerX - this.containerWidth / newScale / 2;
+    this.panY = centerY - this.containerHeight / newScale / 2;
+    this.scale = newScale;
+  }
+
   // ── Render ──
 
   render() {
@@ -795,6 +821,18 @@ export class FtDependencyView extends LitElement {
             })}
           </g>
         </svg>
+        <ft-minimap
+          .nodes=${this.layoutNodes}
+          .edges=${this.layoutEdges}
+          .panX=${this.panX}
+          .panY=${this.panY}
+          .scale=${this.scale}
+          .containerWidth=${this.containerWidth}
+          .containerHeight=${this.containerHeight}
+          .edgePathFn=${edgePath}
+          @minimap-pan=${this.onMinimapPan}
+          @minimap-wheel=${this.onMinimapWheel}
+        ></ft-minimap>
       </div>
     `;
   }
