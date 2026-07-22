@@ -39,7 +39,6 @@ interface LayoutNode {
 interface LayoutEdge {
   from: string;
   to: string;
-  points: Array<{ x: number; y: number }>;
 }
 
 /**
@@ -190,6 +189,7 @@ export class FtDependencyView extends LitElement {
 
   private layoutNodes: LayoutNode[] = [];
   private layoutEdges: LayoutEdge[] = [];
+  private nodeMap = new Map<string, LayoutNode>();
   private lastStructureKey = '';
   private needsCenter = true;
 
@@ -463,8 +463,8 @@ export class FtDependencyView extends LitElement {
       }
     }
 
-    // Build edge list: blocker → blocked (left → right)
-    const nodeMap = new Map(this.layoutNodes.map((n) => [n.id, n]));
+    // Build edge list and node lookup map: blocker → blocked (left → right)
+    this.nodeMap = new Map(this.layoutNodes.map((n) => [n.id, n]));
     this.layoutEdges = [];
     for (const task of tasks) {
       for (const rel of task.relationships) {
@@ -472,17 +472,10 @@ export class FtDependencyView extends LitElement {
         if (!taskSet.has(rel.targetTaskId)) continue;
         const blocker = this.store.getTask(rel.targetTaskId);
         if (!blocker || blocker.phase === TaskPhase.CLOSED) continue;
-        const src = nodeMap.get(rel.targetTaskId);
-        const tgt = nodeMap.get(task.id);
-        if (src && tgt) {
+        if (this.nodeMap.has(rel.targetTaskId) && this.nodeMap.has(task.id)) {
           this.layoutEdges.push({
             from: rel.targetTaskId,
             to: task.id,
-            // Store source/target rects for edgePath(); not used as polyline points
-            points: [
-              { x: src.x, y: src.y },
-              { x: tgt.x, y: tgt.y },
-            ],
           });
         }
       }
@@ -747,8 +740,8 @@ export class FtDependencyView extends LitElement {
         >
           <g class="edges">
             ${this.layoutEdges.map((e) => {
-              const src = this.layoutNodes.find((n) => n.id === e.from);
-              const tgt = this.layoutNodes.find((n) => n.id === e.to);
+              const src = this.nodeMap.get(e.from);
+              const tgt = this.nodeMap.get(e.to);
               if (!src || !tgt) return null;
               return svg`<path
                 d="${edgePath(src, tgt)}"
