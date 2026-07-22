@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import type { Task } from '../gen/types.js';
+import { RelationshipType } from '../gen/types.js';
 import type { TaskStore } from '../store/task-store.js';
 
 const WORD_BOUNDARY_RE = /[\s\-_]/;
@@ -60,8 +61,21 @@ const STAGE_NAMES: Record<number, string> = {
   15: 'Cancelled',
 };
 
+/** Labels for the relationship type pills. */
+const REL_TYPE_LABELS: { type: RelationshipType; label: string }[] = [
+  { type: RelationshipType.BLOCKS, label: 'Blocks' },
+  { type: RelationshipType.BLOCKED_BY, label: 'Blocked by' },
+];
+
+export type CommandPaletteMode = 'navigate' | 'add-relationship';
+
 export interface CommandPaletteSelectDetail {
   taskId: string;
+}
+
+export interface RelationshipAddDetail {
+  targetTaskId: string;
+  relationshipType: RelationshipType;
 }
 
 let paletteId = 0;
@@ -124,6 +138,50 @@ export class FtCommandPalette extends LitElement {
 
     input::placeholder {
       color: var(--sl-color-neutral-400);
+    }
+
+    .rel-type-row {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--sl-color-neutral-200);
+    }
+
+    .rel-type-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--sl-color-neutral-500);
+      margin-right: 0.25rem;
+    }
+
+    .rel-type-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1875rem 0.5rem;
+      border-radius: 9999px;
+      border: 1px solid var(--sl-color-neutral-300);
+      background: var(--sl-color-neutral-0);
+      font-family: var(--sl-font-sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--sl-color-neutral-600);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .rel-type-pill:hover {
+      border-color: var(--sl-color-primary-400);
+      color: var(--sl-color-primary-600);
+    }
+
+    .rel-type-pill[aria-checked='true'] {
+      background: var(--sl-color-primary-50);
+      border-color: var(--sl-color-primary-500);
+      color: var(--sl-color-primary-700);
+      font-weight: 600;
     }
 
     .results {
@@ -235,11 +293,23 @@ export class FtCommandPalette extends LitElement {
   @property({ attribute: false })
   store: TaskStore | null = null;
 
+  @property({ type: String })
+  mode: CommandPaletteMode = 'navigate';
+
+  @property({ type: String })
+  excludeTaskId = '';
+
+  @property({ attribute: false })
+  defaultRelationshipType?: RelationshipType;
+
   @state()
   private searchQuery = '';
 
   @state()
   private activeIndex = 0;
+
+  @state()
+  private relationshipType: RelationshipType = RelationshipType.BLOCKS;
 
   @query('input')
   private inputEl!: HTMLInputElement;
@@ -254,6 +324,7 @@ export class FtCommandPalette extends LitElement {
     if (this.open) {
       this.searchQuery = '';
       this.activeIndex = 0;
+      this.relationshipType = this.defaultRelationshipType ?? RelationshipType.BLOCKS;
       this.previouslyFocusedElement = this.deepActiveElement();
       this.addDismissListeners();
       void this.updateComplete.then(() => {
@@ -350,6 +421,9 @@ export class FtCommandPalette extends LitElement {
 
     const scored: Array<{ task: Task; score: number }> = [];
     for (const task of tasks) {
+      // Exclude the current task in add-relationship mode.
+      if (this.mode === 'add-relationship' && task.id === this.excludeTaskId) continue;
+
       // Score against name, id, and full searchable text; take the best match.
       const nameScore = fuzzyScore(query, task.name);
       const idScore = fuzzyScore(query, task.id);
@@ -387,13 +461,23 @@ export class FtCommandPalette extends LitElement {
   }
 
   private selectTask(taskId: string) {
-    this.dispatchEvent(
-      new CustomEvent<CommandPaletteSelectDetail>('task-select', {
-        bubbles: true,
-        composed: true,
-        detail: { taskId },
-      }),
-    );
+    if (this.mode === 'add-relationship') {
+      this.dispatchEvent(
+        new CustomEvent<RelationshipAddDetail>('relationship-add', {
+          bubbles: true,
+          composed: true,
+          detail: { targetTaskId: taskId, relationshipType: this.relationshipType },
+        }),
+      );
+    } else {
+      this.dispatchEvent(
+        new CustomEvent<CommandPaletteSelectDetail>('task-select', {
+          bubbles: true,
+          composed: true,
+          detail: { taskId },
+        }),
+      );
+    }
     this.requestClose();
   }
 
@@ -432,6 +516,10 @@ export class FtCommandPalette extends LitElement {
     this.selectTask(taskId);
   }
 
+  private onRelTypePillClick(type: RelationshipType) {
+    this.relationshipType = type;
+  }
+
   // ── Truncated task ID for display ──
 
   private shortId(id: string): string {
@@ -445,6 +533,9 @@ export class FtCommandPalette extends LitElement {
     if (!this.open) return nothing;
 
     const results = this.filteredTasks();
+    const isRelMode = this.mode === 'add-relationship';
+    const placeholder = isRelMode ? 'Search tasks to relate...' : 'Search tasks...';
+    const actionLabel = isRelMode ? 'add' : 'open';
 
     return html`
       <div class="backdrop">
@@ -454,7 +545,7 @@ export class FtCommandPalette extends LitElement {
             <input
               id=${this.labelId}
               type="text"
-              placeholder="Search tasks..."
+              placeholder=${placeholder}
               autocomplete="off"
               spellcheck="false"
               .value=${this.searchQuery}
@@ -465,6 +556,26 @@ export class FtCommandPalette extends LitElement {
               aria-activedescendant=${results.length > 0 ? `cp-item-${this.activeIndex}` : ''}
             />
           </div>
+
+          ${isRelMode
+            ? html`
+                <div class="rel-type-row" role="radiogroup" aria-label="Relationship type">
+                  <span class="rel-type-label">Type</span>
+                  ${REL_TYPE_LABELS.map(
+                    ({ type, label }) => html`
+                      <button
+                        class="rel-type-pill"
+                        role="radio"
+                        aria-checked=${type === this.relationshipType ? 'true' : 'false'}
+                        @click=${() => this.onRelTypePillClick(type)}
+                      >
+                        ${label}
+                      </button>
+                    `,
+                  )}
+                </div>
+              `
+            : nothing}
 
           <div class="results" id=${this.listboxId} role="listbox">
             ${results.length === 0
@@ -494,7 +605,7 @@ export class FtCommandPalette extends LitElement {
 
           <div class="footer">
             <span class="footer-hint"><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span>
-            <span class="footer-hint"><kbd>&crarr;</kbd> open</span>
+            <span class="footer-hint"><kbd>&crarr;</kbd> ${actionLabel}</span>
             <span class="footer-hint"><kbd>esc</kbd> close</span>
           </div>
         </div>

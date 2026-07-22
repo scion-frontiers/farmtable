@@ -11,6 +11,7 @@ import {
   TaskPriority,
   TaskEventType,
   Platform,
+  RelationshipType,
   UserType,
   IdentityStatus,
 } from './types.js';
@@ -23,6 +24,9 @@ export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 
   removeLabels?: string[];
   assigneeIds?: string[];
   clearAssignees?: boolean;
+  addBlocks?: string[];
+  addBlockedBy?: string[];
+  removeRelationships?: string[];
 };
 export interface CreateTaskFields {
   name: string;
@@ -49,7 +53,7 @@ export interface FarmTableServiceClient {
 }
 
 export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Task {
-  const { parentTaskId, dueDate, startDate, addLabels, removeLabels, assigneeIds, clearAssignees, ...rest } = fields;
+  const { parentTaskId, dueDate, startDate, addLabels, removeLabels, assigneeIds, clearAssignees, addBlocks, addBlockedBy, removeRelationships, ...rest } = fields;
   const updated: Task = { ...task, ...rest };
 
   if (parentTaskId === null) {
@@ -94,6 +98,40 @@ export function applyTaskUpdateFields(task: Task, fields: UpdateTaskFields): Tas
       type: UserType.HUMAN,
       status: IdentityStatus.ACTIVE,
     });
+  }
+
+  // Relationship mutations — addBlocks/addBlockedBy first, then removeRelationships.
+  if (addBlocks !== undefined) {
+    const existing = new Set(
+      updated.relationships
+        .filter((r) => r.type === RelationshipType.BLOCKS)
+        .map((r) => r.targetTaskId),
+    );
+    const toAdd = addBlocks
+      .filter((id) => !existing.has(id))
+      .map((id) => ({ type: RelationshipType.BLOCKS, targetTaskId: id }));
+    if (toAdd.length) {
+      updated.relationships = [...updated.relationships, ...toAdd];
+    }
+  }
+
+  if (addBlockedBy !== undefined) {
+    const existing = new Set(
+      updated.relationships
+        .filter((r) => r.type === RelationshipType.BLOCKED_BY)
+        .map((r) => r.targetTaskId),
+    );
+    const toAdd = addBlockedBy
+      .filter((id) => !existing.has(id))
+      .map((id) => ({ type: RelationshipType.BLOCKED_BY, targetTaskId: id }));
+    if (toAdd.length) {
+      updated.relationships = [...updated.relationships, ...toAdd];
+    }
+  }
+
+  if (removeRelationships !== undefined) {
+    const toRemove = new Set(removeRelationships);
+    updated.relationships = updated.relationships.filter((r) => !toRemove.has(r.targetTaskId));
   }
 
   return updated;
