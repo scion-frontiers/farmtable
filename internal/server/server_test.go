@@ -1591,6 +1591,64 @@ func TestRPC_GetBottlenecks(t *testing.T) {
 	}
 }
 
+func TestRPC_GetBottlenecks_BlockedBy(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+
+	readyStage := pb.TaskStage_TASK_STAGE_READY
+	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Bottleneck A",
+		Stage:        &readyStage,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask A: %v", err)
+	}
+
+	for i := 0; i < 2; i++ {
+		dep, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+			CollectionId: collID,
+			Name:         fmt.Sprintf("Dep %d", i),
+			Stage:        &readyStage,
+		})
+		if err != nil {
+			t.Fatalf("CreateTask dep %d: %v", i, err)
+		}
+		_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+			Id:           dep.GetId(),
+			AddBlockedBy: []string{taskA.GetId()},
+		})
+		if err != nil {
+			t.Fatalf("AddBlockedBy dep%d->A: %v", i, err)
+		}
+	}
+
+	resp, err := client.GetBottlenecks(ctx, &pb.GetBottlenecksRequest{
+		CollectionId: collID,
+		Limit:        10,
+	})
+	if err != nil {
+		t.Fatalf("GetBottlenecks: %v", err)
+	}
+
+	if len(resp.GetItems()) == 0 {
+		t.Fatal("expected at least 1 bottleneck")
+	}
+	top := resp.GetItems()[0]
+	if top.GetName() != "Bottleneck A" {
+		t.Errorf("top bottleneck = %q, want %q", top.GetName(), "Bottleneck A")
+	}
+	if top.GetDirectDependents() != 2 {
+		t.Errorf("direct_dependents = %d, want 2", top.GetDirectDependents())
+	}
+	if top.GetDownstreamCount() < 2 {
+		t.Errorf("downstream_count = %d, want >= 2", top.GetDownstreamCount())
+	}
+}
+
 func TestRPC_GetCriticalPath_DiamondDAG(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()

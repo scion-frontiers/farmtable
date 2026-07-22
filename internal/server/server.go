@@ -1684,10 +1684,18 @@ func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottle
 		}
 		totalLoaded += len(tasks)
 		for _, t := range tasks {
+			seen := make(map[uuid.UUID]bool)
 			var blocksTargets []uuid.UUID
 			for _, rel := range t.Edges.SourceRelationships {
-				if rel.Type == "blocks" {
+				if rel.Type == "blocks" && !seen[rel.TargetTaskID] {
+					seen[rel.TargetTaskID] = true
 					blocksTargets = append(blocksTargets, rel.TargetTaskID)
+				}
+			}
+			for _, rel := range t.Edges.TargetRelationships {
+				if rel.Type == "blocked_by" && !seen[rel.SourceTaskID] {
+					seen[rel.SourceTaskID] = true
+					blocksTargets = append(blocksTargets, rel.SourceTaskID)
 				}
 			}
 			if len(blocksTargets) > 0 {
