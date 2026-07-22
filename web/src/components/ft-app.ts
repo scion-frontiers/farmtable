@@ -8,6 +8,7 @@ import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/servi
 import type { UpdateTaskFields } from '../gen/service.js';
 import { Platform, RelationshipType, TaskPhase, type Collection, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
+import { getCapabilities, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
@@ -160,6 +161,17 @@ export class FtApp extends LitElement {
     return this.isCollectionWritable(this.currentCollection);
   }
 
+  /**
+   * Per-operation capability flags for the current collection.
+   * Farmtable collections get ALL_ENABLED; writable GitHub collections get
+   * GITHUB_CAPABILITIES (with unmappable operations disabled); everything
+   * else gets ALL_DISABLED.
+   */
+  private get capabilities(): CollectionCapabilities | undefined {
+    if (!this.currentCollection) return undefined;
+    return getCapabilities(this.currentCollection);
+  }
+
   private isCollectionWritable(coll: Collection): boolean {
     // Check remote_data for explicit writable flag
     const rd = coll.remoteData;
@@ -265,6 +277,7 @@ export class FtApp extends LitElement {
                   .store=${this.taskStore}
                   .client=${this.client}
                   ?readOnly=${this.isReadOnly}
+                  .capabilities=${this.capabilities}
                   @close=${this.onInspectorClose}
                   @task-select=${this.onTaskSelect}
                   @task-update=${this.onTaskUpdate}
@@ -324,6 +337,7 @@ export class FtApp extends LitElement {
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
+            .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-tree-view>
@@ -337,6 +351,7 @@ export class FtApp extends LitElement {
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
+            .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
           ></ft-kanban-view>

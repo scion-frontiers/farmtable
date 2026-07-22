@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
 import { TaskStage, TaskPriority } from '../../gen/types.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtTaskCard } from './ft-task-card.js';
 
 const STAGE_COLOR: Record<number, string> = {
@@ -140,6 +141,9 @@ export class FtKanbanColumn extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
+
   @state()
   private isDragOver = false;
 
@@ -180,26 +184,30 @@ export class FtKanbanColumn extends LitElement {
     }
   }
 
+  private get isStageChangeDragDisabled(): boolean {
+    return this.readOnly || this.capabilities?.canChangeStage === false;
+  }
+
   private onDragEnter() {
-    if (this.readOnly) return;
+    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount++;
     this.isDragOver = true;
   }
 
   private onDragOver(e: DragEvent) {
-    if (this.readOnly) return;
+    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
   }
 
   private onDragLeave() {
-    if (this.readOnly) return;
+    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount--;
     this.isDragOver = this._dragEnterCount > 0;
   }
 
   private onDrop(e: DragEvent) {
-    if (this.readOnly) return;
+    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     this._dragEnterCount = 0;
     this.isDragOver = false;
@@ -215,7 +223,7 @@ export class FtKanbanColumn extends LitElement {
   }
 
   private onAddTaskClick(e: MouseEvent) {
-    if (this.readOnly) return;
+    if (this.readOnly || this.capabilities?.canCreateTask === false) return;
     e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('column-add-task', {
@@ -322,7 +330,7 @@ export class FtKanbanColumn extends LitElement {
               >${countChip}</sl-tooltip
             >`
           : countChip}
-        ${this.readOnly ? nothing : html`<sl-icon-button
+        ${this.readOnly || this.capabilities?.canCreateTask === false ? nothing : html`<sl-icon-button
           class="add-task-button"
           name="plus"
           size="small"

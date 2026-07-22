@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { renderMarkdown } from '../../util/markdown.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 @customElement('ft-inspector-desc')
@@ -86,6 +87,9 @@ export class FtInspectorDesc extends LitElement {
 
   @property({ type: Boolean })
   readOnly = false;
+
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
 
   @state()
   private isEditing = false;

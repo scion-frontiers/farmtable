@@ -3,6 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { Comment } from '../../gen/types.js';
 import type { FarmTableServiceClient } from '../../gen/service.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import { renderMarkdown } from '../../util/markdown.js';
 import { formatTimestamp } from '../../util/format.js';
 
@@ -72,6 +73,9 @@ export class FtInspectorComments extends LitElement {
 
   @property({ type: Boolean })
   readOnly = false;
+
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
 
   @property({ attribute: false })
   client?: FarmTableServiceClient;
