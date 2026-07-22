@@ -129,6 +129,12 @@ export class FtReadyQueueView extends LitElement {
       line-height: 1.25rem;
     }
 
+    .priority-cell {
+      display: inline-flex;
+      flex-shrink: 0;
+      min-width: 6.5rem;
+    }
+
     .blocks-badge {
       flex-shrink: 0;
     }
@@ -300,7 +306,7 @@ export class FtReadyQueueView extends LitElement {
         @click=${() => this.onRowClick(task.id)}
         @keydown=${(e: KeyboardEvent) => this.onRowKeyDown(e, task.id)}
       >
-        <sl-badge variant=${priorityVariant} pill>${priorityLabel}</sl-badge>
+        <span class="priority-cell"><sl-badge variant=${priorityVariant} pill>${priorityLabel}</sl-badge></span>
 
         ${task.type
           ? html`<span class="task-type">${task.type}</span>`
