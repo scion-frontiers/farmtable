@@ -569,10 +569,13 @@ export class FtDependencyView extends LitElement {
 
   // ── Drag-and-Drop for relationship building ──
 
+  // Note: ft-tree-node also has a dragstart handler that fires first
+  // (bubbles up from its inner <div>). We intentionally override
+  // effectAllowed and set our own data key ('application/ft-task-id') so the two
+  // DnD systems (tree-reparent vs dependency-build) don't conflict.
   private onNodeDragStart(taskId: string, e: DragEvent) {
     if (this.readOnly) return;
-    // Set our own data key for dependency-building DnD
-    e.dataTransfer!.setData('ft-task-id', taskId);
+    e.dataTransfer!.setData('application/ft-task-id', taskId);
     e.dataTransfer!.effectAllowed = 'link';
     this.draggingNodeId = taskId;
   }
@@ -615,7 +618,7 @@ export class FtDependencyView extends LitElement {
     this.dragOverNodeId = null;
     this.draggingNodeId = null;
 
-    const sourceTaskId = e.dataTransfer!.getData('ft-task-id');
+    const sourceTaskId = e.dataTransfer!.getData('application/ft-task-id');
     if (!sourceTaskId) return;
 
     // Self-drop: no-op
@@ -759,7 +762,6 @@ export class FtDependencyView extends LitElement {
                   width="${n.width}"
                   height="${n.height}"
                   data-task-id="${n.id}"
-                  draggable="${this.readOnly ? 'false' : 'true'}"
                   style="${isDragging ? 'opacity: 0.4' : ''}"
                   @click=${() => this.onNodeClick(n.id)}
                   @dragstart=${(e: DragEvent) => this.onNodeDragStart(n.id, e)}
