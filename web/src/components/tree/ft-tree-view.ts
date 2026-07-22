@@ -628,12 +628,22 @@ export class FtTreeView extends LitElement {
     this.panY = e.detail.panY;
   }
 
-  /**
-   * Build edge data for the minimap. The minimap just needs {from, to}
-   * pairs — it uses a simple straight-line path by default.
-   */
-  private get minimapEdges() {
-    return this.layoutEdges.map((e) => ({ from: e.from, to: e.to }));
+  private onMinimapWheel(e: CustomEvent<{ deltaY: number; clientX: number; clientY: number }>) {
+    this.cancelPanAnimation();
+    const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
+
+    const svgEl = this.renderRoot.querySelector('svg');
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const mx = e.detail.clientX - rect.left;
+    const my = e.detail.clientY - rect.top;
+    const svgX = this.panX + mx / this.scale;
+    const svgY = this.panY + my / this.scale;
+
+    this.panX = svgX - mx / newScale;
+    this.panY = svgY - my / newScale;
+    this.scale = newScale;
   }
 
   // ── Render ──
@@ -720,13 +730,14 @@ export class FtTreeView extends LitElement {
         </svg>
         <ft-minimap
           .nodes=${this.layoutNodes}
-          .edges=${this.minimapEdges}
+          .edges=${this.layoutEdges}
           .panX=${this.panX}
           .panY=${this.panY}
           .scale=${this.scale}
           .containerWidth=${this.containerWidth}
           .containerHeight=${this.containerHeight}
           @minimap-pan=${this.onMinimapPan}
+          @minimap-wheel=${this.onMinimapWheel}
         ></ft-minimap>
       </div>
     `;

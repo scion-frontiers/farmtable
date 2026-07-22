@@ -8,7 +8,6 @@ import { isReady } from '../../utils/task-ready.js';
 import '../tree/ft-tree-node.js';
 import '../ft-empty-state.js';
 import '../minimap/ft-minimap.js';
-import type { MinimapNode } from '../minimap/ft-minimap.js';
 
 /**
  * Dependency Tree View — left-to-right layered DAG of blocking relationships.
@@ -719,24 +718,27 @@ export class FtDependencyView extends LitElement {
     this.panY = e.detail.panY;
   }
 
+  private onMinimapWheel(e: CustomEvent<{ deltaY: number; clientX: number; clientY: number }>) {
+    this.cancelPanAnimation();
+    const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
+
+    const svgEl = this.renderRoot.querySelector('svg');
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const mx = e.detail.clientX - rect.left;
+    const my = e.detail.clientY - rect.top;
+    const svgX = this.panX + mx / this.scale;
+    const svgY = this.panY + my / this.scale;
+
+    this.panX = svgX - mx / newScale;
+    this.panY = svgY - my / newScale;
+    this.scale = newScale;
+  }
+
   private get minimapEdges() {
     return this.layoutEdges;
   }
-
-  /**
-   * Edge path function for the dependency minimap — uses cubic bezier
-   * matching the main view's edge rendering style.
-   */
-  private minimapEdgePath = (src: MinimapNode, tgt: MinimapNode): string => {
-    const startX = src.x + src.width / 2;
-    const startY = src.y;
-    const endX = tgt.x - tgt.width / 2;
-    const endY = tgt.y;
-    const dx = endX - startX;
-    const cx1 = startX + dx * 0.4;
-    const cx2 = endX - dx * 0.4;
-    return `M ${startX} ${startY} C ${cx1} ${startY}, ${cx2} ${endY}, ${endX} ${endY}`;
-  };
 
   // ── Render ──
 
@@ -832,8 +834,9 @@ export class FtDependencyView extends LitElement {
           .scale=${this.scale}
           .containerWidth=${this.containerWidth}
           .containerHeight=${this.containerHeight}
-          .edgePathFn=${this.minimapEdgePath}
+          .edgePathFn=${edgePath}
           @minimap-pan=${this.onMinimapPan}
+          @minimap-wheel=${this.onMinimapWheel}
         ></ft-minimap>
       </div>
     `;

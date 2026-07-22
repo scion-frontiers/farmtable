@@ -96,9 +96,6 @@ export class FtMinimap extends LitElement {
       cursor: grabbing;
       fill: rgba(99, 102, 241, 0.15);
     }
-    .hidden {
-      display: none;
-    }
   `;
 
   /** Layout nodes from the parent view. */
@@ -138,12 +135,20 @@ export class FtMinimap extends LitElement {
 
   @state() private isDragging = false;
 
+  /** Set true on mouseup after a drag; cleared in the next click handler. */
+  private wasDragging = false;
+
   /** Graph-coordinate offsets captured at drag start. */
   private dragStartGraphX = 0;
   private dragStartGraphY = 0;
   /** panX/panY captured at drag start. */
   private dragStartPanX = 0;
   private dragStartPanY = 0;
+
+  /** Cached node lookup map; rebuilt only when `nodes` changes. */
+  private cachedNodeMap = new Map<string, MinimapNode>();
+  /** Reference to the nodes array last used to build cachedNodeMap. */
+  private lastNodesRef: MinimapNode[] = [];
 
   connectedCallback() {
     super.connectedCallback();
@@ -155,6 +160,14 @@ export class FtMinimap extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup', this.onMouseUp);
+  }
+
+  protected willUpdate(changedProperties: PropertyValues): void {
+    super.willUpdate(changedProperties);
+    if (this.nodes !== this.lastNodesRef) {
+      this.lastNodesRef = this.nodes;
+      this.cachedNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
+    }
   }
 
   // ── Bounding box ──
@@ -243,16 +256,42 @@ export class FtMinimap extends LitElement {
   };
 
   private onMouseUp = () => {
+    if (this.isDragging) {
+      this.wasDragging = true;
+    }
     this.isDragging = false;
   };
+
+  /**
+   * Forward wheel events to the parent view so zooming works even when
+   * the cursor is over the minimap overlay.
+   */
+  private onWheel(e: WheelEvent) {
+    e.preventDefault();
+    this.dispatchEvent(
+      new CustomEvent('minimap-wheel', {
+        detail: {
+          deltaY: e.deltaY,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
 
   /**
    * Click anywhere on the minimap (outside the frame) to jump the viewport
    * so that the clicked point is centered.
    */
   private onMinimapClick(e: MouseEvent) {
-    // Don't process if we just finished dragging
-    if (this.isDragging) return;
+    // Don't process if we just finished dragging — mouseup clears isDragging
+    // before click fires, so we use the wasDragging flag instead.
+    if (this.wasDragging) {
+      this.wasDragging = false;
+      return;
+    }
     // Don't process if click was on the frame itself
     const tgt = e.target as Element;
     if (tgt.classList?.contains('viewport-frame')) return;
@@ -287,23 +326,6 @@ export class FtMinimap extends LitElement {
 
     const bounds = this.getGraphBounds();
     const graphPad = 40; // padding in graph units
-    const gMinX = bounds.minX - graphPad;
-    const gMinY = bounds.minY - graphPad;
-    const gMaxX = bounds.maxX + graphPad;
-    const gMaxY = bounds.maxY + graphPad;
-    const gWidth = gMaxX - gMinX;
-    const gHeight = gMaxY - gMinY;
-
-    // Fit the graph into the minimap, preserving aspect ratio
-    const availW = MINIMAP_SIZE - 2 * MINIMAP_PAD;
-    const availH = MINIMAP_SIZE - 2 * MINIMAP_PAD;
-    const fitScale = Math.min(availW / gWidth, availH / gHeight);
-
-    // Compute SVG viewBox to center the graph
-    const svgW = MINIMAP_SIZE / fitScale;
-    const svgH = MINIMAP_SIZE / fitScale;
-    const svgX = gMinX + gWidth / 2 - svgW / 2;
-    const svgY = gMinY + gHeight / 2 - svgH / 2;
 
     // Current viewport in graph coordinates
     const vpX = this.panX;
@@ -311,16 +333,31 @@ export class FtMinimap extends LitElement {
     const vpW = this.containerWidth / this.scale;
     const vpH = this.containerHeight / this.scale;
 
-    // Always show the frame so users can see their position and drag to navigate.
-    // For small graphs where the viewport covers the entire graph, the frame
-    // simply covers the full minimap — this is fine and expected.
+    // Expand bounds to include the viewport frame so it's never clipped
+    // when the user pans the main canvas far from the graph.
+    const gMinX = Math.min(bounds.minX - graphPad, vpX);
+    const gMinY = Math.min(bounds.minY - graphPad, vpY);
+    const gMaxX = Math.max(bounds.maxX + graphPad, vpX + vpW);
+    const gMaxY = Math.max(bounds.maxY + graphPad, vpY + vpH);
+    const gWidth = gMaxX - gMinX;
+    const gHeight = gMaxY - gMinY;
 
-    // Build node map for edge rendering
-    const nodeMap = new Map(this.nodes.map((n) => [n.id, n]));
+    // Fit the content (graph + viewport frame) into the minimap
+    const availSize = MINIMAP_SIZE - 2 * MINIMAP_PAD;
+    const fitScale = Math.min(availSize / gWidth, availSize / gHeight);
+
+    // Compute SVG viewBox to center the content
+    const svgW = MINIMAP_SIZE / fitScale;
+    const svgH = MINIMAP_SIZE / fitScale;
+    const svgX = gMinX + gWidth / 2 - svgW / 2;
+    const svgY = gMinY + gHeight / 2 - svgH / 2;
+
+    // Use cached node map for edge rendering
+    const nodeMap = this.cachedNodeMap;
     const pathFn = this.edgePathFn ?? defaultEdgePath;
 
     return html`
-      <div class="minimap" @click=${this.onMinimapClick}>
+      <div class="minimap" @click=${this.onMinimapClick} @wheel=${this.onWheel}>
         <svg viewBox="${svgX} ${svgY} ${svgW} ${svgH}">
           <!-- Edges -->
           <g class="minimap-edges">
