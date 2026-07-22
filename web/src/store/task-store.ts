@@ -57,6 +57,13 @@ export class TaskStore extends EventTarget {
   }
 
   upsert(task: Task, _changes?: Change[]): void {
+    // Skip re-dispatch when the incoming task is identical to the stored one.
+    // Bypass this check when _changes are provided (streaming events) since
+    // those indicate a confirmed server-side mutation that listeners must process.
+    const existing = this.tasks.get(task.id);
+    if (existing && !_changes && JSON.stringify(existing) === JSON.stringify(task)) {
+      return;
+    }
     this.tasks.set(task.id, task);
     this.dispatchEvent(new CustomEvent('tasks-changed', { detail: { task } }));
   }
