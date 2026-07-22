@@ -93,6 +93,9 @@ export class FtApp extends LitElement {
   private onPollRefreshStart = (() => {
     // no-op: background polls should not trigger the refresh spinner
   }) as EventListener;
+  private onPollRefreshError = (() => {
+    this.isRefreshing = false;
+  }) as EventListener;
   private routeToken = 0;
 
   @state()
@@ -779,6 +782,7 @@ export class FtApp extends LitElement {
     this.pollManager = new PollManager(this.client, this.taskStore, interval);
     this.pollManager.addEventListener('refresh-start', this.onPollRefreshStart);
     this.pollManager.addEventListener('refresh-end', this.onPollRefreshEnd);
+    this.pollManager.addEventListener('refresh-error', this.onPollRefreshError);
     void this.pollManager.start();
   }
 
@@ -786,6 +790,7 @@ export class FtApp extends LitElement {
     if (this.pollManager) {
       this.pollManager.removeEventListener('refresh-start', this.onPollRefreshStart);
       this.pollManager.removeEventListener('refresh-end', this.onPollRefreshEnd);
+      this.pollManager.removeEventListener('refresh-error', this.onPollRefreshError);
       this.pollManager.stop();
       this.pollManager = undefined;
     }
