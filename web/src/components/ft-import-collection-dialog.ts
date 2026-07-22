@@ -149,42 +149,34 @@ export class FtImportCollectionDialog extends LitElement {
       const isJsonl = file.name.endsWith('.jsonl');
 
       if (isJsonl) {
-        // Beads JSONL format: count lines for preview.
-        const lines = text.split('\n').filter((l) => l.trim().length > 0);
-        const issueCount = lines.length;
-        if (issueCount === 0) {
-          throw new Error('No issues found in JSONL file.');
-        }
-        this.detectedFormat = 'beads';
-        const name = file.name.replace(/\.jsonl$/, '');
-        this.fileText = text;
-        this.preview = {
-          name,
-          tasks: issueCount,
-          comments: 0,
-          relationships: 0,
-        };
-        this.collectionName = name;
+        this.parseAsBeadsJsonl(text, file.name);
       } else {
-        // Native Farmtable JSON format.
-        const parsed = JSON.parse(text) as CollectionExportJson;
+        // Native Farmtable JSON format. If JSON.parse fails, fall back
+        // to trying JSONL parsing — the user may have renamed a .jsonl
+        // file to .json.
+        try {
+          const parsed = JSON.parse(text) as CollectionExportJson;
 
-        if (parsed.format_version !== 1) {
-          throw new Error('Unsupported collection export format.');
+          if (parsed.format_version !== 1) {
+            throw new Error('Unsupported collection export format.');
+          }
+
+          this.detectedFormat = 'farmtable';
+          const name = this.extractCollectionName(parsed);
+          const preview = {
+            name,
+            tasks: this.countArray(parsed.tasks ?? parsed.collection?.tasks),
+            comments: this.countArray(parsed.comments ?? parsed.collection?.comments),
+            relationships: this.countArray(parsed.relationships ?? parsed.collection?.relationships),
+          };
+
+          this.fileText = text;
+          this.preview = preview;
+          this.collectionName = name;
+        } catch {
+          // JSON parse failed — try JSONL as a fallback for misnamed files.
+          this.parseAsBeadsJsonl(text, file.name);
         }
-
-        this.detectedFormat = 'farmtable';
-        const name = this.extractCollectionName(parsed);
-        const preview = {
-          name,
-          tasks: this.countArray(parsed.tasks ?? parsed.collection?.tasks),
-          comments: this.countArray(parsed.comments ?? parsed.collection?.comments),
-          relationships: this.countArray(parsed.relationships ?? parsed.collection?.relationships),
-        };
-
-        this.fileText = text;
-        this.preview = preview;
-        this.collectionName = name;
       }
     } catch (error) {
       this.file = null;
@@ -213,6 +205,26 @@ export class FtImportCollectionDialog extends LitElement {
 
   private countArray(value: unknown): number {
     return Array.isArray(value) ? value.length : 0;
+  }
+
+  private parseAsBeadsJsonl(text: string, fileName: string) {
+    // Beads JSONL format: count non-empty lines for an approximate preview.
+    // The server filters by _type so the actual count may be lower.
+    const lines = text.split('\n').filter((l) => l.trim().length > 0);
+    const issueCount = lines.length;
+    if (issueCount === 0) {
+      throw new Error('No issues found in JSONL file.');
+    }
+    this.detectedFormat = 'beads';
+    const name = fileName.replace(/\.(jsonl|json)$/, '');
+    this.fileText = text;
+    this.preview = {
+      name,
+      tasks: issueCount,
+      comments: 0,
+      relationships: 0,
+    };
+    this.collectionName = name;
   }
 
   private onNameInput(e: Event) {
@@ -315,11 +327,11 @@ export class FtImportCollectionDialog extends LitElement {
                 <div class="preview">
                   <div class="preview-title">
                     ${this.detectedFormat === 'beads'
-                      ? `Beads Import: ${this.preview.tasks} issues`
+                      ? `Beads Import: ~${this.preview.tasks} issues (approx)`
                       : `Collection: "${this.preview.name}"`}
                   </div>
                   <div class="preview-counts">
-                    <span>${this.detectedFormat === 'beads' ? 'Issues' : 'Tasks'}: ${this.preview.tasks}</span>
+                    <span>${this.detectedFormat === 'beads' ? '~Issues (approx)' : 'Tasks'}: ${this.preview.tasks}</span>
                     ${this.detectedFormat !== 'beads'
                       ? html`
                           <span>Comments: ${this.preview.comments}</span>

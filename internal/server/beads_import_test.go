@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+func intPtr(v int) *int { return &v }
+
 func TestDetectImportFormat(t *testing.T) {
 	tests := []struct {
 		name string
@@ -75,8 +77,8 @@ func TestParseBeadsJSONL(t *testing.T) {
 		if issues[0].Status != "open" {
 			t.Errorf("status = %q, want %q", issues[0].Status, "open")
 		}
-		if issues[0].Priority != 2 {
-			t.Errorf("priority = %d, want 2", issues[0].Priority)
+		if issues[0].Priority == nil || *issues[0].Priority != 2 {
+			t.Errorf("priority = %v, want 2", issues[0].Priority)
 		}
 		if len(warnings) != 0 {
 			t.Errorf("unexpected warnings: %v", warnings)
@@ -215,6 +217,13 @@ func TestBeadsPriorityToFarmtable(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("negative priority returns nil", func(t *testing.T) {
+		got := beadsPriorityToFarmtable(-1)
+		if got != nil {
+			t.Errorf("beadsPriorityToFarmtable(-1) = %q, want nil", *got)
+		}
+	})
 }
 
 func TestBeadsTypeToFarmtable(t *testing.T) {
@@ -253,7 +262,7 @@ func TestConvertBeadsToExportDocument(t *testing.T) {
 				Title:     "Fix critical bug",
 				Description: "Something is broken",
 				Status:    "open",
-				Priority:  1,
+				Priority:  intPtr(1),
 				IssueType: "bug",
 				Assignee:  "Alice",
 				Labels:    []string{"backend"},
@@ -560,6 +569,29 @@ func TestConvertBeadsToExportDocument(t *testing.T) {
 		}
 		if !strings.Contains(warnings[0], "not found") {
 			t.Errorf("warning = %q, want containing 'not found'", warnings[0])
+		}
+	})
+
+	t.Run("nil priority is not mapped to urgent", func(t *testing.T) {
+		now := time.Now().UTC()
+		issues := []beadsIssue{
+			{
+				ID:        "no-prio",
+				Title:     "No priority set",
+				Status:    "open",
+				IssueType: "task",
+				CreatedAt: now,
+				UpdatedAt: now,
+				// Priority is nil (omitted).
+			},
+		}
+
+		doc, _, err := convertBeadsToExportDocument(issues, "Test")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if doc.Tasks[0].Priority != nil {
+			t.Errorf("priority = %q, want nil for issue with no priority", *doc.Tasks[0].Priority)
 		}
 	})
 
