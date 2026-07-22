@@ -628,21 +628,20 @@ export class FtTreeView extends LitElement {
     this.panY = e.detail.panY;
   }
 
-  private onMinimapWheel(e: CustomEvent<{ deltaY: number; clientX: number; clientY: number }>) {
+  private onMinimapWheel(e: CustomEvent<{ deltaY: number }>) {
     this.cancelPanAnimation();
     const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
 
-    const svgEl = this.renderRoot.querySelector('svg');
-    if (!svgEl) return;
-    const rect = svgEl.getBoundingClientRect();
-    const mx = e.detail.clientX - rect.left;
-    const my = e.detail.clientY - rect.top;
-    const svgX = this.panX + mx / this.scale;
-    const svgY = this.panY + my / this.scale;
+    // Anchor zoom to viewport center — the cursor is over the minimap,
+    // not the main canvas, so clientX/Y would give a wrong anchor.
+    const vbW = this.containerWidth / this.scale;
+    const vbH = this.containerHeight / this.scale;
+    const centerX = this.panX + vbW / 2;
+    const centerY = this.panY + vbH / 2;
 
-    this.panX = svgX - mx / newScale;
-    this.panY = svgY - my / newScale;
+    this.panX = centerX - this.containerWidth / newScale / 2;
+    this.panY = centerY - this.containerHeight / newScale / 2;
     this.scale = newScale;
   }
 
