@@ -7,6 +7,8 @@ import type { Task } from '../../gen/types.js';
 import { isReady } from '../../utils/task-ready.js';
 import '../tree/ft-tree-node.js';
 import '../ft-empty-state.js';
+import '../minimap/ft-minimap.js';
+import type { MinimapNode } from '../minimap/ft-minimap.js';
 
 /**
  * Dependency Tree View — left-to-right layered DAG of blocking relationships.
@@ -709,6 +711,33 @@ export class FtDependencyView extends LitElement {
     void (alert as HTMLElement & { toast(): Promise<void> }).toast();
   }
 
+  // ── Minimap ──
+
+  private onMinimapPan(e: CustomEvent<{ panX: number; panY: number }>) {
+    this.cancelPanAnimation();
+    this.panX = e.detail.panX;
+    this.panY = e.detail.panY;
+  }
+
+  private get minimapEdges() {
+    return this.layoutEdges;
+  }
+
+  /**
+   * Edge path function for the dependency minimap — uses cubic bezier
+   * matching the main view's edge rendering style.
+   */
+  private minimapEdgePath = (src: MinimapNode, tgt: MinimapNode): string => {
+    const startX = src.x + src.width / 2;
+    const startY = src.y;
+    const endX = tgt.x - tgt.width / 2;
+    const endY = tgt.y;
+    const dx = endX - startX;
+    const cx1 = startX + dx * 0.4;
+    const cx2 = endX - dx * 0.4;
+    return `M ${startX} ${startY} C ${cx1} ${startY}, ${cx2} ${endY}, ${endX} ${endY}`;
+  };
+
   // ── Render ──
 
   render() {
@@ -795,6 +824,17 @@ export class FtDependencyView extends LitElement {
             })}
           </g>
         </svg>
+        <ft-minimap
+          .nodes=${this.layoutNodes}
+          .edges=${this.minimapEdges}
+          .panX=${this.panX}
+          .panY=${this.panY}
+          .scale=${this.scale}
+          .containerWidth=${this.containerWidth}
+          .containerHeight=${this.containerHeight}
+          .edgePathFn=${this.minimapEdgePath}
+          @minimap-pan=${this.onMinimapPan}
+        ></ft-minimap>
       </div>
     `;
   }
