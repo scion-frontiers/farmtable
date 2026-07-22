@@ -409,6 +409,15 @@ func TestLabelMapper_Disabled(t *testing.T) {
 		t.Fatalf("PriorityLabelSwap returned add=%v remove=%v, want no label changes when mapping is disabled", add, remove)
 	}
 
+	if label := m.TypeToLabel("bug"); label != "" {
+		t.Fatalf("TypeToLabel returned %q, want empty when mapping is disabled", label)
+	}
+
+	add, remove = m.TypeLabelSwap([]string{"bug"}, "feature")
+	if len(add) != 0 || len(remove) != 0 {
+		t.Fatalf("TypeLabelSwap returned add=%v remove=%v, want no label changes when mapping is disabled", add, remove)
+	}
+
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"ft:stage/working"})
 	if phase != task.PhaseOpen || stage != task.StageTriage {
 		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageTriage)
@@ -523,6 +532,133 @@ func TestPrefixStripping(t *testing.T) {
 	}
 	if *prio != task.PriorityUrgent {
 		t.Errorf("priority = %q, want %q", *prio, task.PriorityUrgent)
+	}
+}
+
+// --- TypeToLabel ---
+
+func TestTypeToLabel(t *testing.T) {
+	m := defaultMapper()
+
+	tests := []struct {
+		typ  string
+		want string
+	}{
+		{"bug", "bug"},
+		{"feature", "feature"},
+		{"task", "task"},
+		{"design", "design"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.typ, func(t *testing.T) {
+			got := m.TypeToLabel(tt.typ)
+			if got != tt.want {
+				t.Errorf("TypeToLabel(%q) = %q, want %q", tt.typ, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTypeToLabel_UnknownType(t *testing.T) {
+	m := defaultMapper()
+
+	got := m.TypeToLabel("unknown")
+	if got != "" {
+		t.Errorf("TypeToLabel(unknown) = %q, want empty", got)
+	}
+}
+
+func TestTypeToLabel_CustomMapping(t *testing.T) {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.Types = map[string]string{
+		"enhancement": "feature",
+		"defect":      "bug",
+	}
+	m := NewLabelMapper(cfg)
+
+	// Custom mapping overrides default: "feature" now maps to "enhancement".
+	got := m.TypeToLabel("feature")
+	if got != "enhancement" {
+		t.Errorf("TypeToLabel(feature) = %q, want %q", got, "enhancement")
+	}
+
+	got = m.TypeToLabel("bug")
+	if got != "defect" {
+		t.Errorf("TypeToLabel(bug) = %q, want %q", got, "defect")
+	}
+}
+
+func TestTypeToLabel_Disabled(t *testing.T) {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.Enabled = false
+	m := NewLabelMapper(cfg)
+
+	got := m.TypeToLabel("bug")
+	if got != "" {
+		t.Errorf("TypeToLabel returned %q, want empty when mapping is disabled", got)
+	}
+}
+
+// --- TypeLabelSwap ---
+
+func TestTypeLabelSwap(t *testing.T) {
+	m := defaultMapper()
+
+	// Transition from bug to feature.
+	add, remove := m.TypeLabelSwap(
+		[]string{"bug", "ft:stage/working", "priority:high"},
+		"feature",
+	)
+
+	if len(add) != 1 || add[0] != "feature" {
+		t.Errorf("add = %v, want [feature]", add)
+	}
+	if len(remove) != 1 || remove[0] != "bug" {
+		t.Errorf("remove = %v, want [bug]", remove)
+	}
+}
+
+func TestTypeLabelSwap_NoExistingType(t *testing.T) {
+	m := defaultMapper()
+
+	add, remove := m.TypeLabelSwap(
+		[]string{"ft:stage/working", "priority:high"},
+		"bug",
+	)
+
+	if len(add) != 1 || add[0] != "bug" {
+		t.Errorf("add = %v, want [bug]", add)
+	}
+	if len(remove) != 0 {
+		t.Errorf("remove = %v, want empty", remove)
+	}
+}
+
+func TestTypeLabelSwap_AlreadyPresent(t *testing.T) {
+	m := defaultMapper()
+
+	add, remove := m.TypeLabelSwap(
+		[]string{"bug", "ft:stage/working"},
+		"bug",
+	)
+
+	if len(add) != 0 {
+		t.Errorf("add = %v, want empty (label already present)", add)
+	}
+	if len(remove) != 0 {
+		t.Errorf("remove = %v, want empty", remove)
+	}
+}
+
+func TestTypeLabelSwap_Disabled(t *testing.T) {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.Enabled = false
+	m := NewLabelMapper(cfg)
+
+	add, remove := m.TypeLabelSwap([]string{"bug"}, "feature")
+	if len(add) != 0 || len(remove) != 0 {
+		t.Fatalf("TypeLabelSwap returned add=%v remove=%v, want no label changes when mapping is disabled", add, remove)
 	}
 }
 
