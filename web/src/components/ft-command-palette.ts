@@ -9,7 +9,7 @@ const WORD_BOUNDARY_RE = /[\s\-_]/;
 /**
  * Simple fuzzy match: every character in the pattern must appear in order
  * within the target string (case-insensitive). Returns a score (lower is
- * better) or -1 for no match. Consecutive-character runs and matches at
+ * better) or Infinity for no match. Consecutive-character runs and matches at
  * word boundaries score higher so "inv rpt" finds "Invoice Report" before
  * "Individual Rapport".
  */
@@ -38,7 +38,7 @@ function fuzzyScore(pattern: string, target: string): number {
   }
 
   // All pattern characters consumed?
-  return pi === p.length ? score : -1;
+  return pi === p.length ? score : Infinity;
 }
 
 /** Human-readable labels for TaskStage enum values. */
@@ -400,11 +400,7 @@ export class FtCommandPalette extends LitElement {
 
   /** Build a single searchable string from title and labels only. */
   private searchableText(task: Task): string {
-    const parts = [task.name];
-    for (const label of task.labels) {
-      if (label) parts.push(label);
-    }
-    return parts.join(' ');
+    return [task.name, ...task.labels].join(' ');
   }
 
   private filteredTasks(): Task[] {
@@ -421,12 +417,12 @@ export class FtCommandPalette extends LitElement {
       if (this.mode === 'add-relationship' && task.id === this.excludeTaskId) continue;
 
       // Score against title, each label, and combined title+labels text; take the best match.
-      // fuzzyScore returns -1 for no match; valid matches can score negative (boundary bonuses).
+      // fuzzyScore returns Infinity for no match; valid matches can score negative (boundary bonuses).
       const nameScore = fuzzyScore(query, task.name);
       const labelScores = task.labels.map((label) => fuzzyScore(query, label));
       const textScore = fuzzyScore(query, this.searchableText(task));
 
-      const candidates = [nameScore, ...labelScores, textScore].filter((s) => s !== -1);
+      const candidates = [nameScore, ...labelScores, textScore].filter(Number.isFinite);
       if (candidates.length === 0) continue;
 
       const bestScore = Math.min(...candidates);
