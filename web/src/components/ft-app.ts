@@ -433,8 +433,8 @@ export class FtApp extends LitElement {
           }
         }
       }
-      // Layer 0 tasks (unblocked) are always visible
-      if (!involved) {
+      // Layer 0 = unblocked OPEN/IN_PROGRESS tasks (matches isReady() in getVisibleTasks)
+      if (!involved && (task.phase === TaskPhase.OPEN || task.phase === TaskPhase.IN_PROGRESS)) {
         let isBlocked = false;
         for (const rel of task.relationships) {
           if (rel.type !== RelationshipType.BLOCKED_BY) continue;

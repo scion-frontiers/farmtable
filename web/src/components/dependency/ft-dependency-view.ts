@@ -178,6 +178,7 @@ export class FtDependencyView extends LitElement {
   private resizeObserver?: ResizeObserver;
 
   private boundOnWheel = this.onWheel.bind(this);
+  private wheelListenerAttached = false;
 
   // ── Lifecycle ──
 
@@ -186,15 +187,12 @@ export class FtDependencyView extends LitElement {
     this.storeCtrl = new TaskStoreController(this, this.store);
     window.addEventListener('mousemove', this.handleMouseMove);
     window.addEventListener('mouseup', this.handleMouseUp);
-    this.updateComplete.then(() => {
-      const svgEl = this.renderRoot.querySelector('svg');
-      svgEl?.addEventListener('wheel', this.boundOnWheel, { passive: false });
-    });
   }
 
   disconnectedCallback() {
     const svgEl = this.renderRoot.querySelector('svg');
     svgEl?.removeEventListener('wheel', this.boundOnWheel);
+    this.wheelListenerAttached = false;
     super.disconnectedCallback();
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
@@ -233,6 +231,16 @@ export class FtDependencyView extends LitElement {
   }
 
   updated(changedProps: PropertyValues<this>) {
+    // Attach wheel listener when SVG first appears (handles the case where
+    // initial render shows empty state and SVG appears on a later update).
+    if (!this.wheelListenerAttached) {
+      const svgEl = this.renderRoot.querySelector('svg');
+      if (svgEl) {
+        svgEl.addEventListener('wheel', this.boundOnWheel, { passive: false });
+        this.wheelListenerAttached = true;
+      }
+    }
+
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
       this.centerOnNode(this.selectedTaskId);
       this.needsCenter = false;

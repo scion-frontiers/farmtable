@@ -159,6 +159,9 @@ export class FtToolbar extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
+  @property({ type: Boolean })
+  externalWritable = false;
+
   @property({ attribute: false })
   phaseFilter: TaskPhase | null = null;
 
@@ -257,7 +260,11 @@ export class FtToolbar extends LitElement {
           label="Import collection"
           @click=${this.onImportClick}
         ></sl-icon-button>
-        ${this.readOnly ? html`<span class="read-only-badge"><sl-icon name="lock"></sl-icon>Read-only</span>` : null}
+        ${this.externalWritable
+          ? html`<span class="platform-badge">↔ GitHub</span>`
+          : this.readOnly
+            ? html`<span class="read-only-badge"><sl-icon name="lock"></sl-icon>Read-only</span>`
+            : null}
       </div>
 
       <span class="title">Farm Table</span>
