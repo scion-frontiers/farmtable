@@ -20,6 +20,8 @@ type ShoelaceInput = HTMLElement & {
   reportValidity(): boolean;
 };
 
+type ImportFormat = 'farmtable' | 'beads';
+
 type CollectionExportJson = {
   format_version?: unknown;
   name?: unknown;
@@ -95,6 +97,9 @@ export class FtImportCollectionDialog extends LitElement {
   private file: File | null = null;
 
   @state()
+  private detectedFormat: ImportFormat | null = null;
+
+  @state()
   private preview: { name: string; tasks: number; comments: number; relationships: number } | null = null;
 
   @state()
@@ -129,6 +134,7 @@ export class FtImportCollectionDialog extends LitElement {
     this.collectionName = '';
     this.error = '';
     this.fileText = '';
+    this.detectedFormat = null;
 
     if (!file) return;
     if (file.size > MAX_IMPORT_SIZE) {
@@ -140,29 +146,45 @@ export class FtImportCollectionDialog extends LitElement {
 
     try {
       const text = await this.readFile(file);
-      const parsed = JSON.parse(text) as CollectionExportJson;
+      const isJsonl = file.name.endsWith('.jsonl');
 
-      if (parsed.format_version !== 1) {
-        throw new Error('Unsupported collection export format.');
+      if (isJsonl) {
+        this.parseAsBeadsJsonl(text, file.name);
+      } else {
+        // Native Farmtable JSON format. If JSON.parse fails, fall back
+        // to trying JSONL parsing — the user may have renamed a .jsonl
+        // file to .json.
+        try {
+          const parsed = JSON.parse(text) as CollectionExportJson;
+
+          if (parsed.format_version !== 1) {
+            throw new Error('Unsupported collection export format.');
+          }
+
+          this.detectedFormat = 'farmtable';
+          const name = this.extractCollectionName(parsed);
+          const preview = {
+            name,
+            tasks: this.countArray(parsed.tasks ?? parsed.collection?.tasks),
+            comments: this.countArray(parsed.comments ?? parsed.collection?.comments),
+            relationships: this.countArray(parsed.relationships ?? parsed.collection?.relationships),
+          };
+
+          this.fileText = text;
+          this.preview = preview;
+          this.collectionName = name;
+        } catch {
+          // JSON parse failed — try JSONL as a fallback for misnamed files.
+          this.parseAsBeadsJsonl(text, file.name);
+        }
       }
-
-      const name = this.extractCollectionName(parsed);
-      const preview = {
-        name,
-        tasks: this.countArray(parsed.tasks ?? parsed.collection?.tasks),
-        comments: this.countArray(parsed.comments ?? parsed.collection?.comments),
-        relationships: this.countArray(parsed.relationships ?? parsed.collection?.relationships),
-      };
-
-      this.fileText = text;
-      this.preview = preview;
-      this.collectionName = name;
     } catch (error) {
       this.file = null;
       this.preview = null;
       this.collectionName = '';
       this.fileText = '';
-      this.error = error instanceof Error ? error.message : 'Failed to read collection export.';
+      this.detectedFormat = null;
+      this.error = error instanceof Error ? error.message : 'Failed to read import file.';
       this.fileInput.value = '';
     }
   }
@@ -183,6 +205,26 @@ export class FtImportCollectionDialog extends LitElement {
 
   private countArray(value: unknown): number {
     return Array.isArray(value) ? value.length : 0;
+  }
+
+  private parseAsBeadsJsonl(text: string, fileName: string) {
+    // Beads JSONL format: count non-empty lines for an approximate preview.
+    // The server filters by _type so the actual count may be lower.
+    const lines = text.split('\n').filter((l) => l.trim().length > 0);
+    const issueCount = lines.length;
+    if (issueCount === 0) {
+      throw new Error('No issues found in JSONL file.');
+    }
+    this.detectedFormat = 'beads';
+    const name = fileName.replace(/\.(jsonl|json)$/, '');
+    this.fileText = text;
+    this.preview = {
+      name,
+      tasks: issueCount,
+      comments: 0,
+      relationships: 0,
+    };
+    this.collectionName = name;
   }
 
   private onNameInput(e: Event) {
@@ -239,6 +281,7 @@ export class FtImportCollectionDialog extends LitElement {
     this.loading = false;
     this.error = '';
     this.fileText = '';
+    this.detectedFormat = null;
     if (this.fileInput) {
       this.fileInput.value = '';
     }
@@ -267,23 +310,34 @@ export class FtImportCollectionDialog extends LitElement {
           <div class="file-row">
             <input
               type="file"
-              accept=".json"
+              accept=".json,.jsonl"
               ?disabled=${this.loading}
               @change=${this.onFileChange}
             >
             <sl-button ?disabled=${this.loading} @click=${this.onChooseFile}>
-              Choose JSON
+              Choose File
             </sl-button>
             <span class="file-name">${this.file?.name ?? 'No file selected'}</span>
+          </div>
+          <div style="color: var(--sl-color-neutral-500); font-size: var(--sl-font-size-small);">
+            Supported formats: Farmtable export (.json), Beads issue export (.jsonl)
           </div>
           ${this.preview
             ? html`
                 <div class="preview">
-                  <div class="preview-title">Collection: "${this.preview.name}"</div>
+                  <div class="preview-title">
+                    ${this.detectedFormat === 'beads'
+                      ? `Beads Import: ~${this.preview.tasks} issues (approx)`
+                      : `Collection: "${this.preview.name}"`}
+                  </div>
                   <div class="preview-counts">
-                    <span>Tasks: ${this.preview.tasks}</span>
-                    <span>Comments: ${this.preview.comments}</span>
-                    <span>Relationships: ${this.preview.relationships}</span>
+                    <span>${this.detectedFormat === 'beads' ? '~Issues (approx)' : 'Tasks'}: ${this.preview.tasks}</span>
+                    ${this.detectedFormat !== 'beads'
+                      ? html`
+                          <span>Comments: ${this.preview.comments}</span>
+                          <span>Relationships: ${this.preview.relationships}</span>
+                        `
+                      : null}
                   </div>
                 </div>
               `
