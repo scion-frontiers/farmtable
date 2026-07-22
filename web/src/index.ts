@@ -43,7 +43,6 @@ import './components/ready-queue/ft-ready-queue-view.js';
 import './components/inspector/ft-inspector-header.js';
 import './components/inspector/ft-inspector-meta.js';
 import './components/inspector/ft-inspector-desc.js';
-import './components/inspector/ft-inspector-relations.js';
 import './components/inspector/ft-inspector-relationships.js';
 import './components/inspector/ft-inspector-code.js';
 import './components/inspector/ft-inspector-comments.js';
