@@ -269,6 +269,9 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     if (fields.removeLabels?.length) request.removeLabels = fields.removeLabels;
     if (fields.assigneeIds?.length) request.assigneeIds = fields.assigneeIds;
     if (fields.clearAssignees) request.clearAssignees = true;
+    if (fields.addBlocks?.length) request.addBlocks = fields.addBlocks;
+    if (fields.addBlockedBy?.length) request.addBlockedBy = fields.addBlockedBy;
+    if (fields.removeRelationships?.length) request.removeRelationships = fields.removeRelationships;
     if (fields.version !== undefined) request.version = fields.version;
 
     const response = await this.unary(methods.updateTask, request);
