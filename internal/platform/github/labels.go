@@ -317,7 +317,11 @@ func (m *LabelMapper) PriorityLabelSwap(currentLabels []string, newPriority task
 }
 
 // TypeToLabel returns the GitHub label name for a given task type.
-// Example: "bug" -> "bug", "feature" -> "feature".
+// Unlike StageToLabel/PriorityToLabel (which return generated fallback labels
+// for unknown enum values), TypeToLabel returns "" for unknown types because
+// types are open-ended strings — generating a label for an arbitrary string
+// would create orphaned labels on GitHub. The caller (TypeLabelSwap) guards
+// against the empty return with a newLabel != "" check.
 func (m *LabelMapper) TypeToLabel(typ string) string {
 	if !m.enabled {
 		return ""

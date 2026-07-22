@@ -340,6 +340,7 @@ export class FtApp extends LitElement {
             .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @write-error=${this.onWriteError}
           ></ft-tree-view>
         `;
       case 'kanban':
