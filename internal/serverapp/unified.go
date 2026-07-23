@@ -151,10 +151,15 @@ func iapMiddleware(iap *IAPAuthenticator, provisioner *UserProvisioner, sm *Sess
 
 			// Bridge IAP session to gRPC auth: create a short-lived API token so
 			// SessionToBearerMiddleware can inject a Bearer header for gRPC requests.
-			if rawToken, err := provisioner.CreateSessionToken(r.Context(), result.User.ID, result.User.Type); err == nil {
-				sess.Values[sessKeyToken] = rawToken
-			} else {
-				log.Printf("failed to create session token for IAP user %s: %v", result.User.ID, err)
+			// Reuse the existing session token if one is already set — the IAP
+			// middleware runs on every request, so without this guard each request
+			// would mint a new token row and orphan the previous one.
+			if _, hasToken := sess.Values[sessKeyToken].(string); !hasToken {
+				if rawToken, err := provisioner.CreateSessionToken(r.Context(), result.User.ID, result.User.Type); err == nil {
+					sess.Values[sessKeyToken] = rawToken
+				} else {
+					log.Printf("failed to create session token for IAP user %s: %v", result.User.ID, err)
+				}
 			}
 
 			sess.Options.Secure = isSecureRequest(r)
