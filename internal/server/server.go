@@ -337,6 +337,13 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
 		return nil, err
 	}
+	// Collection-scoped tokens must specify a collection_id.
+	if req.CollectionId == nil {
+		if ids := CollectionIDsFromContext(ctx); len(ids) > 0 {
+			return nil, status.Error(codes.InvalidArgument,
+				"collection-scoped tokens must specify collection_id")
+		}
+	}
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -855,6 +862,12 @@ func (s *FarmTableService) GetComment(ctx context.Context, req *pb.GetCommentReq
 	if err != nil {
 		return nil, storeErr(err, "comment")
 	}
+	// Verify the token has access to the comment's task's collection.
+	if t, err := s.store.GetTask(ctx, c.TaskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
 	return commentToProto(c), nil
 }
 
@@ -1184,6 +1197,7 @@ func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListL
 		return nil, status.Errorf(codes.Internal, "listing linked accounts: %v", err)
 	}
 
+	storeFull := len(accounts) == pageSize // store returned a full page before filtering
 	// Filter results when no specific collection was requested but token is collection-scoped.
 	if req.CollectionId == nil && len(allowedIDs) > 0 {
 		allowed := make(map[uuid.UUID]bool, len(allowedIDs))
@@ -1206,7 +1220,16 @@ func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListL
 	for _, la := range accounts {
 		resp.Items = append(resp.Items, linkedAccountToProto(la))
 	}
-	if len(accounts) > 0 && len(accounts) == pageSize {
+	if len(allowedIDs) > 0 && req.CollectionId == nil {
+		// When filtering is active, always set has_more=true if the store
+		// returned a full page, since there may be matching accounts on
+		// later pages.
+		if storeFull && len(accounts) > 0 {
+			last := accounts[len(accounts)-1]
+			resp.HasMore = true
+			resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+		}
+	} else if len(accounts) > 0 && len(accounts) == pageSize {
 		last := accounts[len(accounts)-1]
 		resp.HasMore = true
 		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
@@ -1223,6 +1246,12 @@ func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesR
 	taskID, err := uuid.Parse(req.GetTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+	}
+	// Verify the token has access to the task's collection.
+	if t, err := s.store.GetTask(ctx, taskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
 	}
 
 	pageSize := int(req.GetPageSize())
