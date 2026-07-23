@@ -412,7 +412,11 @@ export function createGrpcFarmTableClientWithOptions(options: CreateGrpcFarmTabl
     FARMTABLE_COLLECTION_ID?: string;
   };
   const params = new URLSearchParams(window.location.search);
-  const token = params.get('token') ?? globalConfig.FARMTABLE_TOKEN ?? localStorage.getItem('farmtable.token') ?? '';
+  // Token resolution: window global > localStorage fallback (dev/testing).
+  // URL ?token= parameter has been removed for security — tokens in URLs
+  // leak in browser history, server logs, and referrer headers.
+  // The primary auth path is now session cookies (POST /api/auth/session).
+  const token = globalConfig.FARMTABLE_TOKEN ?? localStorage.getItem('farmtable.token') ?? '';
   const storedCollectionId = options.readStoredCollectionId === false
     ? undefined
     : globalConfig.FARMTABLE_COLLECTION_ID ?? localStorage.getItem('farmtable.collectionId') ?? undefined;

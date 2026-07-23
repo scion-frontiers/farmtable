@@ -77,7 +77,9 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
-		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS)),
+		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS), serverapp.UnifiedHandlerOptions{
+			TokenLookup: lookup,
+		}),
 	}
 
 	sigCh := make(chan os.Signal, 1)

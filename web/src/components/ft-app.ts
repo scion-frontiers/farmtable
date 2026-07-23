@@ -15,6 +15,15 @@ import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
 import './dependency/ft-dependency-view.js';
 import './ft-command-palette.js';
+import './ft-login-dialog.js';
+
+/** Session info returned by GET /api/auth/session. */
+interface SessionUser {
+  userId: string;
+  userName: string;
+  email?: string;
+  userType?: string;
+}
 
 @customElement('ft-app')
 export class FtApp extends LitElement {
@@ -155,6 +164,12 @@ export class FtApp extends LitElement {
   @state()
   private dimOverlayVisible = false;
 
+  @state()
+  private showLogin = false;
+
+  @state()
+  private sessionUser: SessionUser | null = null;
+
   private dimOverlayTimer: ReturnType<typeof setTimeout> | null = null;
 
   private collectionLoadToken = 0;
@@ -206,7 +221,7 @@ export class FtApp extends LitElement {
       readStoredCollectionId: false,
     });
     this.client = this.unscopedClient;
-    void this.applyRoute();
+    void this.checkSessionAndRoute();
     // FtApp owns the global "?" toggle; ft-shortcut-overlay owns modal keys like Escape and Tab.
     document.addEventListener('keydown', this.onDocumentKeyDown, { capture: true });
     window.addEventListener('popstate', this.onPopState);
@@ -223,7 +238,46 @@ export class FtApp extends LitElement {
     window.removeEventListener('popstate', this.onPopState);
   }
 
+  /**
+   * Check if the user has an active session. If not, and there is no
+   * localStorage token fallback, show the login dialog.
+   */
+  private async checkSessionAndRoute() {
+    // Check for localStorage token fallback (dev/testing).
+    const localToken = localStorage.getItem('farmtable.token');
+    if (localToken) {
+      // User has a localStorage token — skip session check.
+      void this.applyRoute();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/session');
+      if (response.ok) {
+        const data = await response.json() as SessionUser;
+        this.sessionUser = data;
+        this.showLogin = false;
+      } else if (response.status === 404) {
+        // Session endpoints not available (open access mode).
+        // Proceed without session.
+        this.showLogin = false;
+      } else {
+        this.showLogin = true;
+        return; // Don't route until authenticated.
+      }
+    } catch {
+      // Network error or session endpoints not configured — proceed.
+      this.showLogin = false;
+    }
+
+    void this.applyRoute();
+  }
+
   render() {
+    if (this.showLogin) {
+      return html`<ft-login-dialog></ft-login-dialog>`;
+    }
+
     if (this.routeView !== 'board') {
       return html`
         ${this.routeView === 'validating'
@@ -266,11 +320,13 @@ export class FtApp extends LitElement {
         ?isRefreshing=${this.isRefreshing}
         ?readOnly=${this.isReadOnly}
         ?externalWritable=${this.isExternalWritable}
+        .sessionUser=${this.sessionUser}
         @view-change=${this.onViewChange}
         @filter-change=${this.onFilterChange}
         @shortcut-help-open=${this.onShortcutHelpOpen}
         @collection-select=${this.onCollectionSelect}
         @manual-refresh=${this.onManualRefresh}
+        @logout=${this.onLogout}
       ></ft-toolbar>
 
       <ft-filter-chips
@@ -805,6 +861,15 @@ export class FtApp extends LitElement {
       void this.pollManager.refresh();
     }
   };
+
+  private async onLogout() {
+    try {
+      await fetch('/api/auth/session', { method: 'DELETE' });
+    } catch {
+      // Ignore errors — reload will clear the UI state anyway.
+    }
+    window.location.reload();
+  }
 
   private async loadCurrentCollection() {
     const token = ++this.collectionLoadToken;

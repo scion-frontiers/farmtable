@@ -48,6 +48,7 @@ import './components/inspector/ft-inspector-code.js';
 import './components/inspector/ft-inspector-comments.js';
 import './components/inspector/ft-inspector-changes.js';
 import './components/inspector/ft-inspector.js';
+import './components/ft-login-dialog.js';
 import './components/ft-app.js';
 
 setBasePath(import.meta.env.BASE_URL + 'shoelace');

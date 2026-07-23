@@ -139,6 +139,20 @@ export class FtToolbar extends LitElement {
       justify-content: center;
       padding: 0;
     }
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--sl-color-neutral-700);
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-neutral-100);
+      white-space: nowrap;
+    }
+    .user-badge sl-icon {
+      font-size: 0.9rem;
+    }
   `;
 
   @property()
@@ -176,6 +190,9 @@ export class FtToolbar extends LitElement {
 
   @property({ type: Boolean, reflect: true })
   isRefreshing = false;
+
+  @property({ attribute: false })
+  sessionUser: { userId: string; userName: string; email?: string; userType?: string } | null = null;
 
   @state()
   private isDark = document.documentElement.classList.contains('sl-theme-dark');
@@ -357,6 +374,21 @@ export class FtToolbar extends LitElement {
       ${this.isPolling ? this.renderRefreshControls() : null}
 
       <ft-connection-badge .status=${this.connectionStatus}></ft-connection-badge>
+
+      ${this.sessionUser ? html`
+        <span class="user-badge">
+          <sl-icon name="person-circle"></sl-icon>
+          ${this.sessionUser.userName || this.sessionUser.email || 'User'}
+        </span>
+        <sl-tooltip content="Sign out">
+          <sl-icon-button
+            class="toolbar-icon-button"
+            name="box-arrow-right"
+            label="Sign out"
+            @click=${this.onLogoutClick}
+          ></sl-icon-button>
+        </sl-tooltip>
+      ` : null}
 
       <ft-new-collection-dialog
         @collection-create=${this.onCollectionCreate}
@@ -646,6 +678,15 @@ export class FtToolbar extends LitElement {
   private onShortcutHelpClick() {
     this.dispatchEvent(
       new CustomEvent('shortcut-help-open', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private onLogoutClick() {
+    this.dispatchEvent(
+      new CustomEvent('logout', {
         bubbles: true,
         composed: true,
       }),
