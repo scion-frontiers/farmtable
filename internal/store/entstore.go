@@ -40,8 +40,15 @@ type StoreOptions struct {
 }
 
 type EntStore struct {
-	client  *ent.Client
-	dialect string
+	client              *ent.Client
+	dialect             string
+	credentialEncryptor *CredentialEncryptor
+}
+
+// SetCredentialEncryptor sets the encryptor used to encrypt/decrypt
+// auth tokens and refresh tokens stored in LinkedAccounts.
+func (s *EntStore) SetCredentialEncryptor(enc *CredentialEncryptor) {
+	s.credentialEncryptor = enc
 }
 
 func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
@@ -1746,10 +1753,30 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 // ── LinkedAccount Methods ──
 
 func (s *EntStore) CreateLinkedAccount(ctx context.Context, p CreateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	authToken := p.AuthToken
+	refreshToken := p.RefreshToken
+
+	// Encrypt credentials before persisting if an encryptor is configured.
+	if s.credentialEncryptor != nil {
+		var err error
+		if authToken != "" {
+			authToken, err = s.credentialEncryptor.Encrypt(authToken)
+			if err != nil {
+				return nil, fmt.Errorf("encrypting auth token: %w", err)
+			}
+		}
+		if refreshToken != "" {
+			refreshToken, err = s.credentialEncryptor.Encrypt(refreshToken)
+			if err != nil {
+				return nil, fmt.Errorf("encrypting refresh token: %w", err)
+			}
+		}
+	}
+
 	create := s.client.LinkedAccount.Create().
 		SetCollectionID(p.CollectionID).
 		SetPlatform(linkedaccount.Platform(p.Platform)).
-		SetAuthToken(p.AuthToken).
+		SetAuthToken(authToken).
 		SetAuthMethod(linkedaccount.AuthMethod(p.AuthMethod))
 
 	if len(p.Scopes) > 0 {
@@ -1761,10 +1788,69 @@ func (s *EntStore) CreateLinkedAccount(ctx context.Context, p CreateLinkedAccoun
 	if p.ExpiresAt != nil {
 		create.SetExpiresAt(*p.ExpiresAt)
 	}
+	if refreshToken != "" {
+		create.SetRefreshToken(refreshToken)
+	}
+	if p.TokenExpiry != nil {
+		create.SetTokenExpiry(*p.TokenExpiry)
+	}
+	if len(p.ScopesGranted) > 0 {
+		create.SetScopesGranted(p.ScopesGranted)
+	}
 
 	la, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating linked account: %w", err)
+	}
+	return la, nil
+}
+
+func (s *EntStore) UpdateLinkedAccount(ctx context.Context, id uuid.UUID, p UpdateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	update := s.client.LinkedAccount.UpdateOneID(id)
+
+	if p.AuthToken != nil {
+		token := *p.AuthToken
+		if s.credentialEncryptor != nil {
+			encrypted, err := s.credentialEncryptor.Encrypt(token)
+			if err != nil {
+				return nil, fmt.Errorf("encrypting auth token: %w", err)
+			}
+			token = encrypted
+		}
+		update.SetAuthToken(token)
+	}
+	if p.RefreshToken != nil {
+		token := *p.RefreshToken
+		if s.credentialEncryptor != nil {
+			encrypted, err := s.credentialEncryptor.Encrypt(token)
+			if err != nil {
+				return nil, fmt.Errorf("encrypting refresh token: %w", err)
+			}
+			token = encrypted
+		}
+		update.SetRefreshToken(token)
+	}
+	if p.ClearTokenExpiry {
+		update.ClearTokenExpiry()
+	} else if p.TokenExpiry != nil {
+		update.SetTokenExpiry(*p.TokenExpiry)
+	}
+	if p.Status != nil {
+		update.SetStatus(linkedaccount.Status(*p.Status))
+	}
+	if p.ScopesGranted != nil {
+		update.SetScopesGranted(p.ScopesGranted)
+	}
+	if p.LastValidatedAt != nil {
+		update.SetLastValidatedAt(*p.LastValidatedAt)
+	}
+
+	la, err := update.Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("updating linked account: %w", err)
 	}
 	return la, nil
 }
@@ -1776,6 +1862,9 @@ func (s *EntStore) GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.Lin
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("getting linked account: %w", err)
+	}
+	if err := s.decryptLinkedAccount(la); err != nil {
+		return nil, err
 	}
 	return la, nil
 }
@@ -1830,7 +1919,35 @@ func (s *EntStore) ListLinkedAccounts(ctx context.Context, p ListLinkedAccountsP
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing linked accounts: %w", err)
 	}
+	for _, la := range accounts {
+		if err := s.decryptLinkedAccount(la); err != nil {
+			return nil, 0, err
+		}
+	}
 	return accounts, total, nil
+}
+
+// decryptLinkedAccount decrypts the AuthToken and RefreshToken fields
+// in-place if a credential encryptor is configured.
+func (s *EntStore) decryptLinkedAccount(la *ent.LinkedAccount) error {
+	if s.credentialEncryptor == nil {
+		return nil
+	}
+	if la.AuthToken != "" {
+		plaintext, err := s.credentialEncryptor.Decrypt(la.AuthToken)
+		if err != nil {
+			return fmt.Errorf("decrypting auth token for account %s: %w", la.ID, err)
+		}
+		la.AuthToken = plaintext
+	}
+	if la.RefreshToken != "" {
+		plaintext, err := s.credentialEncryptor.Decrypt(la.RefreshToken)
+		if err != nil {
+			return fmt.Errorf("decrypting refresh token for account %s: %w", la.ID, err)
+		}
+		la.RefreshToken = plaintext
+	}
+	return nil
 }
 
 func keysetPredLinkedAccount(lastSortValue string, lastID uuid.UUID) predicate.LinkedAccount {
