@@ -35,6 +35,8 @@ type mockWriter struct {
 	tasks       []mockTask
 	nextID      int
 	collections map[string]string // name -> id
+	labels      map[string][]string // taskID -> labels
+	children    map[string][]string // parentTaskID -> child task IDs
 }
 
 type mockTask struct {
@@ -48,6 +50,8 @@ type mockTask struct {
 func newMockWriter() *mockWriter {
 	return &mockWriter{
 		collections: map[string]string{},
+		labels:      map[string][]string{},
+		children:    map[string][]string{},
 	}
 }
 
@@ -63,7 +67,54 @@ func (w *mockWriter) CreateTask(_ context.Context, name, description, parentTask
 		parentTaskID: parentTaskID,
 		blockedByIDs: blockedByIDs,
 	})
+	if parentTaskID != "" {
+		w.children[parentTaskID] = append(w.children[parentTaskID], id)
+	}
 	return id, nil
+}
+
+func (w *mockWriter) GetTask(_ context.Context, taskID string) (*TaskInfo, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, t := range w.tasks {
+		if t.id == taskID {
+			return &TaskInfo{
+				ID:          t.id,
+				Name:        t.name,
+				Description: t.description,
+				Labels:      w.labels[taskID],
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("task %q not found", taskID)
+}
+
+func (w *mockWriter) ListChildren(_ context.Context, parentTaskID string) ([]TaskInfo, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	childIDs := w.children[parentTaskID]
+	var children []TaskInfo
+	for _, cid := range childIDs {
+		for _, t := range w.tasks {
+			if t.id == cid {
+				children = append(children, TaskInfo{
+					ID:          t.id,
+					Name:        t.name,
+					Description: t.description,
+					Labels:      w.labels[cid],
+				})
+				break
+			}
+		}
+	}
+	return children, nil
+}
+
+func (w *mockWriter) UpdateTaskLabels(_ context.Context, taskID string, addLabels []string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.labels[taskID] = append(w.labels[taskID], addLabels...)
+	return nil
 }
 
 func (w *mockWriter) ResolveCollection(_ context.Context, name string) (string, error) {
@@ -443,6 +494,253 @@ func TestEngine_ForcedTerminalOnDoubleParseFail(t *testing.T) {
 	// Only root task created (decomposition was force-terminal).
 	if len(writer.tasks) != 1 {
 		t.Errorf("task count = %d, want 1", len(writer.tasks))
+	}
+}
+
+func TestEngine_TerminalLabeling(t *testing.T) {
+	// Verify that terminal tasks get the "decomposer:terminal" label.
+	response := makeDecompositionJSON([]Group{
+		{
+			GroupNum: 0,
+			Tasks: []Subtask{
+				{Slug: "leaf", Title: "Leaf", Description: "A leaf task.", Terminal: false},
+			},
+		},
+	})
+	terminalResponse := `{"terminal": true}`
+
+	llm := &mockInferencer{responses: []string{response, terminalResponse}}
+	writer := newMockWriter()
+
+	engine := NewEngine(EngineConfig{
+		LLM:         llm,
+		Writer:      writer,
+		MaxDepth:    3,
+		Concurrency: 4,
+	})
+
+	err := engine.Run(context.Background(), "col-1", "Root", "Root")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// The leaf task (task-2) should have the decomposer:terminal label.
+	leafID := writer.tasks[1].id
+	labels := writer.labels[leafID]
+	if len(labels) != 1 || labels[0] != "decomposer:terminal" {
+		t.Errorf("leaf task labels = %v, want [decomposer:terminal]", labels)
+	}
+}
+
+func TestEngine_Resume_SkipsTerminalLeaves(t *testing.T) {
+	// Set up a pre-existing tree:
+	//   root (task-1)
+	//   ├── child-a (task-2) — has decomposer:terminal label
+	//   └── child-b (task-3) — no label, should be decomposed
+	writer := newMockWriter()
+
+	// Manually create tasks to simulate an existing tree.
+	writer.mu.Lock()
+	writer.nextID = 3
+	writer.tasks = []mockTask{
+		{id: "task-1", name: "Root", description: "Root task", parentTaskID: ""},
+		{id: "task-2", name: "Child A", description: "Already terminal.", parentTaskID: "task-1"},
+		{id: "task-3", name: "Child B", description: "Needs decomposition.", parentTaskID: "task-1"},
+	}
+	writer.children = map[string][]string{
+		"task-1": {"task-2", "task-3"},
+	}
+	writer.labels = map[string][]string{
+		"task-2": {"decomposer:terminal"},
+	}
+	writer.mu.Unlock()
+
+	// LLM should only be called once (for task-3).
+	terminalResponse := `{"terminal": true}`
+	llm := &mockInferencer{responses: []string{terminalResponse}}
+
+	engine := NewEngine(EngineConfig{
+		LLM:         llm,
+		Writer:      writer,
+		MaxDepth:    3,
+		Concurrency: 4,
+	})
+
+	err := engine.Resume(context.Background(), "col-1", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// LLM should have been called exactly once (for child-b).
+	if llm.callCount != 1 {
+		t.Errorf("LLM call count = %d, want 1", llm.callCount)
+	}
+
+	// child-b should now have the terminal label.
+	labels := writer.labels["task-3"]
+	found := false
+	for _, l := range labels {
+		if l == "decomposer:terminal" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("child-b labels = %v, want to contain decomposer:terminal", labels)
+	}
+
+	// Resume stats.
+	existing, skipped, newTasks, _ := engine.ResumeStats()
+	if existing != 3 {
+		t.Errorf("existing = %d, want 3", existing)
+	}
+	if skipped != 1 {
+		t.Errorf("skipped = %d, want 1", skipped)
+	}
+	if newTasks != 0 {
+		t.Errorf("newTasks = %d, want 0", newTasks)
+	}
+}
+
+func TestEngine_Resume_DecomposesUnfinishedLeaves(t *testing.T) {
+	// Set up a tree where an unfinished leaf gets decomposed into subtasks.
+	writer := newMockWriter()
+
+	writer.mu.Lock()
+	writer.nextID = 2
+	writer.tasks = []mockTask{
+		{id: "task-1", name: "Root", description: "Root task", parentTaskID: ""},
+		{id: "task-2", name: "Unfinished", description: "Needs work.", parentTaskID: "task-1"},
+	}
+	writer.children = map[string][]string{
+		"task-1": {"task-2"},
+	}
+	writer.labels = map[string][]string{}
+	writer.mu.Unlock()
+
+	// LLM decomposes task-2 into two terminal subtasks.
+	decompositionResponse := makeDecompositionJSON([]Group{
+		{
+			GroupNum: 0,
+			Tasks: []Subtask{
+				{Slug: "sub-a", Title: "Sub A", Description: "Do A.", Terminal: true},
+				{Slug: "sub-b", Title: "Sub B", Description: "Do B.", Terminal: true},
+			},
+		},
+	})
+	llm := &mockInferencer{responses: []string{decompositionResponse}}
+
+	engine := NewEngine(EngineConfig{
+		LLM:         llm,
+		Writer:      writer,
+		MaxDepth:    3,
+		Concurrency: 4,
+	})
+
+	err := engine.Resume(context.Background(), "col-1", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should have created 2 new tasks under task-2.
+	_, _, newTasks, _ := engine.ResumeStats()
+	if newTasks != 2 {
+		t.Errorf("newTasks = %d, want 2", newTasks)
+	}
+
+	// Total tasks in writer: 2 existing + 2 new = 4.
+	if len(writer.tasks) != 4 {
+		t.Errorf("total tasks = %d, want 4", len(writer.tasks))
+	}
+
+	// LLM called once for the unfinished leaf.
+	if llm.callCount != 1 {
+		t.Errorf("LLM call count = %d, want 1", llm.callCount)
+	}
+}
+
+func TestEngine_Resume_RespectsMaxDepth(t *testing.T) {
+	// Set up a deep tree where the unfinished leaf is at maxDepth.
+	writer := newMockWriter()
+
+	writer.mu.Lock()
+	writer.nextID = 3
+	writer.tasks = []mockTask{
+		{id: "task-1", name: "Root", description: "Root", parentTaskID: ""},
+		{id: "task-2", name: "Level 1", description: "Level 1", parentTaskID: "task-1"},
+		{id: "task-3", name: "Level 2", description: "Level 2 unfinished", parentTaskID: "task-2"},
+	}
+	writer.children = map[string][]string{
+		"task-1": {"task-2"},
+		"task-2": {"task-3"},
+	}
+	writer.labels = map[string][]string{}
+	writer.mu.Unlock()
+
+	llm := &mockInferencer{responses: []string{`{"terminal": true}`}}
+
+	engine := NewEngine(EngineConfig{
+		LLM:         llm,
+		Writer:      writer,
+		MaxDepth:    2, // depth 0=root, 1=level1, 2=level2 — level2 is at maxDepth
+		Concurrency: 4,
+	})
+
+	err := engine.Resume(context.Background(), "col-1", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// LLM should NOT be called because the leaf is at maxDepth.
+	if llm.callCount != 0 {
+		t.Errorf("LLM call count = %d, want 0 (leaf at maxDepth should be skipped)", llm.callCount)
+	}
+}
+
+func TestEngine_Resume_SkipsAlreadyDecomposedNodes(t *testing.T) {
+	// Internal nodes (have children) should be traversed, not re-decomposed.
+	writer := newMockWriter()
+
+	writer.mu.Lock()
+	writer.nextID = 4
+	writer.tasks = []mockTask{
+		{id: "task-1", name: "Root", description: "Root", parentTaskID: ""},
+		{id: "task-2", name: "Internal", description: "Has children", parentTaskID: "task-1"},
+		{id: "task-3", name: "Terminal Leaf", description: "Done.", parentTaskID: "task-2"},
+		{id: "task-4", name: "Another Terminal", description: "Also done.", parentTaskID: "task-2"},
+	}
+	writer.children = map[string][]string{
+		"task-1": {"task-2"},
+		"task-2": {"task-3", "task-4"},
+	}
+	writer.labels = map[string][]string{
+		"task-3": {"decomposer:terminal"},
+		"task-4": {"decomposer:terminal"},
+	}
+	writer.mu.Unlock()
+
+	llm := &mockInferencer{}
+
+	engine := NewEngine(EngineConfig{
+		LLM:         llm,
+		Writer:      writer,
+		MaxDepth:    5,
+		Concurrency: 4,
+	})
+
+	err := engine.Resume(context.Background(), "col-1", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// No LLM calls — all leaves are labeled terminal.
+	if llm.callCount != 0 {
+		t.Errorf("LLM call count = %d, want 0", llm.callCount)
+	}
+
+	// No new tasks created.
+	if len(writer.tasks) != 4 {
+		t.Errorf("task count = %d, want 4 (no new tasks)", len(writer.tasks))
 	}
 }
 

@@ -15,11 +15,22 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// TaskInfo holds task metadata returned by GetTask and ListChildren.
+type TaskInfo struct {
+	ID          string
+	Name        string
+	Description string
+	Labels      []string
+}
+
 // TaskWriter handles Farmtable gRPC task creation and relationship wiring.
 type TaskWriter interface {
 	CreateTask(ctx context.Context, name, description, parentTaskID string, blockedByIDs []string) (string, error)
 	ResolveCollection(ctx context.Context, collectionFlag string) (string, error)
 	CreateCollection(ctx context.Context, name string) (string, error)
+	GetTask(ctx context.Context, taskID string) (*TaskInfo, error)
+	ListChildren(ctx context.Context, parentTaskID string) ([]TaskInfo, error)
+	UpdateTaskLabels(ctx context.Context, taskID string, addLabels []string) error
 }
 
 // GRPCWriter implements TaskWriter using the Farmtable gRPC client.
@@ -173,6 +184,72 @@ func (w *GRPCWriter) CreateCollection(ctx context.Context, name string) (string,
 
 	w.collectionID = col.GetId()
 	return col.GetId(), nil
+}
+
+// GetTask fetches a single task by ID and returns its metadata.
+func (w *GRPCWriter) GetTask(ctx context.Context, taskID string) (*TaskInfo, error) {
+	ctx = w.authCtx(ctx)
+
+	resp, err := w.client.GetTask(ctx, &pb.GetTaskRequest{
+		Id: taskID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting task %q: %w", taskID, err)
+	}
+
+	task := resp.GetTask()
+	return &TaskInfo{
+		ID:          task.GetId(),
+		Name:        task.GetName(),
+		Description: task.GetDescription(),
+		Labels:      task.GetLabels(),
+	}, nil
+}
+
+// ListChildren lists all child tasks of the given parent, paginating through
+// all results.
+func (w *GRPCWriter) ListChildren(ctx context.Context, parentTaskID string) ([]TaskInfo, error) {
+	ctx = w.authCtx(ctx)
+
+	var children []TaskInfo
+	var pageToken string
+	for {
+		resp, err := w.client.ListTasks(ctx, &pb.ListTasksRequest{
+			ParentTaskId: &parentTaskID,
+			PageSize:     100,
+			PageToken:    pageToken,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing children of %q: %w", parentTaskID, err)
+		}
+		for _, t := range resp.GetItems() {
+			children = append(children, TaskInfo{
+				ID:          t.GetId(),
+				Name:        t.GetName(),
+				Description: t.GetDescription(),
+				Labels:      t.GetLabels(),
+			})
+		}
+		pageToken = resp.GetNextPageToken()
+		if pageToken == "" {
+			break
+		}
+	}
+	return children, nil
+}
+
+// UpdateTaskLabels adds labels to an existing task.
+func (w *GRPCWriter) UpdateTaskLabels(ctx context.Context, taskID string, addLabels []string) error {
+	ctx = w.authCtx(ctx)
+
+	_, err := w.client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+		Id:        taskID,
+		AddLabels: addLabels,
+	})
+	if err != nil {
+		return fmt.Errorf("updating labels on task %q: %w", taskID, err)
+	}
+	return nil
 }
 
 // Close closes the underlying gRPC connection.
