@@ -179,15 +179,20 @@ export class FtTreeView extends LitElement {
   }
 
   updated(changedProps: PropertyValues<this>) {
-    // When selectedTaskId changes in isolate mode, invalidate layout so the
-    // tree re-renders for the new selection's descendant set.
-    if (changedProps.has('selectedTaskId') && this.isolateMode) {
-      // Auto-disable isolate mode when selection clears so the user is not
-      // stuck with an active isolate and a disabled toggle button.
-      if (!this.selectedTaskId) {
-        this.isolateMode = false;
-      }
-      this.lastStructureKey = '';
+    // Auto-disable isolate mode when selection clears so the user is not
+    // stuck with an active isolate and a disabled toggle button.
+    // Note: we do NOT clear lastStructureKey here — the structureKey()
+    // method already encodes both isolateMode and selectedTaskId, so any
+    // change to either naturally produces a different key that causes
+    // runLayout() to recompute.  Clearing it redundantly after render()
+    // already set it would force an unnecessary extra layout cycle and
+    // could interact badly with concurrent store updates (poll/SSE).
+    if (
+      changedProps.has('selectedTaskId') &&
+      !this.selectedTaskId &&
+      this.isolateMode
+    ) {
+      this.isolateMode = false;
     }
 
     // When selectedTaskId changes, center the viewport on the selected node
