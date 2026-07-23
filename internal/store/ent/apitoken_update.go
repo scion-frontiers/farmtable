@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/store/ent/predicate"
@@ -112,6 +113,42 @@ func (_u *ApiTokenUpdate) ClearLastUsedAt() *ApiTokenUpdate {
 	return _u
 }
 
+// SetScopes sets the "scopes" field.
+func (_u *ApiTokenUpdate) SetScopes(v []string) *ApiTokenUpdate {
+	_u.mutation.SetScopes(v)
+	return _u
+}
+
+// AppendScopes appends value to the "scopes" field.
+func (_u *ApiTokenUpdate) AppendScopes(v []string) *ApiTokenUpdate {
+	_u.mutation.AppendScopes(v)
+	return _u
+}
+
+// ClearScopes clears the value of the "scopes" field.
+func (_u *ApiTokenUpdate) ClearScopes() *ApiTokenUpdate {
+	_u.mutation.ClearScopes()
+	return _u
+}
+
+// SetCollectionIds sets the "collection_ids" field.
+func (_u *ApiTokenUpdate) SetCollectionIds(v []uuid.UUID) *ApiTokenUpdate {
+	_u.mutation.SetCollectionIds(v)
+	return _u
+}
+
+// AppendCollectionIds appends value to the "collection_ids" field.
+func (_u *ApiTokenUpdate) AppendCollectionIds(v []uuid.UUID) *ApiTokenUpdate {
+	_u.mutation.AppendCollectionIds(v)
+	return _u
+}
+
+// ClearCollectionIds clears the value of the "collection_ids" field.
+func (_u *ApiTokenUpdate) ClearCollectionIds() *ApiTokenUpdate {
+	_u.mutation.ClearCollectionIds()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *ApiTokenUpdate) SetUser(v *User) *ApiTokenUpdate {
 	return _u.SetUserID(v.ID)
@@ -202,6 +239,28 @@ func (_u *ApiTokenUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LastUsedAtCleared() {
 		_spec.ClearField(apitoken.FieldLastUsedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Scopes(); ok {
+		_spec.SetField(apitoken.FieldScopes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apitoken.FieldScopes, value)
+		})
+	}
+	if _u.mutation.ScopesCleared() {
+		_spec.ClearField(apitoken.FieldScopes, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.CollectionIds(); ok {
+		_spec.SetField(apitoken.FieldCollectionIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCollectionIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apitoken.FieldCollectionIds, value)
+		})
+	}
+	if _u.mutation.CollectionIdsCleared() {
+		_spec.ClearField(apitoken.FieldCollectionIds, field.TypeJSON)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -334,6 +393,42 @@ func (_u *ApiTokenUpdateOne) ClearLastUsedAt() *ApiTokenUpdateOne {
 	return _u
 }
 
+// SetScopes sets the "scopes" field.
+func (_u *ApiTokenUpdateOne) SetScopes(v []string) *ApiTokenUpdateOne {
+	_u.mutation.SetScopes(v)
+	return _u
+}
+
+// AppendScopes appends value to the "scopes" field.
+func (_u *ApiTokenUpdateOne) AppendScopes(v []string) *ApiTokenUpdateOne {
+	_u.mutation.AppendScopes(v)
+	return _u
+}
+
+// ClearScopes clears the value of the "scopes" field.
+func (_u *ApiTokenUpdateOne) ClearScopes() *ApiTokenUpdateOne {
+	_u.mutation.ClearScopes()
+	return _u
+}
+
+// SetCollectionIds sets the "collection_ids" field.
+func (_u *ApiTokenUpdateOne) SetCollectionIds(v []uuid.UUID) *ApiTokenUpdateOne {
+	_u.mutation.SetCollectionIds(v)
+	return _u
+}
+
+// AppendCollectionIds appends value to the "collection_ids" field.
+func (_u *ApiTokenUpdateOne) AppendCollectionIds(v []uuid.UUID) *ApiTokenUpdateOne {
+	_u.mutation.AppendCollectionIds(v)
+	return _u
+}
+
+// ClearCollectionIds clears the value of the "collection_ids" field.
+func (_u *ApiTokenUpdateOne) ClearCollectionIds() *ApiTokenUpdateOne {
+	_u.mutation.ClearCollectionIds()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *ApiTokenUpdateOne) SetUser(v *User) *ApiTokenUpdateOne {
 	return _u.SetUserID(v.ID)
@@ -454,6 +549,28 @@ func (_u *ApiTokenUpdateOne) sqlSave(ctx context.Context) (_node *ApiToken, err 
 	}
 	if _u.mutation.LastUsedAtCleared() {
 		_spec.ClearField(apitoken.FieldLastUsedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Scopes(); ok {
+		_spec.SetField(apitoken.FieldScopes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apitoken.FieldScopes, value)
+		})
+	}
+	if _u.mutation.ScopesCleared() {
+		_spec.ClearField(apitoken.FieldScopes, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.CollectionIds(); ok {
+		_spec.SetField(apitoken.FieldCollectionIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCollectionIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apitoken.FieldCollectionIds, value)
+		})
+	}
+	if _u.mutation.CollectionIdsCleared() {
+		_spec.ClearField(apitoken.FieldCollectionIds, field.TypeJSON)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

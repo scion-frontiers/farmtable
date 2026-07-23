@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -31,6 +32,10 @@ type ApiToken struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// LastUsedAt holds the value of the "last_used_at" field.
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	// Scopes holds the value of the "scopes" field.
+	Scopes []string `json:"scopes,omitempty"`
+	// CollectionIds holds the value of the "collection_ids" field.
+	CollectionIds []uuid.UUID `json:"collection_ids,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ApiTokenQuery when eager-loading is set.
 	Edges        ApiTokenEdges `json:"edges"`
@@ -62,6 +67,8 @@ func (*ApiToken) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case apitoken.FieldScopes, apitoken.FieldCollectionIds:
+			values[i] = new([]byte)
 		case apitoken.FieldTokenHash, apitoken.FieldName:
 			values[i] = new(sql.NullString)
 		case apitoken.FieldCreatedAt, apitoken.FieldExpiresAt, apitoken.FieldLastUsedAt:
@@ -127,6 +134,22 @@ func (_m *ApiToken) assignValues(columns []string, values []any) error {
 				_m.LastUsedAt = new(time.Time)
 				*_m.LastUsedAt = value.Time
 			}
+		case apitoken.FieldScopes:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field scopes", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Scopes); err != nil {
+					return fmt.Errorf("unmarshal field scopes: %w", err)
+				}
+			}
+		case apitoken.FieldCollectionIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field collection_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.CollectionIds); err != nil {
+					return fmt.Errorf("unmarshal field collection_ids: %w", err)
+				}
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -189,6 +212,12 @@ func (_m *ApiToken) String() string {
 		builder.WriteString("last_used_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("scopes=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Scopes))
+	builder.WriteString(", ")
+	builder.WriteString("collection_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CollectionIds))
 	builder.WriteByte(')')
 	return builder.String()
 }

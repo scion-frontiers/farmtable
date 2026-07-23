@@ -16,6 +16,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
+		{Name: "scopes", Type: field.TypeJSON, Nullable: true},
+		{Name: "collection_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// APITokensTable holds the schema information for the "api_tokens" table.
@@ -26,7 +28,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "api_tokens_users_api_tokens",
-				Columns:    []*schema.Column{APITokensColumns[6]},
+				Columns:    []*schema.Column{APITokensColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -40,7 +42,7 @@ var (
 			{
 				Name:    "apitoken_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{APITokensColumns[6]},
+				Columns: []*schema.Column{APITokensColumns[8]},
 			},
 		},
 	}

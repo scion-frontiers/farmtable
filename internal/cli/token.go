@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -27,6 +29,7 @@ func newTokenCmd(globals *globalFlags) *cobra.Command {
 
 func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 	var name, expires string
+	var scopes, collectionIDs []string
 
 	cmd := &cobra.Command{
 		Use:   "create <user-id>",
@@ -62,6 +65,35 @@ func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 				p.ExpiresAt = &t
 			}
 
+			// Handle scopes: explicit --scope flags override defaults.
+			if len(scopes) > 0 {
+				if err := server.ValidateScopes(scopes); err != nil {
+					return exitError(ExitValidation, "INVALID_SCOPE", err.Error())
+				}
+				p.Scopes = scopes
+			} else {
+				// Apply user type-based default scopes.
+				u, err := s.GetUser(context.Background(), userID)
+				if err != nil {
+					return exitError(ExitGeneral, "USER_LOOKUP_FAILED", fmt.Sprintf("looking up user for default scopes: %v", err))
+				}
+				defaults := server.DefaultScopesForUserType(u.Type)
+				if defaults != nil {
+					p.Scopes = defaults
+				}
+			}
+
+			// Handle collection restrictions.
+			if len(collectionIDs) > 0 {
+				for _, cidStr := range collectionIDs {
+					cid, err := uuid.Parse(cidStr)
+					if err != nil {
+						return exitError(ExitValidation, "INVALID_COLLECTION_ID", fmt.Sprintf("invalid collection ID %q: %v", cidStr, err))
+					}
+					p.CollectionIDs = append(p.CollectionIDs, cid)
+				}
+			}
+
 			tok, rawToken, err := s.CreateAPIToken(context.Background(), p)
 			if err != nil {
 				return exitError(ExitGeneral, "CREATE_FAILED", fmt.Sprintf("creating token: %v", err))
@@ -80,6 +112,16 @@ func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 				if tok.ExpiresAt != nil {
 					m["expires_at"] = tok.ExpiresAt.UTC().Format(time.RFC3339)
 				}
+				if len(tok.Scopes) > 0 {
+					m["scopes"] = tok.Scopes
+				}
+				if len(tok.CollectionIds) > 0 {
+					ids := make([]string, len(tok.CollectionIds))
+					for i, id := range tok.CollectionIds {
+						ids[i] = id.String()
+					}
+					m["collection_ids"] = ids
+				}
 				printJSON(m)
 				fmt.Fprintln(os.Stderr, "\nSave this token — it will not be shown again.")
 			}
@@ -88,6 +130,8 @@ func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Descriptive label for the token")
 	cmd.Flags().StringVar(&expires, "expires", "", "Token expiry duration (e.g. 720h)")
+	cmd.Flags().StringSliceVar(&scopes, "scope", nil, "Token scope (repeatable, e.g. --scope task:read --scope task:write). Valid scopes: "+strings.Join(server.AllScopes, ", ")+", *")
+	cmd.Flags().StringSliceVar(&collectionIDs, "collection", nil, "Restrict token to collection UUID (repeatable)")
 	return cmd
 }
 

@@ -27,6 +27,10 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldLastUsedAt holds the string denoting the last_used_at field in the database.
 	FieldLastUsedAt = "last_used_at"
+	// FieldScopes holds the string denoting the scopes field in the database.
+	FieldScopes = "scopes"
+	// FieldCollectionIds holds the string denoting the collection_ids field in the database.
+	FieldCollectionIds = "collection_ids"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// Table holds the table name of the apitoken in the database.
@@ -49,6 +53,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldExpiresAt,
 	FieldLastUsedAt,
+	FieldScopes,
+	FieldCollectionIds,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

@@ -101,6 +101,9 @@ type exportChange struct {
 }
 
 func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportCollectionRequest) (*pb.ExportCollectionResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
 	collectionID, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
@@ -255,6 +258,9 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 
 func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportCollectionRequest) (*pb.ImportCollectionResponse, error) {
 	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
 		return nil, err
 	}
 	format := detectImportFormat(req.GetData())

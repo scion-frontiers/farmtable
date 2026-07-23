@@ -22,8 +22,10 @@ func (l *StoreTokenLookup) LookupByHash(ctx context.Context, hash string) (*Toke
 		return nil, err
 	}
 	result := &TokenLookupResult{
-		UserID:  tok.UserID,
-		TokenID: tok.ID,
+		UserID:        tok.UserID,
+		TokenID:       tok.ID,
+		Scopes:        tok.Scopes,
+		CollectionIDs: tok.CollectionIds,
 	}
 	if tok.ExpiresAt != nil {
 		result.ExpiresAt = tok.ExpiresAt

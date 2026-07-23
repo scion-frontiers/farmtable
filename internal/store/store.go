@@ -366,9 +366,11 @@ type ListUsersParams struct {
 // ── API Token Params ──
 
 type CreateAPITokenParams struct {
-	UserID    uuid.UUID
-	Name      string
-	ExpiresAt *time.Time
+	UserID        uuid.UUID
+	Name          string
+	ExpiresAt     *time.Time
+	Scopes        []string
+	CollectionIDs []uuid.UUID
 }
 
 type ListAPITokensParams struct {

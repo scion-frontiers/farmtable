@@ -45,20 +45,24 @@ const (
 // ApiTokenMutation represents an operation that mutates the ApiToken nodes in the graph.
 type ApiTokenMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	token_hash    *string
-	name          *string
-	created_at    *time.Time
-	expires_at    *time.Time
-	last_used_at  *time.Time
-	clearedFields map[string]struct{}
-	user          *uuid.UUID
-	cleareduser   bool
-	done          bool
-	oldValue      func(context.Context) (*ApiToken, error)
-	predicates    []predicate.ApiToken
+	op                   Op
+	typ                  string
+	id                   *uuid.UUID
+	token_hash           *string
+	name                 *string
+	created_at           *time.Time
+	expires_at           *time.Time
+	last_used_at         *time.Time
+	scopes               *[]string
+	appendscopes         []string
+	collection_ids       *[]uuid.UUID
+	appendcollection_ids []uuid.UUID
+	clearedFields        map[string]struct{}
+	user                 *uuid.UUID
+	cleareduser          bool
+	done                 bool
+	oldValue             func(context.Context) (*ApiToken, error)
+	predicates           []predicate.ApiToken
 }
 
 var _ ent.Mutation = (*ApiTokenMutation)(nil)
@@ -407,6 +411,136 @@ func (m *ApiTokenMutation) ResetLastUsedAt() {
 	delete(m.clearedFields, apitoken.FieldLastUsedAt)
 }
 
+// SetScopes sets the "scopes" field.
+func (m *ApiTokenMutation) SetScopes(s []string) {
+	m.scopes = &s
+	m.appendscopes = nil
+}
+
+// Scopes returns the value of the "scopes" field in the mutation.
+func (m *ApiTokenMutation) Scopes() (r []string, exists bool) {
+	v := m.scopes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScopes returns the old "scopes" field's value of the ApiToken entity.
+// If the ApiToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ApiTokenMutation) OldScopes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScopes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
+	}
+	return oldValue.Scopes, nil
+}
+
+// AppendScopes adds s to the "scopes" field.
+func (m *ApiTokenMutation) AppendScopes(s []string) {
+	m.appendscopes = append(m.appendscopes, s...)
+}
+
+// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
+func (m *ApiTokenMutation) AppendedScopes() ([]string, bool) {
+	if len(m.appendscopes) == 0 {
+		return nil, false
+	}
+	return m.appendscopes, true
+}
+
+// ClearScopes clears the value of the "scopes" field.
+func (m *ApiTokenMutation) ClearScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+	m.clearedFields[apitoken.FieldScopes] = struct{}{}
+}
+
+// ScopesCleared returns if the "scopes" field was cleared in this mutation.
+func (m *ApiTokenMutation) ScopesCleared() bool {
+	_, ok := m.clearedFields[apitoken.FieldScopes]
+	return ok
+}
+
+// ResetScopes resets all changes to the "scopes" field.
+func (m *ApiTokenMutation) ResetScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+	delete(m.clearedFields, apitoken.FieldScopes)
+}
+
+// SetCollectionIds sets the "collection_ids" field.
+func (m *ApiTokenMutation) SetCollectionIds(u []uuid.UUID) {
+	m.collection_ids = &u
+	m.appendcollection_ids = nil
+}
+
+// CollectionIds returns the value of the "collection_ids" field in the mutation.
+func (m *ApiTokenMutation) CollectionIds() (r []uuid.UUID, exists bool) {
+	v := m.collection_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectionIds returns the old "collection_ids" field's value of the ApiToken entity.
+// If the ApiToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ApiTokenMutation) OldCollectionIds(ctx context.Context) (v []uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectionIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectionIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectionIds: %w", err)
+	}
+	return oldValue.CollectionIds, nil
+}
+
+// AppendCollectionIds adds u to the "collection_ids" field.
+func (m *ApiTokenMutation) AppendCollectionIds(u []uuid.UUID) {
+	m.appendcollection_ids = append(m.appendcollection_ids, u...)
+}
+
+// AppendedCollectionIds returns the list of values that were appended to the "collection_ids" field in this mutation.
+func (m *ApiTokenMutation) AppendedCollectionIds() ([]uuid.UUID, bool) {
+	if len(m.appendcollection_ids) == 0 {
+		return nil, false
+	}
+	return m.appendcollection_ids, true
+}
+
+// ClearCollectionIds clears the value of the "collection_ids" field.
+func (m *ApiTokenMutation) ClearCollectionIds() {
+	m.collection_ids = nil
+	m.appendcollection_ids = nil
+	m.clearedFields[apitoken.FieldCollectionIds] = struct{}{}
+}
+
+// CollectionIdsCleared returns if the "collection_ids" field was cleared in this mutation.
+func (m *ApiTokenMutation) CollectionIdsCleared() bool {
+	_, ok := m.clearedFields[apitoken.FieldCollectionIds]
+	return ok
+}
+
+// ResetCollectionIds resets all changes to the "collection_ids" field.
+func (m *ApiTokenMutation) ResetCollectionIds() {
+	m.collection_ids = nil
+	m.appendcollection_ids = nil
+	delete(m.clearedFields, apitoken.FieldCollectionIds)
+}
+
 // ClearUser clears the "user" edge to the User entity.
 func (m *ApiTokenMutation) ClearUser() {
 	m.cleareduser = true
@@ -468,7 +602,7 @@ func (m *ApiTokenMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ApiTokenMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.token_hash != nil {
 		fields = append(fields, apitoken.FieldTokenHash)
 	}
@@ -486,6 +620,12 @@ func (m *ApiTokenMutation) Fields() []string {
 	}
 	if m.last_used_at != nil {
 		fields = append(fields, apitoken.FieldLastUsedAt)
+	}
+	if m.scopes != nil {
+		fields = append(fields, apitoken.FieldScopes)
+	}
+	if m.collection_ids != nil {
+		fields = append(fields, apitoken.FieldCollectionIds)
 	}
 	return fields
 }
@@ -507,6 +647,10 @@ func (m *ApiTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case apitoken.FieldLastUsedAt:
 		return m.LastUsedAt()
+	case apitoken.FieldScopes:
+		return m.Scopes()
+	case apitoken.FieldCollectionIds:
+		return m.CollectionIds()
 	}
 	return nil, false
 }
@@ -528,6 +672,10 @@ func (m *ApiTokenMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldExpiresAt(ctx)
 	case apitoken.FieldLastUsedAt:
 		return m.OldLastUsedAt(ctx)
+	case apitoken.FieldScopes:
+		return m.OldScopes(ctx)
+	case apitoken.FieldCollectionIds:
+		return m.OldCollectionIds(ctx)
 	}
 	return nil, fmt.Errorf("unknown ApiToken field %s", name)
 }
@@ -579,6 +727,20 @@ func (m *ApiTokenMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastUsedAt(v)
 		return nil
+	case apitoken.FieldScopes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScopes(v)
+		return nil
+	case apitoken.FieldCollectionIds:
+		v, ok := value.([]uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectionIds(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ApiToken field %s", name)
 }
@@ -615,6 +777,12 @@ func (m *ApiTokenMutation) ClearedFields() []string {
 	if m.FieldCleared(apitoken.FieldLastUsedAt) {
 		fields = append(fields, apitoken.FieldLastUsedAt)
 	}
+	if m.FieldCleared(apitoken.FieldScopes) {
+		fields = append(fields, apitoken.FieldScopes)
+	}
+	if m.FieldCleared(apitoken.FieldCollectionIds) {
+		fields = append(fields, apitoken.FieldCollectionIds)
+	}
 	return fields
 }
 
@@ -634,6 +802,12 @@ func (m *ApiTokenMutation) ClearField(name string) error {
 		return nil
 	case apitoken.FieldLastUsedAt:
 		m.ClearLastUsedAt()
+		return nil
+	case apitoken.FieldScopes:
+		m.ClearScopes()
+		return nil
+	case apitoken.FieldCollectionIds:
+		m.ClearCollectionIds()
 		return nil
 	}
 	return fmt.Errorf("unknown ApiToken nullable field %s", name)
@@ -660,6 +834,12 @@ func (m *ApiTokenMutation) ResetField(name string) error {
 		return nil
 	case apitoken.FieldLastUsedAt:
 		m.ResetLastUsedAt()
+		return nil
+	case apitoken.FieldScopes:
+		m.ResetScopes()
+		return nil
+	case apitoken.FieldCollectionIds:
+		m.ResetCollectionIds()
 		return nil
 	}
 	return fmt.Errorf("unknown ApiToken field %s", name)

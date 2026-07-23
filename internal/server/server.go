@@ -88,6 +88,9 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
 	if err := validateTaskName(req.GetName()); err != nil {
 		return nil, err
 	}
@@ -97,6 +100,9 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
 	}
 
 	stage := task.StageTriage
@@ -194,6 +200,9 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
 	anchorID, err := uuid.Parse(req.GetAnchorTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid anchor_task_id: %v", err)
@@ -201,6 +210,9 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
 	}
 	if len(req.GetSteps()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "at least one step is required")
@@ -274,6 +286,9 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 }
 
 func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
@@ -316,6 +331,9 @@ func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) 
 }
 
 func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksRequest) (*pb.ListTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -339,6 +357,9 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		cid, err := uuid.Parse(*req.CollectionId)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
 		}
 		p.CollectionID = &cid
 	}
@@ -429,6 +450,9 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 
 func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.Task, error) {
 	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
 		return nil, err
 	}
 	id, err := uuid.Parse(req.GetId())
@@ -610,6 +634,9 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeTaskClaim); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
@@ -655,6 +682,9 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
@@ -693,6 +723,9 @@ func (s *FarmTableService) DeleteTask(ctx context.Context, _ *pb.DeleteTaskReque
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
 	return nil, status.Errorf(codes.Unimplemented, "delete is not supported; close tasks instead")
 }
 
@@ -700,6 +733,9 @@ func (s *FarmTableService) DeleteTask(ctx context.Context, _ *pb.DeleteTaskReque
 
 func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentRequest) (*pb.Comment, error) {
 	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
 		return nil, err
 	}
 	taskID, err := uuid.Parse(req.GetTaskId())
@@ -723,6 +759,9 @@ func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentReq
 }
 
 func (s *FarmTableService) ListComments(ctx context.Context, req *pb.ListCommentsRequest) (*pb.ListCommentsResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	taskID, err := uuid.Parse(req.GetTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
@@ -766,6 +805,9 @@ func (s *FarmTableService) ListComments(ctx context.Context, req *pb.ListComment
 }
 
 func (s *FarmTableService) GetComment(ctx context.Context, req *pb.GetCommentRequest) (*pb.Comment, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid comment id: %v", err)
@@ -781,9 +823,15 @@ func (s *FarmTableService) GetComment(ctx context.Context, req *pb.GetCommentReq
 // ── Collections ──
 
 func (s *FarmTableService) GetCollection(ctx context.Context, req *pb.GetCollectionRequest) (*pb.Collection, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, id); err != nil {
+		return nil, err
 	}
 
 	c, err := s.store.GetCollection(ctx, id)
@@ -794,6 +842,9 @@ func (s *FarmTableService) GetCollection(ctx context.Context, req *pb.GetCollect
 }
 
 func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListCollectionsRequest) (*pb.ListCollectionsResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -844,6 +895,9 @@ func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateC
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeCollectionWrite); err != nil {
+		return nil, err
+	}
 	platform := "farmtable"
 	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
 		platform = string(platformFromProto(*req.Platform))
@@ -877,9 +931,15 @@ func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateC
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeCollectionWrite); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, id); err != nil {
+		return nil, err
 	}
 	p := store.UpdateCollectionParams{}
 	if req.Name != nil {
@@ -910,6 +970,9 @@ func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateC
 
 func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.CreateLinkedAccountRequest) (*pb.CreateLinkedAccountResponse, error) {
 	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
 		return nil, err
 	}
 	collID, err := uuid.Parse(req.GetCollectionId())
@@ -954,6 +1017,9 @@ func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.Crea
 }
 
 func (s *FarmTableService) GetLinkedAccount(ctx context.Context, req *pb.GetLinkedAccountRequest) (*pb.GetLinkedAccountResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
@@ -972,6 +1038,9 @@ func (s *FarmTableService) DeleteLinkedAccount(ctx context.Context, req *pb.Dele
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
@@ -984,6 +1053,9 @@ func (s *FarmTableService) DeleteLinkedAccount(ctx context.Context, req *pb.Dele
 }
 
 func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListLinkedAccountsRequest) (*pb.ListLinkedAccountsResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -1042,6 +1114,9 @@ func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListL
 // ── Audit Trail ──
 
 func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesRequest) (*pb.ListChangesResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	taskID, err := uuid.Parse(req.GetTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
@@ -1100,6 +1175,9 @@ func (s *FarmTableService) WhoAmI(ctx context.Context, req *pb.WhoAmIRequest) (*
 }
 
 func (s *FarmTableService) ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
+	if err := RequireScope(ctx, ScopeUserRead); err != nil {
+		return nil, err
+	}
 	pageSize := int(req.GetPageSize())
 	if pageSize <= 0 {
 		pageSize = defaultPageSize
@@ -1146,6 +1224,9 @@ func (s *FarmTableService) ListUsers(ctx context.Context, req *pb.ListUsersReque
 }
 
 func (s *FarmTableService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+	if err := RequireScope(ctx, ScopeUserRead); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user id: %v", err)
@@ -1199,6 +1280,9 @@ func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusReque
 // ── Graph Queries ──
 
 func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTasksRequest) (*pb.GetReadyTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	// Check for external collection routing.
 	if req.CollectionId != nil {
 		cid, err := uuid.Parse(*req.CollectionId)
@@ -1296,6 +1380,9 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 }
 
 func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlockedTasksRequest) (*pb.GetBlockedTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	// Check for external collection routing.
 	if req.CollectionId != nil {
 		cid, err := uuid.Parse(*req.CollectionId)
@@ -1393,6 +1480,9 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 }
 
 func (s *FarmTableService) GetDependencyTree(ctx context.Context, req *pb.GetDependencyTreeRequest) (*pb.GetDependencyTreeResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	taskID, err := uuid.Parse(req.GetTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
@@ -1489,6 +1579,9 @@ func (s *FarmTableService) buildDependencyNode(ctx context.Context, taskID uuid.
 }
 
 func (s *FarmTableService) GetCriticalPath(ctx context.Context, req *pb.GetCriticalPathRequest) (*pb.GetCriticalPathResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
@@ -1660,6 +1753,9 @@ func (s *FarmTableService) findLongestBlocksChain(ctx context.Context, taskID uu
 }
 
 func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottlenecksRequest) (*pb.GetBottlenecksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)

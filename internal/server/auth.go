@@ -65,9 +65,11 @@ func ContextWithAuthEnforced(ctx context.Context) context.Context {
 }
 
 type TokenLookupResult struct {
-	UserID    uuid.UUID
-	TokenID   uuid.UUID
-	ExpiresAt *time.Time
+	UserID        uuid.UUID
+	TokenID       uuid.UUID
+	ExpiresAt     *time.Time
+	Scopes        []string
+	CollectionIDs []uuid.UUID
 }
 
 type TokenLookup interface {
@@ -150,6 +152,8 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 		recordTokenUsage(lookup, result.TokenID)
 
 		ctx = ContextWithUserID(ctx, result.UserID)
+		ctx = ContextWithScopes(ctx, result.Scopes)
+		ctx = ContextWithCollectionIDs(ctx, result.CollectionIDs)
 		return handler(ctx, req)
 	}
 }
@@ -196,9 +200,12 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 
 		recordTokenUsage(lookup, result.TokenID)
 
+		streamCtx := ContextWithUserID(ss.Context(), result.UserID)
+		streamCtx = ContextWithScopes(streamCtx, result.Scopes)
+		streamCtx = ContextWithCollectionIDs(streamCtx, result.CollectionIDs)
 		wrapped := &authenticatedStream{
 			ServerStream: ss,
-			ctx:          ContextWithUserID(ss.Context(), result.UserID),
+			ctx:          streamCtx,
 		}
 		return handler(srv, wrapped)
 	}

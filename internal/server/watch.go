@@ -23,6 +23,9 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	if _, err := RequireIdentity(stream.Context()); err != nil {
 		return err
 	}
+	if err := RequireScope(stream.Context(), ScopeTaskRead); err != nil {
+		return err
+	}
 	if err := validateWatchTasksRequest(req); err != nil {
 		return err
 	}
