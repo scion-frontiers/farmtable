@@ -102,6 +102,7 @@ export class FtTreeView extends LitElement {
   private storeCtrl!: TaskStoreController;
 
   @state() private focusRootId: string | null = null;
+  @state() private isolateMode = false;
   @state() private maxDepth = -1;
   @state() private panX = 0;
   @state() private panY = 0;
@@ -178,6 +179,17 @@ export class FtTreeView extends LitElement {
   }
 
   updated(changedProps: PropertyValues<this>) {
+    // When selectedTaskId changes in isolate mode, invalidate layout so the
+    // tree re-renders for the new selection's descendant set.
+    if (changedProps.has('selectedTaskId') && this.isolateMode) {
+      // Auto-disable isolate mode when selection clears so the user is not
+      // stuck with an active isolate and a disabled toggle button.
+      if (!this.selectedTaskId) {
+        this.isolateMode = false;
+      }
+      this.lastStructureKey = '';
+    }
+
     // When selectedTaskId changes, center the viewport on the selected node
     // instead of centering the entire graph.
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
@@ -302,9 +314,17 @@ export class FtTreeView extends LitElement {
   private getVisibleTasks(): Task[] {
     this.initExpandedNodes();
 
+    // Determine the effective root for filtering.
+    // Isolate mode takes precedence: when active and a task is selected,
+    // show only that task and its descendants.
+    const effectiveRootId =
+      this.isolateMode && this.selectedTaskId
+        ? this.selectedTaskId
+        : this.focusRootId;
+
     let tasks: Task[];
-    if (this.focusRootId) {
-      const ids = getDescendantIds(this.focusRootId, this.store);
+    if (effectiveRootId) {
+      const ids = getDescendantIds(effectiveRootId, this.store);
       tasks = this.store.allTasks.filter((t) => ids.has(t.id));
     } else {
       tasks = this.store.allTasks;
@@ -316,8 +336,8 @@ export class FtTreeView extends LitElement {
         depths.set(id, d);
         for (const child of this.store.getChildren(id)) walk(child.id, d + 1);
       };
-      const roots = this.focusRootId
-        ? ([this.store.getTask(this.focusRootId)].filter(Boolean) as Task[])
+      const roots = effectiveRootId
+        ? ([this.store.getTask(effectiveRootId)].filter(Boolean) as Task[])
         : this.store.roots;
       for (const r of roots) walk(r.id, 0);
       tasks = tasks.filter((t) => (depths.get(t.id) ?? 0) <= this.maxDepth);
@@ -330,10 +350,11 @@ export class FtTreeView extends LitElement {
 
   private structureKey(tasks: Task[]): string {
     const expanded = [...this.expandedNodes].sort().join(',');
+    const isolateKey = this.isolateMode ? `iso:${this.selectedTaskId ?? ''}` : '';
     return tasks
       .map((t) => `${t.id}:${t.parentTaskId ?? ''}`)
       .sort()
-      .join('|') + '||' + expanded;
+      .join('|') + '||' + expanded + '||' + isolateKey;
   }
 
   private runLayout() {
@@ -502,6 +523,11 @@ export class FtTreeView extends LitElement {
 
   private onLevelChange(e: CustomEvent) {
     this.maxDepth = e.detail.maxDepth;
+    this.lastStructureKey = '';
+  }
+
+  private onIsolateToggle(e: CustomEvent) {
+    this.isolateMode = e.detail.isolateMode;
     this.lastStructureKey = '';
   }
 
@@ -701,8 +727,11 @@ export class FtTreeView extends LitElement {
       <ft-hierarchy-nav
         .store=${this.store}
         .focusRootId=${this.focusRootId}
+        .isolateMode=${this.isolateMode}
+        .selectedTaskId=${this.selectedTaskId}
         @focus-change=${this.onFocusChange}
         @level-change=${this.onLevelChange}
+        @isolate-toggle=${this.onIsolateToggle}
       ></ft-hierarchy-nav>
 
       <div class="canvas-container">
