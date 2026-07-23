@@ -230,6 +230,14 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 	session.Values[sessKeyUserEmail] = userInfo.Email
 	session.Values[sessKeyUserType] = result.User.Type
 
+	// Bridge OAuth session to gRPC auth: create a short-lived API token so
+	// SessionToBearerMiddleware can inject a Bearer header for gRPC requests.
+	if rawToken, err := m.provisioner.CreateSessionToken(r.Context(), result.User.ID, result.User.Type); err == nil {
+		session.Values[sessKeyToken] = rawToken
+	} else {
+		log.Printf("failed to create session token for OAuth user %s: %v", result.User.ID, err)
+	}
+
 	session.Options.Secure = isSecureRequest(r)
 
 	if err := session.Save(r, w); err != nil {

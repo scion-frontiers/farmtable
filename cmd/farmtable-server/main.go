@@ -45,6 +45,12 @@ func main() {
 	if encryptor, err := store.NewCredentialEncryptorFromEnv(); err == nil && encryptor != nil {
 		entStore.SetCredentialEncryptor(encryptor)
 		log.Println("Credential encryption enabled")
+	} else if os.Getenv("FARMTABLE_ENCRYPTION_KEY") != "" {
+		// Key was set but is malformed — this is a security footgun.
+		// The operator intends encryption, so failing loudly prevents a
+		// silent fallback to plaintext credential storage.
+		log.Fatalf("FARMTABLE_ENCRYPTION_KEY is set but invalid: %v — "+
+			"refusing to start with plaintext credential storage when encryption was intended", err)
 	}
 
 	// Wrap EntStore with MultiStore so platform-specific stores can be
@@ -70,6 +76,15 @@ func main() {
 	authMode, err := serverapp.AuthModeFromEnv()
 	if err != nil {
 		log.Fatalf("Invalid auth mode: %v", err)
+	}
+
+	// Validate auth mode prerequisites.
+	if authMode == serverapp.AuthModeProxy && os.Getenv("FARMTABLE_IAP_AUDIENCE") == "" {
+		log.Fatal("FARMTABLE_IAP_AUDIENCE is required when FARMTABLE_AUTH_MODE=proxy — " +
+			"without it, audience binding is disabled and any valid IAP JWT would be accepted")
+	}
+	if authMode == serverapp.AuthModeOAuth && os.Getenv("FARMTABLE_GOOGLE_CLIENT_ID") == "" {
+		log.Println("WARNING: FARMTABLE_AUTH_MODE=oauth but FARMTABLE_GOOGLE_CLIENT_ID not set — OAuth login will return 503")
 	}
 
 	eventBus := streaming.NewEventBus()

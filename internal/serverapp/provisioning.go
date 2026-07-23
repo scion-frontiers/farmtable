@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/google/uuid"
@@ -128,6 +130,26 @@ func (p *UserProvisioner) checkDomain(email string) error {
 	}
 
 	return &ErrDomainNotAllowed{Email: email, Domains: p.AllowedDomains}
+}
+
+// CreateSessionToken creates a short-lived API token for an OAuth/IAP-provisioned
+// user. The token bridges the session to the gRPC auth interceptor via the
+// session-to-bearer middleware. It expires in 24 hours (matching session lifetime)
+// and receives default scopes for the user's type.
+func (p *UserProvisioner) CreateSessionToken(ctx context.Context, userID uuid.UUID, userType string) (string, error) {
+	expires := time.Now().Add(24 * time.Hour)
+	scopes := server.DefaultScopesForUserType(userType)
+
+	_, rawToken, err := p.store.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID:    userID,
+		Name:      "session-auth",
+		ExpiresAt: &expires,
+		Scopes:    scopes,
+	})
+	if err != nil {
+		return "", fmt.Errorf("creating session token: %w", err)
+	}
+	return rawToken, nil
 }
 
 // LookupUserByID is a convenience wrapper around the store's GetUser.
