@@ -185,13 +185,19 @@ func TestListUsers(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
+	uA, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
 	s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"})
+
+	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: uA.ID,
+		Name:   "list-users-token",
+	})
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
-	resp, err := client.ListUsers(ctx, &pb.ListUsersRequest{})
+	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
+	resp, err := client.ListUsers(authCtx, &pb.ListUsersRequest{})
 	if err != nil {
 		t.Fatalf("ListUsers: %v", err)
 	}
@@ -211,10 +217,16 @@ func TestGetUser(t *testing.T) {
 		Status:      "active",
 	})
 
+	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "get-user-token",
+	})
+
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
-	got, err := client.GetUser(ctx, &pb.GetUserRequest{Id: u.ID.String()})
+	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
+	got, err := client.GetUser(authCtx, &pb.GetUserRequest{Id: u.ID.String()})
 	if err != nil {
 		t.Fatalf("GetUser: %v", err)
 	}

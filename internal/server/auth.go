@@ -61,15 +61,30 @@ func extractToken(md metadata.MD) string {
 	return ""
 }
 
+// isUnauthenticatedEndpoint returns true for RPCs that should bypass auth
+// even when token authentication is configured (health/status endpoints).
+func isUnauthenticatedEndpoint(fullMethod string) bool {
+	switch fullMethod {
+	case "/farmtable.v1.FarmTableService/GetVersion",
+		"/farmtable.v1.FarmTableService/GetStatus":
+		return true
+	}
+	return false
+}
+
 func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if lookup == nil {
 			return handler(ctx, req)
 		}
 
+		if isUnauthenticatedEndpoint(info.FullMethod) {
+			return handler(ctx, req)
+		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
-			return handler(ctx, req)
+			return nil, status.Error(codes.Unauthenticated, "authentication required")
 		}
 
 		token := extractToken(md)
@@ -78,7 +93,7 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 			if auth := md.Get("authorization"); len(auth) > 0 && !strings.HasPrefix(auth[0], "Bearer ") {
 				return nil, status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
 			}
-			return handler(ctx, req) // no token → unauthenticated pass-through
+			return nil, status.Error(codes.Unauthenticated, "authentication required")
 		}
 
 		h := sha256.Sum256([]byte(token))
@@ -106,9 +121,13 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 			return handler(srv, ss)
 		}
 
+		if isUnauthenticatedEndpoint(info.FullMethod) {
+			return handler(srv, ss)
+		}
+
 		md, ok := metadata.FromIncomingContext(ss.Context())
 		if !ok {
-			return handler(srv, ss)
+			return status.Error(codes.Unauthenticated, "authentication required")
 		}
 
 		token := extractToken(md)
@@ -117,7 +136,7 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 			if auth := md.Get("authorization"); len(auth) > 0 && !strings.HasPrefix(auth[0], "Bearer ") {
 				return status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
 			}
-			return handler(srv, ss) // no token → unauthenticated pass-through
+			return status.Error(codes.Unauthenticated, "authentication required")
 		}
 
 		h := sha256.Sum256([]byte(token))

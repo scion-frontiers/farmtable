@@ -150,7 +150,7 @@ func TestAuthInterceptor_InvalidToken(t *testing.T) {
 
 	client := pb.NewFarmTableServiceClient(conn)
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer wrong-token")
-	_, err = client.GetVersion(authCtx, &pb.GetVersionRequest{})
+	_, err = client.ListCollections(authCtx, &pb.ListCollectionsRequest{})
 	if err == nil {
 		t.Fatal("expected Unauthenticated error for wrong token")
 	}
@@ -169,7 +169,7 @@ func TestAuthInterceptor_MissingBearerPrefix(t *testing.T) {
 	defer cleanup()
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "secret-token")
-	_, err := client.GetVersion(ctx, &pb.GetVersionRequest{})
+	_, err := client.ListCollections(ctx, &pb.ListCollectionsRequest{})
 	if err == nil {
 		t.Fatal("expected Unauthenticated error for missing Bearer prefix")
 	}
@@ -182,7 +182,7 @@ func TestAuthInterceptor_MissingBearerPrefix(t *testing.T) {
 	}
 }
 
-func TestAuthInterceptor_NoTokenSentAllowsAccess(t *testing.T) {
+func TestAuthInterceptor_NoTokenRejectsNonExemptRPC(t *testing.T) {
 	s, storeCleanup := testutil.NewTestStore(t)
 	defer storeCleanup()
 
@@ -207,9 +207,128 @@ func TestAuthInterceptor_NoTokenSentAllowsAccess(t *testing.T) {
 	defer srv.Stop()
 
 	client := pb.NewFarmTableServiceClient(conn)
+	// Non-exempt RPC (ListCollections) should be rejected without a token
+	_, err = client.ListCollections(context.Background(), &pb.ListCollectionsRequest{})
+	if err == nil {
+		t.Fatal("expected Unauthenticated error for tokenless non-exempt RPC")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.Unauthenticated {
+		t.Errorf("code = %v, want Unauthenticated", st.Code())
+	}
+	if st.Message() != "authentication required" {
+		t.Errorf("message = %q, want %q", st.Message(), "authentication required")
+	}
+}
+
+func TestAuthInterceptor_ExemptRPCsPassWithoutToken(t *testing.T) {
+	s, storeCleanup := testutil.NewTestStore(t)
+	defer storeCleanup()
+
+	lookup := server.NewStoreTokenLookup(s)
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+	)
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("dialing: %v", err)
+	}
+	defer conn.Close()
+	defer srv.Stop()
+
+	client := pb.NewFarmTableServiceClient(conn)
+
+	// GetVersion should be exempt — no token needed
 	_, err = client.GetVersion(context.Background(), &pb.GetVersionRequest{})
 	if err != nil {
-		t.Fatalf("expected access without token (no mandatory auth), got: %v", err)
+		t.Fatalf("GetVersion should be exempt from auth, got: %v", err)
+	}
+
+	// GetStatus should be exempt — no token needed
+	_, err = client.GetStatus(context.Background(), &pb.GetStatusRequest{})
+	if err != nil {
+		t.Fatalf("GetStatus should be exempt from auth, got: %v", err)
+	}
+}
+
+func TestAuthInterceptor_ValidTokenAccessesNonExemptRPC(t *testing.T) {
+	s, storeCleanup := testutil.NewTestStore(t)
+	defer storeCleanup()
+
+	ctx := context.Background()
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "test-agent",
+		Type:        "agent",
+		Status:      "active",
+	})
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "test-token",
+	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
+
+	lookup := server.NewStoreTokenLookup(s)
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+	)
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("dialing: %v", err)
+	}
+	defer conn.Close()
+	defer srv.Stop()
+
+	client := pb.NewFarmTableServiceClient(conn)
+
+	// Valid token should access non-exempt RPCs
+	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
+	_, err = client.ListCollections(authCtx, &pb.ListCollectionsRequest{})
+	if err != nil {
+		t.Fatalf("expected success with valid token on non-exempt RPC, got: %v", err)
+	}
+}
+
+func TestAuthInterceptor_OpenAccessMode(t *testing.T) {
+	// When lookup is nil (open access), all RPCs should pass through
+	client, _, cleanup := startServerWithLookup(t, nil)
+	defer cleanup()
+
+	// Non-exempt RPC should work without token in open access mode
+	_, err := client.ListCollections(context.Background(), &pb.ListCollectionsRequest{})
+	if err != nil {
+		t.Fatalf("expected open access for all RPCs when lookup is nil, got: %v", err)
+	}
+
+	// Exempt RPC should also work
+	_, err = client.GetVersion(context.Background(), &pb.GetVersionRequest{})
+	if err != nil {
+		t.Fatalf("expected open access for GetVersion when lookup is nil, got: %v", err)
 	}
 }
 
@@ -225,7 +344,7 @@ func TestAuthInterceptor_RecordUsageHasDeadline(t *testing.T) {
 	defer cleanup()
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer secret-token")
-	if _, err := client.GetVersion(ctx, &pb.GetVersionRequest{}); err != nil {
+	if _, err := client.ListCollections(ctx, &pb.ListCollectionsRequest{}); err != nil {
 		t.Fatalf("expected success with valid token, got: %v", err)
 	}
 
