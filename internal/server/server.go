@@ -877,6 +877,23 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 		return nil, status.Errorf(codes.Internal, "listing collections: %v", err)
 	}
 
+	// Filter results when the token is restricted to specific collections.
+	allowedIDs := CollectionIDsFromContext(ctx)
+	if len(allowedIDs) > 0 {
+		allowed := make(map[uuid.UUID]bool, len(allowedIDs))
+		for _, id := range allowedIDs {
+			allowed[id] = true
+		}
+		filtered := cols[:0]
+		for _, c := range cols {
+			if allowed[c.ID] {
+				filtered = append(filtered, c)
+			}
+		}
+		cols = filtered
+		total = len(cols)
+	}
+
 	resp := &pb.ListCollectionsResponse{
 		TotalCount: int32(total),
 	}
@@ -978,6 +995,9 @@ func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.Crea
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
 	}
 
 	platform := linkedAccountPlatformFromProto(req.GetPlatform())
@@ -1289,6 +1309,9 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
 		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
+		}
 		_, route, err := s.resolveGraphRoute(ctx, cid)
 		if err != nil {
 			return nil, err
@@ -1388,6 +1411,9 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 		cid, err := uuid.Parse(*req.CollectionId)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
 		}
 		_, route, err := s.resolveGraphRoute(ctx, cid)
 		if err != nil {
@@ -1586,6 +1612,9 @@ func (s *FarmTableService) GetCriticalPath(ctx context.Context, req *pb.GetCriti
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
 	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
 
 	// Check for external collection routing.
 	_, route, routeErr := s.resolveGraphRoute(ctx, collID)
@@ -1759,6 +1788,9 @@ func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottle
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
 	}
 
 	// Check for external collection routing.

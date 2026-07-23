@@ -108,6 +108,9 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
 	}
+	if err := RequireCollectionAccess(ctx, collectionID); err != nil {
+		return nil, err
+	}
 	coll, err := s.store.GetCollection(ctx, collectionID)
 	if err != nil {
 		return nil, storeErr(err, "collection")
