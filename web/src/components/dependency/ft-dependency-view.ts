@@ -190,10 +190,13 @@ export class FtDependencyView extends LitElement {
       fill: none;
       stroke-dasharray: 6 3;
     }
-    /* Colorblind-accessible edge colors (Okabe-Ito palette) when a node
-       is selected.  "blocking" = edge TO a node that blocks the selection
-       (upstream).  "blocked" = edge TO a node that is blocked by the
-       selection (downstream). */
+    /* Colorblind-accessible edge colors when a node is selected.
+       "blocking" = edge TO a node that blocks the selection (upstream).
+       "blocked"  = edge TO a node that is blocked by the selection
+       (downstream).
+       #D55E00 (vermillion) is from the Okabe-Ito palette.
+       #7B3FF2 (blue-purple) is a custom colorblind-accessible color,
+       NOT from the Okabe-Ito palette. */
     .edge-blocking {
       stroke: #D55E00;
       stroke-width: 2.5;
@@ -352,15 +355,15 @@ export class FtDependencyView extends LitElement {
 
   protected willUpdate(_changedProperties: PropertyValues): void {
     super.willUpdate(_changedProperties);
-    // Invalidate edge classification cache when selection or store changes.
-    if (
-      _changedProperties.has('selectedTaskId') ||
-      this._edgeCacheKey !== this.selectedTaskId
-    ) {
-      this._edgeCacheKey = null;
-    }
-    this.computeEdgeSets();
+    // Run layout first — it updates lastStructureKey which encodes
+    // task IDs, phases and relationships.  We then use that key as
+    // part of the edge-classification cache so that edge colors are
+    // recomputed whenever the underlying relationship data changes
+    // (via SSE or the 15-second poll cycle), not only when
+    // selectedTaskId changes.  See Features #55 / #60 for prior
+    // instances of this class of stale-cache bug.
     this.runLayout();
+    this.computeEdgeSets();
   }
 
   updated(changedProps: PropertyValues<this>) {
@@ -775,17 +778,24 @@ export class FtDependencyView extends LitElement {
   private _upstreamIds: Set<string> | null = null;
   /** Cache of downstream (blocked-by) task IDs relative to the selected task. */
   private _downstreamIds: Set<string> | null = null;
-  /** The selectedTaskId that the cached sets correspond to. */
+  /**
+   * Composite cache key for edge classification: selectedTaskId +
+   * lastStructureKey.  This ensures the edge colors are recomputed
+   * when relationships change (structure key encodes relationship
+   * data), not only when the selected task changes.
+   */
   private _edgeCacheKey: string | null = null;
 
   /**
    * Compute the set of tasks that transitively BLOCK the selected task
    * (upstream) and the set that are transitively BLOCKED BY the selected
-   * task (downstream).  Results are cached per selectedTaskId.
+   * task (downstream).  Results are cached and invalidated when either
+   * the selectedTaskId or the underlying relationship structure changes.
    */
   private computeEdgeSets() {
-    if (this._edgeCacheKey === this.selectedTaskId) return;
-    this._edgeCacheKey = this.selectedTaskId;
+    const cacheKey = `${this.selectedTaskId}::${this.lastStructureKey}`;
+    if (this._edgeCacheKey === cacheKey) return;
+    this._edgeCacheKey = cacheKey;
 
     if (!this.selectedTaskId) {
       this._upstreamIds = null;
