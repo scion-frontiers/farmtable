@@ -118,10 +118,13 @@ export class PollManager extends EventTarget {
       // This avoids overwriting in-flight optimistic updates and prevents
       // the brief "empty board" flash that clear() causes.
       const freshIds = new Set<string>();
+      let anyChanged = false;
       for (const task of tasks) {
         freshIds.add(task.id);
         if (!this.dirtyTasks.has(task.id)) {
-          this.store.upsert(task);
+          if (this.store.upsert(task)) {
+            anyChanged = true;
+          }
         }
       }
 
@@ -130,10 +133,14 @@ export class PollManager extends EventTarget {
       for (const existing of this.store.allTasks) {
         if (!freshIds.has(existing.id) && !this.dirtyTasks.has(existing.id)) {
           this.store.delete(existing.id);
+          anyChanged = true;
         }
       }
 
-      this.store.snapshotComplete();
+      // Only fire snapshot-complete if data actually changed or this is initial load
+      if (anyChanged || this.store.isLoading) {
+        this.store.snapshotComplete();
+      }
 
       this._lastRefreshed = new Date();
       this._isRefreshing = false;
