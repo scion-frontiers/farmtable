@@ -132,7 +132,9 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 
 	boundPort := lis.Addr().(*net.TCPAddr).Port
 	httpServer := &http.Server{
-		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS)),
+		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS), serverapp.UnifiedHandlerOptions{
+			TokenLookup: lookup,
+		}),
 	}
 
 	sigCh := make(chan os.Signal, 1)
