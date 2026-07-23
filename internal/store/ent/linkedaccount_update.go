@@ -165,6 +165,84 @@ func (_u *LinkedAccountUpdate) ClearExpiresAt() *LinkedAccountUpdate {
 	return _u
 }
 
+// SetRefreshToken sets the "refresh_token" field.
+func (_u *LinkedAccountUpdate) SetRefreshToken(v string) *LinkedAccountUpdate {
+	_u.mutation.SetRefreshToken(v)
+	return _u
+}
+
+// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
+func (_u *LinkedAccountUpdate) SetNillableRefreshToken(v *string) *LinkedAccountUpdate {
+	if v != nil {
+		_u.SetRefreshToken(*v)
+	}
+	return _u
+}
+
+// ClearRefreshToken clears the value of the "refresh_token" field.
+func (_u *LinkedAccountUpdate) ClearRefreshToken() *LinkedAccountUpdate {
+	_u.mutation.ClearRefreshToken()
+	return _u
+}
+
+// SetTokenExpiry sets the "token_expiry" field.
+func (_u *LinkedAccountUpdate) SetTokenExpiry(v time.Time) *LinkedAccountUpdate {
+	_u.mutation.SetTokenExpiry(v)
+	return _u
+}
+
+// SetNillableTokenExpiry sets the "token_expiry" field if the given value is not nil.
+func (_u *LinkedAccountUpdate) SetNillableTokenExpiry(v *time.Time) *LinkedAccountUpdate {
+	if v != nil {
+		_u.SetTokenExpiry(*v)
+	}
+	return _u
+}
+
+// ClearTokenExpiry clears the value of the "token_expiry" field.
+func (_u *LinkedAccountUpdate) ClearTokenExpiry() *LinkedAccountUpdate {
+	_u.mutation.ClearTokenExpiry()
+	return _u
+}
+
+// SetScopesGranted sets the "scopes_granted" field.
+func (_u *LinkedAccountUpdate) SetScopesGranted(v []string) *LinkedAccountUpdate {
+	_u.mutation.SetScopesGranted(v)
+	return _u
+}
+
+// AppendScopesGranted appends value to the "scopes_granted" field.
+func (_u *LinkedAccountUpdate) AppendScopesGranted(v []string) *LinkedAccountUpdate {
+	_u.mutation.AppendScopesGranted(v)
+	return _u
+}
+
+// ClearScopesGranted clears the value of the "scopes_granted" field.
+func (_u *LinkedAccountUpdate) ClearScopesGranted() *LinkedAccountUpdate {
+	_u.mutation.ClearScopesGranted()
+	return _u
+}
+
+// SetLastValidatedAt sets the "last_validated_at" field.
+func (_u *LinkedAccountUpdate) SetLastValidatedAt(v time.Time) *LinkedAccountUpdate {
+	_u.mutation.SetLastValidatedAt(v)
+	return _u
+}
+
+// SetNillableLastValidatedAt sets the "last_validated_at" field if the given value is not nil.
+func (_u *LinkedAccountUpdate) SetNillableLastValidatedAt(v *time.Time) *LinkedAccountUpdate {
+	if v != nil {
+		_u.SetLastValidatedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastValidatedAt clears the value of the "last_validated_at" field.
+func (_u *LinkedAccountUpdate) ClearLastValidatedAt() *LinkedAccountUpdate {
+	_u.mutation.ClearLastValidatedAt()
+	return _u
+}
+
 // SetCollection sets the "collection" edge to the Collection entity.
 func (_u *LinkedAccountUpdate) SetCollection(v *Collection) *LinkedAccountUpdate {
 	return _u.SetCollectionID(v.ID)
@@ -289,6 +367,35 @@ func (_u *LinkedAccountUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.ExpiresAtCleared() {
 		_spec.ClearField(linkedaccount.FieldExpiresAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.RefreshToken(); ok {
+		_spec.SetField(linkedaccount.FieldRefreshToken, field.TypeString, value)
+	}
+	if _u.mutation.RefreshTokenCleared() {
+		_spec.ClearField(linkedaccount.FieldRefreshToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TokenExpiry(); ok {
+		_spec.SetField(linkedaccount.FieldTokenExpiry, field.TypeTime, value)
+	}
+	if _u.mutation.TokenExpiryCleared() {
+		_spec.ClearField(linkedaccount.FieldTokenExpiry, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ScopesGranted(); ok {
+		_spec.SetField(linkedaccount.FieldScopesGranted, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScopesGranted(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, linkedaccount.FieldScopesGranted, value)
+		})
+	}
+	if _u.mutation.ScopesGrantedCleared() {
+		_spec.ClearField(linkedaccount.FieldScopesGranted, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.LastValidatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldLastValidatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastValidatedAtCleared() {
+		_spec.ClearField(linkedaccount.FieldLastValidatedAt, field.TypeTime)
 	}
 	if _u.mutation.CollectionCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -473,6 +580,84 @@ func (_u *LinkedAccountUpdateOne) ClearExpiresAt() *LinkedAccountUpdateOne {
 	return _u
 }
 
+// SetRefreshToken sets the "refresh_token" field.
+func (_u *LinkedAccountUpdateOne) SetRefreshToken(v string) *LinkedAccountUpdateOne {
+	_u.mutation.SetRefreshToken(v)
+	return _u
+}
+
+// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
+func (_u *LinkedAccountUpdateOne) SetNillableRefreshToken(v *string) *LinkedAccountUpdateOne {
+	if v != nil {
+		_u.SetRefreshToken(*v)
+	}
+	return _u
+}
+
+// ClearRefreshToken clears the value of the "refresh_token" field.
+func (_u *LinkedAccountUpdateOne) ClearRefreshToken() *LinkedAccountUpdateOne {
+	_u.mutation.ClearRefreshToken()
+	return _u
+}
+
+// SetTokenExpiry sets the "token_expiry" field.
+func (_u *LinkedAccountUpdateOne) SetTokenExpiry(v time.Time) *LinkedAccountUpdateOne {
+	_u.mutation.SetTokenExpiry(v)
+	return _u
+}
+
+// SetNillableTokenExpiry sets the "token_expiry" field if the given value is not nil.
+func (_u *LinkedAccountUpdateOne) SetNillableTokenExpiry(v *time.Time) *LinkedAccountUpdateOne {
+	if v != nil {
+		_u.SetTokenExpiry(*v)
+	}
+	return _u
+}
+
+// ClearTokenExpiry clears the value of the "token_expiry" field.
+func (_u *LinkedAccountUpdateOne) ClearTokenExpiry() *LinkedAccountUpdateOne {
+	_u.mutation.ClearTokenExpiry()
+	return _u
+}
+
+// SetScopesGranted sets the "scopes_granted" field.
+func (_u *LinkedAccountUpdateOne) SetScopesGranted(v []string) *LinkedAccountUpdateOne {
+	_u.mutation.SetScopesGranted(v)
+	return _u
+}
+
+// AppendScopesGranted appends value to the "scopes_granted" field.
+func (_u *LinkedAccountUpdateOne) AppendScopesGranted(v []string) *LinkedAccountUpdateOne {
+	_u.mutation.AppendScopesGranted(v)
+	return _u
+}
+
+// ClearScopesGranted clears the value of the "scopes_granted" field.
+func (_u *LinkedAccountUpdateOne) ClearScopesGranted() *LinkedAccountUpdateOne {
+	_u.mutation.ClearScopesGranted()
+	return _u
+}
+
+// SetLastValidatedAt sets the "last_validated_at" field.
+func (_u *LinkedAccountUpdateOne) SetLastValidatedAt(v time.Time) *LinkedAccountUpdateOne {
+	_u.mutation.SetLastValidatedAt(v)
+	return _u
+}
+
+// SetNillableLastValidatedAt sets the "last_validated_at" field if the given value is not nil.
+func (_u *LinkedAccountUpdateOne) SetNillableLastValidatedAt(v *time.Time) *LinkedAccountUpdateOne {
+	if v != nil {
+		_u.SetLastValidatedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastValidatedAt clears the value of the "last_validated_at" field.
+func (_u *LinkedAccountUpdateOne) ClearLastValidatedAt() *LinkedAccountUpdateOne {
+	_u.mutation.ClearLastValidatedAt()
+	return _u
+}
+
 // SetCollection sets the "collection" edge to the Collection entity.
 func (_u *LinkedAccountUpdateOne) SetCollection(v *Collection) *LinkedAccountUpdateOne {
 	return _u.SetCollectionID(v.ID)
@@ -627,6 +812,35 @@ func (_u *LinkedAccountUpdateOne) sqlSave(ctx context.Context) (_node *LinkedAcc
 	}
 	if _u.mutation.ExpiresAtCleared() {
 		_spec.ClearField(linkedaccount.FieldExpiresAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.RefreshToken(); ok {
+		_spec.SetField(linkedaccount.FieldRefreshToken, field.TypeString, value)
+	}
+	if _u.mutation.RefreshTokenCleared() {
+		_spec.ClearField(linkedaccount.FieldRefreshToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TokenExpiry(); ok {
+		_spec.SetField(linkedaccount.FieldTokenExpiry, field.TypeTime, value)
+	}
+	if _u.mutation.TokenExpiryCleared() {
+		_spec.ClearField(linkedaccount.FieldTokenExpiry, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ScopesGranted(); ok {
+		_spec.SetField(linkedaccount.FieldScopesGranted, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScopesGranted(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, linkedaccount.FieldScopesGranted, value)
+		})
+	}
+	if _u.mutation.ScopesGrantedCleared() {
+		_spec.ClearField(linkedaccount.FieldScopesGranted, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.LastValidatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldLastValidatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastValidatedAtCleared() {
+		_spec.ClearField(linkedaccount.FieldLastValidatedAt, field.TypeTime)
 	}
 	if _u.mutation.CollectionCleared() {
 		edge := &sqlgraph.EdgeSpec{

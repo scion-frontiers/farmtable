@@ -136,6 +136,10 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "refresh_token", Type: field.TypeString, Nullable: true},
+		{Name: "token_expiry", Type: field.TypeTime, Nullable: true},
+		{Name: "scopes_granted", Type: field.TypeJSON, Nullable: true},
+		{Name: "last_validated_at", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_id", Type: field.TypeUUID},
 	}
 	// LinkedAccountsTable holds the schema information for the "linked_accounts" table.
@@ -146,7 +150,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "linked_accounts_collections_linked_accounts",
-				Columns:    []*schema.Column{LinkedAccountsColumns[10]},
+				Columns:    []*schema.Column{LinkedAccountsColumns[14]},
 				RefColumns: []*schema.Column{CollectionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

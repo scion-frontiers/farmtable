@@ -304,6 +304,7 @@ type Store interface {
 	// LinkedAccounts
 	CreateLinkedAccount(ctx context.Context, p CreateLinkedAccountParams) (*ent.LinkedAccount, error)
 	GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.LinkedAccount, error)
+	UpdateLinkedAccount(ctx context.Context, id uuid.UUID, p UpdateLinkedAccountParams) (*ent.LinkedAccount, error)
 	DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error
 	ListLinkedAccounts(ctx context.Context, p ListLinkedAccountsParams) ([]*ent.LinkedAccount, int, error)
 
@@ -383,13 +384,26 @@ type ListAPITokensParams struct {
 // ── LinkedAccount Params ──
 
 type CreateLinkedAccountParams struct {
-	CollectionID uuid.UUID
-	Platform     string
-	AuthToken    string
-	AuthMethod   string
-	Scopes       []string
-	RemoteUserID string
-	ExpiresAt    *time.Time
+	CollectionID  uuid.UUID
+	Platform      string
+	AuthToken     string
+	AuthMethod    string
+	Scopes        []string
+	RemoteUserID  string
+	ExpiresAt     *time.Time
+	RefreshToken  string
+	TokenExpiry   *time.Time
+	ScopesGranted []string
+}
+
+type UpdateLinkedAccountParams struct {
+	AuthToken       *string
+	RefreshToken    *string
+	TokenExpiry     *time.Time
+	ClearTokenExpiry bool
+	Status          *string
+	ScopesGranted   []string
+	LastValidatedAt *time.Time
 }
 
 type ListLinkedAccountsParams struct {

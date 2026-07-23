@@ -1761,10 +1761,53 @@ func (s *EntStore) CreateLinkedAccount(ctx context.Context, p CreateLinkedAccoun
 	if p.ExpiresAt != nil {
 		create.SetExpiresAt(*p.ExpiresAt)
 	}
+	if p.RefreshToken != "" {
+		create.SetRefreshToken(p.RefreshToken)
+	}
+	if p.TokenExpiry != nil {
+		create.SetTokenExpiry(*p.TokenExpiry)
+	}
+	if len(p.ScopesGranted) > 0 {
+		create.SetScopesGranted(p.ScopesGranted)
+	}
 
 	la, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating linked account: %w", err)
+	}
+	return la, nil
+}
+
+func (s *EntStore) UpdateLinkedAccount(ctx context.Context, id uuid.UUID, p UpdateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	update := s.client.LinkedAccount.UpdateOneID(id)
+
+	if p.AuthToken != nil {
+		update.SetAuthToken(*p.AuthToken)
+	}
+	if p.RefreshToken != nil {
+		update.SetRefreshToken(*p.RefreshToken)
+	}
+	if p.ClearTokenExpiry {
+		update.ClearTokenExpiry()
+	} else if p.TokenExpiry != nil {
+		update.SetTokenExpiry(*p.TokenExpiry)
+	}
+	if p.Status != nil {
+		update.SetStatus(linkedaccount.Status(*p.Status))
+	}
+	if p.ScopesGranted != nil {
+		update.SetScopesGranted(p.ScopesGranted)
+	}
+	if p.LastValidatedAt != nil {
+		update.SetLastValidatedAt(*p.LastValidatedAt)
+	}
+
+	la, err := update.Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("updating linked account: %w", err)
 	}
 	return la, nil
 }

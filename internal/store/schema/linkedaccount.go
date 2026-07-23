@@ -28,6 +28,11 @@ func (LinkedAccount) Fields() []ent.Field {
 		field.Time("created_at").Default(timeNow).Immutable(),
 		field.Time("updated_at").Default(timeNow).UpdateDefault(timeNow),
 		field.Time("expires_at").Optional().Nillable(),
+		// Stage 6: OAuth credential fields
+		field.String("refresh_token").Optional().Sensitive(),
+		field.Time("token_expiry").Optional().Nillable(),
+		field.JSON("scopes_granted", []string{}).Optional(),
+		field.Time("last_validated_at").Optional().Nillable(),
 	}
 }
 

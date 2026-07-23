@@ -36,6 +36,14 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expires_at"
+	// FieldRefreshToken holds the string denoting the refresh_token field in the database.
+	FieldRefreshToken = "refresh_token"
+	// FieldTokenExpiry holds the string denoting the token_expiry field in the database.
+	FieldTokenExpiry = "token_expiry"
+	// FieldScopesGranted holds the string denoting the scopes_granted field in the database.
+	FieldScopesGranted = "scopes_granted"
+	// FieldLastValidatedAt holds the string denoting the last_validated_at field in the database.
+	FieldLastValidatedAt = "last_validated_at"
 	// EdgeCollection holds the string denoting the collection edge name in mutations.
 	EdgeCollection = "collection"
 	// Table holds the table name of the linkedaccount in the database.
@@ -62,6 +70,10 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldExpiresAt,
+	FieldRefreshToken,
+	FieldTokenExpiry,
+	FieldScopesGranted,
+	FieldLastValidatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -215,6 +227,21 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByExpiresAt orders the results by the expires_at field.
 func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExpiresAt, opts...).ToFunc()
+}
+
+// ByRefreshToken orders the results by the refresh_token field.
+func ByRefreshToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRefreshToken, opts...).ToFunc()
+}
+
+// ByTokenExpiry orders the results by the token_expiry field.
+func ByTokenExpiry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTokenExpiry, opts...).ToFunc()
+}
+
+// ByLastValidatedAt orders the results by the last_validated_at field.
+func ByLastValidatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastValidatedAt, opts...).ToFunc()
 }
 
 // ByCollectionField orders the results by collection field.

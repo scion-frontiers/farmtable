@@ -86,6 +86,21 @@ func ExpiresAt(v time.Time) predicate.LinkedAccount {
 	return predicate.LinkedAccount(sql.FieldEQ(FieldExpiresAt, v))
 }
 
+// RefreshToken applies equality check predicate on the "refresh_token" field. It's identical to RefreshTokenEQ.
+func RefreshToken(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldRefreshToken, v))
+}
+
+// TokenExpiry applies equality check predicate on the "token_expiry" field. It's identical to TokenExpiryEQ.
+func TokenExpiry(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldTokenExpiry, v))
+}
+
+// LastValidatedAt applies equality check predicate on the "last_validated_at" field. It's identical to LastValidatedAtEQ.
+func LastValidatedAt(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldLastValidatedAt, v))
+}
+
 // CollectionIDEQ applies the EQ predicate on the "collection_id" field.
 func CollectionIDEQ(v uuid.UUID) predicate.LinkedAccount {
 	return predicate.LinkedAccount(sql.FieldEQ(FieldCollectionID, v))
@@ -444,6 +459,191 @@ func ExpiresAtIsNil() predicate.LinkedAccount {
 // ExpiresAtNotNil applies the NotNil predicate on the "expires_at" field.
 func ExpiresAtNotNil() predicate.LinkedAccount {
 	return predicate.LinkedAccount(sql.FieldNotNull(FieldExpiresAt))
+}
+
+// RefreshTokenEQ applies the EQ predicate on the "refresh_token" field.
+func RefreshTokenEQ(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldRefreshToken, v))
+}
+
+// RefreshTokenNEQ applies the NEQ predicate on the "refresh_token" field.
+func RefreshTokenNEQ(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNEQ(FieldRefreshToken, v))
+}
+
+// RefreshTokenIn applies the In predicate on the "refresh_token" field.
+func RefreshTokenIn(vs ...string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIn(FieldRefreshToken, vs...))
+}
+
+// RefreshTokenNotIn applies the NotIn predicate on the "refresh_token" field.
+func RefreshTokenNotIn(vs ...string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotIn(FieldRefreshToken, vs...))
+}
+
+// RefreshTokenGT applies the GT predicate on the "refresh_token" field.
+func RefreshTokenGT(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGT(FieldRefreshToken, v))
+}
+
+// RefreshTokenGTE applies the GTE predicate on the "refresh_token" field.
+func RefreshTokenGTE(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGTE(FieldRefreshToken, v))
+}
+
+// RefreshTokenLT applies the LT predicate on the "refresh_token" field.
+func RefreshTokenLT(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLT(FieldRefreshToken, v))
+}
+
+// RefreshTokenLTE applies the LTE predicate on the "refresh_token" field.
+func RefreshTokenLTE(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLTE(FieldRefreshToken, v))
+}
+
+// RefreshTokenContains applies the Contains predicate on the "refresh_token" field.
+func RefreshTokenContains(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldContains(FieldRefreshToken, v))
+}
+
+// RefreshTokenHasPrefix applies the HasPrefix predicate on the "refresh_token" field.
+func RefreshTokenHasPrefix(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldHasPrefix(FieldRefreshToken, v))
+}
+
+// RefreshTokenHasSuffix applies the HasSuffix predicate on the "refresh_token" field.
+func RefreshTokenHasSuffix(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldHasSuffix(FieldRefreshToken, v))
+}
+
+// RefreshTokenIsNil applies the IsNil predicate on the "refresh_token" field.
+func RefreshTokenIsNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIsNull(FieldRefreshToken))
+}
+
+// RefreshTokenNotNil applies the NotNil predicate on the "refresh_token" field.
+func RefreshTokenNotNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotNull(FieldRefreshToken))
+}
+
+// RefreshTokenEqualFold applies the EqualFold predicate on the "refresh_token" field.
+func RefreshTokenEqualFold(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEqualFold(FieldRefreshToken, v))
+}
+
+// RefreshTokenContainsFold applies the ContainsFold predicate on the "refresh_token" field.
+func RefreshTokenContainsFold(v string) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldContainsFold(FieldRefreshToken, v))
+}
+
+// TokenExpiryEQ applies the EQ predicate on the "token_expiry" field.
+func TokenExpiryEQ(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldTokenExpiry, v))
+}
+
+// TokenExpiryNEQ applies the NEQ predicate on the "token_expiry" field.
+func TokenExpiryNEQ(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNEQ(FieldTokenExpiry, v))
+}
+
+// TokenExpiryIn applies the In predicate on the "token_expiry" field.
+func TokenExpiryIn(vs ...time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIn(FieldTokenExpiry, vs...))
+}
+
+// TokenExpiryNotIn applies the NotIn predicate on the "token_expiry" field.
+func TokenExpiryNotIn(vs ...time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotIn(FieldTokenExpiry, vs...))
+}
+
+// TokenExpiryGT applies the GT predicate on the "token_expiry" field.
+func TokenExpiryGT(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGT(FieldTokenExpiry, v))
+}
+
+// TokenExpiryGTE applies the GTE predicate on the "token_expiry" field.
+func TokenExpiryGTE(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGTE(FieldTokenExpiry, v))
+}
+
+// TokenExpiryLT applies the LT predicate on the "token_expiry" field.
+func TokenExpiryLT(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLT(FieldTokenExpiry, v))
+}
+
+// TokenExpiryLTE applies the LTE predicate on the "token_expiry" field.
+func TokenExpiryLTE(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLTE(FieldTokenExpiry, v))
+}
+
+// TokenExpiryIsNil applies the IsNil predicate on the "token_expiry" field.
+func TokenExpiryIsNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIsNull(FieldTokenExpiry))
+}
+
+// TokenExpiryNotNil applies the NotNil predicate on the "token_expiry" field.
+func TokenExpiryNotNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotNull(FieldTokenExpiry))
+}
+
+// ScopesGrantedIsNil applies the IsNil predicate on the "scopes_granted" field.
+func ScopesGrantedIsNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIsNull(FieldScopesGranted))
+}
+
+// ScopesGrantedNotNil applies the NotNil predicate on the "scopes_granted" field.
+func ScopesGrantedNotNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotNull(FieldScopesGranted))
+}
+
+// LastValidatedAtEQ applies the EQ predicate on the "last_validated_at" field.
+func LastValidatedAtEQ(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldEQ(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtNEQ applies the NEQ predicate on the "last_validated_at" field.
+func LastValidatedAtNEQ(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNEQ(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtIn applies the In predicate on the "last_validated_at" field.
+func LastValidatedAtIn(vs ...time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIn(FieldLastValidatedAt, vs...))
+}
+
+// LastValidatedAtNotIn applies the NotIn predicate on the "last_validated_at" field.
+func LastValidatedAtNotIn(vs ...time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotIn(FieldLastValidatedAt, vs...))
+}
+
+// LastValidatedAtGT applies the GT predicate on the "last_validated_at" field.
+func LastValidatedAtGT(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGT(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtGTE applies the GTE predicate on the "last_validated_at" field.
+func LastValidatedAtGTE(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldGTE(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtLT applies the LT predicate on the "last_validated_at" field.
+func LastValidatedAtLT(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLT(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtLTE applies the LTE predicate on the "last_validated_at" field.
+func LastValidatedAtLTE(v time.Time) predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldLTE(FieldLastValidatedAt, v))
+}
+
+// LastValidatedAtIsNil applies the IsNil predicate on the "last_validated_at" field.
+func LastValidatedAtIsNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldIsNull(FieldLastValidatedAt))
+}
+
+// LastValidatedAtNotNil applies the NotNil predicate on the "last_validated_at" field.
+func LastValidatedAtNotNil() predicate.LinkedAccount {
+	return predicate.LinkedAccount(sql.FieldNotNull(FieldLastValidatedAt))
 }
 
 // HasCollection applies the HasEdge predicate on the "collection" edge.

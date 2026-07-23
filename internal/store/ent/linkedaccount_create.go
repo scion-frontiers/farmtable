@@ -122,6 +122,54 @@ func (_c *LinkedAccountCreate) SetNillableExpiresAt(v *time.Time) *LinkedAccount
 	return _c
 }
 
+// SetRefreshToken sets the "refresh_token" field.
+func (_c *LinkedAccountCreate) SetRefreshToken(v string) *LinkedAccountCreate {
+	_c.mutation.SetRefreshToken(v)
+	return _c
+}
+
+// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
+func (_c *LinkedAccountCreate) SetNillableRefreshToken(v *string) *LinkedAccountCreate {
+	if v != nil {
+		_c.SetRefreshToken(*v)
+	}
+	return _c
+}
+
+// SetTokenExpiry sets the "token_expiry" field.
+func (_c *LinkedAccountCreate) SetTokenExpiry(v time.Time) *LinkedAccountCreate {
+	_c.mutation.SetTokenExpiry(v)
+	return _c
+}
+
+// SetNillableTokenExpiry sets the "token_expiry" field if the given value is not nil.
+func (_c *LinkedAccountCreate) SetNillableTokenExpiry(v *time.Time) *LinkedAccountCreate {
+	if v != nil {
+		_c.SetTokenExpiry(*v)
+	}
+	return _c
+}
+
+// SetScopesGranted sets the "scopes_granted" field.
+func (_c *LinkedAccountCreate) SetScopesGranted(v []string) *LinkedAccountCreate {
+	_c.mutation.SetScopesGranted(v)
+	return _c
+}
+
+// SetLastValidatedAt sets the "last_validated_at" field.
+func (_c *LinkedAccountCreate) SetLastValidatedAt(v time.Time) *LinkedAccountCreate {
+	_c.mutation.SetLastValidatedAt(v)
+	return _c
+}
+
+// SetNillableLastValidatedAt sets the "last_validated_at" field if the given value is not nil.
+func (_c *LinkedAccountCreate) SetNillableLastValidatedAt(v *time.Time) *LinkedAccountCreate {
+	if v != nil {
+		_c.SetLastValidatedAt(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *LinkedAccountCreate) SetID(v uuid.UUID) *LinkedAccountCreate {
 	_c.mutation.SetID(v)
@@ -309,6 +357,22 @@ func (_c *LinkedAccountCreate) createSpec() (*LinkedAccount, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(linkedaccount.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = &value
+	}
+	if value, ok := _c.mutation.RefreshToken(); ok {
+		_spec.SetField(linkedaccount.FieldRefreshToken, field.TypeString, value)
+		_node.RefreshToken = value
+	}
+	if value, ok := _c.mutation.TokenExpiry(); ok {
+		_spec.SetField(linkedaccount.FieldTokenExpiry, field.TypeTime, value)
+		_node.TokenExpiry = &value
+	}
+	if value, ok := _c.mutation.ScopesGranted(); ok {
+		_spec.SetField(linkedaccount.FieldScopesGranted, field.TypeJSON, value)
+		_node.ScopesGranted = value
+	}
+	if value, ok := _c.mutation.LastValidatedAt(); ok {
+		_spec.SetField(linkedaccount.FieldLastValidatedAt, field.TypeTime, value)
+		_node.LastValidatedAt = &value
 	}
 	if nodes := _c.mutation.CollectionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -429,6 +429,10 @@ func (m *MultiStore) GetLinkedAccount(ctx context.Context, id uuid.UUID) (*ent.L
 	return m.primary.GetLinkedAccount(ctx, id)
 }
 
+func (m *MultiStore) UpdateLinkedAccount(ctx context.Context, id uuid.UUID, p UpdateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	return m.primary.UpdateLinkedAccount(ctx, id, p)
+}
+
 func (m *MultiStore) DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error {
 	return m.primary.DeleteLinkedAccount(ctx, id)
 }

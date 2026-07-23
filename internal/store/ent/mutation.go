@@ -3113,25 +3113,30 @@ func (m *CommentMutation) ResetEdge(name string) error {
 // LinkedAccountMutation represents an operation that mutates the LinkedAccount nodes in the graph.
 type LinkedAccountMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *uuid.UUID
-	platform          *linkedaccount.Platform
-	auth_token        *string
-	auth_method       *linkedaccount.AuthMethod
-	scopes            *[]string
-	appendscopes      []string
-	remote_user_id    *string
-	status            *linkedaccount.Status
-	created_at        *time.Time
-	updated_at        *time.Time
-	expires_at        *time.Time
-	clearedFields     map[string]struct{}
-	collection        *uuid.UUID
-	clearedcollection bool
-	done              bool
-	oldValue          func(context.Context) (*LinkedAccount, error)
-	predicates        []predicate.LinkedAccount
+	op                   Op
+	typ                  string
+	id                   *uuid.UUID
+	platform             *linkedaccount.Platform
+	auth_token           *string
+	auth_method          *linkedaccount.AuthMethod
+	scopes               *[]string
+	appendscopes         []string
+	remote_user_id       *string
+	status               *linkedaccount.Status
+	created_at           *time.Time
+	updated_at           *time.Time
+	expires_at           *time.Time
+	refresh_token        *string
+	token_expiry         *time.Time
+	scopes_granted       *[]string
+	appendscopes_granted []string
+	last_validated_at    *time.Time
+	clearedFields        map[string]struct{}
+	collection           *uuid.UUID
+	clearedcollection    bool
+	done                 bool
+	oldValue             func(context.Context) (*LinkedAccount, error)
+	predicates           []predicate.LinkedAccount
 }
 
 var _ ent.Mutation = (*LinkedAccountMutation)(nil)
@@ -3653,6 +3658,218 @@ func (m *LinkedAccountMutation) ResetExpiresAt() {
 	delete(m.clearedFields, linkedaccount.FieldExpiresAt)
 }
 
+// SetRefreshToken sets the "refresh_token" field.
+func (m *LinkedAccountMutation) SetRefreshToken(s string) {
+	m.refresh_token = &s
+}
+
+// RefreshToken returns the value of the "refresh_token" field in the mutation.
+func (m *LinkedAccountMutation) RefreshToken() (r string, exists bool) {
+	v := m.refresh_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefreshToken returns the old "refresh_token" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldRefreshToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefreshToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefreshToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefreshToken: %w", err)
+	}
+	return oldValue.RefreshToken, nil
+}
+
+// ClearRefreshToken clears the value of the "refresh_token" field.
+func (m *LinkedAccountMutation) ClearRefreshToken() {
+	m.refresh_token = nil
+	m.clearedFields[linkedaccount.FieldRefreshToken] = struct{}{}
+}
+
+// RefreshTokenCleared returns if the "refresh_token" field was cleared in this mutation.
+func (m *LinkedAccountMutation) RefreshTokenCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldRefreshToken]
+	return ok
+}
+
+// ResetRefreshToken resets all changes to the "refresh_token" field.
+func (m *LinkedAccountMutation) ResetRefreshToken() {
+	m.refresh_token = nil
+	delete(m.clearedFields, linkedaccount.FieldRefreshToken)
+}
+
+// SetTokenExpiry sets the "token_expiry" field.
+func (m *LinkedAccountMutation) SetTokenExpiry(t time.Time) {
+	m.token_expiry = &t
+}
+
+// TokenExpiry returns the value of the "token_expiry" field in the mutation.
+func (m *LinkedAccountMutation) TokenExpiry() (r time.Time, exists bool) {
+	v := m.token_expiry
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTokenExpiry returns the old "token_expiry" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldTokenExpiry(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTokenExpiry is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTokenExpiry requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTokenExpiry: %w", err)
+	}
+	return oldValue.TokenExpiry, nil
+}
+
+// ClearTokenExpiry clears the value of the "token_expiry" field.
+func (m *LinkedAccountMutation) ClearTokenExpiry() {
+	m.token_expiry = nil
+	m.clearedFields[linkedaccount.FieldTokenExpiry] = struct{}{}
+}
+
+// TokenExpiryCleared returns if the "token_expiry" field was cleared in this mutation.
+func (m *LinkedAccountMutation) TokenExpiryCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldTokenExpiry]
+	return ok
+}
+
+// ResetTokenExpiry resets all changes to the "token_expiry" field.
+func (m *LinkedAccountMutation) ResetTokenExpiry() {
+	m.token_expiry = nil
+	delete(m.clearedFields, linkedaccount.FieldTokenExpiry)
+}
+
+// SetScopesGranted sets the "scopes_granted" field.
+func (m *LinkedAccountMutation) SetScopesGranted(s []string) {
+	m.scopes_granted = &s
+	m.appendscopes_granted = nil
+}
+
+// ScopesGranted returns the value of the "scopes_granted" field in the mutation.
+func (m *LinkedAccountMutation) ScopesGranted() (r []string, exists bool) {
+	v := m.scopes_granted
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScopesGranted returns the old "scopes_granted" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldScopesGranted(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScopesGranted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScopesGranted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScopesGranted: %w", err)
+	}
+	return oldValue.ScopesGranted, nil
+}
+
+// AppendScopesGranted adds s to the "scopes_granted" field.
+func (m *LinkedAccountMutation) AppendScopesGranted(s []string) {
+	m.appendscopes_granted = append(m.appendscopes_granted, s...)
+}
+
+// AppendedScopesGranted returns the list of values that were appended to the "scopes_granted" field in this mutation.
+func (m *LinkedAccountMutation) AppendedScopesGranted() ([]string, bool) {
+	if len(m.appendscopes_granted) == 0 {
+		return nil, false
+	}
+	return m.appendscopes_granted, true
+}
+
+// ClearScopesGranted clears the value of the "scopes_granted" field.
+func (m *LinkedAccountMutation) ClearScopesGranted() {
+	m.scopes_granted = nil
+	m.appendscopes_granted = nil
+	m.clearedFields[linkedaccount.FieldScopesGranted] = struct{}{}
+}
+
+// ScopesGrantedCleared returns if the "scopes_granted" field was cleared in this mutation.
+func (m *LinkedAccountMutation) ScopesGrantedCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldScopesGranted]
+	return ok
+}
+
+// ResetScopesGranted resets all changes to the "scopes_granted" field.
+func (m *LinkedAccountMutation) ResetScopesGranted() {
+	m.scopes_granted = nil
+	m.appendscopes_granted = nil
+	delete(m.clearedFields, linkedaccount.FieldScopesGranted)
+}
+
+// SetLastValidatedAt sets the "last_validated_at" field.
+func (m *LinkedAccountMutation) SetLastValidatedAt(t time.Time) {
+	m.last_validated_at = &t
+}
+
+// LastValidatedAt returns the value of the "last_validated_at" field in the mutation.
+func (m *LinkedAccountMutation) LastValidatedAt() (r time.Time, exists bool) {
+	v := m.last_validated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastValidatedAt returns the old "last_validated_at" field's value of the LinkedAccount entity.
+// If the LinkedAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LinkedAccountMutation) OldLastValidatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastValidatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastValidatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastValidatedAt: %w", err)
+	}
+	return oldValue.LastValidatedAt, nil
+}
+
+// ClearLastValidatedAt clears the value of the "last_validated_at" field.
+func (m *LinkedAccountMutation) ClearLastValidatedAt() {
+	m.last_validated_at = nil
+	m.clearedFields[linkedaccount.FieldLastValidatedAt] = struct{}{}
+}
+
+// LastValidatedAtCleared returns if the "last_validated_at" field was cleared in this mutation.
+func (m *LinkedAccountMutation) LastValidatedAtCleared() bool {
+	_, ok := m.clearedFields[linkedaccount.FieldLastValidatedAt]
+	return ok
+}
+
+// ResetLastValidatedAt resets all changes to the "last_validated_at" field.
+func (m *LinkedAccountMutation) ResetLastValidatedAt() {
+	m.last_validated_at = nil
+	delete(m.clearedFields, linkedaccount.FieldLastValidatedAt)
+}
+
 // ClearCollection clears the "collection" edge to the Collection entity.
 func (m *LinkedAccountMutation) ClearCollection() {
 	m.clearedcollection = true
@@ -3714,7 +3931,7 @@ func (m *LinkedAccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LinkedAccountMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 14)
 	if m.collection != nil {
 		fields = append(fields, linkedaccount.FieldCollectionID)
 	}
@@ -3745,6 +3962,18 @@ func (m *LinkedAccountMutation) Fields() []string {
 	if m.expires_at != nil {
 		fields = append(fields, linkedaccount.FieldExpiresAt)
 	}
+	if m.refresh_token != nil {
+		fields = append(fields, linkedaccount.FieldRefreshToken)
+	}
+	if m.token_expiry != nil {
+		fields = append(fields, linkedaccount.FieldTokenExpiry)
+	}
+	if m.scopes_granted != nil {
+		fields = append(fields, linkedaccount.FieldScopesGranted)
+	}
+	if m.last_validated_at != nil {
+		fields = append(fields, linkedaccount.FieldLastValidatedAt)
+	}
 	return fields
 }
 
@@ -3773,6 +4002,14 @@ func (m *LinkedAccountMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case linkedaccount.FieldExpiresAt:
 		return m.ExpiresAt()
+	case linkedaccount.FieldRefreshToken:
+		return m.RefreshToken()
+	case linkedaccount.FieldTokenExpiry:
+		return m.TokenExpiry()
+	case linkedaccount.FieldScopesGranted:
+		return m.ScopesGranted()
+	case linkedaccount.FieldLastValidatedAt:
+		return m.LastValidatedAt()
 	}
 	return nil, false
 }
@@ -3802,6 +4039,14 @@ func (m *LinkedAccountMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldUpdatedAt(ctx)
 	case linkedaccount.FieldExpiresAt:
 		return m.OldExpiresAt(ctx)
+	case linkedaccount.FieldRefreshToken:
+		return m.OldRefreshToken(ctx)
+	case linkedaccount.FieldTokenExpiry:
+		return m.OldTokenExpiry(ctx)
+	case linkedaccount.FieldScopesGranted:
+		return m.OldScopesGranted(ctx)
+	case linkedaccount.FieldLastValidatedAt:
+		return m.OldLastValidatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown LinkedAccount field %s", name)
 }
@@ -3881,6 +4126,34 @@ func (m *LinkedAccountMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetExpiresAt(v)
 		return nil
+	case linkedaccount.FieldRefreshToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefreshToken(v)
+		return nil
+	case linkedaccount.FieldTokenExpiry:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTokenExpiry(v)
+		return nil
+	case linkedaccount.FieldScopesGranted:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScopesGranted(v)
+		return nil
+	case linkedaccount.FieldLastValidatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastValidatedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown LinkedAccount field %s", name)
 }
@@ -3920,6 +4193,18 @@ func (m *LinkedAccountMutation) ClearedFields() []string {
 	if m.FieldCleared(linkedaccount.FieldExpiresAt) {
 		fields = append(fields, linkedaccount.FieldExpiresAt)
 	}
+	if m.FieldCleared(linkedaccount.FieldRefreshToken) {
+		fields = append(fields, linkedaccount.FieldRefreshToken)
+	}
+	if m.FieldCleared(linkedaccount.FieldTokenExpiry) {
+		fields = append(fields, linkedaccount.FieldTokenExpiry)
+	}
+	if m.FieldCleared(linkedaccount.FieldScopesGranted) {
+		fields = append(fields, linkedaccount.FieldScopesGranted)
+	}
+	if m.FieldCleared(linkedaccount.FieldLastValidatedAt) {
+		fields = append(fields, linkedaccount.FieldLastValidatedAt)
+	}
 	return fields
 }
 
@@ -3942,6 +4227,18 @@ func (m *LinkedAccountMutation) ClearField(name string) error {
 		return nil
 	case linkedaccount.FieldExpiresAt:
 		m.ClearExpiresAt()
+		return nil
+	case linkedaccount.FieldRefreshToken:
+		m.ClearRefreshToken()
+		return nil
+	case linkedaccount.FieldTokenExpiry:
+		m.ClearTokenExpiry()
+		return nil
+	case linkedaccount.FieldScopesGranted:
+		m.ClearScopesGranted()
+		return nil
+	case linkedaccount.FieldLastValidatedAt:
+		m.ClearLastValidatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown LinkedAccount nullable field %s", name)
@@ -3980,6 +4277,18 @@ func (m *LinkedAccountMutation) ResetField(name string) error {
 		return nil
 	case linkedaccount.FieldExpiresAt:
 		m.ResetExpiresAt()
+		return nil
+	case linkedaccount.FieldRefreshToken:
+		m.ResetRefreshToken()
+		return nil
+	case linkedaccount.FieldTokenExpiry:
+		m.ResetTokenExpiry()
+		return nil
+	case linkedaccount.FieldScopesGranted:
+		m.ResetScopesGranted()
+		return nil
+	case linkedaccount.FieldLastValidatedAt:
+		m.ResetLastValidatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown LinkedAccount field %s", name)

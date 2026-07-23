@@ -40,6 +40,14 @@ type LinkedAccount struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	// RefreshToken holds the value of the "refresh_token" field.
+	RefreshToken string `json:"-"`
+	// TokenExpiry holds the value of the "token_expiry" field.
+	TokenExpiry *time.Time `json:"token_expiry,omitempty"`
+	// ScopesGranted holds the value of the "scopes_granted" field.
+	ScopesGranted []string `json:"scopes_granted,omitempty"`
+	// LastValidatedAt holds the value of the "last_validated_at" field.
+	LastValidatedAt *time.Time `json:"last_validated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LinkedAccountQuery when eager-loading is set.
 	Edges        LinkedAccountEdges `json:"edges"`
@@ -71,11 +79,11 @@ func (*LinkedAccount) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case linkedaccount.FieldScopes:
+		case linkedaccount.FieldScopes, linkedaccount.FieldScopesGranted:
 			values[i] = new([]byte)
-		case linkedaccount.FieldPlatform, linkedaccount.FieldAuthToken, linkedaccount.FieldAuthMethod, linkedaccount.FieldRemoteUserID, linkedaccount.FieldStatus:
+		case linkedaccount.FieldPlatform, linkedaccount.FieldAuthToken, linkedaccount.FieldAuthMethod, linkedaccount.FieldRemoteUserID, linkedaccount.FieldStatus, linkedaccount.FieldRefreshToken:
 			values[i] = new(sql.NullString)
-		case linkedaccount.FieldCreatedAt, linkedaccount.FieldUpdatedAt, linkedaccount.FieldExpiresAt:
+		case linkedaccount.FieldCreatedAt, linkedaccount.FieldUpdatedAt, linkedaccount.FieldExpiresAt, linkedaccount.FieldTokenExpiry, linkedaccount.FieldLastValidatedAt:
 			values[i] = new(sql.NullTime)
 		case linkedaccount.FieldID, linkedaccount.FieldCollectionID:
 			values[i] = new(uuid.UUID)
@@ -163,6 +171,34 @@ func (_m *LinkedAccount) assignValues(columns []string, values []any) error {
 				_m.ExpiresAt = new(time.Time)
 				*_m.ExpiresAt = value.Time
 			}
+		case linkedaccount.FieldRefreshToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refresh_token", values[i])
+			} else if value.Valid {
+				_m.RefreshToken = value.String
+			}
+		case linkedaccount.FieldTokenExpiry:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field token_expiry", values[i])
+			} else if value.Valid {
+				_m.TokenExpiry = new(time.Time)
+				*_m.TokenExpiry = value.Time
+			}
+		case linkedaccount.FieldScopesGranted:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field scopes_granted", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ScopesGranted); err != nil {
+					return fmt.Errorf("unmarshal field scopes_granted: %w", err)
+				}
+			}
+		case linkedaccount.FieldLastValidatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_validated_at", values[i])
+			} else if value.Valid {
+				_m.LastValidatedAt = new(time.Time)
+				*_m.LastValidatedAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -232,6 +268,21 @@ func (_m *LinkedAccount) String() string {
 	builder.WriteString(", ")
 	if v := _m.ExpiresAt; v != nil {
 		builder.WriteString("expires_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("refresh_token=<sensitive>")
+	builder.WriteString(", ")
+	if v := _m.TokenExpiry; v != nil {
+		builder.WriteString("token_expiry=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("scopes_granted=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ScopesGranted))
+	builder.WriteString(", ")
+	if v := _m.LastValidatedAt; v != nil {
+		builder.WriteString("last_validated_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')

@@ -888,6 +888,10 @@ func (s *GitHubPassThroughStore) GetLinkedAccount(ctx context.Context, id uuid.U
 	return nil, fmt.Errorf("get linked account: %w", store.ErrNotImplemented)
 }
 
+func (s *GitHubPassThroughStore) UpdateLinkedAccount(ctx context.Context, id uuid.UUID, p store.UpdateLinkedAccountParams) (*ent.LinkedAccount, error) {
+	return nil, fmt.Errorf("update linked account: %w", store.ErrNotImplemented)
+}
+
 func (s *GitHubPassThroughStore) DeleteLinkedAccount(ctx context.Context, id uuid.UUID) error {
 	return fmt.Errorf("delete linked account: %w", store.ErrNotImplemented)
 }
