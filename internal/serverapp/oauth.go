@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -34,12 +36,15 @@ type GoogleOAuthManager struct {
 	oauthConfig   *oauth2.Config
 	sessionStore  sessions.Store
 	provisioner   *UserProvisioner
+
+	mu            sync.Mutex
 	pendingStates map[string]oauthState
 }
 
 type oauthState struct {
-	CreatedAt time.Time
-	Redirect  string // post-login redirect URL
+	CreatedAt    time.Time
+	Redirect     string // post-login redirect URL
+	CodeVerifier string // PKCE code verifier
 }
 
 // GoogleUserInfo is the response from Google's userinfo endpoint.
@@ -103,12 +108,24 @@ func (m *GoogleOAuthManager) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/auth/oauth/google/callback", m.handleCallback)
 }
 
+// isValidRedirect checks that a redirect URI is a relative path and not
+// an open-redirect target (e.g. //evil.com or https://evil.com).
+func isValidRedirect(uri string) bool {
+	return uri != "" &&
+		strings.HasPrefix(uri, "/") &&
+		!strings.HasPrefix(uri, "//") &&
+		!strings.Contains(uri, "://")
+}
+
 // handleLogin initiates the OAuth flow by redirecting to Google.
 func (m *GoogleOAuthManager) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if m.oauthConfig == nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "Google OAuth not configured")
 		return
 	}
+
+	// Clean expired states before adding new ones to prevent unbounded growth.
+	m.CleanExpiredOAuthStates()
 
 	state, err := generateState()
 	if err != nil {
@@ -117,19 +134,27 @@ func (m *GoogleOAuthManager) handleLogin(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Optional redirect_uri query param for post-login redirect.
+	// Validate to prevent open-redirect attacks.
 	redirect := r.URL.Query().Get("redirect_uri")
-	if redirect == "" {
+	if !isValidRedirect(redirect) {
 		redirect = "/"
 	}
 
+	// Generate PKCE code verifier for defense-in-depth.
+	verifier := oauth2.GenerateVerifier()
+
+	m.mu.Lock()
 	m.pendingStates[state] = oauthState{
-		CreatedAt: time.Now(),
-		Redirect:  redirect,
+		CreatedAt:    time.Now(),
+		Redirect:     redirect,
+		CodeVerifier: verifier,
 	}
+	m.mu.Unlock()
 
 	url := m.oauthConfig.AuthCodeURL(state,
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("prompt", "select_account"),
+		oauth2.S256ChallengeOption(verifier),
 	)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
@@ -143,12 +168,21 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 
 	// Validate state.
 	state := r.URL.Query().Get("state")
-	os, ok := m.pendingStates[state]
+	m.mu.Lock()
+	pending, ok := m.pendingStates[state]
+	if ok {
+		delete(m.pendingStates, state)
+	}
+	m.mu.Unlock()
 	if !ok {
 		writeJSONError(w, http.StatusBadRequest, "invalid or expired state")
 		return
 	}
-	delete(m.pendingStates, state)
+	// Reject expired states (10 minute window).
+	if time.Since(pending.CreatedAt) > 10*time.Minute {
+		writeJSONError(w, http.StatusBadRequest, "state expired")
+		return
+	}
 
 	// Check for OAuth error response.
 	if errParam := r.URL.Query().Get("error"); errParam != "" {
@@ -163,8 +197,8 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Exchange code for token.
-	token, err := m.oauthConfig.Exchange(context.Background(), code)
+	// Exchange code for token with PKCE verifier.
+	token, err := m.oauthConfig.Exchange(r.Context(), code, oauth2.VerifierOption(pending.CodeVerifier))
 	if err != nil {
 		log.Printf("Google OAuth exchange error: %v", err)
 		writeJSONError(w, http.StatusInternalServerError, "OAuth exchange failed")
@@ -172,7 +206,7 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Fetch user info from Google.
-	userInfo, err := m.fetchUserInfo(token)
+	userInfo, err := m.fetchUserInfo(r.Context(), token)
 	if err != nil {
 		log.Printf("Google userinfo fetch error: %v", err)
 		writeJSONError(w, http.StatusInternalServerError, "failed to fetch user info")
@@ -216,7 +250,7 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Redirect to the original destination.
-	redirect := os.Redirect
+	redirect := pending.Redirect
 	if redirect == "" {
 		redirect = "/"
 	}
@@ -224,8 +258,8 @@ func (m *GoogleOAuthManager) handleCallback(w http.ResponseWriter, r *http.Reque
 }
 
 // fetchUserInfo calls Google's userinfo endpoint to get the user's profile.
-func (m *GoogleOAuthManager) fetchUserInfo(token *oauth2.Token) (*GoogleUserInfo, error) {
-	client := m.oauthConfig.Client(context.Background(), token)
+func (m *GoogleOAuthManager) fetchUserInfo(ctx context.Context, token *oauth2.Token) (*GoogleUserInfo, error) {
+	client := m.oauthConfig.Client(ctx, token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		return nil, fmt.Errorf("userinfo request: %w", err)
@@ -248,8 +282,10 @@ func (m *GoogleOAuthManager) fetchUserInfo(token *oauth2.Token) (*GoogleUserInfo
 // CleanExpiredOAuthStates removes OAuth states older than 10 minutes.
 func (m *GoogleOAuthManager) CleanExpiredOAuthStates() {
 	cutoff := time.Now().Add(-10 * time.Minute)
-	for state, os := range m.pendingStates {
-		if os.CreatedAt.Before(cutoff) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for state, st := range m.pendingStates {
+		if st.CreatedAt.Before(cutoff) {
 			delete(m.pendingStates, state)
 		}
 	}
