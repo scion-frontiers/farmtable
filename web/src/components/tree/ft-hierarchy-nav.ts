@@ -38,6 +38,42 @@ export class FtHierarchyNav extends LitElement {
     sl-select {
       min-width: 150px;
     }
+    .isolate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--sl-color-neutral-300, #475569);
+      border-radius: var(--sl-border-radius-medium, 4px);
+      background: var(--sl-color-neutral-0, #fff);
+      color: var(--sl-color-neutral-700, #cbd5e1);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+    .isolate-btn:hover {
+      background: var(--sl-color-neutral-100, #334155);
+      border-color: var(--sl-color-neutral-400, #64748b);
+    }
+    .isolate-btn.active {
+      background: var(--sl-color-primary-100, #312e81);
+      border-color: var(--sl-color-primary-500, #6366f1);
+      color: var(--sl-color-primary-700, #a5b4fc);
+    }
+    .isolate-btn.active:hover {
+      background: var(--sl-color-primary-200, #3730a3);
+    }
+    .isolate-btn sl-icon {
+      font-size: 0.9rem;
+    }
+    .isolate-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
   `;
 
   @property({ attribute: false })
@@ -45,6 +81,12 @@ export class FtHierarchyNav extends LitElement {
 
   @property({ type: String })
   focusRootId: string | null = null;
+
+  @property({ type: Boolean })
+  isolateMode = false;
+
+  @property({ type: String })
+  selectedTaskId: string | null = null;
 
   @state()
   private selectedLevel = '-1';
@@ -94,6 +136,17 @@ export class FtHierarchyNav extends LitElement {
     );
   }
 
+  private onIsolateClick() {
+    if (!this.selectedTaskId) return;
+    this.dispatchEvent(
+      new CustomEvent('isolate-toggle', {
+        detail: { isolateMode: !this.isolateMode },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private onCrumbClick(taskId: string | null) {
     this.dispatchEvent(
       new CustomEvent('focus-change', {
@@ -125,6 +178,17 @@ export class FtHierarchyNav extends LitElement {
           `,
         )}
       </sl-select>
+
+      <sl-tooltip content=${this.isolateMode ? 'Show full tree' : 'Isolate selected task and its descendants'}>
+        <button
+          class="isolate-btn ${this.isolateMode ? 'active' : ''}"
+          ?disabled=${!this.selectedTaskId}
+          @click=${this.onIsolateClick}
+        >
+          <sl-icon name=${this.isolateMode ? 'fullscreen-exit' : 'funnel'}></sl-icon>
+          Isolate
+        </button>
+      </sl-tooltip>
 
       ${breadcrumbs.length > 0
         ? html`
