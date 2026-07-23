@@ -330,6 +330,11 @@ export class FtToolbar extends LitElement {
         size="small"
         @sl-change=${this.onViewChange}
       >
+        <sl-tooltip content="Dashboard view">
+          <sl-radio-button value="dashboard" aria-label="Dashboard view">
+            <sl-icon name="grid" label="Dashboard view"></sl-icon>
+          </sl-radio-button>
+        </sl-tooltip>
         <sl-tooltip content="Kanban view">
           <sl-radio-button value="kanban" aria-label="Kanban view">
             <sl-icon name="kanban" label="Kanban view"></sl-icon>
@@ -348,11 +353,6 @@ export class FtToolbar extends LitElement {
         <sl-tooltip content="Ready Queue">
           <sl-radio-button value="ready-queue" aria-label="Ready Queue">
             <sl-icon name="list-check" label="Ready Queue"></sl-icon>
-          </sl-radio-button>
-        </sl-tooltip>
-        <sl-tooltip content="Dashboard view">
-          <sl-radio-button value="dashboard" aria-label="Dashboard view">
-            <sl-icon name="bar-chart-line" label="Dashboard view"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
       </sl-radio-group>

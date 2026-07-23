@@ -129,7 +129,7 @@ export class FtApp extends LitElement {
   };
 
   @state()
-  private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies' = 'kanban';
+  private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies' = 'dashboard';
 
   @state()
   private routeView: 'landing' | 'validating' | 'board' = 'validating';
@@ -777,7 +777,7 @@ export class FtApp extends LitElement {
     const viewParam = params.get('view');
     const taskParam = params.get('task');
     const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
-    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : 'kanban';
+    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : 'dashboard';
 
     if (!collectionId) {
       this.showCollectionList('');
