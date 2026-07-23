@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // Engine orchestrates recursive task decomposition using an LLM and writes
@@ -76,9 +74,14 @@ type createdTask struct {
 // It creates a root task on Farmtable and recursively decomposes it.
 func (e *Engine) Run(ctx context.Context, collectionID, inputText, rootTitle string) error {
 	// Create root task.
-	rootID, err := e.writer.CreateTask(ctx, rootTitle, inputText, "", nil)
+	var rootID string
+	err := retryWithBackoff(ctx, defaultWriterRetry, "CreateTask(root)", e.logger, isTransientGRPC, func() error {
+		var retryErr error
+		rootID, retryErr = e.writer.CreateTask(ctx, rootTitle, inputText, "", nil)
+		return retryErr
+	})
 	if err != nil {
-		return fmt.Errorf("creating root task: %w", err)
+		return fmt.Errorf("creating root task (after retries): %w", err)
 	}
 	e.totalTasks.Add(1)
 	e.logf("Created root task: %s (id: %s)", rootTitle, rootID)
@@ -157,8 +160,10 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	// Terminal response from LLM — this task is a leaf.
 	if result.Terminal != nil && *result.Terminal {
 		e.terminalTasks.Add(1)
-		if err := e.writer.UpdateTaskLabels(ctx, parentTaskID, []string{"decomposer:terminal"}); err != nil {
-			e.logf("[depth=%d] Warning: failed to label task %s as terminal: %v", depth, parentTaskID, err)
+		if labelErr := retryWithBackoff(ctx, defaultWriterRetry, "UpdateTaskLabels", e.logger, isTransientGRPC, func() error {
+			return e.writer.UpdateTaskLabels(ctx, parentTaskID, []string{"decomposer:terminal"})
+		}); labelErr != nil {
+			e.logf("[depth=%d] Warning: failed to label task %s as terminal (after retries): %v", depth, parentTaskID, labelErr)
 		}
 		e.logf("[depth=%d] LLM judged task as terminal (parent %s)", depth, parentTaskID)
 		return nil
@@ -171,9 +176,14 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	for _, group := range result.Groups {
 		var currentGroupTaskIDs []string
 		for _, st := range group.Tasks {
-			taskID, err := e.writer.CreateTask(ctx, st.Title, st.Description, parentTaskID, prevGroupTaskIDs)
+			var taskID string
+			err := retryWithBackoff(ctx, defaultWriterRetry, "CreateTask", e.logger, isTransientGRPC, func() error {
+				var retryErr error
+				taskID, retryErr = e.writer.CreateTask(ctx, st.Title, st.Description, parentTaskID, prevGroupTaskIDs)
+				return retryErr
+			})
 			if err != nil {
-				return fmt.Errorf("[depth=%d] creating task %q: %w", depth, st.Slug, err)
+				return fmt.Errorf("[depth=%d] creating task %q (after retries): %w", depth, st.Slug, err)
 			}
 			e.totalTasks.Add(1)
 			if st.Terminal {
@@ -247,16 +257,25 @@ func (e *Engine) walkAndResume(ctx context.Context, taskID string, depth int) er
 	default:
 	}
 
-	children, err := e.writer.ListChildren(ctx, taskID)
+	var children []TaskInfo
+	err := retryWithBackoff(ctx, defaultWriterRetry, "ListChildren", e.logger, isTransientGRPC, func() error {
+		var retryErr error
+		children, retryErr = e.writer.ListChildren(ctx, taskID)
+		return retryErr
+	})
 	if err != nil {
-		return fmt.Errorf("[resume depth=%d] listing children of %s: %w", depth, taskID, err)
+		return fmt.Errorf("[resume depth=%d] listing children of %s (after retries): %w", depth, taskID, err)
 	}
 
 	if len(children) == 0 {
 		// Leaf task — check if already terminal.
-		task, err := e.writer.GetTask(ctx, taskID)
-		if err != nil {
-			return fmt.Errorf("[resume depth=%d] getting task %s: %w", depth, taskID, err)
+		var task *TaskInfo
+		if getErr := retryWithBackoff(ctx, defaultWriterRetry, "GetTask", e.logger, isTransientGRPC, func() error {
+			var retryErr error
+			task, retryErr = e.writer.GetTask(ctx, taskID)
+			return retryErr
+		}); getErr != nil {
+			return fmt.Errorf("[resume depth=%d] getting task %s (after retries): %w", depth, taskID, getErr)
 		}
 		e.existingTasks.Add(1)
 
@@ -308,53 +327,34 @@ func hasLabel(labels []string, target string) bool {
 }
 
 // callLLMWithRetry calls the LLM with exponential backoff retry for transient
-// errors. The semaphore is acquired only around the actual LLM call and released
-// immediately after — NOT held during backoff sleep. This ensures a stalled
-// retry does not block other goroutines from making LLM calls.
+// errors. The semaphore is acquired inside the retry function around the actual
+// LLM call and released immediately after — NOT held during backoff sleep.
+// This ensures a stalled retry does not block other goroutines from making
+// LLM calls.
 func (e *Engine) callLLMWithRetry(ctx context.Context, messages []Message) (string, error) {
-	const maxRetries = 3
-
 	var response string
-	var err error
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		if attempt > 0 {
-			// Sleep BEFORE re-acquiring the semaphore so the slot is free
-			// for other goroutines during the backoff window.
-			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * time.Second
-			e.logf("Retrying LLM call (attempt %d/%d) after %v...", attempt+1, maxRetries+1, backoff)
-			select {
-			case <-time.After(backoff):
-			case <-ctx.Done():
-				return "", ctx.Err()
-			}
+	err := retryWithBackoff(ctx, defaultLLMRetry, "LLM", e.logger, func(err error) bool {
+		var llmErr *LLMError
+		if errors.As(err, &llmErr) && llmErr.IsTransient() {
+			return true
 		}
-
+		return false
+	}, func() error {
 		// Acquire semaphore — bounds concurrent LLM calls globally.
 		select {
 		case e.sem <- struct{}{}:
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return ctx.Err()
 		}
 
-		response, err = e.llm.Complete(ctx, messages)
+		var callErr error
+		response, callErr = e.llm.Complete(ctx, messages)
 
 		// Release semaphore IMMEDIATELY after LLM call returns.
 		<-e.sem
 
-		if err == nil {
-			return response, nil
-		}
-
-		// Check if error is transient.
-		var llmErr *LLMError
-		if errors.As(err, &llmErr) && llmErr.IsTransient() {
-			e.logf("Transient LLM error (HTTP %d), will retry", llmErr.StatusCode)
-			continue
-		}
-		// Non-transient error — don't retry.
-		break
-	}
-
+		return callErr
+	})
 	return response, err
 }
 

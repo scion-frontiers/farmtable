@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"google.golang.org/genai"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Inferencer is the thin LLM inference interface. The engine knows nothing
@@ -110,6 +112,11 @@ func (c *GenAIClient) Complete(ctx context.Context, messages []Message) (string,
 
 	resp, err := client.Models.GenerateContent(ctx, c.Model, contents, config)
 	if err != nil {
+		// Try to extract HTTP status from the error chain so the engine's
+		// retry logic can distinguish transient (429/5xx) from permanent errors.
+		if statusCode := extractHTTPStatus(err); statusCode > 0 {
+			return "", &LLMError{StatusCode: statusCode, Body: err.Error()}
+		}
 		return "", fmt.Errorf("GenAI GenerateContent: %w", err)
 	}
 
@@ -119,4 +126,23 @@ func (c *GenAIClient) Complete(ctx context.Context, messages []Message) (string,
 	}
 
 	return text, nil
+}
+
+// extractHTTPStatus tries to derive an HTTP-equivalent status code from the
+// error chain. The GenAI SDK may wrap gRPC errors; we map common transient
+// gRPC codes to their HTTP equivalents so LLMError.IsTransient() works.
+func extractHTTPStatus(err error) int {
+	if s, ok := status.FromError(err); ok {
+		switch s.Code() {
+		case codes.ResourceExhausted:
+			return 429
+		case codes.Internal:
+			return 500
+		case codes.Unavailable:
+			return 503
+		case codes.DeadlineExceeded:
+			return 504
+		}
+	}
+	return 0
 }
