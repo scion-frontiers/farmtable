@@ -28,6 +28,10 @@ type Engine struct {
 	terminalTasks atomic.Int32
 	maxDepthSeen  atomic.Int32
 
+	// Resume-mode stats.
+	existingTasks   atomic.Int32
+	skippedTerminal atomic.Int32
+
 	logger *log.Logger
 }
 
@@ -153,6 +157,9 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	// Terminal response from LLM — this task is a leaf.
 	if result.Terminal != nil && *result.Terminal {
 		e.terminalTasks.Add(1)
+		if err := e.writer.UpdateTaskLabels(ctx, parentTaskID, []string{"decomposer:terminal"}); err != nil {
+			e.logf("[depth=%d] Warning: failed to label task %s as terminal: %v", depth, parentTaskID, err)
+		}
 		e.logf("[depth=%d] LLM judged task as terminal (parent %s)", depth, parentTaskID)
 		return nil
 	}
@@ -206,6 +213,98 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	wg.Wait()
 
 	return firstErr
+}
+
+// Resume walks an existing task tree and decomposes unfinished branches.
+// Tasks with the "decomposer:terminal" label are skipped. Unlabeled leaf
+// tasks are assessed and decomposed as needed.
+func (e *Engine) Resume(ctx context.Context, collectionID, rootTaskID string) error {
+	e.logf("Resuming decomposition from root task %s in collection %s", rootTaskID, collectionID)
+	return e.walkAndResume(ctx, rootTaskID, 0)
+}
+
+// ResumeStats returns stats relevant to a resume run. The existing Stats()
+// method returns the same counters, but this documents the intent: totalTasks
+// counts newly created tasks, terminalTasks counts skipped+new terminals.
+func (e *Engine) ResumeStats() (existingTasks, skippedTerminal, newTasks, maxDepth int) {
+	return int(e.existingTasks.Load()), int(e.skippedTerminal.Load()),
+		int(e.totalTasks.Load()), int(e.maxDepthSeen.Load())
+}
+
+func (e *Engine) walkAndResume(ctx context.Context, taskID string, depth int) error {
+	// Update max depth seen.
+	for {
+		old := e.maxDepthSeen.Load()
+		if int32(depth) <= old || e.maxDepthSeen.CompareAndSwap(old, int32(depth)) {
+			break
+		}
+	}
+
+	// Check context cancellation.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	children, err := e.writer.ListChildren(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("[resume depth=%d] listing children of %s: %w", depth, taskID, err)
+	}
+
+	if len(children) == 0 {
+		// Leaf task — check if already terminal.
+		task, err := e.writer.GetTask(ctx, taskID)
+		if err != nil {
+			return fmt.Errorf("[resume depth=%d] getting task %s: %w", depth, taskID, err)
+		}
+		e.existingTasks.Add(1)
+
+		if hasLabel(task.Labels, "decomposer:terminal") {
+			e.skippedTerminal.Add(1)
+			e.terminalTasks.Add(1)
+			e.logf("[resume depth=%d] Skipping terminal task %s (%s)", depth, taskID, task.Name)
+			return nil
+		}
+
+		// Respect maxDepth — don't decompose if we're at or beyond the limit.
+		if depth >= e.maxDepth {
+			e.logf("[resume depth=%d] Max depth reached, skipping unfinished leaf %s", depth, taskID)
+			return nil
+		}
+
+		// Unfinished leaf — decompose it (empty context chain per design).
+		e.logf("[resume depth=%d] Decomposing unfinished leaf %s (%s)", depth, taskID, task.Name)
+		return e.decompose(ctx, task.Description, nil, taskID, depth)
+	}
+
+	// Internal node — count it and recurse into children concurrently.
+	e.existingTasks.Add(1)
+
+	var wg sync.WaitGroup
+	var firstErr error
+	var errOnce sync.Once
+	for _, child := range children {
+		wg.Add(1)
+		go func(childID string) {
+			defer wg.Done()
+			if err := e.walkAndResume(ctx, childID, depth+1); err != nil {
+				errOnce.Do(func() { firstErr = err })
+			}
+		}(child.ID)
+	}
+	wg.Wait()
+	return firstErr
+}
+
+// hasLabel returns true if the label slice contains the given label.
+func hasLabel(labels []string, target string) bool {
+	for _, l := range labels {
+		if l == target {
+			return true
+		}
+	}
+	return false
 }
 
 // callLLMWithRetry calls the LLM with exponential backoff retry for transient
