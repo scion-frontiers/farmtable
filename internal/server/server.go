@@ -615,7 +615,8 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
 	}
 
-	// RequireIdentity already guarantees a non-nil user ID.
+	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
+	// In open-access mode (no auth configured), this will be uuid.Nil.
 	assigneeID, _ := UserIDFromContext(ctx)
 	if req.AssigneeId != nil {
 		parsed, err := uuid.Parse(*req.AssigneeId)
@@ -706,7 +707,8 @@ func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentReq
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
 	}
 
-	// RequireIdentity already guarantees a non-nil user ID.
+	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
+	// In open-access mode (no auth configured), this will be uuid.Nil.
 	authorID, _ := UserIDFromContext(ctx)
 
 	c, err := s.store.AddComment(ctx, store.AddCommentParams{
