@@ -99,9 +99,16 @@ export class FtHierarchyNav extends LitElement {
         walk(child.id, depth + 1);
       }
     };
-    if (this.focusRootId) {
-      const focusRoot = this.store.getTask(this.focusRootId);
-      if (focusRoot) walk(focusRoot.id, 0);
+    // In isolate mode, compute depth relative to the isolated root (the
+    // selected task) so the level dropdown only shows depths that actually
+    // exist in the isolated subtree.
+    const effectiveRootId =
+      this.isolateMode && this.selectedTaskId
+        ? this.selectedTaskId
+        : this.focusRootId;
+    if (effectiveRootId) {
+      const root = this.store.getTask(effectiveRootId);
+      if (root) walk(root.id, 0);
     } else {
       for (const root of this.store.roots) {
         walk(root.id, 0);
@@ -137,7 +144,6 @@ export class FtHierarchyNav extends LitElement {
   }
 
   private onIsolateClick() {
-    if (!this.selectedTaskId) return;
     this.dispatchEvent(
       new CustomEvent('isolate-toggle', {
         detail: { isolateMode: !this.isolateMode },

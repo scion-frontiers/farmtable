@@ -182,6 +182,11 @@ export class FtTreeView extends LitElement {
     // When selectedTaskId changes in isolate mode, invalidate layout so the
     // tree re-renders for the new selection's descendant set.
     if (changedProps.has('selectedTaskId') && this.isolateMode) {
+      // Auto-disable isolate mode when selection clears so the user is not
+      // stuck with an active isolate and a disabled toggle button.
+      if (!this.selectedTaskId) {
+        this.isolateMode = false;
+      }
       this.lastStructureKey = '';
     }
 
@@ -722,7 +727,7 @@ export class FtTreeView extends LitElement {
       <ft-hierarchy-nav
         .store=${this.store}
         .focusRootId=${this.focusRootId}
-        ?isolateMode=${this.isolateMode}
+        .isolateMode=${this.isolateMode}
         .selectedTaskId=${this.selectedTaskId}
         @focus-change=${this.onFocusChange}
         @level-change=${this.onLevelChange}
