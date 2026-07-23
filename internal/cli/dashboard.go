@@ -72,11 +72,18 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 
 	eventBus := streaming.NewEventBus()
 
+	var lookup server.TokenLookup
+	if os.Getenv("FARMTABLE_OPEN_ACCESS") == "1" {
+		log.Println("Open access mode enabled (FARMTABLE_OPEN_ACCESS)")
+	} else {
+		lookup = server.NewStoreTokenLookup(s)
+	}
+
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
 		grpc.MaxSendMsgSize(grpcMaxMessageSize),
-		grpc.UnaryInterceptor(server.TokenAuthInterceptor(server.NewStoreTokenLookup(s))),
-		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(server.NewStoreTokenLookup(s))),
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
 	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, "dashboard", server.WithEventBus(eventBus)))
 
