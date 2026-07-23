@@ -152,6 +152,7 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 
 	// Terminal response from LLM — this task is a leaf.
 	if result.Terminal != nil && *result.Terminal {
+		e.terminalTasks.Add(1)
 		e.logf("[depth=%d] LLM judged task as terminal (parent %s)", depth, parentTaskID)
 		return nil
 	}
