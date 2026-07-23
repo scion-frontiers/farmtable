@@ -119,6 +119,8 @@ export class FtApp extends LitElement {
     if (this._pendingTaskId) {
       const taskId = this._pendingTaskId;
       this._pendingTaskId = null;
+      // Detach immediately — the listener only needs to fire once per navigation.
+      this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
       // Only apply if the task actually exists in the store.
       if (this.taskStore.getTask(taskId)) {
         this.selectedTaskId = taskId;
