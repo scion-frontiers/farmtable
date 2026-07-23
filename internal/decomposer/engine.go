@@ -114,6 +114,10 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	// Force terminal at max depth — don't even call the LLM.
 	if depth >= e.maxDepth {
 		e.logf("[depth=%d] Max depth reached, forcing terminal for parent %s", depth, parentTaskID)
+		e.terminalTasks.Add(1)
+		if err := e.writer.UpdateTaskLabels(ctx, parentTaskID, []string{"decomposer:terminal"}); err != nil {
+			e.logf("[depth=%d] Warning: failed to label max-depth task %s as terminal: %v", depth, parentTaskID, err)
+		}
 		return nil
 	}
 
@@ -288,7 +292,10 @@ func (e *Engine) walkAndResume(ctx context.Context, taskID string, depth int) er
 
 		// Respect maxDepth — don't decompose if we're at or beyond the limit.
 		if depth >= e.maxDepth {
-			e.logf("[resume depth=%d] Max depth reached, skipping unfinished leaf %s", depth, taskID)
+			e.logf("[resume depth=%d] Max depth reached, labeling and skipping leaf %s", depth, taskID)
+			if err := e.writer.UpdateTaskLabels(ctx, taskID, []string{"decomposer:terminal"}); err != nil {
+				e.logf("[resume depth=%d] Warning: failed to label max-depth task %s: %v", depth, taskID, err)
+			}
 			return nil
 		}
 
