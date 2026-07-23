@@ -2,8 +2,6 @@ package serverapp
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,15 +16,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
-
-// generateState creates a random state string for CSRF protection.
-func generateState() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
-}
 
 // GoogleOAuthManager handles Google OAuth 2.0 login flows for user
 // authentication (as opposed to LinkFlowManager which handles external
