@@ -238,6 +238,12 @@ func (sm *SessionManager) handleLogout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// SessionStore returns the underlying gorilla sessions.Store, allowing other
+// components (e.g. GoogleOAuthManager) to share the same session backend.
+func (sm *SessionManager) SessionStore() sessions.Store {
+	return sm.store
+}
+
 // SessionToBearerMiddleware wraps an HTTP handler and injects Authorization
 // and X-Farmtable-Token headers from the session cookie when no Authorization
 // header is already present. This bridges cookie-based web sessions to the

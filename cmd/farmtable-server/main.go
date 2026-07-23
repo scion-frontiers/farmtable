@@ -41,6 +41,12 @@ func main() {
 		log.Fatalf("Failed to initialize store: %v", err)
 	}
 
+	// Stage 6: enable credential encryption when an encryption key is set.
+	if encryptor, err := store.NewCredentialEncryptorFromEnv(); err == nil && encryptor != nil {
+		entStore.SetCredentialEncryptor(encryptor)
+		log.Println("Credential encryption enabled")
+	}
+
 	// Wrap EntStore with MultiStore so platform-specific stores can be
 	// registered later (e.g. via lazy registration in B3). With no
 	// platform stores registered the MultiStore passes all operations
@@ -60,6 +66,12 @@ func main() {
 		log.Println("Token authentication enabled (store-backed)")
 	}
 
+	// Stage 5: parse auth mode from environment.
+	authMode, err := serverapp.AuthModeFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid auth mode: %v", err)
+	}
+
 	eventBus := streaming.NewEventBus()
 
 	grpcServer := grpc.NewServer(
@@ -75,18 +87,41 @@ func main() {
 		log.Fatalf("Failed to create web asset filesystem: %v", err)
 	}
 
+	// Determine the base URL for link flow OAuth callbacks.
+	baseURL := os.Getenv("FARMTABLE_BASE_URL")
+	if baseURL == "" {
+		baseURL = fmt.Sprintf("http://localhost:%s", port)
+	}
+
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
+		Addr: fmt.Sprintf(":%s", port),
 		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS), serverapp.UnifiedHandlerOptions{
-			TokenLookup: lookup,
+			TokenLookup:    lookup,
+			Store:          s,
+			AuthMode:       authMode,
+			IAPAudience:    os.Getenv("FARMTABLE_IAP_AUDIENCE"),
+			AllowedDomains: os.Getenv("FARMTABLE_ALLOWED_DOMAINS"),
+			BaseURL:        baseURL,
 		}),
 	}
+
+	// Stage 6: start background services for token refresh and credential monitoring.
+	refresher := serverapp.NewTokenRefresher(s, serverapp.PlatformRefreshConfigs{})
+	go refresher.Start(ctx)
+
+	monitor := serverapp.NewCredentialMonitor(s)
+	go monitor.Start(ctx)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		log.Println("Shutting down gracefully...")
+
+		// Stop background services.
+		refresher.Stop()
+		monitor.Stop()
+
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {

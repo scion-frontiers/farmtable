@@ -134,6 +134,7 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	httpServer := &http.Server{
 		Handler: serverapp.UnifiedHandler(grpcServer, http.FS(subFS), serverapp.UnifiedHandlerOptions{
 			TokenLookup: lookup,
+			Store:       s,
 		}),
 	}
 
