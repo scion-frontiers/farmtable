@@ -376,6 +376,26 @@ func LastUsedAtNotNil() predicate.ApiToken {
 	return predicate.ApiToken(sql.FieldNotNull(FieldLastUsedAt))
 }
 
+// ScopesIsNil applies the IsNil predicate on the "scopes" field.
+func ScopesIsNil() predicate.ApiToken {
+	return predicate.ApiToken(sql.FieldIsNull(FieldScopes))
+}
+
+// ScopesNotNil applies the NotNil predicate on the "scopes" field.
+func ScopesNotNil() predicate.ApiToken {
+	return predicate.ApiToken(sql.FieldNotNull(FieldScopes))
+}
+
+// CollectionIdsIsNil applies the IsNil predicate on the "collection_ids" field.
+func CollectionIdsIsNil() predicate.ApiToken {
+	return predicate.ApiToken(sql.FieldIsNull(FieldCollectionIds))
+}
+
+// CollectionIdsNotNil applies the NotNil predicate on the "collection_ids" field.
+func CollectionIdsNotNil() predicate.ApiToken {
+	return predicate.ApiToken(sql.FieldNotNull(FieldCollectionIds))
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.ApiToken {
 	return predicate.ApiToken(func(s *sql.Selector) {

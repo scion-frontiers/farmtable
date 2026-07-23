@@ -82,6 +82,18 @@ func (_c *ApiTokenCreate) SetNillableLastUsedAt(v *time.Time) *ApiTokenCreate {
 	return _c
 }
 
+// SetScopes sets the "scopes" field.
+func (_c *ApiTokenCreate) SetScopes(v []string) *ApiTokenCreate {
+	_c.mutation.SetScopes(v)
+	return _c
+}
+
+// SetCollectionIds sets the "collection_ids" field.
+func (_c *ApiTokenCreate) SetCollectionIds(v []uuid.UUID) *ApiTokenCreate {
+	_c.mutation.SetCollectionIds(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ApiTokenCreate) SetID(v uuid.UUID) *ApiTokenCreate {
 	_c.mutation.SetID(v)
@@ -227,6 +239,14 @@ func (_c *ApiTokenCreate) createSpec() (*ApiToken, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LastUsedAt(); ok {
 		_spec.SetField(apitoken.FieldLastUsedAt, field.TypeTime, value)
 		_node.LastUsedAt = &value
+	}
+	if value, ok := _c.mutation.Scopes(); ok {
+		_spec.SetField(apitoken.FieldScopes, field.TypeJSON, value)
+		_node.Scopes = value
+	}
+	if value, ok := _c.mutation.CollectionIds(); ok {
+		_spec.SetField(apitoken.FieldCollectionIds, field.TypeJSON, value)
+		_node.CollectionIds = value
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -23,16 +23,23 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	if _, err := RequireIdentity(stream.Context()); err != nil {
 		return err
 	}
+	if err := RequireScope(stream.Context(), ScopeTaskRead); err != nil {
+		return err
+	}
 	if err := validateWatchTasksRequest(req); err != nil {
 		return err
 	}
 
-	// Guard: WatchTasks is not supported for external platform collections.
+	// Collection access enforcement.
 	if req.CollectionId != nil {
 		collID, err := uuid.Parse(*req.CollectionId)
 		if err != nil {
 			return status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
 		}
+		if err := RequireCollectionAccess(stream.Context(), collID); err != nil {
+			return err
+		}
+		// Guard: WatchTasks is not supported for external platform collections.
 		coll, err := s.store.GetCollection(stream.Context(), collID)
 		if err != nil {
 			return storeErr(err, "collection")
@@ -42,6 +49,10 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 				"WatchTasks is not supported for external platform %q collections; use polling instead",
 				coll.Platform)
 		}
+	} else if ids := CollectionIDsFromContext(stream.Context()); len(ids) > 0 {
+		// Collection-scoped tokens must specify a collection_id.
+		return status.Error(codes.PermissionDenied,
+			"collection-scoped tokens must specify a collection_id for WatchTasks")
 	}
 
 	filter := buildFilter(req)

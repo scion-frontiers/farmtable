@@ -1368,6 +1368,12 @@ func (s *EntStore) CreateAPIToken(ctx context.Context, p CreateAPITokenParams) (
 	if p.ExpiresAt != nil {
 		create.SetExpiresAt(*p.ExpiresAt)
 	}
+	if len(p.Scopes) > 0 {
+		create.SetScopes(p.Scopes)
+	}
+	if len(p.CollectionIDs) > 0 {
+		create.SetCollectionIds(p.CollectionIDs)
+	}
 
 	tok, err := create.Save(ctx)
 	if err != nil {

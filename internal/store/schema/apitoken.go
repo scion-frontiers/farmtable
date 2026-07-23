@@ -21,6 +21,8 @@ func (ApiToken) Fields() []ent.Field {
 		field.Time("created_at").Default(timeNow).Immutable(),
 		field.Time("expires_at").Optional().Nillable(),
 		field.Time("last_used_at").Optional().Nillable(),
+		field.JSON("scopes", []string{}).Optional(),
+		field.JSON("collection_ids", []uuid.UUID{}).Optional(),
 	}
 }
 
