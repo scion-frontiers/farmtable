@@ -87,6 +87,7 @@ func openPostgres(dsn string) (*ent.Client, error) {
 	// With max_connections=200 and up to 4 Cloud Run instances, 20 conns
 	// per instance keeps us safely within budget (4 × 20 = 80).
 	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetConnMaxIdleTime(1 * time.Minute)
 
