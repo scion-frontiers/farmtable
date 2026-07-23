@@ -62,7 +62,7 @@ func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
 	if opts.Dialect == dialect.SQLite {
 		client, err = openSQLite(opts.DSN)
 	} else {
-		client, err = ent.Open(opts.Dialect, opts.DSN)
+		client, err = openPostgres(opts.DSN)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
@@ -76,6 +76,22 @@ func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
 	}
 
 	return &EntStore{client: client, dialect: opts.Dialect}, nil
+}
+
+func openPostgres(dsn string) (*ent.Client, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, err
+	}
+	// Limit connection pool to avoid exhausting Cloud SQL max_connections.
+	// With max_connections=200 and up to 4 Cloud Run instances, 20 conns
+	// per instance keeps us safely within budget (4 × 20 = 80).
+	db.SetMaxOpenConns(20)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
+
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	return ent.NewClient(ent.Driver(drv)), nil
 }
 
 func openSQLite(dsn string) (*ent.Client, error) {
