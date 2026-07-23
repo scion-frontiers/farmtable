@@ -20,6 +20,11 @@ import '../minimap/ft-minimap.js';
  * The `isReady()` check already ignores closed blockers, so completed tasks
  * are neither "unblocked/open" (Layer 0) nor active blockers. This keeps
  * the view focused on work that still matters.
+ *
+ * **Solo mode**: When active, shows only the connected component of the
+ * selected task — all nodes reachable by traversing BLOCKS/BLOCKED_BY edges
+ * in EITHER direction (upstream blockers AND downstream blocked-by chains,
+ * transitively).
  */
 
 const NODE_WIDTH = 220;
@@ -59,6 +64,40 @@ function edgePath(
   const cx1 = startX + dx * 0.4;
   const cx2 = endX - dx * 0.4;
   return `M ${startX} ${startY} C ${cx1} ${startY}, ${cx2} ${endY}, ${endX} ${endY}`;
+}
+
+/**
+ * Compute the full connected component of a task in the dependency graph.
+ * Traverses BLOCKS and BLOCKED_BY edges in BOTH directions (bidirectional
+ * BFS), returning all transitively reachable nodes.  Uses a visited set
+ * for cycle safety.
+ */
+function getConnectedComponentIds(
+  taskId: string,
+  store: TaskStore,
+  taskSet: Set<string>,
+): Set<string> {
+  const ids = new Set<string>();
+  const queue = [taskId];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (ids.has(id)) continue;
+    if (!taskSet.has(id)) continue;
+    const task = store.getTask(id);
+    if (!task || task.phase === TaskPhase.CLOSED) continue;
+    ids.add(id);
+    for (const rel of task.relationships) {
+      if (
+        rel.type === RelationshipType.BLOCKS ||
+        rel.type === RelationshipType.BLOCKED_BY
+      ) {
+        if (!ids.has(rel.targetTaskId)) {
+          queue.push(rel.targetTaskId);
+        }
+      }
+    }
+  }
+  return ids;
 }
 
 /**
@@ -151,11 +190,74 @@ export class FtDependencyView extends LitElement {
       fill: none;
       stroke-dasharray: 6 3;
     }
+    /* Colorblind-accessible edge colors when a node is selected.
+       "blocking" = edge TO a node that blocks the selection (upstream).
+       "blocked"  = edge TO a node that is blocked by the selection
+       (downstream).
+       #D55E00 (vermillion) is from the Okabe-Ito palette.
+       #7B3FF2 (blue-purple) is a custom colorblind-accessible color,
+       NOT from the Okabe-Ito palette. */
+    .edge-blocking {
+      stroke: #D55E00;
+      stroke-width: 2.5;
+      stroke-dasharray: none;
+    }
+    .edge-blocked {
+      stroke: #7B3FF2;
+      stroke-width: 2.5;
+      stroke-dasharray: none;
+    }
     .drop-highlight {
       pointer-events: none;
     }
     foreignObject {
       transition: opacity 0.15s;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--sl-color-neutral-50, #1e1e2e);
+      border-bottom: 1px solid var(--sl-color-neutral-200, #334155);
+      font-family: var(--sl-font-sans, sans-serif);
+      flex-shrink: 0;
+    }
+    .isolate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--sl-color-neutral-300, #475569);
+      border-radius: var(--sl-border-radius-medium, 4px);
+      background: var(--sl-color-neutral-0, #fff);
+      color: var(--sl-color-neutral-700, #cbd5e1);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+    .isolate-btn:hover {
+      background: var(--sl-color-neutral-100, #334155);
+      border-color: var(--sl-color-neutral-400, #64748b);
+    }
+    .isolate-btn.active {
+      background: var(--sl-color-primary-100, #312e81);
+      border-color: var(--sl-color-primary-500, #6366f1);
+      color: var(--sl-color-primary-700, #a5b4fc);
+    }
+    .isolate-btn.active:hover {
+      background: var(--sl-color-primary-200, #3730a3);
+    }
+    .isolate-btn sl-icon {
+      font-size: 0.9rem;
+    }
+    .isolate-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   `;
 
@@ -170,6 +272,7 @@ export class FtDependencyView extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
+  @state() private isolateMode = false;
   @state() private panX = 0;
   @state() private panY = 0;
   @state() private scale = 1;
@@ -252,7 +355,15 @@ export class FtDependencyView extends LitElement {
 
   protected willUpdate(_changedProperties: PropertyValues): void {
     super.willUpdate(_changedProperties);
+    // Run layout first — it updates lastStructureKey which encodes
+    // task IDs, phases and relationships.  We then use that key as
+    // part of the edge-classification cache so that edge colors are
+    // recomputed whenever the underlying relationship data changes
+    // (via SSE or the 15-second poll cycle), not only when
+    // selectedTaskId changes.  See Features #55 / #60 for prior
+    // instances of this class of stale-cache bug.
     this.runLayout();
+    this.computeEdgeSets();
   }
 
   updated(changedProps: PropertyValues<this>) {
@@ -264,6 +375,16 @@ export class FtDependencyView extends LitElement {
         svgEl.addEventListener('wheel', this.boundOnWheel, { passive: false });
         this.wheelListenerAttached = true;
       }
+    }
+
+    // Auto-disable isolate mode when selection clears so the user is not
+    // stuck with an active isolate and a disabled toggle button.
+    if (
+      changedProps.has('selectedTaskId') &&
+      !this.selectedTaskId &&
+      this.isolateMode
+    ) {
+      this.isolateMode = false;
     }
 
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
@@ -431,22 +552,43 @@ export class FtDependencyView extends LitElement {
       }
     }
 
-    return this.store.allTasks.filter(
+    let tasks = this.store.allTasks.filter(
       (t) => involvedIds.has(t.id) && t.phase !== TaskPhase.CLOSED,
     );
+
+    // Solo mode: filter to the connected component of the selected task.
+    // "Connected component" means all nodes reachable via BLOCKS/BLOCKED_BY
+    // edges in either direction (bidirectional BFS).
+    if (this.isolateMode && this.selectedTaskId) {
+      const ccIds = getConnectedComponentIds(
+        this.selectedTaskId,
+        this.store,
+        involvedIds,
+      );
+      tasks = tasks.filter((t) => ccIds.has(t.id));
+    }
+
+    return tasks;
   }
 
   private structureKey(tasks: Task[]): string {
-    return tasks
-      .map(
-        (t) =>
-          `${t.id}:${t.phase}:${t.relationships
-            .map((r) => `${r.type}-${r.targetTaskId}`)
-            .sort()
-            .join(',')}`,
-      )
-      .sort()
-      .join('|');
+    const isolateKey = this.isolateMode
+      ? `iso:${this.selectedTaskId ?? ''}`
+      : '';
+    return (
+      tasks
+        .map(
+          (t) =>
+            `${t.id}:${t.phase}:${t.relationships
+              .map((r) => `${r.type}-${r.targetTaskId}`)
+              .sort()
+              .join(',')}`,
+        )
+        .sort()
+        .join('|') +
+      '||' +
+      isolateKey
+    );
   }
 
   /** Horizontal gap between layer columns. */
@@ -623,6 +765,114 @@ export class FtDependencyView extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private onIsolateToggle() {
+    this.isolateMode = !this.isolateMode;
+    this.lastStructureKey = '';
+  }
+
+  // ── Edge classification for color-coding ──
+
+  /** Cache of upstream (blocking) task IDs relative to the selected task. */
+  private _upstreamIds: Set<string> | null = null;
+  /** Cache of downstream (blocked-by) task IDs relative to the selected task. */
+  private _downstreamIds: Set<string> | null = null;
+  /**
+   * Composite cache key for edge classification: selectedTaskId +
+   * lastStructureKey.  This ensures the edge colors are recomputed
+   * when relationships change (structure key encodes relationship
+   * data), not only when the selected task changes.
+   */
+  private _edgeCacheKey: string | null = null;
+
+  /**
+   * Compute the set of tasks that transitively BLOCK the selected task
+   * (upstream) and the set that are transitively BLOCKED BY the selected
+   * task (downstream).  Results are cached and invalidated when either
+   * the selectedTaskId or the underlying relationship structure changes.
+   */
+  private computeEdgeSets() {
+    const cacheKey = `${this.selectedTaskId}::${this.lastStructureKey}`;
+    if (this._edgeCacheKey === cacheKey) return;
+    this._edgeCacheKey = cacheKey;
+
+    if (!this.selectedTaskId) {
+      this._upstreamIds = null;
+      this._downstreamIds = null;
+      return;
+    }
+
+    // Upstream: traverse BLOCKED_BY edges from selected task
+    const upstream = new Set<string>();
+    const uQueue = [this.selectedTaskId];
+    while (uQueue.length > 0) {
+      const id = uQueue.shift()!;
+      if (upstream.has(id)) continue;
+      upstream.add(id);
+      const task = this.store.getTask(id);
+      if (!task) continue;
+      for (const rel of task.relationships) {
+        if (rel.type === RelationshipType.BLOCKED_BY && !upstream.has(rel.targetTaskId)) {
+          uQueue.push(rel.targetTaskId);
+        }
+      }
+    }
+    upstream.delete(this.selectedTaskId);
+
+    // Downstream: traverse BLOCKS edges from selected task
+    const downstream = new Set<string>();
+    const dQueue = [this.selectedTaskId];
+    while (dQueue.length > 0) {
+      const id = dQueue.shift()!;
+      if (downstream.has(id)) continue;
+      downstream.add(id);
+      const task = this.store.getTask(id);
+      if (!task) continue;
+      for (const rel of task.relationships) {
+        if (rel.type === RelationshipType.BLOCKS && !downstream.has(rel.targetTaskId)) {
+          dQueue.push(rel.targetTaskId);
+        }
+      }
+    }
+    downstream.delete(this.selectedTaskId);
+
+    this._upstreamIds = upstream;
+    this._downstreamIds = downstream;
+  }
+
+  /**
+   * Classify an edge relative to the selected task.
+   * Edge goes from `fromId` (blocker) to `toId` (blocked task).
+   *
+   * Returns:
+   *  - 'blocking': the edge is on the upstream path (connects to nodes
+   *    that block the selected task).  Shown in red-orange.
+   *  - 'blocked': the edge is on the downstream path (connects to nodes
+   *    blocked by the selected task).  Shown in blue-purple.
+   *  - null: the edge is unrelated to the selected task, or no task is
+   *    selected.  Shown in default style.
+   */
+  private classifyEdge(fromId: string, toId: string): 'blocking' | 'blocked' | null {
+    if (!this.selectedTaskId || !this._upstreamIds || !this._downstreamIds) {
+      return null;
+    }
+
+    const sel = this.selectedTaskId;
+
+    // Upstream path: edges where BOTH endpoints are either the selected
+    // task or in the upstream set.
+    const fromIsUpOrSel = fromId === sel || this._upstreamIds.has(fromId);
+    const toIsUpOrSel = toId === sel || this._upstreamIds.has(toId);
+    if (fromIsUpOrSel && toIsUpOrSel) return 'blocking';
+
+    // Downstream path: edges where BOTH endpoints are either the selected
+    // task or in the downstream set.
+    const fromIsDownOrSel = fromId === sel || this._downstreamIds.has(fromId);
+    const toIsDownOrSel = toId === sel || this._downstreamIds.has(toId);
+    if (fromIsDownOrSel && toIsDownOrSel) return 'blocked';
+
+    return null;
   }
 
   // ── Drag-and-Drop for relationship building ──
@@ -804,6 +1054,19 @@ export class FtDependencyView extends LitElement {
     const vbH = this.containerHeight / this.scale;
 
     return html`
+      <div class="toolbar">
+        <sl-tooltip content=${this.isolateMode ? 'Show full graph' : 'Solo selected task and its connected dependencies'}>
+          <button
+            class="isolate-btn ${this.isolateMode ? 'active' : ''}"
+            ?disabled=${!this.selectedTaskId}
+            @click=${this.onIsolateToggle}
+          >
+            <sl-icon name=${this.isolateMode ? 'fullscreen-exit' : 'funnel'}></sl-icon>
+            Solo
+          </button>
+        </sl-tooltip>
+      </div>
+
       <div class="canvas-container">
         <svg
           class=${this.isPanning ? 'panning' : ''}
@@ -815,9 +1078,15 @@ export class FtDependencyView extends LitElement {
               const src = this.nodeMap.get(e.from);
               const tgt = this.nodeMap.get(e.to);
               if (!src || !tgt) return null;
+              const classification = this.classifyEdge(e.from, e.to);
+              const edgeClass = classification === 'blocking'
+                ? 'edge-dependency edge-blocking'
+                : classification === 'blocked'
+                  ? 'edge-dependency edge-blocked'
+                  : 'edge-dependency';
               return svg`<path
                 d="${edgePath(src, tgt)}"
-                class="edge-dependency"
+                class="${edgeClass}"
               />`;
             })}
           </g>
