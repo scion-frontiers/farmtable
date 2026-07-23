@@ -55,7 +55,7 @@ func extractToken(md metadata.MD) string {
 		if strings.HasPrefix(val, "Bearer ") {
 			return strings.TrimPrefix(val, "Bearer ")
 		}
-		// Has Authorization header but wrong scheme — will be rejected below
+		// Has Authorization header but wrong scheme — caller will reject
 		return ""
 	}
 	return ""
