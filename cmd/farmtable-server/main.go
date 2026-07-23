@@ -51,7 +51,9 @@ func main() {
 
 	var lookup server.TokenLookup
 	token := os.Getenv("FARMTABLE_TOKEN")
-	if token == "" {
+	if os.Getenv("FARMTABLE_OPEN_ACCESS") == "1" {
+		log.Println("Open access mode enabled (FARMTABLE_OPEN_ACCESS)")
+	} else if token == "" {
 		log.Println("WARNING: FARMTABLE_TOKEN not set — server running in open access mode")
 	} else {
 		lookup = server.NewStoreTokenLookup(s)
