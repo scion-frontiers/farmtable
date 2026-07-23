@@ -38,6 +38,8 @@ func newRootCmd() *cobra.Command {
 		maxDepth    int
 		concurrency int
 		verbose     bool
+		resume      bool
+		rootTask    string
 	)
 
 	cmd := &cobra.Command{
@@ -47,11 +49,21 @@ func newRootCmd() *cobra.Command {
 recursively decomposes it into a structured Farmtable task DAG using LLM inference.
 
 Tasks are organized into parallel groups where tasks in the same group can run
-concurrently, and higher-numbered groups depend on lower groups completing first.`,
-		Args:          cobra.ExactArgs(1),
+concurrently, and higher-numbered groups depend on lower groups completing first.
+
+Use --resume with --root-task to resume an incomplete decomposition, walking
+the existing tree and decomposing only unfinished branches.`,
+		Args:          cobra.MaximumNArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if resume {
+				return runResume(collection, server, token, iapAudience, provider, model, apiKey,
+					project, location, promptFile, rootTask, maxDepth, concurrency, verbose)
+			}
+			if len(args) == 0 {
+				return fmt.Errorf("requires an input file argument (or \"-\" for stdin)")
+			}
 			return run(args[0], collection, server, token, iapAudience, provider, model, apiKey,
 				project, location, promptFile, maxDepth, concurrency, verbose)
 		},
@@ -78,6 +90,10 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	cmd.Flags().IntVar(&maxDepth, "max-depth", 3, "Maximum recursion depth")
 	cmd.Flags().IntVar(&concurrency, "concurrency", 4, "Max parallel LLM calls")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "Log LLM prompts/responses to stderr")
+
+	// Resume mode.
+	cmd.Flags().BoolVar(&resume, "resume", false, "Resume an incomplete decomposition (requires --root-task)")
+	cmd.Flags().StringVar(&rootTask, "root-task", "", "Task ID to resume from (required with --resume)")
 
 	return cmd
 }
@@ -173,6 +189,116 @@ func run(inputArg, collection, server, token, iapAudience, provider, model, apiK
 	// Print summary.
 	printSummary(collectionID, rootTitle, engine, server)
 	return nil
+}
+
+func runResume(collection, server, token, iapAudience, provider, model, apiKey,
+	project, location, promptFile, rootTask string, maxDepth, concurrency int, verbose bool) error {
+
+	if rootTask == "" {
+		return fmt.Errorf("--root-task is required when using --resume")
+	}
+
+	// Load custom system prompt if specified.
+	var systemPrompt string
+	if promptFile != "" {
+		data, err := os.ReadFile(promptFile)
+		if err != nil {
+			return fmt.Errorf("reading prompt file: %w", err)
+		}
+		systemPrompt = string(data)
+	}
+
+	// Create LLM client.
+	llm, err := createLLM(provider, model, apiKey, project, location)
+	if err != nil {
+		return err
+	}
+
+	// Create Farmtable writer.
+	writer, err := decomposer.NewGRPCWriter(server, token)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+
+	// Handle IAP authentication if audience is specified.
+	if iapAudience == "" {
+		iapAudience = os.Getenv("IAP_AUDIENCE")
+	}
+	if iapAudience != "" {
+		iapToken, err := mintIAPToken(iapAudience)
+		if err != nil {
+			return fmt.Errorf("minting IAP identity token: %w", err)
+		}
+		writer.SetIAPToken(iapToken)
+		fmt.Fprintf(os.Stderr, "IAP authentication enabled (audience=%s)\n", iapAudience)
+	}
+
+	// Resolve collection (must exist, don't auto-create in resume mode).
+	collectionID, err := writer.ResolveCollection(context.Background(), collection)
+	if err != nil {
+		return fmt.Errorf("collection not found (resume mode does not auto-create): %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "Using existing collection: %s (id: %s)\n", collection, collectionID)
+	writer.SetCollectionID(collectionID)
+
+	// Create engine.
+	engine := decomposer.NewEngine(decomposer.EngineConfig{
+		LLM:          llm,
+		Writer:       writer,
+		SystemPrompt: systemPrompt,
+		MaxDepth:     maxDepth,
+		Concurrency:  concurrency,
+		Verbose:      verbose,
+	})
+
+	// Set up graceful shutdown via Ctrl-C.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		fmt.Fprintln(os.Stderr, "\nInterrupted — finishing in-flight LLM calls...")
+		cancel()
+	}()
+
+	// Run resume.
+	fmt.Fprintf(os.Stderr, "Resuming decomposition from task %s in collection %s...\n", rootTask, collectionID)
+	if err := engine.Resume(ctx, collectionID, rootTask); err != nil {
+		printResumeSummary(collectionID, rootTask, engine, server)
+		return fmt.Errorf("resume failed: %w", err)
+	}
+
+	printResumeSummary(collectionID, rootTask, engine, server)
+	return nil
+}
+
+func printResumeSummary(collectionID, rootTaskID string, engine *decomposer.Engine, server string) {
+	existing, skipped, newTasks, maxDepth := engine.ResumeStats()
+	_, terminal, _ := engine.Stats()
+	fmt.Printf("\n--- Resume Summary ---\n")
+	fmt.Printf("Collection:       %s\n", collectionID)
+	fmt.Printf("Root task:        %s\n", rootTaskID)
+	fmt.Printf("Existing tasks:   %d\n", existing)
+	fmt.Printf("Skipped terminal: %d\n", skipped)
+	fmt.Printf("New tasks:        %d\n", newTasks)
+	fmt.Printf("Total terminal:   %d\n", terminal)
+	fmt.Printf("Max depth:        %d\n", maxDepth)
+	dashServer := server
+	if dashServer == "" {
+		dashServer = os.Getenv("FARMTABLE_SERVER")
+	}
+	if dashServer != "" {
+		host := dashServer
+		if h, _, err := net.SplitHostPort(dashServer); err == nil {
+			host = h
+		}
+		if host != "" {
+			fmt.Printf("Dashboard:        https://%s/?collection=%s\n", host, collectionID)
+		}
+	}
 }
 
 func readInput(arg string) (string, error) {

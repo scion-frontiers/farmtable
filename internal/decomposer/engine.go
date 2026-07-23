@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // Engine orchestrates recursive task decomposition using an LLM and writes
@@ -27,6 +25,10 @@ type Engine struct {
 	totalTasks    atomic.Int32
 	terminalTasks atomic.Int32
 	maxDepthSeen  atomic.Int32
+
+	// Resume-mode stats.
+	existingTasks   atomic.Int32
+	skippedTerminal atomic.Int32
 
 	logger *log.Logger
 }
@@ -72,9 +74,14 @@ type createdTask struct {
 // It creates a root task on Farmtable and recursively decomposes it.
 func (e *Engine) Run(ctx context.Context, collectionID, inputText, rootTitle string) error {
 	// Create root task.
-	rootID, err := e.writer.CreateTask(ctx, rootTitle, inputText, "", nil)
+	var rootID string
+	err := retryWithBackoff(ctx, defaultWriterRetry, "CreateTask(root)", e.logger, isTransientGRPC, func() error {
+		var retryErr error
+		rootID, retryErr = e.writer.CreateTask(ctx, rootTitle, inputText, "", nil)
+		return retryErr
+	})
 	if err != nil {
-		return fmt.Errorf("creating root task: %w", err)
+		return fmt.Errorf("creating root task (after retries): %w", err)
 	}
 	e.totalTasks.Add(1)
 	e.logf("Created root task: %s (id: %s)", rootTitle, rootID)
@@ -153,6 +160,11 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	// Terminal response from LLM — this task is a leaf.
 	if result.Terminal != nil && *result.Terminal {
 		e.terminalTasks.Add(1)
+		if labelErr := retryWithBackoff(ctx, defaultWriterRetry, "UpdateTaskLabels", e.logger, isTransientGRPC, func() error {
+			return e.writer.UpdateTaskLabels(ctx, parentTaskID, []string{"decomposer:terminal"})
+		}); labelErr != nil {
+			e.logf("[depth=%d] Warning: failed to label task %s as terminal (after retries): %v", depth, parentTaskID, labelErr)
+		}
 		e.logf("[depth=%d] LLM judged task as terminal (parent %s)", depth, parentTaskID)
 		return nil
 	}
@@ -164,9 +176,14 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	for _, group := range result.Groups {
 		var currentGroupTaskIDs []string
 		for _, st := range group.Tasks {
-			taskID, err := e.writer.CreateTask(ctx, st.Title, st.Description, parentTaskID, prevGroupTaskIDs)
+			var taskID string
+			err := retryWithBackoff(ctx, defaultWriterRetry, "CreateTask", e.logger, isTransientGRPC, func() error {
+				var retryErr error
+				taskID, retryErr = e.writer.CreateTask(ctx, st.Title, st.Description, parentTaskID, prevGroupTaskIDs)
+				return retryErr
+			})
 			if err != nil {
-				return fmt.Errorf("[depth=%d] creating task %q: %w", depth, st.Slug, err)
+				return fmt.Errorf("[depth=%d] creating task %q (after retries): %w", depth, st.Slug, err)
 			}
 			e.totalTasks.Add(1)
 			if st.Terminal {
@@ -208,54 +225,136 @@ func (e *Engine) decompose(ctx context.Context, taskText string, contextChain []
 	return firstErr
 }
 
-// callLLMWithRetry calls the LLM with exponential backoff retry for transient
-// errors. The semaphore is acquired only around the actual LLM call and released
-// immediately after — NOT held during backoff sleep. This ensures a stalled
-// retry does not block other goroutines from making LLM calls.
-func (e *Engine) callLLMWithRetry(ctx context.Context, messages []Message) (string, error) {
-	const maxRetries = 3
+// Resume walks an existing task tree and decomposes unfinished branches.
+// Tasks with the "decomposer:terminal" label are skipped. Unlabeled leaf
+// tasks are assessed and decomposed as needed.
+func (e *Engine) Resume(ctx context.Context, collectionID, rootTaskID string) error {
+	e.logf("Resuming decomposition from root task %s in collection %s", rootTaskID, collectionID)
+	return e.walkAndResume(ctx, rootTaskID, 0)
+}
 
-	var response string
-	var err error
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		if attempt > 0 {
-			// Sleep BEFORE re-acquiring the semaphore so the slot is free
-			// for other goroutines during the backoff window.
-			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * time.Second
-			e.logf("Retrying LLM call (attempt %d/%d) after %v...", attempt+1, maxRetries+1, backoff)
-			select {
-			case <-time.After(backoff):
-			case <-ctx.Done():
-				return "", ctx.Err()
-			}
+// ResumeStats returns stats relevant to a resume run. The existing Stats()
+// method returns the same counters, but this documents the intent: totalTasks
+// counts newly created tasks, terminalTasks counts skipped+new terminals.
+func (e *Engine) ResumeStats() (existingTasks, skippedTerminal, newTasks, maxDepth int) {
+	return int(e.existingTasks.Load()), int(e.skippedTerminal.Load()),
+		int(e.totalTasks.Load()), int(e.maxDepthSeen.Load())
+}
+
+func (e *Engine) walkAndResume(ctx context.Context, taskID string, depth int) error {
+	// Update max depth seen.
+	for {
+		old := e.maxDepthSeen.Load()
+		if int32(depth) <= old || e.maxDepthSeen.CompareAndSwap(old, int32(depth)) {
+			break
+		}
+	}
+
+	// Check context cancellation.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	var children []TaskInfo
+	err := retryWithBackoff(ctx, defaultWriterRetry, "ListChildren", e.logger, isTransientGRPC, func() error {
+		var retryErr error
+		children, retryErr = e.writer.ListChildren(ctx, taskID)
+		return retryErr
+	})
+	if err != nil {
+		return fmt.Errorf("[resume depth=%d] listing children of %s (after retries): %w", depth, taskID, err)
+	}
+
+	if len(children) == 0 {
+		// Leaf task — check if already terminal.
+		var task *TaskInfo
+		if getErr := retryWithBackoff(ctx, defaultWriterRetry, "GetTask", e.logger, isTransientGRPC, func() error {
+			var retryErr error
+			task, retryErr = e.writer.GetTask(ctx, taskID)
+			return retryErr
+		}); getErr != nil {
+			return fmt.Errorf("[resume depth=%d] getting task %s (after retries): %w", depth, taskID, getErr)
+		}
+		e.existingTasks.Add(1)
+
+		if hasLabel(task.Labels, "decomposer:terminal") {
+			e.skippedTerminal.Add(1)
+			e.terminalTasks.Add(1)
+			e.logf("[resume depth=%d] Skipping terminal task %s (%s)", depth, taskID, task.Name)
+			return nil
 		}
 
+		// Respect maxDepth — don't decompose if we're at or beyond the limit.
+		if depth >= e.maxDepth {
+			e.logf("[resume depth=%d] Max depth reached, skipping unfinished leaf %s", depth, taskID)
+			return nil
+		}
+
+		// Unfinished leaf — decompose it (empty context chain per design).
+		e.logf("[resume depth=%d] Decomposing unfinished leaf %s (%s)", depth, taskID, task.Name)
+		return e.decompose(ctx, task.Description, nil, taskID, depth)
+	}
+
+	// Internal node — count it and recurse into children concurrently.
+	e.existingTasks.Add(1)
+
+	var wg sync.WaitGroup
+	var firstErr error
+	var errOnce sync.Once
+	for _, child := range children {
+		wg.Add(1)
+		go func(childID string) {
+			defer wg.Done()
+			if err := e.walkAndResume(ctx, childID, depth+1); err != nil {
+				errOnce.Do(func() { firstErr = err })
+			}
+		}(child.ID)
+	}
+	wg.Wait()
+	return firstErr
+}
+
+// hasLabel returns true if the label slice contains the given label.
+func hasLabel(labels []string, target string) bool {
+	for _, l := range labels {
+		if l == target {
+			return true
+		}
+	}
+	return false
+}
+
+// callLLMWithRetry calls the LLM with exponential backoff retry for transient
+// errors. The semaphore is acquired inside the retry function around the actual
+// LLM call and released immediately after — NOT held during backoff sleep.
+// This ensures a stalled retry does not block other goroutines from making
+// LLM calls.
+func (e *Engine) callLLMWithRetry(ctx context.Context, messages []Message) (string, error) {
+	var response string
+	err := retryWithBackoff(ctx, defaultLLMRetry, "LLM", e.logger, func(err error) bool {
+		var llmErr *LLMError
+		if errors.As(err, &llmErr) && llmErr.IsTransient() {
+			return true
+		}
+		return false
+	}, func() error {
 		// Acquire semaphore — bounds concurrent LLM calls globally.
 		select {
 		case e.sem <- struct{}{}:
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return ctx.Err()
 		}
 
-		response, err = e.llm.Complete(ctx, messages)
+		var callErr error
+		response, callErr = e.llm.Complete(ctx, messages)
 
 		// Release semaphore IMMEDIATELY after LLM call returns.
 		<-e.sem
 
-		if err == nil {
-			return response, nil
-		}
-
-		// Check if error is transient.
-		var llmErr *LLMError
-		if errors.As(err, &llmErr) && llmErr.IsTransient() {
-			e.logf("Transient LLM error (HTTP %d), will retry", llmErr.StatusCode)
-			continue
-		}
-		// Non-transient error — don't retry.
-		break
-	}
-
+		return callErr
+	})
 	return response, err
 }
 
