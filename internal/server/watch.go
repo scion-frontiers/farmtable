@@ -18,6 +18,11 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	if s.eventBus == nil {
 		return status.Error(codes.Unimplemented, "streaming not available in pass-through mode")
 	}
+	// WatchTasks creates server-side state (subscriptions) so it requires
+	// an authenticated identity, not just a valid token.
+	if _, err := RequireIdentity(stream.Context()); err != nil {
+		return err
+	}
 	if err := validateWatchTasksRequest(req); err != nil {
 		return err
 	}

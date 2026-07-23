@@ -85,6 +85,9 @@ func validateTaskDescription(description string) error {
 // ── Tasks ──
 
 func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	if err := validateTaskName(req.GetName()); err != nil {
 		return nil, err
 	}
@@ -188,6 +191,9 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 }
 
 func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertTasksAfterRequest) (*pb.InsertTasksAfterResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	anchorID, err := uuid.Parse(req.GetAnchorTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid anchor_task_id: %v", err)
@@ -422,6 +428,9 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 }
 
 func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
@@ -598,11 +607,15 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 }
 
 func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskRequest) (*pb.ClaimTaskResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
 	}
 
+	// RequireIdentity already guarantees a non-nil user ID.
 	assigneeID, _ := UserIDFromContext(ctx)
 	if req.AssigneeId != nil {
 		parsed, err := uuid.Parse(*req.AssigneeId)
@@ -610,9 +623,6 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
 		}
 		assigneeID = parsed
-	}
-	if assigneeID == uuid.Nil {
-		assigneeID = uuid.New()
 	}
 
 	version := ""
@@ -641,6 +651,9 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 }
 
 func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
@@ -675,22 +688,26 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	return proto, nil
 }
 
-func (s *FarmTableService) DeleteTask(_ context.Context, _ *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
+func (s *FarmTableService) DeleteTask(ctx context.Context, _ *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	return nil, status.Errorf(codes.Unimplemented, "delete is not supported; close tasks instead")
 }
 
 // ── Comments ──
 
 func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentRequest) (*pb.Comment, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	taskID, err := uuid.Parse(req.GetTaskId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
 	}
 
+	// RequireIdentity already guarantees a non-nil user ID.
 	authorID, _ := UserIDFromContext(ctx)
-	if authorID == uuid.Nil {
-		authorID = uuid.New()
-	}
 
 	c, err := s.store.AddComment(ctx, store.AddCommentParams{
 		TaskID:   taskID,
@@ -822,6 +839,9 @@ func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListColl
 }
 
 func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateCollectionRequest) (*pb.Collection, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	platform := "farmtable"
 	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
 		platform = string(platformFromProto(*req.Platform))
@@ -852,6 +872,9 @@ func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateC
 }
 
 func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateCollectionRequest) (*pb.Collection, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
@@ -884,6 +907,9 @@ func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateC
 // ── Linked Accounts ──
 
 func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.CreateLinkedAccountRequest) (*pb.CreateLinkedAccountResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	collID, err := uuid.Parse(req.GetCollectionId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
@@ -941,6 +967,9 @@ func (s *FarmTableService) GetLinkedAccount(ctx context.Context, req *pb.GetLink
 }
 
 func (s *FarmTableService) DeleteLinkedAccount(ctx context.Context, req *pb.DeleteLinkedAccountRequest) (*pb.DeleteLinkedAccountResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	id, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)

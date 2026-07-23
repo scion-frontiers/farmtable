@@ -18,6 +18,7 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "user_id"
+const authEnforcedKey contextKey = "auth_enforced"
 
 const tokenUsageTimeout = 5 * time.Second
 
@@ -26,8 +27,41 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return id, ok
 }
 
+// RequireIdentity extracts the authenticated user ID from the context and
+// returns a codes.Unauthenticated error if the user is not identified (i.e.
+// the user ID is missing or uuid.Nil). Mutating RPCs must call this at the
+// top of their handler to enforce identity-aware access control.
+//
+// When running in open-access mode (no auth interceptor configured), the
+// context will not have the auth-enforced flag set, and this function returns
+// uuid.Nil without error — allowing mutating operations to proceed without
+// identity. This preserves backward compatibility for deployments without
+// token authentication.
+func RequireIdentity(ctx context.Context) (uuid.UUID, error) {
+	id, ok := UserIDFromContext(ctx)
+	if ok && id != uuid.Nil {
+		return id, nil
+	}
+	// If auth was enforced by an interceptor but the user ID is missing or
+	// nil, reject the request — the caller authenticated but has no identity.
+	if ctx.Value(authEnforcedKey) != nil {
+		return uuid.Nil, status.Error(codes.Unauthenticated, "identity required: mutating operations require an authenticated user with a valid identity")
+	}
+	// Open-access mode: no auth interceptor was configured, so no identity
+	// is available. Return uuid.Nil to allow the operation to proceed.
+	return uuid.Nil, nil
+}
+
 func ContextWithUserID(ctx context.Context, id uuid.UUID) context.Context {
 	return context.WithValue(ctx, userIDKey, id)
+}
+
+// ContextWithAuthEnforced marks the context as having auth enforcement
+// active. This is used by RequireIdentity to distinguish between
+// "no auth configured" (open-access mode) and "auth configured but
+// identity missing".
+func ContextWithAuthEnforced(ctx context.Context) context.Context {
+	return context.WithValue(ctx, authEnforcedKey, true)
 }
 
 type TokenLookupResult struct {
@@ -78,6 +112,11 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
+		// Mark that auth enforcement is active so downstream handlers
+		// (RequireIdentity) can distinguish "no auth configured" from
+		// "auth configured but identity missing".
+		ctx = context.WithValue(ctx, authEnforcedKey, true)
+
 		if isUnauthenticatedEndpoint(info.FullMethod) {
 			return handler(ctx, req)
 		}
@@ -120,6 +159,10 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 		if lookup == nil {
 			return handler(srv, ss)
 		}
+
+		// Mark that auth enforcement is active.
+		enforcedCtx := context.WithValue(ss.Context(), authEnforcedKey, true)
+		ss = &authenticatedStream{ServerStream: ss, ctx: enforcedCtx}
 
 		if isUnauthenticatedEndpoint(info.FullMethod) {
 			return handler(srv, ss)
@@ -183,6 +226,11 @@ type legacyTokenLookup struct {
 	userID uuid.UUID
 }
 
+// Deprecated: LegacyTokenAuth returns uuid.Nil as the user ID, which will
+// always fail identity checks required by mutating RPCs. Use
+// NewStoreTokenLookup instead, which resolves tokens to real user identities.
+// This function is retained only for backward compatibility in tests and will
+// be removed in a future release.
 func LegacyTokenAuth(validToken string) TokenLookup {
 	if validToken == "" {
 		return nil

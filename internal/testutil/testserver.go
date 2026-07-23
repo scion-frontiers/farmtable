@@ -219,8 +219,50 @@ func NewTestServerWithAuth(t *testing.T, s *store.EntStore) (pb.FarmTableService
 		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
 		grpc.MaxSendMsgSize(grpcMaxMessageSize),
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
 	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
+	go srv.Serve(lis)
+
+	conn, err := grpc.NewClient("passthrough:///bufconn",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(grpcMaxMessageSize),
+			grpc.MaxCallSendMsgSize(grpcMaxMessageSize),
+		),
+	)
+	if err != nil {
+		srv.Stop()
+		t.Fatalf("dialing bufconn: %v", err)
+	}
+
+	client := pb.NewFarmTableServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
+		srv.Stop()
+	}
+	return client, srv, cleanup
+}
+
+// NewTestServerWithAuthAndStreaming creates a test server with both
+// token authentication interceptors (unary + stream) and an event bus
+// for streaming RPCs like WatchTasks.
+func NewTestServerWithAuthAndStreaming(t *testing.T, s *store.EntStore) (pb.FarmTableServiceClient, *grpc.Server, func()) {
+	t.Helper()
+
+	lookup := server.NewStoreTokenLookup(s)
+	eventBus := streaming.NewEventBus()
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer(
+		grpc.MaxRecvMsgSize(grpcMaxMessageSize),
+		grpc.MaxSendMsgSize(grpcMaxMessageSize),
+		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
+	)
+	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test", server.WithEventBus(eventBus)))
 	go srv.Serve(lis)
 
 	conn, err := grpc.NewClient("passthrough:///bufconn",

@@ -254,6 +254,9 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 }
 
 func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportCollectionRequest) (*pb.ImportCollectionResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
 	format := detectImportFormat(req.GetData())
 
 	var doc exportDocument
