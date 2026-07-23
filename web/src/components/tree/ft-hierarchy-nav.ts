@@ -185,14 +185,14 @@ export class FtHierarchyNav extends LitElement {
         )}
       </sl-select>
 
-      <sl-tooltip content=${this.isolateMode ? 'Show full tree' : 'Isolate selected task and its descendants'}>
+      <sl-tooltip content=${this.isolateMode ? 'Show full tree' : 'Solo selected task and its descendants'}>
         <button
           class="isolate-btn ${this.isolateMode ? 'active' : ''}"
           ?disabled=${!this.selectedTaskId}
           @click=${this.onIsolateClick}
         >
           <sl-icon name=${this.isolateMode ? 'fullscreen-exit' : 'funnel'}></sl-icon>
-          Isolate
+          Solo
         </button>
       </sl-tooltip>
 
