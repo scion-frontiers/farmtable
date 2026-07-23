@@ -28,6 +28,7 @@ type GRPCWriter struct {
 	conn         *grpc.ClientConn
 	collectionID string
 	token        string
+	iapToken     string // OIDC identity token for IAP; if set, goes in Authorization header
 }
 
 // NewGRPCWriter creates a new GRPCWriter connected to the given server.
@@ -65,7 +66,24 @@ func NewGRPCWriter(server, token string) (*GRPCWriter, error) {
 	}, nil
 }
 
+// SetIAPToken sets an OIDC identity token for IAP authentication.
+// When set, the OIDC token goes in Authorization (for IAP) and the ft_ token
+// goes only in x-farmtable-token (for the app). Without this, both headers
+// carry the ft_ token (backward compatible for non-IAP deployments).
+func (w *GRPCWriter) SetIAPToken(token string) {
+	w.iapToken = token
+}
+
 func (w *GRPCWriter) authCtx(ctx context.Context) context.Context {
+	if w.iapToken != "" {
+		// IAP mode: OIDC token in Authorization, ft_ token in custom header.
+		md := metadata.Pairs(
+			"authorization", "Bearer "+w.iapToken,
+			"x-farmtable-token", w.token,
+		)
+		return metadata.NewOutgoingContext(ctx, md)
+	}
+	// Non-IAP mode: ft_ token in both (backward compatible).
 	md := metadata.Pairs(
 		"authorization", "Bearer "+w.token,
 		"x-farmtable-token", w.token,
