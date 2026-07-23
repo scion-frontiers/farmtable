@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -45,8 +46,8 @@ type SessionManager struct {
 // The session key is derived from FARMTABLE_SESSION_KEY env var. If not set,
 // a random key is generated and logged (suitable for development).
 func NewSessionManager(lookup server.TokenLookup) *SessionManager {
-	key := deriveSessionKey()
-	cookieStore := sessions.NewCookieStore(key, key[:32])
+	keys := deriveSessionKeys()
+	cookieStore := sessions.NewCookieStore(keys.authKey, keys.encKey)
 	cookieStore.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 30, // 30 days
@@ -60,18 +61,27 @@ func NewSessionManager(lookup server.TokenLookup) *SessionManager {
 	}
 }
 
-// deriveSessionKey reads FARMTABLE_SESSION_KEY or generates a random 32-byte key.
-func deriveSessionKey() []byte {
+// sessionKeyPair holds separate keys for HMAC authentication and AES encryption.
+type sessionKeyPair struct {
+	authKey []byte // HMAC-SHA256 authentication key
+	encKey  []byte // AES-256 encryption key
+}
+
+// deriveSessionKeys reads FARMTABLE_SESSION_KEY or generates random keys.
+// Returns separate keys for HMAC auth and AES encryption to avoid key
+// separation failures from using the same key material for both primitives.
+func deriveSessionKeys() sessionKeyPair {
 	if envKey := os.Getenv("FARMTABLE_SESSION_KEY"); envKey != "" {
-		h := sha256.Sum256([]byte(envKey))
-		return h[:]
+		authKey := sha256.Sum256(append([]byte("auth:"), []byte(envKey)...))
+		encKey := sha256.Sum256(append([]byte("enc:"), []byte(envKey)...))
+		return sessionKeyPair{authKey: authKey[:], encKey: encKey[:]}
 	}
-	key := make([]byte, 32)
+	key := make([]byte, 64)
 	if _, err := rand.Read(key); err != nil {
 		panic(fmt.Sprintf("failed to generate session key: %v", err))
 	}
 	log.Println("No FARMTABLE_SESSION_KEY set — generated random session key (sessions will not survive restart)")
-	return key
+	return sessionKeyPair{authKey: key[:32], encKey: key[32:]}
 }
 
 // isSecureRequest returns true when the request arrived over HTTPS
@@ -109,7 +119,8 @@ func (sm *SessionManager) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Token string `json:"token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	// Limit request body size to prevent denial-of-service via large payloads.
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -191,7 +202,10 @@ func (sm *SessionManager) handleGetSession(w http.ResponseWriter, r *http.Reques
 		if err != nil || (result.ExpiresAt != nil && result.ExpiresAt.Before(time.Now())) {
 			// Token revoked or expired — clear the session.
 			session.Options.MaxAge = -1
-			session.Save(r, w)
+			session.Options.Secure = isSecureRequest(r)
+			if saveErr := session.Save(r, w); saveErr != nil {
+				log.Printf("warning: failed to clear revoked session: %v", saveErr)
+			}
 			writeJSONError(w, http.StatusUnauthorized, "session expired")
 			return
 		}
