@@ -359,6 +359,9 @@ func authCtx(ctx context.Context, token string) context.Context {
 	if token == "" {
 		return ctx
 	}
-	md := metadata.Pairs("authorization", "Bearer "+token)
+	md := metadata.Pairs(
+		"authorization", "Bearer "+token,
+		"x-farmtable-token", token,
+	)
 	return metadata.NewOutgoingContext(ctx, md)
 }

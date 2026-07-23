@@ -243,6 +243,78 @@ func TestAuthInterceptor_RecordUsageHasDeadline(t *testing.T) {
 	}
 }
 
+func TestAuthInterceptor_CustomHeader(t *testing.T) {
+	s, storeCleanup := testutil.NewTestStore(t)
+	defer storeCleanup()
+
+	ctx := context.Background()
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "test-agent",
+		Type:        "agent",
+		Status:      "active",
+	})
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "test-token",
+	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
+
+	lookup := server.NewStoreTokenLookup(s)
+	client, _, cleanup := startServerWithLookup(t, lookup)
+	defer cleanup()
+
+	// Send token via x-farmtable-token only (no authorization header)
+	authCtx := metadata.AppendToOutgoingContext(ctx, "x-farmtable-token", rawToken)
+	_, err = client.GetVersion(authCtx, &pb.GetVersionRequest{})
+	if err != nil {
+		t.Fatalf("expected success with custom header token, got: %v", err)
+	}
+}
+
+func TestAuthInterceptor_CustomHeaderPrecedence(t *testing.T) {
+	s, storeCleanup := testutil.NewTestStore(t)
+	defer storeCleanup()
+
+	ctx := context.Background()
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "test-agent",
+		Type:        "agent",
+		Status:      "active",
+	})
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "test-token",
+	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
+
+	lookup := server.NewStoreTokenLookup(s)
+	client, _, cleanup := startServerWithLookup(t, lookup)
+	defer cleanup()
+
+	// Send valid token via x-farmtable-token, invalid token via authorization.
+	// The custom header should take precedence, so auth should succeed.
+	authCtx := metadata.AppendToOutgoingContext(ctx,
+		"x-farmtable-token", rawToken,
+		"authorization", "Bearer wrong-token",
+	)
+	_, err = client.GetVersion(authCtx, &pb.GetVersionRequest{})
+	if err != nil {
+		t.Fatalf("expected custom header to take precedence over authorization, got: %v", err)
+	}
+}
+
 type deadlineLookup struct {
 	result *server.TokenLookupResult
 	used   chan context.Context
