@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -110,12 +111,19 @@ func (tr *TokenRefresher) refreshAll(ctx context.Context) {
 		if err := tr.refreshAccount(ctx, acct); err != nil {
 			log.Printf("[token-refresh] refreshing account %s (%s): %v",
 				acct.ID, acct.Platform, err)
-			// Mark the account as expired if refresh fails.
-			expired := "expired"
-			if _, updateErr := tr.store.UpdateLinkedAccount(ctx, acct.ID, store.UpdateLinkedAccountParams{
-				Status: &expired,
-			}); updateErr != nil {
-				log.Printf("[token-refresh] marking account %s expired: %v", acct.ID, updateErr)
+
+			// Only mark as expired for definitive auth errors (401/403).
+			// Transient errors (network issues, 5xx) should not expire the account.
+			if isDefinitiveAuthError(err) {
+				expired := "expired"
+				if _, updateErr := tr.store.UpdateLinkedAccount(ctx, acct.ID, store.UpdateLinkedAccountParams{
+					Status: &expired,
+				}); updateErr != nil {
+					log.Printf("[token-refresh] marking account %s expired: %v", acct.ID, updateErr)
+				}
+			} else {
+				log.Printf("[token-refresh] transient error for account %s (%s), leaving status unchanged",
+					acct.ID, acct.Platform)
 			}
 		}
 	}
@@ -169,5 +177,16 @@ func (tr *TokenRefresher) configForPlatform(platform linkedaccount.Platform) *oa
 	default:
 		return nil
 	}
+}
+
+// isDefinitiveAuthError returns true if the error indicates a definitive
+// authentication failure (401/403) rather than a transient error.
+func isDefinitiveAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "401") || strings.Contains(msg, "403") ||
+		strings.Contains(msg, "unauthorized") || strings.Contains(msg, "forbidden")
 }
 

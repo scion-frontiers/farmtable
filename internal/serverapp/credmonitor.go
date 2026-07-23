@@ -10,6 +10,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
+	"github.com/google/uuid"
 )
 
 const (
@@ -140,9 +141,17 @@ func (cm *CredentialMonitor) checkAccount(ctx context.Context, acct *ent.LinkedA
 // CheckAccountNow performs an immediate credential check for a single account.
 // Useful for on-demand validation.
 func (cm *CredentialMonitor) CheckAccountNow(ctx context.Context, accountID string) error {
-	// This is a convenience method for callers that want to check a specific
-	// account without waiting for the next polling interval.
-	return nil
+	id, err := uuid.Parse(accountID)
+	if err != nil {
+		return fmt.Errorf("invalid account ID: %w", err)
+	}
+
+	acct, err := cm.store.GetLinkedAccount(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting linked account: %w", err)
+	}
+
+	return cm.checkAccount(ctx, acct)
 }
 
 // ── Platform Validators ──

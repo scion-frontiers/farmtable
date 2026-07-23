@@ -1,13 +1,13 @@
 package serverapp
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -29,6 +29,7 @@ type LinkFlowManager struct {
 	baseURL      string // e.g. "https://app.farmtable.io"
 	// In-memory state map for CSRF protection. In production, use a
 	// proper session/redis-backed store. Maps state → collectionID.
+	mu            sync.Mutex
 	pendingStates map[string]linkState
 }
 
@@ -115,9 +116,17 @@ func generateState() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// stateMaxAge is the maximum age for pending OAuth state tokens.
+const stateMaxAge = 10 * time.Minute
+
 // ── GitHub ──
 
 func (lm *LinkFlowManager) handleGitHubInstall(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.GitHub == nil {
 		http.Error(w, "GitHub OAuth not configured", http.StatusServiceUnavailable)
 		return
@@ -135,29 +144,46 @@ func (lm *LinkFlowManager) handleGitHubInstall(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	lm.mu.Lock()
 	lm.pendingStates[state] = linkState{
 		CollectionID: collectionID,
 		Platform:     "github",
 		CreatedAt:    time.Now(),
 	}
+	lm.mu.Unlock()
 
 	url := lm.oauthConfigs.GitHub.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func (lm *LinkFlowManager) handleGitHubCallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.GitHub == nil {
 		http.Error(w, "GitHub OAuth not configured", http.StatusServiceUnavailable)
 		return
 	}
 
 	state := r.URL.Query().Get("state")
+	lm.mu.Lock()
 	ls, ok := lm.pendingStates[state]
+	if ok {
+		delete(lm.pendingStates, state)
+	}
+	lm.mu.Unlock()
+
 	if !ok {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
-	delete(lm.pendingStates, state)
+
+	if time.Since(ls.CreatedAt) > stateMaxAge {
+		http.Error(w, "state token expired", http.StatusBadRequest)
+		return
+	}
 
 	if ls.Platform != "github" {
 		http.Error(w, "state/platform mismatch", http.StatusBadRequest)
@@ -170,7 +196,7 @@ func (lm *LinkFlowManager) handleGitHubCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	token, err := lm.oauthConfigs.GitHub.Exchange(context.Background(), code)
+	token, err := lm.oauthConfigs.GitHub.Exchange(r.Context(), code)
 	if err != nil {
 		log.Printf("GitHub OAuth exchange error: %v", err)
 		http.Error(w, "OAuth exchange failed", http.StatusInternalServerError)
@@ -191,7 +217,7 @@ func (lm *LinkFlowManager) handleGitHubCallback(w http.ResponseWriter, r *http.R
 		params.TokenExpiry = &token.Expiry
 	}
 
-	la, err := lm.store.CreateLinkedAccount(context.Background(), params)
+	la, err := lm.store.CreateLinkedAccount(r.Context(), params)
 	if err != nil {
 		log.Printf("creating GitHub linked account: %v", err)
 		http.Error(w, "failed to create linked account", http.StatusInternalServerError)
@@ -208,6 +234,11 @@ func (lm *LinkFlowManager) handleGitHubCallback(w http.ResponseWriter, r *http.R
 // ── Jira ──
 
 func (lm *LinkFlowManager) handleJiraConnect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.Jira == nil {
 		http.Error(w, "Jira OAuth not configured", http.StatusServiceUnavailable)
 		return
@@ -225,11 +256,13 @@ func (lm *LinkFlowManager) handleJiraConnect(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	lm.mu.Lock()
 	lm.pendingStates[state] = linkState{
 		CollectionID: collectionID,
 		Platform:     "jira",
 		CreatedAt:    time.Now(),
 	}
+	lm.mu.Unlock()
 
 	// Jira 3LO requires audience parameter
 	url := lm.oauthConfigs.Jira.AuthCodeURL(state,
@@ -241,18 +274,33 @@ func (lm *LinkFlowManager) handleJiraConnect(w http.ResponseWriter, r *http.Requ
 }
 
 func (lm *LinkFlowManager) handleJiraCallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.Jira == nil {
 		http.Error(w, "Jira OAuth not configured", http.StatusServiceUnavailable)
 		return
 	}
 
 	state := r.URL.Query().Get("state")
+	lm.mu.Lock()
 	ls, ok := lm.pendingStates[state]
+	if ok {
+		delete(lm.pendingStates, state)
+	}
+	lm.mu.Unlock()
+
 	if !ok {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
-	delete(lm.pendingStates, state)
+
+	if time.Since(ls.CreatedAt) > stateMaxAge {
+		http.Error(w, "state token expired", http.StatusBadRequest)
+		return
+	}
 
 	if ls.Platform != "jira" {
 		http.Error(w, "state/platform mismatch", http.StatusBadRequest)
@@ -265,7 +313,7 @@ func (lm *LinkFlowManager) handleJiraCallback(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	token, err := lm.oauthConfigs.Jira.Exchange(context.Background(), code)
+	token, err := lm.oauthConfigs.Jira.Exchange(r.Context(), code)
 	if err != nil {
 		log.Printf("Jira OAuth exchange error: %v", err)
 		http.Error(w, "OAuth exchange failed", http.StatusInternalServerError)
@@ -286,7 +334,7 @@ func (lm *LinkFlowManager) handleJiraCallback(w http.ResponseWriter, r *http.Req
 		params.TokenExpiry = &token.Expiry
 	}
 
-	la, err := lm.store.CreateLinkedAccount(context.Background(), params)
+	la, err := lm.store.CreateLinkedAccount(r.Context(), params)
 	if err != nil {
 		log.Printf("creating Jira linked account: %v", err)
 		http.Error(w, "failed to create linked account", http.StatusInternalServerError)
@@ -303,6 +351,11 @@ func (lm *LinkFlowManager) handleJiraCallback(w http.ResponseWriter, r *http.Req
 // ── Linear ──
 
 func (lm *LinkFlowManager) handleLinearConnect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.Linear == nil {
 		http.Error(w, "Linear OAuth not configured", http.StatusServiceUnavailable)
 		return
@@ -320,29 +373,46 @@ func (lm *LinkFlowManager) handleLinearConnect(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	lm.mu.Lock()
 	lm.pendingStates[state] = linkState{
 		CollectionID: collectionID,
 		Platform:     "linear",
 		CreatedAt:    time.Now(),
 	}
+	lm.mu.Unlock()
 
 	url := lm.oauthConfigs.Linear.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func (lm *LinkFlowManager) handleLinearCallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if lm.oauthConfigs.Linear == nil {
 		http.Error(w, "Linear OAuth not configured", http.StatusServiceUnavailable)
 		return
 	}
 
 	state := r.URL.Query().Get("state")
+	lm.mu.Lock()
 	ls, ok := lm.pendingStates[state]
+	if ok {
+		delete(lm.pendingStates, state)
+	}
+	lm.mu.Unlock()
+
 	if !ok {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
-	delete(lm.pendingStates, state)
+
+	if time.Since(ls.CreatedAt) > stateMaxAge {
+		http.Error(w, "state token expired", http.StatusBadRequest)
+		return
+	}
 
 	if ls.Platform != "linear" {
 		http.Error(w, "state/platform mismatch", http.StatusBadRequest)
@@ -355,7 +425,7 @@ func (lm *LinkFlowManager) handleLinearCallback(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	token, err := lm.oauthConfigs.Linear.Exchange(context.Background(), code)
+	token, err := lm.oauthConfigs.Linear.Exchange(r.Context(), code)
 	if err != nil {
 		log.Printf("Linear OAuth exchange error: %v", err)
 		http.Error(w, "OAuth exchange failed", http.StatusInternalServerError)
@@ -376,7 +446,7 @@ func (lm *LinkFlowManager) handleLinearCallback(w http.ResponseWriter, r *http.R
 		params.TokenExpiry = &token.Expiry
 	}
 
-	la, err := lm.store.CreateLinkedAccount(context.Background(), params)
+	la, err := lm.store.CreateLinkedAccount(r.Context(), params)
 	if err != nil {
 		log.Printf("creating Linear linked account: %v", err)
 		http.Error(w, "failed to create linked account", http.StatusInternalServerError)
@@ -393,7 +463,9 @@ func (lm *LinkFlowManager) handleLinearCallback(w http.ResponseWriter, r *http.R
 // CleanExpiredStates removes link states older than 10 minutes.
 // Should be called periodically to prevent memory leaks.
 func (lm *LinkFlowManager) CleanExpiredStates() {
-	cutoff := time.Now().Add(-10 * time.Minute)
+	cutoff := time.Now().Add(-stateMaxAge)
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
 	for state, ls := range lm.pendingStates {
 		if ls.CreatedAt.Before(cutoff) {
 			delete(lm.pendingStates, state)
