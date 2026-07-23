@@ -26,6 +26,7 @@ func startServerWithLookup(t *testing.T, lookup server.TokenLookup) (pb.FarmTabl
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
+		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
 	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
 	go srv.Serve(lis)
@@ -431,6 +432,38 @@ func TestAuthInterceptor_CustomHeaderPrecedence(t *testing.T) {
 	_, err = client.GetVersion(authCtx, &pb.GetVersionRequest{})
 	if err != nil {
 		t.Fatalf("expected custom header to take precedence over authorization, got: %v", err)
+	}
+}
+
+func TestStreamInterceptor_NoTokenRejectsWatchTasks(t *testing.T) {
+	s, storeCleanup := testutil.NewTestStore(t)
+	defer storeCleanup()
+
+	lookup := server.NewStoreTokenLookup(s)
+	client, _, cleanup := startServerWithLookup(t, lookup)
+	defer cleanup()
+
+	// WatchTasks is a streaming RPC — should be rejected without token
+	stream, err := client.WatchTasks(context.Background(), &pb.WatchTasksRequest{})
+	if err != nil {
+		// Some gRPC implementations return error on stream creation
+		st, ok := status.FromError(err)
+		if !ok || st.Code() != codes.Unauthenticated {
+			t.Fatalf("expected Unauthenticated, got: %v", err)
+		}
+		return
+	}
+	// Others return error on first Recv()
+	_, err = stream.Recv()
+	if err == nil {
+		t.Fatal("expected Unauthenticated error for tokenless streaming RPC")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.Unauthenticated {
+		t.Errorf("code = %v, want Unauthenticated", st.Code())
 	}
 }
 

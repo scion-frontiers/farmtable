@@ -69,6 +69,11 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	if err := ensureLocalUser(ctx, s, token); err != nil {
 		return fmt.Errorf("ensuring local user: %w", err)
 	}
+	// Re-read token after ensureLocalUser — on first run, it creates a new
+	// user/token and saves it to the config file. Without this re-read,
+	// the bootstrap ensureDefaultCollection call below would use an empty
+	// token and fail with mandatory auth enforcement.
+	token = resolveToken("")
 
 	eventBus := streaming.NewEventBus()
 
