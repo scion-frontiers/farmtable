@@ -107,6 +107,27 @@ export class FtApp extends LitElement {
   }) as EventListener;
   private routeToken = 0;
 
+  /**
+   * Task ID parsed from the URL's `?task=` param during route application.
+   * Stored separately because the task data may not be loaded yet when the
+   * URL is first parsed. Applied after the task store emits `snapshot-complete`.
+   */
+  private _pendingTaskId: string | null = null;
+
+  /** Listener bound to the task store's `snapshot-complete` event. */
+  private onSnapshotComplete = () => {
+    if (this._pendingTaskId) {
+      const taskId = this._pendingTaskId;
+      this._pendingTaskId = null;
+      // Detach immediately — the listener only needs to fire once per navigation.
+      this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
+      // Only apply if the task actually exists in the store.
+      if (this.taskStore.getTask(taskId)) {
+        this.selectedTaskId = taskId;
+      }
+    }
+  };
+
   @state()
   private currentView: 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies' = 'kanban';
 
@@ -232,6 +253,7 @@ export class FtApp extends LitElement {
     this.streamManager?.removeEventListener('status-changed', this.onStatusChanged);
     this.streamManager?.removeEventListener('watch-unsupported', this.onWatchUnsupported);
     this.streamManager?.stop();
+    this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
     this.stopPolling();
     this.hideDimOverlay();
     document.removeEventListener('keydown', this.onDocumentKeyDown, { capture: true });
@@ -488,6 +510,7 @@ export class FtApp extends LitElement {
 
   private onTaskSelect(e: CustomEvent) {
     this.selectedTaskId = e.detail.taskId;
+    this.syncTaskToUrl();
 
     if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
       this.showDimOverlay();
@@ -735,6 +758,7 @@ export class FtApp extends LitElement {
 
   private onInspectorClose() {
     this.selectedTaskId = null;
+    this.syncTaskToUrl();
     this.hideDimOverlay();
   }
 
@@ -751,6 +775,7 @@ export class FtApp extends LitElement {
     const params = new URLSearchParams(window.location.search);
     const collectionId = params.get('collection');
     const viewParam = params.get('view');
+    const taskParam = params.get('task');
     const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
     this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : 'kanban';
 
@@ -758,6 +783,10 @@ export class FtApp extends LitElement {
       this.showCollectionList('');
       return;
     }
+
+    // Store pending task ID from URL — it will be applied once the task
+    // store finishes its initial snapshot (tasks may not be loaded yet).
+    this._pendingTaskId = taskParam || null;
 
     this.routeView = 'validating';
     this.collectionErrorMessage = '';
@@ -777,6 +806,8 @@ export class FtApp extends LitElement {
   private showCollectionList(errorMessage: string) {
     this.stopStream();
     this.stopPolling();
+    this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
+    this._pendingTaskId = null;
     this.client = this.unscopedClient;
     this.currentCollectionId = null;
     this.taskStore.clear();
@@ -791,6 +822,7 @@ export class FtApp extends LitElement {
   private showBoard(collectionId: string) {
     this.stopStream();
     this.stopPolling();
+    this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
     this.phaseFilter = null;
     this.assigneeFilter = null;
     this.currentCollectionId = collectionId;
@@ -803,6 +835,12 @@ export class FtApp extends LitElement {
     this.connectionStatus = 'disconnected';
     this.collectionErrorMessage = '';
     this.routeView = 'board';
+
+    // Listen for snapshot-complete to apply the pending task selection from
+    // the URL (the task data is not available until the snapshot finishes).
+    if (this._pendingTaskId) {
+      this.taskStore.addEventListener('snapshot-complete', this.onSnapshotComplete);
+    }
 
     this.streamManager = new StreamManager(this.client, this.taskStore);
     this.streamManager.addEventListener('status-changed', this.onStatusChanged);
@@ -909,6 +947,8 @@ export class FtApp extends LitElement {
     const collectionId = e.detail.collectionId as string;
     const url = new URL(window.location.href);
     url.searchParams.set('collection', collectionId);
+    // Clear task selection — task IDs are scoped to a collection.
+    url.searchParams.delete('task');
     window.history.pushState({}, '', url);
     void this.applyRoute();
   };
@@ -921,6 +961,22 @@ export class FtApp extends LitElement {
     const url = new URL(window.location.href);
     url.searchParams.delete('collection');
     url.searchParams.delete('view');
+    url.searchParams.delete('task');
+    window.history.replaceState({}, '', url);
+  }
+
+  /**
+   * Update the URL to reflect the current task selection state.
+   * Uses replaceState to keep the URL shareable without cluttering
+   * browser history with every task click.
+   */
+  private syncTaskToUrl() {
+    const url = new URL(window.location.href);
+    if (this.selectedTaskId) {
+      url.searchParams.set('task', this.selectedTaskId);
+    } else {
+      url.searchParams.delete('task');
+    }
     window.history.replaceState({}, '', url);
   }
 
