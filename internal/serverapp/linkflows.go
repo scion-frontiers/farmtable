@@ -1,13 +1,13 @@
 package serverapp
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -29,6 +29,7 @@ type LinkFlowManager struct {
 	baseURL      string // e.g. "https://app.farmtable.io"
 	// In-memory state map for CSRF protection. In production, use a
 	// proper session/redis-backed store. Maps state → collectionID.
+	mu            sync.Mutex
 	pendingStates map[string]linkState
 }
 
