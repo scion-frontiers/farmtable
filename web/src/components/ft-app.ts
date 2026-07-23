@@ -777,7 +777,12 @@ export class FtApp extends LitElement {
     const viewParam = params.get('view');
     const taskParam = params.get('task');
     const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
-    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : 'dashboard';
+    // When the URL has a ?task= deep-link but no explicit ?view= param,
+    // default to kanban (which supports task selection/highlighting) instead
+    // of dashboard (which doesn't). This preserves Feature 62's task deep-link
+    // UX while still defaulting to dashboard for normal navigation.
+    const defaultView = taskParam && !viewParam ? 'kanban' : 'dashboard';
+    this.currentView = VALID_VIEWS.has(viewParam ?? '') ? (viewParam as 'kanban' | 'tree' | 'dashboard' | 'ready-queue' | 'dependencies') : defaultView;
 
     if (!collectionId) {
       this.showCollectionList('');
