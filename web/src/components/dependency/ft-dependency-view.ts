@@ -440,7 +440,10 @@ export class FtDependencyView extends LitElement {
     return tasks
       .map(
         (t) =>
-          `${t.id}:${t.phase}:${t.relationships.map((r) => `${r.type}-${r.targetTaskId}`).join(',')}`,
+          `${t.id}:${t.phase}:${t.relationships
+            .map((r) => `${r.type}-${r.targetTaskId}`)
+            .sort()
+            .join(',')}`,
       )
       .sort()
       .join('|');
