@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -26,6 +28,7 @@ func newRootCmd() *cobra.Command {
 		collection  string
 		server      string
 		token       string
+		iapAudience string
 		provider    string
 		model       string
 		apiKey      string
@@ -49,7 +52,7 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(args[0], collection, server, token, provider, model, apiKey,
+			return run(args[0], collection, server, token, iapAudience, provider, model, apiKey,
 				project, location, promptFile, maxDepth, concurrency, verbose)
 		},
 	}
@@ -61,6 +64,7 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	// Farmtable connection.
 	cmd.Flags().StringVar(&server, "server", "", "Farmtable server address (or FARMTABLE_SERVER env)")
 	cmd.Flags().StringVar(&token, "token", "", "Auth token (or FARMTABLE_TOKEN env)")
+	cmd.Flags().StringVar(&iapAudience, "iap-audience", "", "IAP OAuth client ID; auto-mints OIDC identity token via gcloud (or IAP_AUDIENCE env)")
 
 	// LLM.
 	cmd.Flags().StringVar(&provider, "provider", "genai", `LLM provider: "genai" or "anthropic" (default: "genai")`)
@@ -78,7 +82,7 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	return cmd
 }
 
-func run(inputArg, collection, server, token, provider, model, apiKey,
+func run(inputArg, collection, server, token, iapAudience, provider, model, apiKey,
 	project, location, promptFile string, maxDepth, concurrency int, verbose bool) error {
 
 	// Read input.
@@ -112,6 +116,19 @@ func run(inputArg, collection, server, token, provider, model, apiKey,
 		return err
 	}
 	defer writer.Close()
+
+	// Handle IAP authentication if audience is specified.
+	if iapAudience == "" {
+		iapAudience = os.Getenv("IAP_AUDIENCE")
+	}
+	if iapAudience != "" {
+		iapToken, err := mintIAPToken(iapAudience)
+		if err != nil {
+			return fmt.Errorf("minting IAP identity token: %w", err)
+		}
+		writer.SetIAPToken(iapToken)
+		fmt.Fprintf(os.Stderr, "IAP authentication enabled (audience=%s)\n", iapAudience)
+	}
 
 	// Resolve or create collection.
 	collectionID, err := resolveOrCreateCollection(context.Background(), writer, collection)
@@ -226,6 +243,27 @@ func deriveTitle(text string) string {
 		title = "Decomposition Root"
 	}
 	return title
+}
+
+func mintIAPToken(audience string) (string, error) {
+	// Use gcloud to mint an identity token for the IAP audience.
+	// Works with user credentials (gcloud auth login) and
+	// service account credentials (ADC / attached SA).
+	cmd := exec.Command("gcloud", "auth", "print-identity-token",
+		"--audiences="+audience)
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return "", fmt.Errorf("gcloud failed: %s", string(exitErr.Stderr))
+		}
+		return "", err
+	}
+	token := strings.TrimSpace(string(out))
+	if token == "" {
+		return "", fmt.Errorf("gcloud returned empty identity token")
+	}
+	return token, nil
 }
 
 func printSummary(collectionID, rootTitle string, engine *decomposer.Engine, server string) {
