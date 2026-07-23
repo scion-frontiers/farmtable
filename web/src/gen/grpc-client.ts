@@ -386,7 +386,10 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
 
   private metadata(): grpc.Metadata.ConstructorArg | undefined {
     if (!this.token) return undefined;
-    return { Authorization: `Bearer ${this.token}` };
+    return {
+      Authorization: `Bearer ${this.token}`,
+      'X-Farmtable-Token': this.token,
+    };
   }
 }
 
