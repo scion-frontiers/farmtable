@@ -41,6 +41,26 @@ type TokenLookup interface {
 	RecordUsage(ctx context.Context, tokenID uuid.UUID)
 }
 
+// extractToken retrieves the app-layer auth token from gRPC metadata.
+// It checks x-farmtable-token first (required when behind IAP, which
+// consumes the Authorization header), then falls back to Authorization: Bearer.
+func extractToken(md metadata.MD) string {
+	// 1. Custom header (IAP-safe)
+	if vals := md.Get("x-farmtable-token"); len(vals) > 0 && vals[0] != "" {
+		return vals[0]
+	}
+	// 2. Standard Authorization: Bearer (direct connections)
+	if vals := md.Get("authorization"); len(vals) > 0 {
+		val := vals[0]
+		if strings.HasPrefix(val, "Bearer ") {
+			return strings.TrimPrefix(val, "Bearer ")
+		}
+		// Has Authorization header but wrong scheme — will be rejected below
+		return ""
+	}
+	return ""
+}
+
 func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if lookup == nil {
@@ -51,15 +71,15 @@ func TokenAuthInterceptor(lookup TokenLookup) grpc.UnaryServerInterceptor {
 		if !ok {
 			return handler(ctx, req)
 		}
-		auth := md.Get("authorization")
-		if len(auth) == 0 {
-			return handler(ctx, req)
+
+		token := extractToken(md)
+		if token == "" {
+			// Check if authorization header exists but has wrong scheme
+			if auth := md.Get("authorization"); len(auth) > 0 && !strings.HasPrefix(auth[0], "Bearer ") {
+				return nil, status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
+			}
+			return handler(ctx, req) // no token → unauthenticated pass-through
 		}
-		val := auth[0]
-		if !strings.HasPrefix(val, "Bearer ") {
-			return nil, status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
-		}
-		token := strings.TrimPrefix(val, "Bearer ")
 
 		h := sha256.Sum256([]byte(token))
 		hash := hex.EncodeToString(h[:])
@@ -90,15 +110,15 @@ func TokenAuthStreamInterceptor(lookup TokenLookup) grpc.StreamServerInterceptor
 		if !ok {
 			return handler(srv, ss)
 		}
-		auth := md.Get("authorization")
-		if len(auth) == 0 {
-			return handler(srv, ss)
+
+		token := extractToken(md)
+		if token == "" {
+			// Check if authorization header exists but has wrong scheme
+			if auth := md.Get("authorization"); len(auth) > 0 && !strings.HasPrefix(auth[0], "Bearer ") {
+				return status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
+			}
+			return handler(srv, ss) // no token → unauthenticated pass-through
 		}
-		val := auth[0]
-		if !strings.HasPrefix(val, "Bearer ") {
-			return status.Error(codes.Unauthenticated, "authorization header must use Bearer scheme")
-		}
-		token := strings.TrimPrefix(val, "Bearer ")
 
 		h := sha256.Sum256([]byte(token))
 		hash := hex.EncodeToString(h[:])

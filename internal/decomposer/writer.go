@@ -66,7 +66,10 @@ func NewGRPCWriter(server, token string) (*GRPCWriter, error) {
 }
 
 func (w *GRPCWriter) authCtx(ctx context.Context) context.Context {
-	md := metadata.Pairs("authorization", "Bearer "+w.token)
+	md := metadata.Pairs(
+		"authorization", "Bearer "+w.token,
+		"x-farmtable-token", w.token,
+	)
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
