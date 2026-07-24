@@ -108,6 +108,10 @@ export class FtTreeView extends LitElement {
   @property({ attribute: false })
   capabilities?: CollectionCapabilities;
 
+  /** Tree layout orientation: 'TB' (top-to-bottom, default) or 'LR' (left-to-right). */
+  @property({ attribute: false })
+  layoutOrientation: 'TB' | 'LR' = 'TB';
+
   private storeCtrl!: TaskStoreController;
 
   @state() private focusRootId: string | null = null;
@@ -382,7 +386,7 @@ export class FtTreeView extends LitElement {
     return tasks
       .map((t) => `${t.id}:${t.parentTaskId ?? ''}`)
       .sort()
-      .join('|') + '||' + expanded + '||' + isolateKey;
+      .join('|') + '||' + expanded + '||' + isolateKey + '||' + this.layoutOrientation;
   }
 
   private runLayout() {
@@ -402,7 +406,7 @@ export class FtTreeView extends LitElement {
     this.needsCenter = true;
 
     const g = new dagre.graphlib.Graph({ directed: true, multigraph: true });
-    g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 60 });
+    g.setGraph({ rankdir: this.layoutOrientation, nodesep: 40, ranksep: 60 });
     g.setDefaultEdgeLabel(() => ({}));
 
     const taskSet = new Set(tasks.map((t) => t.id));
@@ -553,6 +557,17 @@ export class FtTreeView extends LitElement {
     this._userSetDepth = true;
     this.maxDepth = e.detail.maxDepth;
     this.lastStructureKey = '';
+  }
+
+  private onLayoutOrientationToggle(e: CustomEvent) {
+    // Re-dispatch upward so ft-app.ts can update state and URL.
+    this.dispatchEvent(
+      new CustomEvent('layout-orientation-toggle', {
+        detail: e.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   // ── Collapse / Expand ──
@@ -754,8 +769,10 @@ export class FtTreeView extends LitElement {
         .isolateMode=${this.isolateMode}
         .selectedTaskId=${this.selectedTaskId}
         .maxDepth=${this.maxDepth}
+        .layoutOrientation=${this.layoutOrientation}
         @focus-change=${this.onFocusChange}
         @level-change=${this.onLevelChange}
+        @layout-orientation-toggle=${this.onLayoutOrientationToggle}
       ></ft-hierarchy-nav>
 
       <div class="canvas-container">

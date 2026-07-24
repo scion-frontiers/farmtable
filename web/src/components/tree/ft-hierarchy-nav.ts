@@ -107,6 +107,10 @@ export class FtHierarchyNav extends LitElement {
   @property({ type: Number })
   maxDepth = -1;
 
+  /** Layout orientation: 'TB' (top-to-bottom) or 'LR' (left-to-right). */
+  @property({ type: String })
+  layoutOrientation: 'TB' | 'LR' = 'TB';
+
   private getMaxLevel(): number {
     let max = 0;
     const walk = (taskId: string, depth: number) => {
@@ -168,6 +172,17 @@ export class FtHierarchyNav extends LitElement {
     );
   }
 
+  private onOrientationToggle() {
+    const next = this.layoutOrientation === 'TB' ? 'LR' : 'TB';
+    this.dispatchEvent(
+      new CustomEvent('layout-orientation-toggle', {
+        detail: { layoutOrientation: next },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private onCrumbClick(taskId: string | null) {
     this.dispatchEvent(
       new CustomEvent('focus-change', {
@@ -217,6 +232,15 @@ export class FtHierarchyNav extends LitElement {
         >
           <sl-icon name=${this.isolateMode ? 'fullscreen-exit' : 'funnel'}></sl-icon>
           Solo
+        </button>
+      </sl-tooltip>
+
+      <sl-tooltip content=${this.layoutOrientation === 'LR' ? 'Switch to top-down layout' : 'Switch to left-to-right layout'}>
+        <button
+          class="isolate-btn ${this.layoutOrientation === 'LR' ? 'active' : ''}"
+          @click=${this.onOrientationToggle}
+        >
+          <sl-icon name=${this.layoutOrientation === 'LR' ? 'arrow-clockwise' : 'arrow-counterclockwise'}></sl-icon>
         </button>
       </sl-tooltip>
 
