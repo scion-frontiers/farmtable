@@ -130,9 +130,24 @@ export class FtKanbanView extends LitElement {
   @state()
   private onHoldExpanded = false;
 
+  // ── Edge auto-scroll during drag ──────────────────────────────────
+  private static readonly EDGE_THRESHOLD = 50;   // px from edge to trigger
+  private static readonly SCROLL_SPEED_MIN = 2;  // px/frame at threshold boundary
+  private static readonly SCROLL_SPEED_MAX = 12; // px/frame at container edge
+
+  private _autoScrollRafId: number | null = null;
+  private _autoScrollContainer: HTMLElement | null = null;
+  private _autoScrollDirection: -1 | 0 | 1 = 0;
+  private _autoScrollSpeed = 0;
+
   connectedCallback() {
     super.connectedCallback();
     this.storeController = new TaskStoreController(this, this.store);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopAutoScroll();
   }
 
   private getColumnTasks(stage: TaskStage): Task[] {
@@ -202,6 +217,92 @@ export class FtKanbanView extends LitElement {
 
   private toggleOnHold() {
     this.onHoldExpanded = !this.onHoldExpanded;
+  }
+
+  // ── Auto-scroll helpers ───────────────────────────────────────────
+
+  /**
+   * Called on `dragover` of a scroll container (`.board` or `.on-hold-columns`).
+   * Starts or adjusts an auto-scroll when the pointer is near the left/right edge.
+   */
+  private onContainerDragOver(e: DragEvent) {
+    const container = e.currentTarget as HTMLElement;
+    this.updateAutoScroll(container, e.clientX);
+  }
+
+  /** Stop auto-scroll when the pointer leaves the scroll container entirely. */
+  private onContainerDragLeave(e: DragEvent) {
+    const container = e.currentTarget as HTMLElement;
+    // relatedTarget is the element the pointer entered — if it's still inside
+    // the container, this is just a child-to-child transition, not a real leave.
+    if (!container.contains(e.relatedTarget as Node)) {
+      this.stopAutoScroll();
+    }
+  }
+
+  /** Stop auto-scroll when the drag ends (fires on the dragged element, bubbles up). */
+  private onContainerDragEnd() {
+    this.stopAutoScroll();
+  }
+
+  /** Stop auto-scroll when a drop occurs (bubbles up from the column). */
+  private onContainerDrop() {
+    this.stopAutoScroll();
+  }
+
+  private updateAutoScroll(container: HTMLElement, clientX: number) {
+    const rect = container.getBoundingClientRect();
+    const threshold = FtKanbanView.EDGE_THRESHOLD;
+
+    const distFromLeft = clientX - rect.left;
+    const distFromRight = rect.right - clientX;
+
+    let direction: -1 | 0 | 1 = 0;
+    let proximity = 0; // 0 at threshold boundary, 1 at container edge
+
+    if (distFromLeft < threshold && distFromLeft >= 0) {
+      direction = -1;
+      proximity = 1 - distFromLeft / threshold;
+    } else if (distFromRight < threshold && distFromRight >= 0) {
+      direction = 1;
+      proximity = 1 - distFromRight / threshold;
+    }
+
+    if (direction === 0) {
+      this.stopAutoScroll();
+      return;
+    }
+
+    const min = FtKanbanView.SCROLL_SPEED_MIN;
+    const max = FtKanbanView.SCROLL_SPEED_MAX;
+    this._autoScrollSpeed = min + (max - min) * proximity;
+    this._autoScrollDirection = direction;
+    this._autoScrollContainer = container;
+
+    // Start the loop if it's not already running.
+    if (this._autoScrollRafId === null) {
+      this._autoScrollRafId = requestAnimationFrame(this.autoScrollLoop);
+    }
+  }
+
+  private autoScrollLoop = () => {
+    if (!this._autoScrollContainer || this._autoScrollDirection === 0) {
+      this._autoScrollRafId = null;
+      return;
+    }
+    this._autoScrollContainer.scrollLeft +=
+      this._autoScrollDirection * this._autoScrollSpeed;
+    this._autoScrollRafId = requestAnimationFrame(this.autoScrollLoop);
+  };
+
+  private stopAutoScroll() {
+    if (this._autoScrollRafId !== null) {
+      cancelAnimationFrame(this._autoScrollRafId);
+      this._autoScrollRafId = null;
+    }
+    this._autoScrollDirection = 0;
+    this._autoScrollContainer = null;
+    this._autoScrollSpeed = 0;
   }
 
   private async openAddTaskDialog() {
@@ -317,6 +418,10 @@ export class FtKanbanView extends LitElement {
         @task-update=${this.onTaskUpdate}
         @column-add-task=${this.onColumnAddTask}
         @column-nav=${this.onColumnNav}
+        @dragover=${this.onContainerDragOver}
+        @dragleave=${this.onContainerDragLeave}
+        @dragend=${this.onContainerDragEnd}
+        @drop=${this.onContainerDrop}
       >
         ${boardColumns.map(
           (col) => html`
@@ -351,6 +456,10 @@ export class FtKanbanView extends LitElement {
                       @task-update=${this.onTaskUpdate}
                       @column-add-task=${this.onColumnAddTask}
                       @column-nav=${this.onColumnNav}
+                      @dragover=${this.onContainerDragOver}
+                      @dragleave=${this.onContainerDragLeave}
+                      @dragend=${this.onContainerDragEnd}
+                      @drop=${this.onContainerDrop}
                     >
                       ${onHoldColumns.map(
                         (col) => html`
