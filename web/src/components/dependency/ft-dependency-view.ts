@@ -657,9 +657,9 @@ export class FtDependencyView extends LitElement {
       (t) => involvedIds.has(t.id) && t.phase !== TaskPhase.CLOSED,
     );
 
-    // Solo mode: filter to the connected component of the selected task.
-    // "Connected component" means all nodes reachable via BLOCKS/BLOCKED_BY
-    // edges in either direction (bidirectional BFS).
+    // Solo mode: filter to the directed reachability set of the selected task.
+    // Collects all upstream blockers (transitive BLOCKED_BY) and all downstream
+    // dependants (transitive BLOCKS) via two directed BFS passes.
     if (this.isolateMode && this.selectedTaskId) {
       const reachableIds = getDirectedReachableIds(
         this.selectedTaskId,
