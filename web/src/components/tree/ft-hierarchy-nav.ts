@@ -107,9 +107,9 @@ export class FtHierarchyNav extends LitElement {
   @property({ type: Number })
   maxDepth = -1;
 
-  /** Layout orientation: 'TB' (top-to-bottom) or 'LR' (left-to-right). */
+  /** Layout orientation: 'LR' (left-to-right, default) or 'TB' (top-to-bottom). */
   @property({ type: String })
-  layoutOrientation: 'TB' | 'LR' = 'TB';
+  layoutOrientation: 'TB' | 'LR' = 'LR';
 
   private getMaxLevel(): number {
     let max = 0;
@@ -237,7 +237,7 @@ export class FtHierarchyNav extends LitElement {
 
       <sl-tooltip content=${this.layoutOrientation === 'LR' ? 'Switch to top-down layout' : 'Switch to left-to-right layout'}>
         <button
-          class="isolate-btn ${this.layoutOrientation === 'LR' ? 'active' : ''}"
+          class="isolate-btn"
           @click=${this.onOrientationToggle}
         >
           <sl-icon name=${this.layoutOrientation === 'LR' ? 'arrow-clockwise' : 'arrow-counterclockwise'}></sl-icon>

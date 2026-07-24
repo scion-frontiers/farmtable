@@ -17,6 +17,14 @@ import './dependency/ft-dependency-view.js';
 import './ft-command-palette.js';
 import './ft-login-dialog.js';
 
+/**
+ * Default layout orientation for the parent-child Tree View.
+ * Used as the fallback when no `?layoutdir=` URL param is present,
+ * and as the comparison value when deciding whether to persist the
+ * param (omitted when the current value equals this default).
+ */
+const DEFAULT_LAYOUT_ORIENTATION: 'TB' | 'LR' = 'LR';
+
 /** Session info returned by GET /api/auth/session. */
 interface SessionUser {
   userId: string;
@@ -154,11 +162,11 @@ export class FtApp extends LitElement {
 
   /**
    * Layout orientation for the parent-child Tree View.
-   * 'TB' = top-to-bottom (default), 'LR' = left-to-right.
-   * Persisted to the URL as `?layoutdir=LR` (omitted when default 'TB').
+   * 'LR' = left-to-right (default), 'TB' = top-to-bottom.
+   * Persisted to the URL as `?layoutdir=TB` (omitted when at the default).
    */
   @state()
-  private layoutOrientation: 'TB' | 'LR' = 'TB';
+  private layoutOrientation: 'TB' | 'LR' = DEFAULT_LAYOUT_ORIENTATION;
 
   @state()
   private connectionStatus: ConnectionStatus = 'disconnected';
@@ -839,7 +847,13 @@ export class FtApp extends LitElement {
     this.isolateMode = soloParam === '1' && !!this._pendingTaskId;
 
     // Restore tree layout orientation from URL.
-    this.layoutOrientation = layoutdirParam === 'LR' ? 'LR' : 'TB';
+    // If the param is a valid orientation value, use it; otherwise fall
+    // back to the default. This is generic — only the constant needs to
+    // change if the default ever moves again.
+    this.layoutOrientation =
+      layoutdirParam === 'TB' || layoutdirParam === 'LR'
+        ? layoutdirParam
+        : DEFAULT_LAYOUT_ORIENTATION;
 
     this.routeView = 'validating';
     this.collectionErrorMessage = '';
@@ -1054,13 +1068,14 @@ export class FtApp extends LitElement {
 
   /**
    * Update the URL to reflect the current tree layout orientation.
-   * Adds `&layoutdir=LR` when left-to-right; omits the param when
-   * at the default (TB), consistent with how `solo` is handled.
+   * Omits the param when the orientation matches the compile-time
+   * default; adds it explicitly when it differs.  Generic — if
+   * `DEFAULT_LAYOUT_ORIENTATION` changes, no logic update needed here.
    */
   private syncLayoutDirToUrl() {
     const url = new URL(window.location.href);
-    if (this.layoutOrientation === 'LR') {
-      url.searchParams.set('layoutdir', 'LR');
+    if (this.layoutOrientation !== DEFAULT_LAYOUT_ORIENTATION) {
+      url.searchParams.set('layoutdir', this.layoutOrientation);
     } else {
       url.searchParams.delete('layoutdir');
     }
