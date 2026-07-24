@@ -82,36 +82,51 @@ function edgePath(
 }
 
 /**
- * Compute the full connected component of a task in the dependency graph.
- * Traverses BLOCKS and BLOCKED_BY edges in BOTH directions (bidirectional
- * BFS), returning all transitively reachable nodes.  Uses a visited set
- * for cycle safety.
+ * Compute the set of tasks on a directed path to or from the given task.
+ *
+ * Unlike the previous bidirectional BFS ("connected component"), this
+ * performs TWO separate directed traversals:
+ *   1. **Upstream**: follow BLOCKED_BY edges from the selected task to
+ *      find everything that (transitively) blocks it.
+ *   2. **Downstream**: follow BLOCKS edges from the selected task to
+ *      find everything that is (transitively) blocked by it.
+ *
+ * The result is the union of both sets plus the task itself.  This
+ * excludes "sibling" nodes that happen to share a common blocker or
+ * blocked-by target but are not on an actual directed path through the
+ * selected node — fixing the extraneous-node bug reported in the
+ * undirected connected-component approach.
  */
-function getConnectedComponentIds(
+function getDirectedReachableIds(
   taskId: string,
   store: TaskStore,
   taskSet: Set<string>,
 ): Set<string> {
   const ids = new Set<string>();
-  const queue = [taskId];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (ids.has(id)) continue;
-    if (!taskSet.has(id)) continue;
-    const task = store.getTask(id);
-    if (!task || task.phase === TaskPhase.CLOSED) continue;
-    ids.add(id);
-    for (const rel of task.relationships) {
-      if (
-        rel.type === RelationshipType.BLOCKS ||
-        rel.type === RelationshipType.BLOCKED_BY
-      ) {
-        if (!ids.has(rel.targetTaskId)) {
+
+  // Helper: directed BFS following only one relationship type.
+  const bfs = (startId: string, relType: RelationshipType) => {
+    const queue = [startId];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      if (ids.has(id)) continue;
+      if (!taskSet.has(id)) continue;
+      const task = store.getTask(id);
+      if (!task || task.phase === TaskPhase.CLOSED) continue;
+      ids.add(id);
+      for (const rel of task.relationships) {
+        if (rel.type === relType && !ids.has(rel.targetTaskId)) {
           queue.push(rel.targetTaskId);
         }
       }
     }
-  }
+  };
+
+  // 1. Upstream: everything that blocks the selected task (transitively).
+  bfs(taskId, RelationshipType.BLOCKED_BY);
+  // 2. Downstream: everything blocked by the selected task (transitively).
+  bfs(taskId, RelationshipType.BLOCKS);
+
   return ids;
 }
 
@@ -292,7 +307,8 @@ export class FtDependencyView extends LitElement {
   @property({ type: Boolean })
   readOnly = false;
 
-  @state() private isolateMode = false;
+  @property({ type: Boolean })
+  isolateMode = false;
   @state() private panX = 0;
   @state() private panY = 0;
   @state() private scale = 1;
@@ -419,16 +435,6 @@ export class FtDependencyView extends LitElement {
         svgEl.addEventListener('wheel', this.boundOnWheel, { passive: false });
         this.wheelListenerAttached = true;
       }
-    }
-
-    // Auto-disable isolate mode when selection clears so the user is not
-    // stuck with an active isolate and a disabled toggle button.
-    if (
-      changedProps.has('selectedTaskId') &&
-      !this.selectedTaskId &&
-      this.isolateMode
-    ) {
-      this.isolateMode = false;
     }
 
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
@@ -648,12 +654,12 @@ export class FtDependencyView extends LitElement {
     // "Connected component" means all nodes reachable via BLOCKS/BLOCKED_BY
     // edges in either direction (bidirectional BFS).
     if (this.isolateMode && this.selectedTaskId) {
-      const ccIds = getConnectedComponentIds(
+      const reachableIds = getDirectedReachableIds(
         this.selectedTaskId,
         this.store,
         involvedIds,
       );
-      tasks = tasks.filter((t) => ccIds.has(t.id));
+      tasks = tasks.filter((t) => reachableIds.has(t.id));
     }
 
     return tasks;
@@ -1040,8 +1046,13 @@ export class FtDependencyView extends LitElement {
   }
 
   private onIsolateToggle() {
-    this.isolateMode = !this.isolateMode;
-    this.lastStructureKey = '';
+    this.dispatchEvent(
+      new CustomEvent('isolate-toggle', {
+        detail: { isolateMode: !this.isolateMode },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   // ── Edge classification for color-coding ──
