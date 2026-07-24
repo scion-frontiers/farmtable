@@ -346,9 +346,7 @@ export class FtToolbar extends LitElement {
         </sl-tooltip>
         <sl-tooltip content="Tree view">
           <sl-radio-button value="tree" aria-label="Tree view">
-            <sl-icon name="diagram-3" label="Tree view"
-              style=${this.layoutOrientation === 'LR' ? 'transform: rotate(90deg)' : ''}
-            ></sl-icon>
+            <sl-icon name="diagram-3" label="Tree view"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
         <sl-tooltip content="Dependencies view">
