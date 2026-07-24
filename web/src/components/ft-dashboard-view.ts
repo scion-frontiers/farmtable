@@ -108,7 +108,7 @@ export class FtDashboardView extends LitElement {
     new TaskStoreController(this, this.store);
   }
 
-  private computePhaseStats(tasks: Task[]): PhaseStat[] {
+  private computePhaseStats(tasks: readonly Task[]): PhaseStat[] {
     const counts: Record<number, number> = {
       [TaskPhase.OPEN]: 0,
       [TaskPhase.IN_PROGRESS]: 0,
@@ -128,7 +128,7 @@ export class FtDashboardView extends LitElement {
     ];
   }
 
-  private computePriorityStats(tasks: Task[]): PriorityStat[] {
+  private computePriorityStats(tasks: readonly Task[]): PriorityStat[] {
     const counts: Record<number, number> = {
       [TaskPriority.URGENT]: 0,
       [TaskPriority.HIGH]: 0,

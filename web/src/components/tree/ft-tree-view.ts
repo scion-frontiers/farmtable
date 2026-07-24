@@ -122,7 +122,17 @@ export class FtTreeView extends LitElement {
   @state() private expandedNodes = new Set<string>();
   private expandedInitialized = false;
 
-  /** True once the user explicitly changes the Level dropdown. */
+  /**
+   * True once the user explicitly changes the Level dropdown.
+   *
+   * Intentionally NOT reset when the store is cleared / resynced.
+   * A clear+refill is typically a reconnection for the same collection, and
+   * the user's explicit depth preference should survive that round-trip
+   * rather than snapping back to the auto-depth default — which would cause
+   * a jarring layout change on every reconnect.  If a future "switch
+   * collection" flow needs a full reset, it should explicitly reset this
+   * flag (and maxDepth) as part of the collection-switch lifecycle.
+   */
   private _userSetDepth = false;
 
   private _dragDescendants: Set<string> | null = null;
@@ -190,7 +200,8 @@ export class FtTreeView extends LitElement {
     }
   }
 
-  willUpdate() {
+  willUpdate(changedProps: PropertyValues) {
+    super.willUpdate(changedProps);
     // Auto-apply a default depth limit for large collections so the
     // initial render doesn't attempt to lay out thousands of nodes.
     // Only applies when the user hasn't explicitly changed the Level
@@ -358,7 +369,7 @@ export class FtTreeView extends LitElement {
       const ids = getDescendantIds(effectiveRootId, this.store);
       tasks = this.store.allTasks.filter((t) => ids.has(t.id));
     } else {
-      tasks = this.store.allTasks;
+      tasks = [...this.store.allTasks];
     }
 
     if (this.maxDepth >= 0) {
