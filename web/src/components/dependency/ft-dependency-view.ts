@@ -47,6 +47,21 @@ interface LayoutEdge {
   to: string;
 }
 
+/** Duration of the FLIP node-movement animation after a DnD drop (ms). */
+const DND_NODE_ANIM_MS = 500;
+/** Duration of the edge draw-in animation that plays after nodes settle (ms). */
+const DND_EDGE_ANIM_MS = 300;
+
+/** Snapshot captured in onNodeDrop before the optimistic store update. */
+interface DndAnimContext {
+  /** The dragged task — becomes the blocked node. */
+  sourceId: string;
+  /** The drop target — becomes the blocking node (stays visually fixed). */
+  targetId: string;
+  /** Node positions at the moment of the drop. */
+  beforePositions: Map<string, { x: number; y: number }>;
+}
+
 /**
  * Build an SVG cubic-bezier path from the right-center of a source node
  * to the left-center of a target node. Control points are placed at ~40%
@@ -207,6 +222,11 @@ export class FtDependencyView extends LitElement {
       stroke-width: 2.5;
       stroke-dasharray: none;
     }
+    .edge-dependency-drawing {
+      stroke: var(--sl-color-primary-500, #6366f1);
+      stroke-width: 2;
+      fill: none;
+    }
     .drop-highlight {
       pointer-events: none;
     }
@@ -305,6 +325,29 @@ export class FtDependencyView extends LitElement {
   /** Per-node drag-enter counters to avoid flicker from child element events. */
   private _dragEnterCounters = new Map<string, number>();
 
+  // ── DnD FLIP animation state ──
+
+  /** Context captured in onNodeDrop, consumed by the next runLayout call. */
+  private dndAnimContext: DndAnimContext | null = null;
+
+  /** Target positions for each node during the FLIP node animation. */
+  private nodeAnimTargets: Map<string, { x: number; y: number }> | null = null;
+
+  /** Start positions for each node during the FLIP node animation. */
+  private nodeAnimStarts: Map<string, { x: number; y: number }> | null = null;
+
+  /** rAF ID for the node-movement animation. */
+  private nodeAnimFrameId: number | null = null;
+
+  /** The new edge being drawn in after node animation completes. */
+  private animatingEdge: { from: string; to: string } | null = null;
+
+  /** Progress 0..1 for the edge draw-in animation. */
+  private animatingEdgeProgress = 0;
+
+  /** rAF ID for the edge draw-in animation. */
+  private edgeAnimFrameId: number | null = null;
+
   private boundOnWheel = this.onWheel.bind(this);
   private wheelListenerAttached = false;
 
@@ -326,6 +369,7 @@ export class FtDependencyView extends LitElement {
     window.removeEventListener('mouseup', this.handleMouseUp);
     this.resizeObserver?.disconnect();
     this.cancelPanAnimation();
+    this.cancelAllDndAnimations();
   }
 
   firstUpdated() {
@@ -390,7 +434,12 @@ export class FtDependencyView extends LitElement {
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
       this.centerOnNode(this.selectedTaskId);
       this.needsCenter = false;
-    } else if (this.needsCenter && this.layoutNodes.length > 0) {
+    } else if (
+      this.needsCenter &&
+      this.layoutNodes.length > 0 &&
+      this.nodeAnimFrameId === null &&
+      this.edgeAnimFrameId === null
+    ) {
       const container = this.renderRoot.querySelector('.canvas-container');
       if (container) {
         const rect = container.getBoundingClientRect();
@@ -420,6 +469,45 @@ export class FtDependencyView extends LitElement {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+  }
+
+  // ── DnD FLIP animation helpers ──
+
+  /** Cancel the node-movement animation and snap to final positions. */
+  private cancelNodeAnimation() {
+    if (this.nodeAnimFrameId !== null) {
+      cancelAnimationFrame(this.nodeAnimFrameId);
+      this.nodeAnimFrameId = null;
+    }
+    if (this.nodeAnimTargets) {
+      for (const node of this.layoutNodes) {
+        const target = this.nodeAnimTargets.get(node.id);
+        if (target) {
+          node.x = target.x;
+          node.y = target.y;
+        }
+      }
+      this.nodeAnimTargets = null;
+      this.nodeAnimStarts = null;
+      this.requestUpdate();
+    }
+  }
+
+  /** Cancel the edge draw-in animation. */
+  private cancelEdgeAnimation() {
+    if (this.edgeAnimFrameId !== null) {
+      cancelAnimationFrame(this.edgeAnimFrameId);
+      this.edgeAnimFrameId = null;
+    }
+    this.animatingEdge = null;
+    this.animatingEdgeProgress = 0;
+  }
+
+  /** Cancel all DnD-related animations and snap to final state. */
+  private cancelAllDndAnimations() {
+    this.cancelNodeAnimation();
+    this.cancelEdgeAnimation();
+    this.dndAnimContext = null;
   }
 
   /**
@@ -615,7 +703,21 @@ export class FtDependencyView extends LitElement {
     }
 
     this.lastStructureKey = key;
-    this.needsCenter = true;
+
+    // Consume DnD animation context if present.  When a DnD drop caused
+    // this structure change, we animate instead of resetting the viewport.
+    const animCtx = this.dndAnimContext;
+    this.dndAnimContext = null;
+
+    if (!animCtx) {
+      // Normal (non-DnD) structure change: centre the graph.
+      this.needsCenter = true;
+      // If a DnD animation is in progress from a prior drop and a
+      // concurrent change arrives, snap to final state.
+      if (this.nodeAnimFrameId !== null || this.edgeAnimFrameId !== null) {
+        this.cancelAllDndAnimations();
+      }
+    }
 
     // Compute layers — layer 0 = unblocked, layer N = 1 + max(blocker layers)
     const layers = computeLayers(tasks, this.store);
@@ -669,6 +771,174 @@ export class FtDependencyView extends LitElement {
         }
       }
     }
+
+    // If this layout was triggered by a DnD drop, start FLIP animation
+    // instead of the usual centerGraph viewport reset.
+    if (animCtx) {
+      this.startDndAnimation(animCtx);
+    }
+  }
+
+  // ── DnD FLIP animation — choreographed node movement + edge draw-in ──
+
+  /**
+   * Initiate the FLIP animation after a DnD-triggered layout recompute.
+   *
+   * 1. Adjusts the viewport so the blocking (drop-target) node stays at
+   *    its exact screen position.
+   * 2. Sets every node's position to its viewport-adjusted old position
+   *    (the "Invert" step).
+   * 3. Starts a rAF loop that interpolates each node toward its target
+   *    position over DND_NODE_ANIM_MS.
+   * 4. After nodes settle, kicks off the edge draw-in animation.
+   */
+  private startDndAnimation(ctx: DndAnimContext) {
+    // A. Identify the new edge (blocker → blocked)
+    const newEdge = this.layoutEdges.find(
+      (e) => e.from === ctx.targetId && e.to === ctx.sourceId,
+    );
+    if (newEdge) {
+      this.animatingEdge = { from: newEdge.from, to: newEdge.to };
+      this.animatingEdgeProgress = 0;
+    }
+
+    // B. Viewport adjustment: keep the blocking node visually fixed.
+    const blockingNode = this.nodeMap.get(ctx.targetId);
+    const blockingOld = ctx.beforePositions.get(ctx.targetId);
+    let deltaX = 0;
+    let deltaY = 0;
+    if (blockingNode && blockingOld) {
+      deltaX = blockingNode.x - blockingOld.x;
+      deltaY = blockingNode.y - blockingOld.y;
+      this.panX += deltaX;
+      this.panY += deltaY;
+    }
+
+    // C. Invert: set each node to its viewport-adjusted old position and
+    //    record target positions for the Play phase.
+    const targets = new Map<string, { x: number; y: number }>();
+    const starts = new Map<string, { x: number; y: number }>();
+    for (const node of this.layoutNodes) {
+      targets.set(node.id, { x: node.x, y: node.y });
+      const oldPos = ctx.beforePositions.get(node.id);
+      if (oldPos) {
+        // Shift old position by the viewport delta so it appears at the
+        // same screen location as before.
+        const startX = oldPos.x + deltaX;
+        const startY = oldPos.y + deltaY;
+        starts.set(node.id, { x: startX, y: startY });
+        node.x = startX;
+        node.y = startY;
+      }
+      // Nodes not in beforePositions (newly visible) stay at their target
+      // position — they pop in rather than animate from nowhere.
+    }
+    this.nodeAnimTargets = targets;
+    this.nodeAnimStarts = starts;
+
+    // D. Play: rAF loop.
+    let startTime: number | null = null;
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / DND_NODE_ANIM_MS, 1);
+      const easedT = FtDependencyView.easeInOut(t);
+
+      for (const node of this.layoutNodes) {
+        const start = this.nodeAnimStarts?.get(node.id);
+        const target = this.nodeAnimTargets?.get(node.id);
+        if (start && target) {
+          node.x = start.x + (target.x - start.x) * easedT;
+          node.y = start.y + (target.y - start.y) * easedT;
+        }
+      }
+      this.requestUpdate();
+
+      if (t < 1) {
+        this.nodeAnimFrameId = requestAnimationFrame(step);
+      } else {
+        // Snap to exact targets to avoid floating-point drift.
+        for (const node of this.layoutNodes) {
+          const target = this.nodeAnimTargets?.get(node.id);
+          if (target) {
+            node.x = target.x;
+            node.y = target.y;
+          }
+        }
+        this.nodeAnimFrameId = null;
+        this.nodeAnimTargets = null;
+        this.nodeAnimStarts = null;
+        this.requestUpdate();
+
+        // Start edge draw-in if there is a new edge to animate.
+        if (this.animatingEdge) {
+          this.startEdgeDrawIn();
+        }
+      }
+    };
+
+    this.nodeAnimFrameId = requestAnimationFrame(step);
+  }
+
+  /**
+   * Animate the new dependency edge drawing in from start to end using
+   * a progressive stroke-dashoffset reveal over DND_EDGE_ANIM_MS.
+   */
+  private startEdgeDrawIn() {
+    let startTime: number | null = null;
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / DND_EDGE_ANIM_MS, 1);
+      this.animatingEdgeProgress = FtDependencyView.easeInOut(t);
+      this.requestUpdate();
+
+      if (t < 1) {
+        this.edgeAnimFrameId = requestAnimationFrame(step);
+      } else {
+        // Animation complete — the edge now renders normally.
+        this.animatingEdge = null;
+        this.animatingEdgeProgress = 0;
+        this.edgeAnimFrameId = null;
+        this.requestUpdate();
+      }
+    };
+
+    this.edgeAnimFrameId = requestAnimationFrame(step);
+  }
+
+  /**
+   * Render the edge currently being drawn in. Returns null if no edge
+   * animation is active. Uses stroke-dasharray / stroke-dashoffset for
+   * a progressive line-drawing effect.
+   */
+  private renderAnimatingEdge() {
+    if (!this.animatingEdge) return null;
+    const src = this.nodeMap.get(this.animatingEdge.from);
+    const tgt = this.nodeMap.get(this.animatingEdge.to);
+    if (!src || !tgt) return null;
+
+    const pathD = edgePath(src, tgt);
+
+    // Approximate the path length: horizontal distance × 1.2 to account
+    // for the cubic-bezier curvature.
+    const startX = src.x + src.width / 2;
+    const endX = tgt.x - tgt.width / 2;
+    const startY = src.y;
+    const endY = tgt.y;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const approxLen = Math.sqrt(dx * dx + dy * dy) * 1.2;
+
+    const visibleLen = approxLen * this.animatingEdgeProgress;
+    const offset = approxLen - visibleLen;
+
+    return svg`<path
+      d="${pathD}"
+      class="edge-dependency-drawing"
+      stroke-dasharray="${approxLen}"
+      stroke-dashoffset="${offset}"
+    />`;
   }
 
   private centerGraph() {
@@ -718,6 +988,7 @@ export class FtDependencyView extends LitElement {
     const tgt = e.target as Element;
     if (tgt.closest('ft-tree-node') || tgt.closest('foreignObject')) return;
     this.cancelPanAnimation();
+    this.cancelAllDndAnimations();
     this.isPanning = true;
     this.panStartX = e.clientX;
     this.panStartY = e.clientY;
@@ -741,6 +1012,7 @@ export class FtDependencyView extends LitElement {
   private onWheel(e: WheelEvent) {
     e.preventDefault();
     this.cancelPanAnimation();
+    this.cancelAllDndAnimations();
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
 
@@ -947,7 +1219,21 @@ export class FtDependencyView extends LitElement {
       return;
     }
 
-    // Dispatch event to ft-app
+    // ── FLIP animation: capture "First" positions before store mutation ──
+    this.cancelAllDndAnimations();
+    const beforePositions = new Map<string, { x: number; y: number }>();
+    for (const node of this.layoutNodes) {
+      beforePositions.set(node.id, { x: node.x, y: node.y });
+    }
+    this.dndAnimContext = {
+      sourceId: sourceTaskId,
+      targetId: targetTaskId,
+      beforePositions,
+    };
+
+    // Dispatch event to ft-app — the handler runs synchronously within
+    // dispatchEvent, performing optimistic store.upsert() calls that
+    // will trigger requestUpdate() → runLayout() on the next microtask.
     this.dispatchEvent(
       new CustomEvent('dependency-drop', {
         detail: { sourceTaskId, targetTaskId },
@@ -1010,12 +1296,14 @@ export class FtDependencyView extends LitElement {
 
   private onMinimapPan(e: CustomEvent<{ panX: number; panY: number }>) {
     this.cancelPanAnimation();
+    this.cancelAllDndAnimations();
     this.panX = e.detail.panX;
     this.panY = e.detail.panY;
   }
 
   private onMinimapWheel(e: CustomEvent<{ deltaY: number }>) {
     this.cancelPanAnimation();
+    this.cancelAllDndAnimations();
     const factor = e.detail.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(3, Math.max(0.3, this.scale * factor));
 
@@ -1075,6 +1363,15 @@ export class FtDependencyView extends LitElement {
         >
           <g class="edges">
             ${this.layoutEdges.map((e) => {
+              // Skip the edge being animated — it's rendered separately
+              // by renderAnimatingEdge() with a draw-in effect.
+              if (
+                this.animatingEdge &&
+                e.from === this.animatingEdge.from &&
+                e.to === this.animatingEdge.to
+              ) {
+                return null;
+              }
               const src = this.nodeMap.get(e.from);
               const tgt = this.nodeMap.get(e.to);
               if (!src || !tgt) return null;
@@ -1089,6 +1386,7 @@ export class FtDependencyView extends LitElement {
                 class="${edgeClass}"
               />`;
             })}
+            ${this.renderAnimatingEdge()}
           </g>
           <g class="nodes">
             ${this.layoutNodes.map((n) => {
