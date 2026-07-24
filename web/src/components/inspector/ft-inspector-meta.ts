@@ -127,6 +127,24 @@ export class FtInspectorMeta extends LitElement {
     .assignee-option:hover {
       background: var(--sl-color-neutral-100);
     }
+    .external-source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8125rem;
+      color: var(--sl-color-primary-600);
+      text-decoration: none;
+      padding: 0.125rem 0.5rem;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-primary-50);
+    }
+    .external-source-link:hover {
+      color: var(--sl-color-primary-700);
+      background: var(--sl-color-primary-100);
+    }
+    .external-source-link sl-icon {
+      font-size: 0.75rem;
+    }
   `,
   ];
 
@@ -584,6 +602,23 @@ export class FtInspectorMeta extends LitElement {
         <span class="label">Assignees</span>
         <span class="value">${this.renderAssignees()}</span>
       </div>
+
+      ${t.remoteUrl
+        ? html`<div class="row">
+            <span class="label">External Source</span>
+            <span class="value">
+              <a
+                href=${t.remoteUrl}
+                target="_blank"
+                rel="noopener"
+                class="external-source-link"
+              >
+                <sl-icon name="box-arrow-up-right"></sl-icon>
+                <span>Open External Source</span>
+              </a>
+            </span>
+          </div>`
+        : nothing}
 
       ${t.type
         ? html`<div class="row">
