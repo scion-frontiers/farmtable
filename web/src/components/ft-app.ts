@@ -411,6 +411,7 @@ export class FtApp extends LitElement {
         return html`
           <ft-dashboard-view
             .store=${this.taskStore}
+            @view-change=${this.onViewChange}
           ></ft-dashboard-view>
         `;
       case 'ready-queue':
