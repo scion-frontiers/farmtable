@@ -105,17 +105,24 @@ function getDirectedReachableIds(
   const ids = new Set<string>();
 
   // Helper: directed BFS following only one relationship type.
+  // Each call uses its own `visited` set so that the second BFS
+  // (downstream) re-processes the start node even though the first
+  // BFS (upstream) already added it to `ids`.  Without per-call
+  // visited tracking the shared `ids` set causes the second BFS to
+  // skip the start node and miss the entire downstream chain.
   const bfs = (startId: string, relType: RelationshipType) => {
+    const visited = new Set<string>();
     const queue = [startId];
     while (queue.length > 0) {
       const id = queue.shift()!;
-      if (ids.has(id)) continue;
+      if (visited.has(id)) continue;
       if (!taskSet.has(id)) continue;
       const task = store.getTask(id);
       if (!task || task.phase === TaskPhase.CLOSED) continue;
+      visited.add(id);
       ids.add(id);
       for (const rel of task.relationships) {
-        if (rel.type === relType && !ids.has(rel.targetTaskId)) {
+        if (rel.type === relType && !visited.has(rel.targetTaskId)) {
           queue.push(rel.targetTaskId);
         }
       }
