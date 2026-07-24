@@ -67,10 +67,10 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	cmd.Flags().StringVar(&iapAudience, "iap-audience", "", "IAP OAuth client ID; auto-mints OIDC identity token via gcloud (or IAP_AUDIENCE env)")
 
 	// LLM.
-	cmd.Flags().StringVar(&provider, "provider", "genai", `LLM provider: "genai" or "anthropic" (default: "genai")`)
+	cmd.Flags().StringVar(&provider, "provider", "genai", `LLM provider: "genai", "anthropic", or "anthropic-vertex" (default: "genai")`)
 	cmd.Flags().StringVar(&model, "model", "", "Model name (default: provider-specific)")
 	cmd.Flags().StringVar(&apiKey, "api-key", "", "LLM API key (for anthropic provider: or ANTHROPIC_API_KEY env)")
-	cmd.Flags().StringVar(&project, "project", "", "Google Cloud project (or GOOGLE_CLOUD_PROJECT env; for genai provider)")
+	cmd.Flags().StringVar(&project, "project", "", "Google Cloud project (or GOOGLE_CLOUD_PROJECT env; for genai and anthropic-vertex providers)")
 	cmd.Flags().StringVar(&location, "location", "", "Google Cloud location (or GOOGLE_CLOUD_LOCATION env; default: us-central1)")
 	cmd.Flags().StringVar(&promptFile, "prompt-file", "", "Path to custom system prompt file (overrides embedded default)")
 
@@ -208,8 +208,22 @@ func createLLM(provider, model, apiKey, project, location string) (decomposer.In
 		return decomposer.NewGenAIClient(project, location, model), nil
 	case "anthropic":
 		return decomposer.NewAnthropicClient(apiKey, model), nil
+	case "anthropic-vertex":
+		// Resolve project from flag → env.
+		if project == "" {
+			project = os.Getenv("GOOGLE_CLOUD_PROJECT")
+		}
+		if project == "" {
+			return nil, fmt.Errorf("anthropic-vertex provider requires --project or GOOGLE_CLOUD_PROJECT env var")
+		}
+		// Resolve location from flag → env.
+		if location == "" {
+			location = os.Getenv("GOOGLE_CLOUD_LOCATION")
+		}
+		fmt.Fprintf(os.Stderr, "Using Anthropic Vertex provider (project=%s, location=%s)\n", project, location)
+		return decomposer.NewAnthropicVertexClient(project, location, model), nil
 	default:
-		return nil, fmt.Errorf("unknown provider %q: must be \"genai\" or \"anthropic\"", provider)
+		return nil, fmt.Errorf("unknown provider %q: must be \"genai\", \"anthropic\", or \"anthropic-vertex\"", provider)
 	}
 }
 
