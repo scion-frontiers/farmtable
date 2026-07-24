@@ -2,14 +2,25 @@ import type { Task, Change, TaskStage } from '../gen/types.js';
 
 export class TaskStore extends EventTarget {
   private tasks = new Map<string, Task>();
+  private _childMap = new Map<string, Task[]>();
+  private _allTasksCache: Task[] | null = null;
+  private _rootsCache: Task[] | null = null;
   private _isLoading = true;
 
   get isLoading(): boolean {
     return this._isLoading;
   }
 
+  /** Number of tasks currently in the store. */
+  get taskCount(): number {
+    return this.tasks.size;
+  }
+
   get allTasks(): Task[] {
-    return [...this.tasks.values()];
+    if (!this._allTasksCache) {
+      this._allTasksCache = [...this.tasks.values()];
+    }
+    return this._allTasksCache;
   }
 
   getTask(id: string): Task | undefined {
@@ -33,27 +44,50 @@ export class TaskStore extends EventTarget {
     return map;
   }
 
+  /** Cached parent→children index. O(1) lookup. */
   get byParent(): Map<string, Task[]> {
-    const map = new Map<string, Task[]>();
-    for (const task of this.tasks.values()) {
-      if (task.parentTaskId) {
-        const list = map.get(task.parentTaskId);
-        if (list) {
-          list.push(task);
-        } else {
-          map.set(task.parentTaskId, [task]);
-        }
-      }
-    }
-    return map;
+    return this._childMap;
   }
 
   get roots(): Task[] {
-    return this.allTasks.filter((t) => !t.parentTaskId);
+    if (!this._rootsCache) {
+      this._rootsCache = this.allTasks.filter((t) => !t.parentTaskId);
+    }
+    return this._rootsCache;
   }
 
+  /** O(1) child lookup via cached parent→children map. */
   getChildren(parentId: string): Task[] {
-    return this.allTasks.filter((t) => t.parentTaskId === parentId);
+    return this._childMap.get(parentId) ?? [];
+  }
+
+  // ── Child-map maintenance ──
+
+  private _addToChildMap(task: Task): void {
+    if (task.parentTaskId) {
+      const siblings = this._childMap.get(task.parentTaskId);
+      if (siblings) {
+        siblings.push(task);
+      } else {
+        this._childMap.set(task.parentTaskId, [task]);
+      }
+    }
+  }
+
+  private _removeFromChildMap(task: Task): void {
+    if (task.parentTaskId) {
+      const siblings = this._childMap.get(task.parentTaskId);
+      if (siblings) {
+        const idx = siblings.indexOf(task);
+        if (idx >= 0) siblings.splice(idx, 1);
+        if (siblings.length === 0) this._childMap.delete(task.parentTaskId);
+      }
+    }
+  }
+
+  private _invalidateCaches(): void {
+    this._allTasksCache = null;
+    this._rootsCache = null;
   }
 
   upsert(task: Task, _changes?: Change[]): boolean {
@@ -64,13 +98,24 @@ export class TaskStore extends EventTarget {
     if (existing && !_changes && JSON.stringify(existing) === JSON.stringify(task)) {
       return false;
     }
+    // Maintain child map: remove old entry, add new one.
+    if (existing) {
+      this._removeFromChildMap(existing);
+    }
     this.tasks.set(task.id, task);
+    this._addToChildMap(task);
+    this._invalidateCaches();
     this.dispatchEvent(new CustomEvent('tasks-changed', { detail: { task } }));
     return true;
   }
 
   delete(taskId: string): void {
+    const existing = this.tasks.get(taskId);
+    if (existing) {
+      this._removeFromChildMap(existing);
+    }
     this.tasks.delete(taskId);
+    this._invalidateCaches();
     this.dispatchEvent(new CustomEvent('tasks-changed', { detail: { taskId } }));
   }
 
@@ -81,6 +126,8 @@ export class TaskStore extends EventTarget {
 
   clear(): void {
     this.tasks.clear();
+    this._childMap.clear();
+    this._invalidateCaches();
     this._isLoading = true;
     this.dispatchEvent(new CustomEvent('tasks-changed'));
   }

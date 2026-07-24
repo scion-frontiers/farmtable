@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../../store/task-store.js';
 
 @customElement('ft-hierarchy-nav')
@@ -74,6 +74,21 @@ export class FtHierarchyNav extends LitElement {
       opacity: 0.4;
       cursor: not-allowed;
     }
+    .depth-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--sl-border-radius-pill, 9999px);
+      background: var(--sl-color-warning-100, #451a03);
+      color: var(--sl-color-warning-700, #fbbf24);
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .depth-badge sl-icon {
+      font-size: 0.8rem;
+    }
   `;
 
   @property({ attribute: false })
@@ -88,8 +103,9 @@ export class FtHierarchyNav extends LitElement {
   @property({ type: String })
   selectedTaskId: string | null = null;
 
-  @state()
-  private selectedLevel = '-1';
+  /** Current depth limit, passed from the tree view (keeps dropdown in sync with auto-depth). */
+  @property({ type: Number })
+  maxDepth = -1;
 
   private getMaxLevel(): number {
     let max = 0;
@@ -132,7 +148,6 @@ export class FtHierarchyNav extends LitElement {
 
   private onLevelChange(e: Event) {
     const target = e.target as HTMLElement & { value: string };
-    this.selectedLevel = target.value;
     const maxDepth = parseInt(target.value, 10);
     this.dispatchEvent(
       new CustomEvent('level-change', {
@@ -169,10 +184,12 @@ export class FtHierarchyNav extends LitElement {
     for (let i = 0; i <= maxLevel; i++) levels.push(i);
     const breadcrumbs = this.getBreadcrumbTrail();
 
+    const isDepthLimited = this.maxDepth >= 0 && this.maxDepth < maxLevel;
+
     return html`
       <sl-select
         size="small"
-        value=${this.selectedLevel}
+        value=${String(this.maxDepth)}
         @sl-change=${this.onLevelChange}
       >
         <sl-option value="-1">All Levels</sl-option>
@@ -184,6 +201,13 @@ export class FtHierarchyNav extends LitElement {
           `,
         )}
       </sl-select>
+
+      ${isDepthLimited
+        ? html`<span class="depth-badge">
+            <sl-icon name="layers"></sl-icon>
+            ${maxLevel - this.maxDepth} deeper level${maxLevel - this.maxDepth !== 1 ? 's' : ''} hidden
+          </span>`
+        : nothing}
 
       <sl-tooltip content=${this.isolateMode ? 'Show full tree' : 'Solo selected task and its descendants'}>
         <button

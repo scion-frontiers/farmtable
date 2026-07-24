@@ -11,6 +11,15 @@ import '../minimap/ft-minimap.js';
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 80;
 
+/**
+ * Collections with more tasks than this threshold get a default depth limit
+ * to avoid laying out thousands of nodes on first render.
+ */
+const LARGE_COLLECTION_THRESHOLD = 500;
+
+/** Default max visible depth for large collections (0-indexed). */
+const DEFAULT_LARGE_DEPTH = 3;
+
 interface LayoutNode {
   id: string;
   x: number;
@@ -113,6 +122,9 @@ export class FtTreeView extends LitElement {
   @state() private expandedNodes = new Set<string>();
   private expandedInitialized = false;
 
+  /** True once the user explicitly changes the Level dropdown. */
+  private _userSetDepth = false;
+
   private _dragDescendants: Set<string> | null = null;
   private containerWidth = 800;
   private containerHeight = 600;
@@ -175,6 +187,20 @@ export class FtTreeView extends LitElement {
     if (this.layoutNodes.length > 0 && this.needsCenter) {
       this.centerGraph();
       this.needsCenter = false;
+    }
+  }
+
+  willUpdate() {
+    // Auto-apply a default depth limit for large collections so the
+    // initial render doesn't attempt to lay out thousands of nodes.
+    // Only applies when the user hasn't explicitly changed the Level
+    // dropdown and the current depth is still the default (all levels).
+    if (
+      !this._userSetDepth &&
+      this.maxDepth === -1 &&
+      this.store.taskCount > LARGE_COLLECTION_THRESHOLD
+    ) {
+      this.maxDepth = DEFAULT_LARGE_DEPTH;
     }
   }
 
@@ -527,6 +553,7 @@ export class FtTreeView extends LitElement {
   }
 
   private onLevelChange(e: CustomEvent) {
+    this._userSetDepth = true;
     this.maxDepth = e.detail.maxDepth;
     this.lastStructureKey = '';
   }
@@ -734,6 +761,7 @@ export class FtTreeView extends LitElement {
         .focusRootId=${this.focusRootId}
         .isolateMode=${this.isolateMode}
         .selectedTaskId=${this.selectedTaskId}
+        .maxDepth=${this.maxDepth}
         @focus-change=${this.onFocusChange}
         @level-change=${this.onLevelChange}
         @isolate-toggle=${this.onIsolateToggle}
