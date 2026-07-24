@@ -4,6 +4,7 @@ import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
 import { TaskPhase, TaskPriority, type Task } from '../gen/types.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
+import { isReady } from '../utils/task-ready.js';
 import './ft-empty-state.js';
 
 interface PhaseStat {
@@ -61,6 +62,26 @@ export class FtDashboardView extends LitElement {
     .stat-card.total {
       border-color: var(--sl-color-primary-300);
       background: var(--sl-color-primary-50);
+    }
+
+    .stat-card.ready {
+      border-color: var(--sl-color-success-300);
+      background: var(--sl-color-success-50);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .stat-card.ready:hover {
+      border-color: var(--sl-color-success-500);
+      box-shadow: 0 0 0 1px var(--sl-color-success-500);
+    }
+
+    .stat-card.ready .stat-count {
+      color: var(--sl-color-success-700);
+    }
+
+    .stat-card.ready .stat-label {
+      color: var(--sl-color-success-600);
     }
 
     .stat-count {
@@ -128,6 +149,28 @@ export class FtDashboardView extends LitElement {
     ];
   }
 
+  /**
+   * Count tasks that are "ready" (actionable / unblocked) using the canonical
+   * isReady() utility shared with the Ready Queue view.
+   */
+  private computeReadyCount(tasks: Task[]): number {
+    return tasks.filter((task) => isReady(task, this.store)).length;
+  }
+
+  /**
+   * Navigate to the Ready Queue view by dispatching the same view-change
+   * event the toolbar uses.
+   */
+  private navigateToReadyQueue() {
+    this.dispatchEvent(
+      new CustomEvent('view-change', {
+        detail: { view: 'ready-queue' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private computePriorityStats(tasks: Task[]): PriorityStat[] {
     const counts: Record<number, number> = {
       [TaskPriority.URGENT]: 0,
@@ -173,6 +216,7 @@ export class FtDashboardView extends LitElement {
     const phaseStats = this.computePhaseStats(tasks);
     const priorityStats = this.computePriorityStats(tasks);
     const totalCount = phaseStats.reduce((sum, s) => sum + s.count, 0);
+    const readyCount = this.computeReadyCount(tasks);
 
     return html`
       <div class="dashboard">
@@ -186,6 +230,23 @@ export class FtDashboardView extends LitElement {
               </div>
             `,
           )}
+          <div
+            class="stat-card ready"
+            role="link"
+            tabindex="0"
+            aria-label="Ready: ${readyCount} — click to view Ready Queue"
+            title="View Ready Queue"
+            @click=${this.navigateToReadyQueue}
+            @keydown=${(e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.navigateToReadyQueue();
+              }
+            }}
+          >
+            <div class="stat-count">${readyCount}</div>
+            <div class="stat-label">Ready</div>
+          </div>
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>
             <div class="stat-label">Total</div>
