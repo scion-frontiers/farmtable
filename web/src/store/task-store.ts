@@ -16,11 +16,12 @@ export class TaskStore extends EventTarget {
     return this.tasks.size;
   }
 
-  get allTasks(): Task[] {
+  get allTasks(): readonly Task[] {
     if (!this._allTasksCache) {
       this._allTasksCache = [...this.tasks.values()];
     }
-    return this._allTasksCache;
+    // Return a shallow copy so callers cannot mutate the cached array.
+    return [...this._allTasksCache];
   }
 
   getTask(id: string): Task | undefined {
@@ -45,20 +46,22 @@ export class TaskStore extends EventTarget {
   }
 
   /** Cached parent→children index. O(1) lookup. */
-  get byParent(): Map<string, Task[]> {
+  get byParent(): ReadonlyMap<string, readonly Task[]> {
     return this._childMap;
   }
 
-  get roots(): Task[] {
+  get roots(): readonly Task[] {
     if (!this._rootsCache) {
-      this._rootsCache = this.allTasks.filter((t) => !t.parentTaskId);
+      this._rootsCache = [...this.allTasks.filter((t) => !t.parentTaskId)];
     }
-    return this._rootsCache;
+    // Return a shallow copy so callers cannot mutate the cached array.
+    return [...this._rootsCache];
   }
 
   /** O(1) child lookup via cached parent→children map. */
-  getChildren(parentId: string): Task[] {
-    return this._childMap.get(parentId) ?? [];
+  getChildren(parentId: string): readonly Task[] {
+    // Return a shallow copy so callers cannot mutate the cached array.
+    return [...(this._childMap.get(parentId) ?? [])];
   }
 
   // ── Child-map maintenance ──

@@ -185,7 +185,7 @@ export class FtInspectorRelationships extends LitElement {
     return html`<div class="none">None</div>`;
   }
 
-  private renderSection(label: string, tasks: Task[], showDelete: boolean) {
+  private renderSection(label: string, tasks: readonly Task[], showDelete: boolean) {
     return html`
       <div class="section">
         <div class="section-header">
