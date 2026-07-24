@@ -420,17 +420,39 @@ export class FtDependencyView extends LitElement {
     }
   }
 
-  protected willUpdate(_changedProperties: PropertyValues): void {
-    super.willUpdate(_changedProperties);
-    // Run layout first — it updates lastStructureKey which encodes
-    // task IDs, phases and relationships.  We then use that key as
-    // part of the edge-classification cache so that edge colors are
-    // recomputed whenever the underlying relationship data changes
-    // (via SSE or the 15-second poll cycle), not only when
-    // selectedTaskId changes.  See Features #55 / #60 for prior
-    // instances of this class of stale-cache bug.
-    this.runLayout();
-    this.computeEdgeSets();
+  /** Keys that change during pan/zoom but do NOT affect graph structure. */
+  private static readonly PAN_ZOOM_KEYS = new Set([
+    'panX', 'panY', 'scale', 'isPanning',
+    'draggingNodeId', 'dragOverNodeId',
+  ]);
+
+  protected willUpdate(changedProperties: PropertyValues): void {
+    super.willUpdate(changedProperties);
+    // Skip expensive layout recomputation when only pan/zoom-related
+    // properties changed — the graph structure hasn't changed, so
+    // runLayout() + structureKey() would just rebuild the same ~480KB
+    // string and compare it for equality.  Viewport culling in render()
+    // handles which nodes are visible at the new pan/zoom position.
+    //
+    // Store-triggered updates (via TaskStoreController.requestUpdate()
+    // with no arguments) produce an EMPTY changedProperties map, so
+    // isPanZoomOnly will be false and layout WILL run — this is correct
+    // because the store data may have changed.
+    const isPanZoomOnly = changedProperties.size > 0 &&
+      [...changedProperties.keys()].every(
+        (k) => FtDependencyView.PAN_ZOOM_KEYS.has(k as string),
+      );
+    if (!isPanZoomOnly) {
+      // Run layout first — it updates lastStructureKey which encodes
+      // task IDs, phases and relationships.  We then use that key as
+      // part of the edge-classification cache so that edge colors are
+      // recomputed whenever the underlying relationship data changes
+      // (via SSE or the 15-second poll cycle), not only when
+      // selectedTaskId changes.  See Features #55 / #60 for prior
+      // instances of this class of stale-cache bug.
+      this.runLayout();
+      this.computeEdgeSets();
+    }
   }
 
   updated(changedProps: PropertyValues<this>) {
@@ -1340,7 +1362,7 @@ export class FtDependencyView extends LitElement {
   // ── Render ──
 
   render() {
-    if (this.store.allTasks.length === 0) {
+    if (this.store.taskCount === 0) {
       return html`<ft-empty-state
         icon="diagram-3"
         heading="No tasks to display"
@@ -1358,6 +1380,32 @@ export class FtDependencyView extends LitElement {
 
     const vbW = this.containerWidth / this.scale;
     const vbH = this.containerHeight / this.scale;
+
+    // ── Viewport culling ──
+    // Compute layout for ALL visible tasks (positions + edges are
+    // unchanged), but only create DOM for nodes whose AABB intersects
+    // the current viewBox.  This typically eliminates ~95-99% of DOM
+    // creation for large graphs, bringing render time from seconds to
+    // sub-second.  A generous margin (half a node size) prevents
+    // pop-in when nodes are just entering the viewport.
+    const margin = Math.max(NODE_WIDTH, NODE_HEIGHT);
+    const vpLeft = this.panX - margin;
+    const vpRight = this.panX + vbW + margin;
+    const vpTop = this.panY - margin;
+    const vpBottom = this.panY + vbH + margin;
+
+    const visibleNodes = this.layoutNodes.filter((n) =>
+      n.x + n.width / 2 > vpLeft &&
+      n.x - n.width / 2 < vpRight &&
+      n.y + n.height / 2 > vpTop &&
+      n.y - n.height / 2 < vpBottom,
+    );
+
+    // Render edges if at least one endpoint node is in the visible set.
+    const visibleNodeIds = new Set(visibleNodes.map((n) => n.id));
+    const visibleEdges = this.layoutEdges.filter((e) =>
+      visibleNodeIds.has(e.from) || visibleNodeIds.has(e.to),
+    );
 
     return html`
       <div class="toolbar">
@@ -1380,7 +1428,7 @@ export class FtDependencyView extends LitElement {
           @mousedown=${this.onMouseDown}
         >
           <g class="edges">
-            ${this.layoutEdges.map((e) => {
+            ${visibleEdges.map((e) => {
               // Skip the edge being animated — it's rendered separately
               // by renderAnimatingEdge() with a draw-in effect.
               if (
@@ -1407,7 +1455,7 @@ export class FtDependencyView extends LitElement {
             ${this.renderAnimatingEdge()}
           </g>
           <g class="nodes">
-            ${this.layoutNodes.map((n) => {
+            ${visibleNodes.map((n) => {
               const isDropTarget =
                 this.dragOverNodeId === n.id && this.draggingNodeId !== n.id;
               const isDragging = this.draggingNodeId === n.id;
@@ -1454,6 +1502,9 @@ export class FtDependencyView extends LitElement {
             })}
           </g>
         </svg>
+        <!-- Minimap receives the FULL layout data (all nodes/edges),
+             NOT the viewport-culled subset, so it always shows the
+             complete graph overview regardless of pan/zoom position. -->
         <ft-minimap
           .nodes=${this.layoutNodes}
           .edges=${this.layoutEdges}
