@@ -158,9 +158,9 @@ func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task {
 		t.ParentTaskID = &pid
 	}
 
-	if stateStr == "CLOSED" {
-		now := time.Now()
-		t.ClosedAt = &now
+	if stateStr == "CLOSED" && issue.ClosedAt != nil {
+		closedAt := issue.ClosedAt.Time
+		t.ClosedAt = &closedAt
 	}
 
 	return t
