@@ -1,13 +1,11 @@
 package decomposer
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
-)
 
-//go:embed prompt_default.txt
-var defaultSystemPrompt string
+	"github.com/farmtable-io/farmtable/internal/decomposer/prompts"
+)
 
 // BuildPrompt constructs the []Message for an LLM decomposition call.
 // The message sequence is:
@@ -15,7 +13,7 @@ var defaultSystemPrompt string
 //  2. User message: context chain (accumulated parent task descriptions) + current task.
 func BuildPrompt(systemPrompt string, contextChain []string, taskText string, depth int) []Message {
 	if systemPrompt == "" {
-		systemPrompt = defaultSystemPrompt
+		systemPrompt = prompts.Default()
 	}
 
 	var msgs []Message
