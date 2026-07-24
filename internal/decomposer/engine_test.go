@@ -73,6 +73,39 @@ func (w *mockWriter) ResolveCollection(_ context.Context, name string) (string, 
 	return "", fmt.Errorf("collection %q not found", name)
 }
 
+func (w *mockWriter) GetTask(_ context.Context, taskID string) (*ExistingTask, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, t := range w.tasks {
+		if t.id == taskID {
+			return &ExistingTask{
+				ID:          t.id,
+				Name:        t.name,
+				Description: t.description,
+				ParentID:    t.parentTaskID,
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("task %s not found", taskID)
+}
+
+func (w *mockWriter) ListChildren(_ context.Context, parentTaskID string) ([]*ExistingTask, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	var children []*ExistingTask
+	for _, t := range w.tasks {
+		if t.parentTaskID == parentTaskID {
+			children = append(children, &ExistingTask{
+				ID:          t.id,
+				Name:        t.name,
+				Description: t.description,
+				ParentID:    t.parentTaskID,
+			})
+		}
+	}
+	return children, nil
+}
+
 func (w *mockWriter) CreateCollection(_ context.Context, name string) (string, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()

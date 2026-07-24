@@ -38,6 +38,8 @@ func newRootCmd() *cobra.Command {
 		maxDepth    int
 		concurrency int
 		verbose     bool
+		resume      bool
+		rootTask    string
 	)
 
 	cmd := &cobra.Command{
@@ -48,12 +50,24 @@ recursively decomposes it into a structured Farmtable task DAG using LLM inferen
 
 Tasks are organized into parallel groups where tasks in the same group can run
 concurrently, and higher-numbered groups depend on lower groups completing first.`,
-		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if resume {
+				return nil // no input file required for resume
+			}
+			if len(args) != 1 {
+				return fmt.Errorf("requires exactly 1 arg(s), only received %d", len(args))
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(args[0], collection, server, token, iapAudience, provider, model, apiKey,
-				project, location, promptFile, maxDepth, concurrency, verbose)
+			var inputArg string
+			if len(args) > 0 {
+				inputArg = args[0]
+			}
+			return run(inputArg, collection, server, token, iapAudience, provider, model, apiKey,
+				project, location, promptFile, maxDepth, concurrency, verbose, resume, rootTask)
 		},
 	}
 
@@ -79,19 +93,32 @@ concurrently, and higher-numbered groups depend on lower groups completing first
 	cmd.Flags().IntVar(&concurrency, "concurrency", 4, "Max parallel LLM calls")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "Log LLM prompts/responses to stderr")
 
+	// Resume.
+	cmd.Flags().BoolVar(&resume, "resume", false, "Resume a partial decomposition (requires --root-task)")
+	cmd.Flags().StringVar(&rootTask, "root-task", "", "Root task ID for --resume")
+
 	return cmd
 }
 
 func run(inputArg, collection, server, token, iapAudience, provider, model, apiKey,
-	project, location, promptFile string, maxDepth, concurrency int, verbose bool) error {
+	project, location, promptFile string, maxDepth, concurrency int, verbose, resume bool, rootTask string) error {
 
-	// Read input.
-	inputText, err := readInput(inputArg)
-	if err != nil {
-		return fmt.Errorf("reading input: %w", err)
+	// Validate resume flags.
+	if resume && rootTask == "" {
+		return fmt.Errorf("--resume requires --root-task")
 	}
-	if strings.TrimSpace(inputText) == "" {
-		return fmt.Errorf("input is empty")
+
+	// Read input (not required for resume).
+	var inputText string
+	if !resume {
+		var err error
+		inputText, err = readInput(inputArg)
+		if err != nil {
+			return fmt.Errorf("reading input: %w", err)
+		}
+		if strings.TrimSpace(inputText) == "" {
+			return fmt.Errorf("input is empty")
+		}
 	}
 
 	// Load custom system prompt if specified.
@@ -158,6 +185,17 @@ func run(inputArg, collection, server, token, iapAudience, provider, model, apiK
 		fmt.Fprintln(os.Stderr, "\nInterrupted — finishing in-flight LLM calls...")
 		cancel()
 	}()
+
+	if resume {
+		// Resume mode: walk existing tree and decompose incomplete branches.
+		fmt.Fprintf(os.Stderr, "Resuming decomposition from root task %s in collection %s...\n", rootTask, collectionID)
+		if err := engine.Resume(ctx, collectionID, rootTask); err != nil {
+			printResumeSummary(collectionID, rootTask, engine, server)
+			return fmt.Errorf("resume failed: %w", err)
+		}
+		printResumeSummary(collectionID, rootTask, engine, server)
+		return nil
+	}
 
 	// Derive root task title from first line of input or truncated text.
 	rootTitle := deriveTitle(inputText)
@@ -264,6 +302,32 @@ func mintIAPToken(audience string) (string, error) {
 		return "", fmt.Errorf("gcloud returned empty identity token")
 	}
 	return token, nil
+}
+
+func printResumeSummary(collectionID, rootTaskID string, engine *decomposer.Engine, server string) {
+	total, terminal, maxDepth := engine.Stats()
+	rs := engine.ResumeStatsSnapshot()
+	nonTerminal := total - terminal
+	fmt.Printf("\n--- Resume Summary ---\n")
+	fmt.Printf("Collection:     %s\n", collectionID)
+	fmt.Printf("Root task:      %s\n", rootTaskID)
+	fmt.Printf("Existing tasks: %d\n", rs.ExistingTasks)
+	fmt.Printf("Skipped (terminal at depth): %d\n", rs.SkippedTerminalTasks)
+	fmt.Printf("New tasks:      %d (%d terminal, %d non-terminal)\n", total, terminal, nonTerminal)
+	fmt.Printf("Max depth:      %d\n", maxDepth)
+	dashServer := server
+	if dashServer == "" {
+		dashServer = os.Getenv("FARMTABLE_SERVER")
+	}
+	if dashServer != "" {
+		host := dashServer
+		if h, _, err := net.SplitHostPort(dashServer); err == nil {
+			host = h
+		}
+		if host != "" {
+			fmt.Printf("Dashboard:      https://%s/?collection=%s\n", host, collectionID)
+		}
+	}
 }
 
 func printSummary(collectionID, rootTitle string, engine *decomposer.Engine, server string) {

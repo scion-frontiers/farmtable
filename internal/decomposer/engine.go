@@ -28,6 +28,11 @@ type Engine struct {
 	terminalTasks atomic.Int32
 	maxDepthSeen  atomic.Int32
 
+	// Resume-specific counters.
+	existingTasks   atomic.Int32
+	skippedTerminal atomic.Int32
+	newTasks        atomic.Int32
+
 	logger *log.Logger
 }
 
@@ -81,6 +86,99 @@ func (e *Engine) Run(ctx context.Context, collectionID, inputText, rootTitle str
 
 	// Decompose starting from the root.
 	return e.decompose(ctx, inputText, nil, rootID, 0)
+}
+
+// ResumeStats holds counters specific to a resumed decomposition.
+type ResumeStats struct {
+	ExistingTasks        int32
+	SkippedTerminalTasks int32
+	NewTasks             int32
+}
+
+// ResumeStatsSnapshot returns the resume-specific stats.
+func (e *Engine) ResumeStatsSnapshot() ResumeStats {
+	return ResumeStats{
+		ExistingTasks:        e.existingTasks.Load(),
+		SkippedTerminalTasks: e.skippedTerminal.Load(),
+		NewTasks:             e.newTasks.Load(),
+	}
+}
+
+// Resume continues a partial decomposition from an existing root task.
+// It walks the task tree and decomposes any non-terminal leaf nodes
+// that haven't been decomposed yet (i.e., have no children).
+func (e *Engine) Resume(ctx context.Context, collectionID, rootTaskID string) error {
+	e.logf("Resuming decomposition from root task %s in collection %s", rootTaskID, collectionID)
+
+	// Fetch the root task to get its description.
+	root, err := e.writer.GetTask(ctx, rootTaskID)
+	if err != nil {
+		return fmt.Errorf("fetching root task: %w", err)
+	}
+	e.existingTasks.Add(1)
+	e.logf("Root task: %s (name: %q)", root.ID, root.Name)
+
+	return e.resumeWalk(ctx, root, nil, 0)
+}
+
+// resumeWalk recursively walks the existing task tree. For each task:
+//   - If it has children, walk into them (it was already decomposed).
+//   - If it has no children and depth < maxDepth, call decompose() on it.
+func (e *Engine) resumeWalk(ctx context.Context, task *ExistingTask, contextChain []string, depth int) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	// Update max depth seen.
+	for {
+		old := e.maxDepthSeen.Load()
+		if int32(depth) <= old || e.maxDepthSeen.CompareAndSwap(old, int32(depth)) {
+			break
+		}
+	}
+
+	// Check for existing children.
+	children, err := e.writer.ListChildren(ctx, task.ID)
+	if err != nil {
+		return fmt.Errorf("listing children of %s: %w", task.ID, err)
+	}
+
+	if len(children) > 0 {
+		// Task was already decomposed — walk into children.
+		e.logf("[depth=%d] Task %s has %d existing children, walking...", depth, task.ID, len(children))
+		e.existingTasks.Add(int32(len(children)))
+
+		var wg sync.WaitGroup
+		var firstErr error
+		var errOnce sync.Once
+
+		for _, child := range children {
+			wg.Add(1)
+			go func(c *ExistingTask) {
+				defer wg.Done()
+				childCtx := append(append([]string(nil), contextChain...), task.Description)
+				if err := e.resumeWalk(ctx, c, childCtx, depth+1); err != nil {
+					errOnce.Do(func() { firstErr = err })
+				}
+			}(child)
+		}
+		wg.Wait()
+		return firstErr
+	}
+
+	// Leaf node — no children. Check if we should decompose it.
+	if depth >= e.maxDepth {
+		e.logf("[depth=%d] Task %s is at max depth, skipping (terminal)", depth, task.ID)
+		e.skippedTerminal.Add(1)
+		return nil
+	}
+
+	// No children — this is where the previous run stopped.
+	// Decompose this task.
+	e.logf("[depth=%d] Task %s has no children, decomposing...", depth, task.ID)
+	return e.decompose(ctx, task.Description, contextChain, task.ID, depth)
 }
 
 // Stats returns the current decomposition statistics.
