@@ -1501,6 +1501,10 @@ export class FtDependencyView extends LitElement {
               const tgt = this.nodeMap.get(e.to);
               if (!src || !tgt) return null;
               const classification = this.classifyEdge(e.from, e.to);
+              // In Solo mode, only render edges on the selected task's
+              // directed chain — skip cross-edges between chain members
+              // that don't pass through the selected task.
+              if (this.isolateMode && classification === null) return null;
               const edgeClass = classification === 'blocking'
                 ? 'edge-dependency edge-blocking'
                 : classification === 'blocked'
