@@ -16,10 +16,11 @@ import '../minimap/ft-minimap.js';
  * Layer 0 (leftmost) = unblocked tasks matching the Ready Queue definition.
  * Layer N = 1 + max(layer of each direct blocker).
  *
- * **Completed-task handling**: CLOSED tasks do not appear in this view.
- * The `isReady()` check already ignores closed blockers, so completed tasks
- * are neither "unblocked/open" (Layer 0) nor active blockers. This keeps
- * the view focused on work that still matters.
+ * **Completed-task handling**: CLOSED tasks are generally excluded from
+ * this view to keep the graph focused on active work.  The one exception
+ * is **Solo mode on a CLOSED task** — when the user explicitly selects
+ * and solos a completed task, that task and its non-closed connections
+ * are shown so the user can inspect its dependency relationships.
  *
  * **Solo mode**: When active, shows only the connected component of the
  * selected task — all nodes reachable by traversing BLOCKS/BLOCKED_BY edges
@@ -118,7 +119,11 @@ function getDirectedReachableIds(
       if (visited.has(id)) continue;
       if (!taskSet.has(id)) continue;
       const task = store.getTask(id);
-      if (!task || task.phase === TaskPhase.CLOSED) continue;
+      // Allow the explicitly-selected task to start the BFS even when
+      // CLOSED — this fixes Solo mode on completed tasks.  All OTHER
+      // nodes encountered during traversal still respect the CLOSED
+      // filter so the graph doesn't pull in unrelated closed tasks.
+      if (!task || (task.phase === TaskPhase.CLOSED && id !== taskId)) continue;
       visited.add(id);
       ids.add(id);
       for (const rel of task.relationships) {
@@ -149,6 +154,7 @@ function getDirectedReachableIds(
 function computeLayers(
   tasks: Task[],
   store: TaskStore,
+  exemptClosedIds?: Set<string>,
 ): Map<string, number> {
   const layers = new Map<string, number>();
   const taskSet = new Set(tasks.map((t) => t.id));
@@ -177,7 +183,12 @@ function computeLayers(
     for (const rel of task.relationships) {
       if (rel.type !== RelationshipType.BLOCKED_BY) continue;
       const blocker = store.getTask(rel.targetTaskId);
-      if (!blocker || blocker.phase === TaskPhase.CLOSED) continue;
+      if (
+        !blocker ||
+        (blocker.phase === TaskPhase.CLOSED &&
+          !exemptClosedIds?.has(rel.targetTaskId))
+      )
+        continue;
       if (!taskSet.has(rel.targetTaskId)) continue;
       const blockerLayer = getLayer(rel.targetTaskId);
       if (blockerLayer > maxBlockerLayer) maxBlockerLayer = blockerLayer;
@@ -641,7 +652,9 @@ export class FtDependencyView extends LitElement {
    * - All non-CLOSED tasks that are involved in active blocking relationships
    *   (including ON_HOLD tasks in the "blocked" stage)
    *
-   * CLOSED tasks are excluded entirely.
+   * CLOSED tasks are excluded — except in Solo mode when the user
+   * explicitly selects and solos a CLOSED task, which is allowed through
+   * along with its non-closed connections.
    */
   private getVisibleTasks(): Task[] {
     // Single pass over non-closed tasks: collect those involved in active
@@ -675,8 +688,37 @@ export class FtDependencyView extends LitElement {
       }
     }
 
+    // Solo-mode exception: when the user explicitly selects and solos a
+    // CLOSED task, add it and its direct relationship targets to
+    // involvedIds so the BFS can start from it and its connections appear
+    // in the graph.  Other unrelated CLOSED tasks remain hidden.
+    if (this.isolateMode && this.selectedTaskId) {
+      const selectedTask = this.store.getTask(this.selectedTaskId);
+      if (selectedTask && selectedTask.phase === TaskPhase.CLOSED) {
+        involvedIds.add(selectedTask.id);
+        for (const rel of selectedTask.relationships) {
+          if (
+            rel.type === RelationshipType.BLOCKS ||
+            rel.type === RelationshipType.BLOCKED_BY
+          ) {
+            const target = this.store.getTask(rel.targetTaskId);
+            if (target) {
+              involvedIds.add(rel.targetTaskId);
+            }
+          }
+        }
+      }
+    }
+
+    // Build the filtered task list.  In solo mode, the explicitly-selected
+    // CLOSED task is allowed through the phase filter — all other CLOSED
+    // tasks are still excluded.
+    const isExemptClosed = (t: Task) =>
+      this.isolateMode && this.selectedTaskId === t.id;
     let tasks = this.store.allTasks.filter(
-      (t) => involvedIds.has(t.id) && t.phase !== TaskPhase.CLOSED,
+      (t) =>
+        involvedIds.has(t.id) &&
+        (t.phase !== TaskPhase.CLOSED || isExemptClosed(t)),
     );
 
     // Solo mode: filter to the directed reachability set of the selected task.
@@ -755,7 +797,19 @@ export class FtDependencyView extends LitElement {
     }
 
     // Compute layers — layer 0 = unblocked, layer N = 1 + max(blocker layers)
-    const layers = computeLayers(tasks, this.store);
+    // In solo mode with a CLOSED selected task, exempt it from the CLOSED
+    // blocker filter so that layer computation and edge building treat it
+    // as an active node.
+    const exemptClosedIds =
+      this.isolateMode && this.selectedTaskId
+        ? (() => {
+            const sel = this.store.getTask(this.selectedTaskId!);
+            return sel && sel.phase === TaskPhase.CLOSED
+              ? new Set([this.selectedTaskId!])
+              : undefined;
+          })()
+        : undefined;
+    const layers = computeLayers(tasks, this.store, exemptClosedIds);
     const taskSet = new Set(tasks.map((t) => t.id));
 
     // Group tasks by layer
@@ -797,7 +851,12 @@ export class FtDependencyView extends LitElement {
         if (rel.type !== RelationshipType.BLOCKED_BY) continue;
         if (!taskSet.has(rel.targetTaskId)) continue;
         const blocker = this.store.getTask(rel.targetTaskId);
-        if (!blocker || blocker.phase === TaskPhase.CLOSED) continue;
+        if (
+          !blocker ||
+          (blocker.phase === TaskPhase.CLOSED &&
+            !exemptClosedIds?.has(rel.targetTaskId))
+        )
+          continue;
         if (this.nodeMap.has(rel.targetTaskId) && this.nodeMap.has(task.id)) {
           this.layoutEdges.push({
             from: rel.targetTaskId,
