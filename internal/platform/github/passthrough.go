@@ -159,8 +159,16 @@ func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task {
 	}
 
 	if stateStr == "CLOSED" {
-		now := time.Now()
-		t.ClosedAt = &now
+		if issue.ClosedAt != nil {
+			closedAt := issue.ClosedAt.Time
+			t.ClosedAt = &closedAt
+		} else {
+			// Defensive fallback: if the GitHub API returns a null ClosedAt
+			// for a CLOSED issue (API race or legacy data), use UpdatedAt
+			// rather than leaving ClosedAt nil or fabricating time.Now().
+			fallback := issue.UpdatedAt.Time
+			t.ClosedAt = &fallback
+		}
 	}
 
 	return t

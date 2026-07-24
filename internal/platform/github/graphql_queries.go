@@ -19,6 +19,7 @@ type issueNode struct {
 	StateReason *githubv4.String
 	CreatedAt   githubv4.DateTime
 	UpdatedAt   githubv4.DateTime
+	ClosedAt    *githubv4.DateTime
 	URL         githubv4.URI
 
 	Labels struct {

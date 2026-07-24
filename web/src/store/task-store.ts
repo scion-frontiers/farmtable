@@ -1,5 +1,24 @@
 import type { Task, Change, TaskStage } from '../gen/types.js';
 
+/**
+ * Key-order-independent JSON stringify for deep equality checks.
+ * Standard JSON.stringify is sensitive to object key insertion order,
+ * which can vary between gRPC responses due to non-deterministic
+ * proto map serialization (e.g. google.protobuf.Struct fields).
+ */
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return String(value);
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return '[' + value.map(stableStringify).join(',') + ']';
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return '{' + keys
+    .map((k) => JSON.stringify(k) + ':' + stableStringify(obj[k]))
+    .join(',') + '}';
+}
+
 export class TaskStore extends EventTarget {
   private tasks = new Map<string, Task>();
   private _childMap = new Map<string, Task[]>();
@@ -97,8 +116,11 @@ export class TaskStore extends EventTarget {
     // Skip re-dispatch when the incoming task is identical to the stored one.
     // Bypass this check when _changes are provided (streaming events) since
     // those indicate a confirmed server-side mutation that listeners must process.
+    // Uses stableStringify (key-order-independent) instead of JSON.stringify
+    // because proto map fields (e.g. remoteData from google.protobuf.Struct)
+    // can arrive with non-deterministic key ordering between poll responses.
     const existing = this.tasks.get(task.id);
-    if (existing && !_changes && JSON.stringify(existing) === JSON.stringify(task)) {
+    if (existing && !_changes && stableStringify(existing) === stableStringify(task)) {
       return false;
     }
     // Maintain child map: remove old entry, add new one.
