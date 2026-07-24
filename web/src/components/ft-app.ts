@@ -143,6 +143,15 @@ export class FtApp extends LitElement {
   @state()
   private selectedTaskId: string | null = null;
 
+  /**
+   * Shared Solo (isolate) mode state — sticky across Tree/Dependency view
+   * switches. When true, the active view shows only the selected task and
+   * its relevant sub-graph (descendants for Tree View, directed reachable
+   * nodes for Dependency View). Cleared when selectedTaskId becomes null.
+   */
+  @state()
+  private isolateMode = false;
+
   @state()
   private connectionStatus: ConnectionStatus = 'disconnected';
 
@@ -429,9 +438,11 @@ export class FtApp extends LitElement {
           <ft-dependency-view
             .store=${this.taskStore}
             ?readOnly=${this.isReadOnly}
+            ?isolateMode=${this.isolateMode}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
             @dependency-drop=${this.onDependencyDrop}
+            @isolate-toggle=${this.onIsolateToggle}
           ></ft-dependency-view>
         `;
       case 'tree':
@@ -442,10 +453,12 @@ export class FtApp extends LitElement {
             .phaseFilter=${this.phaseFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
+            ?isolateMode=${this.isolateMode}
             .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
             @write-error=${this.onWriteError}
+            @isolate-toggle=${this.onIsolateToggle}
           ></ft-tree-view>
         `;
       case 'kanban':
@@ -757,8 +770,17 @@ export class FtApp extends LitElement {
     this.showWriteError(e.detail.error);
   }
 
+  private onIsolateToggle(e: CustomEvent) {
+    this.isolateMode = e.detail.isolateMode as boolean;
+    this.syncSoloToUrl();
+  }
+
   private onInspectorClose() {
     this.selectedTaskId = null;
+    if (this.isolateMode) {
+      this.isolateMode = false;
+      this.syncSoloToUrl();
+    }
     this.syncTaskToUrl();
     this.hideDimOverlay();
   }
@@ -777,6 +799,7 @@ export class FtApp extends LitElement {
     const collectionId = params.get('collection');
     const viewParam = params.get('view');
     const taskParam = params.get('task');
+    const soloParam = params.get('solo');
     const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
     // When the URL has a ?task= deep-link but no explicit ?view= param,
     // default to kanban (which supports task selection/highlighting) instead
@@ -793,6 +816,10 @@ export class FtApp extends LitElement {
     // Store pending task ID from URL — it will be applied once the task
     // store finishes its initial snapshot (tasks may not be loaded yet).
     this._pendingTaskId = taskParam || null;
+
+    // Restore Solo mode from URL. Solo requires a task to be selected,
+    // so it only takes effect when there is a pending task ID.
+    this.isolateMode = soloParam === '1' && !!this._pendingTaskId;
 
     this.routeView = 'validating';
     this.collectionErrorMessage = '';
@@ -818,6 +845,7 @@ export class FtApp extends LitElement {
     this.currentCollectionId = null;
     this.taskStore.clear();
     this.selectedTaskId = null;
+    this.isolateMode = false;
     this.users = [];
     this.currentCollection = undefined;
     this.connectionStatus = 'disconnected';
@@ -953,8 +981,9 @@ export class FtApp extends LitElement {
     const collectionId = e.detail.collectionId as string;
     const url = new URL(window.location.href);
     url.searchParams.set('collection', collectionId);
-    // Clear task selection — task IDs are scoped to a collection.
+    // Clear task selection and Solo — task IDs are scoped to a collection.
     url.searchParams.delete('task');
+    url.searchParams.delete('solo');
     window.history.pushState({}, '', url);
     void this.applyRoute();
   };
@@ -968,6 +997,7 @@ export class FtApp extends LitElement {
     url.searchParams.delete('collection');
     url.searchParams.delete('view');
     url.searchParams.delete('task');
+    url.searchParams.delete('solo');
     window.history.replaceState({}, '', url);
   }
 
@@ -982,6 +1012,20 @@ export class FtApp extends LitElement {
       url.searchParams.set('task', this.selectedTaskId);
     } else {
       url.searchParams.delete('task');
+    }
+    window.history.replaceState({}, '', url);
+  }
+
+  /**
+   * Update the URL to reflect the current Solo (isolate) mode state.
+   * When Solo is active, adds `&solo=1` to make the state deep-linkable.
+   */
+  private syncSoloToUrl() {
+    const url = new URL(window.location.href);
+    if (this.isolateMode) {
+      url.searchParams.set('solo', '1');
+    } else {
+      url.searchParams.delete('solo');
     }
     window.history.replaceState({}, '', url);
   }

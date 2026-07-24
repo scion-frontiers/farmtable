@@ -111,7 +111,9 @@ export class FtTreeView extends LitElement {
   private storeCtrl!: TaskStoreController;
 
   @state() private focusRootId: string | null = null;
-  @state() private isolateMode = false;
+
+  @property({ type: Boolean })
+  isolateMode = false;
   @state() private maxDepth = -1;
   @state() private panX = 0;
   @state() private panY = 0;
@@ -216,22 +218,6 @@ export class FtTreeView extends LitElement {
   }
 
   updated(changedProps: PropertyValues<this>) {
-    // Auto-disable isolate mode when selection clears so the user is not
-    // stuck with an active isolate and a disabled toggle button.
-    // Note: we do NOT clear lastStructureKey here — the structureKey()
-    // method already encodes both isolateMode and selectedTaskId, so any
-    // change to either naturally produces a different key that causes
-    // runLayout() to recompute.  Clearing it redundantly after render()
-    // already set it would force an unnecessary extra layout cycle and
-    // could interact badly with concurrent store updates (poll/SSE).
-    if (
-      changedProps.has('selectedTaskId') &&
-      !this.selectedTaskId &&
-      this.isolateMode
-    ) {
-      this.isolateMode = false;
-    }
-
     // When selectedTaskId changes, center the viewport on the selected node
     // instead of centering the entire graph.
     if (changedProps.has('selectedTaskId') && this.selectedTaskId) {
@@ -569,11 +555,6 @@ export class FtTreeView extends LitElement {
     this.lastStructureKey = '';
   }
 
-  private onIsolateToggle(e: CustomEvent) {
-    this.isolateMode = e.detail.isolateMode;
-    this.lastStructureKey = '';
-  }
-
   // ── Collapse / Expand ──
 
   private initExpandedNodes() {
@@ -775,7 +756,6 @@ export class FtTreeView extends LitElement {
         .maxDepth=${this.maxDepth}
         @focus-change=${this.onFocusChange}
         @level-change=${this.onLevelChange}
-        @isolate-toggle=${this.onIsolateToggle}
       ></ft-hierarchy-nav>
 
       <div class="canvas-container">
