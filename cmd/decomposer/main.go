@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/farmtable-io/farmtable/internal/decomposer"
+	"github.com/farmtable-io/farmtable/internal/decomposer/prompts"
 	"github.com/spf13/cobra"
 )
 
@@ -25,21 +26,23 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	var (
-		collection  string
-		server      string
-		token       string
-		iapAudience string
-		provider    string
-		model       string
-		apiKey      string
-		project     string
-		location    string
-		promptFile  string
-		maxDepth    int
-		concurrency int
-		verbose     bool
-		resume      bool
-		rootTask    string
+		collection    string
+		server        string
+		token         string
+		iapAudience   string
+		provider      string
+		model         string
+		apiKey        string
+		project       string
+		location      string
+		promptFile    string
+		promptVariant string
+		listPrompts   bool
+		maxDepth      int
+		concurrency   int
+		verbose       bool
+		resume        bool
+		rootTask      string
 	)
 
 	cmd := &cobra.Command{
@@ -57,21 +60,39 @@ the existing tree and decomposing only unfinished branches.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// --list-prompts: print available variants and exit.
+			if listPrompts {
+				for _, v := range prompts.List() {
+					fmt.Printf("%-20s %-6s %s\n", v.Name, v.Version, v.Description)
+				}
+				return nil
+			}
+
+			// Validate required flags that --list-prompts can bypass.
+			if collection == "" {
+				return fmt.Errorf("required flag \"collection\" not set")
+			}
+
+			// Resolve system prompt from flags.
+			systemPrompt, err := resolveSystemPrompt(promptFile, promptVariant)
+			if err != nil {
+				return err
+			}
+
 			if resume {
 				return runResume(collection, server, token, iapAudience, provider, model, apiKey,
-					project, location, promptFile, rootTask, maxDepth, concurrency, verbose)
+					project, location, systemPrompt, rootTask, maxDepth, concurrency, verbose)
 			}
 			if len(args) == 0 {
 				return fmt.Errorf("requires an input file argument (or \"-\" for stdin)")
 			}
 			return run(args[0], collection, server, token, iapAudience, provider, model, apiKey,
-				project, location, promptFile, maxDepth, concurrency, verbose)
+				project, location, systemPrompt, maxDepth, concurrency, verbose)
 		},
 	}
 
-	// Required flags.
+	// Required flags (collection is validated in RunE so --list-prompts can bypass it).
 	cmd.Flags().StringVar(&collection, "collection", "", "Collection ID or name (required, auto-creates if name not found)")
-	cmd.MarkFlagRequired("collection")
 
 	// Farmtable connection.
 	cmd.Flags().StringVar(&server, "server", "", "Farmtable server address (or FARMTABLE_SERVER env)")
@@ -85,6 +106,9 @@ the existing tree and decomposing only unfinished branches.`,
 	cmd.Flags().StringVar(&project, "project", "", "Google Cloud project (or GOOGLE_CLOUD_PROJECT env; for genai provider)")
 	cmd.Flags().StringVar(&location, "location", "", "Google Cloud location (or GOOGLE_CLOUD_LOCATION env; default: us-central1)")
 	cmd.Flags().StringVar(&promptFile, "prompt-file", "", "Path to custom system prompt file (overrides embedded default)")
+	cmd.Flags().StringVar(&promptVariant, "prompt-variant", "", `Named prompt variant (e.g. "constrained", "default@v1"); use --list-prompts to see options`)
+	cmd.Flags().BoolVar(&listPrompts, "list-prompts", false, "List available prompt variants and exit")
+	cmd.MarkFlagsMutuallyExclusive("prompt-file", "prompt-variant")
 
 	// Engine.
 	cmd.Flags().IntVar(&maxDepth, "max-depth", 3, "Maximum recursion depth")
@@ -99,7 +123,7 @@ the existing tree and decomposing only unfinished branches.`,
 }
 
 func run(inputArg, collection, server, token, iapAudience, provider, model, apiKey,
-	project, location, promptFile string, maxDepth, concurrency int, verbose bool) error {
+	project, location, systemPrompt string, maxDepth, concurrency int, verbose bool) error {
 
 	// Read input.
 	inputText, err := readInput(inputArg)
@@ -108,16 +132,6 @@ func run(inputArg, collection, server, token, iapAudience, provider, model, apiK
 	}
 	if strings.TrimSpace(inputText) == "" {
 		return fmt.Errorf("input is empty")
-	}
-
-	// Load custom system prompt if specified.
-	var systemPrompt string
-	if promptFile != "" {
-		data, err := os.ReadFile(promptFile)
-		if err != nil {
-			return fmt.Errorf("reading prompt file: %w", err)
-		}
-		systemPrompt = string(data)
 	}
 
 	// Create LLM client.
@@ -192,20 +206,10 @@ func run(inputArg, collection, server, token, iapAudience, provider, model, apiK
 }
 
 func runResume(collection, server, token, iapAudience, provider, model, apiKey,
-	project, location, promptFile, rootTask string, maxDepth, concurrency int, verbose bool) error {
+	project, location, systemPrompt, rootTask string, maxDepth, concurrency int, verbose bool) error {
 
 	if rootTask == "" {
 		return fmt.Errorf("--root-task is required when using --resume")
-	}
-
-	// Load custom system prompt if specified.
-	var systemPrompt string
-	if promptFile != "" {
-		data, err := os.ReadFile(promptFile)
-		if err != nil {
-			return fmt.Errorf("reading prompt file: %w", err)
-		}
-		systemPrompt = string(data)
 	}
 
 	// Create LLM client.
@@ -299,6 +303,28 @@ func printResumeSummary(collectionID, rootTaskID string, engine *decomposer.Engi
 			fmt.Printf("Dashboard:        https://%s/?collection=%s\n", host, collectionID)
 		}
 	}
+}
+
+// resolveSystemPrompt returns the system prompt text based on CLI flags.
+// If promptFile is set, the file contents are returned.
+// If promptVariant is set, the named variant is looked up from the registry.
+// If neither is set, an empty string is returned (BuildPrompt will use the default).
+func resolveSystemPrompt(promptFile, promptVariant string) (string, error) {
+	if promptFile != "" {
+		data, err := os.ReadFile(promptFile)
+		if err != nil {
+			return "", fmt.Errorf("reading prompt file: %w", err)
+		}
+		return string(data), nil
+	}
+	if promptVariant != "" {
+		v, err := prompts.Get(promptVariant)
+		if err != nil {
+			return "", fmt.Errorf("resolving prompt variant: %w", err)
+		}
+		return v.Text, nil
+	}
+	return "", nil
 }
 
 func readInput(arg string) (string, error) {
