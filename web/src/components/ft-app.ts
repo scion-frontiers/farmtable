@@ -152,6 +152,14 @@ export class FtApp extends LitElement {
   @state()
   private isolateMode = false;
 
+  /**
+   * Layout orientation for the parent-child Tree View.
+   * 'TB' = top-to-bottom (default), 'LR' = left-to-right.
+   * Persisted to the URL as `?layoutdir=LR` (omitted when default 'TB').
+   */
+  @state()
+  private layoutOrientation: 'TB' | 'LR' = 'TB';
+
   @state()
   private connectionStatus: ConnectionStatus = 'disconnected';
 
@@ -346,6 +354,7 @@ export class FtApp extends LitElement {
         .collectionId=${this.currentCollectionId ?? ''}
         .phaseFilter=${this.phaseFilter}
         .assigneeFilter=${this.assigneeFilter}
+        .layoutOrientation=${this.layoutOrientation}
         ?isPolling=${this.isPolling}
         .lastRefreshed=${this.lastRefreshed}
         ?isRefreshing=${this.isRefreshing}
@@ -454,11 +463,13 @@ export class FtApp extends LitElement {
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             ?isolateMode=${this.isolateMode}
+            .layoutOrientation=${this.layoutOrientation}
             .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
             @write-error=${this.onWriteError}
             @isolate-toggle=${this.onIsolateToggle}
+            @layout-orientation-toggle=${this.onLayoutOrientationToggle}
           ></ft-tree-view>
         `;
       case 'kanban':
@@ -775,6 +786,11 @@ export class FtApp extends LitElement {
     this.syncSoloToUrl();
   }
 
+  private onLayoutOrientationToggle(e: CustomEvent) {
+    this.layoutOrientation = e.detail.layoutOrientation as 'TB' | 'LR';
+    this.syncLayoutDirToUrl();
+  }
+
   private onInspectorClose() {
     this.selectedTaskId = null;
     if (this.isolateMode) {
@@ -800,6 +816,7 @@ export class FtApp extends LitElement {
     const viewParam = params.get('view');
     const taskParam = params.get('task');
     const soloParam = params.get('solo');
+    const layoutdirParam = params.get('layoutdir');
     const VALID_VIEWS = new Set<string>(['kanban', 'tree', 'dashboard', 'ready-queue', 'dependencies']);
     // When the URL has a ?task= deep-link but no explicit ?view= param,
     // default to kanban (which supports task selection/highlighting) instead
@@ -820,6 +837,9 @@ export class FtApp extends LitElement {
     // Restore Solo mode from URL. Solo requires a task to be selected,
     // so it only takes effect when there is a pending task ID.
     this.isolateMode = soloParam === '1' && !!this._pendingTaskId;
+
+    // Restore tree layout orientation from URL.
+    this.layoutOrientation = layoutdirParam === 'LR' ? 'LR' : 'TB';
 
     this.routeView = 'validating';
     this.collectionErrorMessage = '';
@@ -981,9 +1001,10 @@ export class FtApp extends LitElement {
     const collectionId = e.detail.collectionId as string;
     const url = new URL(window.location.href);
     url.searchParams.set('collection', collectionId);
-    // Clear task selection and Solo — task IDs are scoped to a collection.
+    // Clear task selection, Solo, and layout orientation — task IDs are scoped to a collection.
     url.searchParams.delete('task');
     url.searchParams.delete('solo');
+    url.searchParams.delete('layoutdir');
     window.history.pushState({}, '', url);
     void this.applyRoute();
   };
@@ -998,6 +1019,7 @@ export class FtApp extends LitElement {
     url.searchParams.delete('view');
     url.searchParams.delete('task');
     url.searchParams.delete('solo');
+    url.searchParams.delete('layoutdir');
     window.history.replaceState({}, '', url);
   }
 
@@ -1026,6 +1048,21 @@ export class FtApp extends LitElement {
       url.searchParams.set('solo', '1');
     } else {
       url.searchParams.delete('solo');
+    }
+    window.history.replaceState({}, '', url);
+  }
+
+  /**
+   * Update the URL to reflect the current tree layout orientation.
+   * Adds `&layoutdir=LR` when left-to-right; omits the param when
+   * at the default (TB), consistent with how `solo` is handled.
+   */
+  private syncLayoutDirToUrl() {
+    const url = new URL(window.location.href);
+    if (this.layoutOrientation === 'LR') {
+      url.searchParams.set('layoutdir', 'LR');
+    } else {
+      url.searchParams.delete('layoutdir');
     }
     window.history.replaceState({}, '', url);
   }

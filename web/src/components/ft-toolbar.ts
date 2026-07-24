@@ -194,6 +194,10 @@ export class FtToolbar extends LitElement {
   @property({ attribute: false })
   sessionUser: { userId: string; userName: string; email?: string; userType?: string } | null = null;
 
+  /** Layout orientation for the Tree View: 'TB' (top-to-bottom) or 'LR' (left-to-right). */
+  @property({ attribute: false })
+  layoutOrientation: 'TB' | 'LR' = 'TB';
+
   @state()
   private isDark = document.documentElement.classList.contains('sl-theme-dark');
 
