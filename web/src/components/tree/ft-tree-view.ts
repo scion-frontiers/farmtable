@@ -108,9 +108,9 @@ export class FtTreeView extends LitElement {
   @property({ attribute: false })
   capabilities?: CollectionCapabilities;
 
-  /** Tree layout orientation: 'TB' (top-to-bottom, default) or 'LR' (left-to-right). */
+  /** Tree layout orientation: 'LR' (left-to-right, default) or 'TB' (top-to-bottom). */
   @property({ attribute: false })
-  layoutOrientation: 'TB' | 'LR' = 'TB';
+  layoutOrientation: 'TB' | 'LR' = 'LR';
 
   private storeCtrl!: TaskStoreController;
 
