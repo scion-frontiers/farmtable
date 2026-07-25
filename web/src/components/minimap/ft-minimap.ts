@@ -49,6 +49,19 @@ function defaultEdgePath(
 const MINIMAP_SIZE = 180;
 /** Padding inside the minimap around the graph content. */
 const MINIMAP_PAD = 8;
+/**
+ * Damping factor applied to minimap frame drag deltas.
+ *
+ * Without damping, 1 px of mouse movement in the minimap translates 1:1 into
+ * graph-space pan, which feels extremely sensitive on large graphs because the
+ * minimap's viewBox maps a huge graph extent into a tiny 180 px container.
+ *
+ * A value of 0.35 means 1 px of mouse movement only produces 0.35 px of
+ * graph-space pan, making the frame easier to position precisely.
+ *
+ * Applies only to frame dragging — click-to-jump stays 1:1.
+ */
+const MINIMAP_DRAG_DAMPING = 0.35;
 
 @customElement('ft-minimap')
 export class FtMinimap extends LitElement {
@@ -243,8 +256,8 @@ export class FtMinimap extends LitElement {
     const dgx = graphCoords.gx - this.dragStartGraphX;
     const dgy = graphCoords.gy - this.dragStartGraphY;
 
-    const newPanX = this.dragStartPanX + dgx;
-    const newPanY = this.dragStartPanY + dgy;
+    const newPanX = this.dragStartPanX + dgx * MINIMAP_DRAG_DAMPING;
+    const newPanY = this.dragStartPanY + dgy * MINIMAP_DRAG_DAMPING;
 
     this.dispatchEvent(
       new CustomEvent('minimap-pan', {
