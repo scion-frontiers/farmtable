@@ -239,7 +239,11 @@ func issueStateToPhaseStage(state string) (task.Phase, task.Stage) {
 	case "closed":
 		return task.PhaseClosed, task.StageCompleted
 	default:
-		return task.PhaseOpen, task.StageTriage
+		// StageBacklog, not StageTriage: open issues without label-based stage
+		// mapping are treated as accepted-but-unprioritized. StageTriage + the
+		// auth-stage4 accept gate blocks ClaimTask for all roles, so triage as a
+		// default would brick the mirrored sync flow.
+		return task.PhaseOpen, task.StageBacklog
 	}
 }
 

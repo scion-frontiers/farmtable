@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -13,6 +14,15 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+)
+
+// Sentinel errors for scope-merge guard rails. Scripts driving bulk token
+// migrations can branch on the error code to auto-retry legacy tokens with
+// --set-scopes while hard-failing on genuine errors.
+var (
+	errUnscopedToken = errors.New("unscoped token")
+	errWildcardToken = errors.New("wildcard token")
+	errEmptyScopes   = errors.New("empty scope set")
 )
 
 // mergeScopes computes a new scope set from the token's current scopes and
@@ -35,17 +45,19 @@ func mergeScopes(current, add, remove, set []string) ([]string, error) {
 	// Detect legacy wildcard tokens (nil/empty scope list = full access).
 	if len(current) == 0 {
 		return nil, fmt.Errorf(
-			"token has no stored scopes (legacy wildcard); --add-scope/--remove-scope " +
-				"would silently restrict it. Use --set-scopes to state the full intended scope set")
+			"%w: token has no stored scopes (legacy wildcard); --add-scope/--remove-scope "+
+				"would silently restrict it. Use --set-scopes to state the full intended scope set",
+			errUnscopedToken)
 	}
 
 	// Detect explicit wildcard ["*"] — removing individual scopes is a no-op.
 	if len(remove) > 0 {
 		for _, s := range current {
-			if s == "*" {
+			if s == server.ScopeWildcard {
 				return nil, fmt.Errorf(
-					"token holds the wildcard scope \"*\"; removing individual scopes has no effect. " +
-						"Use --set-scopes to replace the wildcard with an explicit scope list")
+					"%w: token holds the wildcard scope \"*\"; removing individual scopes has no effect. "+
+						"Use --set-scopes to replace the wildcard with an explicit scope list",
+					errWildcardToken)
 			}
 		}
 	}
@@ -65,9 +77,10 @@ func mergeScopes(current, add, remove, set []string) ([]string, error) {
 	// Refuse to write an empty scope set — it would be interpreted as wildcard.
 	if len(scopeSet) == 0 {
 		return nil, fmt.Errorf(
-			"refusing to write an empty scope set: an empty scope list is interpreted " +
-				"as wildcard (full access). Use --set-scopes to state the full intended " +
-				"scope set, or ft token revoke to disable the token")
+			"%w: an empty scope list is interpreted as wildcard (full access). "+
+				"Use --set-scopes to state the full intended scope set, or "+
+				"ft token revoke to disable the token",
+			errEmptyScopes)
 	}
 
 	result := make([]string, 0, len(scopeSet))
@@ -296,6 +309,15 @@ scopes, or --set-scopes to replace the entire scope set.  --add-scope and
 --remove-scope can be combined in a single call; --set-scopes is mutually
 exclusive with both.
 
+Guard rails:
+  UNSCOPED_TOKEN  Token has no stored scopes (legacy wildcard). --add-scope and
+                  --remove-scope would silently restrict a full-access token.
+                  Use --set-scopes to state the full intended scope set.
+  WILDCARD_TOKEN  Token holds the "*" scope. --remove-scope has no effect on
+                  individual scopes. Use --set-scopes to replace the wildcard.
+  EMPTY_SCOPES    The resulting scope set would be empty, which is interpreted
+                  as wildcard (full access). Use --set-scopes or ft token revoke.
+
 Examples:
 
   # Grant task:close to an existing agent token (rollout scenario)
@@ -305,7 +327,10 @@ Examples:
   ft token update <id> --remove-scope task:write --add-scope task:accept --add-scope task:close
 
   # Replace the scope set entirely
-  ft token update <id> --set-scopes task:read,task:write,task:claim`,
+  ft token update <id> --set-scopes task:read,task:write,task:claim
+
+  # Legacy/wildcard tokens require --set-scopes (explicit intent)
+  ft token update <id> --set-scopes task:read,task:write,task:claim,task:close`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tokenID, err := uuid.Parse(args[0])
@@ -336,7 +361,16 @@ Examples:
 
 			newScopes, err := mergeScopes(tok.Scopes, addScopes, removeScopes, setScopes)
 			if err != nil {
-				return exitError(ExitValidation, "SCOPE_MERGE_ERROR", err.Error())
+				code := "SCOPE_MERGE_ERROR"
+				switch {
+				case errors.Is(err, errUnscopedToken):
+					code = "UNSCOPED_TOKEN"
+				case errors.Is(err, errWildcardToken):
+					code = "WILDCARD_TOKEN"
+				case errors.Is(err, errEmptyScopes):
+					code = "EMPTY_SCOPES"
+				}
+				return exitError(ExitValidation, code, err.Error())
 			}
 
 			// Validate all scopes before writing.
@@ -352,7 +386,7 @@ Examples:
 			output := resolveOutput(globals.output)
 			switch output {
 			case "quiet":
-				fmt.Fprintln(os.Stdout, strings.Join(updated.Scopes, ","))
+				printQuiet(updated.ID.String())
 			default:
 				m := map[string]interface{}{
 					"id":         updated.ID.String(),
