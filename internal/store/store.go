@@ -296,8 +296,10 @@ type Store interface {
 
 	// API Tokens
 	CreateAPIToken(ctx context.Context, p CreateAPITokenParams) (*ent.ApiToken, string, error)
+	GetAPIToken(ctx context.Context, id uuid.UUID) (*ent.ApiToken, error)
 	LookupToken(ctx context.Context, tokenHash string) (*ent.ApiToken, error)
 	ListAPITokens(ctx context.Context, p ListAPITokensParams) ([]*ent.ApiToken, int, error)
+	UpdateAPITokenScopes(ctx context.Context, id uuid.UUID, scopes []string) (*ent.ApiToken, error)
 	RevokeAPIToken(ctx context.Context, id uuid.UUID) error
 	UpdateTokenLastUsed(ctx context.Context, id uuid.UUID) error
 

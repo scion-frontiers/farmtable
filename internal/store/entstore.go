@@ -1406,6 +1406,20 @@ func (s *EntStore) CreateAPIToken(ctx context.Context, p CreateAPITokenParams) (
 	return tok, rawToken, nil
 }
 
+func (s *EntStore) GetAPIToken(ctx context.Context, id uuid.UUID) (*ent.ApiToken, error) {
+	tok, err := s.client.ApiToken.Query().
+		Where(apitoken.IDEQ(id)).
+		WithUser().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("getting token: %w", err)
+	}
+	return tok, nil
+}
+
 func (s *EntStore) LookupToken(ctx context.Context, tokenHash string) (*ent.ApiToken, error) {
 	tok, err := s.client.ApiToken.Query().
 		Where(apitoken.TokenHashEQ(tokenHash)).
@@ -1437,6 +1451,19 @@ func (s *EntStore) ListAPITokens(ctx context.Context, p ListAPITokensParams) ([]
 		return nil, 0, fmt.Errorf("listing tokens: %w", err)
 	}
 	return tokens, total, nil
+}
+
+func (s *EntStore) UpdateAPITokenScopes(ctx context.Context, id uuid.UUID, scopes []string) (*ent.ApiToken, error) {
+	tok, err := s.client.ApiToken.UpdateOneID(id).
+		SetScopes(scopes).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("updating token scopes: %w", err)
+	}
+	return tok, nil
 }
 
 func (s *EntStore) RevokeAPIToken(ctx context.Context, id uuid.UUID) error {

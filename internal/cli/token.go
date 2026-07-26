@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -14,6 +15,69 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// mergeScopes computes a new scope set from the token's current scopes and
+// the operator's add/remove/set instructions. It rejects operations that
+// would silently escalate or demote a token:
+//   - Removing all scopes would leave nil/empty, which is interpreted as
+//     wildcard (full access) — refuse rather than silently escalate.
+//   - Adding/removing on a nil/empty-scope (legacy wildcard) token would
+//     silently restrict it — require --set-scopes for an explicit intent.
+//   - Removing from a ["*"]-scoped token is a no-op that reports success
+//     but changes nothing — refuse rather than silently lie.
+func mergeScopes(current, add, remove, set []string) ([]string, error) {
+	if len(set) > 0 {
+		result := make([]string, len(set))
+		copy(result, set)
+		sort.Strings(result)
+		return result, nil
+	}
+
+	// Detect legacy wildcard tokens (nil/empty scope list = full access).
+	if len(current) == 0 {
+		return nil, fmt.Errorf(
+			"token has no stored scopes (legacy wildcard); --add-scope/--remove-scope " +
+				"would silently restrict it. Use --set-scopes to state the full intended scope set")
+	}
+
+	// Detect explicit wildcard ["*"] — removing individual scopes is a no-op.
+	if len(remove) > 0 {
+		for _, s := range current {
+			if s == "*" {
+				return nil, fmt.Errorf(
+					"token holds the wildcard scope \"*\"; removing individual scopes has no effect. " +
+						"Use --set-scopes to replace the wildcard with an explicit scope list")
+			}
+		}
+	}
+
+	// Build new scope set from current + add - remove.
+	scopeSet := make(map[string]bool, len(current))
+	for _, s := range current {
+		scopeSet[s] = true
+	}
+	for _, s := range add {
+		scopeSet[s] = true
+	}
+	for _, s := range remove {
+		delete(scopeSet, s)
+	}
+
+	// Refuse to write an empty scope set — it would be interpreted as wildcard.
+	if len(scopeSet) == 0 {
+		return nil, fmt.Errorf(
+			"refusing to write an empty scope set: an empty scope list is interpreted " +
+				"as wildcard (full access). Use --set-scopes to state the full intended " +
+				"scope set, or ft token revoke to disable the token")
+	}
+
+	result := make([]string, 0, len(scopeSet))
+	for s := range scopeSet {
+		result = append(result, s)
+	}
+	sort.Strings(result)
+	return result, nil
+}
+
 func newTokenCmd(globals *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token",
@@ -22,6 +86,7 @@ func newTokenCmd(globals *globalFlags) *cobra.Command {
 	cmd.AddCommand(
 		newTokenCreateCmd(globals),
 		newTokenListCmd(globals),
+		newTokenUpdateCmd(globals),
 		newTokenRevokeCmd(globals),
 	)
 	return cmd
@@ -215,6 +280,95 @@ func newTokenListCmd(globals *globalFlags) *cobra.Command {
 			return nil
 		},
 	}
+	return cmd
+}
+
+func newTokenUpdateCmd(globals *globalFlags) *cobra.Command {
+	var addScopes, removeScopes, setScopes []string
+
+	cmd := &cobra.Command{
+		Use:   "update <token-id>",
+		Short: "Update scopes on an existing API token",
+		Long: `Modify the scope set on an existing API token.
+
+Use --add-scope to grant additional scopes, --remove-scope to revoke specific
+scopes, or --set-scopes to replace the entire scope set.  --add-scope and
+--remove-scope can be combined in a single call; --set-scopes is mutually
+exclusive with both.
+
+Examples:
+
+  # Grant task:close to an existing agent token (rollout scenario)
+  ft token update <id> --add-scope task:close
+
+  # Remove task:write and add task:accept + task:close
+  ft token update <id> --remove-scope task:write --add-scope task:accept --add-scope task:close
+
+  # Replace the scope set entirely
+  ft token update <id> --set-scopes task:read,task:write,task:claim`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			tokenID, err := uuid.Parse(args[0])
+			if err != nil {
+				return exitError(ExitValidation, "INVALID_TOKEN_ID", fmt.Sprintf("invalid token ID: %v", err))
+			}
+
+			if len(setScopes) > 0 && (len(addScopes) > 0 || len(removeScopes) > 0) {
+				return exitError(ExitValidation, "CONFLICTING_FLAGS", "--set-scopes cannot be combined with --add-scope or --remove-scope")
+			}
+			if len(addScopes) == 0 && len(removeScopes) == 0 && len(setScopes) == 0 {
+				return exitError(ExitValidation, "NO_CHANGES", "at least one of --add-scope, --remove-scope, or --set-scopes is required")
+			}
+
+			s, cleanup, err := openDirectStore()
+			if err != nil {
+				return exitError(ExitServerUnavail, "STORE_ERROR", fmt.Sprintf("failed to open store: %v", err))
+			}
+			defer cleanup()
+
+			ctx := context.Background()
+
+			// Get current token to read existing scopes.
+			tok, err := s.GetAPIToken(ctx, tokenID)
+			if err != nil {
+				return exitError(ExitGeneral, "TOKEN_NOT_FOUND", fmt.Sprintf("looking up token: %v", err))
+			}
+
+			newScopes, err := mergeScopes(tok.Scopes, addScopes, removeScopes, setScopes)
+			if err != nil {
+				return exitError(ExitValidation, "SCOPE_MERGE_ERROR", err.Error())
+			}
+
+			// Validate all scopes before writing.
+			if err := server.ValidateScopes(newScopes); err != nil {
+				return exitError(ExitValidation, "INVALID_SCOPE", err.Error())
+			}
+
+			updated, err := s.UpdateAPITokenScopes(ctx, tokenID, newScopes)
+			if err != nil {
+				return exitError(ExitGeneral, "UPDATE_FAILED", fmt.Sprintf("updating token scopes: %v", err))
+			}
+
+			output := resolveOutput(globals.output)
+			switch output {
+			case "quiet":
+				fmt.Fprintln(os.Stdout, strings.Join(updated.Scopes, ","))
+			default:
+				m := map[string]interface{}{
+					"id":         updated.ID.String(),
+					"name":       updated.Name,
+					"old_scopes": tok.Scopes,
+					"new_scopes": updated.Scopes,
+				}
+				printJSON(m)
+				fmt.Fprintf(os.Stderr, "\nToken %s scopes updated.\n", updated.ID.String()[:8])
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringSliceVar(&addScopes, "add-scope", nil, "Scope to add (repeatable)")
+	cmd.Flags().StringSliceVar(&removeScopes, "remove-scope", nil, "Scope to remove (repeatable)")
+	cmd.Flags().StringSliceVar(&setScopes, "set-scopes", nil, "Replace all scopes (comma-separated)")
 	return cmd
 }
 

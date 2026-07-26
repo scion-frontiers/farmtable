@@ -411,6 +411,14 @@ func (m *MultiStore) ListAPITokens(ctx context.Context, p ListAPITokensParams) (
 	return m.primary.ListAPITokens(ctx, p)
 }
 
+func (m *MultiStore) GetAPIToken(ctx context.Context, id uuid.UUID) (*ent.ApiToken, error) {
+	return m.primary.GetAPIToken(ctx, id)
+}
+
+func (m *MultiStore) UpdateAPITokenScopes(ctx context.Context, id uuid.UUID, scopes []string) (*ent.ApiToken, error) {
+	return m.primary.UpdateAPITokenScopes(ctx, id, scopes)
+}
+
 func (m *MultiStore) RevokeAPIToken(ctx context.Context, id uuid.UUID) error {
 	return m.primary.RevokeAPIToken(ctx, id)
 }
