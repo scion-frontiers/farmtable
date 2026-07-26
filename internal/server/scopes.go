@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -142,6 +143,13 @@ func DefaultScopesForUserType(userType string) []string {
 	case "service_account":
 		return []string{ScopeWildcard}
 	default:
+		// Unrecognized user types get wildcard for backward compatibility with
+		// tokens issued before the type vocabulary was formalized. Log a warning
+		// so operator typos like "reviewr" that would silently grant full admin
+		// instead of the intended restricted scope set are visible in logs.
+		if userType != "" {
+			log.Printf("WARNING: unrecognized user type %q in DefaultScopesForUserType — granting wildcard scopes (backward compat)", userType)
+		}
 		return nil // nil = wildcard (backward compatible)
 	}
 }
