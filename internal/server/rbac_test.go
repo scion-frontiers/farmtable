@@ -684,6 +684,101 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 	}
 }
 
+// Parking a task in an on-hold stage must not launder it out of triage: with
+// only task:write an agent could otherwise do triage → blocked → ready → claim
+// and never pass the accept gate.
+func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	triaged := createLifecycleTask(t, client, adminCtx, collID, "launder me", nil)
+
+	// Hop 1 of the laundering path is refused, so the rest is unreachable.
+	for _, onHold := range []pb.TaskStage{
+		pb.TaskStage_TASK_STAGE_BLOCKED,
+		pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT,
+		pb.TaskStage_TASK_STAGE_DEFERRED,
+		pb.TaskStage_TASK_STAGE_SCHEDULED,
+	} {
+		_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+			Id:    triaged.GetId(),
+			Stage: stageProtoPtr(onHold),
+		})
+		if err == nil {
+			t.Fatalf("agent token should not be able to move triage → %v", onHold)
+		}
+		assertPermissionDenied(t, err, "UpdateTask triage → "+onHold.String())
+	}
+
+	// The task never left triage, so ClaimTask still hits the accept gate.
+	resp, err := client.GetTask(adminCtx, &pb.GetTaskRequest{Id: triaged.GetId()})
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	if resp.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_TRIAGE {
+		t.Fatalf("stage = %v, want TRIAGE", resp.GetTask().GetStage())
+	}
+	_, err = client.ClaimTask(agentCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
+	assertFailedPrecondition(t, err, "ClaimTask after failed laundering")
+}
+
+// CreateTask's explicit stage carries the same privilege as transitioning a
+// freshly created task there: an agent cannot skip the accept gate by creating
+// work directly in an accepted stage.
+func TestScopedToken_AgentCannotCreateInReadyStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+
+	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
+		Name:         "born accepted",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to create a task directly in ready")
+	}
+	assertPermissionDenied(t, err, "CreateTask stage=READY")
+}
+
+// Creating directly in a terminal stage is a close and needs task:close.
+func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+
+	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
+		Name:         "born closed",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_COMPLETED),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to create a task directly in completed")
+	}
+	assertPermissionDenied(t, err, "CreateTask stage=COMPLETED")
+}
+
+// A reviewer holds task:accept, so creating in an accepted stage is allowed.
+func TestScopedToken_ReviewerCanCreateInReadyStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
+		server.DefaultScopesForUserType("reviewer"), nil)
+
+	created, err := client.CreateTask(authCtx(reviewerToken), &pb.CreateTaskRequest{
+		Name:         "reviewer created",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+	})
+	if err != nil {
+		t.Fatalf("reviewer token should be able to create a task in ready: %v", err)
+	}
+	if created.GetStage() != pb.TaskStage_TASK_STAGE_READY {
+		t.Errorf("stage = %v, want READY", created.GetStage())
+	}
+}
+
 // An agent-scoped token has task:write but not task:close.
 func TestScopedToken_AgentCannotClose(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)

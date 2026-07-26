@@ -112,6 +112,13 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 			return nil, err
 		}
 		stage = convert.StageFromProto(*req.Stage)
+		// Creating a task directly in a non-default stage is the same privilege
+		// as creating it in triage and transitioning it there.
+		if required := TransitionScope(string(task.StageTriage), string(stage)); required != ScopeTaskWrite {
+			if err := RequireScope(ctx, required); err != nil {
+				return nil, err
+			}
+		}
 		phase = phaseForStage(stage)
 	}
 
@@ -680,7 +687,7 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 	}
 	if existing.Stage == task.StageTriage {
 		return nil, status.Error(codes.FailedPrecondition,
-			"task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first")
+			"task must be accepted out of triage before it can be claimed; this requires the task:accept scope")
 	}
 
 	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.

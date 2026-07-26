@@ -22,6 +22,13 @@ func TestTransitionScope_Table(t *testing.T) {
 		{"triage to in_review", task.StageTriage, task.StageInReview, server.ScopeTaskAccept},
 		{"triage to in_qa", task.StageTriage, task.StageInQa, server.ScopeTaskAccept},
 		{"triage to deploying", task.StageTriage, task.StageDeploying, server.ScopeTaskAccept},
+		// On-hold stages are not an escape hatch out of triage: parking a task
+		// in blocked/scheduled and then moving it on would otherwise launder it
+		// past the accept gate with only task:write.
+		{"triage to blocked", task.StageTriage, task.StageBlocked, server.ScopeTaskAccept},
+		{"triage to waiting_for_input", task.StageTriage, task.StageWaitingForInput, server.ScopeTaskAccept},
+		{"triage to deferred", task.StageTriage, task.StageDeferred, server.ScopeTaskAccept},
+		{"triage to scheduled", task.StageTriage, task.StageScheduled, server.ScopeTaskAccept},
 
 		// Taking ownership.
 		{"backlog to working", task.StageBacklog, task.StageWorking, server.ScopeTaskClaim},
@@ -60,8 +67,6 @@ func TestTransitionScope_Table(t *testing.T) {
 		{"working to waiting_for_input", task.StageWorking, task.StageWaitingForInput, server.ScopeTaskWrite},
 		{"working to deferred", task.StageWorking, task.StageDeferred, server.ScopeTaskWrite},
 		{"ready to blocked", task.StageReady, task.StageBlocked, server.ScopeTaskWrite},
-		{"triage to blocked", task.StageTriage, task.StageBlocked, server.ScopeTaskWrite},
-		{"triage to scheduled", task.StageTriage, task.StageScheduled, server.ScopeTaskWrite},
 
 		// Ordinary movement within accepted work.
 		{"backlog to ready", task.StageBacklog, task.StageReady, server.ScopeTaskWrite},

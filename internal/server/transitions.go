@@ -36,9 +36,6 @@ var (
 		task.StageDuplicate,
 		task.StageCancelled,
 	)
-
-	// stagesReopen is the set of stages a closed task may be reopened into.
-	stagesReopen = newStageSet(task.StageTriage, task.StageBacklog)
 )
 
 // stageSet is a membership set of task stages.
@@ -79,10 +76,8 @@ type transitionRule struct {
 // Policy (Stage 4 scope vocabulary extension):
 //
 //	any         → terminal              : task:close
-//	triage      → backlog/ready         : task:accept  (accepting work out of triage)
-//	triage      → working/handoff       : task:accept  (bypass of the accept gate)
-//	terminal    → triage/backlog        : task:accept  (reopen = re-accept)
-//	terminal    → any other non-terminal: task:accept  (reopen = re-accept)
+//	triage      → anything non-terminal : task:accept  (leaving triage is an accept)
+//	terminal    → anything non-terminal : task:accept  (reopen = re-accept)
 //	any         → working               : task:claim
 //	working     → handoff               : task:write
 //	any         → on hold               : task:write
@@ -96,28 +91,16 @@ var transitionTable = []transitionRule{
 		reason: "closing a task",
 	},
 	{
+		// Leaving triage in any direction other than closing is an accept.
+		// Placed above the on-hold and claim rules so no destination stage can
+		// be used to launder a task out of triage without task:accept.
 		from:   stagesTriage,
-		to:     stagesAccepted,
+		to:     nil,
 		scope:  ScopeTaskAccept,
-		reason: "accepting a task out of triage",
+		reason: "any move out of triage is an accept",
 	},
 	{
-		// A task cannot enter working or a handoff stage straight from triage
-		// without being accepted first; doing so would bypass the accept gate
-		// that ClaimTask enforces.
-		from:   stagesTriage,
-		to:     union(stagesWorking, stagesHandoff),
-		scope:  ScopeTaskAccept,
-		reason: "starting work on a task still in triage implies accepting it",
-	},
-	{
-		from:   stagesTerminal,
-		to:     stagesReopen,
-		scope:  ScopeTaskAccept,
-		reason: "reopening a closed task is a re-accept",
-	},
-	{
-		// Any other way out of a terminal stage is also a reopen.
+		// Any way out of a terminal stage is a reopen.
 		from:   stagesTerminal,
 		to:     nil,
 		scope:  ScopeTaskAccept,
@@ -165,15 +148,4 @@ func TransitionScope(fromStage, toStage string, collectionID ...uuid.UUID) strin
 
 	// Unrecognized transitions keep the pre-extension requirement.
 	return ScopeTaskWrite
-}
-
-// union returns the combined membership of the given stage sets.
-func union(sets ...stageSet) stageSet {
-	out := stageSet{}
-	for _, s := range sets {
-		for stage := range s {
-			out[stage] = struct{}{}
-		}
-	}
-	return out
 }

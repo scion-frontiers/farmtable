@@ -33,17 +33,15 @@ distinct privileges held by humans, admins, and the new `reviewer` /
 `TransitionScope(fromStage, toStage string, collectionID ...uuid.UUID) string`
 resolves the scope required for a stage change from an ordered rule table.
 Stages are grouped once (`stagesTriage`, `stagesAccepted`, `stagesWorking`,
-`stagesHandoff`, `stagesOnHold`, `stagesTerminal`, `stagesReopen`) mirroring the
-existing `phaseForStage` grouping; rules are `{from, to, scope, reason}` rows
-with a nil set meaning "any stage". First match wins.
+`stagesHandoff`, `stagesOnHold`, `stagesTerminal`) mirroring the existing
+`phaseForStage` grouping; rules are `{from, to, scope, reason}` rows with a nil
+set meaning "any stage". First match wins.
 
 | From | To | Scope |
 |---|---|---|
 | any | terminal | `task:close` |
-| triage | backlog / ready | `task:accept` |
-| triage | working / handoff | `task:accept` |
-| terminal | triage / backlog | `task:accept` |
-| terminal | any other non-terminal | `task:accept` |
+| triage | any non-terminal | `task:accept` |
+| terminal | any non-terminal | `task:accept` |
 | any | working | `task:claim` |
 | working | in_review / in_qa / deploying | `task:write` |
 | any | blocked / waiting_for_input / deferred / scheduled | `task:write` |
@@ -65,6 +63,11 @@ per-collection policy binding, as specified.
   lives at the handler level, not in the store, so it applies uniformly across
   Ent, multistore, and the GitHub pass-through backend.
 - **CloseTask**: `RequireScope(ScopeTaskWrite)` → `RequireScope(ScopeTaskClose)`.
+- **CreateTask**: when `req.Stage` is set, the explicit stage runs through
+  `TransitionScope(triage, stage)` and the resulting scope is required. Creating
+  a task in a stage is the same privilege as creating it in triage and moving it
+  there; without this, `create(stage=ready)` skipped the accept gate and
+  `create(stage=completed)` skipped `task:close`.
 
 ## Design decisions
 
@@ -90,14 +93,36 @@ per-collection policy binding, as specified.
 Both generalize a spec row in the **strict** direction to close a bypass, and
 both are single rows that can be deleted if the reviewer disagrees:
 
-- `triage → working/handoff` requires `task:accept`, not `task:claim`.
-  Otherwise an agent could move a triage task to `working` via UpdateTask and
-  sidestep the ClaimTask gate entirely. Supported by the spec's own parenthetical
-  ("task must already be accepted… NOT triage").
+- `triage → any non-terminal` requires `task:accept`, not `task:claim` for the
+  working/handoff destinations. Otherwise an agent could move a triage task to
+  `working` via UpdateTask and sidestep the ClaimTask gate entirely. Supported by
+  the spec's own parenthetical ("task must already be accepted… NOT triage").
 - `terminal → any non-terminal` requires `task:accept`, not just
   `terminal → triage/backlog`. Otherwise `completed → working` would resolve to
   `task:claim` and an agent could resurrect closed work. Supported by the spec's
   "reopen = re-accept" principle.
+
+### Post-review amendment: closing two bypasses
+
+Independent review found that the first cut of the table gated only *specific*
+destinations out of triage, which left two holes. Both are now closed:
+
+1. **On-hold laundering.** `triage → blocked` matched the `any → on hold`
+   row and needed only `task:write`, so an agent could do
+   `triage → blocked → ready → claim` and never present `task:accept`. The two
+   destination-specific triage rows are replaced by one catch-all
+   `triage → any` row placed *below* the close rule and *above* the claim and
+   on-hold rules: every exit from triage except closing is an accept.
+2. **CreateTask stage override.** See the CreateTask bullet above.
+
+`TestLeavingTriageAlwaysRequiresAcceptOrClose` (internal test) now asserts the
+first property over every stage rather than an enumerated list, and
+`TestStageGroupsPartitionAllStages` asserts the stage groups partition the stage
+enum so no future stage silently falls through to `task:write`.
+
+The redundant `terminal → triage/backlog` row (subsumed by
+`terminal → any`) and the now-unused `stagesReopen` set and `union` helper were
+removed at the same time.
 
 ## Backward compatibility
 
@@ -141,11 +166,16 @@ Full investigation:
   transition class, no-op transitions, unknown stages, exhaustive 15×15 stage
   pair sweep, the ignored `collectionID` variadic, `AllScopes`/`ValidateScopes`
   acceptance, and the new default-scope roles.
-- `internal/server/rbac_test.go` — seven new RPC-level tests over the real
-  authenticated gRPC stack: agent cannot accept from triage, agent cannot close
+- `internal/server/rbac_test.go` — eleven new RPC-level tests over the real
+  authenticated gRPC stack: agent cannot accept from triage, agent cannot
+  launder a task out of triage through an on-hold stage, agent cannot create in
+  `ready` or `completed` (reviewer can create in `ready`), agent cannot close
   (both RPC and UpdateTask paths), agent can still claim accepted work, claim
   from triage rejected, reviewer/orchestrator full lifecycle, reopen requires
   accept, legacy nil-scope tokens unaffected.
+- `internal/server/transitions_internal_test.go` (new, package `server` so it
+  can reach the unexported stage groups) — stage-group partition
+  exhaustiveness and the "every exit from triage is accept-or-close" property.
 - `internal/server/lifecycle_evidence_test.go` (new) —
   `TestEvidence_Stage4ScopeMatrix`, a transcript-style matrix test that logs the
   observed gRPC status code for each role/operation pair. Run with `-v` to
