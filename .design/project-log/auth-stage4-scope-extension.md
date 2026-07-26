@@ -140,6 +140,29 @@ Full investigation:
   behind the `integration` tag.
 - **Web dashboard: no breakage** — it never calls ClaimTask; kanban drags go
   through UpdateTask, and web sessions carry wildcard-scoped human tokens.
+- **BREAKING for agent-typed tokens — both ends of the lifecycle.**
+  1. `CloseTask` now requires `task:close`, which is *not* in
+     `DefaultScopesForUserType("agent")`. Reaching a terminal stage via
+     `UpdateTask` requires the same scope, so there is no alternative route.
+     **Agents can no longer close their own work.** `agents.md` step 5
+     ("Close it with `task_close`") and
+     `.agents/skills/farmtable/commands/close.md` now describe an
+     unauthorized operation.
+  2. `ClaimTask` on a `triage` task now fails `FailedPrecondition` for
+     *every* role including wildcard/admin, and leaving triage requires
+     `task:accept`.
+
+  Scopes are stored on the token row, not resolved per request, so
+  already-provisioned agent tokens break at deploy time. Rollout requires
+  either re-provisioning agent tokens with `task:close` (using
+  `ft token update <id> --add-scope task:close`), or a hand-off protocol
+  where a reviewer/orchestrator closes on the agent's behalf. This is a
+  data migration, not a config flip.
+- **GitHub pass-through backend** — `IssueToPhaseStage` now returns
+  `StageBacklog` (not `StageTriage`) for unlabelled open issues. Without this
+  fix, `ClaimTask` would return `FailedPrecondition` for ALL roles (including
+  admin) on pass-through collections, since most GitHub issues have no
+  `stage/*` label. See `auth-stage4-predeploy-passthrough.md` for details.
 
 ### Known follow-ups (not in this change)
 

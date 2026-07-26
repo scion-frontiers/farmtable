@@ -147,9 +147,10 @@ func DefaultScopesForUserType(userType string) []string {
 		// tokens issued before the type vocabulary was formalized. Log a warning
 		// so operator typos like "reviewr" that would silently grant full admin
 		// instead of the intended restricted scope set are visible in logs.
-		if userType != "" {
-			log.Printf("WARNING: unrecognized user type %q in DefaultScopesForUserType — granting wildcard scopes (backward compat)", userType)
-		}
+		// Warn for all unrecognized types including empty string — empty is
+		// arguably the most dangerous case since an unset user type silently
+		// mints a wildcard session token.
+		log.Printf("WARNING: unrecognized user type %q in DefaultScopesForUserType — granting wildcard scopes (backward compat)", userType)
 		return nil // nil = wildcard (backward compatible)
 	}
 }

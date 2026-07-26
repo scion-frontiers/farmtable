@@ -419,8 +419,8 @@ func TestLabelMapper_Disabled(t *testing.T) {
 	}
 
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"ft:stage/working"})
-	if phase != task.PhaseOpen || stage != task.StageTriage {
-		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageTriage)
+	if phase != task.PhaseOpen || stage != task.StageBacklog {
+		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageBacklog)
 	}
 
 	phase, stage = m.IssueToPhaseStage("closed", "completed", []string{"cancelled"})
@@ -480,13 +480,15 @@ func TestIssueToPhaseStage_LabelsOverride(t *testing.T) {
 func TestIssueToPhaseStage_Fallback(t *testing.T) {
 	m := defaultMapper()
 
-	// Open issue with no matching labels.
+	// Open issue with no matching labels falls back to StageBacklog
+	// (not StageTriage — unlabelled issues were never explicitly triaged,
+	// and StageTriage + the accept gate blocks ClaimTask for all roles).
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"enhancement"})
 	if phase != task.PhaseOpen {
 		t.Errorf("phase = %q, want %q", phase, task.PhaseOpen)
 	}
-	if stage != task.StageTriage {
-		t.Errorf("stage = %q, want %q (fallback)", stage, task.StageTriage)
+	if stage != task.StageBacklog {
+		t.Errorf("stage = %q, want %q (fallback)", stage, task.StageBacklog)
 	}
 }
 

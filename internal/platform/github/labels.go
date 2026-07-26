@@ -375,7 +375,7 @@ func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add
 //     - "not_planned" -> PhaseClosed, StageWontFix
 //     - otherwise     -> PhaseClosed, StageCompleted
 //  2. If labels map to a stage, use that stage with the appropriate phase.
-//  3. Fallback: open -> (PhaseOpen, StageTriage), closed -> (PhaseClosed, StageCompleted).
+//  3. Fallback: open -> (PhaseOpen, StageBacklog), closed -> (PhaseClosed, StageCompleted).
 func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []string) (task.Phase, task.Stage) {
 	isClosed := strings.EqualFold(state, "closed")
 
@@ -398,8 +398,13 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 		return phaseForStage(stage), stage
 	}
 
-	// Fallback for open issues.
-	return task.PhaseOpen, task.StageTriage
+	// Fallback for open issues: use StageBacklog, not StageTriage.
+	// An unlabelled GitHub issue was never explicitly triaged — it was
+	// never placed in triage, so treating it as accepted-but-unprioritized
+	// keeps ClaimTask working.  StageTriage + the auth-stage4 accept gate
+	// would block ALL roles (including admin) from claiming unlabelled issues
+	// on pass-through collections.
+	return task.PhaseOpen, task.StageBacklog
 }
 
 // stripForMatch normalises a label for lookup: lowercase, strip push prefix,
