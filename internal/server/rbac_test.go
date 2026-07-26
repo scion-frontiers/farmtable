@@ -594,6 +594,385 @@ func TestLookupToken_ReturnsScopesAndCollectionIDs(t *testing.T) {
 	}
 }
 
+// ── Lifecycle scope enforcement (task:accept / task:close) ──
+
+// lifecycleFixture spins up an authenticated server with a collection and
+// returns the client plus an admin context for fixture setup.
+func lifecycleFixture(t *testing.T) (pb.FarmTableServiceClient, context.Context, string, *store.EntStore) {
+	t.Helper()
+
+	s, storeCleanup := testutil.NewTestStore(t)
+	t.Cleanup(storeCleanup)
+
+	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+	t.Cleanup(cleanup)
+
+	_, adminToken := createTestUserAndToken(t, s, "admin", []string{server.ScopeWildcard}, nil)
+	adminCtx := authCtx(adminToken)
+
+	coll, err := client.CreateCollection(adminCtx, &pb.CreateCollectionRequest{Name: "lifecycle"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+	return client, adminCtx, coll.GetId(), s
+}
+
+func createLifecycleTask(t *testing.T, client pb.FarmTableServiceClient, ctx context.Context, collID, name string, stage *pb.TaskStage) *pb.Task {
+	t.Helper()
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		Name:         name,
+		CollectionId: collID,
+		Stage:        stage,
+	})
+	if err != nil {
+		t.Fatalf("creating task %q: %v", name, err)
+	}
+	return created
+}
+
+func stageProtoPtr(s pb.TaskStage) *pb.TaskStage { return &s }
+
+func assertFailedPrecondition(t *testing.T, err error, context string) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("[%s] expected FailedPrecondition, got nil error", context)
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("[%s] expected gRPC status error, got: %v", context, err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("[%s] code = %v (%s), want FailedPrecondition", context, st.Code(), st.Message())
+	}
+}
+
+// An agent-scoped token has task:write but not task:accept, so it cannot move
+// a task out of triage.
+func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	triaged := createLifecycleTask(t, client, adminCtx, collID, "needs accepting", nil)
+	if triaged.GetStage() != pb.TaskStage_TASK_STAGE_TRIAGE {
+		t.Fatalf("fixture stage = %v, want TRIAGE", triaged.GetStage())
+	}
+
+	for _, target := range []pb.TaskStage{
+		pb.TaskStage_TASK_STAGE_BACKLOG,
+		pb.TaskStage_TASK_STAGE_READY,
+		pb.TaskStage_TASK_STAGE_WORKING,
+	} {
+		_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+			Id:    triaged.GetId(),
+			Stage: stageProtoPtr(target),
+		})
+		if err == nil {
+			t.Fatalf("agent token should not be able to move triage → %v", target)
+		}
+		assertPermissionDenied(t, err, "UpdateTask triage → "+target.String())
+	}
+
+	// Non-stage writes still work with task:write.
+	newName := "renamed by agent"
+	if _, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+		Id:   triaged.GetId(),
+		Name: &newName,
+	}); err != nil {
+		t.Fatalf("agent token should still allow non-stage updates: %v", err)
+	}
+}
+
+// Parking a task in an on-hold stage must not launder it out of triage: with
+// only task:write an agent could otherwise do triage → blocked → ready → claim
+// and never pass the accept gate.
+func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	triaged := createLifecycleTask(t, client, adminCtx, collID, "launder me", nil)
+
+	// Hop 1 of the laundering path is refused, so the rest is unreachable.
+	for _, onHold := range []pb.TaskStage{
+		pb.TaskStage_TASK_STAGE_BLOCKED,
+		pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT,
+		pb.TaskStage_TASK_STAGE_DEFERRED,
+		pb.TaskStage_TASK_STAGE_SCHEDULED,
+	} {
+		_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+			Id:    triaged.GetId(),
+			Stage: stageProtoPtr(onHold),
+		})
+		if err == nil {
+			t.Fatalf("agent token should not be able to move triage → %v", onHold)
+		}
+		assertPermissionDenied(t, err, "UpdateTask triage → "+onHold.String())
+	}
+
+	// The task never left triage, so ClaimTask still hits the accept gate.
+	resp, err := client.GetTask(adminCtx, &pb.GetTaskRequest{Id: triaged.GetId()})
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	if resp.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_TRIAGE {
+		t.Fatalf("stage = %v, want TRIAGE", resp.GetTask().GetStage())
+	}
+	_, err = client.ClaimTask(agentCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
+	assertFailedPrecondition(t, err, "ClaimTask after failed laundering")
+}
+
+// CreateTask's explicit stage carries the same privilege as transitioning a
+// freshly created task there: an agent cannot skip the accept gate by creating
+// work directly in an accepted stage.
+func TestScopedToken_AgentCannotCreateInReadyStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+
+	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
+		Name:         "born accepted",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to create a task directly in ready")
+	}
+	assertPermissionDenied(t, err, "CreateTask stage=READY")
+}
+
+// Creating directly in a terminal stage is a close and needs task:close.
+func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+
+	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
+		Name:         "born closed",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_COMPLETED),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to create a task directly in completed")
+	}
+	assertPermissionDenied(t, err, "CreateTask stage=COMPLETED")
+}
+
+// A reviewer holds task:accept, so creating in an accepted stage is allowed.
+func TestScopedToken_ReviewerCanCreateInReadyStage(t *testing.T) {
+	client, _, collID, s := lifecycleFixture(t)
+	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
+		server.DefaultScopesForUserType("reviewer"), nil)
+
+	created, err := client.CreateTask(authCtx(reviewerToken), &pb.CreateTaskRequest{
+		Name:         "reviewer created",
+		CollectionId: collID,
+		Stage:        stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+	})
+	if err != nil {
+		t.Fatalf("reviewer token should be able to create a task in ready: %v", err)
+	}
+	if created.GetStage() != pb.TaskStage_TASK_STAGE_READY {
+		t.Errorf("stage = %v, want READY", created.GetStage())
+	}
+}
+
+// An agent-scoped token has task:write but not task:close.
+func TestScopedToken_AgentCannotClose(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	working := createLifecycleTask(t, client, adminCtx, collID, "agent work",
+		stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING))
+
+	// CloseTask RPC.
+	_, err := client.CloseTask(agentCtx, &pb.CloseTaskRequest{Id: working.GetId()})
+	if err == nil {
+		t.Fatal("agent token should not be able to close a task")
+	}
+	assertPermissionDenied(t, err, "CloseTask")
+
+	// UpdateTask into a terminal stage is the same privilege.
+	_, err = client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+		Id:    working.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_COMPLETED),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to close via UpdateTask")
+	}
+	assertPermissionDenied(t, err, "UpdateTask → COMPLETED")
+}
+
+// Agents keep their working authority: claim an accepted task and hand it off.
+func TestScopedToken_AgentCanClaimAcceptedTask(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	accepted := createLifecycleTask(t, client, adminCtx, collID, "already accepted",
+		stageProtoPtr(pb.TaskStage_TASK_STAGE_READY))
+
+	resp, err := client.ClaimTask(agentCtx, &pb.ClaimTaskRequest{Id: accepted.GetId()})
+	if err != nil {
+		t.Fatalf("agent token should be able to claim an accepted task: %v", err)
+	}
+	if resp.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_WORKING {
+		t.Errorf("stage after claim = %v, want WORKING", resp.GetTask().GetStage())
+	}
+
+	// working → in_review is an ordinary task:write handoff.
+	if _, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+		Id:    accepted.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_IN_REVIEW),
+	}); err != nil {
+		t.Fatalf("agent token should be able to hand off to in_review: %v", err)
+	}
+}
+
+// Claiming straight from triage is rejected regardless of scope.
+func TestRPC_ClaimTask_RejectsTriageStage(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+
+	triaged := createLifecycleTask(t, client, adminCtx, collID, "still in triage", nil)
+
+	// Even a wildcard admin token cannot claim from triage: this is a
+	// precondition, not a permission.
+	_, err := client.ClaimTask(adminCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
+	assertFailedPrecondition(t, err, "ClaimTask from triage (admin)")
+
+	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
+		server.DefaultScopesForUserType("reviewer"), nil)
+	reviewerCtx := authCtx(reviewerToken)
+
+	_, err = client.ClaimTask(reviewerCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
+	assertFailedPrecondition(t, err, "ClaimTask from triage (reviewer)")
+
+	// The task is untouched by the rejected claim.
+	resp, err := client.GetTask(adminCtx, &pb.GetTaskRequest{Id: triaged.GetId()})
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	after := resp.GetTask()
+	if after.GetStage() != pb.TaskStage_TASK_STAGE_TRIAGE {
+		t.Errorf("stage = %v, want TRIAGE (claim must not mutate)", after.GetStage())
+	}
+	if len(after.GetAssignees()) != 0 {
+		t.Errorf("assignees = %v, want none after rejected claim", after.GetAssignees())
+	}
+}
+
+// A reviewer/orchestrator token can drive the whole lifecycle.
+func TestScopedToken_ReviewerFullLifecycle(t *testing.T) {
+	for _, userType := range []string{"reviewer", "orchestrator"} {
+		t.Run(userType, func(t *testing.T) {
+			client, adminCtx, collID, s := lifecycleFixture(t)
+			_, token := createTestUserAndToken(t, s, userType,
+				server.DefaultScopesForUserType(userType), nil)
+			ctx := authCtx(token)
+
+			task := createLifecycleTask(t, client, adminCtx, collID, "full lifecycle", nil)
+
+			// triage → ready (task:accept)
+			accepted, err := client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+				Id:    task.GetId(),
+				Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+			})
+			if err != nil {
+				t.Fatalf("%s should be able to accept from triage: %v", userType, err)
+			}
+			if accepted.GetStage() != pb.TaskStage_TASK_STAGE_READY {
+				t.Fatalf("stage after accept = %v, want READY", accepted.GetStage())
+			}
+
+			// ready → working (task:claim)
+			claimed, err := client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: task.GetId()})
+			if err != nil {
+				t.Fatalf("%s should be able to claim: %v", userType, err)
+			}
+			if claimed.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_WORKING {
+				t.Fatalf("stage after claim = %v, want WORKING", claimed.GetTask().GetStage())
+			}
+
+			// working → in_review (task:write)
+			if _, err := client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+				Id:    task.GetId(),
+				Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_IN_REVIEW),
+			}); err != nil {
+				t.Fatalf("%s should be able to hand off: %v", userType, err)
+			}
+
+			// in_review → completed (task:close)
+			closed, err := client.CloseTask(ctx, &pb.CloseTaskRequest{Id: task.GetId()})
+			if err != nil {
+				t.Fatalf("%s should be able to close: %v", userType, err)
+			}
+			if closed.GetStage() != pb.TaskStage_TASK_STAGE_COMPLETED {
+				t.Errorf("stage after close = %v, want COMPLETED", closed.GetStage())
+			}
+		})
+	}
+}
+
+// Reopening a closed task requires task:accept.
+func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, agentToken := createTestUserAndToken(t, s, "agent",
+		server.DefaultScopesForUserType("agent"), nil)
+	agentCtx := authCtx(agentToken)
+
+	closedTask := createLifecycleTask(t, client, adminCtx, collID, "closed work",
+		stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING))
+	if _, err := client.CloseTask(adminCtx, &pb.CloseTaskRequest{Id: closedTask.GetId()}); err != nil {
+		t.Fatalf("closing task: %v", err)
+	}
+
+	_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+		Id:    closedTask.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BACKLOG),
+	})
+	if err == nil {
+		t.Fatal("agent token should not be able to reopen a closed task")
+	}
+	assertPermissionDenied(t, err, "UpdateTask completed → backlog")
+
+	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
+		server.DefaultScopesForUserType("reviewer"), nil)
+	reopened, err := client.UpdateTask(authCtx(reviewerToken), &pb.UpdateTaskRequest{
+		Id:    closedTask.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BACKLOG),
+	})
+	if err != nil {
+		t.Fatalf("reviewer token should be able to reopen: %v", err)
+	}
+	if reopened.GetStage() != pb.TaskStage_TASK_STAGE_BACKLOG {
+		t.Errorf("stage after reopen = %v, want BACKLOG", reopened.GetStage())
+	}
+}
+
+// Legacy nil-scoped tokens keep working against the new scopes.
+func TestScopedToken_LegacyNilScopesKeepLifecycleAccess(t *testing.T) {
+	client, adminCtx, collID, s := lifecycleFixture(t)
+	_, legacyToken := createTestUserAndToken(t, s, "human", nil, nil)
+	legacyCtx := authCtx(legacyToken)
+
+	task := createLifecycleTask(t, client, adminCtx, collID, "legacy lifecycle", nil)
+
+	if _, err := client.UpdateTask(legacyCtx, &pb.UpdateTaskRequest{
+		Id:    task.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+	}); err != nil {
+		t.Fatalf("legacy token should be able to accept: %v", err)
+	}
+	if _, err := client.CloseTask(legacyCtx, &pb.CloseTaskRequest{Id: task.GetId()}); err != nil {
+		t.Fatalf("legacy token should be able to close: %v", err)
+	}
+}
+
 // ── Helpers ──
 
 func assertPermissionDenied(t *testing.T, err error, context string) {

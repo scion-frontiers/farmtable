@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -15,6 +16,8 @@ const (
 	ScopeTaskRead       = "task:read"
 	ScopeTaskWrite      = "task:write"
 	ScopeTaskClaim      = "task:claim"
+	ScopeTaskAccept     = "task:accept"
+	ScopeTaskClose      = "task:close"
 	ScopeCollectionRead  = "collection:read"
 	ScopeCollectionWrite = "collection:write"
 	ScopeCollectionAdmin = "collection:admin"
@@ -27,6 +30,8 @@ var AllScopes = []string{
 	ScopeTaskRead,
 	ScopeTaskWrite,
 	ScopeTaskClaim,
+	ScopeTaskAccept,
+	ScopeTaskClose,
 	ScopeCollectionRead,
 	ScopeCollectionWrite,
 	ScopeCollectionAdmin,
@@ -119,7 +124,18 @@ func DefaultScopesForUserType(userType string) []string {
 	case "admin":
 		return []string{ScopeWildcard}
 	case "agent":
+		// Agents may work tasks but cannot accept them out of triage or close them.
 		return []string{ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim, ScopeCollectionRead}
+	case "reviewer", "orchestrator":
+		// Reviewers and orchestrators own the full task lifecycle.
+		return []string{
+			ScopeTaskRead,
+			ScopeTaskWrite,
+			ScopeTaskClaim,
+			ScopeTaskAccept,
+			ScopeTaskClose,
+			ScopeCollectionRead,
+		}
 	case "viewer":
 		return []string{ScopeTaskRead, ScopeCollectionRead}
 	case "human":
@@ -127,6 +143,13 @@ func DefaultScopesForUserType(userType string) []string {
 	case "service_account":
 		return []string{ScopeWildcard}
 	default:
+		// Unrecognized user types get wildcard for backward compatibility with
+		// tokens issued before the type vocabulary was formalized. Log a warning
+		// so operator typos like "reviewr" that would silently grant full admin
+		// instead of the intended restricted scope set are visible in logs.
+		if userType != "" {
+			log.Printf("WARNING: unrecognized user type %q in DefaultScopesForUserType — granting wildcard scopes (backward compat)", userType)
+		}
 		return nil // nil = wildcard (backward compatible)
 	}
 }
