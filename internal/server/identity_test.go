@@ -98,6 +98,7 @@ func TestClaimTask_PropagatesUserID(t *testing.T) {
 	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "test-task",
 		CollectionId: coll.GetId(),
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
 	})
 	if err != nil {
 		t.Fatalf("creating task: %v", err)

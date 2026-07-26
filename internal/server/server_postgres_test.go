@@ -184,9 +184,11 @@ func TestPostgresRPC_ClaimTask(t *testing.T) {
 	ctx := context.Background()
 
 	collID := createTestCollectionPostgres(t, client)
+	// Tasks must be accepted out of triage before they can be claimed.
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Claim RPC test",
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)

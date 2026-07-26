@@ -470,10 +470,13 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
 	}
 
-	// Verify the token has access to the task's collection.
-	if existing, err := s.store.GetTask(ctx, id); err != nil {
+	// Verify the token has access to the task's collection. The existing task
+	// also provides the current stage for the transition scope check below.
+	existing, err := s.store.GetTask(ctx, id)
+	if err != nil {
 		return nil, storeErr(err, "task")
-	} else if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
+	}
+	if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
 		return nil, err
 	}
 
@@ -503,6 +506,13 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 			return nil, err
 		}
 		st := convert.StageFromProto(*req.Stage)
+		// Lifecycle transitions may require a scope beyond task:write
+		// (task:accept to leave triage or reopen, task:close to close).
+		if transitionScope := TransitionScope(string(existing.Stage), string(st)); transitionScope != ScopeTaskWrite {
+			if err := RequireScope(ctx, transitionScope); err != nil {
+				return nil, err
+			}
+		}
 		p.Stage = &st
 		ph := phaseForStage(st)
 		p.Phase = &ph
@@ -659,11 +669,18 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
 	}
 
-	// Verify the token has access to the task's collection.
-	if existing, err := s.store.GetTask(ctx, id); err != nil {
+	// Verify the token has access to the task's collection, and that the task
+	// has been accepted out of triage.
+	existing, err := s.store.GetTask(ctx, id)
+	if err != nil {
 		return nil, storeErr(err, "task")
-	} else if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
+	}
+	if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
 		return nil, err
+	}
+	if existing.Stage == task.StageTriage {
+		return nil, status.Error(codes.FailedPrecondition,
+			"task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first")
 	}
 
 	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
@@ -706,7 +723,7 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	if _, err := RequireIdentity(ctx); err != nil {
 		return nil, err
 	}
-	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+	if err := RequireScope(ctx, ScopeTaskClose); err != nil {
 		return nil, err
 	}
 	id, err := uuid.Parse(req.GetId())

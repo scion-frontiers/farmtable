@@ -15,6 +15,8 @@ const (
 	ScopeTaskRead       = "task:read"
 	ScopeTaskWrite      = "task:write"
 	ScopeTaskClaim      = "task:claim"
+	ScopeTaskAccept     = "task:accept"
+	ScopeTaskClose      = "task:close"
 	ScopeCollectionRead  = "collection:read"
 	ScopeCollectionWrite = "collection:write"
 	ScopeCollectionAdmin = "collection:admin"
@@ -27,6 +29,8 @@ var AllScopes = []string{
 	ScopeTaskRead,
 	ScopeTaskWrite,
 	ScopeTaskClaim,
+	ScopeTaskAccept,
+	ScopeTaskClose,
 	ScopeCollectionRead,
 	ScopeCollectionWrite,
 	ScopeCollectionAdmin,
@@ -119,7 +123,18 @@ func DefaultScopesForUserType(userType string) []string {
 	case "admin":
 		return []string{ScopeWildcard}
 	case "agent":
+		// Agents may work tasks but cannot accept them out of triage or close them.
 		return []string{ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim, ScopeCollectionRead}
+	case "reviewer", "orchestrator":
+		// Reviewers and orchestrators own the full task lifecycle.
+		return []string{
+			ScopeTaskRead,
+			ScopeTaskWrite,
+			ScopeTaskClaim,
+			ScopeTaskAccept,
+			ScopeTaskClose,
+			ScopeCollectionRead,
+		}
 	case "viewer":
 		return []string{ScopeTaskRead, ScopeCollectionRead}
 	case "human":

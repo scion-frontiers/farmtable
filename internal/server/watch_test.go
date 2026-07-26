@@ -249,6 +249,7 @@ func TestWatchTasks_ClaimEvent(t *testing.T) {
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "claim-me",
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)
