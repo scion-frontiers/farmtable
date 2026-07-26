@@ -404,7 +404,7 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 	// keeps ClaimTask working.  StageTriage + the auth-stage4 accept gate
 	// would block ALL roles (including admin) from claiming unlabelled issues
 	// on pass-through collections.
-	return task.PhaseOpen, task.StageBacklog
+	return phaseForStage(task.StageBacklog), task.StageBacklog
 }
 
 // stripForMatch normalises a label for lookup: lowercase, strip push prefix,

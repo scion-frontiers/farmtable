@@ -15,8 +15,68 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// sortScopes sorts a scope slice in-place for deterministic output.
-func sortScopes(s []string) { sort.Strings(s) }
+// mergeScopes computes a new scope set from the token's current scopes and
+// the operator's add/remove/set instructions. It rejects operations that
+// would silently escalate or demote a token:
+//   - Removing all scopes would leave nil/empty, which is interpreted as
+//     wildcard (full access) — refuse rather than silently escalate.
+//   - Adding/removing on a nil/empty-scope (legacy wildcard) token would
+//     silently restrict it — require --set-scopes for an explicit intent.
+//   - Removing from a ["*"]-scoped token is a no-op that reports success
+//     but changes nothing — refuse rather than silently lie.
+func mergeScopes(current, add, remove, set []string) ([]string, error) {
+	if len(set) > 0 {
+		result := make([]string, len(set))
+		copy(result, set)
+		sort.Strings(result)
+		return result, nil
+	}
+
+	// Detect legacy wildcard tokens (nil/empty scope list = full access).
+	if len(current) == 0 {
+		return nil, fmt.Errorf(
+			"token has no stored scopes (legacy wildcard); --add-scope/--remove-scope " +
+				"would silently restrict it. Use --set-scopes to state the full intended scope set")
+	}
+
+	// Detect explicit wildcard ["*"] — removing individual scopes is a no-op.
+	if len(remove) > 0 {
+		for _, s := range current {
+			if s == "*" {
+				return nil, fmt.Errorf(
+					"token holds the wildcard scope \"*\"; removing individual scopes has no effect. " +
+						"Use --set-scopes to replace the wildcard with an explicit scope list")
+			}
+		}
+	}
+
+	// Build new scope set from current + add - remove.
+	scopeSet := make(map[string]bool, len(current))
+	for _, s := range current {
+		scopeSet[s] = true
+	}
+	for _, s := range add {
+		scopeSet[s] = true
+	}
+	for _, s := range remove {
+		delete(scopeSet, s)
+	}
+
+	// Refuse to write an empty scope set — it would be interpreted as wildcard.
+	if len(scopeSet) == 0 {
+		return nil, fmt.Errorf(
+			"refusing to write an empty scope set: an empty scope list is interpreted " +
+				"as wildcard (full access). Use --set-scopes to state the full intended " +
+				"scope set, or ft token revoke to disable the token")
+	}
+
+	result := make([]string, 0, len(scopeSet))
+	for s := range scopeSet {
+		result = append(result, s)
+	}
+	sort.Strings(result)
+	return result, nil
+}
 
 func newTokenCmd(globals *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
@@ -274,24 +334,9 @@ Examples:
 				return exitError(ExitGeneral, "TOKEN_NOT_FOUND", fmt.Sprintf("looking up token: %v", err))
 			}
 
-			var newScopes []string
-			if len(setScopes) > 0 {
-				newScopes = setScopes
-			} else {
-				// Start with current scopes and apply add/remove.
-				scopeSet := make(map[string]bool, len(tok.Scopes))
-				for _, s := range tok.Scopes {
-					scopeSet[s] = true
-				}
-				for _, s := range addScopes {
-					scopeSet[s] = true
-				}
-				for _, s := range removeScopes {
-					delete(scopeSet, s)
-				}
-				for s := range scopeSet {
-					newScopes = append(newScopes, s)
-				}
+			newScopes, err := mergeScopes(tok.Scopes, addScopes, removeScopes, setScopes)
+			if err != nil {
+				return exitError(ExitValidation, "SCOPE_MERGE_ERROR", err.Error())
 			}
 
 			// Validate all scopes before writing.
@@ -299,22 +344,25 @@ Examples:
 				return exitError(ExitValidation, "INVALID_SCOPE", err.Error())
 			}
 
-			// Sort for deterministic output.
-			sortScopes(newScopes)
-
 			updated, err := s.UpdateAPITokenScopes(ctx, tokenID, newScopes)
 			if err != nil {
 				return exitError(ExitGeneral, "UPDATE_FAILED", fmt.Sprintf("updating token scopes: %v", err))
 			}
 
-			m := map[string]interface{}{
-				"id":          updated.ID.String(),
-				"name":        updated.Name,
-				"old_scopes":  tok.Scopes,
-				"new_scopes":  updated.Scopes,
+			output := resolveOutput(globals.output)
+			switch output {
+			case "quiet":
+				fmt.Fprintln(os.Stdout, strings.Join(updated.Scopes, ","))
+			default:
+				m := map[string]interface{}{
+					"id":         updated.ID.String(),
+					"name":       updated.Name,
+					"old_scopes": tok.Scopes,
+					"new_scopes": updated.Scopes,
+				}
+				printJSON(m)
+				fmt.Fprintf(os.Stderr, "\nToken %s scopes updated.\n", updated.ID.String()[:8])
 			}
-			printJSON(m)
-			fmt.Fprintf(os.Stderr, "\nToken %s scopes updated.\n", updated.ID.String()[:8])
 			return nil
 		},
 	}

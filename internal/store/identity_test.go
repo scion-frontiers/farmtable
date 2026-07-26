@@ -272,3 +272,82 @@ func TestUpdateTokenLastUsed(t *testing.T) {
 		t.Fatal("LastUsedAt should be set after update")
 	}
 }
+
+func TestGetAPIToken(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "get-token-user",
+		Type:        "agent",
+		Status:      "active",
+	})
+
+	tok, _, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "get-test",
+		Scopes: []string{"task:read", "task:write"},
+	})
+
+	got, err := s.GetAPIToken(ctx, tok.ID)
+	if err != nil {
+		t.Fatalf("GetAPIToken: %v", err)
+	}
+	if got.Name != "get-test" {
+		t.Errorf("name = %q, want %q", got.Name, "get-test")
+	}
+	if len(got.Scopes) != 2 {
+		t.Errorf("scopes = %v, want 2 scopes", got.Scopes)
+	}
+
+	// Not found returns ErrNotFound.
+	_, err = s.GetAPIToken(ctx, uuid.New())
+	if err != store.ErrNotFound {
+		t.Errorf("GetAPIToken(unknown) = %v, want ErrNotFound", err)
+	}
+}
+
+func TestUpdateAPITokenScopes(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "update-scopes-user",
+		Type:        "agent",
+		Status:      "active",
+	})
+
+	tok, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+		UserID: u.ID,
+		Name:   "scope-test",
+		Scopes: []string{"task:read", "task:write"},
+	})
+
+	// Update scopes.
+	newScopes := []string{"task:read", "task:write", "task:close"}
+	updated, err := s.UpdateAPITokenScopes(ctx, tok.ID, newScopes)
+	if err != nil {
+		t.Fatalf("UpdateAPITokenScopes: %v", err)
+	}
+	if len(updated.Scopes) != 3 {
+		t.Errorf("scopes after update = %v, want 3 scopes", updated.Scopes)
+	}
+
+	// Verify via LookupToken that the change persisted.
+	hash := store.HashToken(rawToken)
+	looked, err := s.LookupToken(ctx, hash)
+	if err != nil {
+		t.Fatalf("LookupToken: %v", err)
+	}
+	if len(looked.Scopes) != 3 {
+		t.Errorf("scopes via lookup = %v, want 3 scopes", looked.Scopes)
+	}
+
+	// Not found returns ErrNotFound.
+	_, err = s.UpdateAPITokenScopes(ctx, uuid.New(), []string{"task:read"})
+	if err != store.ErrNotFound {
+		t.Errorf("UpdateAPITokenScopes(unknown) = %v, want ErrNotFound", err)
+	}
+}
