@@ -866,6 +866,10 @@ func (s *GitHubPassThroughStore) CreateAPIToken(ctx context.Context, p store.Cre
 	return tok, "passthrough-token", nil
 }
 
+func (s *GitHubPassThroughStore) GetAPIToken(ctx context.Context, id uuid.UUID) (*ent.ApiToken, error) {
+	return nil, fmt.Errorf("get API token: %w", store.ErrNotImplemented)
+}
+
 func (s *GitHubPassThroughStore) LookupToken(ctx context.Context, tokenHash string) (*ent.ApiToken, error) {
 	return &ent.ApiToken{
 		ID:        uuid.New(),
@@ -876,6 +880,10 @@ func (s *GitHubPassThroughStore) LookupToken(ctx context.Context, tokenHash stri
 
 func (s *GitHubPassThroughStore) ListAPITokens(ctx context.Context, p store.ListAPITokensParams) ([]*ent.ApiToken, int, error) {
 	return nil, 0, fmt.Errorf("list API tokens: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) UpdateAPITokenScopes(ctx context.Context, id uuid.UUID, scopes []string) (*ent.ApiToken, error) {
+	return nil, fmt.Errorf("update API token scopes: %w", store.ErrNotImplemented)
 }
 
 func (s *GitHubPassThroughStore) RevokeAPIToken(ctx context.Context, id uuid.UUID) error {
