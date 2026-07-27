@@ -57,12 +57,13 @@ func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
 	}
 
 	var client *ent.Client
+	var db *sql.DB
 	var err error
 
 	if opts.Dialect == dialect.SQLite {
-		client, err = openSQLite(opts.DSN)
+		client, db, err = openSQLite(opts.DSN)
 	} else {
-		client, err = openPostgres(opts.DSN)
+		client, db, err = openPostgres(opts.DSN)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
@@ -73,7 +74,7 @@ func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
 			client.Close()
 			return nil, fmt.Errorf("creating schema: %w", err)
 		}
-		if err := migratePersistedTaskState(ctx, client); err != nil {
+		if err := migratePersistedTaskState(ctx, client, db, opts.Dialect); err != nil {
 			client.Close()
 			return nil, fmt.Errorf("migrating persisted task state: %w", err)
 		}
@@ -92,6 +93,7 @@ var oldPersistedTaskStages = []string{
 }
 
 const taskStateMigrationField = "task_state_migration"
+const taskStateMigrationAdvisoryLockKey int64 = 0x6f5f7461736b73
 
 func oldPersistedTaskStageValues() []any {
 	values := make([]any, len(oldPersistedTaskStages))
@@ -108,7 +110,13 @@ type persistedTaskStateMigration struct {
 	reason     string
 }
 
-func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
+func migratePersistedTaskState(ctx context.Context, client *ent.Client, db *sql.DB, dbDialect string) error {
+	unlock, err := acquireTaskStateMigrationLock(ctx, db, dbDialect)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
 	tasks, err := client.Task.Query().
 		Where(predicate.Task(func(s *entsql.Selector) {
 			s.Where(entsql.In(s.C(task.FieldStage), oldPersistedTaskStageValues()...))
@@ -123,6 +131,10 @@ func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
 		return nil
 	}
 
+	return migratePersistedTaskStates(ctx, client, tasks)
+}
+
+func migratePersistedTaskStates(ctx context.Context, client *ent.Client, tasks []*ent.Task) error {
 	tx, err := client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("starting task state migration transaction: %w", err)
@@ -141,7 +153,14 @@ func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
 		if err != nil {
 			return err
 		}
-		update := tx.Task.UpdateOneID(t.ID).
+		update := tx.Task.Update().
+			Where(
+				task.IDEQ(t.ID),
+				task.StageEQ(t.Stage),
+				predicate.Task(func(s *entsql.Selector) {
+					s.Where(entsql.In(s.C(task.FieldStage), oldPersistedTaskStageValues()...))
+				}),
+			).
 			SetStage(migration.stage).
 			SetPhase(migration.phase)
 		if migration.holdReason != nil {
@@ -149,8 +168,22 @@ func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
 		} else {
 			update.ClearHoldReason()
 		}
-		if _, err := update.Save(ctx); err != nil {
+		n, err := update.Save(ctx)
+		if err != nil {
 			return fmt.Errorf("updating migrated task %s: %w", t.ID, err)
+		}
+		if n == 0 {
+			continue
+		}
+
+		hasMigrationNote, err := tx.Change.Query().
+			Where(change.TaskIDEQ(t.ID), change.FieldNameEQ(taskStateMigrationField)).
+			Exist(ctx)
+		if err != nil {
+			return fmt.Errorf("checking existing task state migration note for %s: %w", t.ID, err)
+		}
+		if hasMigrationNote {
+			continue
 		}
 
 		oldValue, _ := json.Marshal(map[string]any{
@@ -185,6 +218,28 @@ func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
 	}
 	rollback = false
 	return nil
+}
+
+func acquireTaskStateMigrationLock(ctx context.Context, db *sql.DB, dbDialect string) (func(), error) {
+	if dbDialect != dialect.Postgres {
+		return func() {}, nil
+	}
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("opening postgres connection for task state migration lock: %w", err)
+	}
+	if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", taskStateMigrationAdvisoryLockKey); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("acquiring task state migration advisory lock: %w", err)
+	}
+	return func() {
+		if _, err := conn.ExecContext(context.Background(), "SELECT pg_advisory_unlock($1)", taskStateMigrationAdvisoryLockKey); err != nil {
+			log.Printf("releasing task state migration advisory lock: %v", err)
+		}
+		if err := conn.Close(); err != nil {
+			log.Printf("closing task state migration advisory lock connection: %v", err)
+		}
+	}, nil
 }
 
 func persistedTaskStateMigrationForTask(ctx context.Context, tx *ent.Tx, t *ent.Task) (persistedTaskStateMigration, error) {
@@ -261,10 +316,10 @@ func persistedTaskHasUnsatisfiedBlocker(ctx context.Context, tx *ent.Tx, t *ent.
 	return false, nil
 }
 
-func openPostgres(dsn string) (*ent.Client, error) {
+func openPostgres(dsn string) (*ent.Client, *sql.DB, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Limit connection pool to avoid exhausting Cloud SQL max_connections.
 	// With max_connections=200 and up to 4 Cloud Run instances, 20 conns
@@ -275,32 +330,32 @@ func openPostgres(dsn string) (*ent.Client, error) {
 	db.SetConnMaxIdleTime(1 * time.Minute)
 
 	drv := entsql.OpenDB(dialect.Postgres, db)
-	return ent.NewClient(ent.Driver(drv)), nil
+	return ent.NewClient(ent.Driver(drv)), db, nil
 }
 
-func openSQLite(dsn string) (*ent.Client, error) {
+func openSQLite(dsn string) (*ent.Client, *sql.DB, error) {
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// SQLite performs best with a single connection in WAL mode.
 	db.SetMaxOpenConns(1)
 
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("enabling WAL mode: %w", err)
+		return nil, nil, fmt.Errorf("enabling WAL mode: %w", err)
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("enabling foreign keys: %w", err)
+		return nil, nil, fmt.Errorf("enabling foreign keys: %w", err)
 	}
 	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("setting busy timeout: %w", err)
+		return nil, nil, fmt.Errorf("setting busy timeout: %w", err)
 	}
 
 	drv := entsql.OpenDB(dialect.SQLite, db)
-	return ent.NewClient(ent.Driver(drv)), nil
+	return ent.NewClient(ent.Driver(drv)), db, nil
 }
 
 func (s *EntStore) Client() *ent.Client {

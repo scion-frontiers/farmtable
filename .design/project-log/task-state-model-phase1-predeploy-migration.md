@@ -145,3 +145,37 @@ Manager web smoke:
   Phase1-aware `ft-ready-queue-view`.
 - Screenshot: `/tmp/farmtable-predeploy-4044-web.png`.
 - Only observed network error was `/api/auth/session` 404 in open-access mode.
+
+## R2 Security Fix: Concurrent Startup Migration Guard
+
+Date: 2026-07-27
+
+Fixed the High security finding from the R1 audit:
+
+- Startup migration now acquires a Postgres session advisory lock before listing and migrating old persisted task-stage rows, serializing the migration body across rolling/multi-instance production startup.
+- SQLite keeps the existing dialect-safe path without advisory lock SQL.
+- Per-task migration now uses an affected-row update with `id` plus the exact stale old `stage` value at write time, and still restricts writes to the old persisted stage set.
+- Migration notes are inserted only after the task row update reports an affected row.
+- Existing `task_state_migration` notes are detected after a successful row update, preventing duplicate notes while still normalizing an old row if one is already noted.
+- The task row update and migration note creation remain in the same Ent transaction.
+- Existing classification behavior and JSON audit payload semantics are preserved.
+
+Added deterministic regression coverage in `internal/store/entstore_migration_test.go`:
+
+- A stale migration replay after first migration plus claim leaves the task in `in_progress/working` and keeps one migration note.
+- A stale task snapshot containing one row that changed before write time only migrates and notes the row that still has the exact old stage.
+- An old-stage row with a pre-existing `task_state_migration` note is normalized without duplicating the note.
+
+Verification:
+
+- `PATH="/home/scion/go/bin:$PATH" go test ./internal/store -run TestStartupMigration -count=1` - pass
+- `PATH="/home/scion/go/bin:$PATH" go test ./...` - pass
+- `PATH="/home/scion/go/bin:$PATH" go build ./...` - pass
+- `npm run build` in `web/` - pass; Vite reported the existing large chunk warning
+- `PATH="/home/scion/go/bin:$PATH" govulncheck ./...` was not installed, fallback `PATH="/home/scion/go/bin:$PATH" go run golang.org/x/vuln/cmd/govulncheck@latest ./...` - pass; 0 called vulnerabilities
+- `git diff --check origin/main...HEAD` - pass
+
+Postgres verification:
+
+- No `FARMTABLE_TEST_POSTGRES_URL`, `POSTGRES`, `DATABASE_URL`, or `PG*` DSN was present in this container environment, so I could not run the live Postgres migration proof locally.
+- The production path now includes the explicit Postgres advisory lock guard required for cross-instance rollout; manager/staging should still run the final Cloud SQL proof against `deploy-demo-test:us-central1:scion-postgres-test`.
