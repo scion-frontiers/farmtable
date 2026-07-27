@@ -294,6 +294,92 @@ func TestRPC_ImportCollection_DryRunDoesNotCreateCollection(t *testing.T) {
 	}
 }
 
+func TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	now := time.Now().UTC()
+	future := now.Add(24 * time.Hour)
+
+	ids := map[string]string{
+		"ready":              uuid.New().String(),
+		"blocked_with":       uuid.New().String(),
+		"blocker":            uuid.New().String(),
+		"blocked_without":    uuid.New().String(),
+		"scheduled_with":     uuid.New().String(),
+		"scheduled_without":  uuid.New().String(),
+		"deferred_future":    uuid.New().String(),
+		"adapter_blocked":    uuid.New().String(),
+	}
+	taskDoc := func(key, stage string, start *time.Time, nativeLabel string) map[string]interface{} {
+		return map[string]interface{}{
+			"id": ids[key], "title": key, "description": "", "phase": "open", "stage": stage,
+			"native_label": nativeLabel, "type": "", "labels": []string{}, "repo": "", "branch": "",
+			"pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+			"start_date": start,
+		}
+	}
+	tasks := []map[string]interface{}{
+		taskDoc("ready", "ready", nil, "ready"),
+		taskDoc("blocker", "accepted", nil, "accepted"),
+		taskDoc("blocked_with", "blocked", nil, "blocked"),
+		taskDoc("blocked_without", "blocked", nil, "blocked"),
+		taskDoc("scheduled_with", "scheduled", &future, "scheduled"),
+		taskDoc("scheduled_without", "scheduled", nil, "scheduled"),
+		taskDoc("deferred_future", "deferred", &future, "deferred"),
+		taskDoc("adapter_blocked", "blocked", nil, "beads:blocked"),
+	}
+	doc := minimalImportDoc("old states", nil, tasks, nil, []map[string]interface{}{
+		{"id": uuid.New().String(), "source_task_id": ids["blocked_with"], "target_task_id": ids["blocker"], "type": "blocked_by"},
+	}, nil)
+	data, _ := json.Marshal(doc)
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	if err != nil {
+		t.Fatalf("ImportCollection: %v", err)
+	}
+	collID := uuid.MustParse(resp.GetCollectionId())
+	imported, err := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{CollectionID: collID})
+	if err != nil {
+		t.Fatalf("ListAllTasksForCollection: %v", err)
+	}
+	byTitle := map[string]*ent.Task{}
+	for _, tsk := range imported {
+		byTitle[tsk.Title] = tsk
+		if tsk.Stage.String() != "accepted" {
+			t.Fatalf("%s stage = %q, want accepted", tsk.Title, tsk.Stage)
+		}
+	}
+	if byTitle["blocked_without"].HoldReason == nil || byTitle["blocked_without"].HoldReason.String() != "waiting_for_input" {
+		t.Fatalf("blocked_without hold_reason = %v, want waiting_for_input", byTitle["blocked_without"].HoldReason)
+	}
+	if byTitle["scheduled_without"].HoldReason == nil || byTitle["scheduled_without"].HoldReason.String() != "deferred" {
+		t.Fatalf("scheduled_without hold_reason = %v, want deferred", byTitle["scheduled_without"].HoldReason)
+	}
+	if byTitle["deferred_future"].HoldReason != nil {
+		t.Fatalf("deferred_future hold_reason = %v, want nil because future start_date is concrete scheduling", byTitle["deferred_future"].HoldReason)
+	}
+
+	notes := 0
+	for _, tsk := range imported {
+		changes, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: tsk.ID})
+		if err != nil {
+			t.Fatalf("ListAllChangesForTask: %v", err)
+		}
+		for _, change := range changes {
+			if change.FieldName == "task_state_migration" {
+				notes++
+				if !json.Valid([]byte(change.OldValue)) || !json.Valid([]byte(change.NewValue)) {
+					t.Fatalf("migration note for %s is not compact JSON: old=%q new=%q", tsk.Title, change.OldValue, change.NewValue)
+				}
+			}
+		}
+	}
+	if notes != 7 {
+		t.Fatalf("migration notes = %d, want 7 lossy old-state notes", notes)
+	}
+}
+
 func TestRPC_ImportCollection_CreatesUsersAtomically(t *testing.T) {
 	client, s, cleanup := newExportImportTestServer(t)
 	defer cleanup()

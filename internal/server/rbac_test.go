@@ -660,7 +660,7 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 	}
 
 	for _, target := range []pb.TaskStage{
-		pb.TaskStage_TASK_STAGE_BACKLOG,
+		pb.TaskStage_TASK_STAGE_ACCEPTED,
 		pb.TaskStage_TASK_STAGE_ACCEPTED,
 		pb.TaskStage_TASK_STAGE_WORKING,
 	} {
@@ -697,10 +697,10 @@ func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
 
 	// Hop 1 of the laundering path is refused, so the rest is unreachable.
 	for _, onHold := range []pb.TaskStage{
-		pb.TaskStage_TASK_STAGE_BLOCKED,
-		pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT,
-		pb.TaskStage_TASK_STAGE_DEFERRED,
-		pb.TaskStage_TASK_STAGE_SCHEDULED,
+		pb.TaskStage_TASK_STAGE_ACCEPTED,
+		pb.TaskStage_TASK_STAGE_ACCEPTED,
+		pb.TaskStage_TASK_STAGE_ACCEPTED,
+		pb.TaskStage_TASK_STAGE_ACCEPTED,
 	} {
 		_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
 			Id:    triaged.GetId(),
@@ -933,7 +933,7 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 
 	_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
 		Id:    closedTask.GetId(),
-		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BACKLOG),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err == nil {
 		t.Fatal("agent token should not be able to reopen a closed task")
@@ -944,12 +944,12 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 		server.DefaultScopesForUserType("reviewer"), nil)
 	reopened, err := client.UpdateTask(authCtx(reviewerToken), &pb.UpdateTaskRequest{
 		Id:    closedTask.GetId(),
-		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BACKLOG),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err != nil {
 		t.Fatalf("reviewer token should be able to reopen: %v", err)
 	}
-	if reopened.GetStage() != pb.TaskStage_TASK_STAGE_BACKLOG {
+	if reopened.GetStage() != pb.TaskStage_TASK_STAGE_ACCEPTED {
 		t.Errorf("stage after reopen = %v, want BACKLOG", reopened.GetStage())
 	}
 }

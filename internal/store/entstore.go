@@ -129,6 +129,9 @@ func (s *EntStore) Close() error {
 }
 
 func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error) {
+	if err := validateTaskStateForWrite(p.Stage, p.HoldReason, p.StartDate, false); err != nil {
+		return nil, err
+	}
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
@@ -564,6 +567,29 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	}
 
 	update := tx.Task.Update().Where(task.IDEQ(id))
+	stage := old.Stage
+	if p.Stage != nil {
+		stage = *p.Stage
+	}
+	holdReason := old.HoldReason
+	if p.ClearHoldReason {
+		holdReason = nil
+	} else if p.HoldReason != nil {
+		holdReason = p.HoldReason
+	}
+	startDate := old.StartDate
+	if p.ClearStartDate {
+		startDate = nil
+	} else if p.StartDate != nil {
+		startDate = p.StartDate
+		if holdReason != nil && *holdReason == task.HoldReasonDeferred && p.HoldReason == nil {
+			holdReason = nil
+			update.ClearHoldReason()
+		}
+	}
+	if err := validateTaskStateForWrite(stage, holdReason, startDate, p.ClearStartDate); err != nil {
+		return nil, err
+	}
 
 	if p.Version != "" {
 		update = update.Where(task.VersionEQ(p.Version))
@@ -768,6 +794,21 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	}
 
 	return s.getTaskWithEdges(ctx, id)
+}
+
+func validateTaskStateForWrite(stage task.Stage, holdReason *task.HoldReason, startDate *time.Time, clearingStartDate bool) error {
+	if holdReason == nil {
+		return nil
+	}
+	switch stage {
+	case task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying:
+	default:
+		return ErrInvalidArgument
+	}
+	if *holdReason == task.HoldReasonDeferred && startDate != nil && startDate.After(time.Now()) && !clearingStartDate {
+		return ErrInvalidArgument
+	}
+	return nil
 }
 
 func mergeLabels(current, add, remove []string) []string {
@@ -1794,6 +1835,12 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 			SetVersion(imported.Version)
 		if imported.Priority != nil {
 			create.SetPriority(*imported.Priority)
+		}
+		if imported.HoldReason != nil {
+			create.SetHoldReason(*imported.HoldReason)
+		}
+		if imported.Rank != nil {
+			create.SetRank(*imported.Rank)
 		}
 		if imported.AssigneeID != nil {
 			create.SetAssigneeID(*imported.AssigneeID)

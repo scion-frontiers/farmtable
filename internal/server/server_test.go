@@ -648,7 +648,7 @@ func TestRPC_ClaimTask(t *testing.T) {
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Claim RPC test",
-		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)
@@ -1136,7 +1136,7 @@ func TestRPC_UpdateTask_AuditTrail(t *testing.T) {
 	}
 
 	newName := "Renamed"
-	newStage := pb.TaskStage_TASK_STAGE_BACKLOG
+	newStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
 		Id:    created.GetId(),
 		Name:  &newName,
@@ -1187,7 +1187,7 @@ func TestRPC_GetReadyTasks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Ready task A",
@@ -1305,7 +1305,7 @@ func TestRPC_GetBlockedTasks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Blocker",
@@ -1363,7 +1363,7 @@ func TestRPC_GetDependencyTree(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "A",
@@ -1446,7 +1446,7 @@ func TestRPC_GetCriticalPath(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "A",
@@ -1542,7 +1542,7 @@ func TestRPC_GetBottlenecks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Bottleneck A",
@@ -1600,7 +1600,7 @@ func TestRPC_GetBottlenecks_BlockedBy(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Bottleneck A",
@@ -1658,7 +1658,7 @@ func TestRPC_GetCriticalPath_DiamondDAG(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	// Diamond: A -> B -> D, A -> C -> D
 	// Longest path should be A -> B -> D or A -> C -> D (length 3)
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{

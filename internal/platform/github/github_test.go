@@ -47,7 +47,7 @@ func TestIssueToCreateParams_OpenIssue(t *testing.T) {
 		t.Errorf("Phase = %v, want PhaseOpen", params.Phase)
 	}
 	if params.Stage != task.StageAccepted {
-		t.Errorf("Stage = %v, want StageBacklog", params.Stage)
+		t.Errorf("Stage = %v, want StageAccepted", params.Stage)
 	}
 	if params.NativeLabel != "open" {
 		t.Errorf("NativeLabel = %q, want %q", params.NativeLabel, "open")

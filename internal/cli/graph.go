@@ -13,11 +13,11 @@ import (
 
 func newReadyCmd(globals *globalFlags) *cobra.Command {
 	var (
-		assignee        string
-		minPriority     string
+		assignee         string
+		minPriority      string
 		includeUnblocked bool
-		limit           int32
-		cursor          string
+		limit            int32
+		cursor           string
 	)
 
 	cmd := &cobra.Command{
@@ -60,7 +60,7 @@ func newReadyCmd(globals *globalFlags) *cobra.Command {
 			}
 
 			if len(resp.GetItems()) == 0 && !includeUnblocked {
-				fmt.Fprintln(os.Stderr, "No tasks in 'ready' stage. Try --include-unblocked to also show unblocked tasks in triage/backlog stages.")
+				fmt.Fprintln(os.Stderr, "No available accepted tasks. Try --include-unblocked to also show unblocked open tasks that are not currently claimable.")
 			}
 
 			switch output {
@@ -87,7 +87,7 @@ func newReadyCmd(globals *globalFlags) *cobra.Command {
 
 	cmd.Flags().StringVarP(&assignee, "assignee", "a", "", "Filter by assignee")
 	cmd.Flags().StringVar(&minPriority, "min-priority", "", "Minimum priority: URGENT, HIGH, NORMAL, LOW")
-	cmd.Flags().BoolVar(&includeUnblocked, "include-unblocked", false, "Also show unblocked tasks in triage/backlog stages")
+	cmd.Flags().BoolVar(&includeUnblocked, "include-unblocked", false, "Also show unblocked open tasks that are not currently claimable")
 	cmd.Flags().Int32Var(&limit, "limit", 50, "Max results (max: 200)")
 	cmd.Flags().StringVar(&cursor, "cursor", "", "Pagination cursor")
 	return cmd
@@ -189,7 +189,7 @@ func newTreeCmd(globals *globalFlags) *cobra.Command {
 
 			ctx := authCtx(context.Background(), token)
 			req := &pb.GetDependencyTreeRequest{
-				TaskId:   args[0],
+				TaskId:    args[0],
 				Direction: dir,
 				MaxDepth:  maxDepth,
 			}
@@ -373,9 +373,9 @@ func blockedTaskToMap(bt *pb.BlockedTask) map[string]interface{} {
 	for _, b := range bt.GetBlockedBy() {
 		blockedBy = append(blockedBy, map[string]interface{}{
 			"task_id": b.GetTaskId(),
-			"name":   b.GetName(),
-			"phase":  phaseNames[b.GetPhase()],
-			"stage":  stageNames[b.GetStage()],
+			"name":    b.GetName(),
+			"phase":   phaseNames[b.GetPhase()],
+			"stage":   stageNames[b.GetStage()],
 		})
 	}
 	return map[string]interface{}{

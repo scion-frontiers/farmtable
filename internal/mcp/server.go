@@ -158,7 +158,7 @@ func (s *Server) registerTools() {
 		mcp.WithDescription("Get tasks ready to work on: open tasks whose blocking dependencies are all resolved."),
 		mcp.WithString("assignee", mcp.Description("Filter by assignee")),
 		mcp.WithString("min_priority", mcp.Description("Minimum priority: URGENT, HIGH, NORMAL, LOW")),
-		mcp.WithBoolean("include_unblocked", mcp.Description("Include unblocked open tasks beyond ready stage")),
+		mcp.WithBoolean("include_unblocked", mcp.Description("Include unblocked open tasks beyond claimable accepted work")),
 		mcp.WithString("collection", mcp.Description("Collection UUID or name")),
 		mcp.WithNumber("limit", mcp.Description("Max results (default 50)")),
 	), s.handleTaskReady)

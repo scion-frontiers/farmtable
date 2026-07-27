@@ -27,10 +27,12 @@ See [workflow.md](resources/workflow.md) for the full agent workflow and
 
 ## Task Model
 
-- **Phase**: `OPEN` for active work, `CLOSED` for done or terminal work.
-- **Stages**: `triage`, `backlog`, `ready`, `working`, `in_review`, `in_qa`,
-  `deploying`, `blocked`, `waiting_for_input`, `deferred`, `scheduled`,
-  `completed`, `wont_fix`, `duplicate`, `cancelled`.
+- **Phase**: `OPEN` for active work, `IN_PROGRESS` for started work,
+  `ON_HOLD` for accepted work with a hold reason, and `CLOSED` for done or
+  terminal work.
+- **Stages**: `triage`, `accepted`, `working`, `in_review`, `in_qa`,
+  `deploying`, `completed`, `wont_fix`, `duplicate`, `cancelled`.
+- **Hold reasons**: `waiting_for_input`, `deferred`.
 - **Priorities**: `URGENT`, `HIGH`, `NORMAL`, `LOW`.
 
 ## Identity

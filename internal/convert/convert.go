@@ -24,12 +24,7 @@ func StageFromProto(s pb.TaskStage) task.Stage {
 	switch s {
 	case pb.TaskStage_TASK_STAGE_TRIAGE:
 		return task.StageTriage
-	case pb.TaskStage_TASK_STAGE_ACCEPTED,
-		pb.TaskStage_TASK_STAGE_READY,
-		pb.TaskStage_TASK_STAGE_BLOCKED,
-		pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT,
-		pb.TaskStage_TASK_STAGE_DEFERRED,
-		pb.TaskStage_TASK_STAGE_SCHEDULED:
+	case pb.TaskStage_TASK_STAGE_ACCEPTED:
 		return task.StageAccepted
 	case pb.TaskStage_TASK_STAGE_WORKING:
 		return task.StageWorking

@@ -858,7 +858,7 @@ func newTaskReleaseCmd(globals *globalFlags) *cobra.Command {
 
 			ctx := authCtx(context.Background(), token)
 
-			targetStage := "ready"
+			targetStage := "accepted"
 			if stage != "" {
 				targetStage = stage
 			}
@@ -891,7 +891,7 @@ func newTaskReleaseCmd(globals *globalFlags) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&stage, "stage", "", "Target stage after release (default: ready)")
+	cmd.Flags().StringVar(&stage, "stage", "", "Target stage after release (default: accepted)")
 	cmd.Flags().StringVar(&reason, "reason", "", "Audit trail reason")
 	return cmd
 }

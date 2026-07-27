@@ -10,16 +10,11 @@
 Open-stage values:
 
 - `triage`: new work that needs review.
-- `backlog`: accepted but not ready.
-- `ready`: ready for an agent to claim.
+- `accepted`: accepted work that is eligible for ranking and availability checks.
 - `working`: actively being worked.
 - `in_review`: implementation complete, awaiting review.
 - `in_qa`: awaiting QA.
 - `deploying`: in deployment or release flow.
-- `blocked`: cannot proceed because of a blocker.
-- `waiting_for_input`: needs user or stakeholder input.
-- `deferred`: intentionally postponed.
-- `scheduled`: planned for a future time.
 
 Closed-stage values:
 
@@ -27,6 +22,12 @@ Closed-stage values:
 - `wont_fix`: intentionally not fixed.
 - `duplicate`: duplicate of another task.
 - `cancelled`: no longer needed.
+
+## Hold Reasons
+
+- `waiting_for_input`: accepted or active work needs user or stakeholder input.
+- `deferred`: accepted or active work is intentionally postponed without a
+  concrete future `start_date`.
 
 ## Priorities
 

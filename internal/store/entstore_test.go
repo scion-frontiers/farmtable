@@ -385,6 +385,43 @@ func TestComputeAvailability_ReasonsAndTerminalDependencies(t *testing.T) {
 	}
 }
 
+func TestTaskStateValidation_HoldReasonRules(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, s)
+	waiting := task.HoldReasonWaitingForInput
+	deferred := task.HoldReasonDeferred
+	future := time.Now().Add(24 * time.Hour)
+
+	if _, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "triage hold", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, HoldReason: &waiting,
+	}); err != store.ErrInvalidArgument {
+		t.Fatalf("CreateTask triage hold err = %v, want ErrInvalidArgument", err)
+	}
+	if _, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "future deferred", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, HoldReason: &deferred, StartDate: &future,
+	}); err != store.ErrInvalidArgument {
+		t.Fatalf("CreateTask future deferred err = %v, want ErrInvalidArgument", err)
+	}
+	accepted, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "accepted hold", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, HoldReason: &deferred,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask accepted hold: %v", err)
+	}
+	updated, err := s.UpdateTask(ctx, accepted.ID, store.UpdateTaskParams{StartDate: &future}, uuid.Nil)
+	if err != nil {
+		t.Fatalf("UpdateTask future start should clear deferred hold: %v", err)
+	}
+	if updated.HoldReason != nil {
+		t.Fatalf("hold_reason = %v, want nil after future start_date", updated.HoldReason)
+	}
+	if _, err := s.UpdateTask(ctx, accepted.ID, store.UpdateTaskParams{HoldReason: &waiting, Stage: &[]task.Stage{task.StageCompleted}[0]}, uuid.Nil); err != store.ErrInvalidArgument {
+		t.Fatalf("UpdateTask terminal hold err = %v, want ErrInvalidArgument", err)
+	}
+}
+
 func hasAvailabilityReason(a store.TaskAvailability, want store.AvailabilityReason) bool {
 	for _, got := range a.Reasons {
 		if got == want {

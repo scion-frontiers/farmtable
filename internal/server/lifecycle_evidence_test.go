@@ -67,7 +67,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 		id := newTriageTask(t, "evidence-agent-accept")
 		observe(t, "agent  UpdateTask triage→ready       (needs task:accept)", codes.PermissionDenied, func() error {
 			_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
-				Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+				Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 			})
 			return err
 		})
@@ -99,7 +99,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 
 			observe(t, role+" UpdateTask triage→ready       (task:accept)", codes.OK, func() error {
 				_, err := client.UpdateTask(roleCtx, &pb.UpdateTaskRequest{
-					Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_READY),
+					Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 				})
 				return err
 			})
@@ -119,7 +119,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 			})
 			observe(t, role+" UpdateTask completed→backlog  (task:accept)", codes.OK, func() error {
 				_, err := client.UpdateTask(roleCtx, &pb.UpdateTaskRequest{
-					Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BACKLOG),
+					Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 				})
 				return err
 			})
@@ -129,7 +129,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 	t.Run("c_agent_can_still_claim_accepted_task", func(t *testing.T) {
 		agentCtx := roles["agent"]
 		id := createLifecycleTask(t, client, adminCtx, collID, "evidence-agent-claim",
-			stageProtoPtr(pb.TaskStage_TASK_STAGE_READY)).GetId()
+			stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED)).GetId()
 
 		observe(t, "agent  ClaimTask ready→working       (task:claim)", codes.OK, func() error {
 			_, err := client.ClaimTask(agentCtx, &pb.ClaimTaskRequest{Id: id})
@@ -143,7 +143,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 		})
 		observe(t, "agent  UpdateTask working→blocked    (task:write)", codes.OK, func() error {
 			_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
-				Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_BLOCKED),
+				Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 			})
 			return err
 		})

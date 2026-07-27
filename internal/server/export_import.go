@@ -55,9 +55,11 @@ type exportTask struct {
 	Description        string              `json:"description"`
 	Phase              string              `json:"phase"`
 	Stage              string              `json:"stage"`
+	HoldReason         *string             `json:"hold_reason,omitempty"`
 	NativeLabel        string              `json:"native_label"`
 	Type               string              `json:"type"`
 	Priority           *string             `json:"priority"`
+	Rank               *int                `json:"rank,omitempty"`
 	AssigneeID         *string             `json:"assignee_id"`
 	ParentTaskID       *string             `json:"parent_task_id"`
 	StartDate          *time.Time          `json:"start_date"`
@@ -126,7 +128,7 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 	taskIDs := make(map[uuid.UUID]struct{}, len(tasks))
 	userIDs := map[uuid.UUID]struct{}{}
 	doc := exportDocument{
-		FormatVersion: 1,
+		FormatVersion: 2,
 		ExportedAt:    time.Now().UTC(),
 		Generator:     "farmtable",
 		Collection: exportCollection{
@@ -295,7 +297,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		if err := decoder.Decode(&doc); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid export JSON: %v", err)
 		}
-		if doc.FormatVersion != 1 {
+		if doc.FormatVersion != 1 && doc.FormatVersion != 2 {
 			return nil, status.Errorf(codes.InvalidArgument, "unsupported format_version: %d", doc.FormatVersion)
 		}
 		if doc.Generator != "" && doc.Generator != "farmtable" {
@@ -315,6 +317,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		}
 		taskMapping[exportedTask.ID] = uuid.New()
 	}
+	hasOldBlocker := oldBlockedByEvidence(doc.Relationships)
 
 	orderedTasks, err := orderImportTasks(doc.Tasks)
 	if err != nil {
@@ -356,12 +359,18 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		Changes:       int32(len(doc.Changes)),
 	}
 
+	migrationAuthorID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	var migrationNotes []store.ImportChange
 	for _, exportedTask := range orderedTasks {
-		imported, err := importedTask(exportedTask, taskMapping, userMapping)
+		imported, note, err := importedTask(exportedTask, taskMapping, userMapping, hasOldBlocker[exportedTask.ID])
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		importParams.Tasks = append(importParams.Tasks, imported)
+		if note != nil {
+			note.AuthorID = migrationAuthorID
+			migrationNotes = append(migrationNotes, *note)
+		}
 	}
 	for _, exportedComment := range doc.Comments {
 		imported, err := importedComment(exportedComment, taskMapping, userMapping)
@@ -383,6 +392,15 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		importParams.Changes = append(importParams.Changes, imported)
+	}
+	if len(migrationNotes) > 0 {
+		importParams.Users = append(importParams.Users, store.ImportUser{
+			ID:          migrationAuthorID,
+			DisplayName: "system:migration",
+			Type:        "service_account",
+			Status:      "active",
+		})
+		importParams.Changes = append(importParams.Changes, migrationNotes...)
 	}
 
 	warnings = append(beadsWarnings, warnings...)
@@ -422,6 +440,13 @@ func taskExport(t *ent.Task) exportTask {
 	if t.Priority != nil {
 		p := string(*t.Priority)
 		out.Priority = &p
+	}
+	if t.HoldReason != nil {
+		hr := string(*t.HoldReason)
+		out.HoldReason = &hr
+	}
+	if t.Rank != nil {
+		out.Rank = t.Rank
 	}
 	if t.AssigneeID != nil {
 		id := t.AssigneeID.String()
@@ -610,18 +635,69 @@ func orderImportTasks(tasks []exportTask) ([]exportTask, error) {
 	return ordered, nil
 }
 
-func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID) (store.ImportTask, error) {
+func oldBlockedByEvidence(relationships []exportRelationship) map[string]bool {
+	blocked := map[string]bool{}
+	for _, rel := range relationships {
+		switch rel.Type {
+		case string(relationship.TypeBlockedBy):
+			blocked[rel.SourceTaskID] = true
+		case string(relationship.TypeBlocks):
+			blocked[rel.TargetTaskID] = true
+		}
+	}
+	return blocked
+}
+
+func migrateTaskState(t exportTask, hasOldBlocker bool) (task.Phase, task.Stage, *task.HoldReason, string, error) {
+	stageValue := task.Stage(t.Stage)
+	switch stageValue {
+	case task.StageTriage, task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying, task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+		phase := phaseForStage(stageValue)
+		var holdReason *task.HoldReason
+		if t.HoldReason != nil && *t.HoldReason != "" {
+			hr := task.HoldReason(*t.HoldReason)
+			if err := task.HoldReasonValidator(hr); err != nil {
+				return "", "", nil, "", err
+			}
+			holdReason = &hr
+		}
+		return phase, stageValue, holdReason, "", nil
+	case "backlog", "ready":
+		return task.PhaseOpen, task.StageAccepted, nil, "old_" + t.Stage + "_stage_to_accepted", nil
+	case "waiting_for_input":
+		hr := task.HoldReasonWaitingForInput
+		return task.PhaseOpen, task.StageAccepted, &hr, "old_waiting_for_input_stage_to_hold_reason", nil
+	case "deferred":
+		if t.StartDate != nil && t.StartDate.After(time.Now()) {
+			return task.PhaseOpen, task.StageAccepted, nil, "old_deferred_stage_future_start_date_cleared_hold", nil
+		}
+		hr := task.HoldReasonDeferred
+		return task.PhaseOpen, task.StageAccepted, &hr, "old_deferred_stage_to_hold_reason", nil
+	case "scheduled":
+		if t.StartDate != nil {
+			return task.PhaseOpen, task.StageAccepted, nil, "old_scheduled_stage_with_start_date", nil
+		}
+		hr := task.HoldReasonDeferred
+		return task.PhaseOpen, task.StageAccepted, &hr, "old_scheduled_stage_without_start_date_to_deferred", nil
+	case "blocked":
+		if hasOldBlocker {
+			return task.PhaseOpen, task.StageAccepted, nil, "old_blocked_stage_with_blocker_to_dependency_availability", nil
+		}
+		hr := task.HoldReasonWaitingForInput
+		return task.PhaseOpen, task.StageAccepted, &hr, "old_blocked_stage_without_blocker_to_waiting_for_input", nil
+	default:
+		return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+	}
+}
+
+func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID, hasOldBlocker bool) (store.ImportTask, *store.ImportChange, error) {
 	newID, ok := taskMapping[t.ID]
 	if !ok {
-		return store.ImportTask{}, fmt.Errorf("missing task mapping for %q", t.ID)
+		return store.ImportTask{}, nil, fmt.Errorf("missing task mapping for %q", t.ID)
 	}
-	phase, err := parseTaskPhase(t.Phase)
+	phase, stage, holdReason, migrationReason, err := migrateTaskState(t, hasOldBlocker)
 	if err != nil {
-		return store.ImportTask{}, err
-	}
-	stage, err := parseTaskStage(t.Stage)
-	if err != nil {
-		return store.ImportTask{}, err
+		return store.ImportTask{}, nil, err
 	}
 	imported := store.ImportTask{
 		ID:                 newID,
@@ -644,35 +720,67 @@ func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping ma
 		RemoteData:         t.RemoteData,
 		Version:            "1",
 	}
+	if holdReason != nil {
+		imported.HoldReason = holdReason
+	}
+	if t.Rank != nil {
+		imported.Rank = t.Rank
+	}
 	if t.Priority != nil && *t.Priority != "" {
 		priority, err := parseTaskPriority(*t.Priority)
 		if err != nil {
-			return store.ImportTask{}, err
+			return store.ImportTask{}, nil, err
 		}
 		imported.Priority = &priority
 	}
 	if t.AssigneeID != nil && *t.AssigneeID != "" {
 		assigneeID, ok := userMapping[*t.AssigneeID]
 		if !ok {
-			return store.ImportTask{}, fmt.Errorf("task %q references missing assignee_id %q", t.ID, *t.AssigneeID)
+			return store.ImportTask{}, nil, fmt.Errorf("task %q references missing assignee_id %q", t.ID, *t.AssigneeID)
 		}
 		imported.AssigneeID = &assigneeID
 	}
 	if t.ParentTaskID != nil && *t.ParentTaskID != "" {
 		parentID, ok := taskMapping[*t.ParentTaskID]
 		if !ok {
-			return store.ImportTask{}, fmt.Errorf("task %q references missing parent_task_id %q", t.ID, *t.ParentTaskID)
+			return store.ImportTask{}, nil, fmt.Errorf("task %q references missing parent_task_id %q", t.ID, *t.ParentTaskID)
 		}
 		imported.ParentTaskID = &parentID
 	}
 	if t.CIStatus != nil && *t.CIStatus != "" {
 		ciStatus, err := parseTaskCIStatus(*t.CIStatus)
 		if err != nil {
-			return store.ImportTask{}, err
+			return store.ImportTask{}, nil, err
 		}
 		imported.CIStatus = &ciStatus
 	}
-	return imported, nil
+	var note *store.ImportChange
+	if migrationReason != "" {
+		oldValue, _ := json.Marshal(map[string]any{
+			"phase":        t.Phase,
+			"stage":        t.Stage,
+			"native_label": t.NativeLabel,
+			"start_date":   t.StartDate,
+			"has_blocker":  hasOldBlocker,
+		})
+		newState := map[string]any{
+			"stage":  string(imported.Stage),
+			"reason": migrationReason,
+		}
+		if imported.HoldReason != nil {
+			newState["hold_reason"] = string(*imported.HoldReason)
+		}
+		newValue, _ := json.Marshal(newState)
+		note = &store.ImportChange{
+			ID:        uuid.New(),
+			TaskID:    newID,
+			FieldName: "task_state_migration",
+			OldValue:  string(oldValue),
+			NewValue:  string(newValue),
+			CreatedAt: time.Now(),
+		}
+	}
+	return imported, note, nil
 }
 
 func importedComment(c exportComment, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID) (store.ImportComment, error) {

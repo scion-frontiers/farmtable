@@ -27,8 +27,7 @@ interface ColumnNavDetail {
 
 const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.TRIAGE, label: 'Triage', phase: TaskPhase.OPEN },
-  { stage: TaskStage.BACKLOG, label: 'Backlog', phase: TaskPhase.OPEN },
-  { stage: TaskStage.READY, label: 'Ready', phase: TaskPhase.OPEN },
+  { stage: TaskStage.ACCEPTED, label: 'Accepted', phase: TaskPhase.OPEN },
   { stage: TaskStage.WORKING, label: 'Working', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.IN_REVIEW, label: 'In Review', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.IN_QA, label: 'In QA', phase: TaskPhase.IN_PROGRESS },
@@ -36,12 +35,7 @@ const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.COMPLETED, label: 'Completed', phase: TaskPhase.CLOSED },
 ];
 
-const ON_HOLD_STAGES: ColumnDef[] = [
-  { stage: TaskStage.BLOCKED, label: 'Blocked', phase: TaskPhase.ON_HOLD },
-  { stage: TaskStage.WAITING_FOR_INPUT, label: 'Waiting for Input', phase: TaskPhase.ON_HOLD },
-  { stage: TaskStage.DEFERRED, label: 'Deferred', phase: TaskPhase.ON_HOLD },
-  { stage: TaskStage.SCHEDULED, label: 'Scheduled', phase: TaskPhase.ON_HOLD },
-];
+const ON_HOLD_STAGES: ColumnDef[] = [];
 
 const CLOSED_STAGES = new Set([
   TaskStage.COMPLETED,

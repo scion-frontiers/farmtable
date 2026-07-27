@@ -149,12 +149,11 @@ func (TaskPhase) EnumDescriptor() ([]byte, []int) {
 	return file_farmtable_proto_rawDescGZIP(), []int{1}
 }
 
-// Tier 2 status: fixed set of finer-grained positions within each phase.
+// Native asserted workflow stage. Availability is computed separately.
 // Phase-stage mapping:
 //
-//	OPEN:        triage, backlog, ready
+//	OPEN:        triage, accepted
 //	IN_PROGRESS: working, in_review, in_qa, deploying
-//	ON_HOLD:     blocked, waiting_for_input, deferred, scheduled
 //	CLOSED:      completed, wont_fix, duplicate, cancelled
 type TaskStage int32
 
@@ -163,18 +162,11 @@ const (
 	// OPEN
 	TaskStage_TASK_STAGE_TRIAGE   TaskStage = 1
 	TaskStage_TASK_STAGE_ACCEPTED TaskStage = 2
-	TaskStage_TASK_STAGE_BACKLOG  TaskStage = 2
-	TaskStage_TASK_STAGE_READY    TaskStage = 3
 	// IN_PROGRESS
 	TaskStage_TASK_STAGE_WORKING   TaskStage = 4
 	TaskStage_TASK_STAGE_IN_REVIEW TaskStage = 5
 	TaskStage_TASK_STAGE_IN_QA     TaskStage = 6
 	TaskStage_TASK_STAGE_DEPLOYING TaskStage = 7
-	// ON_HOLD
-	TaskStage_TASK_STAGE_BLOCKED           TaskStage = 8
-	TaskStage_TASK_STAGE_WAITING_FOR_INPUT TaskStage = 9
-	TaskStage_TASK_STAGE_DEFERRED          TaskStage = 10
-	TaskStage_TASK_STAGE_SCHEDULED         TaskStage = 11
 	// CLOSED
 	TaskStage_TASK_STAGE_COMPLETED TaskStage = 12
 	TaskStage_TASK_STAGE_WONT_FIX  TaskStage = 13
@@ -188,38 +180,27 @@ var (
 		0:  "TASK_STAGE_UNSPECIFIED",
 		1:  "TASK_STAGE_TRIAGE",
 		2:  "TASK_STAGE_ACCEPTED",
-		3:  "TASK_STAGE_READY",
 		4:  "TASK_STAGE_WORKING",
 		5:  "TASK_STAGE_IN_REVIEW",
 		6:  "TASK_STAGE_IN_QA",
 		7:  "TASK_STAGE_DEPLOYING",
-		8:  "TASK_STAGE_BLOCKED",
-		9:  "TASK_STAGE_WAITING_FOR_INPUT",
-		10: "TASK_STAGE_DEFERRED",
-		11: "TASK_STAGE_SCHEDULED",
 		12: "TASK_STAGE_COMPLETED",
 		13: "TASK_STAGE_WONT_FIX",
 		14: "TASK_STAGE_DUPLICATE",
 		15: "TASK_STAGE_CANCELLED",
 	}
 	TaskStage_value = map[string]int32{
-		"TASK_STAGE_UNSPECIFIED":       0,
-		"TASK_STAGE_TRIAGE":            1,
-		"TASK_STAGE_ACCEPTED":          2,
-		"TASK_STAGE_BACKLOG":           2,
-		"TASK_STAGE_READY":             3,
-		"TASK_STAGE_WORKING":           4,
-		"TASK_STAGE_IN_REVIEW":         5,
-		"TASK_STAGE_IN_QA":             6,
-		"TASK_STAGE_DEPLOYING":         7,
-		"TASK_STAGE_BLOCKED":           8,
-		"TASK_STAGE_WAITING_FOR_INPUT": 9,
-		"TASK_STAGE_DEFERRED":          10,
-		"TASK_STAGE_SCHEDULED":         11,
-		"TASK_STAGE_COMPLETED":         12,
-		"TASK_STAGE_WONT_FIX":          13,
-		"TASK_STAGE_DUPLICATE":         14,
-		"TASK_STAGE_CANCELLED":         15,
+		"TASK_STAGE_UNSPECIFIED": 0,
+		"TASK_STAGE_TRIAGE":      1,
+		"TASK_STAGE_ACCEPTED":    2,
+		"TASK_STAGE_WORKING":     4,
+		"TASK_STAGE_IN_REVIEW":   5,
+		"TASK_STAGE_IN_QA":       6,
+		"TASK_STAGE_DEPLOYING":   7,
+		"TASK_STAGE_COMPLETED":   12,
+		"TASK_STAGE_WONT_FIX":    13,
+		"TASK_STAGE_DUPLICATE":   14,
+		"TASK_STAGE_CANCELLED":   15,
 	}
 )
 
@@ -248,6 +229,113 @@ func (x TaskStage) Number() protoreflect.EnumNumber {
 // Deprecated: Use TaskStage.Descriptor instead.
 func (TaskStage) EnumDescriptor() ([]byte, []int) {
 	return file_farmtable_proto_rawDescGZIP(), []int{2}
+}
+
+type TaskHoldReason int32
+
+const (
+	TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED       TaskHoldReason = 0
+	TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT TaskHoldReason = 1
+	TaskHoldReason_TASK_HOLD_REASON_DEFERRED          TaskHoldReason = 2
+)
+
+// Enum value maps for TaskHoldReason.
+var (
+	TaskHoldReason_name = map[int32]string{
+		0: "TASK_HOLD_REASON_UNSPECIFIED",
+		1: "TASK_HOLD_REASON_WAITING_FOR_INPUT",
+		2: "TASK_HOLD_REASON_DEFERRED",
+	}
+	TaskHoldReason_value = map[string]int32{
+		"TASK_HOLD_REASON_UNSPECIFIED":       0,
+		"TASK_HOLD_REASON_WAITING_FOR_INPUT": 1,
+		"TASK_HOLD_REASON_DEFERRED":          2,
+	}
+)
+
+func (x TaskHoldReason) Enum() *TaskHoldReason {
+	p := new(TaskHoldReason)
+	*p = x
+	return p
+}
+
+func (x TaskHoldReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskHoldReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_farmtable_proto_enumTypes[3].Descriptor()
+}
+
+func (TaskHoldReason) Type() protoreflect.EnumType {
+	return &file_farmtable_proto_enumTypes[3]
+}
+
+func (x TaskHoldReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskHoldReason.Descriptor instead.
+func (TaskHoldReason) EnumDescriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{3}
+}
+
+type AvailabilityReason int32
+
+const (
+	AvailabilityReason_AVAILABILITY_REASON_UNSPECIFIED           AvailabilityReason = 0
+	AvailabilityReason_AVAILABILITY_REASON_TRIAGE                AvailabilityReason = 1
+	AvailabilityReason_AVAILABILITY_REASON_TERMINAL              AvailabilityReason = 2
+	AvailabilityReason_AVAILABILITY_REASON_HELD                  AvailabilityReason = 3
+	AvailabilityReason_AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY AvailabilityReason = 4
+	AvailabilityReason_AVAILABILITY_REASON_FUTURE_START_DATE     AvailabilityReason = 5
+)
+
+// Enum value maps for AvailabilityReason.
+var (
+	AvailabilityReason_name = map[int32]string{
+		0: "AVAILABILITY_REASON_UNSPECIFIED",
+		1: "AVAILABILITY_REASON_TRIAGE",
+		2: "AVAILABILITY_REASON_TERMINAL",
+		3: "AVAILABILITY_REASON_HELD",
+		4: "AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY",
+		5: "AVAILABILITY_REASON_FUTURE_START_DATE",
+	}
+	AvailabilityReason_value = map[string]int32{
+		"AVAILABILITY_REASON_UNSPECIFIED":           0,
+		"AVAILABILITY_REASON_TRIAGE":                1,
+		"AVAILABILITY_REASON_TERMINAL":              2,
+		"AVAILABILITY_REASON_HELD":                  3,
+		"AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY": 4,
+		"AVAILABILITY_REASON_FUTURE_START_DATE":     5,
+	}
+)
+
+func (x AvailabilityReason) Enum() *AvailabilityReason {
+	p := new(AvailabilityReason)
+	*p = x
+	return p
+}
+
+func (x AvailabilityReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AvailabilityReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_farmtable_proto_enumTypes[4].Descriptor()
+}
+
+func (AvailabilityReason) Type() protoreflect.EnumType {
+	return &file_farmtable_proto_enumTypes[4]
+}
+
+func (x AvailabilityReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AvailabilityReason.Descriptor instead.
+func (AvailabilityReason) EnumDescriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{4}
 }
 
 type TaskPriority int32
@@ -289,11 +377,11 @@ func (x TaskPriority) String() string {
 }
 
 func (TaskPriority) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[3].Descriptor()
+	return file_farmtable_proto_enumTypes[5].Descriptor()
 }
 
 func (TaskPriority) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[3]
+	return &file_farmtable_proto_enumTypes[5]
 }
 
 func (x TaskPriority) Number() protoreflect.EnumNumber {
@@ -302,7 +390,7 @@ func (x TaskPriority) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskPriority.Descriptor instead.
 func (TaskPriority) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{3}
+	return file_farmtable_proto_rawDescGZIP(), []int{5}
 }
 
 // Non-hierarchical semantic relationship between two tasks.
@@ -346,11 +434,11 @@ func (x RelationshipType) String() string {
 }
 
 func (RelationshipType) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[4].Descriptor()
+	return file_farmtable_proto_enumTypes[6].Descriptor()
 }
 
 func (RelationshipType) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[4]
+	return &file_farmtable_proto_enumTypes[6]
 }
 
 func (x RelationshipType) Number() protoreflect.EnumNumber {
@@ -359,7 +447,7 @@ func (x RelationshipType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RelationshipType.Descriptor instead.
 func (RelationshipType) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{4}
+	return file_farmtable_proto_rawDescGZIP(), []int{6}
 }
 
 type UserType int32
@@ -398,11 +486,11 @@ func (x UserType) String() string {
 }
 
 func (UserType) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[5].Descriptor()
+	return file_farmtable_proto_enumTypes[7].Descriptor()
 }
 
 func (UserType) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[5]
+	return &file_farmtable_proto_enumTypes[7]
 }
 
 func (x UserType) Number() protoreflect.EnumNumber {
@@ -411,7 +499,7 @@ func (x UserType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use UserType.Descriptor instead.
 func (UserType) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{5}
+	return file_farmtable_proto_rawDescGZIP(), []int{7}
 }
 
 type IdentityStatus int32
@@ -450,11 +538,11 @@ func (x IdentityStatus) String() string {
 }
 
 func (IdentityStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[6].Descriptor()
+	return file_farmtable_proto_enumTypes[8].Descriptor()
 }
 
 func (IdentityStatus) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[6]
+	return &file_farmtable_proto_enumTypes[8]
 }
 
 func (x IdentityStatus) Number() protoreflect.EnumNumber {
@@ -463,7 +551,7 @@ func (x IdentityStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use IdentityStatus.Descriptor instead.
 func (IdentityStatus) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{6}
+	return file_farmtable_proto_rawDescGZIP(), []int{8}
 }
 
 type AuthMethod int32
@@ -517,11 +605,11 @@ func (x AuthMethod) String() string {
 }
 
 func (AuthMethod) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[7].Descriptor()
+	return file_farmtable_proto_enumTypes[9].Descriptor()
 }
 
 func (AuthMethod) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[7]
+	return &file_farmtable_proto_enumTypes[9]
 }
 
 func (x AuthMethod) Number() protoreflect.EnumNumber {
@@ -530,7 +618,7 @@ func (x AuthMethod) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AuthMethod.Descriptor instead.
 func (AuthMethod) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{7}
+	return file_farmtable_proto_rawDescGZIP(), []int{9}
 }
 
 // Status of a linked external platform account.
@@ -570,11 +658,11 @@ func (x LinkedAccountStatus) String() string {
 }
 
 func (LinkedAccountStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[8].Descriptor()
+	return file_farmtable_proto_enumTypes[10].Descriptor()
 }
 
 func (LinkedAccountStatus) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[8]
+	return &file_farmtable_proto_enumTypes[10]
 }
 
 func (x LinkedAccountStatus) Number() protoreflect.EnumNumber {
@@ -583,7 +671,7 @@ func (x LinkedAccountStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LinkedAccountStatus.Descriptor instead.
 func (LinkedAccountStatus) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{8}
+	return file_farmtable_proto_rawDescGZIP(), []int{10}
 }
 
 type CustomFieldType int32
@@ -637,11 +725,11 @@ func (x CustomFieldType) String() string {
 }
 
 func (CustomFieldType) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[9].Descriptor()
+	return file_farmtable_proto_enumTypes[11].Descriptor()
 }
 
 func (CustomFieldType) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[9]
+	return &file_farmtable_proto_enumTypes[11]
 }
 
 func (x CustomFieldType) Number() protoreflect.EnumNumber {
@@ -650,7 +738,7 @@ func (x CustomFieldType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CustomFieldType.Descriptor instead.
 func (CustomFieldType) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{9}
+	return file_farmtable_proto_rawDescGZIP(), []int{11}
 }
 
 type CIStatus int32
@@ -692,11 +780,11 @@ func (x CIStatus) String() string {
 }
 
 func (CIStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[10].Descriptor()
+	return file_farmtable_proto_enumTypes[12].Descriptor()
 }
 
 func (CIStatus) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[10]
+	return &file_farmtable_proto_enumTypes[12]
 }
 
 func (x CIStatus) Number() protoreflect.EnumNumber {
@@ -705,7 +793,7 @@ func (x CIStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CIStatus.Descriptor instead.
 func (CIStatus) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{10}
+	return file_farmtable_proto_rawDescGZIP(), []int{12}
 }
 
 type PullRequestStatus int32
@@ -744,11 +832,11 @@ func (x PullRequestStatus) String() string {
 }
 
 func (PullRequestStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[11].Descriptor()
+	return file_farmtable_proto_enumTypes[13].Descriptor()
 }
 
 func (PullRequestStatus) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[11]
+	return &file_farmtable_proto_enumTypes[13]
 }
 
 func (x PullRequestStatus) Number() protoreflect.EnumNumber {
@@ -757,7 +845,7 @@ func (x PullRequestStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PullRequestStatus.Descriptor instead.
 func (PullRequestStatus) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{11}
+	return file_farmtable_proto_rawDescGZIP(), []int{13}
 }
 
 type EventType int32
@@ -811,11 +899,11 @@ func (x EventType) String() string {
 }
 
 func (EventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[12].Descriptor()
+	return file_farmtable_proto_enumTypes[14].Descriptor()
 }
 
 func (EventType) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[12]
+	return &file_farmtable_proto_enumTypes[14]
 }
 
 func (x EventType) Number() protoreflect.EnumNumber {
@@ -824,7 +912,7 @@ func (x EventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EventType.Descriptor instead.
 func (EventType) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{12}
+	return file_farmtable_proto_rawDescGZIP(), []int{14}
 }
 
 type WebhookSource int32
@@ -860,11 +948,11 @@ func (x WebhookSource) String() string {
 }
 
 func (WebhookSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[13].Descriptor()
+	return file_farmtable_proto_enumTypes[15].Descriptor()
 }
 
 func (WebhookSource) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[13]
+	return &file_farmtable_proto_enumTypes[15]
 }
 
 func (x WebhookSource) Number() protoreflect.EnumNumber {
@@ -873,7 +961,7 @@ func (x WebhookSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WebhookSource.Descriptor instead.
 func (WebhookSource) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{13}
+	return file_farmtable_proto_rawDescGZIP(), []int{15}
 }
 
 type SortField int32
@@ -915,11 +1003,11 @@ func (x SortField) String() string {
 }
 
 func (SortField) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[14].Descriptor()
+	return file_farmtable_proto_enumTypes[16].Descriptor()
 }
 
 func (SortField) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[14]
+	return &file_farmtable_proto_enumTypes[16]
 }
 
 func (x SortField) Number() protoreflect.EnumNumber {
@@ -928,7 +1016,7 @@ func (x SortField) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SortField.Descriptor instead.
 func (SortField) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{14}
+	return file_farmtable_proto_rawDescGZIP(), []int{16}
 }
 
 type SortOrder int32
@@ -964,11 +1052,11 @@ func (x SortOrder) String() string {
 }
 
 func (SortOrder) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[15].Descriptor()
+	return file_farmtable_proto_enumTypes[17].Descriptor()
 }
 
 func (SortOrder) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[15]
+	return &file_farmtable_proto_enumTypes[17]
 }
 
 func (x SortOrder) Number() protoreflect.EnumNumber {
@@ -977,7 +1065,7 @@ func (x SortOrder) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SortOrder.Descriptor instead.
 func (SortOrder) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{15}
+	return file_farmtable_proto_rawDescGZIP(), []int{17}
 }
 
 type DependencyDirection int32
@@ -1016,11 +1104,11 @@ func (x DependencyDirection) String() string {
 }
 
 func (DependencyDirection) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[16].Descriptor()
+	return file_farmtable_proto_enumTypes[18].Descriptor()
 }
 
 func (DependencyDirection) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[16]
+	return &file_farmtable_proto_enumTypes[18]
 }
 
 func (x DependencyDirection) Number() protoreflect.EnumNumber {
@@ -1029,7 +1117,7 @@ func (x DependencyDirection) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DependencyDirection.Descriptor instead.
 func (DependencyDirection) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{16}
+	return file_farmtable_proto_rawDescGZIP(), []int{18}
 }
 
 // Classification of a streaming event.
@@ -1081,11 +1169,11 @@ func (x TaskEventType) String() string {
 }
 
 func (TaskEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_farmtable_proto_enumTypes[17].Descriptor()
+	return file_farmtable_proto_enumTypes[19].Descriptor()
 }
 
 func (TaskEventType) Type() protoreflect.EnumType {
-	return &file_farmtable_proto_enumTypes[17]
+	return &file_farmtable_proto_enumTypes[19]
 }
 
 func (x TaskEventType) Number() protoreflect.EnumNumber {
@@ -1094,7 +1182,59 @@ func (x TaskEventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskEventType.Descriptor instead.
 func (TaskEventType) EnumDescriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{17}
+	return file_farmtable_proto_rawDescGZIP(), []int{19}
+}
+
+type TaskAvailability struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
+	Reasons       []AvailabilityReason   `protobuf:"varint,2,rep,packed,name=reasons,proto3,enum=farmtable.v1.AvailabilityReason" json:"reasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskAvailability) Reset() {
+	*x = TaskAvailability{}
+	mi := &file_farmtable_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskAvailability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskAvailability) ProtoMessage() {}
+
+func (x *TaskAvailability) ProtoReflect() protoreflect.Message {
+	mi := &file_farmtable_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskAvailability.ProtoReflect.Descriptor instead.
+func (*TaskAvailability) Descriptor() ([]byte, []int) {
+	return file_farmtable_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *TaskAvailability) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+func (x *TaskAvailability) GetReasons() []AvailabilityReason {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
 }
 
 // A human, agent, or service account that can be assigned tasks or author changes.
@@ -1113,7 +1253,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_farmtable_proto_msgTypes[0]
+	mi := &file_farmtable_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1265,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[0]
+	mi := &file_farmtable_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1278,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{0}
+	return file_farmtable_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *User) GetId() string {
@@ -1201,7 +1341,7 @@ type Relationship struct {
 
 func (x *Relationship) Reset() {
 	*x = Relationship{}
-	mi := &file_farmtable_proto_msgTypes[1]
+	mi := &file_farmtable_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1213,7 +1353,7 @@ func (x *Relationship) String() string {
 func (*Relationship) ProtoMessage() {}
 
 func (x *Relationship) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[1]
+	mi := &file_farmtable_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1226,7 +1366,7 @@ func (x *Relationship) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Relationship.ProtoReflect.Descriptor instead.
 func (*Relationship) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{1}
+	return file_farmtable_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Relationship) GetType() RelationshipType {
@@ -1257,7 +1397,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_farmtable_proto_msgTypes[2]
+	mi := &file_farmtable_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1269,7 +1409,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[2]
+	mi := &file_farmtable_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1282,7 +1422,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{2}
+	return file_farmtable_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Attachment) GetId() string {
@@ -1333,7 +1473,7 @@ type CustomFieldValue struct {
 
 func (x *CustomFieldValue) Reset() {
 	*x = CustomFieldValue{}
-	mi := &file_farmtable_proto_msgTypes[3]
+	mi := &file_farmtable_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1345,7 +1485,7 @@ func (x *CustomFieldValue) String() string {
 func (*CustomFieldValue) ProtoMessage() {}
 
 func (x *CustomFieldValue) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[3]
+	mi := &file_farmtable_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1358,7 +1498,7 @@ func (x *CustomFieldValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomFieldValue.ProtoReflect.Descriptor instead.
 func (*CustomFieldValue) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{3}
+	return file_farmtable_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CustomFieldValue) GetFieldId() string {
@@ -1402,7 +1542,7 @@ type CustomFieldDefinition struct {
 
 func (x *CustomFieldDefinition) Reset() {
 	*x = CustomFieldDefinition{}
-	mi := &file_farmtable_proto_msgTypes[4]
+	mi := &file_farmtable_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1414,7 +1554,7 @@ func (x *CustomFieldDefinition) String() string {
 func (*CustomFieldDefinition) ProtoMessage() {}
 
 func (x *CustomFieldDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[4]
+	mi := &file_farmtable_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1427,7 +1567,7 @@ func (x *CustomFieldDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomFieldDefinition.ProtoReflect.Descriptor instead.
 func (*CustomFieldDefinition) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{4}
+	return file_farmtable_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CustomFieldDefinition) GetFieldId() string {
@@ -1470,7 +1610,7 @@ type PullRequest struct {
 
 func (x *PullRequest) Reset() {
 	*x = PullRequest{}
-	mi := &file_farmtable_proto_msgTypes[5]
+	mi := &file_farmtable_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1482,7 +1622,7 @@ func (x *PullRequest) String() string {
 func (*PullRequest) ProtoMessage() {}
 
 func (x *PullRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[5]
+	mi := &file_farmtable_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1495,7 +1635,7 @@ func (x *PullRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullRequest.ProtoReflect.Descriptor instead.
 func (*PullRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{5}
+	return file_farmtable_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PullRequest) GetId() string {
@@ -1534,7 +1674,7 @@ type CodeContext struct {
 
 func (x *CodeContext) Reset() {
 	*x = CodeContext{}
-	mi := &file_farmtable_proto_msgTypes[6]
+	mi := &file_farmtable_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1546,7 +1686,7 @@ func (x *CodeContext) String() string {
 func (*CodeContext) ProtoMessage() {}
 
 func (x *CodeContext) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[6]
+	mi := &file_farmtable_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1559,7 +1699,7 @@ func (x *CodeContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CodeContext.ProtoReflect.Descriptor instead.
 func (*CodeContext) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{6}
+	return file_farmtable_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CodeContext) GetRepo() string {
@@ -1609,7 +1749,7 @@ type StatusMapping struct {
 
 func (x *StatusMapping) Reset() {
 	*x = StatusMapping{}
-	mi := &file_farmtable_proto_msgTypes[7]
+	mi := &file_farmtable_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1621,7 +1761,7 @@ func (x *StatusMapping) String() string {
 func (*StatusMapping) ProtoMessage() {}
 
 func (x *StatusMapping) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[7]
+	mi := &file_farmtable_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1634,7 +1774,7 @@ func (x *StatusMapping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusMapping.ProtoReflect.Descriptor instead.
 func (*StatusMapping) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{7}
+	return file_farmtable_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StatusMapping) GetNativeStatus() string {
@@ -1706,14 +1846,17 @@ type Task struct {
 	// Opaque concurrency token for optimistic locking. Monotonic integer (as
 	// string) on the built-in backend; platform-derived (ETag, updatedAt, or
 	// computed hash) on external platforms. See .design/consistency-model.md.
-	Version       string `protobuf:"bytes,27,opt,name=version,proto3" json:"version,omitempty"`
+	Version       string            `protobuf:"bytes,27,opt,name=version,proto3" json:"version,omitempty"`
+	HoldReason    *TaskHoldReason   `protobuf:"varint,28,opt,name=hold_reason,json=holdReason,proto3,enum=farmtable.v1.TaskHoldReason,oneof" json:"hold_reason,omitempty"`
+	Rank          *int64            `protobuf:"varint,29,opt,name=rank,proto3,oneof" json:"rank,omitempty"`
+	Availability  *TaskAvailability `protobuf:"bytes,30,opt,name=availability,proto3" json:"availability,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
 	*x = Task{}
-	mi := &file_farmtable_proto_msgTypes[8]
+	mi := &file_farmtable_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1725,7 +1868,7 @@ func (x *Task) String() string {
 func (*Task) ProtoMessage() {}
 
 func (x *Task) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[8]
+	mi := &file_farmtable_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1738,7 +1881,7 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{8}
+	return file_farmtable_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Task) GetId() string {
@@ -1930,6 +2073,27 @@ func (x *Task) GetVersion() string {
 	return ""
 }
 
+func (x *Task) GetHoldReason() TaskHoldReason {
+	if x != nil && x.HoldReason != nil {
+		return *x.HoldReason
+	}
+	return TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED
+}
+
+func (x *Task) GetRank() int64 {
+	if x != nil && x.Rank != nil {
+		return *x.Rank
+	}
+	return 0
+}
+
+func (x *Task) GetAvailability() *TaskAvailability {
+	if x != nil {
+		return x.Availability
+	}
+	return nil
+}
+
 // A grouping of tasks representing a project, board, or repository.
 // Each collection maps 1:1 to a single external platform integration.
 type Collection struct {
@@ -1954,7 +2118,7 @@ type Collection struct {
 
 func (x *Collection) Reset() {
 	*x = Collection{}
-	mi := &file_farmtable_proto_msgTypes[9]
+	mi := &file_farmtable_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1966,7 +2130,7 @@ func (x *Collection) String() string {
 func (*Collection) ProtoMessage() {}
 
 func (x *Collection) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[9]
+	mi := &file_farmtable_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1979,7 +2143,7 @@ func (x *Collection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Collection.ProtoReflect.Descriptor instead.
 func (*Collection) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{9}
+	return file_farmtable_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Collection) GetId() string {
@@ -2084,7 +2248,7 @@ type Comment struct {
 
 func (x *Comment) Reset() {
 	*x = Comment{}
-	mi := &file_farmtable_proto_msgTypes[10]
+	mi := &file_farmtable_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2096,7 +2260,7 @@ func (x *Comment) String() string {
 func (*Comment) ProtoMessage() {}
 
 func (x *Comment) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[10]
+	mi := &file_farmtable_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2109,7 +2273,7 @@ func (x *Comment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Comment.ProtoReflect.Descriptor instead.
 func (*Comment) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{10}
+	return file_farmtable_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Comment) GetId() string {
@@ -2187,7 +2351,7 @@ type Change struct {
 
 func (x *Change) Reset() {
 	*x = Change{}
-	mi := &file_farmtable_proto_msgTypes[11]
+	mi := &file_farmtable_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2199,7 +2363,7 @@ func (x *Change) String() string {
 func (*Change) ProtoMessage() {}
 
 func (x *Change) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[11]
+	mi := &file_farmtable_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2212,7 +2376,7 @@ func (x *Change) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Change.ProtoReflect.Descriptor instead.
 func (*Change) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{11}
+	return file_farmtable_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Change) GetId() string {
@@ -2293,7 +2457,7 @@ type LinkedAccount struct {
 
 func (x *LinkedAccount) Reset() {
 	*x = LinkedAccount{}
-	mi := &file_farmtable_proto_msgTypes[12]
+	mi := &file_farmtable_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2305,7 +2469,7 @@ func (x *LinkedAccount) String() string {
 func (*LinkedAccount) ProtoMessage() {}
 
 func (x *LinkedAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[12]
+	mi := &file_farmtable_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2318,7 +2482,7 @@ func (x *LinkedAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkedAccount.ProtoReflect.Descriptor instead.
 func (*LinkedAccount) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{12}
+	return file_farmtable_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LinkedAccount) GetId() string {
@@ -2409,7 +2573,7 @@ type WebhookEvent struct {
 
 func (x *WebhookEvent) Reset() {
 	*x = WebhookEvent{}
-	mi := &file_farmtable_proto_msgTypes[13]
+	mi := &file_farmtable_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2421,7 +2585,7 @@ func (x *WebhookEvent) String() string {
 func (*WebhookEvent) ProtoMessage() {}
 
 func (x *WebhookEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[13]
+	mi := &file_farmtable_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2434,7 +2598,7 @@ func (x *WebhookEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookEvent.ProtoReflect.Descriptor instead.
 func (*WebhookEvent) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{13}
+	return file_farmtable_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *WebhookEvent) GetId() string {
@@ -2520,7 +2684,7 @@ type ListTasksRequest struct {
 
 func (x *ListTasksRequest) Reset() {
 	*x = ListTasksRequest{}
-	mi := &file_farmtable_proto_msgTypes[14]
+	mi := &file_farmtable_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2532,7 +2696,7 @@ func (x *ListTasksRequest) String() string {
 func (*ListTasksRequest) ProtoMessage() {}
 
 func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[14]
+	mi := &file_farmtable_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2545,7 +2709,7 @@ func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListTasksRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{14}
+	return file_farmtable_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListTasksRequest) GetCollectionId() string {
@@ -2651,7 +2815,7 @@ type ListTasksResponse struct {
 
 func (x *ListTasksResponse) Reset() {
 	*x = ListTasksResponse{}
-	mi := &file_farmtable_proto_msgTypes[15]
+	mi := &file_farmtable_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2663,7 +2827,7 @@ func (x *ListTasksResponse) String() string {
 func (*ListTasksResponse) ProtoMessage() {}
 
 func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[15]
+	mi := &file_farmtable_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2676,7 +2840,7 @@ func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListTasksResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{15}
+	return file_farmtable_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListTasksResponse) GetItems() []*Task {
@@ -2721,7 +2885,7 @@ type GetTaskRequest struct {
 
 func (x *GetTaskRequest) Reset() {
 	*x = GetTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[16]
+	mi := &file_farmtable_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2733,7 +2897,7 @@ func (x *GetTaskRequest) String() string {
 func (*GetTaskRequest) ProtoMessage() {}
 
 func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[16]
+	mi := &file_farmtable_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2746,7 +2910,7 @@ func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{16}
+	return file_farmtable_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetTaskRequest) GetId() string {
@@ -2790,7 +2954,7 @@ type GetTaskResponse struct {
 
 func (x *GetTaskResponse) Reset() {
 	*x = GetTaskResponse{}
-	mi := &file_farmtable_proto_msgTypes[17]
+	mi := &file_farmtable_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2802,7 +2966,7 @@ func (x *GetTaskResponse) String() string {
 func (*GetTaskResponse) ProtoMessage() {}
 
 func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[17]
+	mi := &file_farmtable_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2815,7 +2979,7 @@ func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{17}
+	return file_farmtable_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetTaskResponse) GetTask() *Task {
@@ -2855,6 +3019,8 @@ type CreateTaskRequest struct {
 	ParentTaskId *string                `protobuf:"bytes,10,opt,name=parent_task_id,json=parentTaskId,proto3,oneof" json:"parent_task_id,omitempty"`
 	DueDate      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
 	StartDate    *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	HoldReason   *TaskHoldReason        `protobuf:"varint,18,opt,name=hold_reason,json=holdReason,proto3,enum=farmtable.v1.TaskHoldReason,oneof" json:"hold_reason,omitempty"`
+	Rank         *int64                 `protobuf:"varint,19,opt,name=rank,proto3,oneof" json:"rank,omitempty"`
 	// Task IDs this task blocks.
 	BlocksTaskIds []string `protobuf:"bytes,13,rep,name=blocks_task_ids,json=blocksTaskIds,proto3" json:"blocks_task_ids,omitempty"`
 	// Task IDs blocking this task.
@@ -2869,7 +3035,7 @@ type CreateTaskRequest struct {
 
 func (x *CreateTaskRequest) Reset() {
 	*x = CreateTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[18]
+	mi := &file_farmtable_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2881,7 +3047,7 @@ func (x *CreateTaskRequest) String() string {
 func (*CreateTaskRequest) ProtoMessage() {}
 
 func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[18]
+	mi := &file_farmtable_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2894,7 +3060,7 @@ func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTaskRequest.ProtoReflect.Descriptor instead.
 func (*CreateTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{18}
+	return file_farmtable_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreateTaskRequest) GetName() string {
@@ -2981,6 +3147,20 @@ func (x *CreateTaskRequest) GetStartDate() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CreateTaskRequest) GetHoldReason() TaskHoldReason {
+	if x != nil && x.HoldReason != nil {
+		return *x.HoldReason
+	}
+	return TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED
+}
+
+func (x *CreateTaskRequest) GetRank() int64 {
+	if x != nil && x.Rank != nil {
+		return *x.Rank
+	}
+	return 0
+}
+
 func (x *CreateTaskRequest) GetBlocksTaskIds() []string {
 	if x != nil {
 		return x.BlocksTaskIds
@@ -3029,7 +3209,7 @@ type NewTaskSpec struct {
 
 func (x *NewTaskSpec) Reset() {
 	*x = NewTaskSpec{}
-	mi := &file_farmtable_proto_msgTypes[19]
+	mi := &file_farmtable_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3041,7 +3221,7 @@ func (x *NewTaskSpec) String() string {
 func (*NewTaskSpec) ProtoMessage() {}
 
 func (x *NewTaskSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[19]
+	mi := &file_farmtable_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3054,7 +3234,7 @@ func (x *NewTaskSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NewTaskSpec.ProtoReflect.Descriptor instead.
 func (*NewTaskSpec) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{19}
+	return file_farmtable_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *NewTaskSpec) GetName() string {
@@ -3104,7 +3284,7 @@ type InsertTasksAfterRequest struct {
 
 func (x *InsertTasksAfterRequest) Reset() {
 	*x = InsertTasksAfterRequest{}
-	mi := &file_farmtable_proto_msgTypes[20]
+	mi := &file_farmtable_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3116,7 +3296,7 @@ func (x *InsertTasksAfterRequest) String() string {
 func (*InsertTasksAfterRequest) ProtoMessage() {}
 
 func (x *InsertTasksAfterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[20]
+	mi := &file_farmtable_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3129,7 +3309,7 @@ func (x *InsertTasksAfterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InsertTasksAfterRequest.ProtoReflect.Descriptor instead.
 func (*InsertTasksAfterRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{20}
+	return file_farmtable_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *InsertTasksAfterRequest) GetAnchorTaskId() string {
@@ -3170,7 +3350,7 @@ type InsertTasksAfterResponse struct {
 
 func (x *InsertTasksAfterResponse) Reset() {
 	*x = InsertTasksAfterResponse{}
-	mi := &file_farmtable_proto_msgTypes[21]
+	mi := &file_farmtable_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3182,7 +3362,7 @@ func (x *InsertTasksAfterResponse) String() string {
 func (*InsertTasksAfterResponse) ProtoMessage() {}
 
 func (x *InsertTasksAfterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[21]
+	mi := &file_farmtable_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3195,7 +3375,7 @@ func (x *InsertTasksAfterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InsertTasksAfterResponse.ProtoReflect.Descriptor instead.
 func (*InsertTasksAfterResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{21}
+	return file_farmtable_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *InsertTasksAfterResponse) GetInsertedTasks() []*Task {
@@ -3226,10 +3406,14 @@ type UpdateTaskRequest struct {
 	AssigneeIds    []string `protobuf:"bytes,10,rep,name=assignee_ids,json=assigneeIds,proto3" json:"assignee_ids,omitempty"`
 	ClearAssignees bool     `protobuf:"varint,11,opt,name=clear_assignees,json=clearAssignees,proto3" json:"clear_assignees,omitempty"`
 	// Date management. Use clear_* to remove a date.
-	DueDate        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
-	ClearDueDate   bool                   `protobuf:"varint,13,opt,name=clear_due_date,json=clearDueDate,proto3" json:"clear_due_date,omitempty"`
-	StartDate      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	ClearStartDate bool                   `protobuf:"varint,15,opt,name=clear_start_date,json=clearStartDate,proto3" json:"clear_start_date,omitempty"`
+	DueDate         *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
+	ClearDueDate    bool                   `protobuf:"varint,13,opt,name=clear_due_date,json=clearDueDate,proto3" json:"clear_due_date,omitempty"`
+	StartDate       *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	ClearStartDate  bool                   `protobuf:"varint,15,opt,name=clear_start_date,json=clearStartDate,proto3" json:"clear_start_date,omitempty"`
+	HoldReason      *TaskHoldReason        `protobuf:"varint,18,opt,name=hold_reason,json=holdReason,proto3,enum=farmtable.v1.TaskHoldReason,oneof" json:"hold_reason,omitempty"`
+	ClearHoldReason bool                   `protobuf:"varint,19,opt,name=clear_hold_reason,json=clearHoldReason,proto3" json:"clear_hold_reason,omitempty"`
+	Rank            *int64                 `protobuf:"varint,25,opt,name=rank,proto3,oneof" json:"rank,omitempty"`
+	ClearRank       bool                   `protobuf:"varint,26,opt,name=clear_rank,json=clearRank,proto3" json:"clear_rank,omitempty"`
 	// Hierarchy. Use clear_parent to remove.
 	ParentTaskId *string `protobuf:"bytes,16,opt,name=parent_task_id,json=parentTaskId,proto3,oneof" json:"parent_task_id,omitempty"`
 	ClearParent  bool    `protobuf:"varint,17,opt,name=clear_parent,json=clearParent,proto3" json:"clear_parent,omitempty"`
@@ -3260,7 +3444,7 @@ type UpdateTaskRequest struct {
 
 func (x *UpdateTaskRequest) Reset() {
 	*x = UpdateTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[22]
+	mi := &file_farmtable_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3272,7 +3456,7 @@ func (x *UpdateTaskRequest) String() string {
 func (*UpdateTaskRequest) ProtoMessage() {}
 
 func (x *UpdateTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[22]
+	mi := &file_farmtable_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3285,7 +3469,7 @@ func (x *UpdateTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTaskRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{22}
+	return file_farmtable_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateTaskRequest) GetId() string {
@@ -3375,6 +3559,34 @@ func (x *UpdateTaskRequest) GetStartDate() *timestamppb.Timestamp {
 func (x *UpdateTaskRequest) GetClearStartDate() bool {
 	if x != nil {
 		return x.ClearStartDate
+	}
+	return false
+}
+
+func (x *UpdateTaskRequest) GetHoldReason() TaskHoldReason {
+	if x != nil && x.HoldReason != nil {
+		return *x.HoldReason
+	}
+	return TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED
+}
+
+func (x *UpdateTaskRequest) GetClearHoldReason() bool {
+	if x != nil {
+		return x.ClearHoldReason
+	}
+	return false
+}
+
+func (x *UpdateTaskRequest) GetRank() int64 {
+	if x != nil && x.Rank != nil {
+		return *x.Rank
+	}
+	return 0
+}
+
+func (x *UpdateTaskRequest) GetClearRank() bool {
+	if x != nil {
+		return x.ClearRank
 	}
 	return false
 }
@@ -3500,7 +3712,7 @@ type ClaimTaskRequest struct {
 
 func (x *ClaimTaskRequest) Reset() {
 	*x = ClaimTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[23]
+	mi := &file_farmtable_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3512,7 +3724,7 @@ func (x *ClaimTaskRequest) String() string {
 func (*ClaimTaskRequest) ProtoMessage() {}
 
 func (x *ClaimTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[23]
+	mi := &file_farmtable_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3525,7 +3737,7 @@ func (x *ClaimTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClaimTaskRequest.ProtoReflect.Descriptor instead.
 func (*ClaimTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{23}
+	return file_farmtable_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ClaimTaskRequest) GetId() string {
@@ -3573,7 +3785,7 @@ type ClaimTaskResponse struct {
 
 func (x *ClaimTaskResponse) Reset() {
 	*x = ClaimTaskResponse{}
-	mi := &file_farmtable_proto_msgTypes[24]
+	mi := &file_farmtable_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3585,7 +3797,7 @@ func (x *ClaimTaskResponse) String() string {
 func (*ClaimTaskResponse) ProtoMessage() {}
 
 func (x *ClaimTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[24]
+	mi := &file_farmtable_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3598,7 +3810,7 @@ func (x *ClaimTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClaimTaskResponse.ProtoReflect.Descriptor instead.
 func (*ClaimTaskResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{24}
+	return file_farmtable_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ClaimTaskResponse) GetTask() *Task {
@@ -3633,7 +3845,7 @@ type CloseTaskRequest struct {
 
 func (x *CloseTaskRequest) Reset() {
 	*x = CloseTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[25]
+	mi := &file_farmtable_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3645,7 +3857,7 @@ func (x *CloseTaskRequest) String() string {
 func (*CloseTaskRequest) ProtoMessage() {}
 
 func (x *CloseTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[25]
+	mi := &file_farmtable_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3658,7 +3870,7 @@ func (x *CloseTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseTaskRequest.ProtoReflect.Descriptor instead.
 func (*CloseTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{25}
+	return file_farmtable_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CloseTaskRequest) GetId() string {
@@ -3706,7 +3918,7 @@ type DeleteTaskRequest struct {
 
 func (x *DeleteTaskRequest) Reset() {
 	*x = DeleteTaskRequest{}
-	mi := &file_farmtable_proto_msgTypes[26]
+	mi := &file_farmtable_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3718,7 +3930,7 @@ func (x *DeleteTaskRequest) String() string {
 func (*DeleteTaskRequest) ProtoMessage() {}
 
 func (x *DeleteTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[26]
+	mi := &file_farmtable_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3731,7 +3943,7 @@ func (x *DeleteTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTaskRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTaskRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{26}
+	return file_farmtable_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DeleteTaskRequest) GetId() string {
@@ -3756,7 +3968,7 @@ type DeleteTaskResponse struct {
 
 func (x *DeleteTaskResponse) Reset() {
 	*x = DeleteTaskResponse{}
-	mi := &file_farmtable_proto_msgTypes[27]
+	mi := &file_farmtable_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3768,7 +3980,7 @@ func (x *DeleteTaskResponse) String() string {
 func (*DeleteTaskResponse) ProtoMessage() {}
 
 func (x *DeleteTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[27]
+	mi := &file_farmtable_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3781,7 +3993,7 @@ func (x *DeleteTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTaskResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTaskResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{27}
+	return file_farmtable_proto_rawDescGZIP(), []int{28}
 }
 
 type AddCommentRequest struct {
@@ -3794,7 +4006,7 @@ type AddCommentRequest struct {
 
 func (x *AddCommentRequest) Reset() {
 	*x = AddCommentRequest{}
-	mi := &file_farmtable_proto_msgTypes[28]
+	mi := &file_farmtable_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3806,7 +4018,7 @@ func (x *AddCommentRequest) String() string {
 func (*AddCommentRequest) ProtoMessage() {}
 
 func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[28]
+	mi := &file_farmtable_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3819,7 +4031,7 @@ func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddCommentRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{28}
+	return file_farmtable_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AddCommentRequest) GetTaskId() string {
@@ -3848,7 +4060,7 @@ type ListCommentsRequest struct {
 
 func (x *ListCommentsRequest) Reset() {
 	*x = ListCommentsRequest{}
-	mi := &file_farmtable_proto_msgTypes[29]
+	mi := &file_farmtable_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3860,7 +4072,7 @@ func (x *ListCommentsRequest) String() string {
 func (*ListCommentsRequest) ProtoMessage() {}
 
 func (x *ListCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[29]
+	mi := &file_farmtable_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3873,7 +4085,7 @@ func (x *ListCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommentsRequest.ProtoReflect.Descriptor instead.
 func (*ListCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{29}
+	return file_farmtable_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListCommentsRequest) GetTaskId() string {
@@ -3916,7 +4128,7 @@ type ListCommentsResponse struct {
 
 func (x *ListCommentsResponse) Reset() {
 	*x = ListCommentsResponse{}
-	mi := &file_farmtable_proto_msgTypes[30]
+	mi := &file_farmtable_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3928,7 +4140,7 @@ func (x *ListCommentsResponse) String() string {
 func (*ListCommentsResponse) ProtoMessage() {}
 
 func (x *ListCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[30]
+	mi := &file_farmtable_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3941,7 +4153,7 @@ func (x *ListCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCommentsResponse.ProtoReflect.Descriptor instead.
 func (*ListCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{30}
+	return file_farmtable_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListCommentsResponse) GetItems() []*Comment {
@@ -3981,7 +4193,7 @@ type GetCommentRequest struct {
 
 func (x *GetCommentRequest) Reset() {
 	*x = GetCommentRequest{}
-	mi := &file_farmtable_proto_msgTypes[31]
+	mi := &file_farmtable_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3993,7 +4205,7 @@ func (x *GetCommentRequest) String() string {
 func (*GetCommentRequest) ProtoMessage() {}
 
 func (x *GetCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[31]
+	mi := &file_farmtable_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4006,7 +4218,7 @@ func (x *GetCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentRequest.ProtoReflect.Descriptor instead.
 func (*GetCommentRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{31}
+	return file_farmtable_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetCommentRequest) GetId() string {
@@ -4027,7 +4239,7 @@ type ListCollectionsRequest struct {
 
 func (x *ListCollectionsRequest) Reset() {
 	*x = ListCollectionsRequest{}
-	mi := &file_farmtable_proto_msgTypes[32]
+	mi := &file_farmtable_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4039,7 +4251,7 @@ func (x *ListCollectionsRequest) String() string {
 func (*ListCollectionsRequest) ProtoMessage() {}
 
 func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[32]
+	mi := &file_farmtable_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4052,7 +4264,7 @@ func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListCollectionsRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{32}
+	return file_farmtable_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListCollectionsRequest) GetPlatform() Platform {
@@ -4088,7 +4300,7 @@ type ListCollectionsResponse struct {
 
 func (x *ListCollectionsResponse) Reset() {
 	*x = ListCollectionsResponse{}
-	mi := &file_farmtable_proto_msgTypes[33]
+	mi := &file_farmtable_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4100,7 +4312,7 @@ func (x *ListCollectionsResponse) String() string {
 func (*ListCollectionsResponse) ProtoMessage() {}
 
 func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[33]
+	mi := &file_farmtable_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4113,7 +4325,7 @@ func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListCollectionsResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{33}
+	return file_farmtable_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListCollectionsResponse) GetItems() []*Collection {
@@ -4154,7 +4366,7 @@ type GetCollectionRequest struct {
 
 func (x *GetCollectionRequest) Reset() {
 	*x = GetCollectionRequest{}
-	mi := &file_farmtable_proto_msgTypes[34]
+	mi := &file_farmtable_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4166,7 +4378,7 @@ func (x *GetCollectionRequest) String() string {
 func (*GetCollectionRequest) ProtoMessage() {}
 
 func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[34]
+	mi := &file_farmtable_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4179,7 +4391,7 @@ func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCollectionRequest.ProtoReflect.Descriptor instead.
 func (*GetCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{34}
+	return file_farmtable_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetCollectionRequest) GetId() string {
@@ -4201,7 +4413,7 @@ type CreateCollectionRequest struct {
 
 func (x *CreateCollectionRequest) Reset() {
 	*x = CreateCollectionRequest{}
-	mi := &file_farmtable_proto_msgTypes[35]
+	mi := &file_farmtable_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4213,7 +4425,7 @@ func (x *CreateCollectionRequest) String() string {
 func (*CreateCollectionRequest) ProtoMessage() {}
 
 func (x *CreateCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[35]
+	mi := &file_farmtable_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4226,7 +4438,7 @@ func (x *CreateCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCollectionRequest.ProtoReflect.Descriptor instead.
 func (*CreateCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{35}
+	return file_farmtable_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CreateCollectionRequest) GetName() string {
@@ -4268,7 +4480,7 @@ type UpdateCollectionRequest struct {
 
 func (x *UpdateCollectionRequest) Reset() {
 	*x = UpdateCollectionRequest{}
-	mi := &file_farmtable_proto_msgTypes[36]
+	mi := &file_farmtable_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4280,7 +4492,7 @@ func (x *UpdateCollectionRequest) String() string {
 func (*UpdateCollectionRequest) ProtoMessage() {}
 
 func (x *UpdateCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[36]
+	mi := &file_farmtable_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4293,7 +4505,7 @@ func (x *UpdateCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCollectionRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{36}
+	return file_farmtable_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *UpdateCollectionRequest) GetId() string {
@@ -4327,7 +4539,7 @@ type ExportCollectionRequest struct {
 
 func (x *ExportCollectionRequest) Reset() {
 	*x = ExportCollectionRequest{}
-	mi := &file_farmtable_proto_msgTypes[37]
+	mi := &file_farmtable_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4339,7 +4551,7 @@ func (x *ExportCollectionRequest) String() string {
 func (*ExportCollectionRequest) ProtoMessage() {}
 
 func (x *ExportCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[37]
+	mi := &file_farmtable_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4352,7 +4564,7 @@ func (x *ExportCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportCollectionRequest.ProtoReflect.Descriptor instead.
 func (*ExportCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{37}
+	return file_farmtable_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ExportCollectionRequest) GetId() string {
@@ -4379,7 +4591,7 @@ type ExportCollectionResponse struct {
 
 func (x *ExportCollectionResponse) Reset() {
 	*x = ExportCollectionResponse{}
-	mi := &file_farmtable_proto_msgTypes[38]
+	mi := &file_farmtable_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4391,7 +4603,7 @@ func (x *ExportCollectionResponse) String() string {
 func (*ExportCollectionResponse) ProtoMessage() {}
 
 func (x *ExportCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[38]
+	mi := &file_farmtable_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4404,7 +4616,7 @@ func (x *ExportCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportCollectionResponse.ProtoReflect.Descriptor instead.
 func (*ExportCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{38}
+	return file_farmtable_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ExportCollectionResponse) GetData() []byte {
@@ -4432,7 +4644,7 @@ type ImportCollectionRequest struct {
 
 func (x *ImportCollectionRequest) Reset() {
 	*x = ImportCollectionRequest{}
-	mi := &file_farmtable_proto_msgTypes[39]
+	mi := &file_farmtable_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4444,7 +4656,7 @@ func (x *ImportCollectionRequest) String() string {
 func (*ImportCollectionRequest) ProtoMessage() {}
 
 func (x *ImportCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[39]
+	mi := &file_farmtable_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4457,7 +4669,7 @@ func (x *ImportCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportCollectionRequest.ProtoReflect.Descriptor instead.
 func (*ImportCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{39}
+	return file_farmtable_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ImportCollectionRequest) GetData() []byte {
@@ -4492,7 +4704,7 @@ type ImportCollectionResponse struct {
 
 func (x *ImportCollectionResponse) Reset() {
 	*x = ImportCollectionResponse{}
-	mi := &file_farmtable_proto_msgTypes[40]
+	mi := &file_farmtable_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4504,7 +4716,7 @@ func (x *ImportCollectionResponse) String() string {
 func (*ImportCollectionResponse) ProtoMessage() {}
 
 func (x *ImportCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[40]
+	mi := &file_farmtable_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4517,7 +4729,7 @@ func (x *ImportCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportCollectionResponse.ProtoReflect.Descriptor instead.
 func (*ImportCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{40}
+	return file_farmtable_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ImportCollectionResponse) GetCollectionId() string {
@@ -4555,7 +4767,7 @@ type ImportStats struct {
 
 func (x *ImportStats) Reset() {
 	*x = ImportStats{}
-	mi := &file_farmtable_proto_msgTypes[41]
+	mi := &file_farmtable_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4567,7 +4779,7 @@ func (x *ImportStats) String() string {
 func (*ImportStats) ProtoMessage() {}
 
 func (x *ImportStats) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[41]
+	mi := &file_farmtable_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4580,7 +4792,7 @@ func (x *ImportStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportStats.ProtoReflect.Descriptor instead.
 func (*ImportStats) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{41}
+	return file_farmtable_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ImportStats) GetUsersMatched() int32 {
@@ -4641,7 +4853,7 @@ type CreateLinkedAccountRequest struct {
 
 func (x *CreateLinkedAccountRequest) Reset() {
 	*x = CreateLinkedAccountRequest{}
-	mi := &file_farmtable_proto_msgTypes[42]
+	mi := &file_farmtable_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4653,7 +4865,7 @@ func (x *CreateLinkedAccountRequest) String() string {
 func (*CreateLinkedAccountRequest) ProtoMessage() {}
 
 func (x *CreateLinkedAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[42]
+	mi := &file_farmtable_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4666,7 +4878,7 @@ func (x *CreateLinkedAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLinkedAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateLinkedAccountRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{42}
+	return file_farmtable_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CreateLinkedAccountRequest) GetCollectionId() string {
@@ -4727,7 +4939,7 @@ type CreateLinkedAccountResponse struct {
 
 func (x *CreateLinkedAccountResponse) Reset() {
 	*x = CreateLinkedAccountResponse{}
-	mi := &file_farmtable_proto_msgTypes[43]
+	mi := &file_farmtable_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4739,7 +4951,7 @@ func (x *CreateLinkedAccountResponse) String() string {
 func (*CreateLinkedAccountResponse) ProtoMessage() {}
 
 func (x *CreateLinkedAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[43]
+	mi := &file_farmtable_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4752,7 +4964,7 @@ func (x *CreateLinkedAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLinkedAccountResponse.ProtoReflect.Descriptor instead.
 func (*CreateLinkedAccountResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{43}
+	return file_farmtable_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *CreateLinkedAccountResponse) GetLinkedAccount() *LinkedAccount {
@@ -4771,7 +4983,7 @@ type GetLinkedAccountRequest struct {
 
 func (x *GetLinkedAccountRequest) Reset() {
 	*x = GetLinkedAccountRequest{}
-	mi := &file_farmtable_proto_msgTypes[44]
+	mi := &file_farmtable_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4783,7 +4995,7 @@ func (x *GetLinkedAccountRequest) String() string {
 func (*GetLinkedAccountRequest) ProtoMessage() {}
 
 func (x *GetLinkedAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[44]
+	mi := &file_farmtable_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4796,7 +5008,7 @@ func (x *GetLinkedAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLinkedAccountRequest.ProtoReflect.Descriptor instead.
 func (*GetLinkedAccountRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{44}
+	return file_farmtable_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetLinkedAccountRequest) GetId() string {
@@ -4815,7 +5027,7 @@ type GetLinkedAccountResponse struct {
 
 func (x *GetLinkedAccountResponse) Reset() {
 	*x = GetLinkedAccountResponse{}
-	mi := &file_farmtable_proto_msgTypes[45]
+	mi := &file_farmtable_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4827,7 +5039,7 @@ func (x *GetLinkedAccountResponse) String() string {
 func (*GetLinkedAccountResponse) ProtoMessage() {}
 
 func (x *GetLinkedAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[45]
+	mi := &file_farmtable_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4840,7 +5052,7 @@ func (x *GetLinkedAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLinkedAccountResponse.ProtoReflect.Descriptor instead.
 func (*GetLinkedAccountResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{45}
+	return file_farmtable_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetLinkedAccountResponse) GetLinkedAccount() *LinkedAccount {
@@ -4859,7 +5071,7 @@ type DeleteLinkedAccountRequest struct {
 
 func (x *DeleteLinkedAccountRequest) Reset() {
 	*x = DeleteLinkedAccountRequest{}
-	mi := &file_farmtable_proto_msgTypes[46]
+	mi := &file_farmtable_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4871,7 +5083,7 @@ func (x *DeleteLinkedAccountRequest) String() string {
 func (*DeleteLinkedAccountRequest) ProtoMessage() {}
 
 func (x *DeleteLinkedAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[46]
+	mi := &file_farmtable_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4884,7 +5096,7 @@ func (x *DeleteLinkedAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteLinkedAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteLinkedAccountRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{46}
+	return file_farmtable_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *DeleteLinkedAccountRequest) GetId() string {
@@ -4902,7 +5114,7 @@ type DeleteLinkedAccountResponse struct {
 
 func (x *DeleteLinkedAccountResponse) Reset() {
 	*x = DeleteLinkedAccountResponse{}
-	mi := &file_farmtable_proto_msgTypes[47]
+	mi := &file_farmtable_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4914,7 +5126,7 @@ func (x *DeleteLinkedAccountResponse) String() string {
 func (*DeleteLinkedAccountResponse) ProtoMessage() {}
 
 func (x *DeleteLinkedAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[47]
+	mi := &file_farmtable_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4927,7 +5139,7 @@ func (x *DeleteLinkedAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteLinkedAccountResponse.ProtoReflect.Descriptor instead.
 func (*DeleteLinkedAccountResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{47}
+	return file_farmtable_proto_rawDescGZIP(), []int{48}
 }
 
 type ListLinkedAccountsRequest struct {
@@ -4943,7 +5155,7 @@ type ListLinkedAccountsRequest struct {
 
 func (x *ListLinkedAccountsRequest) Reset() {
 	*x = ListLinkedAccountsRequest{}
-	mi := &file_farmtable_proto_msgTypes[48]
+	mi := &file_farmtable_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4955,7 +5167,7 @@ func (x *ListLinkedAccountsRequest) String() string {
 func (*ListLinkedAccountsRequest) ProtoMessage() {}
 
 func (x *ListLinkedAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[48]
+	mi := &file_farmtable_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4968,7 +5180,7 @@ func (x *ListLinkedAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLinkedAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListLinkedAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{48}
+	return file_farmtable_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListLinkedAccountsRequest) GetCollectionId() string {
@@ -5018,7 +5230,7 @@ type ListLinkedAccountsResponse struct {
 
 func (x *ListLinkedAccountsResponse) Reset() {
 	*x = ListLinkedAccountsResponse{}
-	mi := &file_farmtable_proto_msgTypes[49]
+	mi := &file_farmtable_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5030,7 +5242,7 @@ func (x *ListLinkedAccountsResponse) String() string {
 func (*ListLinkedAccountsResponse) ProtoMessage() {}
 
 func (x *ListLinkedAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[49]
+	mi := &file_farmtable_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5043,7 +5255,7 @@ func (x *ListLinkedAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLinkedAccountsResponse.ProtoReflect.Descriptor instead.
 func (*ListLinkedAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{49}
+	return file_farmtable_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ListLinkedAccountsResponse) GetItems() []*LinkedAccount {
@@ -5074,14 +5286,14 @@ func (x *ListLinkedAccountsResponse) GetTotalCount() int32 {
 	return 0
 }
 
-// Tasks ready to work on: OPEN phase, dependencies resolved, optionally filtered.
+// Available tasks: accepted work with dependencies resolved, optionally filtered.
 type GetReadyTasksRequest struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	CollectionId *string                `protobuf:"bytes,1,opt,name=collection_id,json=collectionId,proto3,oneof" json:"collection_id,omitempty"`
 	Assignee     *string                `protobuf:"bytes,2,opt,name=assignee,proto3,oneof" json:"assignee,omitempty"`
 	// Minimum priority threshold (e.g., HIGH returns URGENT and HIGH).
 	MinPriority *TaskPriority `protobuf:"varint,3,opt,name=min_priority,json=minPriority,proto3,enum=farmtable.v1.TaskPriority,oneof" json:"min_priority,omitempty"`
-	// Also include triage and backlog tasks with no unresolved blockers.
+	// Also include unblocked open tasks that are not currently claimable.
 	IncludeUnblockedOpen bool   `protobuf:"varint,4,opt,name=include_unblocked_open,json=includeUnblockedOpen,proto3" json:"include_unblocked_open,omitempty"`
 	PageSize             int32  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken            string `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
@@ -5091,7 +5303,7 @@ type GetReadyTasksRequest struct {
 
 func (x *GetReadyTasksRequest) Reset() {
 	*x = GetReadyTasksRequest{}
-	mi := &file_farmtable_proto_msgTypes[50]
+	mi := &file_farmtable_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5103,7 +5315,7 @@ func (x *GetReadyTasksRequest) String() string {
 func (*GetReadyTasksRequest) ProtoMessage() {}
 
 func (x *GetReadyTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[50]
+	mi := &file_farmtable_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5116,7 +5328,7 @@ func (x *GetReadyTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReadyTasksRequest.ProtoReflect.Descriptor instead.
 func (*GetReadyTasksRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{50}
+	return file_farmtable_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetReadyTasksRequest) GetCollectionId() string {
@@ -5171,7 +5383,7 @@ type ReadyTask struct {
 
 func (x *ReadyTask) Reset() {
 	*x = ReadyTask{}
-	mi := &file_farmtable_proto_msgTypes[51]
+	mi := &file_farmtable_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5183,7 +5395,7 @@ func (x *ReadyTask) String() string {
 func (*ReadyTask) ProtoMessage() {}
 
 func (x *ReadyTask) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[51]
+	mi := &file_farmtable_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5196,7 +5408,7 @@ func (x *ReadyTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadyTask.ProtoReflect.Descriptor instead.
 func (*ReadyTask) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{51}
+	return file_farmtable_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ReadyTask) GetTask() *Task {
@@ -5225,7 +5437,7 @@ type GetReadyTasksResponse struct {
 
 func (x *GetReadyTasksResponse) Reset() {
 	*x = GetReadyTasksResponse{}
-	mi := &file_farmtable_proto_msgTypes[52]
+	mi := &file_farmtable_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5237,7 +5449,7 @@ func (x *GetReadyTasksResponse) String() string {
 func (*GetReadyTasksResponse) ProtoMessage() {}
 
 func (x *GetReadyTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[52]
+	mi := &file_farmtable_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5250,7 +5462,7 @@ func (x *GetReadyTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReadyTasksResponse.ProtoReflect.Descriptor instead.
 func (*GetReadyTasksResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{52}
+	return file_farmtable_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *GetReadyTasksResponse) GetItems() []*ReadyTask {
@@ -5294,7 +5506,7 @@ type GetBlockedTasksRequest struct {
 
 func (x *GetBlockedTasksRequest) Reset() {
 	*x = GetBlockedTasksRequest{}
-	mi := &file_farmtable_proto_msgTypes[53]
+	mi := &file_farmtable_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5306,7 +5518,7 @@ func (x *GetBlockedTasksRequest) String() string {
 func (*GetBlockedTasksRequest) ProtoMessage() {}
 
 func (x *GetBlockedTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[53]
+	mi := &file_farmtable_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5319,7 +5531,7 @@ func (x *GetBlockedTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockedTasksRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockedTasksRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{53}
+	return file_farmtable_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *GetBlockedTasksRequest) GetCollectionId() string {
@@ -5362,7 +5574,7 @@ type BlockerInfo struct {
 
 func (x *BlockerInfo) Reset() {
 	*x = BlockerInfo{}
-	mi := &file_farmtable_proto_msgTypes[54]
+	mi := &file_farmtable_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5374,7 +5586,7 @@ func (x *BlockerInfo) String() string {
 func (*BlockerInfo) ProtoMessage() {}
 
 func (x *BlockerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[54]
+	mi := &file_farmtable_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5387,7 +5599,7 @@ func (x *BlockerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockerInfo.ProtoReflect.Descriptor instead.
 func (*BlockerInfo) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{54}
+	return file_farmtable_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *BlockerInfo) GetTaskId() string {
@@ -5428,7 +5640,7 @@ type BlockedTask struct {
 
 func (x *BlockedTask) Reset() {
 	*x = BlockedTask{}
-	mi := &file_farmtable_proto_msgTypes[55]
+	mi := &file_farmtable_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5440,7 +5652,7 @@ func (x *BlockedTask) String() string {
 func (*BlockedTask) ProtoMessage() {}
 
 func (x *BlockedTask) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[55]
+	mi := &file_farmtable_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5453,7 +5665,7 @@ func (x *BlockedTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockedTask.ProtoReflect.Descriptor instead.
 func (*BlockedTask) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{55}
+	return file_farmtable_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *BlockedTask) GetTask() *Task {
@@ -5482,7 +5694,7 @@ type GetBlockedTasksResponse struct {
 
 func (x *GetBlockedTasksResponse) Reset() {
 	*x = GetBlockedTasksResponse{}
-	mi := &file_farmtable_proto_msgTypes[56]
+	mi := &file_farmtable_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5494,7 +5706,7 @@ func (x *GetBlockedTasksResponse) String() string {
 func (*GetBlockedTasksResponse) ProtoMessage() {}
 
 func (x *GetBlockedTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[56]
+	mi := &file_farmtable_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5507,7 +5719,7 @@ func (x *GetBlockedTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockedTasksResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockedTasksResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{56}
+	return file_farmtable_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetBlockedTasksResponse) GetItems() []*BlockedTask {
@@ -5551,7 +5763,7 @@ type GetDependencyTreeRequest struct {
 
 func (x *GetDependencyTreeRequest) Reset() {
 	*x = GetDependencyTreeRequest{}
-	mi := &file_farmtable_proto_msgTypes[57]
+	mi := &file_farmtable_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5563,7 +5775,7 @@ func (x *GetDependencyTreeRequest) String() string {
 func (*GetDependencyTreeRequest) ProtoMessage() {}
 
 func (x *GetDependencyTreeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[57]
+	mi := &file_farmtable_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5576,7 +5788,7 @@ func (x *GetDependencyTreeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDependencyTreeRequest.ProtoReflect.Descriptor instead.
 func (*GetDependencyTreeRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{57}
+	return file_farmtable_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *GetDependencyTreeRequest) GetTaskId() string {
@@ -5614,7 +5826,7 @@ type DependencyNode struct {
 
 func (x *DependencyNode) Reset() {
 	*x = DependencyNode{}
-	mi := &file_farmtable_proto_msgTypes[58]
+	mi := &file_farmtable_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5626,7 +5838,7 @@ func (x *DependencyNode) String() string {
 func (*DependencyNode) ProtoMessage() {}
 
 func (x *DependencyNode) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[58]
+	mi := &file_farmtable_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5639,7 +5851,7 @@ func (x *DependencyNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DependencyNode.ProtoReflect.Descriptor instead.
 func (*DependencyNode) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{58}
+	return file_farmtable_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *DependencyNode) GetTask() *Task {
@@ -5672,7 +5884,7 @@ type GetDependencyTreeResponse struct {
 
 func (x *GetDependencyTreeResponse) Reset() {
 	*x = GetDependencyTreeResponse{}
-	mi := &file_farmtable_proto_msgTypes[59]
+	mi := &file_farmtable_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5684,7 +5896,7 @@ func (x *GetDependencyTreeResponse) String() string {
 func (*GetDependencyTreeResponse) ProtoMessage() {}
 
 func (x *GetDependencyTreeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[59]
+	mi := &file_farmtable_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5697,7 +5909,7 @@ func (x *GetDependencyTreeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDependencyTreeResponse.ProtoReflect.Descriptor instead.
 func (*GetDependencyTreeResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{59}
+	return file_farmtable_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetDependencyTreeResponse) GetRoot() *DependencyNode {
@@ -5720,7 +5932,7 @@ type GetCriticalPathRequest struct {
 
 func (x *GetCriticalPathRequest) Reset() {
 	*x = GetCriticalPathRequest{}
-	mi := &file_farmtable_proto_msgTypes[60]
+	mi := &file_farmtable_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5732,7 +5944,7 @@ func (x *GetCriticalPathRequest) String() string {
 func (*GetCriticalPathRequest) ProtoMessage() {}
 
 func (x *GetCriticalPathRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[60]
+	mi := &file_farmtable_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5745,7 +5957,7 @@ func (x *GetCriticalPathRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCriticalPathRequest.ProtoReflect.Descriptor instead.
 func (*GetCriticalPathRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{60}
+	return file_farmtable_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetCriticalPathRequest) GetCollectionId() string {
@@ -5774,7 +5986,7 @@ type CriticalPathNode struct {
 
 func (x *CriticalPathNode) Reset() {
 	*x = CriticalPathNode{}
-	mi := &file_farmtable_proto_msgTypes[61]
+	mi := &file_farmtable_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5786,7 +5998,7 @@ func (x *CriticalPathNode) String() string {
 func (*CriticalPathNode) ProtoMessage() {}
 
 func (x *CriticalPathNode) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[61]
+	mi := &file_farmtable_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5799,7 +6011,7 @@ func (x *CriticalPathNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CriticalPathNode.ProtoReflect.Descriptor instead.
 func (*CriticalPathNode) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{61}
+	return file_farmtable_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *CriticalPathNode) GetId() string {
@@ -5842,7 +6054,7 @@ type Bottleneck struct {
 
 func (x *Bottleneck) Reset() {
 	*x = Bottleneck{}
-	mi := &file_farmtable_proto_msgTypes[62]
+	mi := &file_farmtable_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5854,7 +6066,7 @@ func (x *Bottleneck) String() string {
 func (*Bottleneck) ProtoMessage() {}
 
 func (x *Bottleneck) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[62]
+	mi := &file_farmtable_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5867,7 +6079,7 @@ func (x *Bottleneck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Bottleneck.ProtoReflect.Descriptor instead.
 func (*Bottleneck) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{62}
+	return file_farmtable_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *Bottleneck) GetId() string {
@@ -5909,7 +6121,7 @@ type GetCriticalPathResponse struct {
 
 func (x *GetCriticalPathResponse) Reset() {
 	*x = GetCriticalPathResponse{}
-	mi := &file_farmtable_proto_msgTypes[63]
+	mi := &file_farmtable_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5921,7 +6133,7 @@ func (x *GetCriticalPathResponse) String() string {
 func (*GetCriticalPathResponse) ProtoMessage() {}
 
 func (x *GetCriticalPathResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[63]
+	mi := &file_farmtable_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5934,7 +6146,7 @@ func (x *GetCriticalPathResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCriticalPathResponse.ProtoReflect.Descriptor instead.
 func (*GetCriticalPathResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{63}
+	return file_farmtable_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *GetCriticalPathResponse) GetPath() []*CriticalPathNode {
@@ -5969,7 +6181,7 @@ type GetBottlenecksRequest struct {
 
 func (x *GetBottlenecksRequest) Reset() {
 	*x = GetBottlenecksRequest{}
-	mi := &file_farmtable_proto_msgTypes[64]
+	mi := &file_farmtable_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5981,7 +6193,7 @@ func (x *GetBottlenecksRequest) String() string {
 func (*GetBottlenecksRequest) ProtoMessage() {}
 
 func (x *GetBottlenecksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[64]
+	mi := &file_farmtable_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5994,7 +6206,7 @@ func (x *GetBottlenecksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBottlenecksRequest.ProtoReflect.Descriptor instead.
 func (*GetBottlenecksRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{64}
+	return file_farmtable_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetBottlenecksRequest) GetCollectionId() string {
@@ -6024,7 +6236,7 @@ type BottleneckTask struct {
 
 func (x *BottleneckTask) Reset() {
 	*x = BottleneckTask{}
-	mi := &file_farmtable_proto_msgTypes[65]
+	mi := &file_farmtable_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6036,7 +6248,7 @@ func (x *BottleneckTask) String() string {
 func (*BottleneckTask) ProtoMessage() {}
 
 func (x *BottleneckTask) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[65]
+	mi := &file_farmtable_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6049,7 +6261,7 @@ func (x *BottleneckTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BottleneckTask.ProtoReflect.Descriptor instead.
 func (*BottleneckTask) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{65}
+	return file_farmtable_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *BottleneckTask) GetId() string {
@@ -6096,7 +6308,7 @@ type GetBottlenecksResponse struct {
 
 func (x *GetBottlenecksResponse) Reset() {
 	*x = GetBottlenecksResponse{}
-	mi := &file_farmtable_proto_msgTypes[66]
+	mi := &file_farmtable_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6108,7 +6320,7 @@ func (x *GetBottlenecksResponse) String() string {
 func (*GetBottlenecksResponse) ProtoMessage() {}
 
 func (x *GetBottlenecksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[66]
+	mi := &file_farmtable_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6121,7 +6333,7 @@ func (x *GetBottlenecksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBottlenecksResponse.ProtoReflect.Descriptor instead.
 func (*GetBottlenecksResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{66}
+	return file_farmtable_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GetBottlenecksResponse) GetItems() []*BottleneckTask {
@@ -6144,7 +6356,7 @@ type ListChangesRequest struct {
 
 func (x *ListChangesRequest) Reset() {
 	*x = ListChangesRequest{}
-	mi := &file_farmtable_proto_msgTypes[67]
+	mi := &file_farmtable_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6156,7 +6368,7 @@ func (x *ListChangesRequest) String() string {
 func (*ListChangesRequest) ProtoMessage() {}
 
 func (x *ListChangesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[67]
+	mi := &file_farmtable_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6169,7 +6381,7 @@ func (x *ListChangesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChangesRequest.ProtoReflect.Descriptor instead.
 func (*ListChangesRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{67}
+	return file_farmtable_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *ListChangesRequest) GetTaskId() string {
@@ -6212,7 +6424,7 @@ type ListChangesResponse struct {
 
 func (x *ListChangesResponse) Reset() {
 	*x = ListChangesResponse{}
-	mi := &file_farmtable_proto_msgTypes[68]
+	mi := &file_farmtable_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6224,7 +6436,7 @@ func (x *ListChangesResponse) String() string {
 func (*ListChangesResponse) ProtoMessage() {}
 
 func (x *ListChangesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[68]
+	mi := &file_farmtable_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6237,7 +6449,7 @@ func (x *ListChangesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChangesResponse.ProtoReflect.Descriptor instead.
 func (*ListChangesResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{68}
+	return file_farmtable_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *ListChangesResponse) GetItems() []*Change {
@@ -6276,7 +6488,7 @@ type WhoAmIRequest struct {
 
 func (x *WhoAmIRequest) Reset() {
 	*x = WhoAmIRequest{}
-	mi := &file_farmtable_proto_msgTypes[69]
+	mi := &file_farmtable_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6288,7 +6500,7 @@ func (x *WhoAmIRequest) String() string {
 func (*WhoAmIRequest) ProtoMessage() {}
 
 func (x *WhoAmIRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[69]
+	mi := &file_farmtable_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6301,7 +6513,7 @@ func (x *WhoAmIRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WhoAmIRequest.ProtoReflect.Descriptor instead.
 func (*WhoAmIRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{69}
+	return file_farmtable_proto_rawDescGZIP(), []int{70}
 }
 
 type ListUsersRequest struct {
@@ -6316,7 +6528,7 @@ type ListUsersRequest struct {
 
 func (x *ListUsersRequest) Reset() {
 	*x = ListUsersRequest{}
-	mi := &file_farmtable_proto_msgTypes[70]
+	mi := &file_farmtable_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6328,7 +6540,7 @@ func (x *ListUsersRequest) String() string {
 func (*ListUsersRequest) ProtoMessage() {}
 
 func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[70]
+	mi := &file_farmtable_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6341,7 +6553,7 @@ func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{70}
+	return file_farmtable_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ListUsersRequest) GetType() UserType {
@@ -6384,7 +6596,7 @@ type ListUsersResponse struct {
 
 func (x *ListUsersResponse) Reset() {
 	*x = ListUsersResponse{}
-	mi := &file_farmtable_proto_msgTypes[71]
+	mi := &file_farmtable_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6396,7 +6608,7 @@ func (x *ListUsersResponse) String() string {
 func (*ListUsersResponse) ProtoMessage() {}
 
 func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[71]
+	mi := &file_farmtable_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6409,7 +6621,7 @@ func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListUsersResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{71}
+	return file_farmtable_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ListUsersResponse) GetItems() []*User {
@@ -6449,7 +6661,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_farmtable_proto_msgTypes[72]
+	mi := &file_farmtable_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6461,7 +6673,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[72]
+	mi := &file_farmtable_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6474,7 +6686,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{72}
+	return file_farmtable_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *GetUserRequest) GetId() string {
@@ -6493,7 +6705,7 @@ type GetStatusRequest struct {
 
 func (x *GetStatusRequest) Reset() {
 	*x = GetStatusRequest{}
-	mi := &file_farmtable_proto_msgTypes[73]
+	mi := &file_farmtable_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6505,7 +6717,7 @@ func (x *GetStatusRequest) String() string {
 func (*GetStatusRequest) ProtoMessage() {}
 
 func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[73]
+	mi := &file_farmtable_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6518,7 +6730,7 @@ func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{73}
+	return file_farmtable_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetStatusRequest) GetPlatform() Platform {
@@ -6539,7 +6751,7 @@ type PlatformConnectionStatus struct {
 
 func (x *PlatformConnectionStatus) Reset() {
 	*x = PlatformConnectionStatus{}
-	mi := &file_farmtable_proto_msgTypes[74]
+	mi := &file_farmtable_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6551,7 +6763,7 @@ func (x *PlatformConnectionStatus) String() string {
 func (*PlatformConnectionStatus) ProtoMessage() {}
 
 func (x *PlatformConnectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[74]
+	mi := &file_farmtable_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6564,7 +6776,7 @@ func (x *PlatformConnectionStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlatformConnectionStatus.ProtoReflect.Descriptor instead.
 func (*PlatformConnectionStatus) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{74}
+	return file_farmtable_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *PlatformConnectionStatus) GetPlatform() Platform {
@@ -6606,7 +6818,7 @@ type GetStatusResponse struct {
 
 func (x *GetStatusResponse) Reset() {
 	*x = GetStatusResponse{}
-	mi := &file_farmtable_proto_msgTypes[75]
+	mi := &file_farmtable_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6618,7 +6830,7 @@ func (x *GetStatusResponse) String() string {
 func (*GetStatusResponse) ProtoMessage() {}
 
 func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[75]
+	mi := &file_farmtable_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6631,7 +6843,7 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{75}
+	return file_farmtable_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *GetStatusResponse) GetServer() string {
@@ -6712,7 +6924,7 @@ type GetVersionRequest struct {
 
 func (x *GetVersionRequest) Reset() {
 	*x = GetVersionRequest{}
-	mi := &file_farmtable_proto_msgTypes[76]
+	mi := &file_farmtable_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6724,7 +6936,7 @@ func (x *GetVersionRequest) String() string {
 func (*GetVersionRequest) ProtoMessage() {}
 
 func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[76]
+	mi := &file_farmtable_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6737,7 +6949,7 @@ func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersionRequest.ProtoReflect.Descriptor instead.
 func (*GetVersionRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{76}
+	return file_farmtable_proto_rawDescGZIP(), []int{77}
 }
 
 type GetVersionResponse struct {
@@ -6752,7 +6964,7 @@ type GetVersionResponse struct {
 
 func (x *GetVersionResponse) Reset() {
 	*x = GetVersionResponse{}
-	mi := &file_farmtable_proto_msgTypes[77]
+	mi := &file_farmtable_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6764,7 +6976,7 @@ func (x *GetVersionResponse) String() string {
 func (*GetVersionResponse) ProtoMessage() {}
 
 func (x *GetVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[77]
+	mi := &file_farmtable_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6777,7 +6989,7 @@ func (x *GetVersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersionResponse.ProtoReflect.Descriptor instead.
 func (*GetVersionResponse) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{77}
+	return file_farmtable_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *GetVersionResponse) GetCliVersion() string {
@@ -6826,7 +7038,7 @@ type WatchTasksRequest struct {
 
 func (x *WatchTasksRequest) Reset() {
 	*x = WatchTasksRequest{}
-	mi := &file_farmtable_proto_msgTypes[78]
+	mi := &file_farmtable_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6838,7 +7050,7 @@ func (x *WatchTasksRequest) String() string {
 func (*WatchTasksRequest) ProtoMessage() {}
 
 func (x *WatchTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[78]
+	mi := &file_farmtable_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6851,7 +7063,7 @@ func (x *WatchTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchTasksRequest.ProtoReflect.Descriptor instead.
 func (*WatchTasksRequest) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{78}
+	return file_farmtable_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *WatchTasksRequest) GetCollectionId() string {
@@ -6924,7 +7136,7 @@ type TaskEvent struct {
 
 func (x *TaskEvent) Reset() {
 	*x = TaskEvent{}
-	mi := &file_farmtable_proto_msgTypes[79]
+	mi := &file_farmtable_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6936,7 +7148,7 @@ func (x *TaskEvent) String() string {
 func (*TaskEvent) ProtoMessage() {}
 
 func (x *TaskEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_farmtable_proto_msgTypes[79]
+	mi := &file_farmtable_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6949,7 +7161,7 @@ func (x *TaskEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskEvent.ProtoReflect.Descriptor instead.
 func (*TaskEvent) Descriptor() ([]byte, []int) {
-	return file_farmtable_proto_rawDescGZIP(), []int{79}
+	return file_farmtable_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *TaskEvent) GetEventType() TaskEventType {
@@ -6991,7 +7203,10 @@ var File_farmtable_proto protoreflect.FileDescriptor
 
 const file_farmtable_proto_rawDesc = "" +
 	"\n" +
-	"\x0ffarmtable.proto\x12\ffarmtable.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe5\x02\n" +
+	"\x0ffarmtable.proto\x12\ffarmtable.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"l\n" +
+	"\x10TaskAvailability\x12\x1c\n" +
+	"\tavailable\x18\x01 \x01(\bR\tavailable\x12:\n" +
+	"\areasons\x18\x02 \x03(\x0e2 .farmtable.v1.AvailabilityReasonR\areasons\"\xe5\x02\n" +
 	"\x04User\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12\"\n" +
@@ -7057,7 +7272,7 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x05phase\x18\x02 \x01(\x0e2\x17.farmtable.v1.TaskPhaseB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x05phase\x129\n" +
 	"\x05stage\x18\x03 \x01(\x0e2\x17.farmtable.v1.TaskStageB\n" +
-	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x05stage\"\xef\v\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x05stage\"\xb3\r\n" +
 	"\x04Task\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12%\n" +
@@ -7094,7 +7309,12 @@ const file_farmtable_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x127\n" +
 	"\tclosed_at\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\bclosedAt\x12\x18\n" +
-	"\aversion\x18\x1b \x01(\tR\aversionB\x0e\n" +
+	"\aversion\x18\x1b \x01(\tR\aversion\x12L\n" +
+	"\vhold_reason\x18\x1c \x01(\x0e2\x1c.farmtable.v1.TaskHoldReasonB\b\xbaH\x05\x82\x01\x02\x10\x01H\n" +
+	"R\n" +
+	"holdReason\x88\x01\x01\x12\x17\n" +
+	"\x04rank\x18\x1d \x01(\x03H\vR\x04rank\x88\x01\x01\x12B\n" +
+	"\favailability\x18\x1e \x01(\v2\x1e.farmtable.v1.TaskAvailabilityR\favailabilityB\x0e\n" +
 	"\f_descriptionB\x16\n" +
 	"\x14_acceptance_criteriaB\x10\n" +
 	"\x0e_native_statusB\a\n" +
@@ -7106,7 +7326,9 @@ const file_farmtable_proto_rawDesc = "" +
 	"\r_code_contextB\f\n" +
 	"\n" +
 	"_remote_idB\r\n" +
-	"\v_remote_url\"\xd1\x05\n" +
+	"\v_remote_urlB\x0e\n" +
+	"\f_hold_reasonB\a\n" +
+	"\x05_rank\"\xd1\x05\n" +
 	"\n" +
 	"Collection\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1b\n" +
@@ -7229,7 +7451,7 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x0fGetTaskResponse\x12&\n" +
 	"\x04task\x18\x01 \x01(\v2\x12.farmtable.v1.TaskR\x04task\x121\n" +
 	"\bcomments\x18\x02 \x03(\v2\x15.farmtable.v1.CommentR\bcomments\x12.\n" +
-	"\achanges\x18\x03 \x03(\v2\x14.farmtable.v1.ChangeR\achanges\"\xe0\x06\n" +
+	"\achanges\x18\x03 \x03(\v2\x14.farmtable.v1.ChangeR\achanges\"\xe0\a\n" +
 	"\x11CreateTaskRequest\x12\x1b\n" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12-\n" +
 	"\rcollection_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\fcollectionId\x12%\n" +
@@ -7244,18 +7466,24 @@ const file_farmtable_proto_rawDesc = "" +
 	" \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x05R\fparentTaskId\x88\x01\x01\x125\n" +
 	"\bdue_date\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\adueDate\x129\n" +
 	"\n" +
-	"start_date\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x12&\n" +
+	"start_date\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x12L\n" +
+	"\vhold_reason\x18\x12 \x01(\x0e2\x1c.farmtable.v1.TaskHoldReasonB\b\xbaH\x05\x82\x01\x02\x10\x01H\x06R\n" +
+	"holdReason\x88\x01\x01\x12\x17\n" +
+	"\x04rank\x18\x13 \x01(\x03H\aR\x04rank\x88\x01\x01\x12&\n" +
 	"\x0fblocks_task_ids\x18\r \x03(\tR\rblocksTaskIds\x12-\n" +
 	"\x13blocked_by_task_ids\x18\x0e \x03(\tR\x10blockedByTaskIds\x12\x17\n" +
-	"\x04repo\x18\x0f \x01(\tH\x06R\x04repo\x88\x01\x01\x12\x1b\n" +
-	"\x06branch\x18\x10 \x01(\tH\aR\x06branch\x88\x01\x01\x12\x1b\n" +
-	"\x06reason\x18\x11 \x01(\tH\bR\x06reason\x88\x01\x01B\x0e\n" +
+	"\x04repo\x18\x0f \x01(\tH\bR\x04repo\x88\x01\x01\x12\x1b\n" +
+	"\x06branch\x18\x10 \x01(\tH\tR\x06branch\x88\x01\x01\x12\x1b\n" +
+	"\x06reason\x18\x11 \x01(\tH\n" +
+	"R\x06reason\x88\x01\x01B\x0e\n" +
 	"\f_descriptionB\x16\n" +
 	"\x14_acceptance_criteriaB\b\n" +
 	"\x06_stageB\v\n" +
 	"\t_priorityB\a\n" +
 	"\x05_typeB\x11\n" +
-	"\x0f_parent_task_idB\a\n" +
+	"\x0f_parent_task_idB\x0e\n" +
+	"\f_hold_reasonB\a\n" +
+	"\x05_rankB\a\n" +
 	"\x05_repoB\t\n" +
 	"\a_branchB\t\n" +
 	"\a_reason\"\xef\x01\n" +
@@ -7277,8 +7505,7 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x18InsertTasksAfterResponse\x129\n" +
 	"\x0einserted_tasks\x18\x01 \x03(\v2\x12.farmtable.v1.TaskR\rinsertedTasks\x123\n" +
 	"\vanchor_task\x18\x02 \x01(\v2\x12.farmtable.v1.TaskR\n" +
-	"anchorTask\"\xe9\n" +
-	"\n" +
+	"anchorTask\"\xb4\f\n" +
 	"\x11UpdateTaskRequest\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12%\n" +
@@ -7294,8 +7521,14 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x0eclear_due_date\x18\r \x01(\bR\fclearDueDate\x129\n" +
 	"\n" +
 	"start_date\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x12(\n" +
-	"\x10clear_start_date\x18\x0f \x01(\bR\x0eclearStartDate\x123\n" +
-	"\x0eparent_task_id\x18\x10 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x06R\fparentTaskId\x88\x01\x01\x12!\n" +
+	"\x10clear_start_date\x18\x0f \x01(\bR\x0eclearStartDate\x12L\n" +
+	"\vhold_reason\x18\x12 \x01(\x0e2\x1c.farmtable.v1.TaskHoldReasonB\b\xbaH\x05\x82\x01\x02\x10\x01H\x06R\n" +
+	"holdReason\x88\x01\x01\x12*\n" +
+	"\x11clear_hold_reason\x18\x13 \x01(\bR\x0fclearHoldReason\x12\x17\n" +
+	"\x04rank\x18\x19 \x01(\x03H\aR\x04rank\x88\x01\x01\x12\x1d\n" +
+	"\n" +
+	"clear_rank\x18\x1a \x01(\bR\tclearRank\x123\n" +
+	"\x0eparent_task_id\x18\x10 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\bR\fparentTaskId\x88\x01\x01\x12!\n" +
 	"\fclear_parent\x18\x11 \x01(\bR\vclearParent\x12\x1d\n" +
 	"\n" +
 	"add_labels\x18\x14 \x03(\tR\taddLabels\x12#\n" +
@@ -7304,22 +7537,24 @@ const file_farmtable_proto_rawDesc = "" +
 	"add_blocks\x18\x16 \x03(\tR\taddBlocks\x12$\n" +
 	"\x0eadd_blocked_by\x18\x17 \x03(\tR\faddBlockedBy\x121\n" +
 	"\x14remove_relationships\x18\x18 \x03(\tR\x13removeRelationships\x12\x17\n" +
-	"\x04repo\x18\x1e \x01(\tH\aR\x04repo\x88\x01\x01\x12\x1b\n" +
-	"\x06branch\x18\x1f \x01(\tH\bR\x06branch\x88\x01\x01\x12E\n" +
+	"\x04repo\x18\x1e \x01(\tH\tR\x04repo\x88\x01\x01\x12\x1b\n" +
+	"\x06branch\x18\x1f \x01(\tH\n" +
+	"R\x06branch\x88\x01\x01\x12E\n" +
 	"\x11add_pull_requests\x18  \x03(\v2\x19.farmtable.v1.PullRequestR\x0faddPullRequests\x12B\n" +
-	"\tci_status\x18! \x01(\x0e2\x16.farmtable.v1.CIStatusB\b\xbaH\x05\x82\x01\x02\x10\x01H\tR\bciStatus\x88\x01\x01\x12 \n" +
-	"\tremote_id\x18\" \x01(\tH\n" +
-	"R\bremoteId\x88\x01\x01\x12,\n" +
+	"\tci_status\x18! \x01(\x0e2\x16.farmtable.v1.CIStatusB\b\xbaH\x05\x82\x01\x02\x10\x01H\vR\bciStatus\x88\x01\x01\x12 \n" +
+	"\tremote_id\x18\" \x01(\tH\fR\bremoteId\x88\x01\x01\x12,\n" +
 	"\n" +
-	"remote_url\x18# \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01H\vR\tremoteUrl\x88\x01\x01\x12\x1b\n" +
-	"\x06reason\x18( \x01(\tH\fR\x06reason\x88\x01\x01\x12\x1d\n" +
-	"\aversion\x18) \x01(\tH\rR\aversion\x88\x01\x01B\a\n" +
+	"remote_url\x18# \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01H\rR\tremoteUrl\x88\x01\x01\x12\x1b\n" +
+	"\x06reason\x18( \x01(\tH\x0eR\x06reason\x88\x01\x01\x12\x1d\n" +
+	"\aversion\x18) \x01(\tH\x0fR\aversion\x88\x01\x01B\a\n" +
 	"\x05_nameB\x0e\n" +
 	"\f_descriptionB\x16\n" +
 	"\x14_acceptance_criteriaB\b\n" +
 	"\x06_stageB\v\n" +
 	"\t_priorityB\a\n" +
-	"\x05_typeB\x11\n" +
+	"\x05_typeB\x0e\n" +
+	"\f_hold_reasonB\a\n" +
+	"\x05_rankB\x11\n" +
 	"\x0f_parent_task_idB\a\n" +
 	"\x05_repoB\t\n" +
 	"\a_branchB\f\n" +
@@ -7659,25 +7894,30 @@ const file_farmtable_proto_rawDesc = "" +
 	"\x0fTASK_PHASE_OPEN\x10\x01\x12\x1a\n" +
 	"\x16TASK_PHASE_IN_PROGRESS\x10\x02\x12\x16\n" +
 	"\x12TASK_PHASE_ON_HOLD\x10\x03\x12\x15\n" +
-	"\x11TASK_PHASE_CLOSED\x10\x04*\xa2\x03\n" +
+	"\x11TASK_PHASE_CLOSED\x10\x04*\xa0\x02\n" +
 	"\tTaskStage\x12\x1a\n" +
 	"\x16TASK_STAGE_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11TASK_STAGE_TRIAGE\x10\x01\x12\x16\n" +
-	"\x12TASK_STAGE_BACKLOG\x10\x02\x12\x14\n" +
-	"\x10TASK_STAGE_READY\x10\x03\x12\x16\n" +
+	"\x11TASK_STAGE_TRIAGE\x10\x01\x12\x17\n" +
+	"\x13TASK_STAGE_ACCEPTED\x10\x02\x12\x16\n" +
 	"\x12TASK_STAGE_WORKING\x10\x04\x12\x18\n" +
 	"\x14TASK_STAGE_IN_REVIEW\x10\x05\x12\x14\n" +
 	"\x10TASK_STAGE_IN_QA\x10\x06\x12\x18\n" +
-	"\x14TASK_STAGE_DEPLOYING\x10\a\x12\x16\n" +
-	"\x12TASK_STAGE_BLOCKED\x10\b\x12 \n" +
-	"\x1cTASK_STAGE_WAITING_FOR_INPUT\x10\t\x12\x17\n" +
-	"\x13TASK_STAGE_DEFERRED\x10\n" +
-	"\x12\x18\n" +
-	"\x14TASK_STAGE_SCHEDULED\x10\v\x12\x18\n" +
+	"\x14TASK_STAGE_DEPLOYING\x10\a\x12\x18\n" +
 	"\x14TASK_STAGE_COMPLETED\x10\f\x12\x17\n" +
 	"\x13TASK_STAGE_WONT_FIX\x10\r\x12\x18\n" +
 	"\x14TASK_STAGE_DUPLICATE\x10\x0e\x12\x18\n" +
-	"\x14TASK_STAGE_CANCELLED\x10\x0f*\x90\x01\n" +
+	"\x14TASK_STAGE_CANCELLED\x10\x0f*y\n" +
+	"\x0eTaskHoldReason\x12 \n" +
+	"\x1cTASK_HOLD_REASON_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"TASK_HOLD_REASON_WAITING_FOR_INPUT\x10\x01\x12\x1d\n" +
+	"\x19TASK_HOLD_REASON_DEFERRED\x10\x02*\xf3\x01\n" +
+	"\x12AvailabilityReason\x12#\n" +
+	"\x1fAVAILABILITY_REASON_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aAVAILABILITY_REASON_TRIAGE\x10\x01\x12 \n" +
+	"\x1cAVAILABILITY_REASON_TERMINAL\x10\x02\x12\x1c\n" +
+	"\x18AVAILABILITY_REASON_HELD\x10\x03\x12-\n" +
+	")AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY\x10\x04\x12)\n" +
+	"%AVAILABILITY_REASON_FUTURE_START_DATE\x10\x05*\x90\x01\n" +
 	"\fTaskPriority\x12\x1d\n" +
 	"\x19TASK_PRIORITY_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14TASK_PRIORITY_URGENT\x10\x01\x12\x16\n" +
@@ -7829,309 +8069,317 @@ func file_farmtable_proto_rawDescGZIP() []byte {
 	return file_farmtable_proto_rawDescData
 }
 
-var file_farmtable_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
-var file_farmtable_proto_msgTypes = make([]protoimpl.MessageInfo, 80)
+var file_farmtable_proto_enumTypes = make([]protoimpl.EnumInfo, 20)
+var file_farmtable_proto_msgTypes = make([]protoimpl.MessageInfo, 81)
 var file_farmtable_proto_goTypes = []any{
 	(Platform)(0),                       // 0: farmtable.v1.Platform
 	(TaskPhase)(0),                      // 1: farmtable.v1.TaskPhase
 	(TaskStage)(0),                      // 2: farmtable.v1.TaskStage
-	(TaskPriority)(0),                   // 3: farmtable.v1.TaskPriority
-	(RelationshipType)(0),               // 4: farmtable.v1.RelationshipType
-	(UserType)(0),                       // 5: farmtable.v1.UserType
-	(IdentityStatus)(0),                 // 6: farmtable.v1.IdentityStatus
-	(AuthMethod)(0),                     // 7: farmtable.v1.AuthMethod
-	(LinkedAccountStatus)(0),            // 8: farmtable.v1.LinkedAccountStatus
-	(CustomFieldType)(0),                // 9: farmtable.v1.CustomFieldType
-	(CIStatus)(0),                       // 10: farmtable.v1.CIStatus
-	(PullRequestStatus)(0),              // 11: farmtable.v1.PullRequestStatus
-	(EventType)(0),                      // 12: farmtable.v1.EventType
-	(WebhookSource)(0),                  // 13: farmtable.v1.WebhookSource
-	(SortField)(0),                      // 14: farmtable.v1.SortField
-	(SortOrder)(0),                      // 15: farmtable.v1.SortOrder
-	(DependencyDirection)(0),            // 16: farmtable.v1.DependencyDirection
-	(TaskEventType)(0),                  // 17: farmtable.v1.TaskEventType
-	(*User)(nil),                        // 18: farmtable.v1.User
-	(*Relationship)(nil),                // 19: farmtable.v1.Relationship
-	(*Attachment)(nil),                  // 20: farmtable.v1.Attachment
-	(*CustomFieldValue)(nil),            // 21: farmtable.v1.CustomFieldValue
-	(*CustomFieldDefinition)(nil),       // 22: farmtable.v1.CustomFieldDefinition
-	(*PullRequest)(nil),                 // 23: farmtable.v1.PullRequest
-	(*CodeContext)(nil),                 // 24: farmtable.v1.CodeContext
-	(*StatusMapping)(nil),               // 25: farmtable.v1.StatusMapping
-	(*Task)(nil),                        // 26: farmtable.v1.Task
-	(*Collection)(nil),                  // 27: farmtable.v1.Collection
-	(*Comment)(nil),                     // 28: farmtable.v1.Comment
-	(*Change)(nil),                      // 29: farmtable.v1.Change
-	(*LinkedAccount)(nil),               // 30: farmtable.v1.LinkedAccount
-	(*WebhookEvent)(nil),                // 31: farmtable.v1.WebhookEvent
-	(*ListTasksRequest)(nil),            // 32: farmtable.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),           // 33: farmtable.v1.ListTasksResponse
-	(*GetTaskRequest)(nil),              // 34: farmtable.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),             // 35: farmtable.v1.GetTaskResponse
-	(*CreateTaskRequest)(nil),           // 36: farmtable.v1.CreateTaskRequest
-	(*NewTaskSpec)(nil),                 // 37: farmtable.v1.NewTaskSpec
-	(*InsertTasksAfterRequest)(nil),     // 38: farmtable.v1.InsertTasksAfterRequest
-	(*InsertTasksAfterResponse)(nil),    // 39: farmtable.v1.InsertTasksAfterResponse
-	(*UpdateTaskRequest)(nil),           // 40: farmtable.v1.UpdateTaskRequest
-	(*ClaimTaskRequest)(nil),            // 41: farmtable.v1.ClaimTaskRequest
-	(*ClaimTaskResponse)(nil),           // 42: farmtable.v1.ClaimTaskResponse
-	(*CloseTaskRequest)(nil),            // 43: farmtable.v1.CloseTaskRequest
-	(*DeleteTaskRequest)(nil),           // 44: farmtable.v1.DeleteTaskRequest
-	(*DeleteTaskResponse)(nil),          // 45: farmtable.v1.DeleteTaskResponse
-	(*AddCommentRequest)(nil),           // 46: farmtable.v1.AddCommentRequest
-	(*ListCommentsRequest)(nil),         // 47: farmtable.v1.ListCommentsRequest
-	(*ListCommentsResponse)(nil),        // 48: farmtable.v1.ListCommentsResponse
-	(*GetCommentRequest)(nil),           // 49: farmtable.v1.GetCommentRequest
-	(*ListCollectionsRequest)(nil),      // 50: farmtable.v1.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),     // 51: farmtable.v1.ListCollectionsResponse
-	(*GetCollectionRequest)(nil),        // 52: farmtable.v1.GetCollectionRequest
-	(*CreateCollectionRequest)(nil),     // 53: farmtable.v1.CreateCollectionRequest
-	(*UpdateCollectionRequest)(nil),     // 54: farmtable.v1.UpdateCollectionRequest
-	(*ExportCollectionRequest)(nil),     // 55: farmtable.v1.ExportCollectionRequest
-	(*ExportCollectionResponse)(nil),    // 56: farmtable.v1.ExportCollectionResponse
-	(*ImportCollectionRequest)(nil),     // 57: farmtable.v1.ImportCollectionRequest
-	(*ImportCollectionResponse)(nil),    // 58: farmtable.v1.ImportCollectionResponse
-	(*ImportStats)(nil),                 // 59: farmtable.v1.ImportStats
-	(*CreateLinkedAccountRequest)(nil),  // 60: farmtable.v1.CreateLinkedAccountRequest
-	(*CreateLinkedAccountResponse)(nil), // 61: farmtable.v1.CreateLinkedAccountResponse
-	(*GetLinkedAccountRequest)(nil),     // 62: farmtable.v1.GetLinkedAccountRequest
-	(*GetLinkedAccountResponse)(nil),    // 63: farmtable.v1.GetLinkedAccountResponse
-	(*DeleteLinkedAccountRequest)(nil),  // 64: farmtable.v1.DeleteLinkedAccountRequest
-	(*DeleteLinkedAccountResponse)(nil), // 65: farmtable.v1.DeleteLinkedAccountResponse
-	(*ListLinkedAccountsRequest)(nil),   // 66: farmtable.v1.ListLinkedAccountsRequest
-	(*ListLinkedAccountsResponse)(nil),  // 67: farmtable.v1.ListLinkedAccountsResponse
-	(*GetReadyTasksRequest)(nil),        // 68: farmtable.v1.GetReadyTasksRequest
-	(*ReadyTask)(nil),                   // 69: farmtable.v1.ReadyTask
-	(*GetReadyTasksResponse)(nil),       // 70: farmtable.v1.GetReadyTasksResponse
-	(*GetBlockedTasksRequest)(nil),      // 71: farmtable.v1.GetBlockedTasksRequest
-	(*BlockerInfo)(nil),                 // 72: farmtable.v1.BlockerInfo
-	(*BlockedTask)(nil),                 // 73: farmtable.v1.BlockedTask
-	(*GetBlockedTasksResponse)(nil),     // 74: farmtable.v1.GetBlockedTasksResponse
-	(*GetDependencyTreeRequest)(nil),    // 75: farmtable.v1.GetDependencyTreeRequest
-	(*DependencyNode)(nil),              // 76: farmtable.v1.DependencyNode
-	(*GetDependencyTreeResponse)(nil),   // 77: farmtable.v1.GetDependencyTreeResponse
-	(*GetCriticalPathRequest)(nil),      // 78: farmtable.v1.GetCriticalPathRequest
-	(*CriticalPathNode)(nil),            // 79: farmtable.v1.CriticalPathNode
-	(*Bottleneck)(nil),                  // 80: farmtable.v1.Bottleneck
-	(*GetCriticalPathResponse)(nil),     // 81: farmtable.v1.GetCriticalPathResponse
-	(*GetBottlenecksRequest)(nil),       // 82: farmtable.v1.GetBottlenecksRequest
-	(*BottleneckTask)(nil),              // 83: farmtable.v1.BottleneckTask
-	(*GetBottlenecksResponse)(nil),      // 84: farmtable.v1.GetBottlenecksResponse
-	(*ListChangesRequest)(nil),          // 85: farmtable.v1.ListChangesRequest
-	(*ListChangesResponse)(nil),         // 86: farmtable.v1.ListChangesResponse
-	(*WhoAmIRequest)(nil),               // 87: farmtable.v1.WhoAmIRequest
-	(*ListUsersRequest)(nil),            // 88: farmtable.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),           // 89: farmtable.v1.ListUsersResponse
-	(*GetUserRequest)(nil),              // 90: farmtable.v1.GetUserRequest
-	(*GetStatusRequest)(nil),            // 91: farmtable.v1.GetStatusRequest
-	(*PlatformConnectionStatus)(nil),    // 92: farmtable.v1.PlatformConnectionStatus
-	(*GetStatusResponse)(nil),           // 93: farmtable.v1.GetStatusResponse
-	(*GetVersionRequest)(nil),           // 94: farmtable.v1.GetVersionRequest
-	(*GetVersionResponse)(nil),          // 95: farmtable.v1.GetVersionResponse
-	(*WatchTasksRequest)(nil),           // 96: farmtable.v1.WatchTasksRequest
-	(*TaskEvent)(nil),                   // 97: farmtable.v1.TaskEvent
-	(*structpb.Value)(nil),              // 98: google.protobuf.Value
-	(*timestamppb.Timestamp)(nil),       // 99: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),             // 100: google.protobuf.Struct
+	(TaskHoldReason)(0),                 // 3: farmtable.v1.TaskHoldReason
+	(AvailabilityReason)(0),             // 4: farmtable.v1.AvailabilityReason
+	(TaskPriority)(0),                   // 5: farmtable.v1.TaskPriority
+	(RelationshipType)(0),               // 6: farmtable.v1.RelationshipType
+	(UserType)(0),                       // 7: farmtable.v1.UserType
+	(IdentityStatus)(0),                 // 8: farmtable.v1.IdentityStatus
+	(AuthMethod)(0),                     // 9: farmtable.v1.AuthMethod
+	(LinkedAccountStatus)(0),            // 10: farmtable.v1.LinkedAccountStatus
+	(CustomFieldType)(0),                // 11: farmtable.v1.CustomFieldType
+	(CIStatus)(0),                       // 12: farmtable.v1.CIStatus
+	(PullRequestStatus)(0),              // 13: farmtable.v1.PullRequestStatus
+	(EventType)(0),                      // 14: farmtable.v1.EventType
+	(WebhookSource)(0),                  // 15: farmtable.v1.WebhookSource
+	(SortField)(0),                      // 16: farmtable.v1.SortField
+	(SortOrder)(0),                      // 17: farmtable.v1.SortOrder
+	(DependencyDirection)(0),            // 18: farmtable.v1.DependencyDirection
+	(TaskEventType)(0),                  // 19: farmtable.v1.TaskEventType
+	(*TaskAvailability)(nil),            // 20: farmtable.v1.TaskAvailability
+	(*User)(nil),                        // 21: farmtable.v1.User
+	(*Relationship)(nil),                // 22: farmtable.v1.Relationship
+	(*Attachment)(nil),                  // 23: farmtable.v1.Attachment
+	(*CustomFieldValue)(nil),            // 24: farmtable.v1.CustomFieldValue
+	(*CustomFieldDefinition)(nil),       // 25: farmtable.v1.CustomFieldDefinition
+	(*PullRequest)(nil),                 // 26: farmtable.v1.PullRequest
+	(*CodeContext)(nil),                 // 27: farmtable.v1.CodeContext
+	(*StatusMapping)(nil),               // 28: farmtable.v1.StatusMapping
+	(*Task)(nil),                        // 29: farmtable.v1.Task
+	(*Collection)(nil),                  // 30: farmtable.v1.Collection
+	(*Comment)(nil),                     // 31: farmtable.v1.Comment
+	(*Change)(nil),                      // 32: farmtable.v1.Change
+	(*LinkedAccount)(nil),               // 33: farmtable.v1.LinkedAccount
+	(*WebhookEvent)(nil),                // 34: farmtable.v1.WebhookEvent
+	(*ListTasksRequest)(nil),            // 35: farmtable.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),           // 36: farmtable.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),              // 37: farmtable.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),             // 38: farmtable.v1.GetTaskResponse
+	(*CreateTaskRequest)(nil),           // 39: farmtable.v1.CreateTaskRequest
+	(*NewTaskSpec)(nil),                 // 40: farmtable.v1.NewTaskSpec
+	(*InsertTasksAfterRequest)(nil),     // 41: farmtable.v1.InsertTasksAfterRequest
+	(*InsertTasksAfterResponse)(nil),    // 42: farmtable.v1.InsertTasksAfterResponse
+	(*UpdateTaskRequest)(nil),           // 43: farmtable.v1.UpdateTaskRequest
+	(*ClaimTaskRequest)(nil),            // 44: farmtable.v1.ClaimTaskRequest
+	(*ClaimTaskResponse)(nil),           // 45: farmtable.v1.ClaimTaskResponse
+	(*CloseTaskRequest)(nil),            // 46: farmtable.v1.CloseTaskRequest
+	(*DeleteTaskRequest)(nil),           // 47: farmtable.v1.DeleteTaskRequest
+	(*DeleteTaskResponse)(nil),          // 48: farmtable.v1.DeleteTaskResponse
+	(*AddCommentRequest)(nil),           // 49: farmtable.v1.AddCommentRequest
+	(*ListCommentsRequest)(nil),         // 50: farmtable.v1.ListCommentsRequest
+	(*ListCommentsResponse)(nil),        // 51: farmtable.v1.ListCommentsResponse
+	(*GetCommentRequest)(nil),           // 52: farmtable.v1.GetCommentRequest
+	(*ListCollectionsRequest)(nil),      // 53: farmtable.v1.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),     // 54: farmtable.v1.ListCollectionsResponse
+	(*GetCollectionRequest)(nil),        // 55: farmtable.v1.GetCollectionRequest
+	(*CreateCollectionRequest)(nil),     // 56: farmtable.v1.CreateCollectionRequest
+	(*UpdateCollectionRequest)(nil),     // 57: farmtable.v1.UpdateCollectionRequest
+	(*ExportCollectionRequest)(nil),     // 58: farmtable.v1.ExportCollectionRequest
+	(*ExportCollectionResponse)(nil),    // 59: farmtable.v1.ExportCollectionResponse
+	(*ImportCollectionRequest)(nil),     // 60: farmtable.v1.ImportCollectionRequest
+	(*ImportCollectionResponse)(nil),    // 61: farmtable.v1.ImportCollectionResponse
+	(*ImportStats)(nil),                 // 62: farmtable.v1.ImportStats
+	(*CreateLinkedAccountRequest)(nil),  // 63: farmtable.v1.CreateLinkedAccountRequest
+	(*CreateLinkedAccountResponse)(nil), // 64: farmtable.v1.CreateLinkedAccountResponse
+	(*GetLinkedAccountRequest)(nil),     // 65: farmtable.v1.GetLinkedAccountRequest
+	(*GetLinkedAccountResponse)(nil),    // 66: farmtable.v1.GetLinkedAccountResponse
+	(*DeleteLinkedAccountRequest)(nil),  // 67: farmtable.v1.DeleteLinkedAccountRequest
+	(*DeleteLinkedAccountResponse)(nil), // 68: farmtable.v1.DeleteLinkedAccountResponse
+	(*ListLinkedAccountsRequest)(nil),   // 69: farmtable.v1.ListLinkedAccountsRequest
+	(*ListLinkedAccountsResponse)(nil),  // 70: farmtable.v1.ListLinkedAccountsResponse
+	(*GetReadyTasksRequest)(nil),        // 71: farmtable.v1.GetReadyTasksRequest
+	(*ReadyTask)(nil),                   // 72: farmtable.v1.ReadyTask
+	(*GetReadyTasksResponse)(nil),       // 73: farmtable.v1.GetReadyTasksResponse
+	(*GetBlockedTasksRequest)(nil),      // 74: farmtable.v1.GetBlockedTasksRequest
+	(*BlockerInfo)(nil),                 // 75: farmtable.v1.BlockerInfo
+	(*BlockedTask)(nil),                 // 76: farmtable.v1.BlockedTask
+	(*GetBlockedTasksResponse)(nil),     // 77: farmtable.v1.GetBlockedTasksResponse
+	(*GetDependencyTreeRequest)(nil),    // 78: farmtable.v1.GetDependencyTreeRequest
+	(*DependencyNode)(nil),              // 79: farmtable.v1.DependencyNode
+	(*GetDependencyTreeResponse)(nil),   // 80: farmtable.v1.GetDependencyTreeResponse
+	(*GetCriticalPathRequest)(nil),      // 81: farmtable.v1.GetCriticalPathRequest
+	(*CriticalPathNode)(nil),            // 82: farmtable.v1.CriticalPathNode
+	(*Bottleneck)(nil),                  // 83: farmtable.v1.Bottleneck
+	(*GetCriticalPathResponse)(nil),     // 84: farmtable.v1.GetCriticalPathResponse
+	(*GetBottlenecksRequest)(nil),       // 85: farmtable.v1.GetBottlenecksRequest
+	(*BottleneckTask)(nil),              // 86: farmtable.v1.BottleneckTask
+	(*GetBottlenecksResponse)(nil),      // 87: farmtable.v1.GetBottlenecksResponse
+	(*ListChangesRequest)(nil),          // 88: farmtable.v1.ListChangesRequest
+	(*ListChangesResponse)(nil),         // 89: farmtable.v1.ListChangesResponse
+	(*WhoAmIRequest)(nil),               // 90: farmtable.v1.WhoAmIRequest
+	(*ListUsersRequest)(nil),            // 91: farmtable.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),           // 92: farmtable.v1.ListUsersResponse
+	(*GetUserRequest)(nil),              // 93: farmtable.v1.GetUserRequest
+	(*GetStatusRequest)(nil),            // 94: farmtable.v1.GetStatusRequest
+	(*PlatformConnectionStatus)(nil),    // 95: farmtable.v1.PlatformConnectionStatus
+	(*GetStatusResponse)(nil),           // 96: farmtable.v1.GetStatusResponse
+	(*GetVersionRequest)(nil),           // 97: farmtable.v1.GetVersionRequest
+	(*GetVersionResponse)(nil),          // 98: farmtable.v1.GetVersionResponse
+	(*WatchTasksRequest)(nil),           // 99: farmtable.v1.WatchTasksRequest
+	(*TaskEvent)(nil),                   // 100: farmtable.v1.TaskEvent
+	(*structpb.Value)(nil),              // 101: google.protobuf.Value
+	(*timestamppb.Timestamp)(nil),       // 102: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),             // 103: google.protobuf.Struct
 }
 var file_farmtable_proto_depIdxs = []int32{
-	5,   // 0: farmtable.v1.User.type:type_name -> farmtable.v1.UserType
-	6,   // 1: farmtable.v1.User.status:type_name -> farmtable.v1.IdentityStatus
-	0,   // 2: farmtable.v1.User.platform:type_name -> farmtable.v1.Platform
-	4,   // 3: farmtable.v1.Relationship.type:type_name -> farmtable.v1.RelationshipType
-	9,   // 4: farmtable.v1.CustomFieldValue.field_type:type_name -> farmtable.v1.CustomFieldType
-	98,  // 5: farmtable.v1.CustomFieldValue.value:type_name -> google.protobuf.Value
-	9,   // 6: farmtable.v1.CustomFieldDefinition.field_type:type_name -> farmtable.v1.CustomFieldType
-	11,  // 7: farmtable.v1.PullRequest.status:type_name -> farmtable.v1.PullRequestStatus
-	23,  // 8: farmtable.v1.CodeContext.pull_requests:type_name -> farmtable.v1.PullRequest
-	10,  // 9: farmtable.v1.CodeContext.ci_status:type_name -> farmtable.v1.CIStatus
-	1,   // 10: farmtable.v1.StatusMapping.phase:type_name -> farmtable.v1.TaskPhase
-	2,   // 11: farmtable.v1.StatusMapping.stage:type_name -> farmtable.v1.TaskStage
-	1,   // 12: farmtable.v1.Task.phase:type_name -> farmtable.v1.TaskPhase
-	2,   // 13: farmtable.v1.Task.stage:type_name -> farmtable.v1.TaskStage
-	3,   // 14: farmtable.v1.Task.priority:type_name -> farmtable.v1.TaskPriority
-	18,  // 15: farmtable.v1.Task.assignees:type_name -> farmtable.v1.User
-	18,  // 16: farmtable.v1.Task.creator:type_name -> farmtable.v1.User
-	99,  // 17: farmtable.v1.Task.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 18: farmtable.v1.Task.due_date:type_name -> google.protobuf.Timestamp
-	19,  // 19: farmtable.v1.Task.relationships:type_name -> farmtable.v1.Relationship
-	21,  // 20: farmtable.v1.Task.custom_fields:type_name -> farmtable.v1.CustomFieldValue
-	24,  // 21: farmtable.v1.Task.code_context:type_name -> farmtable.v1.CodeContext
-	100, // 22: farmtable.v1.Task.remote_data:type_name -> google.protobuf.Struct
-	0,   // 23: farmtable.v1.Task.platform:type_name -> farmtable.v1.Platform
-	99,  // 24: farmtable.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 25: farmtable.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
-	99,  // 26: farmtable.v1.Task.closed_at:type_name -> google.protobuf.Timestamp
-	0,   // 27: farmtable.v1.Collection.platform:type_name -> farmtable.v1.Platform
-	25,  // 28: farmtable.v1.Collection.status_mappings:type_name -> farmtable.v1.StatusMapping
-	22,  // 29: farmtable.v1.Collection.custom_field_definitions:type_name -> farmtable.v1.CustomFieldDefinition
-	100, // 30: farmtable.v1.Collection.remote_data:type_name -> google.protobuf.Struct
-	99,  // 31: farmtable.v1.Collection.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 32: farmtable.v1.Collection.updated_at:type_name -> google.protobuf.Timestamp
-	18,  // 33: farmtable.v1.Comment.author:type_name -> farmtable.v1.User
-	20,  // 34: farmtable.v1.Comment.attachments:type_name -> farmtable.v1.Attachment
-	99,  // 35: farmtable.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 36: farmtable.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
-	98,  // 37: farmtable.v1.Change.old_value:type_name -> google.protobuf.Value
-	98,  // 38: farmtable.v1.Change.new_value:type_name -> google.protobuf.Value
-	18,  // 39: farmtable.v1.Change.changed_by:type_name -> farmtable.v1.User
-	99,  // 40: farmtable.v1.Change.changed_at:type_name -> google.protobuf.Timestamp
-	0,   // 41: farmtable.v1.LinkedAccount.platform:type_name -> farmtable.v1.Platform
-	7,   // 42: farmtable.v1.LinkedAccount.auth_method:type_name -> farmtable.v1.AuthMethod
-	8,   // 43: farmtable.v1.LinkedAccount.status:type_name -> farmtable.v1.LinkedAccountStatus
-	99,  // 44: farmtable.v1.LinkedAccount.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 45: farmtable.v1.LinkedAccount.updated_at:type_name -> google.protobuf.Timestamp
-	99,  // 46: farmtable.v1.LinkedAccount.expires_at:type_name -> google.protobuf.Timestamp
-	12,  // 47: farmtable.v1.WebhookEvent.event_type:type_name -> farmtable.v1.EventType
-	29,  // 48: farmtable.v1.WebhookEvent.changes:type_name -> farmtable.v1.Change
-	18,  // 49: farmtable.v1.WebhookEvent.triggered_by:type_name -> farmtable.v1.User
-	0,   // 50: farmtable.v1.WebhookEvent.platform:type_name -> farmtable.v1.Platform
-	13,  // 51: farmtable.v1.WebhookEvent.source:type_name -> farmtable.v1.WebhookSource
-	99,  // 52: farmtable.v1.WebhookEvent.timestamp:type_name -> google.protobuf.Timestamp
-	1,   // 53: farmtable.v1.ListTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
-	2,   // 54: farmtable.v1.ListTasksRequest.stages:type_name -> farmtable.v1.TaskStage
-	3,   // 55: farmtable.v1.ListTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
-	14,  // 56: farmtable.v1.ListTasksRequest.sort_field:type_name -> farmtable.v1.SortField
-	15,  // 57: farmtable.v1.ListTasksRequest.sort_order:type_name -> farmtable.v1.SortOrder
-	26,  // 58: farmtable.v1.ListTasksResponse.items:type_name -> farmtable.v1.Task
-	26,  // 59: farmtable.v1.GetTaskResponse.task:type_name -> farmtable.v1.Task
-	28,  // 60: farmtable.v1.GetTaskResponse.comments:type_name -> farmtable.v1.Comment
-	29,  // 61: farmtable.v1.GetTaskResponse.changes:type_name -> farmtable.v1.Change
-	2,   // 62: farmtable.v1.CreateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
-	3,   // 63: farmtable.v1.CreateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
-	99,  // 64: farmtable.v1.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	99,  // 65: farmtable.v1.CreateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
-	3,   // 66: farmtable.v1.NewTaskSpec.priority:type_name -> farmtable.v1.TaskPriority
-	37,  // 67: farmtable.v1.InsertTasksAfterRequest.steps:type_name -> farmtable.v1.NewTaskSpec
-	26,  // 68: farmtable.v1.InsertTasksAfterResponse.inserted_tasks:type_name -> farmtable.v1.Task
-	26,  // 69: farmtable.v1.InsertTasksAfterResponse.anchor_task:type_name -> farmtable.v1.Task
-	2,   // 70: farmtable.v1.UpdateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
-	3,   // 71: farmtable.v1.UpdateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
-	99,  // 72: farmtable.v1.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	99,  // 73: farmtable.v1.UpdateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
-	23,  // 74: farmtable.v1.UpdateTaskRequest.add_pull_requests:type_name -> farmtable.v1.PullRequest
-	10,  // 75: farmtable.v1.UpdateTaskRequest.ci_status:type_name -> farmtable.v1.CIStatus
-	2,   // 76: farmtable.v1.ClaimTaskRequest.stage:type_name -> farmtable.v1.TaskStage
-	26,  // 77: farmtable.v1.ClaimTaskResponse.task:type_name -> farmtable.v1.Task
-	99,  // 78: farmtable.v1.ClaimTaskResponse.claimed_at:type_name -> google.protobuf.Timestamp
-	2,   // 79: farmtable.v1.CloseTaskRequest.stage:type_name -> farmtable.v1.TaskStage
-	15,  // 80: farmtable.v1.ListCommentsRequest.order:type_name -> farmtable.v1.SortOrder
-	28,  // 81: farmtable.v1.ListCommentsResponse.items:type_name -> farmtable.v1.Comment
-	0,   // 82: farmtable.v1.ListCollectionsRequest.platform:type_name -> farmtable.v1.Platform
-	27,  // 83: farmtable.v1.ListCollectionsResponse.items:type_name -> farmtable.v1.Collection
-	0,   // 84: farmtable.v1.CreateCollectionRequest.platform:type_name -> farmtable.v1.Platform
-	59,  // 85: farmtable.v1.ImportCollectionResponse.stats:type_name -> farmtable.v1.ImportStats
-	0,   // 86: farmtable.v1.CreateLinkedAccountRequest.platform:type_name -> farmtable.v1.Platform
-	7,   // 87: farmtable.v1.CreateLinkedAccountRequest.auth_method:type_name -> farmtable.v1.AuthMethod
-	99,  // 88: farmtable.v1.CreateLinkedAccountRequest.expires_at:type_name -> google.protobuf.Timestamp
-	30,  // 89: farmtable.v1.CreateLinkedAccountResponse.linked_account:type_name -> farmtable.v1.LinkedAccount
-	30,  // 90: farmtable.v1.GetLinkedAccountResponse.linked_account:type_name -> farmtable.v1.LinkedAccount
-	0,   // 91: farmtable.v1.ListLinkedAccountsRequest.platform:type_name -> farmtable.v1.Platform
-	8,   // 92: farmtable.v1.ListLinkedAccountsRequest.status:type_name -> farmtable.v1.LinkedAccountStatus
-	30,  // 93: farmtable.v1.ListLinkedAccountsResponse.items:type_name -> farmtable.v1.LinkedAccount
-	3,   // 94: farmtable.v1.GetReadyTasksRequest.min_priority:type_name -> farmtable.v1.TaskPriority
-	26,  // 95: farmtable.v1.ReadyTask.task:type_name -> farmtable.v1.Task
-	69,  // 96: farmtable.v1.GetReadyTasksResponse.items:type_name -> farmtable.v1.ReadyTask
-	1,   // 97: farmtable.v1.BlockerInfo.phase:type_name -> farmtable.v1.TaskPhase
-	2,   // 98: farmtable.v1.BlockerInfo.stage:type_name -> farmtable.v1.TaskStage
-	26,  // 99: farmtable.v1.BlockedTask.task:type_name -> farmtable.v1.Task
-	72,  // 100: farmtable.v1.BlockedTask.blocked_by:type_name -> farmtable.v1.BlockerInfo
-	73,  // 101: farmtable.v1.GetBlockedTasksResponse.items:type_name -> farmtable.v1.BlockedTask
-	16,  // 102: farmtable.v1.GetDependencyTreeRequest.direction:type_name -> farmtable.v1.DependencyDirection
-	26,  // 103: farmtable.v1.DependencyNode.task:type_name -> farmtable.v1.Task
-	76,  // 104: farmtable.v1.DependencyNode.blocks:type_name -> farmtable.v1.DependencyNode
-	76,  // 105: farmtable.v1.DependencyNode.blocked_by:type_name -> farmtable.v1.DependencyNode
-	76,  // 106: farmtable.v1.GetDependencyTreeResponse.root:type_name -> farmtable.v1.DependencyNode
-	2,   // 107: farmtable.v1.CriticalPathNode.stage:type_name -> farmtable.v1.TaskStage
-	79,  // 108: farmtable.v1.GetCriticalPathResponse.path:type_name -> farmtable.v1.CriticalPathNode
-	80,  // 109: farmtable.v1.GetCriticalPathResponse.bottleneck:type_name -> farmtable.v1.Bottleneck
-	2,   // 110: farmtable.v1.BottleneckTask.stage:type_name -> farmtable.v1.TaskStage
-	83,  // 111: farmtable.v1.GetBottlenecksResponse.items:type_name -> farmtable.v1.BottleneckTask
-	29,  // 112: farmtable.v1.ListChangesResponse.items:type_name -> farmtable.v1.Change
-	5,   // 113: farmtable.v1.ListUsersRequest.type:type_name -> farmtable.v1.UserType
-	18,  // 114: farmtable.v1.ListUsersResponse.items:type_name -> farmtable.v1.User
-	0,   // 115: farmtable.v1.GetStatusRequest.platform:type_name -> farmtable.v1.Platform
-	0,   // 116: farmtable.v1.PlatformConnectionStatus.platform:type_name -> farmtable.v1.Platform
-	18,  // 117: farmtable.v1.GetStatusResponse.authenticated_as:type_name -> farmtable.v1.User
-	92,  // 118: farmtable.v1.GetStatusResponse.platforms:type_name -> farmtable.v1.PlatformConnectionStatus
-	1,   // 119: farmtable.v1.WatchTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
-	2,   // 120: farmtable.v1.WatchTasksRequest.stages:type_name -> farmtable.v1.TaskStage
-	3,   // 121: farmtable.v1.WatchTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
-	17,  // 122: farmtable.v1.TaskEvent.event_type:type_name -> farmtable.v1.TaskEventType
-	26,  // 123: farmtable.v1.TaskEvent.task:type_name -> farmtable.v1.Task
-	29,  // 124: farmtable.v1.TaskEvent.changes:type_name -> farmtable.v1.Change
-	99,  // 125: farmtable.v1.TaskEvent.timestamp:type_name -> google.protobuf.Timestamp
-	32,  // 126: farmtable.v1.FarmTableService.ListTasks:input_type -> farmtable.v1.ListTasksRequest
-	34,  // 127: farmtable.v1.FarmTableService.GetTask:input_type -> farmtable.v1.GetTaskRequest
-	36,  // 128: farmtable.v1.FarmTableService.CreateTask:input_type -> farmtable.v1.CreateTaskRequest
-	38,  // 129: farmtable.v1.FarmTableService.InsertTasksAfter:input_type -> farmtable.v1.InsertTasksAfterRequest
-	40,  // 130: farmtable.v1.FarmTableService.UpdateTask:input_type -> farmtable.v1.UpdateTaskRequest
-	41,  // 131: farmtable.v1.FarmTableService.ClaimTask:input_type -> farmtable.v1.ClaimTaskRequest
-	43,  // 132: farmtable.v1.FarmTableService.CloseTask:input_type -> farmtable.v1.CloseTaskRequest
-	44,  // 133: farmtable.v1.FarmTableService.DeleteTask:input_type -> farmtable.v1.DeleteTaskRequest
-	46,  // 134: farmtable.v1.FarmTableService.AddComment:input_type -> farmtable.v1.AddCommentRequest
-	47,  // 135: farmtable.v1.FarmTableService.ListComments:input_type -> farmtable.v1.ListCommentsRequest
-	49,  // 136: farmtable.v1.FarmTableService.GetComment:input_type -> farmtable.v1.GetCommentRequest
-	50,  // 137: farmtable.v1.FarmTableService.ListCollections:input_type -> farmtable.v1.ListCollectionsRequest
-	52,  // 138: farmtable.v1.FarmTableService.GetCollection:input_type -> farmtable.v1.GetCollectionRequest
-	53,  // 139: farmtable.v1.FarmTableService.CreateCollection:input_type -> farmtable.v1.CreateCollectionRequest
-	54,  // 140: farmtable.v1.FarmTableService.UpdateCollection:input_type -> farmtable.v1.UpdateCollectionRequest
-	55,  // 141: farmtable.v1.FarmTableService.ExportCollection:input_type -> farmtable.v1.ExportCollectionRequest
-	57,  // 142: farmtable.v1.FarmTableService.ImportCollection:input_type -> farmtable.v1.ImportCollectionRequest
-	60,  // 143: farmtable.v1.FarmTableService.CreateLinkedAccount:input_type -> farmtable.v1.CreateLinkedAccountRequest
-	62,  // 144: farmtable.v1.FarmTableService.GetLinkedAccount:input_type -> farmtable.v1.GetLinkedAccountRequest
-	64,  // 145: farmtable.v1.FarmTableService.DeleteLinkedAccount:input_type -> farmtable.v1.DeleteLinkedAccountRequest
-	66,  // 146: farmtable.v1.FarmTableService.ListLinkedAccounts:input_type -> farmtable.v1.ListLinkedAccountsRequest
-	68,  // 147: farmtable.v1.FarmTableService.GetReadyTasks:input_type -> farmtable.v1.GetReadyTasksRequest
-	71,  // 148: farmtable.v1.FarmTableService.GetBlockedTasks:input_type -> farmtable.v1.GetBlockedTasksRequest
-	75,  // 149: farmtable.v1.FarmTableService.GetDependencyTree:input_type -> farmtable.v1.GetDependencyTreeRequest
-	78,  // 150: farmtable.v1.FarmTableService.GetCriticalPath:input_type -> farmtable.v1.GetCriticalPathRequest
-	82,  // 151: farmtable.v1.FarmTableService.GetBottlenecks:input_type -> farmtable.v1.GetBottlenecksRequest
-	85,  // 152: farmtable.v1.FarmTableService.ListChanges:input_type -> farmtable.v1.ListChangesRequest
-	87,  // 153: farmtable.v1.FarmTableService.WhoAmI:input_type -> farmtable.v1.WhoAmIRequest
-	88,  // 154: farmtable.v1.FarmTableService.ListUsers:input_type -> farmtable.v1.ListUsersRequest
-	90,  // 155: farmtable.v1.FarmTableService.GetUser:input_type -> farmtable.v1.GetUserRequest
-	91,  // 156: farmtable.v1.FarmTableService.GetStatus:input_type -> farmtable.v1.GetStatusRequest
-	94,  // 157: farmtable.v1.FarmTableService.GetVersion:input_type -> farmtable.v1.GetVersionRequest
-	96,  // 158: farmtable.v1.FarmTableService.WatchTasks:input_type -> farmtable.v1.WatchTasksRequest
-	33,  // 159: farmtable.v1.FarmTableService.ListTasks:output_type -> farmtable.v1.ListTasksResponse
-	35,  // 160: farmtable.v1.FarmTableService.GetTask:output_type -> farmtable.v1.GetTaskResponse
-	26,  // 161: farmtable.v1.FarmTableService.CreateTask:output_type -> farmtable.v1.Task
-	39,  // 162: farmtable.v1.FarmTableService.InsertTasksAfter:output_type -> farmtable.v1.InsertTasksAfterResponse
-	26,  // 163: farmtable.v1.FarmTableService.UpdateTask:output_type -> farmtable.v1.Task
-	42,  // 164: farmtable.v1.FarmTableService.ClaimTask:output_type -> farmtable.v1.ClaimTaskResponse
-	26,  // 165: farmtable.v1.FarmTableService.CloseTask:output_type -> farmtable.v1.Task
-	45,  // 166: farmtable.v1.FarmTableService.DeleteTask:output_type -> farmtable.v1.DeleteTaskResponse
-	28,  // 167: farmtable.v1.FarmTableService.AddComment:output_type -> farmtable.v1.Comment
-	48,  // 168: farmtable.v1.FarmTableService.ListComments:output_type -> farmtable.v1.ListCommentsResponse
-	28,  // 169: farmtable.v1.FarmTableService.GetComment:output_type -> farmtable.v1.Comment
-	51,  // 170: farmtable.v1.FarmTableService.ListCollections:output_type -> farmtable.v1.ListCollectionsResponse
-	27,  // 171: farmtable.v1.FarmTableService.GetCollection:output_type -> farmtable.v1.Collection
-	27,  // 172: farmtable.v1.FarmTableService.CreateCollection:output_type -> farmtable.v1.Collection
-	27,  // 173: farmtable.v1.FarmTableService.UpdateCollection:output_type -> farmtable.v1.Collection
-	56,  // 174: farmtable.v1.FarmTableService.ExportCollection:output_type -> farmtable.v1.ExportCollectionResponse
-	58,  // 175: farmtable.v1.FarmTableService.ImportCollection:output_type -> farmtable.v1.ImportCollectionResponse
-	61,  // 176: farmtable.v1.FarmTableService.CreateLinkedAccount:output_type -> farmtable.v1.CreateLinkedAccountResponse
-	63,  // 177: farmtable.v1.FarmTableService.GetLinkedAccount:output_type -> farmtable.v1.GetLinkedAccountResponse
-	65,  // 178: farmtable.v1.FarmTableService.DeleteLinkedAccount:output_type -> farmtable.v1.DeleteLinkedAccountResponse
-	67,  // 179: farmtable.v1.FarmTableService.ListLinkedAccounts:output_type -> farmtable.v1.ListLinkedAccountsResponse
-	70,  // 180: farmtable.v1.FarmTableService.GetReadyTasks:output_type -> farmtable.v1.GetReadyTasksResponse
-	74,  // 181: farmtable.v1.FarmTableService.GetBlockedTasks:output_type -> farmtable.v1.GetBlockedTasksResponse
-	77,  // 182: farmtable.v1.FarmTableService.GetDependencyTree:output_type -> farmtable.v1.GetDependencyTreeResponse
-	81,  // 183: farmtable.v1.FarmTableService.GetCriticalPath:output_type -> farmtable.v1.GetCriticalPathResponse
-	84,  // 184: farmtable.v1.FarmTableService.GetBottlenecks:output_type -> farmtable.v1.GetBottlenecksResponse
-	86,  // 185: farmtable.v1.FarmTableService.ListChanges:output_type -> farmtable.v1.ListChangesResponse
-	18,  // 186: farmtable.v1.FarmTableService.WhoAmI:output_type -> farmtable.v1.User
-	89,  // 187: farmtable.v1.FarmTableService.ListUsers:output_type -> farmtable.v1.ListUsersResponse
-	18,  // 188: farmtable.v1.FarmTableService.GetUser:output_type -> farmtable.v1.User
-	93,  // 189: farmtable.v1.FarmTableService.GetStatus:output_type -> farmtable.v1.GetStatusResponse
-	95,  // 190: farmtable.v1.FarmTableService.GetVersion:output_type -> farmtable.v1.GetVersionResponse
-	97,  // 191: farmtable.v1.FarmTableService.WatchTasks:output_type -> farmtable.v1.TaskEvent
-	159, // [159:192] is the sub-list for method output_type
-	126, // [126:159] is the sub-list for method input_type
-	126, // [126:126] is the sub-list for extension type_name
-	126, // [126:126] is the sub-list for extension extendee
-	0,   // [0:126] is the sub-list for field type_name
+	4,   // 0: farmtable.v1.TaskAvailability.reasons:type_name -> farmtable.v1.AvailabilityReason
+	7,   // 1: farmtable.v1.User.type:type_name -> farmtable.v1.UserType
+	8,   // 2: farmtable.v1.User.status:type_name -> farmtable.v1.IdentityStatus
+	0,   // 3: farmtable.v1.User.platform:type_name -> farmtable.v1.Platform
+	6,   // 4: farmtable.v1.Relationship.type:type_name -> farmtable.v1.RelationshipType
+	11,  // 5: farmtable.v1.CustomFieldValue.field_type:type_name -> farmtable.v1.CustomFieldType
+	101, // 6: farmtable.v1.CustomFieldValue.value:type_name -> google.protobuf.Value
+	11,  // 7: farmtable.v1.CustomFieldDefinition.field_type:type_name -> farmtable.v1.CustomFieldType
+	13,  // 8: farmtable.v1.PullRequest.status:type_name -> farmtable.v1.PullRequestStatus
+	26,  // 9: farmtable.v1.CodeContext.pull_requests:type_name -> farmtable.v1.PullRequest
+	12,  // 10: farmtable.v1.CodeContext.ci_status:type_name -> farmtable.v1.CIStatus
+	1,   // 11: farmtable.v1.StatusMapping.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 12: farmtable.v1.StatusMapping.stage:type_name -> farmtable.v1.TaskStage
+	1,   // 13: farmtable.v1.Task.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 14: farmtable.v1.Task.stage:type_name -> farmtable.v1.TaskStage
+	5,   // 15: farmtable.v1.Task.priority:type_name -> farmtable.v1.TaskPriority
+	21,  // 16: farmtable.v1.Task.assignees:type_name -> farmtable.v1.User
+	21,  // 17: farmtable.v1.Task.creator:type_name -> farmtable.v1.User
+	102, // 18: farmtable.v1.Task.start_date:type_name -> google.protobuf.Timestamp
+	102, // 19: farmtable.v1.Task.due_date:type_name -> google.protobuf.Timestamp
+	22,  // 20: farmtable.v1.Task.relationships:type_name -> farmtable.v1.Relationship
+	24,  // 21: farmtable.v1.Task.custom_fields:type_name -> farmtable.v1.CustomFieldValue
+	27,  // 22: farmtable.v1.Task.code_context:type_name -> farmtable.v1.CodeContext
+	103, // 23: farmtable.v1.Task.remote_data:type_name -> google.protobuf.Struct
+	0,   // 24: farmtable.v1.Task.platform:type_name -> farmtable.v1.Platform
+	102, // 25: farmtable.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	102, // 26: farmtable.v1.Task.updated_at:type_name -> google.protobuf.Timestamp
+	102, // 27: farmtable.v1.Task.closed_at:type_name -> google.protobuf.Timestamp
+	3,   // 28: farmtable.v1.Task.hold_reason:type_name -> farmtable.v1.TaskHoldReason
+	20,  // 29: farmtable.v1.Task.availability:type_name -> farmtable.v1.TaskAvailability
+	0,   // 30: farmtable.v1.Collection.platform:type_name -> farmtable.v1.Platform
+	28,  // 31: farmtable.v1.Collection.status_mappings:type_name -> farmtable.v1.StatusMapping
+	25,  // 32: farmtable.v1.Collection.custom_field_definitions:type_name -> farmtable.v1.CustomFieldDefinition
+	103, // 33: farmtable.v1.Collection.remote_data:type_name -> google.protobuf.Struct
+	102, // 34: farmtable.v1.Collection.created_at:type_name -> google.protobuf.Timestamp
+	102, // 35: farmtable.v1.Collection.updated_at:type_name -> google.protobuf.Timestamp
+	21,  // 36: farmtable.v1.Comment.author:type_name -> farmtable.v1.User
+	23,  // 37: farmtable.v1.Comment.attachments:type_name -> farmtable.v1.Attachment
+	102, // 38: farmtable.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
+	102, // 39: farmtable.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
+	101, // 40: farmtable.v1.Change.old_value:type_name -> google.protobuf.Value
+	101, // 41: farmtable.v1.Change.new_value:type_name -> google.protobuf.Value
+	21,  // 42: farmtable.v1.Change.changed_by:type_name -> farmtable.v1.User
+	102, // 43: farmtable.v1.Change.changed_at:type_name -> google.protobuf.Timestamp
+	0,   // 44: farmtable.v1.LinkedAccount.platform:type_name -> farmtable.v1.Platform
+	9,   // 45: farmtable.v1.LinkedAccount.auth_method:type_name -> farmtable.v1.AuthMethod
+	10,  // 46: farmtable.v1.LinkedAccount.status:type_name -> farmtable.v1.LinkedAccountStatus
+	102, // 47: farmtable.v1.LinkedAccount.created_at:type_name -> google.protobuf.Timestamp
+	102, // 48: farmtable.v1.LinkedAccount.updated_at:type_name -> google.protobuf.Timestamp
+	102, // 49: farmtable.v1.LinkedAccount.expires_at:type_name -> google.protobuf.Timestamp
+	14,  // 50: farmtable.v1.WebhookEvent.event_type:type_name -> farmtable.v1.EventType
+	32,  // 51: farmtable.v1.WebhookEvent.changes:type_name -> farmtable.v1.Change
+	21,  // 52: farmtable.v1.WebhookEvent.triggered_by:type_name -> farmtable.v1.User
+	0,   // 53: farmtable.v1.WebhookEvent.platform:type_name -> farmtable.v1.Platform
+	15,  // 54: farmtable.v1.WebhookEvent.source:type_name -> farmtable.v1.WebhookSource
+	102, // 55: farmtable.v1.WebhookEvent.timestamp:type_name -> google.protobuf.Timestamp
+	1,   // 56: farmtable.v1.ListTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 57: farmtable.v1.ListTasksRequest.stages:type_name -> farmtable.v1.TaskStage
+	5,   // 58: farmtable.v1.ListTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
+	16,  // 59: farmtable.v1.ListTasksRequest.sort_field:type_name -> farmtable.v1.SortField
+	17,  // 60: farmtable.v1.ListTasksRequest.sort_order:type_name -> farmtable.v1.SortOrder
+	29,  // 61: farmtable.v1.ListTasksResponse.items:type_name -> farmtable.v1.Task
+	29,  // 62: farmtable.v1.GetTaskResponse.task:type_name -> farmtable.v1.Task
+	31,  // 63: farmtable.v1.GetTaskResponse.comments:type_name -> farmtable.v1.Comment
+	32,  // 64: farmtable.v1.GetTaskResponse.changes:type_name -> farmtable.v1.Change
+	2,   // 65: farmtable.v1.CreateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
+	5,   // 66: farmtable.v1.CreateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
+	102, // 67: farmtable.v1.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	102, // 68: farmtable.v1.CreateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
+	3,   // 69: farmtable.v1.CreateTaskRequest.hold_reason:type_name -> farmtable.v1.TaskHoldReason
+	5,   // 70: farmtable.v1.NewTaskSpec.priority:type_name -> farmtable.v1.TaskPriority
+	40,  // 71: farmtable.v1.InsertTasksAfterRequest.steps:type_name -> farmtable.v1.NewTaskSpec
+	29,  // 72: farmtable.v1.InsertTasksAfterResponse.inserted_tasks:type_name -> farmtable.v1.Task
+	29,  // 73: farmtable.v1.InsertTasksAfterResponse.anchor_task:type_name -> farmtable.v1.Task
+	2,   // 74: farmtable.v1.UpdateTaskRequest.stage:type_name -> farmtable.v1.TaskStage
+	5,   // 75: farmtable.v1.UpdateTaskRequest.priority:type_name -> farmtable.v1.TaskPriority
+	102, // 76: farmtable.v1.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	102, // 77: farmtable.v1.UpdateTaskRequest.start_date:type_name -> google.protobuf.Timestamp
+	3,   // 78: farmtable.v1.UpdateTaskRequest.hold_reason:type_name -> farmtable.v1.TaskHoldReason
+	26,  // 79: farmtable.v1.UpdateTaskRequest.add_pull_requests:type_name -> farmtable.v1.PullRequest
+	12,  // 80: farmtable.v1.UpdateTaskRequest.ci_status:type_name -> farmtable.v1.CIStatus
+	2,   // 81: farmtable.v1.ClaimTaskRequest.stage:type_name -> farmtable.v1.TaskStage
+	29,  // 82: farmtable.v1.ClaimTaskResponse.task:type_name -> farmtable.v1.Task
+	102, // 83: farmtable.v1.ClaimTaskResponse.claimed_at:type_name -> google.protobuf.Timestamp
+	2,   // 84: farmtable.v1.CloseTaskRequest.stage:type_name -> farmtable.v1.TaskStage
+	17,  // 85: farmtable.v1.ListCommentsRequest.order:type_name -> farmtable.v1.SortOrder
+	31,  // 86: farmtable.v1.ListCommentsResponse.items:type_name -> farmtable.v1.Comment
+	0,   // 87: farmtable.v1.ListCollectionsRequest.platform:type_name -> farmtable.v1.Platform
+	30,  // 88: farmtable.v1.ListCollectionsResponse.items:type_name -> farmtable.v1.Collection
+	0,   // 89: farmtable.v1.CreateCollectionRequest.platform:type_name -> farmtable.v1.Platform
+	62,  // 90: farmtable.v1.ImportCollectionResponse.stats:type_name -> farmtable.v1.ImportStats
+	0,   // 91: farmtable.v1.CreateLinkedAccountRequest.platform:type_name -> farmtable.v1.Platform
+	9,   // 92: farmtable.v1.CreateLinkedAccountRequest.auth_method:type_name -> farmtable.v1.AuthMethod
+	102, // 93: farmtable.v1.CreateLinkedAccountRequest.expires_at:type_name -> google.protobuf.Timestamp
+	33,  // 94: farmtable.v1.CreateLinkedAccountResponse.linked_account:type_name -> farmtable.v1.LinkedAccount
+	33,  // 95: farmtable.v1.GetLinkedAccountResponse.linked_account:type_name -> farmtable.v1.LinkedAccount
+	0,   // 96: farmtable.v1.ListLinkedAccountsRequest.platform:type_name -> farmtable.v1.Platform
+	10,  // 97: farmtable.v1.ListLinkedAccountsRequest.status:type_name -> farmtable.v1.LinkedAccountStatus
+	33,  // 98: farmtable.v1.ListLinkedAccountsResponse.items:type_name -> farmtable.v1.LinkedAccount
+	5,   // 99: farmtable.v1.GetReadyTasksRequest.min_priority:type_name -> farmtable.v1.TaskPriority
+	29,  // 100: farmtable.v1.ReadyTask.task:type_name -> farmtable.v1.Task
+	72,  // 101: farmtable.v1.GetReadyTasksResponse.items:type_name -> farmtable.v1.ReadyTask
+	1,   // 102: farmtable.v1.BlockerInfo.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 103: farmtable.v1.BlockerInfo.stage:type_name -> farmtable.v1.TaskStage
+	29,  // 104: farmtable.v1.BlockedTask.task:type_name -> farmtable.v1.Task
+	75,  // 105: farmtable.v1.BlockedTask.blocked_by:type_name -> farmtable.v1.BlockerInfo
+	76,  // 106: farmtable.v1.GetBlockedTasksResponse.items:type_name -> farmtable.v1.BlockedTask
+	18,  // 107: farmtable.v1.GetDependencyTreeRequest.direction:type_name -> farmtable.v1.DependencyDirection
+	29,  // 108: farmtable.v1.DependencyNode.task:type_name -> farmtable.v1.Task
+	79,  // 109: farmtable.v1.DependencyNode.blocks:type_name -> farmtable.v1.DependencyNode
+	79,  // 110: farmtable.v1.DependencyNode.blocked_by:type_name -> farmtable.v1.DependencyNode
+	79,  // 111: farmtable.v1.GetDependencyTreeResponse.root:type_name -> farmtable.v1.DependencyNode
+	2,   // 112: farmtable.v1.CriticalPathNode.stage:type_name -> farmtable.v1.TaskStage
+	82,  // 113: farmtable.v1.GetCriticalPathResponse.path:type_name -> farmtable.v1.CriticalPathNode
+	83,  // 114: farmtable.v1.GetCriticalPathResponse.bottleneck:type_name -> farmtable.v1.Bottleneck
+	2,   // 115: farmtable.v1.BottleneckTask.stage:type_name -> farmtable.v1.TaskStage
+	86,  // 116: farmtable.v1.GetBottlenecksResponse.items:type_name -> farmtable.v1.BottleneckTask
+	32,  // 117: farmtable.v1.ListChangesResponse.items:type_name -> farmtable.v1.Change
+	7,   // 118: farmtable.v1.ListUsersRequest.type:type_name -> farmtable.v1.UserType
+	21,  // 119: farmtable.v1.ListUsersResponse.items:type_name -> farmtable.v1.User
+	0,   // 120: farmtable.v1.GetStatusRequest.platform:type_name -> farmtable.v1.Platform
+	0,   // 121: farmtable.v1.PlatformConnectionStatus.platform:type_name -> farmtable.v1.Platform
+	21,  // 122: farmtable.v1.GetStatusResponse.authenticated_as:type_name -> farmtable.v1.User
+	95,  // 123: farmtable.v1.GetStatusResponse.platforms:type_name -> farmtable.v1.PlatformConnectionStatus
+	1,   // 124: farmtable.v1.WatchTasksRequest.phase:type_name -> farmtable.v1.TaskPhase
+	2,   // 125: farmtable.v1.WatchTasksRequest.stages:type_name -> farmtable.v1.TaskStage
+	5,   // 126: farmtable.v1.WatchTasksRequest.priority:type_name -> farmtable.v1.TaskPriority
+	19,  // 127: farmtable.v1.TaskEvent.event_type:type_name -> farmtable.v1.TaskEventType
+	29,  // 128: farmtable.v1.TaskEvent.task:type_name -> farmtable.v1.Task
+	32,  // 129: farmtable.v1.TaskEvent.changes:type_name -> farmtable.v1.Change
+	102, // 130: farmtable.v1.TaskEvent.timestamp:type_name -> google.protobuf.Timestamp
+	35,  // 131: farmtable.v1.FarmTableService.ListTasks:input_type -> farmtable.v1.ListTasksRequest
+	37,  // 132: farmtable.v1.FarmTableService.GetTask:input_type -> farmtable.v1.GetTaskRequest
+	39,  // 133: farmtable.v1.FarmTableService.CreateTask:input_type -> farmtable.v1.CreateTaskRequest
+	41,  // 134: farmtable.v1.FarmTableService.InsertTasksAfter:input_type -> farmtable.v1.InsertTasksAfterRequest
+	43,  // 135: farmtable.v1.FarmTableService.UpdateTask:input_type -> farmtable.v1.UpdateTaskRequest
+	44,  // 136: farmtable.v1.FarmTableService.ClaimTask:input_type -> farmtable.v1.ClaimTaskRequest
+	46,  // 137: farmtable.v1.FarmTableService.CloseTask:input_type -> farmtable.v1.CloseTaskRequest
+	47,  // 138: farmtable.v1.FarmTableService.DeleteTask:input_type -> farmtable.v1.DeleteTaskRequest
+	49,  // 139: farmtable.v1.FarmTableService.AddComment:input_type -> farmtable.v1.AddCommentRequest
+	50,  // 140: farmtable.v1.FarmTableService.ListComments:input_type -> farmtable.v1.ListCommentsRequest
+	52,  // 141: farmtable.v1.FarmTableService.GetComment:input_type -> farmtable.v1.GetCommentRequest
+	53,  // 142: farmtable.v1.FarmTableService.ListCollections:input_type -> farmtable.v1.ListCollectionsRequest
+	55,  // 143: farmtable.v1.FarmTableService.GetCollection:input_type -> farmtable.v1.GetCollectionRequest
+	56,  // 144: farmtable.v1.FarmTableService.CreateCollection:input_type -> farmtable.v1.CreateCollectionRequest
+	57,  // 145: farmtable.v1.FarmTableService.UpdateCollection:input_type -> farmtable.v1.UpdateCollectionRequest
+	58,  // 146: farmtable.v1.FarmTableService.ExportCollection:input_type -> farmtable.v1.ExportCollectionRequest
+	60,  // 147: farmtable.v1.FarmTableService.ImportCollection:input_type -> farmtable.v1.ImportCollectionRequest
+	63,  // 148: farmtable.v1.FarmTableService.CreateLinkedAccount:input_type -> farmtable.v1.CreateLinkedAccountRequest
+	65,  // 149: farmtable.v1.FarmTableService.GetLinkedAccount:input_type -> farmtable.v1.GetLinkedAccountRequest
+	67,  // 150: farmtable.v1.FarmTableService.DeleteLinkedAccount:input_type -> farmtable.v1.DeleteLinkedAccountRequest
+	69,  // 151: farmtable.v1.FarmTableService.ListLinkedAccounts:input_type -> farmtable.v1.ListLinkedAccountsRequest
+	71,  // 152: farmtable.v1.FarmTableService.GetReadyTasks:input_type -> farmtable.v1.GetReadyTasksRequest
+	74,  // 153: farmtable.v1.FarmTableService.GetBlockedTasks:input_type -> farmtable.v1.GetBlockedTasksRequest
+	78,  // 154: farmtable.v1.FarmTableService.GetDependencyTree:input_type -> farmtable.v1.GetDependencyTreeRequest
+	81,  // 155: farmtable.v1.FarmTableService.GetCriticalPath:input_type -> farmtable.v1.GetCriticalPathRequest
+	85,  // 156: farmtable.v1.FarmTableService.GetBottlenecks:input_type -> farmtable.v1.GetBottlenecksRequest
+	88,  // 157: farmtable.v1.FarmTableService.ListChanges:input_type -> farmtable.v1.ListChangesRequest
+	90,  // 158: farmtable.v1.FarmTableService.WhoAmI:input_type -> farmtable.v1.WhoAmIRequest
+	91,  // 159: farmtable.v1.FarmTableService.ListUsers:input_type -> farmtable.v1.ListUsersRequest
+	93,  // 160: farmtable.v1.FarmTableService.GetUser:input_type -> farmtable.v1.GetUserRequest
+	94,  // 161: farmtable.v1.FarmTableService.GetStatus:input_type -> farmtable.v1.GetStatusRequest
+	97,  // 162: farmtable.v1.FarmTableService.GetVersion:input_type -> farmtable.v1.GetVersionRequest
+	99,  // 163: farmtable.v1.FarmTableService.WatchTasks:input_type -> farmtable.v1.WatchTasksRequest
+	36,  // 164: farmtable.v1.FarmTableService.ListTasks:output_type -> farmtable.v1.ListTasksResponse
+	38,  // 165: farmtable.v1.FarmTableService.GetTask:output_type -> farmtable.v1.GetTaskResponse
+	29,  // 166: farmtable.v1.FarmTableService.CreateTask:output_type -> farmtable.v1.Task
+	42,  // 167: farmtable.v1.FarmTableService.InsertTasksAfter:output_type -> farmtable.v1.InsertTasksAfterResponse
+	29,  // 168: farmtable.v1.FarmTableService.UpdateTask:output_type -> farmtable.v1.Task
+	45,  // 169: farmtable.v1.FarmTableService.ClaimTask:output_type -> farmtable.v1.ClaimTaskResponse
+	29,  // 170: farmtable.v1.FarmTableService.CloseTask:output_type -> farmtable.v1.Task
+	48,  // 171: farmtable.v1.FarmTableService.DeleteTask:output_type -> farmtable.v1.DeleteTaskResponse
+	31,  // 172: farmtable.v1.FarmTableService.AddComment:output_type -> farmtable.v1.Comment
+	51,  // 173: farmtable.v1.FarmTableService.ListComments:output_type -> farmtable.v1.ListCommentsResponse
+	31,  // 174: farmtable.v1.FarmTableService.GetComment:output_type -> farmtable.v1.Comment
+	54,  // 175: farmtable.v1.FarmTableService.ListCollections:output_type -> farmtable.v1.ListCollectionsResponse
+	30,  // 176: farmtable.v1.FarmTableService.GetCollection:output_type -> farmtable.v1.Collection
+	30,  // 177: farmtable.v1.FarmTableService.CreateCollection:output_type -> farmtable.v1.Collection
+	30,  // 178: farmtable.v1.FarmTableService.UpdateCollection:output_type -> farmtable.v1.Collection
+	59,  // 179: farmtable.v1.FarmTableService.ExportCollection:output_type -> farmtable.v1.ExportCollectionResponse
+	61,  // 180: farmtable.v1.FarmTableService.ImportCollection:output_type -> farmtable.v1.ImportCollectionResponse
+	64,  // 181: farmtable.v1.FarmTableService.CreateLinkedAccount:output_type -> farmtable.v1.CreateLinkedAccountResponse
+	66,  // 182: farmtable.v1.FarmTableService.GetLinkedAccount:output_type -> farmtable.v1.GetLinkedAccountResponse
+	68,  // 183: farmtable.v1.FarmTableService.DeleteLinkedAccount:output_type -> farmtable.v1.DeleteLinkedAccountResponse
+	70,  // 184: farmtable.v1.FarmTableService.ListLinkedAccounts:output_type -> farmtable.v1.ListLinkedAccountsResponse
+	73,  // 185: farmtable.v1.FarmTableService.GetReadyTasks:output_type -> farmtable.v1.GetReadyTasksResponse
+	77,  // 186: farmtable.v1.FarmTableService.GetBlockedTasks:output_type -> farmtable.v1.GetBlockedTasksResponse
+	80,  // 187: farmtable.v1.FarmTableService.GetDependencyTree:output_type -> farmtable.v1.GetDependencyTreeResponse
+	84,  // 188: farmtable.v1.FarmTableService.GetCriticalPath:output_type -> farmtable.v1.GetCriticalPathResponse
+	87,  // 189: farmtable.v1.FarmTableService.GetBottlenecks:output_type -> farmtable.v1.GetBottlenecksResponse
+	89,  // 190: farmtable.v1.FarmTableService.ListChanges:output_type -> farmtable.v1.ListChangesResponse
+	21,  // 191: farmtable.v1.FarmTableService.WhoAmI:output_type -> farmtable.v1.User
+	92,  // 192: farmtable.v1.FarmTableService.ListUsers:output_type -> farmtable.v1.ListUsersResponse
+	21,  // 193: farmtable.v1.FarmTableService.GetUser:output_type -> farmtable.v1.User
+	96,  // 194: farmtable.v1.FarmTableService.GetStatus:output_type -> farmtable.v1.GetStatusResponse
+	98,  // 195: farmtable.v1.FarmTableService.GetVersion:output_type -> farmtable.v1.GetVersionResponse
+	100, // 196: farmtable.v1.FarmTableService.WatchTasks:output_type -> farmtable.v1.TaskEvent
+	164, // [164:197] is the sub-list for method output_type
+	131, // [131:164] is the sub-list for method input_type
+	131, // [131:131] is the sub-list for extension type_name
+	131, // [131:131] is the sub-list for extension extendee
+	0,   // [0:131] is the sub-list for field type_name
 }
 
 func init() { file_farmtable_proto_init() }
@@ -8139,43 +8387,43 @@ func file_farmtable_proto_init() {
 	if File_farmtable_proto != nil {
 		return
 	}
-	file_farmtable_proto_msgTypes[0].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[2].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[6].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[8].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[1].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[3].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[7].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[9].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[10].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[11].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[12].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[14].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[16].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[18].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[13].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[15].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[17].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[19].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[20].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[22].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[21].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[23].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[25].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[24].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[26].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[32].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[35].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[27].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[33].OneofWrappers = []any{}
 	file_farmtable_proto_msgTypes[36].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[39].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[42].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[48].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[50].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[53].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[60].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[67].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[70].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[73].OneofWrappers = []any{}
-	file_farmtable_proto_msgTypes[78].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[37].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[40].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[43].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[49].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[51].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[54].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[61].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[68].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[71].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[74].OneofWrappers = []any{}
+	file_farmtable_proto_msgTypes[79].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_farmtable_proto_rawDesc), len(file_farmtable_proto_rawDesc)),
-			NumEnums:      18,
-			NumMessages:   80,
+			NumEnums:      20,
+			NumMessages:   81,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

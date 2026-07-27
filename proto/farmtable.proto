@@ -359,6 +359,12 @@ message Task {
   // string) on the built-in backend; platform-derived (ETag, updatedAt, or
   // computed hash) on external platforms. See .design/consistency-model.md.
   string version = 27;
+
+  optional TaskHoldReason hold_reason = 28 [(buf.validate.field).enum.defined_only = true];
+
+  optional int64 rank = 29;
+
+  TaskAvailability availability = 30;
 }
 
 // A grouping of tasks representing a project, board, or repository.
@@ -543,6 +549,8 @@ message CreateTaskRequest {
   optional string parent_task_id = 10 [(buf.validate.field).string.uuid = true];
   google.protobuf.Timestamp due_date = 11;
   google.protobuf.Timestamp start_date = 12;
+  optional TaskHoldReason hold_reason = 18 [(buf.validate.field).enum.defined_only = true];
+  optional int64 rank = 19;
   // Task IDs this task blocks.
   repeated string blocks_task_ids = 13;
   // Task IDs blocking this task.
@@ -594,6 +602,10 @@ message UpdateTaskRequest {
   bool clear_due_date = 13;
   google.protobuf.Timestamp start_date = 14;
   bool clear_start_date = 15;
+  optional TaskHoldReason hold_reason = 18 [(buf.validate.field).enum.defined_only = true];
+  bool clear_hold_reason = 19;
+  optional int64 rank = 25;
+  bool clear_rank = 26;
 
   // Hierarchy. Use clear_parent to remove.
   optional string parent_task_id = 16 [(buf.validate.field).string.uuid = true];
@@ -814,13 +826,13 @@ message ListLinkedAccountsResponse {
 // Graph Query RPC Messages
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// Tasks ready to work on: OPEN phase, dependencies resolved, optionally filtered.
+// Available tasks: accepted work with dependencies resolved, optionally filtered.
 message GetReadyTasksRequest {
   optional string collection_id = 1 [(buf.validate.field).string.uuid = true];
   optional string assignee = 2;
   // Minimum priority threshold (e.g., HIGH returns URGENT and HIGH).
   optional TaskPriority min_priority = 3 [(buf.validate.field).enum.defined_only = true];
-  // Also include triage and backlog tasks with no unresolved blockers.
+  // Also include unblocked open tasks that are not currently claimable.
   bool include_unblocked_open = 4;
   int32 page_size = 5 [(buf.validate.field).int32 = {gte: 1, lte: 200}];
   string page_token = 6;
@@ -1087,9 +1099,9 @@ service FarmTableService {
 
   // ── Graph Queries ──
 
-  // List tasks ready to work on: OPEN phase, stage ready, and all blocking
-  // dependencies resolved (CLOSED phase). The primary "what should I work
-  // on next?" query for agents.
+  // List available tasks: accepted work with all blocking dependencies
+  // resolved (CLOSED phase). The primary "what should I work on next?" query
+  // for agents.
   rpc GetReadyTasks(GetReadyTasksRequest) returns (GetReadyTasksResponse);
   rpc GetBlockedTasks(GetBlockedTasksRequest) returns (GetBlockedTasksResponse);
   rpc GetDependencyTree(GetDependencyTreeRequest) returns (GetDependencyTreeResponse);

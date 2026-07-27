@@ -4,13 +4,11 @@
 :root {
   /* Stage colors */
   --ft-stage-triage: #6b7280;
-  --ft-stage-backlog: #9ca3af;
-  --ft-stage-ready: #3b82f6;
+  --ft-stage-accepted: #3b82f6;
   --ft-stage-working: #f59e0b;
   --ft-stage-in-review: #8b5cf6;
   --ft-stage-in-qa: #06b6d4;
   --ft-stage-deploying: #ec4899;
-  --ft-stage-blocked: #ef4444;
   --ft-stage-completed: #22c55e;
   --ft-stage-cancelled: #6b7280;
 

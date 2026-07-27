@@ -23,23 +23,37 @@ export enum TaskStage {
   UNSPECIFIED = 0,
   // OPEN
   TRIAGE = 1,
-  BACKLOG = 2,
-  READY = 3,
+  ACCEPTED = 2,
   // IN_PROGRESS
   WORKING = 4,
   IN_REVIEW = 5,
   IN_QA = 6,
   DEPLOYING = 7,
-  // ON_HOLD
-  BLOCKED = 8,
-  WAITING_FOR_INPUT = 9,
-  DEFERRED = 10,
-  SCHEDULED = 11,
   // CLOSED
   COMPLETED = 12,
   WONT_FIX = 13,
   DUPLICATE = 14,
   CANCELLED = 15,
+}
+
+export enum TaskHoldReason {
+  UNSPECIFIED = 0,
+  WAITING_FOR_INPUT = 1,
+  DEFERRED = 2,
+}
+
+export enum AvailabilityReason {
+  UNSPECIFIED = 0,
+  TRIAGE = 1,
+  TERMINAL = 2,
+  HELD = 3,
+  BLOCKED_BY_DEPENDENCY = 4,
+  FUTURE_START_DATE = 5,
+}
+
+export interface TaskAvailability {
+  available: boolean;
+  reasons: AvailabilityReason[];
 }
 
 export enum TaskPriority {
@@ -218,9 +232,11 @@ export interface Task {
   acceptanceCriteria?: string;
   phase: TaskPhase;
   stage: TaskStage;
+  holdReason?: TaskHoldReason;
   nativeStatus?: string;
   type?: string;
   priority?: TaskPriority;
+  rank?: number;
   assignees: User[];
   creator?: User;
   startDate?: string;
@@ -239,6 +255,7 @@ export interface Task {
   updatedAt?: string;
   closedAt?: string;
   version: string;
+  availability?: TaskAvailability;
 }
 
 export interface Collection {
