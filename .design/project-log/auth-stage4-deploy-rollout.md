@@ -22,7 +22,8 @@ Against a PostgreSQL/server deployment they fail *silently*, not loudly:
 
 For PostgreSQL deployments, use the direct SQL procedure in
 **"PostgreSQL Deployments"** below for **all** steps — inventory, scope
-updates, and user/token creation are all covered with SQL equivalents.
+updates, user/token creation, and verification are all covered with SQL
+equivalents.
 
 **Split-brain hazard:** `ft user create` writes to local SQLite, but `ft user
 get` / `ft user list` / `ft user whoami` read from the server via gRPC. An
@@ -88,18 +89,21 @@ ft token update <token-id> --set-scopes task:read,task:write,task:claim,task:clo
 # Create a reviewer-typed user (if not already present)
 ft user create "task-reviewer" --type reviewer --email reviewer@example.com
 
-# Create a token with lifecycle scopes
-ft token create <reviewer-user-id> --name "lifecycle-reviewer"
+# Create a token with lifecycle scopes. Pass --scope EXPLICITLY: this overrides
+# user-type inference (internal/cli/token.go:147) and is validated against the
+# known scope list, so neither a --type typo nor a scope typo can silently
+# mint a wildcard token.
+ft token create <reviewer-user-id> --name "lifecycle-reviewer" \
+  --scope task:read --scope task:write --scope task:claim \
+  --scope task:accept --scope task:close --scope collection:read
 
-# MUST verify: an unrecognised --type (e.g. a "reviewr" typo) silently mints a
-# WILDCARD token instead of a scoped reviewer token.
+# Verify — this is the state enforcement actually reads.
 ft token list --output json | jq '.items[]? | select(.name == "lifecycle-reviewer") | .scopes'
 # Expected exactly:
 # ["task:read","task:write","task:claim","task:accept","task:close","collection:read"]
-# If this prints null or is absent, the user type was not recognised — revoke
-# the token with `ft token revoke <id>`, then create a new user with the exact
-# string "reviewer" and issue the token against that user. There is no
-# `ft user delete`; the mistyped user row is harmless once it holds no tokens.
+# If this prints null or is absent, revoke the token with `ft token revoke <id>`
+# and re-create. There is no `ft user delete`; mistyped user rows are harmless
+# once they hold no tokens.
 ```
 
 ### 4. Verify after deploy
@@ -219,5 +223,4 @@ WHERE u.type = 'agent' OR t.name = '<agent-token>';
 > database, but have not been executed against a live PostgreSQL instance.
 > Validate against your Postgres deployment before relying on it in production.
 
-A server-mode RPC for token/user CLI management is tracked as a follow-up
-(#169, #170).
+A server-mode RPC for token/user CLI management is tracked as #169.
