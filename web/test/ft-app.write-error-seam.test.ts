@@ -43,13 +43,21 @@ vi.mock('../src/gen/grpc-client.js', () => ({
 }));
 
 import '../src/components/ft-app.js';
-import { TaskStage } from '../src/gen/types.js';
+import { TaskPriority, TaskStage, type Task } from '../src/gen/types.js';
+import { PRIORITY_LABEL } from '../src/util/priority-utils.js';
 import { DROP_REFUSAL, STAGE_LABEL } from '../src/util/task-state-utils.js';
-import { mount, queryDeep, settle } from './helpers/dom.js';
+import { dropTaskOn, flush, mount, queryAllDeep, queryDeep, settle } from './helpers/dom.js';
+import { task } from './helpers/fixtures.js';
 
 interface StubAlert extends HTMLElement {
   open?: boolean;
   variant?: string;
+}
+
+interface AppStore {
+  snapshotComplete(): void;
+  upsert(task: Task): boolean;
+  isLoading: boolean;
 }
 
 /** Every toast currently shown, in DOM order. */
@@ -70,14 +78,14 @@ function toastText(): string {
  * mocked stream delivers none, so the board would otherwise render a spinner
  * forever and no child view would exist to dispatch from.
  */
-async function mountAppShowing(view: 'kanban' | 'ready-queue'): Promise<Element> {
+async function mountAppShowing(view: 'kanban' | 'ready-queue', seed: Task[] = []): Promise<Element> {
   window.history.replaceState({}, '', `/?collection=${COLLECTION_ID}&view=${view}`);
   const app = await mount<HTMLElement>('ft-app');
 
   const tag = `ft-${view}-view`;
   for (let attempt = 0; attempt < 20; attempt++) {
-    const store = (app as unknown as { taskStore?: { snapshotComplete(): void; isLoading: boolean } })
-      .taskStore;
+    const store = (app as unknown as { taskStore?: AppStore }).taskStore;
+    for (const seeded of seed) store?.upsert(seeded);
     if (store?.isLoading) store.snapshotComplete();
     await settle(app);
     const child = queryDeep(app, tag);
@@ -158,6 +166,80 @@ describe('ft-app — a view refusal reaches the user as a toast', () => {
     view.dispatchEvent(new CustomEvent('task-select', { bubbles: true, composed: true, detail: {} }));
 
     expect(toasts()).toHaveLength(0);
+  });
+});
+
+/**
+ * FINDING H-2. Every test above dispatches the `write-error` event by hand.
+ * That pins `ft-app`'s half of the seam, but it leaves the view's half —
+ * `reportRefusal()`, the thing that decides the event's flags — asserted
+ * nowhere: mutating `composed: true` to `false` inside it left the suite
+ * green. A refusal has to be asserted where the user meets it, which means a
+ * real gesture on a real row and a toast on the screen at the end of it.
+ */
+describe('ft-app — a real refused gesture reaches the user as a toast', () => {
+  const AVAILABLE = { available: true, reasons: [] };
+
+  /** The rendered row for a task, found the way a user finds it: by its name. */
+  function queueRow(view: Element, name: string): Element {
+    const rows = queryAllDeep(view, '.queue-row');
+    const row = rows.find((candidate) => candidate.getAttribute('aria-label') === `Task: ${name}`);
+    if (!row) {
+      const rendered = rows.map((candidate) => candidate.getAttribute('aria-label')).join(', ');
+      throw new Error(`no queue row rendered for "${name}"; rendered: ${rendered}`);
+    }
+    return row;
+  }
+
+  it('turns a real cross-band queue drop into a visible toast', async () => {
+    const view = await mountAppShowing('ready-queue', [
+      task({ id: 'urgent', name: 'Fix the leak', priority: TaskPriority.URGENT, rank: 1024, availability: AVAILABLE }),
+      task({ id: 'high', name: 'Repaint', priority: TaskPriority.HIGH, rank: 1024, availability: AVAILABLE }),
+    ]);
+
+    // A genuine gesture: no `write-error` is synthesised anywhere in this test.
+    dropTaskOn(queueRow(view, 'Repaint'), 'urgent');
+    await flush();
+    await settle(view);
+
+    expect(toastText()).toContain(
+      DROP_REFUSAL.crossBandToast('Fix the leak', PRIORITY_LABEL[TaskPriority.HIGH]),
+    );
+    expect(toasts()[0].open, 'the refusal was appended but never shown').toBe(true);
+  });
+
+  /**
+   * The `composed` half, which the toast test above cannot reach: `ft-app`
+   * binds `@write-error` on the child element itself, so the handler fires in
+   * the at-target phase and a non-composed event still reaches it. `composed`
+   * only becomes load-bearing at a shadow boundary the event has to cross —
+   * which is exactly what a listener outside the app is. The flag is part of
+   * the event's published contract (`ft-kanban-view` pins its twin), so it is
+   * asserted here by observing the refusal from `document`, where anything
+   * short of `composed: true` never arrives.
+   */
+  it('lets the refusal escape the shadow boundary to a listener outside the app', async () => {
+    const view = await mountAppShowing('ready-queue', [
+      task({ id: 'urgent', name: 'Fix the leak', priority: TaskPriority.URGENT, rank: 1024, availability: AVAILABLE }),
+      task({ id: 'high', name: 'Repaint', priority: TaskPriority.HIGH, rank: 1024, availability: AVAILABLE }),
+    ]);
+
+    const escaped: CustomEvent[] = [];
+    const onWriteError = (e: Event) => escaped.push(e as CustomEvent);
+    document.addEventListener('write-error', onWriteError);
+
+    try {
+      dropTaskOn(queueRow(view, 'Repaint'), 'urgent');
+      await flush();
+      await settle(view);
+    } finally {
+      document.removeEventListener('write-error', onWriteError);
+    }
+
+    expect(escaped, 'the refusal never left the app; is it still composed?').toHaveLength(1);
+    expect(escaped[0].composed).toBe(true);
+    expect(escaped[0].bubbles).toBe(true);
+    expect(escaped[0].detail.reason).toBe('rank-change-refused');
   });
 });
 
