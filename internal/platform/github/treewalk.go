@@ -3,6 +3,7 @@ package github
 import (
 	"strings"
 
+	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
@@ -101,9 +102,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 		}
 
 		if includeUnblocked && !hasOpenChildren && node.Stage != task.StageAccepted {
-			isTerminal := node.Stage == task.StageCompleted || node.Stage == task.StageWontFix ||
-				node.Stage == task.StageDuplicate || node.Stage == task.StageCancelled
-			if !isTerminal && len(node.Children) > 0 {
+			if !store.IsTerminalStage(node.Stage) && len(node.Children) > 0 {
 				results = append(results, readyResult{
 					Node:   node,
 					Reason: "all sub-issues closed (candidate for ready)",
