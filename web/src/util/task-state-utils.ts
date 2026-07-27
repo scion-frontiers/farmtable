@@ -137,6 +137,31 @@ export const DROP_REFUSAL = {
   reorderBusy: 'Still saving the last reorder — wait for it to finish, then try again.',
 } as const;
 
+/**
+ * A write that FAILED, as distinct from one this UI REFUSED.
+ *
+ * Deliberately not part of `DROP_REFUSAL`. A refusal is this UI declining a
+ * gesture before anything is sent; a failure is the server having been asked
+ * and something having gone wrong afterwards. Folding these words into
+ * `DROP_REFUSAL` would widen a constant whose precision is the reason it
+ * exists, and would make "refusal" mean two different things at the same seam.
+ *
+ * They live here for the same reason the refusals do: this is vocabulary a user
+ * reads, and the anchor test can only pin what it can import.
+ *
+ * NOTE(i18n): Hardcoded English; extract if i18n is added.
+ */
+export const WRITE_FAILURE = {
+  /**
+   * A queue reorder writes ranks one at a time, so a later write can fail after
+   * earlier ones have already been persisted. `ft-ready-queue-view` rolls the
+   * whole band back locally, which leaves the local store disagreeing with the
+   * server until the next snapshot — hence "reload", which is the actionable
+   * half and the reason `ft-app` prefers this message over the raw error.
+   */
+  partialRenumber: 'Reordering the queue failed part way through — reload to see the saved order.',
+} as const;
+
 export function isUnsuccessfulTerminalStage(stage: TaskStage): boolean {
   return stage === TaskStage.WONT_FIX || stage === TaskStage.CANCELLED || stage === TaskStage.DUPLICATE;
 }
