@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/ready-queue/ft-ready-queue-view.js';
 import { TaskPriority } from '../src/gen/types.js';
 import { ALL_ENABLED, GITHUB_CAPABILITIES } from '../src/capabilities.js';
+import { PRIORITY_LABEL } from '../src/util/priority-utils.js';
+import { DROP_REFUSAL } from '../src/util/task-state-utils.js';
 import { dragOverOn, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { RecordingClient, storeWith, task } from './helpers/fixtures.js';
@@ -182,7 +184,13 @@ describe('ft-ready-queue-view — refusals are visible, never silent', () => {
     expect(client.updateTaskCalls).toHaveLength(0);
     expect(feedback.sawFeedback(), feedback.describe()).toBe(true);
     expect(feedback.reasons()).toContain('rank-change-refused');
-    expect(feedback.writeErrors[0].detail.message).toMatch(/priority/i);
+    // Exact equality against the production constant, not a loose /priority/i
+    // match: the queue half of the refusal seam now binds to `DROP_REFUSAL`
+    // exactly as the board half does, so the toast and the vocabulary cannot
+    // drift. The wording itself is anchored once, in the vocabulary contract.
+    expect(feedback.writeErrors[0].detail.message).toBe(
+      DROP_REFUSAL.crossBandToast('lo', PRIORITY_LABEL[TaskPriority.HIGH]),
+    );
   });
 
   it('refuses reordering on a read-only queue', async () => {
@@ -194,7 +202,7 @@ describe('ft-ready-queue-view — refusals are visible, never silent', () => {
 
     expect(client.updateTaskCalls).toHaveLength(0);
     expect(feedback.sawFeedback(), feedback.describe()).toBe(true);
-    expect(feedback.writeErrors[0].detail.message).toMatch(/read-only/i);
+    expect(feedback.writeErrors[0].detail.message).toBe(DROP_REFUSAL.readOnlyQueue);
   });
 
   it('refuses reordering when the collection cannot reorder', async () => {
@@ -207,6 +215,7 @@ describe('ft-ready-queue-view — refusals are visible, never silent', () => {
     expect(client.updateTaskCalls).toHaveLength(0);
     expect(feedback.sawFeedback(), feedback.describe()).toBe(true);
     expect(feedback.reasons()).toContain('rank-change-refused');
+    expect(feedback.writeErrors[0].detail.message).toBe(DROP_REFUSAL.reorderUnsupported);
   });
 });
 
