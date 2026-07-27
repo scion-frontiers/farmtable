@@ -4,12 +4,12 @@ import {
   Platform,
   RelationshipType,
   TaskHoldReason,
-  TaskPhase,
   TaskPriority,
   TaskStage,
   type Task,
 } from '../gen/types.js';
 import { matchesTaskFilters } from '../components/task-filters.js';
+import { phaseForStage } from '../gen/service.js';
 import {
   attentionBlockers,
   compareAcceptedQueueOrder,
@@ -31,12 +31,18 @@ function assertArray(actual: string[], expected: string[], message: string): voi
 
 const now = '2026-07-27T00:00:00.000Z';
 
+/**
+ * `phase` is DERIVED via the real `phaseForStage`, never hand-written — this
+ * was a second, independent local model of the stage→phase projection sitting
+ * alongside the correct one in `test/helpers/fixtures.ts`. Change the
+ * projection and one of the two would have kept asserting the old contract.
+ */
 function task(overrides: Partial<Task> = {}): Task {
+  const stage = overrides.stage ?? TaskStage.ACCEPTED;
   return {
     id: 'task-1',
     name: 'Task',
-    phase: TaskPhase.OPEN,
-    stage: TaskStage.ACCEPTED,
+    phase: phaseForStage(stage),
     assignees: [],
     collectionId: 'collection-1',
     relationships: [],
@@ -46,6 +52,7 @@ function task(overrides: Partial<Task> = {}): Task {
     createdAt: now,
     version: '1',
     ...overrides,
+    stage,
   };
 }
 
@@ -54,6 +61,9 @@ function storeWith(...tasks: Task[]): TaskStore {
   for (const item of tasks) {
     store.upsert(item);
   }
+  // Matches `test/helpers/fixtures.ts`; without it the store is not in the
+  // state production reads from.
+  store.snapshotComplete();
   return store;
 }
 
@@ -103,7 +113,7 @@ function run(): void {
 
   assertEqual(
     matchesTaskFilters(
-      task({ stage: TaskStage.COMPLETED, phase: TaskPhase.CLOSED }),
+      task({ stage: TaskStage.COMPLETED }),
       'active',
       null,
       null,
@@ -121,7 +131,7 @@ function run(): void {
   });
   const blockers = attentionBlockers(
     blockedTask,
-    storeWith(blockedTask, task({ id: 'cancelled-blocker', stage: TaskStage.CANCELLED, phase: TaskPhase.CLOSED })),
+    storeWith(blockedTask, task({ id: 'cancelled-blocker', stage: TaskStage.CANCELLED })),
   );
 
   assertArray(

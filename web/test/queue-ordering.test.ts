@@ -85,10 +85,71 @@ describe('ft-ready-queue-view — rendered ordering', () => {
     expect(rendered).toEqual(EXPECTED_ORDER);
   });
 
+  /**
+   * L-4. `MIXED.length` was the wrong yardstick: the header count and the rows
+   * are both derived from the same array, so the assertion structurally could
+   * not detect a header that disagreed with what is on screen — and it silently
+   * assumed every fixture task is queue-eligible, which is not a property of
+   * `MIXED`. The count is now checked against the ROWS ACTUALLY RENDERED, plus
+   * a literal so a change in either direction has to be deliberate.
+   */
   it('counts the rendered rows in its header', async () => {
     const view = await mount<HTMLElement>('ft-ready-queue-view', { store: storeWith(...MIXED) });
 
+    const rows = queryAllDeep<HTMLElement>(view, '.queue-row');
     const header = queryAllDeep<HTMLElement>(view, '.queue-header')[0];
-    expect((header.textContent ?? '').trim()).toBe(`Available Queue (${MIXED.length})`);
+
+    expect(rows).toHaveLength(EXPECTED_ORDER.length);
+    expect((header.textContent ?? '').trim()).toBe(`Available Queue (${rows.length})`);
+  });
+
+  /**
+   * The discriminating half of L-4. Every task in `MIXED` is queue-eligible, so
+   * "count the rendered rows", "count the fixture" and "count the whole store"
+   * all give the same number against that fixture — a header wired to the store
+   * would pass the test above. This store holds tasks the queue filters out, so
+   * the three counts differ and only the right one passes.
+   */
+  it('counts only the rows it renders, not every task in the store', async () => {
+    const hidden = [
+      task({ id: 'z-unavailable', name: 'Z', availability: { available: false, reasons: [] } }),
+      // No `availability` at all, so the conservative local fallback applies and
+      // a non-accepted stage keeps it out of the queue.
+      task({ id: 'y-triage', name: 'Y', stage: TaskStage.TRIAGE }),
+    ];
+    const view = await mount<HTMLElement>('ft-ready-queue-view', {
+      store: storeWith(...MIXED, ...hidden),
+    });
+
+    const rows = queryAllDeep<HTMLElement>(view, '.queue-row');
+    const header = queryAllDeep<HTMLElement>(view, '.queue-header')[0];
+
+    expect(rows, 'the hidden fixtures must actually be filtered out').toHaveLength(
+      EXPECTED_ORDER.length,
+    );
+    expect((header.textContent ?? '').trim()).toBe(
+      `Available Queue (${EXPECTED_ORDER.length})`,
+    );
+  });
+
+  /**
+   * Characterisation, discovered while building the fixture above. `isReady()`
+   * treats server-reported availability as authoritative and returns before it
+   * ever looks at `stage`, so a COMPLETED task the server calls available is
+   * rendered in the Available Queue. That is the documented precedence rule
+   * rather than a bug, but it means "queue membership" is a server claim and
+   * the client applies no stage sanity check on top of it.
+   */
+  it('renders a closed task the server still reports as available (server availability wins over stage)', async () => {
+    const view = await mount<HTMLElement>('ft-ready-queue-view', {
+      store: storeWith(
+        ...MIXED,
+        task({ id: 'x-done', name: 'X', stage: TaskStage.COMPLETED, availability: AVAILABLE }),
+      ),
+    });
+
+    const rows = queryAllDeep<HTMLElement>(view, '.queue-row');
+
+    expect(rows).toHaveLength(EXPECTED_ORDER.length + 1);
   });
 });
