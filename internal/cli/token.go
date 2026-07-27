@@ -286,6 +286,9 @@ func newTokenListCmd(globals *globalFlags) *cobra.Command {
 					if t.ExpiresAt != nil {
 						m["expires_at"] = t.ExpiresAt.UTC().Format(time.RFC3339)
 					}
+					if len(t.Scopes) > 0 {
+						m["scopes"] = t.Scopes
+					}
 					items = append(items, m)
 				}
 				printList(items, "", false, int32(total))

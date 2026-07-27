@@ -22,7 +22,7 @@ tokens using the new `ft token update` command.
 ### 1. Token inventory
 ```bash
 # List all tokens and identify agent-typed ones
-ft token list --output json | jq '.items[] | {id, name, user_name}'
+ft token list --output json | jq '.items[] | {id, name, user_name, scopes}'
 ```
 
 ### 2. For each agent token that needs to keep closing work
@@ -38,7 +38,7 @@ ft token update <token-id> --set-scopes task:read,task:write,task:claim,task:clo
 ### 3. Create reviewer/orchestrator tokens (for the hand-off protocol)
 ```bash
 # Create a reviewer-typed user (if not already present)
-ft user create --type reviewer --name "task-reviewer" --email reviewer@example.com
+ft user create "task-reviewer" --type reviewer --email reviewer@example.com
 
 # Create a token with lifecycle scopes
 ft token create <reviewer-user-id> --name "lifecycle-reviewer"
@@ -67,11 +67,25 @@ ft token list --output json | jq '.items[] | select(.name == "<agent-token>") | 
   real scoped agent tokens, the operator must run the inventory and update
   steps above before or during deploy.
 
-## Known Limitation
+## Known Limitation: SQLite Only
 
-The `ft token update` command operates on the local/embedded DB via
-`openDirectStore()`. For a server-mode (PostgreSQL) deployment, the operator
-must either:
-1. Run `ft token update` with `FARMTABLE_DB_PATH` pointed at the production DB
-2. Or use the store directly (SQL: `UPDATE api_tokens SET scopes = '...'
-   WHERE id = '...'`)
+The `ft token update` command uses `openDirectStore()` which hardcodes the
+`sqlite3` driver. It operates on the local SQLite database at
+`$FARMTABLE_DB_PATH` (default: `~/.farmtable/farmtable.db`).
+
+**WARNING:** Do NOT set `FARMTABLE_DB_PATH` to a PostgreSQL connection string.
+The command will silently create a new empty SQLite file at that path, then
+report `TOKEN_NOT_FOUND` — the operator will believe they operated on production
+when they did not.
+
+For PostgreSQL-backed deployments, update token scopes directly:
+```sql
+-- Verify current scopes first
+SELECT id, name, scopes FROM api_tokens WHERE id = '<token-id>';
+
+-- Update scopes (JSON array format)
+UPDATE api_tokens SET scopes = '["task:read","task:write","task:claim","task:close","collection:read"]'
+WHERE id = '<token-id>';
+```
+
+A server-mode RPC for token scope updates is tracked as a follow-up.
