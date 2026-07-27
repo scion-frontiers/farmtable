@@ -8,6 +8,7 @@ import {
   type Task,
 } from '../src/gen/types.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
@@ -18,7 +19,13 @@ import { mount, queryAllDeep, textDeep } from './helpers/dom.js';
 import { storeWith, task } from './helpers/fixtures.js';
 import type { TaskStore } from '../src/store/task-store.js';
 
-const ATTENTION_BADGE = 'Needs attention';
+/**
+ * Was a local literal. The same words now reach the user from four places, so
+ * they live in the vocabulary anchor and every test reads them from there —
+ * otherwise a reword makes the badge and the filter disagree with this file
+ * still green.
+ */
+const ATTENTION_BADGE = ATTENTION.label;
 
 function badges(card: Element): string[] {
   return queryAllDeep<HTMLElement>(card, '.state-badges sl-tag').map((tag) =>

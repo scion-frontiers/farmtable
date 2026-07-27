@@ -4,6 +4,7 @@ import { AvailabilityReason, TaskHoldReason, TaskStage, type User } from '../gen
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   STAGE_LABEL,
@@ -159,6 +160,9 @@ export class FtFilterChips extends LitElement {
   private availabilityLabel(filter: AvailabilityFilter): string {
     if (filter === 'available') return 'Available';
     if (filter === 'unavailable') return 'Unavailable';
+    // Needed explicitly: the reason map is keyed by number, so a string filter
+    // would fall through to `String(filter)` and show the raw value.
+    if (filter === 'attention') return ATTENTION.label;
     return AVAILABILITY_REASON_LABEL[filter as AvailabilityReason] ?? String(filter);
   }
 

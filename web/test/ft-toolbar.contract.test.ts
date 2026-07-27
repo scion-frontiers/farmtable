@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/ft-toolbar.js';
 import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
@@ -175,9 +176,31 @@ describe('ft-toolbar — availability filter', () => {
       { value: '1', label: label(AvailabilityReason.TRIAGE) },
       { value: '3', label: label(AvailabilityReason.HELD) },
       { value: '4', label: label(AvailabilityReason.BLOCKED_BY_DEPENDENCY) },
+      // Directly under the reason it narrows — attention tasks are the subset
+      // of dependency-blocked tasks whose blocker will never close well. The
+      // words come from production; they are anchored in the vocabulary file.
+      { value: 'attention', label: ATTENTION.label },
       { value: '5', label: label(AvailabilityReason.FUTURE_START_DATE) },
       { value: '2', label: label(AvailabilityReason.TERMINAL) },
     ]);
+  });
+
+  /**
+   * Contract §10's attention view has to be REACHABLE, and the Availability
+   * dropdown is where a user looking for blocked work already goes. Asserting
+   * on the option list above proves it is rendered; this proves selecting it
+   * produces the filter value the rest of the app understands, rather than
+   * `NaN` — which is what `parseAvailabilityFilter` returns for any string it
+   * does not know about, and which would silently match nothing.
+   */
+  it('emits the attention refinement as a string, not as a parsed number', async () => {
+    const toolbar = await mountToolbar();
+    const payloads: TaskFilterChangeDetail[] = [];
+    toolbar.addEventListener('filter-change', (e) => payloads.push((e as CustomEvent).detail));
+
+    await selectValue(selectByPlaceholder(toolbar, 'Availability'), 'attention');
+
+    expect(payloads[0].availability).toBe('attention');
   });
 
   it('emits string availability filters unchanged and reason filters as numbers', async () => {
