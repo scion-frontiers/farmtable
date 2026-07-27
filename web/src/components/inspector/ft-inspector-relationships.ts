@@ -4,8 +4,13 @@ import type { Task } from '../../gen/types.js';
 import { RelationshipType } from '../../gen/types.js';
 import type { TaskStore } from '../../store/task-store.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
-import { STAGE_LABEL, STAGE_COLOR, REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
-import { attentionBlockers, hasAvailabilityReason } from '../../util/task-state-utils.js';
+import { REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
+import {
+  attentionBlockers,
+  hasAvailabilityReason,
+  STAGE_COLOR,
+  STAGE_LABEL,
+} from '../../util/task-state-utils.js';
 import { AvailabilityReason } from '../../gen/types.js';
 
 /** Relationship types that can be added via the UI (proto-supported mutations). */

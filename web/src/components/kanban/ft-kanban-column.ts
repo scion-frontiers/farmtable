@@ -8,6 +8,7 @@ import type { FtTaskCard } from './ft-task-card.js';
 import {
   acceptsStageDrop,
   compareAcceptedQueueOrder,
+  DROP_REFUSAL,
   STAGE_COLOR,
 } from '../../util/task-state-utils.js';
 import type { TaskStore } from '../../store/task-store.js';
@@ -191,15 +192,28 @@ export class FtKanbanColumn extends LitElement {
 
   /** Human-readable reason this lane refuses drops; empty when it accepts them. */
   private get dropHint(): string {
-    // NOTE(i18n): Hardcoded English; extract if i18n is added.
-    if (this.readOnly) return 'This board is read-only — stage changes are not saved.';
+    if (this.readOnly) return DROP_REFUSAL.readOnlyBoard;
     if (this.capabilities?.canChangeStage === false) {
-      return 'This collection does not support stage changes.';
+      return DROP_REFUSAL.stageChangeUnsupported;
     }
     if (!acceptsStageDrop(this.stage)) {
-      return `“${this.label}” is set through the API, CLI, or MCP — dragging here will not change the stage.`;
+      return DROP_REFUSAL.terminalLaneHint(this.label);
     }
     return '';
+  }
+
+  /**
+   * Reason to show in a native `title` tooltip, if any.
+   *
+   * Only the lane-intrinsic refusal qualifies. `readOnly` and
+   * `canChangeStage: false` are properties of the whole board, so surfacing them
+   * through `title` puts a permanent tooltip on all ten lanes whether or not a
+   * drag is in progress — noise that the board-level read-only affordance
+   * already covers. Those reasons still reach the user: `dropHint` keeps them
+   * for the accessible description, and a real drop answers with a toast.
+   */
+  private get dropTooltip(): string {
+    return acceptsStageDrop(this.stage) ? '' : DROP_REFUSAL.terminalLaneHint(this.label);
   }
 
   private onDragEnter() {
@@ -358,7 +372,7 @@ export class FtKanbanColumn extends LitElement {
         role="listbox"
         aria-label=${this.label}
         aria-description=${dropHint || nothing}
-        title=${dropHint || nothing}
+        title=${this.dropTooltip || nothing}
         @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}
