@@ -4,7 +4,7 @@ import '../src/components/kanban/ft-kanban-column.js';
 import '../src/components/kanban/ft-task-card.js';
 import { TaskStage } from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
-import { STAGE_LABEL } from '../src/util/task-state-utils.js';
+import { STAGE_LABEL, acceptsStageDrop } from '../src/util/task-state-utils.js';
 import {
   dragOverOn,
   dragTaskOnto,
@@ -226,7 +226,9 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
 });
 
 describe('ft-kanban-view — refusals must be visible', () => {
-  for (const stage of [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED]) {
+  // Derived from the real predicate rather than transcribed, so a lane that
+  // starts refusing drops is covered automatically instead of silently missed.
+  for (const stage of NATIVE_STAGES.filter((candidate) => !acceptsStageDrop(candidate))) {
     it(`gives visible feedback when a card is dropped on the ${TaskStage[stage]} lane`, async () => {
       const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
       const { view, client } = await mountBoard(store);
@@ -321,11 +323,15 @@ describe('ft-kanban-view — refusals must be visible', () => {
  * regression guard for the early return removed from `onDragOver`.
  */
 describe('ft-kanban-view — refusing lanes must still accept the drop gesture', () => {
-  const REFUSING_LANES: [name: string, stage: TaskStage][] = [
-    ['WONT_FIX', TaskStage.WONT_FIX],
-    ['DUPLICATE', TaskStage.DUPLICATE],
-    ['CANCELLED', TaskStage.CANCELLED],
-  ];
+  const REFUSING_LANES: [name: string, stage: TaskStage][] = NATIVE_STAGES.filter(
+    (stage) => !acceptsStageDrop(stage),
+  ).map((stage) => [TaskStage[stage], stage]);
+
+  it('derives its refusing-lane list from acceptsStageDrop, and that list is not empty', () => {
+    expect(REFUSING_LANES.length, 'no lane refuses drops, so the loop below tests nothing')
+      .toBeGreaterThan(0);
+    expect(acceptsStageDrop(TaskStage.COMPLETED), 'the positive counterpart').toBe(true);
+  });
 
   for (const [name, stage] of REFUSING_LANES) {
     it(`cancels dragover on the ${name} lane so the browser still fires drop`, async () => {
