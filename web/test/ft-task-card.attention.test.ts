@@ -60,6 +60,19 @@ describe('ft-task-card — needs-attention badge', () => {
     expect(isUnsuccessfulTerminalStage(TaskStage.COMPLETED), 'the positive counterpart').toBe(false);
   });
 
+  /**
+   * The derived loop above protects against WIDENING and is blind to
+   * NARROWING: drop a stage from the predicate and the case for that stage
+   * does not fail, it ceases to exist, and the runner reports green on a
+   * smaller number. Contract §11 names all three outcomes, so the cardinality
+   * is required rather than incidental — pin it explicitly.
+   */
+  it('treats exactly the three contract §11 outcomes as unsuccessful terminal', () => {
+    expect([...attentionStages].sort()).toEqual(
+      [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED].sort(),
+    );
+  });
+
   for (const blockerStage of attentionStages) {
     it(`shows "${ATTENTION_BADGE}" when blocked by a ${TaskStage[blockerStage]} prerequisite`, async () => {
       const blocker = task({ id: 'blocker', stage: blockerStage });

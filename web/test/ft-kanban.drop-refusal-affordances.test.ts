@@ -249,6 +249,19 @@ describe('ft-kanban-view — dropping a card back on its own lane', () => {
     expect(acceptsStageDrop(TaskStage.COMPLETED), 'the positive counterpart').toBe(true);
   });
 
+  /**
+   * `> 0` is satisfied by one of three. Deriving the list covers a lane that
+   * STARTS refusing, but a lane that STOPS refusing takes its own test cases
+   * with it and the suite reports green on a smaller number — so the three
+   * lanes that must refuse are pinned by name. `duplicate` in particular
+   * carries semantics a drag cannot express, per `acceptsStageDrop`'s docblock.
+   */
+  it('refuses drops on exactly the three lanes a drag gesture cannot express', () => {
+    expect([...terminal].sort()).toEqual(
+      [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED].sort(),
+    );
+  });
+
   for (const stage of terminal) {
     it(`refuses out loud when a card is dropped on the ${STAGE_LABEL[stage]} lane`, async () => {
       const { view, client } = await mountBoard();
