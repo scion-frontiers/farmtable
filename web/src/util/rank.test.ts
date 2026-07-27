@@ -1,4 +1,4 @@
-import { ranksForMove, RANK_STEP, type RankedItem, type RankWrite } from './rank.js';
+import { ranksForMove, MIN_RANK, RANK_STEP, type RankedItem, type RankWrite } from './rank.js';
 import { compareAcceptedQueueOrder } from './task-state-utils.js';
 import { Platform, TaskPhase, TaskStage, type Task } from '../gen/types.js';
 
@@ -131,7 +131,7 @@ function assertMove(
   );
   for (const write of writes) {
     assertEqual(
-      Number.isSafeInteger(write.rank) && write.rank >= 1,
+      Number.isSafeInteger(write.rank) && write.rank >= MIN_RANK,
       true,
       `${message} (rank ${write.rank} must be a positive safe integer)`,
     );
@@ -480,7 +480,7 @@ function run(): void {
       assertEqual(new Set(ranks).size, ranks.length, `${context}: no duplicate ranks written`);
       for (const write of writes) {
         assertTrue(
-          Number.isSafeInteger(write.rank) && write.rank >= 1,
+          Number.isSafeInteger(write.rank) && write.rank >= MIN_RANK,
           `${context}: wrote rank ${write.rank}, which is not a positive safe integer`,
         );
         assertTrue(
@@ -516,9 +516,10 @@ function run(): void {
   // ── Hostile server ranks ──────────────────────────────────────────
   //
   // `rank` arrives from the server and nothing validates it client-side. The
-  // guard in `singleWrite` is `Number.isSafeInteger`, so floats, NaN and
-  // unsafe magnitudes fall through to `renumber` — but negatives and zero pass
-  // `Number.isSafeInteger` and do NOT, which is finding F-1 below.
+  // guard in `singleWrite` is `isUsableRank`, so floats, NaN and unsafe
+  // magnitudes fall through to `renumber` — as do out-of-range values (zero
+  // and negatives, finding F-1), which get their own fixtures below because a
+  // band containing them has to be built in comparator order to be legal.
   {
     const hostile: { label: string; rank: number }[] = [
       { label: 'float', rank: 1536.5 },
@@ -535,7 +536,7 @@ function run(): void {
       const writes = ranksForMove(source, 'c', 0);
       for (const write of writes) {
         assertTrue(
-          Number.isSafeInteger(write.rank) && write.rank >= 1,
+          Number.isSafeInteger(write.rank) && write.rank >= MIN_RANK,
           `hostile ${testCase.label} rank produced an invalid write: ${JSON.stringify(write)}`,
         );
       }
@@ -546,24 +547,30 @@ function run(): void {
       // The renumber must also *repair* the band: no hostile value survives.
       const after = applyWrites(source, writes);
       assertTrue(
-        after.every((item) => Number.isSafeInteger(item.rank) && item.rank! >= 1),
+        after.every((item) => Number.isSafeInteger(item.rank) && item.rank! >= MIN_RANK),
         `hostile ${testCase.label} rank survived the renumber: ${JSON.stringify(after)}`,
       );
     }
   }
 
-  // ── FINDING F-1 (characterisation, not endorsement) ───────────────
+  // ── FINDING F-1 (fixed): out-of-range ranks force a renumber ──────
   //
-  // `MIN_RANK = 1` is documented as "the minimum rank this module will hand
-  // out. Ranks stay positive integers", and `midpoint()` enforces it — but only
-  // in the head-of-band branch. Negative and zero ranks are safe integers, so
-  // they pass `singleWrite`'s guard instead of falling through to `renumber`,
-  // and the two-bounds branch then hands out a rank below MIN_RANK.
+  // `MIN_RANK` is documented as "the minimum rank this module will hand out.
+  // Ranks stay positive integers", but `midpoint()` used to enforce it only in
+  // the head-of-band branch. Zero and negatives are safe integers, so they
+  // passed `singleWrite`'s old `Number.isSafeInteger` guard instead of falling
+  // through to `renumber`, and the two-bounds branch handed out `-3` for the
+  // fixture below.
   //
-  // This asserts the CURRENT behaviour so the defect is recorded and cannot
-  // regress silently. When it is fixed this test fails, which is the intended
-  // signal to replace it with the invariant assertion. Reported to the manager
-  // as F-1; deliberately NOT fixed here, because this is a test pass.
+  // `singleWrite` now guards with `isUsableRank`, so an out-of-range band is
+  // treated exactly like a NaN one: it cannot anchor a single write, and the
+  // renumber brings the whole band back inside the invariant. The assertions
+  // below are the invariant, not a transcription of it — `MIN_RANK` is
+  // imported from production rather than written as `1`.
+  //
+  // Ordering is asserted alongside the range on purpose. The old behaviour put
+  // `c` in the *right position* with a wrong value, so a fix that clamped the
+  // value without preserving the order would trade one defect for a worse one.
   {
     const source: BandItem[] = [
       { id: 'a', rank: -5, createdAt: createdAtFor(0) },
@@ -572,15 +579,63 @@ function run(): void {
     ];
     assertSourceIsInDisplayOrder(source, 'F-1 fixture');
 
-    const writes = ranksForMove(source, 'c', 1);
+    // `assertMove` itself checks every write is a positive safe integer.
+    const writes = assertMove(source, 'c', 1, ['a', 'c', 'b'], 'F-1: negative-ranked band');
+    assertTrue(
+      writes.length > 1,
+      `F-1: an out-of-range band must renumber, got ${JSON.stringify(writes)}`,
+    );
+    for (const write of writes) {
+      assertTrue(
+        write.rank >= MIN_RANK,
+        `F-1: wrote ${write.rank} for ${write.id}, below MIN_RANK of ${MIN_RANK}`,
+      );
+    }
+    // The renumber must *repair* the band, not merely avoid adding to it: no
+    // out-of-range value may survive on any task.
+    const after = applyWrites(source, writes);
+    assertTrue(
+      after.every((item) => Number.isSafeInteger(item.rank) && item.rank! >= MIN_RANK),
+      `F-1: an out-of-range rank survived the renumber: ${JSON.stringify(after)}`,
+    );
+  }
+  {
+    // Zero on its own, at the head of the band, is the boundary case: it is
+    // exactly one below `MIN_RANK`, so an off-by-one in the guard (`> MIN_RANK`
+    // or `>= 0`) lets it back through.
+    const source: BandItem[] = [
+      { id: 'a', rank: 0, createdAt: createdAtFor(0) },
+      { id: 'b', rank: 2048, createdAt: createdAtFor(1) },
+      { id: 'c', rank: 3072, createdAt: createdAtFor(2) },
+    ];
+    assertSourceIsInDisplayOrder(source, 'F-1 zero fixture');
+
+    const writes = assertMove(source, 'c', 1, ['a', 'c', 'b'], 'F-1: zero-ranked head');
+    assertTrue(
+      writes.length > 1,
+      `F-1: a zero rank must renumber, got ${JSON.stringify(writes)}`,
+    );
+    assertTrue(
+      applyWrites(source, writes).every((item) => item.rank! >= MIN_RANK),
+      'F-1: the zero rank survived the renumber',
+    );
+  }
+  {
+    // And the complement, so the guard is not simply "always renumber":
+    // `MIN_RANK` itself is in range and must still anchor a single write.
+    const source: BandItem[] = [
+      { id: 'a', rank: MIN_RANK, createdAt: createdAtFor(0) },
+      { id: 'b', rank: 2048, createdAt: createdAtFor(1) },
+      { id: 'c', rank: 3072, createdAt: createdAtFor(2) },
+    ];
+    assertSourceIsInDisplayOrder(source, 'MIN_RANK fixture');
+
+    const writes = assertMove(source, 'c', 1, ['a', 'c', 'b'], 'a band anchored at MIN_RANK');
     assertDeepEqual(
       writes,
-      [{ id: 'c', rank: -3 }],
-      'F-1: a negative-ranked band yields a rank below the documented MIN_RANK of 1',
+      [{ id: 'c', rank: 1024 }],
+      'MIN_RANK is a usable anchor, so this is still a single midpoint write',
     );
-    // The resulting order is still correct — the defect is the value, not the
-    // ordering — which is precisely why no ordering-only test would catch it.
-    assertDeepEqual(orderAfter(source, writes), ['a', 'c', 'b'], 'F-1: order is still honoured');
   }
 }
 
