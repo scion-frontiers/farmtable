@@ -19,11 +19,8 @@ import {
 import '../ft-empty-state.js';
 
 /**
- * A flat, priority-sorted list of tasks that are actionable (not blocked).
- *
- * A task is "ready" when:
- * 1. Its phase is OPEN or IN_PROGRESS.
- * 2. It has no BLOCKED_BY relationship targeting a non-CLOSED task.
+ * A flat, priority-sorted list of tasks that are available under the server
+ * task-state availability model.
  */
 @customElement('ft-ready-queue-view')
 export class FtReadyQueueView extends LitElement {
@@ -266,15 +263,15 @@ export class FtReadyQueueView extends LitElement {
         <ft-empty-state
           icon="check-circle"
           heading="All clear!"
-          subtitle="No tasks are ready to work on right now"
+          subtitle="No tasks are available to work on right now"
         ></ft-empty-state>
       `;
     }
 
     return html`
       <div class="queue">
-        <h2 class="queue-header">Ready Queue (${tasks.length})</h2>
-        <div class="queue-list" role="listbox" aria-label="Ready tasks">
+        <h2 class="queue-header">Available Queue (${tasks.length})</h2>
+        <div class="queue-list" role="listbox" aria-label="Available tasks">
           ${tasks.map((task) => this.renderRow(task))}
         </div>
       </div>

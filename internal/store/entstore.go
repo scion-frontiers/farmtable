@@ -73,9 +73,192 @@ func NewEntStore(ctx context.Context, opts StoreOptions) (*EntStore, error) {
 			client.Close()
 			return nil, fmt.Errorf("creating schema: %w", err)
 		}
+		if err := migratePersistedTaskState(ctx, client); err != nil {
+			client.Close()
+			return nil, fmt.Errorf("migrating persisted task state: %w", err)
+		}
 	}
 
 	return &EntStore{client: client, dialect: opts.Dialect}, nil
+}
+
+var oldPersistedTaskStages = []string{
+	"backlog",
+	"ready",
+	"waiting_for_input",
+	"deferred",
+	"scheduled",
+	"blocked",
+}
+
+const taskStateMigrationField = "task_state_migration"
+
+func oldPersistedTaskStageValues() []any {
+	values := make([]any, len(oldPersistedTaskStages))
+	for i, stage := range oldPersistedTaskStages {
+		values[i] = stage
+	}
+	return values
+}
+
+type persistedTaskStateMigration struct {
+	stage      task.Stage
+	phase      task.Phase
+	holdReason *task.HoldReason
+	reason     string
+}
+
+func migratePersistedTaskState(ctx context.Context, client *ent.Client) error {
+	tasks, err := client.Task.Query().
+		Where(predicate.Task(func(s *entsql.Selector) {
+			s.Where(entsql.In(s.C(task.FieldStage), oldPersistedTaskStageValues()...))
+		})).
+		WithSourceRelationships().
+		WithTargetRelationships().
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("listing old task states: %w", err)
+	}
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("starting task state migration transaction: %w", err)
+	}
+	rollback := true
+	defer func() {
+		if rollback {
+			if err := tx.Rollback(); err != nil {
+				log.Printf("rolling back task state migration: %v", err)
+			}
+		}
+	}()
+
+	for _, t := range tasks {
+		migration, err := persistedTaskStateMigrationForTask(ctx, tx, t)
+		if err != nil {
+			return err
+		}
+		update := tx.Task.UpdateOneID(t.ID).
+			SetStage(migration.stage).
+			SetPhase(migration.phase)
+		if migration.holdReason != nil {
+			update.SetHoldReason(*migration.holdReason)
+		} else {
+			update.ClearHoldReason()
+		}
+		if _, err := update.Save(ctx); err != nil {
+			return fmt.Errorf("updating migrated task %s: %w", t.ID, err)
+		}
+
+		oldValue, _ := json.Marshal(map[string]any{
+			"phase":        string(t.Phase),
+			"stage":        string(t.Stage),
+			"native_label": t.NativeLabel,
+			"start_date":   t.StartDate,
+			"has_blocker":  migration.reason == "old_blocked_stage_with_blocker_to_dependency_availability",
+		})
+		newState := map[string]any{
+			"stage":  string(migration.stage),
+			"reason": migration.reason,
+		}
+		if migration.holdReason != nil {
+			newState["hold_reason"] = string(*migration.holdReason)
+		}
+		newValue, _ := json.Marshal(newState)
+
+		if _, err := tx.Change.Create().
+			SetTaskID(t.ID).
+			SetAuthorID(uuid.Nil).
+			SetFieldName(taskStateMigrationField).
+			SetOldValue(string(oldValue)).
+			SetNewValue(string(newValue)).
+			Save(ctx); err != nil {
+			return fmt.Errorf("recording task state migration for %s: %w", t.ID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing task state migration: %w", err)
+	}
+	rollback = false
+	return nil
+}
+
+func persistedTaskStateMigrationForTask(ctx context.Context, tx *ent.Tx, t *ent.Task) (persistedTaskStateMigration, error) {
+	accepted := persistedTaskStateMigration{stage: task.StageAccepted, phase: task.PhaseOpen}
+	switch string(t.Stage) {
+	case "backlog", "ready":
+		accepted.reason = "old_" + string(t.Stage) + "_stage_to_accepted"
+		return accepted, nil
+	case "waiting_for_input":
+		hr := task.HoldReasonWaitingForInput
+		accepted.holdReason = &hr
+		accepted.reason = "old_waiting_for_input_stage_to_hold_reason"
+		return accepted, nil
+	case "deferred":
+		if t.StartDate != nil && t.StartDate.After(time.Now()) {
+			accepted.reason = "old_deferred_stage_future_start_date_cleared_hold"
+			return accepted, nil
+		}
+		hr := task.HoldReasonDeferred
+		accepted.holdReason = &hr
+		accepted.reason = "old_deferred_stage_to_hold_reason"
+		return accepted, nil
+	case "scheduled":
+		if t.StartDate != nil {
+			accepted.reason = "old_scheduled_stage_with_start_date"
+			return accepted, nil
+		}
+		hr := task.HoldReasonDeferred
+		accepted.holdReason = &hr
+		accepted.reason = "old_scheduled_stage_without_start_date_to_deferred"
+		return accepted, nil
+	case "blocked":
+		hasBlocker, err := persistedTaskHasUnsatisfiedBlocker(ctx, tx, t)
+		if err != nil {
+			return persistedTaskStateMigration{}, err
+		}
+		if hasBlocker {
+			accepted.reason = "old_blocked_stage_with_blocker_to_dependency_availability"
+			return accepted, nil
+		}
+		hr := task.HoldReasonWaitingForInput
+		accepted.holdReason = &hr
+		accepted.reason = "old_blocked_stage_without_blocker_to_waiting_for_input"
+		return accepted, nil
+	default:
+		return persistedTaskStateMigration{}, fmt.Errorf("unexpected old task stage %q for task %s", t.Stage, t.ID)
+	}
+}
+
+func persistedTaskHasUnsatisfiedBlocker(ctx context.Context, tx *ent.Tx, t *ent.Task) (bool, error) {
+	blockerIDs := make([]uuid.UUID, 0, len(t.Edges.SourceRelationships)+len(t.Edges.TargetRelationships))
+	for _, rel := range t.Edges.SourceRelationships {
+		if rel.Type == relationship.TypeBlockedBy {
+			blockerIDs = append(blockerIDs, rel.TargetTaskID)
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type == relationship.TypeBlocks {
+			blockerIDs = append(blockerIDs, rel.SourceTaskID)
+		}
+	}
+	for _, blockerID := range blockerIDs {
+		blocker, err := tx.Task.Get(ctx, blockerID)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				continue
+			}
+			return false, fmt.Errorf("loading blocker %s for task %s: %w", blockerID, t.ID, err)
+		}
+		if !terminalStageSatisfiesDependency(blocker.Stage) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func openPostgres(dsn string) (*ent.Client, error) {
