@@ -2,12 +2,17 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
-import { TaskPhase, TaskPriority, type Task } from '../gen/types.js';
+import { AvailabilityReason, TaskPriority, type Task } from '../gen/types.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
 import { isReady } from '../utils/task-ready.js';
+import {
+  AVAILABILITY_REASON_LABEL,
+  holdReasonLabel,
+  isClosedStage,
+} from '../util/task-state-utils.js';
 import './ft-empty-state.js';
 
-interface PhaseStat {
+interface StateStat {
   label: string;
   count: number;
 }
@@ -129,27 +134,28 @@ export class FtDashboardView extends LitElement {
     new TaskStoreController(this, this.store);
   }
 
-  private computePhaseStats(tasks: readonly Task[]): PhaseStat[] {
-    const counts: Record<number, number> = {
-      [TaskPhase.OPEN]: 0,
-      [TaskPhase.IN_PROGRESS]: 0,
-      [TaskPhase.ON_HOLD]: 0,
-      [TaskPhase.CLOSED]: 0,
-    };
+  private computeStateStats(tasks: readonly Task[]): StateStat[] {
+    let active = 0;
+    let closed = 0;
+    let held = 0;
+    let unavailable = 0;
+
     for (const task of tasks) {
-      if (counts[task.phase] !== undefined) {
-        counts[task.phase]++;
-      }
+      if (isClosedStage(task.stage)) closed++;
+      else active++;
+      if (holdReasonLabel(task.holdReason)) held++;
+      if (task.availability?.available === false) unavailable++;
     }
+
     return [
-      { label: 'Open', count: counts[TaskPhase.OPEN] },
-      { label: 'In Progress', count: counts[TaskPhase.IN_PROGRESS] },
-      { label: 'On Hold', count: counts[TaskPhase.ON_HOLD] },
-      { label: 'Closed', count: counts[TaskPhase.CLOSED] },
+      { label: 'Active', count: active },
+      { label: 'Closed', count: closed },
+      { label: 'Held', count: held },
+      { label: 'Unavailable', count: unavailable },
     ];
   }
 
-  /** Count tasks available under the shared Ready Queue predicate. */
+  /** Count tasks available under the shared Available Queue predicate. */
   private computeReadyCount(tasks: readonly Task[]): number {
     return tasks.filter((task) => isReady(task, this.store)).length;
   }
@@ -197,6 +203,29 @@ export class FtDashboardView extends LitElement {
     }));
   }
 
+  private computeAvailabilityReasons(tasks: readonly Task[]): StateStat[] {
+    const counts: Record<number, number> = {
+      [AvailabilityReason.TRIAGE]: 0,
+      [AvailabilityReason.TERMINAL]: 0,
+      [AvailabilityReason.HELD]: 0,
+      [AvailabilityReason.BLOCKED_BY_DEPENDENCY]: 0,
+      [AvailabilityReason.FUTURE_START_DATE]: 0,
+    };
+    for (const task of tasks) {
+      for (const reason of task.availability?.reasons ?? []) {
+        if (counts[reason] !== undefined) {
+          counts[reason]++;
+        }
+      }
+    }
+    return Object.entries(counts)
+      .map(([reason, count]) => ({
+        label: AVAILABILITY_REASON_LABEL[Number(reason)] ?? reason,
+        count,
+      }))
+      .filter((stat) => stat.count > 0);
+  }
+
   render() {
     const tasks = this.store.allTasks;
 
@@ -210,16 +239,17 @@ export class FtDashboardView extends LitElement {
       `;
     }
 
-    const phaseStats = this.computePhaseStats(tasks);
+    const stateStats = this.computeStateStats(tasks);
     const priorityStats = this.computePriorityStats(tasks);
-    const totalCount = phaseStats.reduce((sum, s) => sum + s.count, 0);
+    const availabilityReasons = this.computeAvailabilityReasons(tasks);
+    const totalCount = tasks.length;
     const readyCount = this.computeReadyCount(tasks);
 
     return html`
       <div class="dashboard">
-        <h2 class="section-title">Tasks by Phase</h2>
+        <h2 class="section-title">Tasks by State</h2>
         <div class="stat-cards">
-          ${phaseStats.map(
+          ${stateStats.map(
             (stat) => html`
               <div class="stat-card" role="group" aria-label="${stat.label}: ${stat.count}">
                 <div class="stat-count">${stat.count}</div>
@@ -261,6 +291,22 @@ export class FtDashboardView extends LitElement {
             `,
           )}
         </div>
+
+        ${availabilityReasons.length > 0
+          ? html`
+              <h2 class="section-title">Unavailable Reasons</h2>
+              <div class="priority-badges">
+                ${availabilityReasons.map(
+                  (stat) => html`
+                    <div class="priority-item">
+                      <sl-badge variant="neutral" pill>${stat.label}</sl-badge>
+                      <span class="priority-count">${stat.count}</span>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+          : null}
       </div>
     `;
   }

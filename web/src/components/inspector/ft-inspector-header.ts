@@ -1,19 +1,13 @@
 import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
-import { TaskPhase, TaskPriority } from '../../gen/types.js';
+import { TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 import { STAGE_LABEL, STAGE_COLOR } from './inspector-stage-utils.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
-
-const PHASE_LABEL: Record<number, string> = {
-  [TaskPhase.OPEN]: 'Open',
-  [TaskPhase.IN_PROGRESS]: 'In Progress',
-  [TaskPhase.ON_HOLD]: 'On Hold',
-  [TaskPhase.CLOSED]: 'Closed',
-};
+import { availabilityLabel, holdReasonLabel } from '../../util/task-state-utils.js';
 
 const PRIORITY_OPTIONS = [
   TaskPriority.UNSPECIFIED,
@@ -193,21 +187,22 @@ export class FtInspectorHeader extends LitElement {
 
   render() {
     const t = this.task;
-    const phaseLabel = PHASE_LABEL[t.phase] ?? '';
     const stageLabel = STAGE_LABEL[t.stage] ?? '';
     const stageColor = STAGE_COLOR[t.stage] ?? 'var(--sl-color-neutral-500)';
     const priority = t.priority ?? TaskPriority.UNSPECIFIED;
     const priorityVariant = PRIORITY_VARIANT[priority] ?? 'neutral';
     const priorityLabel = PRIORITY_LABEL[priority] ?? 'Unknown';
+    const holdLabel = holdReasonLabel(t.holdReason);
 
     return html`
       <div class="title">${t.name}</div>
       <div class="badges">
-        ${phaseLabel
-          ? html`<sl-badge variant="neutral">${phaseLabel}</sl-badge>`
-          : nothing}
         ${stageLabel
           ? html`<span class="stage-badge" style="background:${stageColor}">${stageLabel}</span>`
+          : nothing}
+        ${holdLabel ? html`<sl-badge variant="warning">${holdLabel}</sl-badge>` : nothing}
+        ${t.availability
+          ? html`<sl-badge variant=${t.availability.available ? 'success' : 'neutral'}>${availabilityLabel(t)}</sl-badge>`
           : nothing}
         ${this.readOnly
           ? html`<sl-badge variant=${priorityVariant} pill>${priorityLabel}</sl-badge>`
