@@ -88,12 +88,15 @@ export function acceptsStageDrop(stage: TaskStage): boolean {
 }
 
 /**
- * Why a board refuses a stage drop.
+ * Why a drag is refused — on the board (a stage drop) or in the queue (a rank
+ * reorder).
  *
- * `ft-kanban-column` renders these as a hover affordance and `ft-kanban-view`
- * reports them as a toast after a drop. They live here, next to
- * `acceptsStageDrop()` — the rule they explain — so the tooltip and the toast
- * cannot drift apart.
+ * `ft-kanban-column` renders the board entries as a hover affordance,
+ * `ft-kanban-view` reports them as a toast after a drop, and
+ * `ft-ready-queue-view` reports the queue entries the same way. They live here,
+ * next to `acceptsStageDrop()` — the rule the board half explains — so the
+ * tooltip and the toast cannot drift apart, and so both halves of the refusal
+ * seam bind to an exported constant rather than to an inline literal.
  *
  * The two terminal-lane variants are deliberately worded differently: the hint
  * is read *before* the gesture and names the lane, while the toast is read
@@ -108,6 +111,24 @@ export const DROP_REFUSAL = {
     `“${label}” is set through the API, CLI, or MCP — dragging here will not change the stage.`,
   terminalLaneToast: (label: string) =>
     `“${label}” needs a reason, so it is set through the API, CLI, or MCP rather than by dragging.`,
+
+  // ── Queue reorder (ft-ready-queue-view) ──
+  readOnlyQueue: 'This queue is read-only — the order is not saved.',
+  reorderUnsupported: 'This collection does not support drag reordering.',
+  /**
+   * Cross-band drags are an explicitly optional convenience in contract §10 and
+   * are not implemented, so the refusal names the way to get the same result.
+   * `bandLabel` is the destination priority's label, resolved by the caller.
+   */
+  crossBandToast: (taskName: string, bandLabel: string) =>
+    `Drag reordering works within one priority band. Change the priority of ` +
+    `“${taskName}” to move it into ${bandLabel}.`,
+  /**
+   * No client is attached, so nothing can be persisted. `ft-app` always assigns
+   * one, making this a defensive path — but a reorder that cannot be saved must
+   * still say so rather than move the row and stay quiet.
+   */
+  reorderNotConnected: 'Not connected to the server — the new order was not saved.',
 } as const;
 
 export function isUnsuccessfulTerminalStage(stage: TaskStage): boolean {
