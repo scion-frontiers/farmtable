@@ -354,9 +354,9 @@ export class FtToolbar extends LitElement {
             <sl-icon name="diagram-3" label="Dependencies view" style="transform: rotate(90deg)"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
-        <sl-tooltip content="Ready Queue">
-          <sl-radio-button value="ready-queue" aria-label="Ready Queue">
-            <sl-icon name="list-check" label="Ready Queue"></sl-icon>
+        <sl-tooltip content="Available Queue">
+          <sl-radio-button value="ready-queue" aria-label="Available Queue">
+            <sl-icon name="list-check" label="Available Queue"></sl-icon>
           </sl-radio-button>
         </sl-tooltip>
       </sl-radio-group>

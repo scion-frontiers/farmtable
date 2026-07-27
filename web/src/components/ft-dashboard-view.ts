@@ -149,10 +149,7 @@ export class FtDashboardView extends LitElement {
     ];
   }
 
-  /**
-   * Count tasks that are "ready" (actionable / unblocked) using the canonical
-   * isReady() utility shared with the Ready Queue view.
-   */
+  /** Count tasks available under the shared Ready Queue predicate. */
   private computeReadyCount(tasks: readonly Task[]): number {
     return tasks.filter((task) => isReady(task, this.store)).length;
   }
@@ -234,8 +231,8 @@ export class FtDashboardView extends LitElement {
             class="stat-card ready"
             role="link"
             tabindex="0"
-            aria-label="Ready: ${readyCount} — click to view Ready Queue"
-            title="View Ready Queue"
+            aria-label="Available: ${readyCount} — click to view Available Queue"
+            title="View Available Queue"
             @click=${this.navigateToReadyQueue}
             @keydown=${(e: KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -245,7 +242,7 @@ export class FtDashboardView extends LitElement {
             }}
           >
             <div class="stat-count">${readyCount}</div>
-            <div class="stat-label">Ready</div>
+            <div class="stat-label">Available</div>
           </div>
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>

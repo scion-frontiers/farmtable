@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import type { Task } from '../gen/types.js';
-import { RelationshipType } from '../gen/types.js';
+import { RelationshipType, TaskStage } from '../gen/types.js';
 import type { TaskStore } from '../store/task-store.js';
 
 const WORD_BOUNDARY_RE = /[\s\-_]/;
@@ -43,22 +43,17 @@ function fuzzyScore(pattern: string, target: string): number {
 
 /** Human-readable labels for TaskStage enum values. */
 const STAGE_NAMES: Record<number, string> = {
-  0: '',
-  1: 'Triage',
-  2: 'Backlog',
-  3: 'Ready',
-  4: 'Working',
-  5: 'In Review',
-  6: 'In QA',
-  7: 'Deploying',
-  8: 'Blocked',
-  9: 'Waiting',
-  10: 'Deferred',
-  11: 'Scheduled',
-  12: 'Completed',
-  13: "Won't Fix",
-  14: 'Duplicate',
-  15: 'Cancelled',
+  [TaskStage.UNSPECIFIED]: '',
+  [TaskStage.TRIAGE]: 'Triage',
+  [TaskStage.ACCEPTED]: 'Accepted',
+  [TaskStage.WORKING]: 'Working',
+  [TaskStage.IN_REVIEW]: 'In Review',
+  [TaskStage.IN_QA]: 'In QA',
+  [TaskStage.DEPLOYING]: 'Deploying',
+  [TaskStage.COMPLETED]: 'Completed',
+  [TaskStage.WONT_FIX]: "Won't Fix",
+  [TaskStage.DUPLICATE]: 'Duplicate',
+  [TaskStage.CANCELLED]: 'Cancelled',
 };
 
 /** Labels for the relationship type pills. */

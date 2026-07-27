@@ -2,7 +2,9 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func createTestCollection(t *testing.T, s *store.EntStore) uuid.UUID {
@@ -72,6 +75,204 @@ func TestGetTask_NotFound(t *testing.T) {
 	if err != store.ErrNotFound {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
+}
+
+func TestStartupMigration_PersistedOldTaskStates(t *testing.T) {
+	ctx := context.Background()
+	dbPath := t.TempDir() + "/farmtable.db"
+	dsn := dbPath + "?_fk=1"
+
+	s, err := store.NewEntStore(ctx, store.StoreOptions{
+		Dialect: "sqlite3",
+		DSN:     dsn,
+		Migrate: true,
+	})
+	if err != nil {
+		t.Fatalf("creating seed store: %v", err)
+	}
+	collID := createTestCollection(t, s)
+	future := time.Now().Add(48 * time.Hour).UTC().Truncate(time.Second)
+
+	type seededTask struct {
+		id        uuid.UUID
+		stage     string
+		wantHold  *task.HoldReason
+		wantStart bool
+		reason    string
+	}
+	var seeded []seededTask
+	seedOldStage := func(title, oldStage string, startDate *time.Time, blockedBy []uuid.UUID, wantHold *task.HoldReason, reason string) {
+		t.Helper()
+		created, err := s.CreateTask(ctx, store.CreateTaskParams{
+			Title:            title,
+			CollectionID:     collID,
+			Phase:            task.PhaseOpen,
+			Stage:            task.StageAccepted,
+			NativeLabel:      oldStage,
+			StartDate:        startDate,
+			BlockedByTaskIDs: blockedBy,
+		})
+		if err != nil {
+			t.Fatalf("creating %s seed task: %v", title, err)
+		}
+		seeded = append(seeded, seededTask{
+			id:        created.ID,
+			stage:     oldStage,
+			wantHold:  wantHold,
+			wantStart: startDate != nil,
+			reason:    reason,
+		})
+	}
+
+	waiting := task.HoldReasonWaitingForInput
+	deferred := task.HoldReasonDeferred
+	seedOldStage("Ready", "ready", nil, nil, nil, "old_ready_stage_to_accepted")
+	seedOldStage("Backlog", "backlog", nil, nil, nil, "old_backlog_stage_to_accepted")
+	seedOldStage("Waiting", "waiting_for_input", nil, nil, &waiting, "old_waiting_for_input_stage_to_hold_reason")
+	seedOldStage("Deferred future", "deferred", &future, nil, nil, "old_deferred_stage_future_start_date_cleared_hold")
+	seedOldStage("Scheduled with date", "scheduled", &future, nil, nil, "old_scheduled_stage_with_start_date")
+	seedOldStage("Scheduled missing date", "scheduled", nil, nil, &deferred, "old_scheduled_stage_without_start_date_to_deferred")
+
+	blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "Unsatisfied blocker",
+		CollectionID: collID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageAccepted,
+		NativeLabel:  "accepted",
+	})
+	if err != nil {
+		t.Fatalf("creating blocker: %v", err)
+	}
+	seedOldStage("Blocked with blocker", "blocked", nil, []uuid.UUID{blocker.ID}, nil, "old_blocked_stage_with_blocker_to_dependency_availability")
+	seedOldStage("Blocked without blocker", "blocked", nil, nil, &waiting, "old_blocked_stage_without_blocker_to_waiting_for_input")
+
+	if err := s.Close(); err != nil {
+		t.Fatalf("closing seed store: %v", err)
+	}
+	for _, seededTask := range seeded {
+		updatePersistedStage(t, dbPath, seededTask.id, seededTask.stage)
+	}
+
+	s, err = store.NewEntStore(ctx, store.StoreOptions{
+		Dialect: "sqlite3",
+		DSN:     dsn,
+		Migrate: true,
+	})
+	if err != nil {
+		t.Fatalf("opening migrated store: %v", err)
+	}
+	defer s.Close()
+
+	for _, seededTask := range seeded {
+		got, err := s.GetTask(ctx, seededTask.id)
+		if err != nil {
+			t.Fatalf("GetTask %s: %v", seededTask.id, err)
+		}
+		if got.Stage != task.StageAccepted || got.Phase != task.PhaseOpen {
+			t.Fatalf("%s migrated to phase/stage = %s/%s, want open/accepted", seededTask.stage, got.Phase, got.Stage)
+		}
+		if seededTask.wantHold == nil {
+			if got.HoldReason != nil {
+				t.Fatalf("%s hold_reason = %v, want nil", seededTask.stage, *got.HoldReason)
+			}
+		} else if got.HoldReason == nil || *got.HoldReason != *seededTask.wantHold {
+			t.Fatalf("%s hold_reason = %v, want %v", seededTask.stage, got.HoldReason, *seededTask.wantHold)
+		}
+		if seededTask.wantStart && got.StartDate == nil {
+			t.Fatalf("%s start_date was not preserved", seededTask.stage)
+		}
+
+		changes, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: seededTask.id})
+		if err != nil {
+			t.Fatalf("ListAllChangesForTask %s: %v", seededTask.id, err)
+		}
+		notes := 0
+		for _, change := range changes {
+			if change.FieldName != "task_state_migration" {
+				continue
+			}
+			notes++
+			if change.AuthorID != uuid.Nil {
+				t.Fatalf("migration author = %s, want zero UUID", change.AuthorID)
+			}
+			if !strings.Contains(change.OldValue, `"stage":"`+seededTask.stage+`"`) {
+				t.Fatalf("migration old_value = %s, want old stage %s", change.OldValue, seededTask.stage)
+			}
+			if !strings.Contains(change.NewValue, `"reason":"`+seededTask.reason+`"`) {
+				t.Fatalf("migration new_value = %s, want reason %s", change.NewValue, seededTask.reason)
+			}
+		}
+		if notes != 1 {
+			t.Fatalf("%s migration notes = %d, want 1", seededTask.stage, notes)
+		}
+	}
+
+	if oldCount := countOldPersistedStages(t, dbPath); oldCount != 0 {
+		t.Fatalf("old persisted stage rows after migration = %d, want 0", oldCount)
+	}
+	if notes := countMigrationNotes(t, dbPath); notes != len(seeded) {
+		t.Fatalf("migration notes = %d, want %d", notes, len(seeded))
+	}
+
+	if err := s.Close(); err != nil {
+		t.Fatalf("closing migrated store: %v", err)
+	}
+	s, err = store.NewEntStore(ctx, store.StoreOptions{
+		Dialect: "sqlite3",
+		DSN:     dsn,
+		Migrate: true,
+	})
+	if err != nil {
+		t.Fatalf("reopening migrated store: %v", err)
+	}
+	defer s.Close()
+	if notes := countMigrationNotes(t, dbPath); notes != len(seeded) {
+		t.Fatalf("migration notes after second startup = %d, want %d", notes, len(seeded))
+	}
+}
+
+func updatePersistedStage(t *testing.T, dbPath string, id uuid.UUID, stage string) {
+	t.Helper()
+	db, err := sql.Open("sqlite3", dbPath+"?_fk=1")
+	if err != nil {
+		t.Fatalf("opening sqlite db: %v", err)
+	}
+	defer db.Close()
+	phase := "open"
+	if stage == "blocked" || stage == "waiting_for_input" || stage == "deferred" || stage == "scheduled" {
+		phase = "on_hold"
+	}
+	if _, err := db.Exec(`UPDATE tasks SET stage = ?, phase = ?, hold_reason = NULL WHERE id = ?`, stage, phase, id.String()); err != nil {
+		t.Fatalf("updating persisted stage %s for %s: %v", stage, id, err)
+	}
+}
+
+func countOldPersistedStages(t *testing.T, dbPath string) int {
+	t.Helper()
+	db, err := sql.Open("sqlite3", dbPath+"?_fk=1")
+	if err != nil {
+		t.Fatalf("opening sqlite db: %v", err)
+	}
+	defer db.Close()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE stage IN ('backlog','ready','waiting_for_input','deferred','scheduled','blocked')`).Scan(&count); err != nil {
+		t.Fatalf("counting old stages: %v", err)
+	}
+	return count
+}
+
+func countMigrationNotes(t *testing.T, dbPath string) int {
+	t.Helper()
+	db, err := sql.Open("sqlite3", dbPath+"?_fk=1")
+	if err != nil {
+		t.Fatalf("opening sqlite db: %v", err)
+	}
+	defer db.Close()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM changes WHERE field_name = 'task_state_migration'`).Scan(&count); err != nil {
+		t.Fatalf("counting migration notes: %v", err)
+	}
+	return count
 }
 
 func TestListTasks_Filters(t *testing.T) {

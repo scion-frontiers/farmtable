@@ -10,6 +10,7 @@ import { Platform, RelationshipType, TaskPhase, type Collection, type Task, type
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { getCapabilities, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
+import { isReady } from '../utils/task-ready.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
@@ -609,19 +610,9 @@ export class FtApp extends LitElement {
       return false;
     }
 
-    // Ready-queue only shows OPEN / IN_PROGRESS tasks that are not blocked.
+    // Ready-queue only shows tasks that the Phase 1 availability model marks available.
     if (this.currentView === 'ready-queue') {
-      if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
-        return false;
-      }
-      // A ready-queue task must not be blocked by any non-closed task.
-      for (const rel of task.relationships) {
-        if (rel.type !== RelationshipType.BLOCKED_BY) continue;
-        const blocker = this.taskStore.getTask(rel.targetTaskId);
-        if (blocker && blocker.phase !== TaskPhase.CLOSED) {
-          return false;
-        }
-      }
+      return isReady(task, this.taskStore);
     }
 
     return true;
