@@ -382,6 +382,37 @@ function run(): void {
     ];
     assertMove(source, 'zz', 0, ['zz', 'aa'], 'id tiebreak');
   }
+  {
+    // FINDING H-1. The case above cannot actually see the `id` tiebreak: the
+    // write breaks the rank tie, so the comparator never reaches its last
+    // resort, and deleting `return a.id.localeCompare(b.id)` left it green.
+    //
+    // This one reaches it. The two items tie on rank AND created_at, so `id`
+    // is the only thing that can order them, and they are listed in REVERSE id
+    // order deliberately — `zz` before `aa`. That makes the fixture violate
+    // `ranksForMove`'s documented precondition, so the guard must reject it.
+    // With the tiebreak deleted the comparator returns 0 for the pair, the
+    // stable sort hands back the source order unchanged, the guard sees a band
+    // it believes is already in display order, and this assertion fails.
+    //
+    // Keep the pair in reverse id order. Sorting it "tidily" disarms the test.
+    const identical = createdAtFor(0);
+    const reversed: BandItem[] = [
+      { id: 'zz', rank: 100, createdAt: identical },
+      { id: 'aa', rank: 100, createdAt: identical },
+    ];
+    let threw = false;
+    try {
+      assertSourceIsInDisplayOrder(reversed, 'id tiebreak precondition');
+    } catch {
+      threw = true;
+    }
+    assertTrue(
+      threw,
+      'the comparator must order a full rank/created_at tie by id, so a band listed ' +
+        'in reverse id order is NOT in display order',
+    );
+  }
 
   // ── Organic gap exhaustion ────────────────────────────────────────
   //
@@ -635,6 +666,57 @@ function run(): void {
       writes,
       [{ id: 'c', rank: 1024 }],
       'MIN_RANK is a usable anchor, so this is still a single midpoint write',
+    );
+  }
+
+  // ── FINDING M-3: the OTHER end of the range, past the last rank ───
+  //
+  // `midpoint()`'s tail branch counts a full `RANK_STEP` upwards and guards the
+  // result with `Number.isSafeInteger`. Every enumerated case above works with
+  // small ranks, so nothing reached that guard: deleting it (mutant `RANK-09`)
+  // left the whole suite green while making ~10% of randomised moves write a
+  // rank above `Number.MAX_SAFE_INTEGER`, where integers stop being distinct
+  // and the band can no longer express any order at all.
+  //
+  // The server stores an absolute integer and never re-ranks, so a band can
+  // genuinely drift up here over a long life; the values are not hostile input,
+  // just old ones.
+  {
+    // Dropping `a` past `b` needs a rank a full step above MAX_SAFE_INTEGER, so
+    // no single write exists and the band has to be renumbered back down.
+    const source: BandItem[] = [
+      { id: 'a', rank: 1024, createdAt: createdAtFor(0) },
+      { id: 'b', rank: Number.MAX_SAFE_INTEGER, createdAt: createdAtFor(1) },
+    ];
+    assertSourceIsInDisplayOrder(source, 'tail safe-integer fixture');
+
+    // `assertMove` asserts every write is a positive SAFE integer, which is the
+    // assertion the removed guard defeats.
+    const writes = assertMove(source, 'a', 1, ['b', 'a'], 'M-3: tail past MAX_SAFE_INTEGER');
+    assertDeepEqual(
+      writes,
+      [
+        { id: 'b', rank: 1024 },
+        { id: 'a', rank: 2048 },
+      ],
+      'M-3: an unrepresentable tail renumbers the band instead of writing past the boundary',
+    );
+  }
+  {
+    // The complement, so the guard is not simply "always renumber near the
+    // top": one step below the boundary the tail write is representable and
+    // must still be a single write.
+    const source: BandItem[] = [
+      { id: 'a', rank: 1024, createdAt: createdAtFor(0) },
+      { id: 'b', rank: Number.MAX_SAFE_INTEGER - RANK_STEP, createdAt: createdAtFor(1) },
+    ];
+    assertSourceIsInDisplayOrder(source, 'tail just inside the boundary fixture');
+
+    const writes = assertMove(source, 'a', 1, ['b', 'a'], 'M-3: tail exactly at the boundary');
+    assertDeepEqual(
+      writes,
+      [{ id: 'a', rank: Number.MAX_SAFE_INTEGER }],
+      'M-3: the largest representable tail rank is still a single write',
     );
   }
 }

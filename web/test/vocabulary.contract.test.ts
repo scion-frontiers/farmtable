@@ -178,4 +178,33 @@ describe('DROP_REFUSAL — the refusal vocabulary itself', () => {
       'Not connected to the server — the new order was not saved.',
     );
   });
+
+  it('says a reorder is still being saved, and that the gesture can be retried', () => {
+    expect(DROP_REFUSAL.reorderBusy).toBe(
+      'Still saving the last reorder — wait for it to finish, then try again.',
+    );
+  });
+
+  /**
+   * The anchor is only an anchor if it covers everything. A constant added to
+   * `DROP_REFUSAL` without a literal above would be user-visible vocabulary
+   * that nothing pins — the drift this file exists to prevent, arriving through
+   * the back door. `reorderBusy` was added in round 4 and this test is what
+   * would have caught it being added silently.
+   */
+  it('pins every entry in DROP_REFUSAL, so a new refusal cannot slip in unpinned', () => {
+    const anchored = [
+      'readOnlyBoard',
+      'stageChangeUnsupported',
+      'terminalLaneHint',
+      'terminalLaneToast',
+      'readOnlyQueue',
+      'reorderUnsupported',
+      'crossBandToast',
+      'reorderNotConnected',
+      'reorderBusy',
+    ];
+
+    expect(Object.keys(DROP_REFUSAL).sort()).toEqual([...anchored].sort());
+  });
 });
