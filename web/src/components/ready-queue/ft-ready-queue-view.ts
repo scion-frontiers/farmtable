@@ -4,9 +4,10 @@ import { classMap } from 'lit/directives/class-map.js';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import {
-  TaskPhase,
-  TaskPriority,
   RelationshipType,
+  TaskHoldReason,
+  TaskPriority,
+  TaskStage,
   type Task,
 } from '../../gen/types.js';
 import { isReady } from '../../utils/task-ready.js';
@@ -15,7 +16,12 @@ import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
 import {
   STAGE_LABEL,
   STAGE_COLOR,
-} from '../inspector/inspector-stage-utils.js';
+  compareAcceptedQueueOrder,
+  availabilityLabel,
+  isClosedStage,
+  type AvailabilityFilter,
+  type TaskGroupFilter,
+} from '../../util/task-state-utils.js';
 import '../ft-empty-state.js';
 
 /**
@@ -135,6 +141,11 @@ export class FtReadyQueueView extends LitElement {
     .blocks-badge {
       flex-shrink: 0;
     }
+    .rank {
+      color: var(--sl-color-neutral-500);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
 
     .stage-badge {
       flex-shrink: 0;
@@ -165,7 +176,16 @@ export class FtReadyQueueView extends LitElement {
   selectedTaskId: string | null = null;
 
   @property({ attribute: false })
-  phaseFilter: TaskPhase | null = null;
+  groupFilter: TaskGroupFilter | null = null;
+
+  @property({ attribute: false })
+  stageFilter: TaskStage | null = null;
+
+  @property({ attribute: false })
+  holdReasonFilter: TaskHoldReason | null = null;
+
+  @property({ attribute: false })
+  availabilityFilter: AvailabilityFilter | null = null;
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
@@ -205,7 +225,7 @@ export class FtReadyQueueView extends LitElement {
     for (const rel of task.relationships) {
       if (rel.type !== RelationshipType.BLOCKS) continue;
       const target = this.store.getTask(rel.targetTaskId);
-      if (target && target.phase !== TaskPhase.CLOSED) {
+      if (target && !isClosedStage(target.stage)) {
         count++;
       }
     }
@@ -217,17 +237,16 @@ export class FtReadyQueueView extends LitElement {
       .filter(
         (task) =>
           this.isReady(task) &&
-          matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter),
+          matchesTaskFilters(
+            task,
+            this.groupFilter,
+            this.stageFilter,
+            this.holdReasonFilter,
+            this.availabilityFilter,
+            this.assigneeFilter,
+          ),
       )
-      .sort((a, b) => {
-        const pa = a.priority ?? TaskPriority.UNSPECIFIED;
-        const pb = b.priority ?? TaskPriority.UNSPECIFIED;
-        // UNSPECIFIED (0) sorts after LOW (4): treat 0 as 5
-        const na = pa === TaskPriority.UNSPECIFIED ? 5 : pa;
-        const nb = pb === TaskPriority.UNSPECIFIED ? 5 : pb;
-        if (na !== nb) return na - nb;
-        return a.name.localeCompare(b.name);
-      });
+      .sort(compareAcceptedQueueOrder);
   }
 
   private shortId(id: string): string {
@@ -328,6 +347,12 @@ export class FtReadyQueueView extends LitElement {
 
         ${blocksCount > 0
           ? html`<sl-badge class="blocks-badge" variant="warning" pill>Blocks ${blocksCount}</sl-badge>`
+          : nothing}
+
+        ${task.rank !== undefined ? html`<span class="rank">Rank ${task.rank}</span>` : nothing}
+
+        ${task.availability
+          ? html`<sl-badge variant=${task.availability.available ? 'success' : 'neutral'}>${availabilityLabel(task)}</sl-badge>`
           : nothing}
 
         <span

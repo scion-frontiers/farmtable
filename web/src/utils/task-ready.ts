@@ -1,16 +1,18 @@
 import { TaskStore } from '../store/task-store.js';
-import { RelationshipType, TaskPhase, TaskStage } from '../gen/types.js';
+import { RelationshipType, TaskStage } from '../gen/types.js';
 import type { Task } from '../gen/types.js';
 
 /**
- * Determine if a task is available for work under the Phase 1 task-state model.
+ * Determine if a task is available for work under the task-state contract.
+ * Server-computed availability is authoritative; the fallback only keeps local
+ * mock data and older snapshots conservative.
  */
 export function isReady(task: Task, store: TaskStore): boolean {
   if (task.availability) {
     return task.availability.available;
   }
 
-  if (task.phase !== TaskPhase.OPEN || task.stage !== TaskStage.ACCEPTED) {
+  if (task.stage !== TaskStage.ACCEPTED) {
     return false;
   }
   if (task.assignees.length > 0) {

@@ -1,12 +1,13 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
-import { TaskStage, TaskPhase } from '../../gen/types.js';
+import { TaskHoldReason, TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
+import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
@@ -35,8 +36,6 @@ const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.COMPLETED, label: 'Completed', phase: TaskPhase.CLOSED },
 ];
 
-const ON_HOLD_STAGES: ColumnDef[] = [];
-
 const CLOSED_STAGES = new Set([
   TaskStage.COMPLETED,
   TaskStage.WONT_FIX,
@@ -62,40 +61,6 @@ export class FtKanbanView extends LitElement {
       justify-content: flex-end;
       margin-bottom: 0.75rem;
     }
-    .on-hold-section {
-      border-top: 1px solid var(--sl-color-neutral-200);
-      padding-top: 0.75rem;
-      margin-top: 0.5rem;
-    }
-    .on-hold-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--sl-color-neutral-500);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.5rem;
-      user-select: none;
-    }
-    .on-hold-header sl-icon {
-      transition: transform 0.2s;
-    }
-    .on-hold-columns {
-      display: flex;
-      gap: 0.75rem;
-      overflow: auto;
-      padding-bottom: 0.5rem;
-    }
-    .on-hold-count {
-      background: var(--sl-color-neutral-200);
-      color: var(--sl-color-neutral-600);
-      border-radius: 999px;
-      padding: 0.1rem 0.45rem;
-      font-size: 0.7rem;
-    }
   `;
 
   @property({ attribute: false })
@@ -108,7 +73,16 @@ export class FtKanbanView extends LitElement {
   client?: FarmTableServiceClient;
 
   @property({ attribute: false })
-  phaseFilter: TaskPhase | null = null;
+  groupFilter: TaskGroupFilter | null = null;
+
+  @property({ attribute: false })
+  stageFilter: TaskStage | null = null;
+
+  @property({ attribute: false })
+  holdReasonFilter: TaskHoldReason | null = null;
+
+  @property({ attribute: false })
+  availabilityFilter: AvailabilityFilter | null = null;
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
@@ -120,9 +94,6 @@ export class FtKanbanView extends LitElement {
   capabilities?: CollectionCapabilities;
 
   private storeController!: TaskStoreController;
-
-  @state()
-  private onHoldExpanded = false;
 
   // ── Edge auto-scroll during drag ──────────────────────────────────
   private static readonly EDGE_THRESHOLD = 50;   // px from edge to trigger
@@ -149,7 +120,14 @@ export class FtKanbanView extends LitElement {
   }
 
   private matchesFilters(task: Task): boolean {
-    return matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter);
+    return matchesTaskFilters(
+      task,
+      this.groupFilter,
+      this.stageFilter,
+      this.holdReasonFilter,
+      this.availabilityFilter,
+      this.assigneeFilter,
+    );
   }
 
   private async onStageChange(e: CustomEvent) {
@@ -207,10 +185,6 @@ export class FtKanbanView extends LitElement {
         detail: { error },
       }));
     }
-  }
-
-  private toggleOnHold() {
-    this.onHoldExpanded = !this.onHoldExpanded;
   }
 
   // ── Auto-scroll helpers ───────────────────────────────────────────
@@ -367,10 +341,8 @@ export class FtKanbanView extends LitElement {
   }
 
   private columnsForStage(stage: TaskStage): ColumnDef[] {
-    // Board columns and on-hold columns are separate keyboard regions by design.
-    // Arrow navigation stays within the currently visible section.
     if (BOARD_COLUMNS.some((col) => col.stage === stage)) return BOARD_COLUMNS;
-    return ON_HOLD_STAGES;
+    return [];
   }
 
   private renderedColumnForStage(stage: TaskStage): FtKanbanColumn | undefined {
@@ -388,16 +360,6 @@ export class FtKanbanView extends LitElement {
         totalCount: allForStage.length,
       };
     });
-    const onHoldColumns = ON_HOLD_STAGES.map((col) => {
-      const allForStage = this.store.getByStage(col.stage);
-      return {
-        ...col,
-        tasks: allForStage.filter((task) => this.matchesFilters(task)),
-        totalCount: allForStage.length,
-      };
-    });
-    const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
-
     return html`
       ${this.readOnly || this.capabilities?.canCreateTask === false ? nothing : html`<div class="view-header">
         <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
@@ -422,6 +384,7 @@ export class FtKanbanView extends LitElement {
             <ft-kanban-column
               .stage=${col.stage}
               .tasks=${col.tasks}
+              .store=${this.store}
               .label=${col.label}
               .totalCount=${col.totalCount}
               ?readOnly=${this.readOnly}
@@ -431,49 +394,6 @@ export class FtKanbanView extends LitElement {
           `,
         )}
       </div>
-
-      ${onHoldTotal > 0
-        ? html`
-            <div class="on-hold-section">
-              <div class="on-hold-header" @click=${this.toggleOnHold}>
-                <sl-icon
-                  name=${this.onHoldExpanded ? 'chevron-down' : 'chevron-right'}
-                ></sl-icon>
-                On Hold
-                <span class="on-hold-count">${onHoldTotal}</span>
-              </div>
-              ${this.onHoldExpanded
-                ? html`
-                    <div
-                      class="on-hold-columns"
-                      @stage-change=${this.onStageChange}
-                      @task-update=${this.onTaskUpdate}
-                      @column-add-task=${this.onColumnAddTask}
-                      @column-nav=${this.onColumnNav}
-                      @dragover=${this.onContainerDragOver}
-                      @dragleave=${this.onContainerDragLeave}
-                      @dragend=${this.onContainerDragEnd}
-                      @drop=${this.onContainerDrop}
-                    >
-                      ${onHoldColumns.map(
-                        (col) => html`
-                          <ft-kanban-column
-                            .stage=${col.stage}
-                            .tasks=${col.tasks}
-                            .label=${col.label}
-                            .totalCount=${col.totalCount}
-                            ?readOnly=${this.readOnly}
-                            .capabilities=${this.capabilities}
-                            selected-task-id=${this.selectedTaskId ?? ''}
-                          ></ft-kanban-column>
-                        `,
-                      )}
-                    </div>
-                  `
-                : nothing}
-            </div>
-          `
-        : nothing}
 
       <ft-add-task-dialog @task-create=${this.onTaskCreate}></ft-add-task-dialog>
     `;
