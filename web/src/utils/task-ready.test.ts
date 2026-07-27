@@ -1,6 +1,7 @@
 import { TaskStore } from '../store/task-store.js';
 import {
   RelationshipType,
+  TaskHoldReason,
   TaskPhase,
   TaskStage,
   Platform,
@@ -70,9 +71,77 @@ function run(): void {
   );
 
   assertEqual(
+    isReady(
+      task({
+        availability: { available: false, reasons: [] },
+      }),
+      storeWith(),
+    ),
+    false,
+    'explicit unavailable availability remains authoritative when present',
+  );
+
+  assertEqual(
     isReady(task(), storeWith()),
     true,
     'fallback keeps unassigned accepted tasks eligible',
+  );
+
+  assertEqual(
+    isReady(
+      task({
+        holdReason: TaskHoldReason.WAITING_FOR_INPUT,
+      }),
+      storeWith(),
+    ),
+    false,
+    'fallback excludes held accepted tasks',
+  );
+
+  assertEqual(
+    isReady(
+      task({
+        startDate: new Date(Date.now() + 60_000).toISOString(),
+      }),
+      storeWith(),
+    ),
+    false,
+    'fallback excludes future-start accepted tasks',
+  );
+
+  assertEqual(
+    isReady(
+      task({
+        phase: TaskPhase.IN_PROGRESS,
+        stage: TaskStage.WORKING,
+      }),
+      storeWith(),
+    ),
+    false,
+    'fallback excludes non-open tasks',
+  );
+
+  assertEqual(
+    isReady(
+      task({
+        stage: TaskStage.TRIAGE,
+      }),
+      storeWith(),
+    ),
+    false,
+    'fallback excludes non-accepted open tasks',
+  );
+
+  assertEqual(
+    isReady(
+      task({
+        phase: TaskPhase.CLOSED,
+        stage: TaskStage.COMPLETED,
+      }),
+      storeWith(),
+    ),
+    false,
+    'fallback excludes terminal tasks',
   );
 
   assertEqual(
