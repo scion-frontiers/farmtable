@@ -296,6 +296,32 @@ export const ATTENTION = {
     'dependents, so nothing will clear these on its own.',
   /** Completes the dashboard tile's accessible name: "<label>: 3 — <tileAction>". */
   tileAction: 'click to list them on the board',
+  /**
+   * Heading of the inspector's attention callout.
+   *
+   * Deliberately identical to `label`. The inspector panel and the card badge
+   * are on screen at the same time for the same task, so a longer or smarter
+   * phrasing here reads as a *different* state rather than the same one seen
+   * up close.
+   */
+  calloutTitle: 'Needs attention',
+  /**
+   * Body of the inspector's attention callout, which has room to say what the
+   * badge cannot.
+   *
+   * Carries the same permanence `explanation` does — contract §11 means these
+   * prerequisites will never unblock this task on their own. Wording that says
+   * only that a prerequisite "is still blocking" implies the block is merely
+   * current, which is the reading `explanation` exists to prevent.
+   */
+  calloutBody: (n: number): string =>
+    n === 1
+      ? 'A prerequisite was cancelled, dropped as a duplicate, or will not be ' +
+        'fixed. Closing it that way does not unblock this task, so nothing ' +
+        'will clear it on its own.'
+      : `${n} prerequisites were cancelled, dropped as duplicates, or will not ` +
+        'be fixed. Closing them that way does not unblock this task, so ' +
+        'nothing will clear it on its own.',
 } as const;
 
 export function attentionBlockers(task: Task, store: TaskStore): Task[] {

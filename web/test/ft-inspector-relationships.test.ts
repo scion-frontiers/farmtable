@@ -8,6 +8,8 @@ import {
   type Task,
 } from '../src/gen/types.js';
 import {
+  ATTENTION,
+  AVAILABILITY_REASON_LABEL,
   attentionBlockers,
   hasAvailabilityReason,
   isUnsuccessfulTerminalStage,
@@ -29,8 +31,16 @@ const SECTION_LABELS = ['Parent', 'Children', 'Blocked by', 'Blocks', 'Related',
 /** The stages `isUnsuccessfulTerminalStage()` treats as "died without shipping". */
 const UNSUCCESSFUL_TERMINAL_STAGES = NATIVE_STAGES.filter(isUnsuccessfulTerminalStage);
 
-const ATTENTION_TITLE = 'Dependency attention needed';
-const PLAIN_BLOCKED_TITLE = 'Blocked by dependency';
+/**
+ * Callout headings, imported rather than transcribed.
+ *
+ * A transcribed copy is a DOM locator that moves with the component: rename
+ * the anchored constant and this file keeps finding the panel, so the panel
+ * silently disagreeing with the card badge and the availability chip is
+ * invisible to the suite. Importing makes the rename fail here.
+ */
+const ATTENTION_TITLE = ATTENTION.calloutTitle;
+const PLAIN_BLOCKED_TITLE = AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY];
 
 // ── DOM helpers ────────────────────────────────────────────────────────────
 
@@ -450,7 +460,7 @@ describe('ft-inspector-relationships — dependency attention callout', () => {
 
       const block = callout(view, ATTENTION_TITLE);
       expect(block).not.toBeNull();
-      expect(clean(block)).toContain('An unsuccessful terminal prerequisite is still blocking this task.');
+      expect(clean(block)).toContain(ATTENTION.calloutBody(1));
       expect(calloutButtons(block!)).toEqual([`Remove ${blocker.name}`, 'Rewire prerequisite']);
     });
   }
@@ -466,7 +476,7 @@ describe('ft-inspector-relationships — dependency attention callout', () => {
     const view = await mountPanel(subject, store);
 
     const block = callout(view, ATTENTION_TITLE)!;
-    expect(clean(block)).toContain('2 unsuccessful terminal prerequisites are still blocking this task.');
+    expect(clean(block)).toContain(ATTENTION.calloutBody(2));
     // One remove action per attention blocker, plus the rewire escape hatch —
     // the healthy COMPLETED prerequisite must not be offered for removal.
     expect(calloutButtons(block)).toEqual([`Remove ${dead.name}`, `Remove ${gone.name}`, 'Rewire prerequisite']);
@@ -569,7 +579,7 @@ describe('ft-inspector-relationships — dependency attention callout', () => {
     const readOnly = await mountPanel(subject, store, { readOnly: true });
     const block = callout(readOnly, ATTENTION_TITLE);
     expect(block).not.toBeNull();
-    expect(clean(block)).toContain('An unsuccessful terminal prerequisite is still blocking this task.');
+    expect(clean(block)).toContain(ATTENTION.calloutBody(1));
     expect(calloutButtons(block!)).toEqual([]);
   });
 
