@@ -87,46 +87,31 @@ describe('ft-kanban-column — a refusing lane looks refusing before the drop', 
 
       expect(cards(column).getAttribute('aria-description')).toContain(testCase.hint);
     });
+
+    /**
+     * FINDING M-1a, now fixed. `aria-description` was driven by `dropHint`,
+     * which covers all three refusal causes, while `title` was driven by a
+     * separate `dropTooltip` gated on `acceptsStageDrop(this.stage)` ALONE — so
+     * a read-only board and a stage-incapable collection gave a screen-reader
+     * user a reason and a pointer user nothing at all.
+     *
+     * Both attributes now come from `dropHint`. This runs over the SAME three
+     * cases as the description test above rather than naming two of them by
+     * hand, so the two channels are asserted to agree by construction and a
+     * fourth refusal cause cannot be added to one channel only.
+     */
+    it(`explains the refusal in the pointer tooltip too when ${testCase.label}`, async () => {
+      const column = await mountColumn(testCase.props);
+
+      expect(cards(column).getAttribute('title')).toContain(testCase.hint);
+    });
+
+    it(`says exactly the same thing in both channels when ${testCase.label}`, async () => {
+      const zone = cards(await mountColumn(testCase.props));
+
+      expect(zone.getAttribute('title')).toBe(zone.getAttribute('aria-description'));
+    });
   }
-
-  /**
-   * FINDING M-1a — characterisation, not endorsement.
-   *
-   * `aria-description` is driven by `dropHint`, which covers all three refusal
-   * causes, but `title` is driven by `dropTooltip`, which is gated on
-   * `acceptsStageDrop(this.stage)` ALONE. So a read-only board and a
-   * stage-change-incapable collection give a screen-reader user a reason and a
-   * pointer user nothing at all — the two channels disagree about whether
-   * there is anything to explain.
-   *
-   * Pinned as current behaviour so the asymmetry is recorded; reported to the
-   * manager rather than fixed, because this is a test pass.
-   */
-  it('gives a pointer user no tooltip for a read-only refusal, only a screen-reader description (finding M-1a)', async () => {
-    const column = await mountColumn({ readOnly: true });
-    const zone = cards(column);
-
-    expect(zone.getAttribute('aria-description')).toContain(DROP_REFUSAL.readOnlyBoard);
-    expect(zone.hasAttribute('title'), 'M-1a: title is gated on the stage alone').toBe(false);
-  });
-
-  it('gives a pointer user no tooltip when the collection cannot change stage (finding M-1a)', async () => {
-    const column = await mountColumn({ capabilities: ALL_DISABLED });
-    const zone = cards(column);
-
-    expect(zone.getAttribute('aria-description')).toContain(DROP_REFUSAL.stageChangeUnsupported);
-    expect(zone.hasAttribute('title')).toBe(false);
-  });
-
-  /** The one refusal where both channels do agree. */
-  it('gives both a tooltip and an accessible description on a terminal lane', async () => {
-    const column = await mountColumn({ stage: TaskStage.WONT_FIX, label: "Won't Fix", tasks: [] });
-    const zone = cards(column);
-
-    const hint = DROP_REFUSAL.terminalLaneHint("Won't Fix");
-    expect(zone.getAttribute('title')).toContain(hint);
-    expect(zone.getAttribute('aria-description')).toContain(hint);
-  });
 
   /**
    * `dropHint` must be gated, not merely empty-string: Lit's `nothing` removes
