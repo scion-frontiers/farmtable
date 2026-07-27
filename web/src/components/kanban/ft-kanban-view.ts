@@ -7,6 +7,7 @@ import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
+import { acceptsStageDrop, STAGE_LABEL } from '../../util/task-state-utils.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
@@ -14,9 +15,13 @@ import type { FtKanbanColumn } from './ft-kanban-column.js';
 
 // TODO(test-coverage): Add component tests for the column-add-task event flow.
 
-interface ColumnDef {
+export interface ColumnDef {
   stage: TaskStage;
   label: string;
+  /**
+   * Display grouping for the lane only. `phase` is a server-derived wire
+   * projection and is never written back to the server — see `onStageChange`.
+   */
   phase: TaskPhase;
 }
 
@@ -26,7 +31,7 @@ interface ColumnNavDetail {
   stage: TaskStage;
 }
 
-const BOARD_COLUMNS: ColumnDef[] = [
+export const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.TRIAGE, label: 'Triage', phase: TaskPhase.OPEN },
   { stage: TaskStage.ACCEPTED, label: 'Accepted', phase: TaskPhase.OPEN },
   { stage: TaskStage.WORKING, label: 'Working', phase: TaskPhase.IN_PROGRESS },
@@ -34,14 +39,10 @@ const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.IN_QA, label: 'In QA', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.DEPLOYING, label: 'Deploying', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.COMPLETED, label: 'Completed', phase: TaskPhase.CLOSED },
+  { stage: TaskStage.WONT_FIX, label: "Won't Fix", phase: TaskPhase.CLOSED },
+  { stage: TaskStage.DUPLICATE, label: 'Duplicate', phase: TaskPhase.CLOSED },
+  { stage: TaskStage.CANCELLED, label: 'Cancelled', phase: TaskPhase.CLOSED },
 ];
-
-const CLOSED_STAGES = new Set([
-  TaskStage.COMPLETED,
-  TaskStage.WONT_FIX,
-  TaskStage.DUPLICATE,
-  TaskStage.CANCELLED,
-]);
 
 @customElement('ft-kanban-view')
 export class FtKanbanView extends LitElement {
@@ -130,32 +131,66 @@ export class FtKanbanView extends LitElement {
     );
   }
 
+  /**
+   * Surface a client-side refusal on the same toast channel as server write
+   * failures. A drag the board declines must never be a silent no-op.
+   */
+  private reportRefusal(message: string) {
+    this.dispatchEvent(new CustomEvent('write-error', {
+      bubbles: true,
+      composed: true,
+      detail: { message, reason: 'stage-change-refused' },
+    }));
+  }
+
   private async onStageChange(e: CustomEvent) {
-    if (this.readOnly || this.capabilities?.canChangeStage === false) return;
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
+
+    if (this.readOnly) {
+      this.reportRefusal('This board is read-only — stage changes are not saved.');
+      return;
+    }
+    if (this.capabilities?.canChangeStage === false) {
+      this.reportRefusal('This collection does not support stage changes.');
+      return;
+    }
+
     const task = this.store.getTask(taskId);
+    // Genuine no-op: the card was dropped back onto the lane it came from.
     if (!task || task.stage === stage) return;
 
-    if (CLOSED_STAGES.has(stage) && stage !== TaskStage.COMPLETED) return;
+    if (!acceptsStageDrop(stage)) {
+      this.reportRefusal(
+        `“${STAGE_LABEL[stage] ?? 'This outcome'}” needs a reason, so it is set through ` +
+          'the API, CLI, or MCP rather than by dragging.',
+      );
+      return;
+    }
 
-    const oldStage = task.stage;
-    const oldPhase = task.phase;
-    const newPhase = phaseForStage(stage);
-    this.store.upsert({ ...task, stage, phase: newPhase });
+    // `phase` is a server-derived wire projection. It is computed here for the
+    // optimistic store entry ONLY, so the card lands in the right lane
+    // immediately; it is never included in an update payload and is replaced
+    // by the authoritative value from the server response below.
+    this.store.upsert({ ...task, stage, phase: phaseForStage(stage) });
 
     try {
       if (this.client) {
-        await this.client.updateTask(taskId, { stage, phase: newPhase });
+        // Contract: the UI writes `stage` only, never `phase`.
+        const updated = await this.client.updateTask(taskId, { stage });
+        // Reconcile with the server's authoritative stage/phase projection.
+        this.store.upsert(updated);
       } else {
         console.warn('No client configured — stage change is local only');
       }
     } catch (error) {
+      // Snap the card back to its original lane (restoring the original local
+      // phase projection), then surface the server's rejection reason.
       console.warn('Failed to update task stage; rolled back optimistic change', error);
-      this.store.upsert({ ...task, stage: oldStage, phase: oldPhase });
+      this.store.upsert(task);
       this.dispatchEvent(new CustomEvent('write-error', {
         bubbles: true,
         composed: true,
-        detail: { error },
+        detail: { error, reason: 'stage-change-failed' },
       }));
     }
   }
@@ -302,6 +337,8 @@ export class FtKanbanView extends LitElement {
       // TODO(server-stage-support): Remove client-side override once CreateTask
       // reliably honors the stage field in the response. The server should be
       // the source of truth; this override exists as a safety net during rollout.
+      // The `phase` below is a local display projection for the store entry —
+      // it is not sent to the server.
       this.store.upsert(
         e.detail.stage
           ? { ...task, stage: e.detail.stage, phase: phaseForStage(e.detail.stage) }
