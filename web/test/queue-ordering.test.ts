@@ -12,13 +12,22 @@ const AVAILABLE = { available: true, reasons: [] };
 /**
  * Deliberately mixed inputs: two priority bands separated only by rank, two
  * tasks separated only by created-at, and two separated only by id.
+ *
+ * FINDING H-1. `f-normal-2b` is listed BEFORE `e-normal-2a` on purpose, and
+ * must stay that way. They tie on priority, rank and created-at, so only the
+ * comparator's last resort — `id` — can order them, and `Array.prototype.sort`
+ * is stable: with the pair listed in id order, a comparator that returned `0`
+ * for the tie produced exactly the same output as the real one, and all three
+ * tests below passed with the tiebreak deleted. Listing them in reverse id
+ * order is what makes the tiebreak load-bearing. Do not "tidy" this back into
+ * alphabetical order.
  */
 const MIXED: Task[] = [
   task({ id: 'g-no-priority', name: 'G', priority: TaskPriority.UNSPECIFIED, availability: AVAILABLE }),
-  task({ id: 'e-normal-2a', name: 'E', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'f-normal-2b', name: 'F', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
   task({ id: 'c-high-late', name: 'C', priority: TaskPriority.HIGH, createdAt: '2026-06-01T00:00:00.000Z', availability: AVAILABLE }),
   task({ id: 'a-urgent-rank5', name: 'A', priority: TaskPriority.URGENT, rank: 5, availability: AVAILABLE }),
-  task({ id: 'f-normal-2b', name: 'F', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'e-normal-2a', name: 'E', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
   task({ id: 'd-high-early', name: 'D', priority: TaskPriority.HIGH, createdAt: '2025-01-01T00:00:00.000Z', availability: AVAILABLE }),
   task({ id: 'b-urgent-rank1', name: 'B', priority: TaskPriority.URGENT, rank: 1, availability: AVAILABLE }),
 ];
