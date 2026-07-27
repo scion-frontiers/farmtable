@@ -96,6 +96,26 @@ func (_u *TaskUpdate) SetNillableStage(v *task.Stage) *TaskUpdate {
 	return _u
 }
 
+// SetHoldReason sets the "hold_reason" field.
+func (_u *TaskUpdate) SetHoldReason(v task.HoldReason) *TaskUpdate {
+	_u.mutation.SetHoldReason(v)
+	return _u
+}
+
+// SetNillableHoldReason sets the "hold_reason" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableHoldReason(v *task.HoldReason) *TaskUpdate {
+	if v != nil {
+		_u.SetHoldReason(*v)
+	}
+	return _u
+}
+
+// ClearHoldReason clears the value of the "hold_reason" field.
+func (_u *TaskUpdate) ClearHoldReason() *TaskUpdate {
+	_u.mutation.ClearHoldReason()
+	return _u
+}
+
 // SetNativeLabel sets the "native_label" field.
 func (_u *TaskUpdate) SetNativeLabel(v string) *TaskUpdate {
 	_u.mutation.SetNativeLabel(v)
@@ -153,6 +173,33 @@ func (_u *TaskUpdate) SetNillablePriority(v *task.Priority) *TaskUpdate {
 // ClearPriority clears the value of the "priority" field.
 func (_u *TaskUpdate) ClearPriority() *TaskUpdate {
 	_u.mutation.ClearPriority()
+	return _u
+}
+
+// SetRank sets the "rank" field.
+func (_u *TaskUpdate) SetRank(v int) *TaskUpdate {
+	_u.mutation.ResetRank()
+	_u.mutation.SetRank(v)
+	return _u
+}
+
+// SetNillableRank sets the "rank" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableRank(v *int) *TaskUpdate {
+	if v != nil {
+		_u.SetRank(*v)
+	}
+	return _u
+}
+
+// AddRank adds value to the "rank" field.
+func (_u *TaskUpdate) AddRank(v int) *TaskUpdate {
+	_u.mutation.AddRank(v)
+	return _u
+}
+
+// ClearRank clears the value of the "rank" field.
+func (_u *TaskUpdate) ClearRank() *TaskUpdate {
+	_u.mutation.ClearRank()
 	return _u
 }
 
@@ -692,6 +739,11 @@ func (_u *TaskUpdate) check() error {
 			return &ValidationError{Name: "stage", err: fmt.Errorf(`ent: validator failed for field "Task.stage": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.HoldReason(); ok {
+		if err := task.HoldReasonValidator(v); err != nil {
+			return &ValidationError{Name: "hold_reason", err: fmt.Errorf(`ent: validator failed for field "Task.hold_reason": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Priority(); ok {
 		if err := task.PriorityValidator(v); err != nil {
 			return &ValidationError{Name: "priority", err: fmt.Errorf(`ent: validator failed for field "Task.priority": %w`, err)}
@@ -735,6 +787,12 @@ func (_u *TaskUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Stage(); ok {
 		_spec.SetField(task.FieldStage, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.HoldReason(); ok {
+		_spec.SetField(task.FieldHoldReason, field.TypeEnum, value)
+	}
+	if _u.mutation.HoldReasonCleared() {
+		_spec.ClearField(task.FieldHoldReason, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.NativeLabel(); ok {
 		_spec.SetField(task.FieldNativeLabel, field.TypeString, value)
 	}
@@ -752,6 +810,15 @@ func (_u *TaskUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(task.FieldPriority, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.Rank(); ok {
+		_spec.SetField(task.FieldRank, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedRank(); ok {
+		_spec.AddField(task.FieldRank, field.TypeInt, value)
+	}
+	if _u.mutation.RankCleared() {
+		_spec.ClearField(task.FieldRank, field.TypeInt)
 	}
 	if value, ok := _u.mutation.AssigneeID(); ok {
 		_spec.SetField(task.FieldAssigneeID, field.TypeUUID, value)
@@ -1200,6 +1267,26 @@ func (_u *TaskUpdateOne) SetNillableStage(v *task.Stage) *TaskUpdateOne {
 	return _u
 }
 
+// SetHoldReason sets the "hold_reason" field.
+func (_u *TaskUpdateOne) SetHoldReason(v task.HoldReason) *TaskUpdateOne {
+	_u.mutation.SetHoldReason(v)
+	return _u
+}
+
+// SetNillableHoldReason sets the "hold_reason" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableHoldReason(v *task.HoldReason) *TaskUpdateOne {
+	if v != nil {
+		_u.SetHoldReason(*v)
+	}
+	return _u
+}
+
+// ClearHoldReason clears the value of the "hold_reason" field.
+func (_u *TaskUpdateOne) ClearHoldReason() *TaskUpdateOne {
+	_u.mutation.ClearHoldReason()
+	return _u
+}
+
 // SetNativeLabel sets the "native_label" field.
 func (_u *TaskUpdateOne) SetNativeLabel(v string) *TaskUpdateOne {
 	_u.mutation.SetNativeLabel(v)
@@ -1257,6 +1344,33 @@ func (_u *TaskUpdateOne) SetNillablePriority(v *task.Priority) *TaskUpdateOne {
 // ClearPriority clears the value of the "priority" field.
 func (_u *TaskUpdateOne) ClearPriority() *TaskUpdateOne {
 	_u.mutation.ClearPriority()
+	return _u
+}
+
+// SetRank sets the "rank" field.
+func (_u *TaskUpdateOne) SetRank(v int) *TaskUpdateOne {
+	_u.mutation.ResetRank()
+	_u.mutation.SetRank(v)
+	return _u
+}
+
+// SetNillableRank sets the "rank" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableRank(v *int) *TaskUpdateOne {
+	if v != nil {
+		_u.SetRank(*v)
+	}
+	return _u
+}
+
+// AddRank adds value to the "rank" field.
+func (_u *TaskUpdateOne) AddRank(v int) *TaskUpdateOne {
+	_u.mutation.AddRank(v)
+	return _u
+}
+
+// ClearRank clears the value of the "rank" field.
+func (_u *TaskUpdateOne) ClearRank() *TaskUpdateOne {
+	_u.mutation.ClearRank()
 	return _u
 }
 
@@ -1809,6 +1923,11 @@ func (_u *TaskUpdateOne) check() error {
 			return &ValidationError{Name: "stage", err: fmt.Errorf(`ent: validator failed for field "Task.stage": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.HoldReason(); ok {
+		if err := task.HoldReasonValidator(v); err != nil {
+			return &ValidationError{Name: "hold_reason", err: fmt.Errorf(`ent: validator failed for field "Task.hold_reason": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Priority(); ok {
 		if err := task.PriorityValidator(v); err != nil {
 			return &ValidationError{Name: "priority", err: fmt.Errorf(`ent: validator failed for field "Task.priority": %w`, err)}
@@ -1869,6 +1988,12 @@ func (_u *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) {
 	if value, ok := _u.mutation.Stage(); ok {
 		_spec.SetField(task.FieldStage, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.HoldReason(); ok {
+		_spec.SetField(task.FieldHoldReason, field.TypeEnum, value)
+	}
+	if _u.mutation.HoldReasonCleared() {
+		_spec.ClearField(task.FieldHoldReason, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.NativeLabel(); ok {
 		_spec.SetField(task.FieldNativeLabel, field.TypeString, value)
 	}
@@ -1886,6 +2011,15 @@ func (_u *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) {
 	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(task.FieldPriority, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.Rank(); ok {
+		_spec.SetField(task.FieldRank, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedRank(); ok {
+		_spec.AddField(task.FieldRank, field.TypeInt, value)
+	}
+	if _u.mutation.RankCleared() {
+		_spec.ClearField(task.FieldRank, field.TypeInt)
 	}
 	if value, ok := _u.mutation.AssigneeID(); ok {
 		_spec.SetField(task.FieldAssigneeID, field.TypeUUID, value)

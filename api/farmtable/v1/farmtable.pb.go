@@ -161,9 +161,10 @@ type TaskStage int32
 const (
 	TaskStage_TASK_STAGE_UNSPECIFIED TaskStage = 0
 	// OPEN
-	TaskStage_TASK_STAGE_TRIAGE  TaskStage = 1
-	TaskStage_TASK_STAGE_BACKLOG TaskStage = 2
-	TaskStage_TASK_STAGE_READY   TaskStage = 3
+	TaskStage_TASK_STAGE_TRIAGE   TaskStage = 1
+	TaskStage_TASK_STAGE_ACCEPTED TaskStage = 2
+	TaskStage_TASK_STAGE_BACKLOG  TaskStage = 2
+	TaskStage_TASK_STAGE_READY    TaskStage = 3
 	// IN_PROGRESS
 	TaskStage_TASK_STAGE_WORKING   TaskStage = 4
 	TaskStage_TASK_STAGE_IN_REVIEW TaskStage = 5
@@ -186,7 +187,7 @@ var (
 	TaskStage_name = map[int32]string{
 		0:  "TASK_STAGE_UNSPECIFIED",
 		1:  "TASK_STAGE_TRIAGE",
-		2:  "TASK_STAGE_BACKLOG",
+		2:  "TASK_STAGE_ACCEPTED",
 		3:  "TASK_STAGE_READY",
 		4:  "TASK_STAGE_WORKING",
 		5:  "TASK_STAGE_IN_REVIEW",
@@ -204,6 +205,7 @@ var (
 	TaskStage_value = map[string]int32{
 		"TASK_STAGE_UNSPECIFIED":       0,
 		"TASK_STAGE_TRIAGE":            1,
+		"TASK_STAGE_ACCEPTED":          2,
 		"TASK_STAGE_BACKLOG":           2,
 		"TASK_STAGE_READY":             3,
 		"TASK_STAGE_WORKING":           4,

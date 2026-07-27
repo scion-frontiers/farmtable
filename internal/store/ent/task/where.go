@@ -76,6 +76,11 @@ func Type(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldType, v))
 }
 
+// Rank applies equality check predicate on the "rank" field. It's identical to RankEQ.
+func Rank(v int) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldRank, v))
+}
+
 // AssigneeID applies equality check predicate on the "assignee_id" field. It's identical to AssigneeIDEQ.
 func AssigneeID(v uuid.UUID) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldAssigneeID, v))
@@ -316,6 +321,36 @@ func StageNotIn(vs ...Stage) predicate.Task {
 	return predicate.Task(sql.FieldNotIn(FieldStage, vs...))
 }
 
+// HoldReasonEQ applies the EQ predicate on the "hold_reason" field.
+func HoldReasonEQ(v HoldReason) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldHoldReason, v))
+}
+
+// HoldReasonNEQ applies the NEQ predicate on the "hold_reason" field.
+func HoldReasonNEQ(v HoldReason) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldHoldReason, v))
+}
+
+// HoldReasonIn applies the In predicate on the "hold_reason" field.
+func HoldReasonIn(vs ...HoldReason) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldHoldReason, vs...))
+}
+
+// HoldReasonNotIn applies the NotIn predicate on the "hold_reason" field.
+func HoldReasonNotIn(vs ...HoldReason) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldHoldReason, vs...))
+}
+
+// HoldReasonIsNil applies the IsNil predicate on the "hold_reason" field.
+func HoldReasonIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldHoldReason))
+}
+
+// HoldReasonNotNil applies the NotNil predicate on the "hold_reason" field.
+func HoldReasonNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldHoldReason))
+}
+
 // NativeLabelEQ applies the EQ predicate on the "native_label" field.
 func NativeLabelEQ(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldNativeLabel, v))
@@ -494,6 +529,56 @@ func PriorityIsNil() predicate.Task {
 // PriorityNotNil applies the NotNil predicate on the "priority" field.
 func PriorityNotNil() predicate.Task {
 	return predicate.Task(sql.FieldNotNull(FieldPriority))
+}
+
+// RankEQ applies the EQ predicate on the "rank" field.
+func RankEQ(v int) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldRank, v))
+}
+
+// RankNEQ applies the NEQ predicate on the "rank" field.
+func RankNEQ(v int) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldRank, v))
+}
+
+// RankIn applies the In predicate on the "rank" field.
+func RankIn(vs ...int) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldRank, vs...))
+}
+
+// RankNotIn applies the NotIn predicate on the "rank" field.
+func RankNotIn(vs ...int) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldRank, vs...))
+}
+
+// RankGT applies the GT predicate on the "rank" field.
+func RankGT(v int) predicate.Task {
+	return predicate.Task(sql.FieldGT(FieldRank, v))
+}
+
+// RankGTE applies the GTE predicate on the "rank" field.
+func RankGTE(v int) predicate.Task {
+	return predicate.Task(sql.FieldGTE(FieldRank, v))
+}
+
+// RankLT applies the LT predicate on the "rank" field.
+func RankLT(v int) predicate.Task {
+	return predicate.Task(sql.FieldLT(FieldRank, v))
+}
+
+// RankLTE applies the LTE predicate on the "rank" field.
+func RankLTE(v int) predicate.Task {
+	return predicate.Task(sql.FieldLTE(FieldRank, v))
+}
+
+// RankIsNil applies the IsNil predicate on the "rank" field.
+func RankIsNil() predicate.Task {
+	return predicate.Task(sql.FieldIsNull(FieldRank))
+}
+
+// RankNotNil applies the NotNil predicate on the "rank" field.
+func RankNotNil() predicate.Task {
+	return predicate.Task(sql.FieldNotNull(FieldRank))
 }
 
 // AssigneeIDEQ applies the EQ predicate on the "assignee_id" field.

@@ -93,7 +93,7 @@ func TestListTasks_Filters(t *testing.T) {
 		stage task.Stage
 	}{
 		{"open-triage", collID, task.PhaseOpen, task.StageTriage},
-		{"open-backlog", collID, task.PhaseOpen, task.StageBacklog},
+		{"open-backlog", collID, task.PhaseOpen, task.StageAccepted},
 		{"in-progress-working", collID, task.PhaseInProgress, task.StageWorking},
 		{"other-coll", collID2, task.PhaseOpen, task.StageTriage},
 	} {
@@ -849,7 +849,7 @@ func TestUpdateTask_ChangesRecorded(t *testing.T) {
 	}
 
 	newTitle := "Updated"
-	newStage := task.StageBacklog
+	newStage := task.StageAccepted
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,
@@ -875,7 +875,7 @@ func TestUpdateTask_ChangesRecorded(t *testing.T) {
 				t.Errorf("title change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		case "stage":
-			if c.OldValue != string(task.StageTriage) || c.NewValue != string(task.StageBacklog) {
+			if c.OldValue != string(task.StageTriage) || c.NewValue != string(task.StageAccepted) {
 				t.Errorf("stage change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		}
@@ -1037,7 +1037,7 @@ func TestListChanges_FieldFilter(t *testing.T) {
 	}
 
 	newTitle := "Changed"
-	newStage := task.StageBacklog
+	newStage := task.StageAccepted
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,

@@ -305,14 +305,14 @@ func statusToPhaseStage(status string) (task.Phase, task.Stage) {
 	case "in_progress":
 		return task.PhaseInProgress, task.StageWorking
 	case "blocked":
-		return task.PhaseOpen, task.StageBlocked
+		return task.PhaseOpen, task.StageAccepted
 	case "deferred":
-		return task.PhaseOnHold, task.StageDeferred
+		return task.PhaseOnHold, task.StageAccepted
 	default:
 		// StageBacklog, not StageTriage: items without an explicit status are
 		// treated as accepted-but-unprioritized. StageTriage + the auth-stage4
 		// accept gate would block ClaimTask for all roles.
-		return task.PhaseOpen, task.StageBacklog
+		return task.PhaseOpen, task.StageAccepted
 	}
 }
 
@@ -320,9 +320,9 @@ func phaseStageToStatus(phase task.Phase, stage task.Stage) string {
 	switch {
 	case phase == task.PhaseClosed:
 		return "closed"
-	case stage == task.StageBlocked:
+	case stage == task.StageAccepted:
 		return "blocked"
-	case stage == task.StageDeferred:
+	case stage == task.StageAccepted:
 		return "deferred"
 	case phase == task.PhaseInProgress || stage == task.StageWorking:
 		return "in_progress"

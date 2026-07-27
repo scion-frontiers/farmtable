@@ -86,7 +86,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 			}
 		}
 
-		if node.Stage == task.StageReady && !hasOpenChildren {
+		if node.Stage == task.StageAccepted && !hasOpenChildren {
 			reason := "marked ready, no open sub-issues"
 			if len(node.Children) == 0 {
 				reason = "leaf task, marked ready"
@@ -95,7 +95,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 			continue
 		}
 
-		if includeUnblocked && !hasOpenChildren && node.Stage != task.StageBlocked {
+		if includeUnblocked && !hasOpenChildren && node.Stage != task.StageAccepted {
 			isTerminal := node.Stage == task.StageCompleted || node.Stage == task.StageWontFix ||
 				node.Stage == task.StageDuplicate || node.Stage == task.StageCancelled
 			if !isTerminal && len(node.Children) > 0 {
@@ -118,7 +118,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 			continue
 		}
 
-		if node.Stage == task.StageBlocked {
+		if node.Stage == task.StageAccepted {
 			results = append(results, blockedResult{
 				Node:   node,
 				Reason: "explicitly blocked (label)",
@@ -142,7 +142,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 		}
 
 		for _, child := range node.Children {
-			if child.Stage == task.StageBlocked {
+			if child.Stage == task.StageAccepted {
 				results = append(results, blockedResult{
 					Node:      node,
 					Reason:    "transitively blocked: sub-issue is blocked",

@@ -746,8 +746,10 @@ func parseTaskStage(value string) (task.Stage, error) {
 		return task.StageTriage, nil
 	}
 	switch task.Stage(value) {
-	case task.StageTriage, task.StageBacklog, task.StageReady, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying, task.StageBlocked, task.StageWaitingForInput, task.StageDeferred, task.StageScheduled, task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+	case task.StageTriage, task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying, task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 		return task.Stage(value), nil
+	case "backlog", "ready", "blocked", "waiting_for_input", "deferred", "scheduled":
+		return task.StageAccepted, nil
 	default:
 		return "", fmt.Errorf("invalid task stage %q", value)
 	}

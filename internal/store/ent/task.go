@@ -28,12 +28,16 @@ type Task struct {
 	Phase task.Phase `json:"phase,omitempty"`
 	// Stage holds the value of the "stage" field.
 	Stage task.Stage `json:"stage,omitempty"`
+	// HoldReason holds the value of the "hold_reason" field.
+	HoldReason *task.HoldReason `json:"hold_reason,omitempty"`
 	// NativeLabel holds the value of the "native_label" field.
 	NativeLabel string `json:"native_label,omitempty"`
 	// Type holds the value of the "type" field.
 	Type string `json:"type,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority *task.Priority `json:"priority,omitempty"`
+	// Rank holds the value of the "rank" field.
+	Rank *int `json:"rank,omitempty"`
 	// AssigneeID holds the value of the "assignee_id" field.
 	AssigneeID *uuid.UUID `json:"assignee_id,omitempty"`
 	// CollectionID holds the value of the "collection_id" field.
@@ -169,7 +173,9 @@ func (*Task) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case task.FieldRemoteData, task.FieldLabels, task.FieldPullRequests:
 			values[i] = new([]byte)
-		case task.FieldTitle, task.FieldDescription, task.FieldPhase, task.FieldStage, task.FieldNativeLabel, task.FieldType, task.FieldPriority, task.FieldAcceptanceCriteria, task.FieldRepo, task.FieldBranch, task.FieldCiStatus, task.FieldVersion:
+		case task.FieldRank:
+			values[i] = new(sql.NullInt64)
+		case task.FieldTitle, task.FieldDescription, task.FieldPhase, task.FieldStage, task.FieldHoldReason, task.FieldNativeLabel, task.FieldType, task.FieldPriority, task.FieldAcceptanceCriteria, task.FieldRepo, task.FieldBranch, task.FieldCiStatus, task.FieldVersion:
 			values[i] = new(sql.NullString)
 		case task.FieldStartDate, task.FieldDueDate, task.FieldClosedAt, task.FieldCreatedAt, task.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -220,6 +226,13 @@ func (_m *Task) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Stage = task.Stage(value.String)
 			}
+		case task.FieldHoldReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field hold_reason", values[i])
+			} else if value.Valid {
+				_m.HoldReason = new(task.HoldReason)
+				*_m.HoldReason = task.HoldReason(value.String)
+			}
 		case task.FieldNativeLabel:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field native_label", values[i])
@@ -238,6 +251,13 @@ func (_m *Task) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Priority = new(task.Priority)
 				*_m.Priority = task.Priority(value.String)
+			}
+		case task.FieldRank:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field rank", values[i])
+			} else if value.Valid {
+				_m.Rank = new(int)
+				*_m.Rank = int(value.Int64)
 			}
 		case task.FieldAssigneeID:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -431,6 +451,11 @@ func (_m *Task) String() string {
 	builder.WriteString("stage=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Stage))
 	builder.WriteString(", ")
+	if v := _m.HoldReason; v != nil {
+		builder.WriteString("hold_reason=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("native_label=")
 	builder.WriteString(_m.NativeLabel)
 	builder.WriteString(", ")
@@ -439,6 +464,11 @@ func (_m *Task) String() string {
 	builder.WriteString(", ")
 	if v := _m.Priority; v != nil {
 		builder.WriteString("priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Rank; v != nil {
+		builder.WriteString("rank=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
