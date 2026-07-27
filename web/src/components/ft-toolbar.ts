@@ -14,6 +14,7 @@ import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
@@ -60,6 +61,9 @@ const AVAILABILITY_OPTIONS: { value: AvailabilityFilter; label: string }[] = [
   { value: AvailabilityReason.TRIAGE, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.TRIAGE] },
   { value: AvailabilityReason.HELD, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.HELD] },
   { value: AvailabilityReason.BLOCKED_BY_DEPENDENCY, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY] },
+  // Sits directly under the reason it narrows: attention tasks are the subset
+  // of dependency-blocked tasks whose blocker will never close successfully.
+  { value: 'attention', label: ATTENTION.label },
   { value: AvailabilityReason.FUTURE_START_DATE, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.FUTURE_START_DATE] },
   { value: AvailabilityReason.TERMINAL, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.TERMINAL] },
 ] as const;
@@ -803,7 +807,7 @@ export class FtToolbar extends LitElement {
 
   private parseAvailabilityFilter(value: string): AvailabilityFilter | null {
     if (!value) return null;
-    if (value === 'available' || value === 'unavailable') return value;
+    if (value === 'available' || value === 'unavailable' || value === 'attention') return value;
     return Number(value) as AvailabilityReason;
   }
 

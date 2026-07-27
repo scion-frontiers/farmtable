@@ -6,10 +6,13 @@ import { AvailabilityReason, TaskPriority, type Task } from '../gen/types.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
 import { isReady } from '../utils/task-ready.js';
 import {
+  ATTENTION,
+  attentionBlockers,
   AVAILABILITY_REASON_LABEL,
   hasHoldReason,
   isClosedStage,
 } from '../util/task-state-utils.js';
+import type { TaskFilterChangeDetail } from './task-filters.js';
 import './ft-empty-state.js';
 
 interface StateStat {
@@ -87,6 +90,26 @@ export class FtDashboardView extends LitElement {
 
     .stat-card.ready .stat-label {
       color: var(--sl-color-success-600);
+    }
+
+    .stat-card.attention {
+      border-color: var(--sl-color-danger-300);
+      background: var(--sl-color-danger-50);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .stat-card.attention:hover {
+      border-color: var(--sl-color-danger-500);
+      box-shadow: 0 0 0 1px var(--sl-color-danger-500);
+    }
+
+    .stat-card.attention .stat-count {
+      color: var(--sl-color-danger-700);
+    }
+
+    .stat-card.attention .stat-label {
+      color: var(--sl-color-danger-600);
     }
 
     .stat-count {
@@ -174,6 +197,51 @@ export class FtDashboardView extends LitElement {
     );
   }
 
+  /**
+   * Count tasks stranded behind an unsuccessful terminal prerequisite, using
+   * the same `attentionBlockers()` the card badge and the inspector callout
+   * use. Never re-derived here: a second definition of "needs attention" would
+   * let the tile disagree with the set the filter then shows.
+   */
+  private computeAttentionCount(tasks: readonly Task[]): number {
+    return tasks.filter((task) => attentionBlockers(task, this.store).length > 0).length;
+  }
+
+  /**
+   * Show the attention set on the board.
+   *
+   * Two events, in this order: `view-change` first so the shell has already
+   * switched to a view that renders unavailable tasks by the time the filter
+   * lands. The Available Queue is the wrong destination — attention tasks are
+   * dependency-blocked by definition, so the queue would show none of them.
+   *
+   * Every other filter is cleared. This tile promises a count, and an
+   * already-active stage or assignee filter would silently show the user fewer
+   * tasks than the number they just clicked.
+   */
+  private showAttentionTasks() {
+    this.dispatchEvent(
+      new CustomEvent('view-change', {
+        detail: { view: 'kanban' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    this.dispatchEvent(
+      new CustomEvent<TaskFilterChangeDetail>('filter-change', {
+        detail: {
+          group: null,
+          stage: null,
+          holdReason: null,
+          availability: 'attention',
+          assigneeId: null,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private computePriorityStats(tasks: readonly Task[]): PriorityStat[] {
     const counts: Record<number, number> = {
       [TaskPriority.URGENT]: 0,
@@ -249,6 +317,7 @@ export class FtDashboardView extends LitElement {
     const availabilityReasons = this.computeAvailabilityReasons(tasks);
     const totalCount = tasks.length;
     const availableCount = this.computeAvailableCount(tasks);
+    const attentionCount = this.computeAttentionCount(tasks);
 
     return html`
       <div class="dashboard">
@@ -279,6 +348,36 @@ export class FtDashboardView extends LitElement {
             <div class="stat-count">${availableCount}</div>
             <div class="stat-label">Available</div>
           </div>
+          <!--
+            Rendered only when there is something to find, matching the
+            Unavailable Reasons section below: a permanent "0" would be noise on
+            the dashboard of every healthy collection, and the concept stays
+            discoverable regardless through the Availability filter, which
+            always lists it. When it does appear, it appears unprompted — which
+            is the point, since contract §11 guarantees nothing else will ever
+            surface these tasks.
+          -->
+          ${attentionCount > 0
+            ? html`
+                <div
+                  class="stat-card attention"
+                  role="link"
+                  tabindex="0"
+                  aria-label="${ATTENTION.label}: ${attentionCount} — ${ATTENTION.tileAction}"
+                  title=${ATTENTION.explanation}
+                  @click=${this.showAttentionTasks}
+                  @keydown=${(e: KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      this.showAttentionTasks();
+                    }
+                  }}
+                >
+                  <div class="stat-count">${attentionCount}</div>
+                  <div class="stat-label">${ATTENTION.label}</div>
+                </div>
+              `
+            : null}
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>
             <div class="stat-label">Total</div>

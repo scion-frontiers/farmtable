@@ -7,6 +7,7 @@ import { TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { TaskStore } from '../../store/task-store.js';
 import {
+  ATTENTION,
   attentionBlockers,
   availabilityLabel,
   holdReasonLabel,
@@ -212,7 +213,7 @@ export class FtTaskCard extends LitElement {
             `
           : nothing}
         ${this.needsAttention
-          ? html`<sl-tag size="small" variant="danger">Needs attention</sl-tag>`
+          ? html`<sl-tag size="small" variant="danger">${ATTENTION.label}</sl-tag>`
           : nothing}
       </div>
     `;

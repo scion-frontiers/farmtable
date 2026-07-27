@@ -82,43 +82,49 @@ function run(): void {
     'accepted queue order respects priority, then rank, then stable fallback',
   );
 
+  const heldNoPayload = task({ holdReason: TaskHoldReason.WAITING_FOR_INPUT });
   assertEqual(
     matchesTaskFilters(
-      task({ holdReason: TaskHoldReason.WAITING_FOR_INPUT }),
+      heldNoPayload,
       'active',
       TaskStage.ACCEPTED,
       TaskHoldReason.WAITING_FOR_INPUT,
       'unavailable',
       null,
+      storeWith(heldNoPayload),
     ),
     false,
     'availability filter requires server-computed unavailable state',
   );
 
+  const heldTask = task({
+    holdReason: TaskHoldReason.WAITING_FOR_INPUT,
+    availability: { available: false, reasons: [AvailabilityReason.HELD] },
+  });
   assertEqual(
     matchesTaskFilters(
-      task({
-        holdReason: TaskHoldReason.WAITING_FOR_INPUT,
-        availability: { available: false, reasons: [AvailabilityReason.HELD] },
-      }),
+      heldTask,
       'active',
       TaskStage.ACCEPTED,
       TaskHoldReason.WAITING_FOR_INPUT,
       AvailabilityReason.HELD,
       null,
+      storeWith(heldTask),
     ),
     true,
     'filters match active accepted held tasks by computed availability reason',
   );
 
+  const completed = task({ stage: TaskStage.COMPLETED });
   assertEqual(
     matchesTaskFilters(
-      task({ stage: TaskStage.COMPLETED }),
+      completed,
       'active',
       null,
       null,
       null,
       null,
+      storeWith(completed),
     ),
     false,
     'active group excludes terminal stages without using phase',
