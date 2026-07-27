@@ -5,7 +5,15 @@ import '../src/components/kanban/ft-task-card.js';
 import { TaskStage } from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
 import { STAGE_LABEL } from '../src/util/task-state-utils.js';
-import { dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
+import {
+  dragOverOn,
+  dragTaskOnto,
+  dropTaskOn,
+  flush,
+  mount,
+  queryAllDeep,
+  settle,
+} from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { NATIVE_STAGES, RecordingClient, storeWith, task } from './helpers/fixtures.js';
 import type { TaskStore } from '../src/store/task-store.js';
@@ -299,5 +307,124 @@ describe('ft-kanban-view — refusals must be visible', () => {
     await flush();
 
     expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-refused']);
+  });
+});
+
+/**
+ * A `drop` event only fires on an element whose `dragover` handler called
+ * `preventDefault()`. A lane that means to *refuse* a drop must therefore still
+ * cancel `dragover`: bailing out early makes the browser drop the gesture on the
+ * floor, and the refusal becomes a silent no-op — the lane just looks broken.
+ *
+ * The refusal tests above use `dropTaskOn`, which synthesises a `drop` directly
+ * and so cannot observe this. These tests exercise `dragover` itself, and are the
+ * regression guard for the early return removed from `onDragOver`.
+ */
+describe('ft-kanban-view — refusing lanes must still accept the drop gesture', () => {
+  const REFUSING_LANES: [name: string, stage: TaskStage][] = [
+    ['WONT_FIX', TaskStage.WONT_FIX],
+    ['DUPLICATE', TaskStage.DUPLICATE],
+    ['CANCELLED', TaskStage.CANCELLED],
+  ];
+
+  for (const [name, stage] of REFUSING_LANES) {
+    it(`cancels dragover on the ${name} lane so the browser still fires drop`, async () => {
+      const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })));
+
+      const event = dragOverOn(dropZoneFor(view, stage));
+
+      expect(
+        event.defaultPrevented,
+        `dragover was not cancelled on the ${name} lane, so no drop event can ever fire there`,
+      ).toBe(true);
+    });
+  }
+
+  it('cancels dragover on every lane of a read-only board', async () => {
+    const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })), {
+      readOnly: true,
+    });
+
+    const event = dragOverOn(dropZoneFor(view, TaskStage.WORKING));
+
+    expect(event.defaultPrevented, 'read-only lanes swallowed the drag gesture').toBe(true);
+  });
+
+  it('cancels dragover when canChangeStage is false', async () => {
+    const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })), {
+      capabilities: { ...ALL_ENABLED, canChangeStage: false },
+    });
+
+    const event = dragOverOn(dropZoneFor(view, TaskStage.WORKING));
+
+    expect(event.defaultPrevented, 'capability-blocked lanes swallowed the drag gesture').toBe(true);
+  });
+
+  it('cancels dragover on an accepting lane', async () => {
+    const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })));
+
+    expect(dragOverOn(dropZoneFor(view, TaskStage.WORKING)).defaultPrevented).toBe(true);
+  });
+
+  it('sets dropEffect to move rather than leaving it none', async () => {
+    // `dropEffect = 'none'` cancels the drop in a real browser, which would be
+    // the same silent no-op by another route.
+    const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })));
+
+    const event = dragOverOn(dropZoneFor(view, TaskStage.WONT_FIX)) as Event & {
+      dataTransfer: DataTransfer;
+    };
+
+    expect(event.dataTransfer.dropEffect).toBe('move');
+  });
+
+  for (const [name, stage] of REFUSING_LANES) {
+    it(`reports a refusal for a full drag gesture onto the ${name} lane`, async () => {
+      // End-to-end via `dragTaskOnto`, which enforces the browser's rule: if
+      // `dragover` is not cancelled the drop never happens and no feedback can
+      // possibly appear, however good the drop handler is.
+      const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+      const { view, client } = await mountBoard(store);
+      const feedback = collectFeedback(document.body);
+
+      const dropped = dragTaskOnto(dropZoneFor(view, stage), 't1');
+      await flush();
+      await settle(view);
+
+      expect(dropped, `dragover on the ${name} lane refused the gesture, so drop never fired`).toBe(
+        true,
+      );
+      expect(client.updateTaskCalls).toEqual([]);
+      expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
+      expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-refused']);
+    });
+  }
+
+  it('reports a refusal for a full drag gesture when canChangeStage is false', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view } = await mountBoard(store, {
+      capabilities: { ...ALL_ENABLED, canChangeStage: false },
+    });
+    const feedback = collectFeedback(document.body);
+
+    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    await settle(view);
+
+    expect(dropped, 'dragover refused the gesture, so drop never fired').toBe(true);
+    expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-refused']);
+  });
+
+  it('completes a real drag gesture onto an accepting lane', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+
+    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    await settle(view);
+
+    expect(dropped).toBe(true);
+    expect(client.updateTaskCalls).toHaveLength(1);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.WORKING);
   });
 });
