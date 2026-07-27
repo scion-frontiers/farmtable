@@ -6,11 +6,21 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { Platform, RelationshipType, TaskPhase, type Collection, type Task, type User } from '../gen/types.js';
+import {
+  Platform,
+  RelationshipType,
+  TaskHoldReason,
+  TaskStage,
+  type Collection,
+  type Task,
+  type User,
+} from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { getCapabilities, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import { isReady } from '../utils/task-ready.js';
+import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
+import { isClosedStage } from '../util/task-state-utils.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
@@ -188,7 +198,16 @@ export class FtApp extends LitElement {
   private addRelationshipDefaultType: RelationshipType | undefined = undefined;
 
   @state()
-  private phaseFilter: TaskPhase | null = null;
+  private groupFilter: TaskGroupFilter | null = null;
+
+  @state()
+  private stageFilter: TaskStage | null = null;
+
+  @state()
+  private holdReasonFilter: TaskHoldReason | null = null;
+
+  @state()
+  private availabilityFilter: AvailabilityFilter | null = null;
 
   @state()
   private assigneeFilter: string | null = null;
@@ -348,9 +367,24 @@ export class FtApp extends LitElement {
 
     const allTasks = this.storeController.taskStore.allTasks;
     const totalCount = allTasks.length;
+    const hasFilters =
+      this.groupFilter !== null ||
+      this.stageFilter !== null ||
+      this.holdReasonFilter !== null ||
+      this.availabilityFilter !== null ||
+      this.assigneeFilter !== null;
     const filteredCount =
-      this.phaseFilter !== null || this.assigneeFilter !== null
-        ? allTasks.filter((task) => matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter))
+      hasFilters
+        ? allTasks.filter((task) =>
+            matchesTaskFilters(
+              task,
+              this.groupFilter,
+              this.stageFilter,
+              this.holdReasonFilter,
+              this.availabilityFilter,
+              this.assigneeFilter,
+            ),
+          )
             .length
         : totalCount;
 
@@ -361,7 +395,10 @@ export class FtApp extends LitElement {
         .client=${this.client}
         .unscopedClient=${this.unscopedClient}
         .collectionId=${this.currentCollectionId ?? ''}
-        .phaseFilter=${this.phaseFilter}
+        .groupFilter=${this.groupFilter}
+        .stageFilter=${this.stageFilter}
+        .holdReasonFilter=${this.holdReasonFilter}
+        .availabilityFilter=${this.availabilityFilter}
         .assigneeFilter=${this.assigneeFilter}
         .layoutOrientation=${this.layoutOrientation}
         ?isPolling=${this.isPolling}
@@ -379,7 +416,10 @@ export class FtApp extends LitElement {
       ></ft-toolbar>
 
       <ft-filter-chips
-        .phaseFilter=${this.phaseFilter}
+        .groupFilter=${this.groupFilter}
+        .stageFilter=${this.stageFilter}
+        .holdReasonFilter=${this.holdReasonFilter}
+        .availabilityFilter=${this.availabilityFilter}
         .assigneeFilter=${this.assigneeFilter}
         .users=${this.users}
         .filteredCount=${filteredCount}
@@ -445,7 +485,10 @@ export class FtApp extends LitElement {
         return html`
           <ft-ready-queue-view
             .store=${this.taskStore}
-            .phaseFilter=${this.phaseFilter}
+            .groupFilter=${this.groupFilter}
+            .stageFilter=${this.stageFilter}
+            .holdReasonFilter=${this.holdReasonFilter}
+            .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
@@ -468,7 +511,10 @@ export class FtApp extends LitElement {
           <ft-tree-view
             .store=${this.taskStore}
             .client=${this.client}
-            .phaseFilter=${this.phaseFilter}
+            .groupFilter=${this.groupFilter}
+            .stageFilter=${this.stageFilter}
+            .holdReasonFilter=${this.holdReasonFilter}
+            .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             ?isolateMode=${this.isolateMode}
@@ -487,7 +533,10 @@ export class FtApp extends LitElement {
           <ft-kanban-view
             .store=${this.taskStore}
             .client=${this.client}
-            .phaseFilter=${this.phaseFilter}
+            .groupFilter=${this.groupFilter}
+            .stageFilter=${this.stageFilter}
+            .holdReasonFilter=${this.holdReasonFilter}
+            .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             .capabilities=${this.capabilities}
@@ -514,8 +563,11 @@ export class FtApp extends LitElement {
   }
 
   private onFilterChange(e: CustomEvent) {
-    const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
-    this.phaseFilter = phase;
+    const { group, stage, holdReason, availability, assigneeId } = e.detail as TaskFilterChangeDetail;
+    this.groupFilter = group;
+    this.stageFilter = stage;
+    this.holdReasonFilter = holdReason;
+    this.availabilityFilter = availability;
     this.assigneeFilter = assigneeId;
     if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
       this.showDimOverlay();
@@ -567,7 +619,7 @@ export class FtApp extends LitElement {
 
     // Dependencies view shows non-closed tasks in blocking relationships.
     if (this.currentView === 'dependencies') {
-      if (task.phase === TaskPhase.CLOSED) {
+      if (isClosedStage(task.stage)) {
         return false;
       }
       // Visible if the task is involved in any active blocking relationship,
@@ -576,26 +628,26 @@ export class FtApp extends LitElement {
       for (const rel of task.relationships) {
         if (rel.type === RelationshipType.BLOCKED_BY) {
           const blocker = this.taskStore.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          if (blocker && !isClosedStage(blocker.stage)) {
             involved = true;
             break;
           }
         }
         if (rel.type === RelationshipType.BLOCKS) {
           const target = this.taskStore.getTask(rel.targetTaskId);
-          if (target && target.phase !== TaskPhase.CLOSED) {
+          if (target && !isClosedStage(target.stage)) {
             involved = true;
             break;
           }
         }
       }
       // Layer 0 = unblocked OPEN/IN_PROGRESS tasks (matches isReady() in getVisibleTasks)
-      if (!involved && (task.phase === TaskPhase.OPEN || task.phase === TaskPhase.IN_PROGRESS)) {
+      if (!involved && !isClosedStage(task.stage)) {
         let isBlocked = false;
         for (const rel of task.relationships) {
           if (rel.type !== RelationshipType.BLOCKED_BY) continue;
           const blocker = this.taskStore.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          if (blocker && !isClosedStage(blocker.stage)) {
             isBlocked = true;
             break;
           }
@@ -605,12 +657,21 @@ export class FtApp extends LitElement {
       return involved;
     }
 
-    // Task must pass the active phase + assignee filters.
-    if (!matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter)) {
+    // Task must pass the active state + assignee filters.
+    if (
+      !matchesTaskFilters(
+        task,
+        this.groupFilter,
+        this.stageFilter,
+        this.holdReasonFilter,
+        this.availabilityFilter,
+        this.assigneeFilter,
+      )
+    ) {
       return false;
     }
 
-    // Ready-queue only shows tasks that the Phase 1 availability model marks available.
+    // Available queue only shows tasks that the server availability model marks available.
     if (this.currentView === 'ready-queue') {
       return isReady(task, this.taskStore);
     }
@@ -882,7 +943,10 @@ export class FtApp extends LitElement {
     this.stopStream();
     this.stopPolling();
     this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
-    this.phaseFilter = null;
+    this.groupFilter = null;
+    this.stageFilter = null;
+    this.holdReasonFilter = null;
+    this.availabilityFilter = null;
     this.assigneeFilter = null;
     this.currentCollectionId = collectionId;
     this.client = createGrpcFarmTableClientWithOptions({
