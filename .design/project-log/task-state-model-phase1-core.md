@@ -5,6 +5,7 @@ Branch: `task-state-core`
 Base: `origin/main`
 Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
 Review follow-up implementation commit: `bc3edf95f00947bd7f30f6a21b05f5309202c4e3`
+R2 follow-up implementation commit: `PENDING_FINAL_COMMIT_HASH`
 
 ## Implemented
 
@@ -52,6 +53,27 @@ security audit. Fixes completed in this follow-up:
 - Docs/comments called out by review now describe native holds as
   `accepted + hold_reason`; `ON_HOLD` is documented as compatibility-only.
 
+## R2 Follow-Up
+
+R2 code review and security audit requested changes. Fixes completed in this
+follow-up:
+
+- `GetBlockedTasks` now uses `terminalStageSatisfiesDependency`, the same
+  dependency satisfaction policy used by computed availability. `completed`
+  satisfies a blocker; `wont_fix`, `cancelled`, and `duplicate` without a
+  canonical replacement remain unresolved blockers.
+- Format v2 import now validates native hold-state combinations before store
+  import. It rejects hold reasons on `triage` and terminal stages, and rejects
+  `hold_reason=deferred` with a concrete future `start_date`.
+- Direct `CreateTask(stage=working)` and `UpdateTask(stage=working)` are
+  rejected with `InvalidArgument` and guidance to use `ClaimTask`; `working`
+  remains claim/start semantics only.
+- Go release hygiene was updated: `go.mod` now targets Go `1.26.5`,
+  `golang.org/x/net v0.55.0`, and `golang.org/x/text v0.39.0`; `go mod tidy`
+  completed.
+- `govulncheck ./...` was installed/run after updates and reported no reachable
+  vulnerabilities.
+
 ## Migration Evidence
 
 Persistent lossy migration notes are implemented through imported `Change` records:
@@ -76,8 +98,13 @@ Evidence tests:
 - `TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages`
 - `TestComputeAvailability_ReasonsAndTerminalDependencies`
 - `TestComputeAvailability_TerminalDependencyMatrix`
+- `TestGetBlockedTasks_TerminalDependencyMatrix`
 - `TestTaskStateValidation_HoldReasonRules`
+- `TestRPC_GetBlockedTasks_TerminalDependencyMatrix`
 - `TestRPC_GetReadyTasksIncludeUnblockedOpenIncludesUnavailableReasons`
+- `TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState`
+- `TestRPC_CreateTaskRejectsDirectWorkingStage`
+- `TestRPC_UpdateTaskRejectsDirectWorkingStage`
 - `TestComputeBlocked_DoesNotTreatAcceptedAsBlocked`
 - `TestIssueUnavailableForClaim`
 - `TestTaskToIssue_StatusProjection`
@@ -124,6 +151,9 @@ Commands run and results:
 - `git merge-base --is-ancestor origin/main HEAD`: pass.
 - `git diff origin/main...HEAD`: pass.
 - Focused follow-up verification: `go test ./internal/store ./internal/platform/github ./internal/platform/beads ./internal/server`: pass.
+- R2 focused store verification: `go test ./internal/store -run 'TestGetBlockedTasks_TerminalDependencyMatrix|TestComputeAvailability_TerminalDependencyMatrix'`: pass.
+- R2 focused server verification: `go test ./internal/server -run 'TestRPC_GetBlockedTasks_TerminalDependencyMatrix|TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState|TestRPC_CreateTaskRejectsDirectWorkingStage|TestRPC_UpdateTaskRejectsDirectWorkingStage'`: pass.
+- Vulnerability verification: `govulncheck ./...`: no reachable vulnerabilities found.
 
 ## Remaining Risks
 

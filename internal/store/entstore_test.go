@@ -439,6 +439,60 @@ func TestComputeAvailability_TerminalDependencyMatrix(t *testing.T) {
 	}
 }
 
+func TestGetBlockedTasks_TerminalDependencyMatrix(t *testing.T) {
+	tests := []struct {
+		stage       task.Stage
+		wantBlocked bool
+	}{
+		{task.StageCompleted, false},
+		{task.StageWontFix, true},
+		{task.StageCancelled, true},
+		{task.StageDuplicate, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.stage.String(), func(t *testing.T) {
+			s, cleanup := testutil.NewTestStore(t)
+			defer cleanup()
+			ctx := context.Background()
+			collID := createTestCollection(t, s)
+
+			blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocker", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted,
+			})
+			if err != nil {
+				t.Fatalf("create blocker: %v", err)
+			}
+			blocked, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocked", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, BlockedByTaskIDs: []uuid.UUID{blocker.ID},
+			})
+			if err != nil {
+				t.Fatalf("create blocked: %v", err)
+			}
+			if _, err := s.CloseTask(ctx, blocker.ID, tt.stage, "", uuid.Nil); err != nil {
+				t.Fatalf("close blocker: %v", err)
+			}
+
+			results, _, err := s.GetBlockedTasks(ctx, store.GetBlockedTasksParams{CollectionID: &collID})
+			if err != nil {
+				t.Fatalf("GetBlockedTasks: %v", err)
+			}
+			if tt.wantBlocked {
+				if len(results) != 1 || results[0].Task.ID != blocked.ID {
+					t.Fatalf("blocked results = %#v, want dependent blocked by %s", results, tt.stage)
+				}
+				if len(results[0].Blockers) != 1 || results[0].Blockers[0].Stage != tt.stage {
+					t.Fatalf("blockers = %#v, want %s blocker", results[0].Blockers, tt.stage)
+				}
+				return
+			}
+			if len(results) != 0 {
+				t.Fatalf("blocked results = %#v, want none for completed blocker", results)
+			}
+		})
+	}
+}
+
 func TestTaskStateValidation_HoldReasonRules(t *testing.T) {
 	s, cleanup := testutil.NewTestStore(t)
 	defer cleanup()

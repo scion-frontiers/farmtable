@@ -459,6 +459,47 @@ func TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages(t *testing.T) {
 	}
 }
 
+func TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	future := time.Now().UTC().Add(24 * time.Hour)
+
+	tests := []struct {
+		name       string
+		stage      string
+		holdReason string
+		startDate  *time.Time
+	}{
+		{"hold on triage", "triage", "waiting_for_input", nil},
+		{"hold on terminal", "completed", "waiting_for_input", nil},
+		{"deferred future start", "accepted", "deferred", &future},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskDoc := map[string]interface{}{
+				"id": uuid.New().String(), "title": tt.name, "description": "", "phase": "open", "stage": tt.stage,
+				"hold_reason": tt.holdReason, "native_label": tt.stage, "type": "", "labels": []string{},
+				"repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+				"start_date": tt.startDate,
+			}
+			if tt.stage == "completed" {
+				taskDoc["phase"] = "closed"
+				taskDoc["closed_at"] = time.Now().UTC()
+			}
+			doc := minimalImportDoc("v2 invalid hold "+tt.name, nil, []map[string]interface{}{taskDoc}, nil, nil, nil)
+			doc["format_version"] = 2
+			data, _ := json.Marshal(doc)
+
+			_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("ImportCollection err = %v, want InvalidArgument", err)
+			}
+		})
+	}
+}
+
 func TestRPC_ImportCollection_CreatesUsersAtomically(t *testing.T) {
 	client, s, cleanup := newExportImportTestServer(t)
 	defer cleanup()

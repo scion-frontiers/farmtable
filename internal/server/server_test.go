@@ -483,6 +483,61 @@ func TestRPC_UpdateTask_InvalidTextInput(t *testing.T) {
 	}
 }
 
+func TestRPC_CreateTaskRejectsDirectWorkingStage(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, client)
+	working := pb.TaskStage_TASK_STAGE_WORKING
+
+	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "direct working",
+		Stage:        &working,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("CreateTask err = %v, want InvalidArgument", err)
+	}
+	if !strings.Contains(status.Convert(err).Message(), "ClaimTask") {
+		t.Fatalf("CreateTask error = %q, want ClaimTask guidance", status.Convert(err).Message())
+	}
+}
+
+func TestRPC_UpdateTaskRejectsDirectWorkingStage(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	hold := pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT
+	held, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "held accepted",
+		Stage:        &accepted,
+		HoldReason:   &hold,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask held: %v", err)
+	}
+
+	working := pb.TaskStage_TASK_STAGE_WORKING
+	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{Id: held.GetId(), Stage: &working})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("UpdateTask held->working err = %v, want InvalidArgument", err)
+	}
+	if !strings.Contains(status.Convert(err).Message(), "ClaimTask") {
+		t.Fatalf("UpdateTask error = %q, want ClaimTask guidance", status.Convert(err).Message())
+	}
+
+	fetched, err := client.GetTask(ctx, &pb.GetTaskRequest{Id: held.GetId()})
+	if err != nil {
+		t.Fatalf("GetTask held: %v", err)
+	}
+	if fetched.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_ACCEPTED {
+		t.Fatalf("stage after rejected update = %s, want ACCEPTED", fetched.GetTask().GetStage())
+	}
+}
+
 func TestRPC_ListTasks_Pagination(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
@@ -1453,6 +1508,67 @@ func TestRPC_GetBlockedTasks(t *testing.T) {
 	}
 	if item.GetBlockedBy()[0].GetName() != "Blocker" {
 		t.Errorf("blocker name = %q, want %q", item.GetBlockedBy()[0].GetName(), "Blocker")
+	}
+}
+
+func TestRPC_GetBlockedTasks_TerminalDependencyMatrix(t *testing.T) {
+	tests := []struct {
+		stage       pb.TaskStage
+		wantBlocked bool
+	}{
+		{pb.TaskStage_TASK_STAGE_COMPLETED, false},
+		{pb.TaskStage_TASK_STAGE_WONT_FIX, true},
+		{pb.TaskStage_TASK_STAGE_CANCELLED, true},
+		{pb.TaskStage_TASK_STAGE_DUPLICATE, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.stage.String(), func(t *testing.T) {
+			client, cleanup := testutil.NewTestServer(t)
+			defer cleanup()
+			ctx := context.Background()
+			collID := createTestCollection(t, client)
+			accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+
+			blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "Blocker",
+				Stage:        &accepted,
+			})
+			if err != nil {
+				t.Fatalf("CreateTask blocker: %v", err)
+			}
+			blocked, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+				CollectionId:     collID,
+				Name:             "Blocked",
+				Stage:            &accepted,
+				BlockedByTaskIds: []string{blocker.GetId()},
+			})
+			if err != nil {
+				t.Fatalf("CreateTask blocked: %v", err)
+			}
+			closeStage := tt.stage
+			if _, err := client.CloseTask(ctx, &pb.CloseTaskRequest{Id: blocker.GetId(), Stage: &closeStage}); err != nil {
+				t.Fatalf("CloseTask blocker: %v", err)
+			}
+
+			resp, err := client.GetBlockedTasks(ctx, &pb.GetBlockedTasksRequest{CollectionId: &collID})
+			if err != nil {
+				t.Fatalf("GetBlockedTasks: %v", err)
+			}
+			if tt.wantBlocked {
+				if len(resp.GetItems()) != 1 || resp.GetItems()[0].GetTask().GetId() != blocked.GetId() {
+					t.Fatalf("items = %v, want blocked dependent", resp.GetItems())
+				}
+				if got := resp.GetItems()[0].GetBlockedBy(); len(got) != 1 || got[0].GetStage() != tt.stage {
+					t.Fatalf("blocked_by = %v, want %s blocker", got, tt.stage)
+				}
+				return
+			}
+			if len(resp.GetItems()) != 0 {
+				t.Fatalf("items = %v, want none for completed blocker", resp.GetItems())
+			}
+		})
 	}
 }
 

@@ -630,6 +630,16 @@ func createLifecycleTask(t *testing.T, client pb.FarmTableServiceClient, ctx con
 	return created
 }
 
+func createClaimedLifecycleTask(t *testing.T, client pb.FarmTableServiceClient, ctx context.Context, collID, name string) *pb.Task {
+	t.Helper()
+	accepted := createLifecycleTask(t, client, ctx, collID, name, stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED))
+	claimed, err := client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: accepted.GetId()})
+	if err != nil {
+		t.Fatalf("claiming task %q: %v", name, err)
+	}
+	return claimed.GetTask()
+}
+
 func stageProtoPtr(s pb.TaskStage) *pb.TaskStage { return &s }
 
 func assertFailedPrecondition(t *testing.T, err error, context string) {
@@ -662,7 +672,6 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 	for _, target := range []pb.TaskStage{
 		pb.TaskStage_TASK_STAGE_ACCEPTED,
 		pb.TaskStage_TASK_STAGE_ACCEPTED,
-		pb.TaskStage_TASK_STAGE_WORKING,
 	} {
 		_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
 			Id:    triaged.GetId(),
@@ -672,6 +681,16 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 			t.Fatalf("agent token should not be able to move triage → %v", target)
 		}
 		assertPermissionDenied(t, err, "UpdateTask triage → "+target.String())
+	}
+	_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
+		Id:    triaged.GetId(),
+		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING),
+	})
+	if err == nil {
+		t.Fatal("direct UpdateTask to working should be rejected")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("UpdateTask triage → working code = %v, want InvalidArgument", status.Code(err))
 	}
 
 	// Non-stage writes still work with task:write.
@@ -786,8 +805,7 @@ func TestScopedToken_AgentCannotClose(t *testing.T) {
 		server.DefaultScopesForUserType("agent"), nil)
 	agentCtx := authCtx(agentToken)
 
-	working := createLifecycleTask(t, client, adminCtx, collID, "agent work",
-		stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING))
+	working := createClaimedLifecycleTask(t, client, adminCtx, collID, "agent work")
 
 	// CloseTask RPC.
 	_, err := client.CloseTask(agentCtx, &pb.CloseTaskRequest{Id: working.GetId()})
@@ -925,8 +943,7 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 		server.DefaultScopesForUserType("agent"), nil)
 	agentCtx := authCtx(agentToken)
 
-	closedTask := createLifecycleTask(t, client, adminCtx, collID, "closed work",
-		stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING))
+	closedTask := createClaimedLifecycleTask(t, client, adminCtx, collID, "closed work")
 	if _, err := client.CloseTask(adminCtx, &pb.CloseTaskRequest{Id: closedTask.GetId()}); err != nil {
 		t.Fatalf("closing task: %v", err)
 	}

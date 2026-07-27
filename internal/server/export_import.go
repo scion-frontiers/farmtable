@@ -716,6 +716,9 @@ func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping ma
 	if err != nil {
 		return store.ImportTask{}, nil, err
 	}
+	if err := validateImportedTaskState(stage, holdReason, t.StartDate); err != nil {
+		return store.ImportTask{}, nil, err
+	}
 	imported := store.ImportTask{
 		ID:                 newID,
 		Title:              t.Title,
@@ -798,6 +801,21 @@ func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping ma
 		}
 	}
 	return imported, note, nil
+}
+
+func validateImportedTaskState(stage task.Stage, holdReason *task.HoldReason, startDate *time.Time) error {
+	if holdReason == nil {
+		return nil
+	}
+	switch stage {
+	case task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying:
+	default:
+		return fmt.Errorf("%w: hold_reason is only valid for accepted or active stages", store.ErrInvalidArgument)
+	}
+	if *holdReason == task.HoldReasonDeferred && startDate != nil && startDate.After(time.Now()) {
+		return fmt.Errorf("%w: hold_reason=deferred cannot be combined with a future start_date", store.ErrInvalidArgument)
+	}
+	return nil
 }
 
 func importedComment(c exportComment, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID) (store.ImportComment, error) {

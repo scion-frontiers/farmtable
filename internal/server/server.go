@@ -112,6 +112,10 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 			return nil, err
 		}
 		stage = convert.StageFromProto(*req.Stage)
+		if stage == task.StageWorking {
+			return nil, status.Error(codes.InvalidArgument,
+				"cannot create directly in working; create accepted work, then use ClaimTask so availability and self-assignment are enforced")
+		}
 		// Creating a task directly in a non-default stage is the same privilege
 		// as creating it in triage and transitioning it there.
 		if required := TransitionScope(string(task.StageTriage), string(stage)); required != ScopeTaskWrite {
@@ -524,6 +528,10 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 			return nil, err
 		}
 		st := convert.StageFromProto(*req.Stage)
+		if st == task.StageWorking {
+			return nil, status.Error(codes.InvalidArgument,
+				"stage=working starts execution; use ClaimTask so availability and self-assignment are enforced")
+		}
 		// Lifecycle transitions may require a scope beyond task:write
 		// (task:accept to leave triage or reopen, task:close to close).
 		if transitionScope := TransitionScope(string(existing.Stage), string(st)); transitionScope != ScopeTaskWrite {

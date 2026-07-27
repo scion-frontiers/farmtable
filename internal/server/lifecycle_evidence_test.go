@@ -71,15 +71,14 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 			})
 			return err
 		})
-		observe(t, "agent  UpdateTask triage→working     (needs task:accept)", codes.PermissionDenied, func() error {
+		observe(t, "agent  UpdateTask triage→working     (use ClaimTask)", codes.InvalidArgument, func() error {
 			_, err := client.UpdateTask(agentCtx, &pb.UpdateTaskRequest{
 				Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING),
 			})
 			return err
 		})
 
-		workingID := createLifecycleTask(t, client, adminCtx, collID, "evidence-agent-close",
-			stageProtoPtr(pb.TaskStage_TASK_STAGE_WORKING)).GetId()
+		workingID := createClaimedLifecycleTask(t, client, adminCtx, collID, "evidence-agent-close").GetId()
 		observe(t, "agent  CloseTask                     (needs task:close)", codes.PermissionDenied, func() error {
 			_, err := client.CloseTask(agentCtx, &pb.CloseTaskRequest{Id: workingID})
 			return err

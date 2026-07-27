@@ -2413,7 +2413,7 @@ func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase != task.PhaseClosed {
+				if !terminalStageSatisfiesDependency(blocker.Stage) {
 					blockers = append(blockers, BlockerInfoResult{
 						TaskID: blocker.ID,
 						Name:   blocker.Title,
@@ -2430,7 +2430,7 @@ func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase != task.PhaseClosed {
+				if !terminalStageSatisfiesDependency(blocker.Stage) {
 					blockers = append(blockers, BlockerInfoResult{
 						TaskID: blocker.ID,
 						Name:   blocker.Title,
