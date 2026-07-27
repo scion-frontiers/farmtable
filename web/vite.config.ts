@@ -4,7 +4,16 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 export default defineConfig({
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // `dist/` is embedded into the server binary via `//go:embed all:web/dist`
+    // and served by `http.FileServer` under no auth middleware, so anything
+    // emitted here is retrievable unauthenticated. A sourcemap would hand out
+    // the complete unminified client, including the comments explaining which
+    // paths are security-relevant.
+    //
+    // Deliberately `false`, not `'hidden'`: 'hidden' only drops the
+    // sourceMappingURL comment and still writes the .map into `dist/`, so it
+    // would still be embedded and still be served.
+    sourcemap: false,
   },
   plugins: [
     viteStaticCopy({

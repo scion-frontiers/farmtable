@@ -21,11 +21,14 @@ import {
 /**
  * Fields the client may write on UpdateTask.
  *
- * `phase` is deliberately excluded: it is a server-derived wire projection of
- * `stage`, and the UI must never assert a phase value. Omitting it here makes
- * a phase write a compile error rather than a silent contract violation.
+ * `phase` and `availability` are deliberately excluded: both are server-computed
+ * projections — `phase` of `stage`, `availability` of the hold, dependency and
+ * schedule gates — and the UI must never assert either. Omitting them here makes
+ * such a write a compile error rather than a silent contract violation, which
+ * matters because `applyTaskUpdateFields` spreads `...rest` straight over the
+ * task and would splat a client-asserted value into the optimistic store entry.
  */
-export type UpdateTaskFields = Omit<Partial<Task>, 'phase' | 'parentTaskId' | 'dueDate' | 'startDate' | 'labels' | 'assignees'> & {
+export type UpdateTaskFields = Omit<Partial<Task>, 'phase' | 'availability' | 'parentTaskId' | 'dueDate' | 'startDate' | 'labels' | 'assignees'> & {
   parentTaskId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
