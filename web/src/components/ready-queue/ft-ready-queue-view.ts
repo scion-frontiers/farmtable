@@ -280,6 +280,30 @@ export class FtReadyQueueView extends LitElement {
       .sort(compareAcceptedQueueOrder);
   }
 
+  /**
+   * Every task sharing `task`'s rank scope: same collection, same priority
+   * band, queue-eligible, in real queue order.
+   *
+   * Deliberately NOT `getReadyTasks()`. That applies the view filters, and rank
+   * arithmetic run over a *filtered* band cannot see the neighbours the filter
+   * hid — so a midpoint can land exactly on a hidden task's rank, or on the
+   * wrong side of one, and that bad ordering is persisted silently. Contract
+   * §4.6 scopes rank to (collection, priority band) and says nothing about what
+   * the viewer happens to be looking at: a filter decides what is *drawn*,
+   * never what the arithmetic is computed over.
+   */
+  private bandFor(task: Task): Task[] {
+    const bandPriority = priorityRank(task.priority);
+    return this.store.allTasks
+      .filter(
+        (candidate) =>
+          candidate.collectionId === task.collectionId &&
+          priorityRank(candidate.priority) === bandPriority &&
+          this.isReady(candidate),
+      )
+      .sort(compareAcceptedQueueOrder);
+  }
+
   private shortId(id: string): string {
     return id.length > 8 ? `...${id.slice(-6)}` : id;
   }
@@ -384,8 +408,11 @@ export class FtReadyQueueView extends LitElement {
       return;
     }
 
-    const bandPriority = priorityRank(dragged.priority);
-    const band = this.getReadyTasks().filter((task) => priorityRank(task.priority) === bandPriority);
+    // The band is the FULL rank scope, filters ignored; only the drop *target*
+    // is identified visually. Resolving the visible target to its index in the
+    // full band keeps the drop where the user aimed it while letting the
+    // midpoint arithmetic see the neighbours the filter is hiding.
+    const band = this.bandFor(dragged);
     const targetIndex = band.findIndex((task) => task.id === targetTaskId);
     if (targetIndex === -1) return;
 
