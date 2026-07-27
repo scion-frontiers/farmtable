@@ -267,7 +267,53 @@ describe('ATTENTION — the needs-attention vocabulary', () => {
     expect(ATTENTION.tileAction).toBe('click to list them on the board');
   });
 
+  /**
+   * The inspector callout is the fifth surface for this one concept, and it is
+   * the only one with room for a heading *and* a body. Both are pinned here so
+   * the panel cannot quietly invent a sixth wording for a state the card badge
+   * is naming two inches away.
+   */
+  it('heads the inspector callout with the same two words as the card badge', () => {
+    expect(ATTENTION.calloutTitle).toBe('Needs attention');
+    expect(ATTENTION.calloutTitle).toBe(ATTENTION.label);
+  });
+
+  it('reads naturally for a single stranded prerequisite', () => {
+    expect(ATTENTION.calloutBody(1)).toBe(
+      'A prerequisite was cancelled, dropped as a duplicate, or will not be ' +
+        'fixed. Closing it that way does not unblock this task, so nothing ' +
+        'will clear it on its own.',
+    );
+  });
+
+  it('counts and pluralises for more than one stranded prerequisite', () => {
+    expect(ATTENTION.calloutBody(3)).toBe(
+      '3 prerequisites were cancelled, dropped as duplicates, or will not be ' +
+        'fixed. Closing them that way does not unblock this task, so nothing ' +
+        'will clear it on its own.',
+    );
+  });
+
+  /**
+   * Both forms have to convey permanence, not a wait. `explanation` says
+   * "nothing will clear these on its own"; a callout body that said only that
+   * a prerequisite "is still blocking" would imply the block is merely current
+   * — the precise misreading contract §11 makes wrong.
+   */
+  it('conveys permanence in both plural forms, as `explanation` does', () => {
+    for (const body of [ATTENTION.calloutBody(1), ATTENTION.calloutBody(2)]) {
+      expect(body).toContain('will clear it on its own');
+      expect(body).toContain('does not unblock this task');
+    }
+  });
+
   it('pins every entry in ATTENTION, so new attention copy cannot slip in unpinned', () => {
-    expect(Object.keys(ATTENTION).sort()).toEqual(['explanation', 'label', 'tileAction']);
+    expect(Object.keys(ATTENTION).sort()).toEqual([
+      'calloutBody',
+      'calloutTitle',
+      'explanation',
+      'label',
+      'tileAction',
+    ]);
   });
 });
