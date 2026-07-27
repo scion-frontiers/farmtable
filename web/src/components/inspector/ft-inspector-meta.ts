@@ -6,6 +6,7 @@ import { formatDate } from '../../util/format.js';
 import { CAPABILITY_TOOLTIPS, type CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 import { availabilityLabel, holdReasonLabel } from '../../util/task-state-utils.js';
+import { safeExternalUrl } from '../../util/safe-url.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
 
@@ -597,6 +598,9 @@ export class FtInspectorMeta extends LitElement {
 
   render() {
     const t = this.task;
+    // `remoteUrl` is untrusted platform/import data — never place it in an
+    // href without scheme validation.
+    const externalUrl = safeExternalUrl(t.remoteUrl);
 
     return html`
       <div class="row">
@@ -604,14 +608,14 @@ export class FtInspectorMeta extends LitElement {
         <span class="value">${this.renderAssignees()}</span>
       </div>
 
-      ${t.remoteUrl
+      ${externalUrl
         ? html`<div class="row">
             <span class="label">External Source</span>
             <span class="value">
               <a
-                href=${t.remoteUrl}
+                href=${externalUrl}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 class="external-source-link"
               >
                 <sl-icon name="box-arrow-up-right"></sl-icon>
