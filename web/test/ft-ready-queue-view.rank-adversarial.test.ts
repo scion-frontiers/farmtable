@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import '../src/components/ready-queue/ft-ready-queue-view.js';
-import { TaskPriority, type Task } from '../src/gen/types.js';
+import {
+  AvailabilityReason,
+  RelationshipType,
+  TaskHoldReason,
+  TaskPriority,
+  TaskStage,
+  type Task,
+} from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
 import { MIN_RANK, ranksForMove } from '../src/util/rank.js';
-import { compareAcceptedQueueOrder, DROP_REFUSAL } from '../src/util/task-state-utils.js';
+import { compareAcceptedQueueOrder, DROP_REFUSAL, rankBand } from '../src/util/task-state-utils.js';
+import { isReady } from '../src/utils/task-ready.js';
 import { dragTaskOnto, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { RecordingClient, storeWith, task, user } from './helpers/fixtures.js';
@@ -444,6 +452,226 @@ describe('ft-ready-queue-view — reordering while a filter hides part of the ba
     const values = ranks.map(([, rank]) => rank);
     expect(new Set(values).size, `ranks are ${JSON.stringify(ranks)}`).toBe(values.length);
     expect(rowIds(view)).toEqual(['a', 'h', 'c', 'b']);
+  });
+});
+
+describe('ft-ready-queue-view — reordering while availability hides part of the band', () => {
+  /**
+   * FINDING I-1 / MEDIUM-2, now fixed — the second variant of F-2.
+   *
+   * The F-2 fix stopped the *view filters* narrowing the band, but left
+   * `isReady()` inside `bandFor()`, so server-computed availability went on
+   * deciding what the arithmetic could see. A held, dependency-blocked or
+   * future-start task keeps its rank and re-enters the queue at it, so it is a
+   * live neighbour that happens to be invisible: dropping between two visible
+   * rows could write exactly its rank, and the collision does not self-heal —
+   * `singleWrite`'s strictly-increasing guard only inspects band members, so
+   * the colliding pair never meets. When the hidden task returns, it ties with
+   * the moved one and the tie resolves on `created_at` rather than on where the
+   * user dropped anything.
+   *
+   * Why the F-2 regression tests could not see it: every one of them uses the
+   * `assigned()` helper, which sets `availability.available = true` precisely so
+   * the hidden task stays `isReady`. They prove filter-narrowing is gone and say
+   * nothing about availability-narrowing. These fixtures use the three real
+   * server reasons instead, each of which genuinely leaves `isReady` false.
+   *
+   * `h` holds 1536 — the midpoint the pre-fix code wrote — so a regression
+   * collides immediately rather than subtly.
+   */
+  const AVAILABLE = { available: true, reasons: [] };
+
+  /** The task that blocks `h`, in another band so it cannot join this one. */
+  const BLOCKER = task({
+    id: 'blocker',
+    name: 'blocker',
+    priority: TaskPriority.URGENT,
+    stage: TaskStage.WORKING,
+  });
+
+  const hiddenNeighbours: { label: string; hidden: Task; extra?: Task }[] = [
+    {
+      label: 'held',
+      hidden: task({
+        id: 'h',
+        name: 'h',
+        rank: 1536,
+        holdReason: TaskHoldReason.WAITING_FOR_INPUT,
+        availability: { available: false, reasons: [AvailabilityReason.HELD] },
+      }),
+    },
+    {
+      label: 'blocked by a dependency',
+      hidden: task({
+        id: 'h',
+        name: 'h',
+        rank: 1536,
+        relationships: [{ type: RelationshipType.BLOCKED_BY, targetTaskId: 'blocker' }],
+        availability: { available: false, reasons: [AvailabilityReason.BLOCKED_BY_DEPENDENCY] },
+      }),
+      extra: BLOCKER,
+    },
+    {
+      label: 'starting in the future',
+      hidden: task({
+        id: 'h',
+        name: 'h',
+        rank: 1536,
+        startDate: '2099-01-01T00:00:00.000Z',
+        availability: { available: false, reasons: [AvailabilityReason.FUTURE_START_DATE] },
+      }),
+    },
+  ];
+
+  /** `a`, the hidden `h`, `b`, `c` — one collection, one priority band. */
+  function bandAround(hidden: Task, extra?: Task) {
+    return [
+      task({ id: 'a', name: 'a', rank: 1024, availability: AVAILABLE }),
+      hidden,
+      task({ id: 'b', name: 'b', rank: 2048, availability: AVAILABLE }),
+      task({ id: 'c', name: 'c', rank: 3072, availability: AVAILABLE }),
+      ...(extra ? [extra] : []),
+    ];
+  }
+
+  for (const testCase of hiddenNeighbours) {
+    it(`writes no duplicate rank when the neighbour in the gap is ${testCase.label}`, async () => {
+      const store = storeWith(...bandAround(testCase.hidden, testCase.extra));
+      const { view, client } = await mountQueue(store);
+
+      expect(rowIds(view), 'h must be hidden for this test to mean anything').toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
+
+      dropTaskOn(rowFor(view, 'b'), 'c');
+      await flush();
+      await settle(view);
+
+      expect(client.updateTaskCalls).toHaveLength(1);
+      const ranks = ranksInQueueOrder(store, ['a', 'h', 'b', 'c']);
+      const values = ranks.map(([, rank]) => rank);
+      expect(new Set(values).size, `ranks are ${JSON.stringify(ranks)}`).toBe(values.length);
+      expect(store.getTask('c')?.rank).not.toBe(store.getTask('h')?.rank);
+    });
+
+    it(`keeps a neighbour that is ${testCase.label} in its relative position`, async () => {
+      const store = storeWith(...bandAround(testCase.hidden, testCase.extra));
+      const { view } = await mountQueue(store);
+
+      dropTaskOn(rowFor(view, 'b'), 'c');
+      await flush();
+      await settle(view);
+
+      // A distinct rank on the wrong side of `h` would satisfy the test above
+      // and still be wrong: `h` sat between `a` and everything else before the
+      // drag and must still sit there, while the visible rows show the drop.
+      expect(ranksInQueueOrder(store, ['a', 'h', 'b', 'c']).map(([id]) => id)).toEqual([
+        'a',
+        'h',
+        'c',
+        'b',
+      ]);
+      expect(rowIds(view)).toEqual(['a', 'c', 'b']);
+    });
+  }
+
+  /**
+   * The strongest single statement of the fix, and the direct analogue of the
+   * F-2 test that does the same for filters: availability must change nothing
+   * about the arithmetic. Same band, same gesture, once with the server calling
+   * `h` held and once with it available — identical writes.
+   */
+  it('writes exactly the same ranks whether or not the server hides the neighbour', async () => {
+    const heldStore = storeWith(...bandAround(hiddenNeighbours[0].hidden));
+    const held = await mountQueue(heldStore);
+    dropTaskOn(rowFor(held.view, 'b'), 'c');
+    await flush();
+    await settle(held.view);
+
+    const visibleStore = storeWith(
+      ...bandAround(task({ id: 'h', name: 'h', rank: 1536, availability: AVAILABLE })),
+    );
+    const visible = await mountQueue(visibleStore);
+    dropTaskOn(rowFor(visible.view, 'b'), 'c');
+    await flush();
+    await settle(visible.view);
+
+    expect(held.client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank })))
+      .toEqual(
+        visible.client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank })),
+      );
+    expect(held.client.updateTaskCalls, 'the gesture must actually write something').not.toHaveLength(
+      0,
+    );
+  });
+
+  /**
+   * The limit of the widening, and the reason the predicate is
+   * `!isClosedStage` rather than "no predicate at all". A terminal task never
+   * re-enters the queue, so its rank is dead weight: stepping around it would
+   * cost an unnecessary renumber for an ordering nobody will ever see. `done`
+   * holds 1536 deliberately — the midpoint this drop must still produce.
+   *
+   * Same shape as the foreign-collection test above: colliding with something
+   * outside the rank scope is correct, and stepping around it is not.
+   */
+  it('ignores a same-band task at a closed stage when computing the midpoint', async () => {
+    const store = storeWith(
+      task({ id: 'a', name: 'a', rank: 1024 }),
+      task({ id: 'done', name: 'done', rank: 1536, stage: TaskStage.COMPLETED }),
+      task({ id: 'b', name: 'b', rank: 2048 }),
+      task({ id: 'c', name: 'c', rank: 3072 }),
+    );
+    const { view, client } = await mountQueue(store);
+
+    dropTaskOn(rowFor(view, 'b'), 'c');
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank }))).toEqual([
+      { id: 'c', rank: 1536 },
+    ]);
+    expect(store.getTask('done')?.rank, 'terminal work must never be renumbered').toBe(1536);
+  });
+
+  /**
+   * The one case where the closed-stage exclusion has to yield. `isReady()`
+   * treats server availability as authoritative and never looks at `stage`, so
+   * a COMPLETED task the server still calls available is rendered in the queue
+   * (pinned as characterisation in `queue-ordering.test.ts`). A band that
+   * excluded it on stage alone would drop it out of its own rank scope, and
+   * dragging that visible row would write nothing and say nothing — a silent
+   * no-op introduced by the fix for a different silent no-op.
+   */
+  it('can still reorder a closed task the server reports as available', async () => {
+    const store = storeWith(
+      task({ id: 'a', name: 'a', rank: 1024 }),
+      task({
+        id: 'zombie',
+        name: 'zombie',
+        rank: 2048,
+        stage: TaskStage.COMPLETED,
+        availability: AVAILABLE,
+      }),
+      task({ id: 'c', name: 'c', rank: 3072 }),
+    );
+    const { view, client } = await mountQueue(store);
+    const feedback = collectFeedback(view);
+
+    expect(rowIds(view)).toEqual(['a', 'zombie', 'c']);
+
+    dropTaskOn(rowFor(view, 'a'), 'zombie');
+    await flush();
+    await settle(view);
+
+    expect(
+      client.updateTaskCalls.map((call) => call.id),
+      'a rendered, draggable row must not be outside its own band',
+    ).toEqual(['zombie']);
+    expect(rowIds(view)).toEqual(['zombie', 'a', 'c']);
+    expect(feedback.writeErrors, feedback.describe()).toHaveLength(0);
   });
 });
 
