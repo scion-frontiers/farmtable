@@ -43,6 +43,7 @@ go.work.sum
 
 # Node
 node_modules/
+web/.tmp-test/
 
 # Editor/IDE
 .idea/

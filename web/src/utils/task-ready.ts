@@ -13,6 +13,9 @@ export function isReady(task: Task, store: TaskStore): boolean {
   if (task.phase !== TaskPhase.OPEN || task.stage !== TaskStage.ACCEPTED) {
     return false;
   }
+  if (task.assignees.length > 0) {
+    return false;
+  }
   if (task.holdReason !== undefined || hasFutureStartDate(task)) {
     return false;
   }
