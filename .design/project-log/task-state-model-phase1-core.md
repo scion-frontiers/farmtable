@@ -3,7 +3,7 @@
 Date: 2026-07-27
 Branch: `task-state-core`
 Base: `origin/main`
-Final commit: `PENDING_FINAL_COMMIT_HASH`
+Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
 
 ## Implemented
 
