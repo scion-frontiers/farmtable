@@ -116,12 +116,16 @@ describe('ft-app — a view refusal reaches the user as a toast', () => {
   it('turns a queue client-side refusal into a visible toast carrying the reason text', async () => {
     const view = await mountAppShowing('ready-queue');
 
+    // The real constant `ft-ready-queue-view` emits. It used to be a literal
+    // here — a copy of vocabulary the anchor file claims to own exclusively,
+    // and tautological besides: the test dispatched a string and asserted the
+    // same string, so a reword in production could never turn it red.
     dispatchWriteError(view, {
-      message: 'This queue is read-only — the order is not saved.',
+      message: DROP_REFUSAL.readOnlyQueue,
       reason: 'rank-change-refused',
     });
 
-    expect(toastText()).toContain('This queue is read-only — the order is not saved.');
+    expect(toastText()).toContain(DROP_REFUSAL.readOnlyQueue);
   });
 
   it('shows the toast rather than only appending it to the document', async () => {
@@ -193,7 +197,11 @@ describe('ft-app — the four write-error reasons are each surfaced', () => {
       reason: 'rank-change-refused',
       view: 'ready-queue',
       detail: {
-        message: 'Drag reordering works within one priority band.',
+        // Was a hand-copied literal, and already truncated: no view emits the
+        // bare first sentence, so it pinned a string production never produces.
+        // The same drift the `terminalLaneToast` note above describes, in the
+        // queue twin of that entry.
+        message: DROP_REFUSAL.crossBandToast('Fix the leak', 'High'),
         reason: 'rank-change-refused',
       },
       expected: /within one priority band/i,
