@@ -819,15 +819,27 @@ export class FtApp extends LitElement {
 
     let message: string;
 
+    // A GitHub-specific diagnosis needs positive evidence that GitHub was
+    // involved. GitHub is not the default explanation for a permission-shaped
+    // error: Farm Table's own authorization (task:accept / task:claim / close
+    // scopes) and its hold and availability gates reject writes with the same
+    // vocabulary. Without evidence, the generic branch shows the real server
+    // reason — a truthful generic message beats a confident wrong one.
+    const mentionsGitHub = /github/i.test(raw);
+
     if (isServerRejection(error)) {
       // Farm Table itself refused the transition (missing scope, hold, or
       // availability gate). Surface the server's own reason — telling the user
       // to check their GitHub token here would be misleading.
       message = `Farm Table rejected this change: ${raw}`;
-    } else if (/permission|403|forbidden/i.test(raw)) {
+    } else if (mentionsGitHub && /permission|403|forbidden/i.test(raw)) {
       message = 'GitHub rejected this edit — your token may not have write access';
     } else if (/rate.?limit|429|too many requests/i.test(raw)) {
-      message = 'GitHub rate limit reached — please wait before making more edits';
+      // Rate limiting names no credential, so the neutral form is still
+      // truthful and keeps the actionable advice when the source is unknown.
+      message = mentionsGitHub
+        ? 'GitHub rate limit reached — please wait before making more edits'
+        : 'Rate limit reached — please wait before making more edits';
     } else if (/network|fetch|ECONNREFUSED|unavailable|deadline/i.test(raw)) {
       message = 'Could not reach the server — your change will retry on the next sync';
     } else {
