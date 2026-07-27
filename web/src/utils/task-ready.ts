@@ -10,7 +10,7 @@ export function isReady(task: Task, store: TaskStore): boolean {
     return task.availability.available;
   }
 
-  if (task.phase !== TaskPhase.OPEN && task.phase !== TaskPhase.IN_PROGRESS) {
+  if (task.phase !== TaskPhase.OPEN || task.stage !== TaskStage.ACCEPTED) {
     return false;
   }
   if (task.holdReason !== undefined || hasFutureStartDate(task)) {
