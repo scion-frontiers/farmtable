@@ -384,6 +384,38 @@ func TestPassThroughComputeAvailability_ClosedAtDoesNotDuplicateTerminalReason(t
 	}
 }
 
+// TestPassThroughIssueToTask_ClosedWithNullClosedAtStillTerminal pins the
+// premise Part 2 rests on: ClosedAt is never nil for a CLOSED issue, because
+// issueToTask falls back to UpdatedAt when GitHub returns a null closedAt.
+// Without that fallback the ClosedAt arm would silently not fire.
+func TestPassThroughIssueToTask_ClosedWithNullClosedAtStillTerminal(t *testing.T) {
+	fake := newFakeIssueRepo(t, "ft:stage/working")
+	fake.state = "CLOSED"
+	fake.stateReason = "COMPLETED"
+	fake.closedAt = "" // renders as null, as a GitHub API race can return
+	s := fake.store()
+
+	readBack, err := s.GetTask(context.Background(), s.issueUUID(1))
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	if readBack.ClosedAt == nil {
+		t.Fatal("ClosedAt is nil for a CLOSED issue; the ClosedAt availability arm cannot fire")
+	}
+	if !readBack.ClosedAt.Equal(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("ClosedAt = %v, want the UpdatedAt fallback 2026-01-02T00:00:00Z", readBack.ClosedAt)
+	}
+
+	availability, err := s.ComputeAvailability(context.Background(), readBack)
+	if err != nil {
+		t.Fatalf("ComputeAvailability: %v", err)
+	}
+	if availability.Available {
+		t.Fatalf("closed issue with null closedAt reports available = true; stage = %s, reasons = %v",
+			readBack.Stage, availability.Reasons)
+	}
+}
+
 // TestPassThroughComputeAvailability_OpenTaskStillAvailable pins the other
 // side: an accepted, never-closed task must stay available. A mutation that
 // makes ClosedAt-checking unconditional is caught here.
