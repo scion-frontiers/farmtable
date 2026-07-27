@@ -2,14 +2,36 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
+	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/convert"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
 )
+
+// allStages returns every task stage, derived from the proto enum so a stage
+// added to the data model shows up here without touching this test. Mirrors
+// allStages in internal/server/transitions_internal_test.go.
+func allStages(t *testing.T) []task.Stage {
+	t.Helper()
+	var stages []task.Stage
+	for value, name := range pb.TaskStage_name {
+		if name == pb.TaskStage_TASK_STAGE_UNSPECIFIED.String() {
+			continue
+		}
+		stage := convert.StageFromProto(pb.TaskStage(value))
+		if err := task.StageValidator(stage); err != nil {
+			t.Fatalf("proto stage %s does not map to a valid task stage: %v", name, err)
+		}
+		stages = append(stages, stage)
+	}
+	return stages
+}
 
 // terminalStages is the set of stages that make a task itself unavailable.
 // These tests are about the task's OWN stage, not about whether a terminal
@@ -44,6 +66,22 @@ func TestIsTerminalStage_ClassifiesEveryStage(t *testing.T) {
 				t.Fatalf("IsTerminalStage(%s) = %v, want %v", tt.stage, got, tt.want)
 			}
 		})
+	}
+
+	// The table above must classify every stage in the data model. Without this
+	// loop the test's name would be a claim it does not keep: the table is
+	// hardcoded, and IsTerminalStage returns false by default, so a stage added
+	// to the model tomorrow would be silently claimable while this test still
+	// passed — the exact failure mode this predicate exists to prevent.
+	covered := make(map[task.Stage]bool, len(tests))
+	for _, tt := range tests {
+		covered[tt.stage] = true
+	}
+	for _, stage := range allStages(t) {
+		if !covered[stage] {
+			t.Errorf("stage %q is not classified by this test; add it to the table "+
+				"and confirm IsTerminalStage treats it correctly", stage)
+		}
 	}
 }
 
@@ -82,8 +120,20 @@ func TestComputeAvailability_OwnTerminalStageBlocksClaim(t *testing.T) {
 			}
 			assertTerminalUnavailable(t, availability)
 
-			if _, err := s.ClaimTask(ctx, created.ID, uuid.New(), ""); err == nil {
-				t.Fatalf("ClaimTask on %s task succeeded, want rejection", stage)
+			// ClaimTask rejects here on its PhaseClosed guard, which runs BEFORE
+			// computeAvailability, and CloseTask set PhaseClosed. So this pins
+			// ErrAlreadyClosed, not ErrUnavailable: EntStore's terminal
+			// availability arm is unreachable through ClaimTask in normal
+			// operation. Asserting only `err != nil` would be vacuous — it passes
+			// even with IsTerminalStage hardwired to false.
+			//
+			// The arm still matters. ComputeAvailability is exposed directly for
+			// availability display and over the API, which is what the assertion
+			// above covers. On the claim path it is defence-in-depth rather than
+			// the primary gate — worth knowing before anyone "simplifies" it away
+			// on the grounds that claims are already blocked.
+			if _, err := s.ClaimTask(ctx, created.ID, uuid.New(), ""); !errors.Is(err, store.ErrAlreadyClosed) {
+				t.Fatalf("ClaimTask on %s task: err = %v, want ErrAlreadyClosed", stage, err)
 			}
 		})
 	}
