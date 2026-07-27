@@ -4,6 +4,7 @@ Date: 2026-07-27
 Branch: `task-state-core`
 Base: `origin/main`
 Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
+Review follow-up commit: `PENDING_FINAL_COMMIT_HASH`
 
 ## Implemented
 
@@ -18,6 +19,38 @@ Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
 - Updated CLI/MCP parsers and help text so removed stages are not writeable/selectable native values.
 - Normalized GitHub and Beads adapter open/blocked/deferred source states into accepted/hold primitives while preserving source-native status text.
 - Bumped export `format_version` to 2 and kept import compatibility for versions 1 and 2.
+
+## Review Follow-Up
+
+Phase 1 review gates requested changes from code review, test review, and
+security audit. Fixes completed in this follow-up:
+
+- GitHub pass-through `ClaimTask` now evaluates claimability before label
+  mutation: accepted stage only, no existing assignee, no open sub-issues, and
+  no legacy unavailable labels (`blocked`, `waiting_for_input`, `deferred`,
+  `scheduled`).
+- Ent-backed `ClaimTask` now runs availability recomputation and mutation in a
+  transaction, with final predicates for accepted/open/no hold/no future
+  start/no unsatisfied blockers. Zero-row writes are reclassified to
+  `ErrUnavailable`, `ErrAlreadyClaimed`, or `ErrAlreadyClosed` where possible.
+- `MultiStore` now routes `ComputeAvailability` to backing stores so wrapped
+  service responses expose availability reasons.
+- GitHub treewalk no longer treats plain `accepted` as explicitly blocked or
+  as a transitive blocker. Only open sub-issues and explicit legacy unavailable
+  labels produce blocked read-model entries.
+- Beads status projection no longer exports plain accepted/open tasks as
+  `blocked`; `hold_reason=waiting_for_input` projects to Beads `blocked` and
+  `hold_reason=deferred` projects to Beads `deferred`.
+- Beads JSONL import now emits format v2 native state (`accepted` plus
+  `hold_reason` where needed) at the adapter boundary, rather than deleted
+  native stages.
+- Format v2 native imports now reject removed stage strings. Format v1 remains
+  the explicit legacy migration path.
+- `GetReadyTasks.IncludeUnblockedOpen` now returns unblocked open tasks that
+  are not currently claimable, while still excluding dependency-blocked tasks.
+  Returned tasks carry availability reasons.
+- Docs/comments called out by review now describe native holds as
+  `accepted + hold_reason`; `ON_HOLD` is documented as compatibility-only.
 
 ## Migration Evidence
 
@@ -40,8 +73,14 @@ Focused migration matrix coverage:
 Evidence tests:
 
 - `TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes`
+- `TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages`
 - `TestComputeAvailability_ReasonsAndTerminalDependencies`
+- `TestComputeAvailability_TerminalDependencyMatrix`
 - `TestTaskStateValidation_HoldReasonRules`
+- `TestRPC_GetReadyTasksIncludeUnblockedOpenIncludesUnavailableReasons`
+- `TestComputeBlocked_DoesNotTreatAcceptedAsBlocked`
+- `TestIssueUnavailableForClaim`
+- `TestTaskToIssue_StatusProjection`
 - Existing claim/server tests updated for accepted-to-working and triage/unavailable rejection paths.
 
 ## Vocabulary Survival Evidence
@@ -62,6 +101,16 @@ rg -n 'stage ready|ready stage|triage and backlog|backlog|scheduled|\bblocked\b|
 
 Result: remaining matches are relationship/graph terminology (`blocked`, `blocked_by`, `GetReadyTasks`) and valid hold reasons (`waiting_for_input`, `deferred`); no removed value survives as a native writeable/selectable stage.
 
+Follow-up search:
+
+```bash
+rg -n 'ready stage|stage ready|triage and backlog|backlog|scheduled|ON_HOLD|on_hold|Open/Blocked|OnHold|Deferred' .agents/skills/farmtable docs/architecture.md internal/server internal/platform internal/cli internal/mcp README.md agents.md
+```
+
+Result: remaining matches are compatibility enum handling (`ON_HOLD`),
+explicit legacy v1 migration code/tests for removed values, GitHub legacy
+unavailable label detection, and valid hold/dependency terminology.
+
 ## Verification
 
 Commands run and results:
@@ -74,8 +123,13 @@ Commands run and results:
 - `jq empty web/src/gen/farmtable.json`: pass.
 - `git merge-base --is-ancestor origin/main HEAD`: pass.
 - `git diff origin/main...HEAD`: pass.
+- Focused follow-up verification: `go test ./internal/store ./internal/platform/github ./internal/platform/beads ./internal/server`: pass.
 
 ## Remaining Risks
 
 - `GetReadyTasks` remains the compatibility RPC/tool name, so generic "ready work" wording remains in command names and user-facing graph terminology. It no longer maps to a native `ready` stage.
 - Phase 1 did not implement the broader web UI redesign; only generated web schema/types and stage display cleanup were updated as required by the core API change.
+- Duplicate-with-canonical dependency satisfaction remains out of scope because
+  there is no persisted canonical replacement field. The v1 behavior that
+  `duplicate` without canonical replacement does not satisfy dependencies is
+  covered by `TestComputeAvailability_TerminalDependencyMatrix`.

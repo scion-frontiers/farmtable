@@ -71,9 +71,9 @@ Stage determines phase — the mapping is a pure function
 (`phaseForStage` in `internal/server/convert.go`):
 
 ```
- OPEN         triage → accepted
+ OPEN         triage → accepted; accepted + hold_reason(waiting_for_input | deferred)
  IN_PROGRESS  working → in_review → in_qa → deploying
- ON_HOLD      accepted + hold_reason(waiting_for_input | deferred)
+ ON_HOLD      compatibility-only projection for external statuses
  CLOSED       completed / wont_fix / duplicate / cancelled
 ```
 

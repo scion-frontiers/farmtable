@@ -938,7 +938,7 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	if err == nil {
 		t.Fatal("agent token should not be able to reopen a closed task")
 	}
-	assertPermissionDenied(t, err, "UpdateTask completed → backlog")
+	assertPermissionDenied(t, err, "UpdateTask completed → accepted")
 
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
 		server.DefaultScopesForUserType("reviewer"), nil)

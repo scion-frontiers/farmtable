@@ -96,24 +96,27 @@ func parseBeadsJSONL(data []byte) ([]beadsIssue, []string, error) {
 	return issues, warnings, nil
 }
 
-// beadsStatusToPhaseStage maps a Beads status string to Farmtable phase and stage.
-func beadsStatusToPhaseStage(status string) (phase string, stage string) {
+// beadsStatusToTaskState maps a Beads status string to native Farm Table state
+// while preserving external hold/blocking semantics separately.
+func beadsStatusToTaskState(status string) (phase string, stage string, holdReason *string) {
 	switch status {
 	case "open":
-		return "open", "ready"
+		return "open", "accepted", nil
 	case "in_progress", "hooked":
-		return "in_progress", "working"
+		return "in_progress", "working", nil
 	case "blocked":
-		return "in_progress", "blocked"
+		hr := "waiting_for_input"
+		return "open", "accepted", &hr
 	case "deferred":
-		return "on_hold", "deferred"
+		hr := "deferred"
+		return "open", "accepted", &hr
 	case "closed":
-		return "closed", "completed"
+		return "closed", "completed", nil
 	case "pinned":
-		return "open", "backlog"
+		return "open", "accepted", nil
 	default:
 		// Unknown status: default to open/triage.
-		return "open", "triage"
+		return "open", "triage", nil
 	}
 }
 
@@ -235,7 +238,7 @@ func convertBeadsToExportDocument(issues []beadsIssue, collectionName string) (e
 			continue
 		}
 
-		phase, stage := beadsStatusToPhaseStage(issue.Status)
+		phase, stage, holdReason := beadsStatusToTaskState(issue.Status)
 		var priority *string
 		if issue.Priority != nil {
 			priority = beadsPriorityToFarmtable(*issue.Priority)
@@ -293,6 +296,7 @@ func convertBeadsToExportDocument(issues []beadsIssue, collectionName string) (e
 			Description:        desc,
 			Phase:              phase,
 			Stage:              stage,
+			HoldReason:         holdReason,
 			NativeLabel:        issue.Status,
 			Type:               taskType,
 			Priority:           priority,
@@ -379,7 +383,7 @@ func convertBeadsToExportDocument(issues []beadsIssue, collectionName string) (e
 	}
 
 	doc := exportDocument{
-		FormatVersion: 1,
+		FormatVersion: 2,
 		ExportedAt:    now,
 		Generator:     "farmtable",
 		Collection: exportCollection{
@@ -481,4 +485,3 @@ func deduplicateRelationships(rels []exportRelationship) []exportRelationship {
 	}
 	return result
 }
-

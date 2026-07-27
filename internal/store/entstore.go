@@ -844,6 +844,10 @@ func isTerminalStage(stage task.Stage) bool {
 }
 
 func (s *EntStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+	return computeAvailability(ctx, t, s.client.Task.Get)
+}
+
+func computeAvailability(ctx context.Context, t *ent.Task, getTask func(context.Context, uuid.UUID) (*ent.Task, error)) (TaskAvailability, error) {
 	reasons := make([]AvailabilityReason, 0, 4)
 	if t.Stage == task.StageTriage {
 		reasons = append(reasons, AvailabilityReasonTriage)
@@ -858,7 +862,7 @@ func (s *EntStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAv
 		reasons = append(reasons, AvailabilityReasonFutureStartDate)
 	}
 
-	blocked, err := s.hasUnsatisfiedBlocker(ctx, t)
+	blocked, err := hasUnsatisfiedBlocker(ctx, t, getTask)
 	if err != nil {
 		return TaskAvailability{}, err
 	}
@@ -869,9 +873,9 @@ func (s *EntStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAv
 	return TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
 }
 
-func (s *EntStore) hasUnsatisfiedBlocker(ctx context.Context, t *ent.Task) (bool, error) {
+func hasUnsatisfiedBlocker(ctx context.Context, t *ent.Task, getTask func(context.Context, uuid.UUID) (*ent.Task, error)) (bool, error) {
 	checkBlocker := func(id uuid.UUID) (bool, error) {
-		blocker, err := s.client.Task.Get(ctx, id)
+		blocker, err := getTask(ctx, id)
 		if err != nil {
 			if ent.IsNotFound(err) {
 				return false, nil
@@ -901,14 +905,33 @@ func (s *EntStore) hasUnsatisfiedBlocker(ctx context.Context, t *ent.Task) (bool
 	return false, nil
 }
 
+func noUnsatisfiedBlockerPredicates() []predicate.Task {
+	return []predicate.Task{
+		task.Not(task.HasSourceRelationshipsWith(
+			relationship.TypeEQ(relationship.TypeBlockedBy),
+			relationship.HasTargetTaskWith(task.StageNEQ(task.StageCompleted)),
+		)),
+		task.Not(task.HasTargetRelationshipsWith(
+			relationship.TypeEQ(relationship.TypeBlocks),
+			relationship.HasSourceTaskWith(task.StageNEQ(task.StageCompleted)),
+		)),
+	}
+}
+
 func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error) {
 	for attempt := 0; ; attempt++ {
-		old, err := s.client.Task.Query().
+		tx, err := s.client.Tx(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("starting claim transaction: %w", err)
+		}
+
+		old, err := tx.Task.Query().
 			Where(task.IDEQ(id)).
 			WithSourceRelationships().
 			WithTargetRelationships().
 			Only(ctx)
 		if err != nil {
+			_ = tx.Rollback()
 			if ent.IsNotFound(err) {
 				return nil, ErrNotFound
 			}
@@ -916,23 +939,35 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 		}
 
 		if old.Phase == task.PhaseClosed {
+			_ = tx.Rollback()
 			return nil, ErrAlreadyClosed
 		}
-		availability, err := s.ComputeAvailability(ctx, old)
+		availability, err := computeAvailability(ctx, old, tx.Task.Get)
 		if err != nil {
+			_ = tx.Rollback()
 			return nil, fmt.Errorf("computing claim availability: %w", err)
 		}
 		if !availability.Available {
+			_ = tx.Rollback()
 			return nil, ErrUnavailable
 		}
 		if old.AssigneeID != nil {
+			_ = tx.Rollback()
 			return nil, ErrAlreadyClaimed
 		}
 
 		v, _ := strconv.Atoi(old.Version)
-		q := s.client.Task.Update().
-			Where(task.IDEQ(id), task.AssigneeIDIsNil(), task.PhaseNEQ(task.PhaseClosed)).
+		q := tx.Task.Update().
+			Where(
+				task.IDEQ(id),
+				task.AssigneeIDIsNil(),
+				task.PhaseEQ(task.PhaseOpen),
+				task.StageEQ(task.StageAccepted),
+				task.HoldReasonIsNil(),
+				task.Or(task.StartDateIsNil(), task.StartDateLTE(time.Now())),
+			).
 			SetVersion(strconv.Itoa(v + 1))
+		q = q.Where(noUnsatisfiedBlockerPredicates()...)
 
 		if version != "" {
 			q = q.Where(task.VersionEQ(version))
@@ -947,13 +982,45 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 			ClearHoldReason().
 			Save(ctx)
 		if err != nil {
+			_ = tx.Rollback()
 			return nil, fmt.Errorf("claiming task: %w", err)
 		}
 		if n == 0 {
+			_ = tx.Rollback()
+			current, getErr := s.client.Task.Query().
+				Where(task.IDEQ(id)).
+				WithSourceRelationships().
+				WithTargetRelationships().
+				Only(ctx)
+			if getErr != nil {
+				if ent.IsNotFound(getErr) {
+					return nil, ErrNotFound
+				}
+				return nil, fmt.Errorf("getting task after failed claim: %w", getErr)
+			}
+			if current.AssigneeID != nil {
+				return nil, ErrAlreadyClaimed
+			}
+			if current.Phase == task.PhaseClosed {
+				return nil, ErrAlreadyClosed
+			}
+			if current.Phase != task.PhaseOpen || current.Stage != task.StageAccepted || current.HoldReason != nil {
+				return nil, ErrUnavailable
+			}
+			availability, availabilityErr := s.ComputeAvailability(ctx, current)
+			if availabilityErr != nil {
+				return nil, fmt.Errorf("computing availability after failed claim: %w", availabilityErr)
+			}
+			if !availability.Available {
+				return nil, ErrUnavailable
+			}
 			if version == "" && attempt == 0 {
 				continue
 			}
 			return nil, ErrConflict
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("committing claim: %w", err)
 		}
 
 		result, err := s.getTaskWithEdges(ctx, id)
@@ -2192,12 +2259,10 @@ func (s *EntStore) Truncate(ctx context.Context) error {
 // ── Graph Query Methods ──
 
 func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
-	q := s.client.Task.Query().
-		Where(
-			task.PhaseEQ(task.PhaseOpen),
-			task.StageEQ(task.StageAccepted),
-			task.HoldReasonIsNil(),
-		)
+	q := s.client.Task.Query().Where(task.PhaseEQ(task.PhaseOpen))
+	if !p.IncludeUnblockedOpen {
+		q = q.Where(task.StageEQ(task.StageAccepted), task.HoldReasonIsNil())
+	}
 
 	if p.CollectionID != nil {
 		q = q.Where(task.CollectionIDEQ(*p.CollectionID))
@@ -2224,15 +2289,14 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 
 	var results []*ReadyTaskResult
 	for _, t := range tasks {
-		if t.StartDate != nil && t.StartDate.After(time.Now()) {
-			continue
-		}
 		availability, err := s.ComputeAvailability(ctx, t)
 		if err != nil {
 			return nil, 0, fmt.Errorf("computing availability: %w", err)
 		}
 		if !availability.Available {
-			continue
+			if !p.IncludeUnblockedOpen || availability.HasReason(AvailabilityReasonBlockedByDependency) {
+				continue
+			}
 		}
 
 		blockersResolved := 0

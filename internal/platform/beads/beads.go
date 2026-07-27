@@ -183,6 +183,7 @@ func (a *BeadsAdapter) PushComment(ctx context.Context, c *ent.Comment, t *ent.T
 // IssueToCreateParams maps a Beads issue to store.CreateTaskParams.
 func IssueToCreateParams(issue *Issue, collectionID uuid.UUID, remoteID string) store.CreateTaskParams {
 	phase, stage := statusToPhaseStage(issue.Status)
+	holdReason := statusToHoldReason(issue.Status)
 	priority := priorityToFT(issue.Priority)
 
 	p := store.CreateTaskParams{
@@ -191,6 +192,7 @@ func IssueToCreateParams(issue *Issue, collectionID uuid.UUID, remoteID string) 
 		CollectionID: collectionID,
 		Phase:        phase,
 		Stage:        stage,
+		HoldReason:   holdReason,
 		NativeLabel:  issue.Status,
 		Type:         issue.IssueType,
 		Priority:     &priority,
@@ -217,6 +219,7 @@ func IssueToCreateParams(issue *Issue, collectionID uuid.UUID, remoteID string) 
 // IssueToUpdateParams maps a Beads issue to store.UpdateTaskParams for upsert.
 func IssueToUpdateParams(issue *Issue, remoteID string) store.UpdateTaskParams {
 	phase, stage := statusToPhaseStage(issue.Status)
+	holdReason := statusToHoldReason(issue.Status)
 	priority := priorityToFT(issue.Priority)
 	title := issue.Title
 	desc := issue.Description
@@ -228,11 +231,15 @@ func IssueToUpdateParams(issue *Issue, remoteID string) store.UpdateTaskParams {
 		Description: &desc,
 		Phase:       &phase,
 		Stage:       &stage,
+		HoldReason:  holdReason,
 		NativeLabel: &nativeLabel,
 		Type:        &issueType,
 		Priority:    &priority,
 		RemoteData:  buildRemoteData(issue, remoteID),
 		AddLabels:   issue.Labels,
+	}
+	if holdReason == nil {
+		p.ClearHoldReason = true
 	}
 
 	if issue.AcceptanceCriteria != "" {
@@ -263,7 +270,7 @@ func TaskToIssue(t *ent.Task) *Issue {
 		ID:          fmt.Sprintf("ft-%s", t.ID.String()[:8]),
 		Title:       t.Title,
 		Description: t.Description,
-		Status:      string(phaseStageToStatus(t.Phase, t.Stage)),
+		Status:      string(phaseStageToStatus(t.Phase, t.Stage, t.HoldReason)),
 		Priority:    priorityFromFTPtr(t.Priority),
 		IssueType:   t.Type,
 		CreatedAt:   t.CreatedAt,
@@ -286,7 +293,7 @@ func TaskToIssueUpdates(t *ent.Task) map[string]interface{} {
 	updates := map[string]interface{}{
 		"title":       t.Title,
 		"description": t.Description,
-		"status":      string(phaseStageToStatus(t.Phase, t.Stage)),
+		"status":      string(phaseStageToStatus(t.Phase, t.Stage, t.HoldReason)),
 		"priority":    priorityFromFTPtr(t.Priority),
 		"issue_type":  t.Type,
 	}
@@ -304,10 +311,6 @@ func statusToPhaseStage(status string) (task.Phase, task.Stage) {
 		return task.PhaseClosed, task.StageCompleted
 	case "in_progress":
 		return task.PhaseInProgress, task.StageWorking
-	case "blocked":
-		return task.PhaseOpen, task.StageAccepted
-	case "deferred":
-		return task.PhaseOnHold, task.StageAccepted
 	default:
 		// StageAccepted, not StageTriage: items without an explicit status are
 		// treated as accepted-but-unprioritized. StageTriage keeps ClaimTask
@@ -316,16 +319,29 @@ func statusToPhaseStage(status string) (task.Phase, task.Stage) {
 	}
 }
 
-func phaseStageToStatus(phase task.Phase, stage task.Stage) string {
+func statusToHoldReason(status string) *task.HoldReason {
+	switch status {
+	case "blocked":
+		hr := task.HoldReasonWaitingForInput
+		return &hr
+	case "deferred":
+		hr := task.HoldReasonDeferred
+		return &hr
+	default:
+		return nil
+	}
+}
+
+func phaseStageToStatus(phase task.Phase, stage task.Stage, holdReason *task.HoldReason) string {
 	switch {
 	case phase == task.PhaseClosed:
 		return "closed"
-	case stage == task.StageAccepted:
-		return "blocked"
-	case stage == task.StageAccepted:
-		return "deferred"
 	case phase == task.PhaseInProgress || stage == task.StageWorking:
 		return "in_progress"
+	case holdReason != nil && *holdReason == task.HoldReasonDeferred:
+		return "deferred"
+	case holdReason != nil && *holdReason == task.HoldReasonWaitingForInput:
+		return "blocked"
 	default:
 		return "open"
 	}

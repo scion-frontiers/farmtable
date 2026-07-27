@@ -117,7 +117,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 				_, err := client.CloseTask(roleCtx, &pb.CloseTaskRequest{Id: id})
 				return err
 			})
-			observe(t, role+" UpdateTask completed→backlog  (task:accept)", codes.OK, func() error {
+			observe(t, role+" UpdateTask completed→accepted (task:accept)", codes.OK, func() error {
 				_, err := client.UpdateTask(roleCtx, &pb.UpdateTaskRequest{
 					Id: id, Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 				})

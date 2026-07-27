@@ -37,6 +37,15 @@ type TaskAvailability struct {
 	Reasons   []AvailabilityReason
 }
 
+func (a TaskAvailability) HasReason(reason AvailabilityReason) bool {
+	for _, r := range a.Reasons {
+		if r == reason {
+			return true
+		}
+	}
+	return false
+}
+
 type CreateTaskParams struct {
 	Title              string
 	Description        string
@@ -423,13 +432,13 @@ type CreateLinkedAccountParams struct {
 }
 
 type UpdateLinkedAccountParams struct {
-	AuthToken       *string
-	RefreshToken    *string
-	TokenExpiry     *time.Time
+	AuthToken        *string
+	RefreshToken     *string
+	TokenExpiry      *time.Time
 	ClearTokenExpiry bool
-	Status          *string
-	ScopesGranted   []string
-	LastValidatedAt *time.Time
+	Status           *string
+	ScopesGranted    []string
+	LastValidatedAt  *time.Time
 }
 
 type ListLinkedAccountsParams struct {

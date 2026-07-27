@@ -8,6 +8,8 @@ import (
 
 func intPtr(v int) *int { return &v }
 
+func stringPtr(v string) *string { return &v }
+
 func TestDetectImportFormat(t *testing.T) {
 	tests := []struct {
 		name string
@@ -168,28 +170,35 @@ func TestParseBeadsJSONL(t *testing.T) {
 	})
 }
 
-func TestBeadsStatusToPhaseStage(t *testing.T) {
+func TestBeadsStatusToTaskState(t *testing.T) {
 	tests := []struct {
-		status    string
-		wantPhase string
-		wantStage string
+		status         string
+		wantPhase      string
+		wantStage      string
+		wantHoldReason *string
 	}{
-		{"open", "open", "ready"},
-		{"in_progress", "in_progress", "working"},
-		{"hooked", "in_progress", "working"},
-		{"blocked", "in_progress", "blocked"},
-		{"deferred", "on_hold", "deferred"},
-		{"closed", "closed", "completed"},
-		{"pinned", "open", "backlog"},
-		{"unknown_status", "open", "triage"},
-		{"", "open", "triage"},
+		{"open", "open", "accepted", nil},
+		{"in_progress", "in_progress", "working", nil},
+		{"hooked", "in_progress", "working", nil},
+		{"blocked", "open", "accepted", stringPtr("waiting_for_input")},
+		{"deferred", "open", "accepted", stringPtr("deferred")},
+		{"closed", "closed", "completed", nil},
+		{"pinned", "open", "accepted", nil},
+		{"unknown_status", "open", "triage", nil},
+		{"", "open", "triage", nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
-			phase, stage := beadsStatusToPhaseStage(tt.status)
+			phase, stage, holdReason := beadsStatusToTaskState(tt.status)
 			if phase != tt.wantPhase || stage != tt.wantStage {
-				t.Errorf("beadsStatusToPhaseStage(%q) = (%q, %q), want (%q, %q)",
+				t.Errorf("beadsStatusToTaskState(%q) = (%q, %q), want (%q, %q)",
 					tt.status, phase, stage, tt.wantPhase, tt.wantStage)
+			}
+			if (holdReason == nil) != (tt.wantHoldReason == nil) {
+				t.Fatalf("holdReason = %v, want %v", holdReason, tt.wantHoldReason)
+			}
+			if holdReason != nil && *holdReason != *tt.wantHoldReason {
+				t.Fatalf("holdReason = %q, want %q", *holdReason, *tt.wantHoldReason)
 			}
 		})
 	}
@@ -258,16 +267,16 @@ func TestConvertBeadsToExportDocument(t *testing.T) {
 		now := time.Now().UTC()
 		issues := []beadsIssue{
 			{
-				ID:        "test-1",
-				Title:     "Fix critical bug",
+				ID:          "test-1",
+				Title:       "Fix critical bug",
 				Description: "Something is broken",
-				Status:    "open",
-				Priority:  intPtr(1),
-				IssueType: "bug",
-				Assignee:  "Alice",
-				Labels:    []string{"backend"},
-				CreatedAt: now,
-				UpdatedAt: now,
+				Status:      "open",
+				Priority:    intPtr(1),
+				IssueType:   "bug",
+				Assignee:    "Alice",
+				Labels:      []string{"backend"},
+				CreatedAt:   now,
+				UpdatedAt:   now,
 			},
 		}
 
@@ -278,8 +287,8 @@ func TestConvertBeadsToExportDocument(t *testing.T) {
 		if len(warnings) != 0 {
 			t.Errorf("unexpected warnings: %v", warnings)
 		}
-		if doc.FormatVersion != 1 {
-			t.Errorf("format_version = %d, want 1", doc.FormatVersion)
+		if doc.FormatVersion != 2 {
+			t.Errorf("format_version = %d, want 2", doc.FormatVersion)
 		}
 		if doc.Generator != "farmtable" {
 			t.Errorf("generator = %q, want %q", doc.Generator, "farmtable")
@@ -297,8 +306,8 @@ func TestConvertBeadsToExportDocument(t *testing.T) {
 		if task.Phase != "open" {
 			t.Errorf("phase = %q, want %q", task.Phase, "open")
 		}
-		if task.Stage != "ready" {
-			t.Errorf("stage = %q, want %q", task.Stage, "ready")
+		if task.Stage != "accepted" {
+			t.Errorf("stage = %q, want %q", task.Stage, "accepted")
 		}
 		if task.NativeLabel != "open" {
 			t.Errorf("native_label = %q, want %q", task.NativeLabel, "open")

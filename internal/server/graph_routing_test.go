@@ -157,20 +157,20 @@ func TestGetCriticalPath_ExternalCollection_EphemeralRoute(t *testing.T) {
 		t.Fatalf("creating task A: %v", err)
 	}
 	taskB, err := svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Task B",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Task B",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {
 		t.Fatalf("creating task B: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Task C",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Task C",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskB.ID},
 	})
 	if err != nil {
@@ -218,20 +218,20 @@ func TestGetBottlenecks_ExternalCollection_EphemeralRoute(t *testing.T) {
 		t.Fatalf("creating task A: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Task B",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Task B",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {
 		t.Fatalf("creating task B: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Task C",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Task C",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {
@@ -268,7 +268,7 @@ func TestGetReadyTasks_ExternalCollection_EphemeralRoute(t *testing.T) {
 		t.Fatalf("creating collection: %v", err)
 	}
 
-	// Create a task in ready stage.
+	// Create a task in accepted stage.
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
 		Title:        "Ready task",
 		CollectionID: coll.ID,
@@ -317,10 +317,10 @@ func TestGetBlockedTasks_ExternalCollection_EphemeralRoute(t *testing.T) {
 		t.Fatalf("creating task A: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Blocked B",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Blocked B",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {
@@ -453,10 +453,10 @@ func TestGetCriticalPath_FarmtableCollection_DirectRoute(t *testing.T) {
 		t.Fatalf("creating task A: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "Task B",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "Task B",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {
@@ -516,10 +516,10 @@ func TestExtractRelationships(t *testing.T) {
 		t.Fatalf("creating task A: %v", err)
 	}
 	_, err = svc.store.CreateTask(ctx, store.CreateTaskParams{
-		Title:        "B",
-		CollectionID: coll.ID,
-		Phase:        task.PhaseOpen,
-		Stage:        task.StageAccepted,
+		Title:            "B",
+		CollectionID:     coll.ID,
+		Phase:            task.PhaseOpen,
+		Stage:            task.StageAccepted,
 		BlockedByTaskIDs: []uuid.UUID{taskA.ID},
 	})
 	if err != nil {

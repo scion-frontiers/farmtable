@@ -1,6 +1,8 @@
 package github
 
 import (
+	"strings"
+
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
@@ -87,9 +89,12 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 		}
 
 		if node.Stage == task.StageAccepted && !hasOpenChildren {
-			reason := "marked ready, no open sub-issues"
+			if hasExternalUnavailableLabel(node.Labels) {
+				continue
+			}
+			reason := "accepted, no open sub-issues"
 			if len(node.Children) == 0 {
-				reason = "leaf task, marked ready"
+				reason = "leaf task, accepted"
 			}
 			results = append(results, readyResult{Node: node, Reason: reason})
 			continue
@@ -118,10 +123,10 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 			continue
 		}
 
-		if node.Stage == task.StageAccepted {
+		if hasExternalUnavailableLabel(node.Labels) {
 			results = append(results, blockedResult{
 				Node:   node,
-				Reason: "explicitly blocked (label)",
+				Reason: "explicitly unavailable (label)",
 			})
 			continue
 		}
@@ -141,17 +146,20 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 			continue
 		}
 
-		for _, child := range node.Children {
-			if child.Stage == task.StageAccepted {
-				results = append(results, blockedResult{
-					Node:      node,
-					Reason:    "transitively blocked: sub-issue is blocked",
-					BlockedBy: []*issueTreeNode{child},
-				})
-				break
-			}
-		}
 	}
 
 	return results
+}
+
+func hasExternalUnavailableLabel(labels []string) bool {
+	for _, raw := range labels {
+		label := strings.ToLower(strings.TrimSpace(raw))
+		label = strings.TrimPrefix(label, "ft:")
+		label = strings.TrimPrefix(label, "stage/")
+		switch label {
+		case "blocked", "waiting_for_input", "deferred", "scheduled":
+			return true
+		}
+	}
+	return false
 }

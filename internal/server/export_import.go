@@ -362,7 +362,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 	migrationAuthorID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	var migrationNotes []store.ImportChange
 	for _, exportedTask := range orderedTasks {
-		imported, note, err := importedTask(exportedTask, taskMapping, userMapping, hasOldBlocker[exportedTask.ID])
+		imported, note, err := importedTask(exportedTask, taskMapping, userMapping, hasOldBlocker[exportedTask.ID], doc.FormatVersion)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
@@ -481,8 +481,10 @@ func validateImportReferences(doc exportDocument, taskMapping map[string]uuid.UU
 		if _, err := parseTaskPhase(t.Phase); err != nil {
 			return nil, err
 		}
-		if _, err := parseTaskStage(t.Stage); err != nil {
-			return nil, err
+		if _, err := parseNativeTaskStage(t.Stage); err != nil {
+			if doc.FormatVersion != 1 || !isRemovedNativeStage(t.Stage) {
+				return nil, err
+			}
 		}
 		if t.Priority != nil && *t.Priority != "" {
 			if _, err := parseTaskPriority(*t.Priority); err != nil {
@@ -648,7 +650,7 @@ func oldBlockedByEvidence(relationships []exportRelationship) map[string]bool {
 	return blocked
 }
 
-func migrateTaskState(t exportTask, hasOldBlocker bool) (task.Phase, task.Stage, *task.HoldReason, string, error) {
+func migrateTaskState(t exportTask, hasOldBlocker bool, formatVersion int) (task.Phase, task.Stage, *task.HoldReason, string, error) {
 	stageValue := task.Stage(t.Stage)
 	switch stageValue {
 	case task.StageTriage, task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying, task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
@@ -663,23 +665,38 @@ func migrateTaskState(t exportTask, hasOldBlocker bool) (task.Phase, task.Stage,
 		}
 		return phase, stageValue, holdReason, "", nil
 	case "backlog", "ready":
+		if formatVersion != 1 {
+			return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+		}
 		return task.PhaseOpen, task.StageAccepted, nil, "old_" + t.Stage + "_stage_to_accepted", nil
 	case "waiting_for_input":
+		if formatVersion != 1 {
+			return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+		}
 		hr := task.HoldReasonWaitingForInput
 		return task.PhaseOpen, task.StageAccepted, &hr, "old_waiting_for_input_stage_to_hold_reason", nil
 	case "deferred":
+		if formatVersion != 1 {
+			return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+		}
 		if t.StartDate != nil && t.StartDate.After(time.Now()) {
 			return task.PhaseOpen, task.StageAccepted, nil, "old_deferred_stage_future_start_date_cleared_hold", nil
 		}
 		hr := task.HoldReasonDeferred
 		return task.PhaseOpen, task.StageAccepted, &hr, "old_deferred_stage_to_hold_reason", nil
 	case "scheduled":
+		if formatVersion != 1 {
+			return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+		}
 		if t.StartDate != nil {
 			return task.PhaseOpen, task.StageAccepted, nil, "old_scheduled_stage_with_start_date", nil
 		}
 		hr := task.HoldReasonDeferred
 		return task.PhaseOpen, task.StageAccepted, &hr, "old_scheduled_stage_without_start_date_to_deferred", nil
 	case "blocked":
+		if formatVersion != 1 {
+			return "", "", nil, "", fmt.Errorf("invalid task stage %q", t.Stage)
+		}
 		if hasOldBlocker {
 			return task.PhaseOpen, task.StageAccepted, nil, "old_blocked_stage_with_blocker_to_dependency_availability", nil
 		}
@@ -690,12 +707,12 @@ func migrateTaskState(t exportTask, hasOldBlocker bool) (task.Phase, task.Stage,
 	}
 }
 
-func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID, hasOldBlocker bool) (store.ImportTask, *store.ImportChange, error) {
+func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping map[string]uuid.UUID, hasOldBlocker bool, formatVersion int) (store.ImportTask, *store.ImportChange, error) {
 	newID, ok := taskMapping[t.ID]
 	if !ok {
 		return store.ImportTask{}, nil, fmt.Errorf("missing task mapping for %q", t.ID)
 	}
-	phase, stage, holdReason, migrationReason, err := migrateTaskState(t, hasOldBlocker)
+	phase, stage, holdReason, migrationReason, err := migrateTaskState(t, hasOldBlocker, formatVersion)
 	if err != nil {
 		return store.ImportTask{}, nil, err
 	}
@@ -849,15 +866,22 @@ func parseTaskPhase(value string) (task.Phase, error) {
 	}
 }
 
-func parseTaskStage(value string) (task.Stage, error) {
+func isRemovedNativeStage(value string) bool {
+	switch value {
+	case "backlog", "ready", "blocked", "waiting_for_input", "deferred", "scheduled":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseNativeTaskStage(value string) (task.Stage, error) {
 	if value == "" {
 		return task.StageTriage, nil
 	}
 	switch task.Stage(value) {
 	case task.StageTriage, task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying, task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 		return task.Stage(value), nil
-	case "backlog", "ready", "blocked", "waiting_for_input", "deferred", "scheduled":
-		return task.StageAccepted, nil
 	default:
 		return "", fmt.Errorf("invalid task stage %q", value)
 	}

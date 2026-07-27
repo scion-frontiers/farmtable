@@ -9,13 +9,16 @@ import (
 	"testing"
 	"time"
 
-	beadsadapter "github.com/farmtable-io/farmtable/internal/platform/beads"
 	"github.com/farmtable-io/farmtable/internal/platform"
+	beadsadapter "github.com/farmtable-io/farmtable/internal/platform/beads"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
 )
+
+func holdReasonPtr(v task.HoldReason) *task.HoldReason { return &v }
 
 // mockBeadsStorage implements beadsadapter.Storage with in-memory state.
 type mockBeadsStorage struct {
@@ -257,7 +260,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 	_ = tasksByRemoteID // just for type reference
 
 	taskMap := make(map[string]*struct {
-		task     interface{ GetTitle() string }
+		task    interface{ GetTitle() string }
 		rawTask interface{}
 	})
 	_ = taskMap
@@ -277,6 +280,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 		Labels             []string
 		RemoteData         map[string]any
 		AssigneeID         *uuid.UUID
+		HoldReason         *task.HoldReason
 	}
 
 	byRemoteID := make(map[string]taskEntry)
@@ -296,6 +300,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 			Labels:             t.Labels,
 			RemoteData:         t.RemoteData,
 			AssigneeID:         t.AssigneeID,
+			HoldReason:         t.HoldReason,
 		}
 	}
 
@@ -465,8 +470,13 @@ func TestBeadsSyncIntegration(t *testing.T) {
 	if !ok {
 		t.Fatal("BEADS-004 not found")
 	}
-	check("BEADS-004.phase", string(task.PhaseOnHold), string(t4.Phase))
+	check("BEADS-004.phase", string(task.PhaseOpen), string(t4.Phase))
 	check("BEADS-004.stage", string(task.StageAccepted), string(t4.Stage))
+	if t4.HoldReason == nil {
+		t.Error("BEADS-004.hold_reason is nil, want deferred")
+	} else {
+		check("BEADS-004.hold_reason", string(task.HoldReasonDeferred), string(*t4.HoldReason))
+	}
 	if t4.Priority != nil {
 		check("BEADS-004.priority", string(task.PriorityLow), string(*t4.Priority))
 	} else {
@@ -505,15 +515,16 @@ func TestBeadsSyncIntegration(t *testing.T) {
 
 func TestStatusMapping(t *testing.T) {
 	cases := []struct {
-		beadsStatus string
-		wantPhase   task.Phase
-		wantStage   task.Stage
+		beadsStatus    string
+		wantPhase      task.Phase
+		wantStage      task.Stage
+		wantHoldReason *task.HoldReason
 	}{
-		{"open", task.PhaseOpen, task.StageAccepted},
-		{"in_progress", task.PhaseInProgress, task.StageWorking},
-		{"blocked", task.PhaseOpen, task.StageAccepted},
-		{"deferred", task.PhaseOnHold, task.StageAccepted},
-		{"closed", task.PhaseClosed, task.StageCompleted},
+		{"open", task.PhaseOpen, task.StageAccepted, nil},
+		{"in_progress", task.PhaseInProgress, task.StageWorking, nil},
+		{"blocked", task.PhaseOpen, task.StageAccepted, holdReasonPtr(task.HoldReasonWaitingForInput)},
+		{"deferred", task.PhaseOpen, task.StageAccepted, holdReasonPtr(task.HoldReasonDeferred)},
+		{"closed", task.PhaseClosed, task.StageCompleted, nil},
 	}
 
 	for _, tc := range cases {
@@ -530,6 +541,49 @@ func TestStatusMapping(t *testing.T) {
 			}
 			if params.Stage != tc.wantStage {
 				t.Errorf("stage: got %s, want %s", params.Stage, tc.wantStage)
+			}
+			if (params.HoldReason == nil) != (tc.wantHoldReason == nil) {
+				t.Fatalf("hold reason: got %v, want %v", params.HoldReason, tc.wantHoldReason)
+			}
+			if params.HoldReason != nil && *params.HoldReason != *tc.wantHoldReason {
+				t.Fatalf("hold reason: got %s, want %s", *params.HoldReason, *tc.wantHoldReason)
+			}
+		})
+	}
+}
+
+func TestTaskToIssue_StatusProjection(t *testing.T) {
+	deferred := task.HoldReasonDeferred
+	waiting := task.HoldReasonWaitingForInput
+	cases := []struct {
+		name       string
+		phase      task.Phase
+		stage      task.Stage
+		holdReason *task.HoldReason
+		wantStatus string
+	}{
+		{"accepted open", task.PhaseOpen, task.StageAccepted, nil, "open"},
+		{"waiting hold", task.PhaseOpen, task.StageAccepted, &waiting, "blocked"},
+		{"deferred hold", task.PhaseOpen, task.StageAccepted, &deferred, "deferred"},
+		{"working", task.PhaseInProgress, task.StageWorking, nil, "in_progress"},
+		{"closed", task.PhaseClosed, task.StageCompleted, nil, "closed"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			issue := beadsadapter.TaskToIssue(&ent.Task{
+				ID:          uuid.New(),
+				Title:       "Task",
+				Phase:       tc.phase,
+				Stage:       tc.stage,
+				HoldReason:  tc.holdReason,
+				Type:        "task",
+				NativeLabel: string(tc.stage),
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			})
+			if issue.Status != tc.wantStatus {
+				t.Fatalf("status = %q, want %q", issue.Status, tc.wantStatus)
 			}
 		})
 	}
@@ -607,7 +661,7 @@ func writeResults(t *testing.T, results []testResult) {
 	sb.WriteString("| ID | remote_data.remote_id | Beads string ID preserved as remote_id |\n")
 	sb.WriteString("| Title | title | Direct map |\n")
 	sb.WriteString("| Description | description | Direct map |\n")
-	sb.WriteString("| Status | phase + stage | Expanded: open→Open/Triage, in_progress→InProgress/Working, blocked→Open/Blocked, deferred→OnHold/Deferred, closed→Closed/Completed |\n")
+	sb.WriteString("| Status | stage + hold | Expanded: open->Accepted, in_progress->Working, blocked->Accepted+waiting_for_input, deferred->Accepted+deferred, closed->Completed |\n")
 	sb.WriteString("| Priority (0-4) | priority (urgent/high/normal/low) | 0→urgent, 1→high, 2→normal, 3-4→low |\n")
 	sb.WriteString("| IssueType | type | Direct string map |\n")
 	sb.WriteString("| Assignee | assignee_id | Deterministic UUID from email/identifier |\n")

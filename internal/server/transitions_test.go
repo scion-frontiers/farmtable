@@ -16,26 +16,22 @@ func TestTransitionScope_Table(t *testing.T) {
 		want string
 	}{
 		// Accepting work out of triage.
-		{"triage to backlog", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
-		{"triage to ready", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
+		{"triage to accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
+		{"triage remains accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
 		{"triage to working", task.StageTriage, task.StageWorking, server.ScopeTaskAccept},
 		{"triage to in_review", task.StageTriage, task.StageInReview, server.ScopeTaskAccept},
 		{"triage to in_qa", task.StageTriage, task.StageInQa, server.ScopeTaskAccept},
 		{"triage to deploying", task.StageTriage, task.StageDeploying, server.ScopeTaskAccept},
-		// On-hold stages are not an escape hatch out of triage: parking a task
-		// in blocked/scheduled and then moving it on would otherwise launder it
-		// past the accept gate with only task:write.
-		{"triage to blocked", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
-		{"triage to waiting_for_input", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
-		{"triage to deferred", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
-		{"triage to scheduled", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
+		// Moving triage into accepted work is not an escape hatch: follow-on
+		// writes still require the accept gate first.
+		{"triage to held accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
 
 		// Taking ownership.
-		{"backlog to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
-		{"ready to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
-		{"blocked to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"claimable accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"held accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
 		{"in_review to working", task.StageInReview, task.StageWorking, server.ScopeTaskClaim},
-		{"deferred to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"deferred hold to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
 
 		// Handoff stages.
 		{"working to in_review", task.StageWorking, task.StageInReview, server.ScopeTaskWrite},
@@ -45,9 +41,9 @@ func TestTransitionScope_Table(t *testing.T) {
 		// Closing, from every phase group.
 		{"working to completed", task.StageWorking, task.StageCompleted, server.ScopeTaskClose},
 		{"triage to completed", task.StageTriage, task.StageCompleted, server.ScopeTaskClose},
-		{"ready to wont_fix", task.StageAccepted, task.StageWontFix, server.ScopeTaskClose},
-		{"backlog to duplicate", task.StageAccepted, task.StageDuplicate, server.ScopeTaskClose},
-		{"blocked to cancelled", task.StageAccepted, task.StageCancelled, server.ScopeTaskClose},
+		{"accepted to wont_fix", task.StageAccepted, task.StageWontFix, server.ScopeTaskClose},
+		{"accepted to duplicate", task.StageAccepted, task.StageDuplicate, server.ScopeTaskClose},
+		{"accepted to cancelled", task.StageAccepted, task.StageCancelled, server.ScopeTaskClose},
 		{"in_review to completed", task.StageInReview, task.StageCompleted, server.ScopeTaskClose},
 		// Moving between terminal stages is still a close, not a reopen.
 		{"completed to cancelled", task.StageCompleted, task.StageCancelled, server.ScopeTaskClose},
@@ -55,25 +51,25 @@ func TestTransitionScope_Table(t *testing.T) {
 
 		// Reopening a closed task is a re-accept.
 		{"completed to triage", task.StageCompleted, task.StageTriage, server.ScopeTaskAccept},
-		{"completed to backlog", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
-		{"cancelled to backlog", task.StageCancelled, task.StageAccepted, server.ScopeTaskAccept},
+		{"completed to accepted", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
+		{"cancelled to accepted", task.StageCancelled, task.StageAccepted, server.ScopeTaskAccept},
 		{"wont_fix to triage", task.StageWontFix, task.StageTriage, server.ScopeTaskAccept},
-		{"duplicate to ready", task.StageDuplicate, task.StageAccepted, server.ScopeTaskAccept},
+		{"duplicate to accepted", task.StageDuplicate, task.StageAccepted, server.ScopeTaskAccept},
 		{"completed to working", task.StageCompleted, task.StageWorking, server.ScopeTaskAccept},
-		{"completed to blocked", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
+		{"completed to held accepted", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
 
 		// Pausing work.
-		{"working to blocked", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
-		{"working to waiting_for_input", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
-		{"working to deferred", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
-		{"ready to blocked", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to accepted hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to waiting hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to deferred hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"accepted to held accepted", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
 
 		// Ordinary movement within accepted work.
-		{"backlog to ready", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
-		{"ready to backlog", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"accepted order change", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"accepted metadata change", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
 		{"in_review to in_qa", task.StageInReview, task.StageInQa, server.ScopeTaskWrite},
-		{"blocked to ready", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
-		{"working to ready", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"held accepted to accepted", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to accepted", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
 	}
 
 	for _, tt := range tests {
