@@ -5,9 +5,13 @@ import { TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
-import { STAGE_LABEL, STAGE_COLOR } from './inspector-stage-utils.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
-import { availabilityLabel, holdReasonLabel } from '../../util/task-state-utils.js';
+import {
+  availabilityLabel,
+  holdReasonLabel,
+  STAGE_COLOR,
+  STAGE_LABEL,
+} from '../../util/task-state-utils.js';
 
 const PRIORITY_OPTIONS = [
   TaskPriority.UNSPECIFIED,

@@ -1,5 +1,4 @@
 import { RelationshipType } from '../../gen/types.js';
-export { STAGE_COLOR, STAGE_LABEL } from '../../util/task-state-utils.js';
 
 export const REL_GROUP_LABEL: Record<number, string> = {
   [RelationshipType.BLOCKED_BY]: 'Blocked by',
