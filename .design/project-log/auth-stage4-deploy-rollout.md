@@ -21,9 +21,8 @@ Against a PostgreSQL/server deployment they fail *silently*, not loudly:
   SQLite file at the `FARMTABLE_DB_PATH` path.
 
 For PostgreSQL deployments, use the direct SQL procedure in
-**"PostgreSQL Deployments"** below for **all** steps, not just scope updates.
-User and token *creation* on Postgres must go through the server's RPC or
-dashboard — those operations are out of scope for this runbook's CLI path.
+**"PostgreSQL Deployments"** below for **all** steps — inventory, scope
+updates, and user/token creation are all covered with SQL equivalents.
 
 **Split-brain hazard:** `ft user create` writes to local SQLite, but `ft user
 get` / `ft user list` / `ft user whoami` read from the server via gRPC. An
@@ -31,8 +30,8 @@ operator who creates a user then verifies with `ft user list` will get a
 contradictory "not found" from the same CLI — the user exists only in the
 local throwaway SQLite file. (Tracked: #170)
 
-A server-mode RPC for `ft token`/`ft user` commands is tracked as a follow-up
-(see GitHub issue).
+A server-mode RPC for `ft token`/`ft user` commands is tracked as follow-ups:
+#169 (server-mode token/user management RPCs), #170 (openDirectStore guard).
 
 ## Rollout Decision
 
@@ -97,8 +96,10 @@ ft token create <reviewer-user-id> --name "lifecycle-reviewer"
 ft token list --output json | jq '.items[] | select(.name == "lifecycle-reviewer") | .scopes'
 # Expected exactly:
 # ["task:read","task:write","task:claim","task:accept","task:close","collection:read"]
-# If this prints null or is absent, the user type was not recognised — revoke the
-# token, delete the user, and re-create with the exact string "reviewer".
+# If this prints null or is absent, the user type was not recognised — revoke
+# the token with `ft token revoke <id>`, then create a new user with the exact
+# string "reviewer" and issue the token against that user. There is no
+# `ft user delete`; the mistyped user row is harmless once it holds no tokens.
 ```
 
 ### 4. Verify after deploy
@@ -146,7 +147,7 @@ SELECT id, name, user_id, scopes FROM api_tokens ORDER BY created_at;
 SELECT id, name, scopes FROM api_tokens WHERE id = '<token-id>';
 
 -- Update scopes (JSON array format, exactly as ent encodes it).
-UPDATE api_tokens SET scopes = '["task:read","task:write","task:claim","task:close","collection:read"]'
+UPDATE api_tokens SET scopes = '["task:read","task:write","task:claim","task:close","collection:read"]'::jsonb
 WHERE id = '<token-id>';
 
 -- Confirm exactly one row changed and the value round-trips.
@@ -165,8 +166,49 @@ SELECT id, name, scopes FROM api_tokens WHERE id = '<token-id>';
 
 ### User/token creation (replaces step 3)
 
-User and token creation on PostgreSQL deployments must go through the farmtable
-server's gRPC API or the web dashboard. The `ft user create` and `ft token
-create` CLI commands cannot reach the production database.
+There is no `CreateUser` or token RPC on the server (`proto/farmtable.proto`
+exposes only `WhoAmI`, `ListUsers`, `GetUser`), and dashboard OAuth
+provisioning always creates `human`-typed users with 24-hour wildcard
+`session-auth` tokens — it cannot create a scoped reviewer. Create both by
+hand:
 
-A server-mode RPC for token/user CLI management is tracked as a follow-up.
+```bash
+# Generate the token locally. The DB stores only the SHA-256 hash.
+RAW="ft_$(openssl rand -hex 32)"
+HASH=$(printf '%s' "$RAW" | sha256sum | cut -d' ' -f1)
+echo "Save this token now, it is never recoverable: $RAW"
+```
+
+```sql
+-- 1. Reviewer user. The 'type' string must be exactly 'reviewer'.
+--    Requires PostgreSQL 13+ for gen_random_uuid(); on 12 or earlier,
+--    run CREATE EXTENSION IF NOT EXISTS pgcrypto; first.
+INSERT INTO users (id, display_name, email, type, status, created_at, updated_at)
+VALUES (gen_random_uuid(), 'task-reviewer', 'reviewer@example.com',
+        'reviewer', 'active', now(), now())
+RETURNING id;
+
+-- 2. Token, with the reviewer scope set written explicitly.
+--    IMPORTANT: scopes are NOT derived from user type on the SQL path.
+--    DefaultScopesForUserType only runs at CLI/provisioning time, so the
+--    scopes column is the ONLY thing enforcement reads. type='reviewer'
+--    with no scopes = WILDCARD. You MUST state scopes explicitly.
+INSERT INTO api_tokens (id, token_hash, name, user_id, created_at, scopes)
+VALUES (gen_random_uuid(), '<HASH>', 'lifecycle-reviewer', '<user-id>', now(),
+        '["task:read","task:write","task:claim","task:accept","task:close","collection:read"]'::jsonb);
+
+-- 3. Verify.
+SELECT u.type, t.name, t.scopes FROM api_tokens t JOIN users u ON u.id = t.user_id
+WHERE t.name = 'lifecycle-reviewer';
+```
+
+**NEVER** omit the `scopes` column or write `'[]'` — NULL/empty is interpreted
+as wildcard (full access).
+
+> **Note:** This SQL block has been verified against the ent schema definitions
+> (`internal/store/ent/migrate/schema.go`) and a live SQLite database, but has
+> not been executed against a live PostgreSQL instance. Validate against your
+> Postgres deployment before relying on it in production.
+
+A server-mode RPC for token/user CLI management is tracked as a follow-up
+(#169, #170).
