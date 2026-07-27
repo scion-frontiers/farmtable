@@ -75,6 +75,18 @@ export function isClosedStage(stage: TaskStage): boolean {
   return CLOSED_STAGE_OPTIONS.includes(stage as (typeof CLOSED_STAGE_OPTIONS)[number]);
 }
 
+/**
+ * Whether a board lane accepts a drag-and-drop stage change.
+ *
+ * `wont_fix`, `duplicate` and `cancelled` carry semantics a drag gesture
+ * cannot express (a reason, a duplicate target), so the board renders those
+ * lanes — the stage filter needs a visible destination — but refuses drops
+ * onto them. The refusal is surfaced to the user, never silent.
+ */
+export function acceptsStageDrop(stage: TaskStage): boolean {
+  return !isClosedStage(stage) || stage === TaskStage.COMPLETED;
+}
+
 export function isUnsuccessfulTerminalStage(stage: TaskStage): boolean {
   return stage === TaskStage.WONT_FIX || stage === TaskStage.CANCELLED || stage === TaskStage.DUPLICATE;
 }
