@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js",
+    "test": "tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -20,6 +20,8 @@
     "protobufjs": "^8.7.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^28.0.3",
+    "jsdom": "^29.1.1",
     "typescript": "^5.5.0",
     "vite": "^6.0.0",
     "vite-plugin-static-copy": "^3.4.0"
