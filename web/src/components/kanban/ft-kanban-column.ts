@@ -2,9 +2,11 @@ import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
-import { TaskStage, TaskPriority } from '../../gen/types.js';
+import { TaskStage } from '../../gen/types.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtTaskCard } from './ft-task-card.js';
+import { compareAcceptedQueueOrder } from '../../util/task-state-utils.js';
+import type { TaskStore } from '../../store/task-store.js';
 
 const STAGE_COLOR: Record<number, string> = {
   [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
@@ -16,18 +18,8 @@ const STAGE_COLOR: Record<number, string> = {
   [TaskStage.COMPLETED]: 'var(--ft-stage-completed)',
 };
 
-function priorityRank(p?: TaskPriority): number {
-  if (p === undefined || p === TaskPriority.UNSPECIFIED) return 99;
-  return p;
-}
-
 function sortTasks(tasks: Task[]): Task[] {
-  return [...tasks].sort((a, b) => {
-    const pa = priorityRank(a.priority);
-    const pb = priorityRank(b.priority);
-    if (pa !== pb) return pa - pb;
-    return a.createdAt.localeCompare(b.createdAt);
-  });
+  return [...tasks].sort(compareAcceptedQueueOrder);
 }
 
 @customElement('ft-kanban-column')
@@ -123,6 +115,9 @@ export class FtKanbanColumn extends LitElement {
 
   @property({ attribute: false })
   tasks: Task[] = [];
+
+  @property({ attribute: false })
+  store?: TaskStore;
 
   @property()
   label = '';
@@ -346,6 +341,7 @@ export class FtKanbanColumn extends LitElement {
           (task, index) => html`
             <ft-task-card
               .task=${task}
+              .store=${this.store}
               ?selected=${task.id === this.selectedTaskId}
               ?readOnly=${this.readOnly}
               card-tab-index=${index === this.activeCardIndex ? 0 : -1}

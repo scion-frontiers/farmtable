@@ -16,6 +16,7 @@ import {
   type Relationship,
   type StatusMapping,
   type Task,
+  type TaskAvailability,
   type TaskEvent,
   type User,
   SortOrder,
@@ -247,7 +248,9 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     if (fields.description !== undefined) request.description = fields.description;
     if (fields.acceptanceCriteria !== undefined) request.acceptanceCriteria = fields.acceptanceCriteria;
     if (fields.stage !== undefined) request.stage = fields.stage;
+    if (fields.holdReason !== undefined) request.holdReason = fields.holdReason;
     if (fields.priority !== undefined) request.priority = fields.priority;
+    if (fields.rank !== undefined) request.rank = fields.rank;
     if (fields.type !== undefined) request.type = fields.type;
     if (fields.dueDate === null) {
       request.clearDueDate = true;
@@ -441,9 +444,11 @@ function toTask(record: ProtoRecord): Task {
     acceptanceCriteria: optionalString(record.acceptanceCriteria),
     phase: numberField(record.phase),
     stage: numberField(record.stage),
+    holdReason: optionalNumber(record.holdReason),
     nativeStatus: optionalString(record.nativeStatus),
     type: optionalString(record.type),
     priority: optionalNumber(record.priority),
+    rank: optionalNumber(record.rank),
     assignees: asArray(record.assignees).map((item) => toUser(asRecord(item))),
     creator: record.creator ? toUser(asRecord(record.creator)) : undefined,
     startDate: timestampToIso(record.startDate),
@@ -462,6 +467,14 @@ function toTask(record: ProtoRecord): Task {
     updatedAt: timestampToIso(record.updatedAt),
     closedAt: timestampToIso(record.closedAt),
     version: stringField(record.version),
+    availability: record.availability ? toTaskAvailability(asRecord(record.availability)) : undefined,
+  };
+}
+
+function toTaskAvailability(record: ProtoRecord): TaskAvailability {
+  return {
+    available: Boolean(record.available),
+    reasons: asArray(record.reasons).map(numberField),
   };
 }
 

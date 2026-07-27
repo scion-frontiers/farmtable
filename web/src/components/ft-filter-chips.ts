@@ -1,15 +1,13 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { TaskPhase, type User } from '../gen/types.js';
+import { AvailabilityReason, TaskHoldReason, TaskStage, type User } from '../gen/types.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
-
-const PHASE_LABELS: Record<TaskPhase, string> = {
-  [TaskPhase.UNSPECIFIED]: 'Unspecified',
-  [TaskPhase.OPEN]: 'Open',
-  [TaskPhase.IN_PROGRESS]: 'In Progress',
-  [TaskPhase.ON_HOLD]: 'On Hold',
-  [TaskPhase.CLOSED]: 'Closed',
-};
+import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
+import {
+  AVAILABILITY_REASON_LABEL,
+  HOLD_REASON_LABEL,
+  STAGE_LABEL,
+} from '../util/task-state-utils.js';
 
 @customElement('ft-filter-chips')
 export class FtFilterChips extends LitElement {
@@ -44,7 +42,16 @@ export class FtFilterChips extends LitElement {
   `;
 
   @property({ attribute: false })
-  phaseFilter: TaskPhase | null = null;
+  groupFilter: TaskGroupFilter | null = null;
+
+  @property({ attribute: false })
+  stageFilter: TaskStage | null = null;
+
+  @property({ attribute: false })
+  holdReasonFilter: TaskHoldReason | null = null;
+
+  @property({ attribute: false })
+  availabilityFilter: AvailabilityFilter | null = null;
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
@@ -59,21 +66,62 @@ export class FtFilterChips extends LitElement {
   totalCount = 0;
 
   render() {
-    const activeFilterCount = Number(this.phaseFilter !== null) + Number(this.assigneeFilter !== null);
+    const activeFilterCount =
+      Number(this.groupFilter !== null) +
+      Number(this.stageFilter !== null) +
+      Number(this.holdReasonFilter !== null) +
+      Number(this.availabilityFilter !== null) +
+      Number(this.assigneeFilter !== null);
     this.hidden = activeFilterCount === 0;
     if (activeFilterCount === 0) return nothing;
 
     return html`
       <div class="chips" role="group" aria-label="Active filters">
-        ${this.phaseFilter !== null
+        ${this.groupFilter !== null
           ? html`
               <sl-tag
                 size="small"
                 variant="neutral"
                 removable
-                @sl-remove=${this.clearPhaseFilter}
+                @sl-remove=${this.clearGroupFilter}
               >
-                Phase: ${this.phaseLabel(this.phaseFilter)}
+                Group: ${this.groupFilter === 'active' ? 'Active' : 'Closed'}
+              </sl-tag>
+            `
+          : nothing}
+        ${this.stageFilter !== null
+          ? html`
+              <sl-tag
+                size="small"
+                variant="neutral"
+                removable
+                @sl-remove=${this.clearStageFilter}
+              >
+                Stage: ${STAGE_LABEL[this.stageFilter] ?? String(this.stageFilter)}
+              </sl-tag>
+            `
+          : nothing}
+        ${this.holdReasonFilter !== null
+          ? html`
+              <sl-tag
+                size="small"
+                variant="neutral"
+                removable
+                @sl-remove=${this.clearHoldReasonFilter}
+              >
+                Hold: ${HOLD_REASON_LABEL[this.holdReasonFilter] ?? String(this.holdReasonFilter)}
+              </sl-tag>
+            `
+          : nothing}
+        ${this.availabilityFilter !== null
+          ? html`
+              <sl-tag
+                size="small"
+                variant="neutral"
+                removable
+                @sl-remove=${this.clearAvailabilityFilter}
+              >
+                Availability: ${this.availabilityLabel(this.availabilityFilter)}
               </sl-tag>
             `
           : nothing}
@@ -101,10 +149,6 @@ export class FtFilterChips extends LitElement {
     `;
   }
 
-  private phaseLabel(phase: TaskPhase): string {
-    return PHASE_LABELS[phase] ?? String(phase);
-  }
-
   private assigneeLabel(assigneeId: string): string {
     if (assigneeId === UNASSIGNED_FILTER_VALUE) return 'Unassigned';
 
@@ -112,23 +156,68 @@ export class FtFilterChips extends LitElement {
     return user?.name || user?.email || assigneeId;
   }
 
-  private clearPhaseFilter() {
+  private availabilityLabel(filter: AvailabilityFilter): string {
+    if (filter === 'available') return 'Available';
+    if (filter === 'unavailable') return 'Unavailable';
+    return AVAILABILITY_REASON_LABEL[filter as AvailabilityReason] ?? String(filter);
+  }
+
+  private clearGroupFilter() {
     this.dispatchFilterClear({
-      phase: null,
+      group: null,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private clearStageFilter() {
+    this.dispatchFilterClear({
+      group: this.groupFilter,
+      stage: null,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private clearHoldReasonFilter() {
+    this.dispatchFilterClear({
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: null,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private clearAvailabilityFilter() {
+    this.dispatchFilterClear({
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: null,
       assigneeId: this.assigneeFilter,
     });
   }
 
   private clearAssigneeFilter() {
     this.dispatchFilterClear({
-      phase: this.phaseFilter,
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
       assigneeId: null,
     });
   }
 
   private clearAllFilters() {
     this.dispatchFilterClear({
-      phase: null,
+      group: null,
+      stage: null,
+      holdReason: null,
+      availability: null,
       assigneeId: null,
     });
   }
