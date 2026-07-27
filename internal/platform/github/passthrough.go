@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,10 +25,24 @@ type GitHubPassThroughStore struct {
 	owner  string
 	repo   string
 
-	// Cached values resolved on first use.
-	repoID       githubv4.ID
+	// collectionID is fixed at construction and never written afterwards, so
+	// it needs no synchronisation.
 	collectionID uuid.UUID
-	labelIndex   map[string]githubv4.ID // label name -> node ID
+
+	// cacheMu guards the two lazily resolved fields below. One store instance
+	// serves every request for its collection, so concurrent RPCs on it are
+	// the normal case; without this, a lazy populate racing a read of
+	// labelIndex is a concurrent map read and map write, which is a fatal
+	// runtime error rather than a recoverable one (#198).
+	//
+	// The lock covers the cache fields only, never a network call. Both
+	// ensureRepoID and ensureLabelIndex release it while fetching and re-check
+	// under the write lock, so a concurrent populate costs a duplicate GitHub
+	// request, not a blocked caller. That is the right trade: the fetches are
+	// idempotent reads and both produce the same value.
+	cacheMu    sync.RWMutex
+	repoID     githubv4.ID
+	labelIndex map[string]githubv4.ID // label name -> node ID
 }
 
 var _ store.Store = (*GitHubPassThroughStore)(nil)
@@ -85,33 +100,84 @@ func (s *GitHubPassThroughStore) issueNumberFromUUID(id uuid.UUID, issues []issu
 // ── Lazy initialization ──
 
 func (s *GitHubPassThroughStore) ensureRepoID(ctx context.Context) error {
-	if s.repoID != nil {
+	s.cacheMu.RLock()
+	cached := s.repoID != nil
+	s.cacheMu.RUnlock()
+	if cached {
 		return nil
 	}
+
 	id, err := s.gql.getRepositoryID(ctx)
 	if err != nil {
 		return err
 	}
-	s.repoID = id
+
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	// Re-check: another goroutine may have populated it while this one was in
+	// flight. Keeping the first winner rather than overwriting means callers
+	// that already read the field see a value that does not change under them.
+	if s.repoID == nil {
+		s.repoID = id
+	}
 	return nil
 }
 
 func (s *GitHubPassThroughStore) ensureLabelIndex(ctx context.Context) error {
-	if s.labelIndex != nil {
+	s.cacheMu.RLock()
+	cached := s.labelIndex != nil
+	s.cacheMu.RUnlock()
+	if cached {
 		return nil
 	}
+
 	labels, err := s.gql.listRepoLabels(ctx)
 	if err != nil {
 		return err
 	}
-	s.labelIndex = make(map[string]githubv4.ID, len(labels))
+
+	// Build into a local map and publish it in one assignment. Populating
+	// s.labelIndex entry by entry would expose a partially filled map to any
+	// reader that took the read lock between entries, which is worse than the
+	// race it replaces: a silently missing label ID is a skipped label write,
+	// not a crash.
+	index := make(map[string]githubv4.ID, len(labels))
 	for _, l := range labels {
-		s.labelIndex[strings.ToLower(string(l.Name))] = l.ID
+		index[strings.ToLower(string(l.Name))] = l.ID
+	}
+
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	if s.labelIndex == nil {
+		s.labelIndex = index
 	}
 	return nil
 }
 
+// cachedRepoID reads the repo ID cache. ensureRepoID must have been called
+// first; this only reads what that populated, under the lock.
+func (s *GitHubPassThroughStore) cachedRepoID() githubv4.ID {
+	s.cacheMu.RLock()
+	defer s.cacheMu.RUnlock()
+	return s.repoID
+}
+
+// labelNameToID reads the label cache under the read lock.
+//
+// Every call site today happens to be preceded by ensureLabelIndex on the same
+// goroutine, which acquires cacheMu and so orders this read after whichever
+// publish won — meaning that with the double-check above in place, dropping
+// this read lock does not currently reproduce a race. That is an argument
+// spanning two functions and resting on the double-check, not a property of
+// this one, and it is exactly the kind of reasoning that stops being true when
+// someone adds a caller or relaxes the publish. Allow re-publication and the
+// unlocked read races immediately; both variants were measured.
+//
+// So the lock stays, and it is what actually makes the read safe. The map is
+// never mutated after publication, so concurrent readers never contend.
 func (s *GitHubPassThroughStore) labelNameToID(name string) (githubv4.ID, bool) {
+	s.cacheMu.RLock()
+	defer s.cacheMu.RUnlock()
 	id, ok := s.labelIndex[strings.ToLower(name)]
 	return id, ok
 }
@@ -303,7 +369,7 @@ func (s *GitHubPassThroughStore) CreateTask(ctx context.Context, p store.CreateT
 		}
 	}
 
-	issue, err := s.gql.createIssue(ctx, s.repoID, p.Title, p.Description, labelIDs, nil)
+	issue, err := s.gql.createIssue(ctx, s.cachedRepoID(), p.Title, p.Description, labelIDs, nil)
 	if err != nil {
 		return nil, err
 	}
