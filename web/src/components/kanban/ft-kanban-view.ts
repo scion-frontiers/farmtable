@@ -128,6 +128,7 @@ export class FtKanbanView extends LitElement {
       this.holdReasonFilter,
       this.availabilityFilter,
       this.assigneeFilter,
+      this.store,
     );
   }
 

@@ -9,7 +9,18 @@ import {
 import type { TaskStore } from '../store/task-store.js';
 
 export type TaskGroupFilter = 'active' | 'closed';
-export type AvailabilityFilter = 'available' | 'unavailable' | AvailabilityReason;
+
+/**
+ * What the Availability control filters by.
+ *
+ * `'attention'` is a REFINEMENT of `AvailabilityReason.BLOCKED_BY_DEPENDENCY`,
+ * not a sibling of it: `attentionBlockers()` short-circuits unless that reason
+ * is present, so the attention set is always a strict subset of the
+ * dependency-blocked set. It belongs in this union rather than in a filter
+ * parameter of its own precisely because of that containment — the user picks
+ * it from the same control, one line below the reason it narrows.
+ */
+export type AvailabilityFilter = 'available' | 'unavailable' | 'attention' | AvailabilityReason;
 
 export const ACTIVE_STAGE_OPTIONS = [
   TaskStage.TRIAGE,
@@ -261,6 +272,31 @@ export function rankBand(
     )
     .sort(compareAcceptedQueueOrder);
 }
+
+/**
+ * The words for "this task is stranded behind an abandoned prerequisite".
+ *
+ * One phrase, four places: the card badge, the Availability filter option, the
+ * active-filter chip, and the dashboard tile. They have to agree — a user who
+ * sees "Needs attention" on a card has to be able to find the control that
+ * lists every other card wearing it, and a second wording would hide the link.
+ *
+ * `label` alone cannot say *why*, and the why is the whole point: contract §11
+ * states that `cancelled` and `wont_fix` do not automatically unblock
+ * dependents, so these tasks are stranded by design and no process will ever
+ * surface them. `explanation` carries that, and is what the tile shows on hover.
+ *
+ * NOTE(i18n): Hardcoded English; extract if i18n is added.
+ */
+export const ATTENTION = {
+  label: 'Needs attention',
+  explanation:
+    'Blocked by a prerequisite that was cancelled, dropped as a duplicate, or ' +
+    "won't be fixed. Closing a prerequisite that way does not unblock its " +
+    'dependents, so nothing will clear these on its own.',
+  /** Completes the dashboard tile's accessible name: "<label>: 3 — <tileAction>". */
+  tileAction: 'click to list them on the board',
+} as const;
 
 export function attentionBlockers(task: Task, store: TaskStore): Task[] {
   if (!hasAvailabilityReason(task, AvailabilityReason.BLOCKED_BY_DEPENDENCY)) return [];

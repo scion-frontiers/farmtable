@@ -388,6 +388,7 @@ export class FtApp extends LitElement {
               this.holdReasonFilter,
               this.availabilityFilter,
               this.assigneeFilter,
+              this.taskStore,
             ),
           )
             .length
@@ -481,9 +482,16 @@ export class FtApp extends LitElement {
     switch (this.currentView) {
       case 'dashboard':
         return html`
+          <!--
+            The dashboard's needs-attention tile is a two-part navigation: it
+            switches the view AND applies the filter that makes the tile's own
+            count reachable. Both events are handled by the same methods the
+            toolbar's are, so the tile cannot drift from the manual route.
+          -->
           <ft-dashboard-view
             .store=${this.taskStore}
             @view-change=${this.onViewChange}
+            @filter-change=${this.onFilterChange}
           ></ft-dashboard-view>
         `;
       case 'ready-queue':
@@ -676,6 +684,7 @@ export class FtApp extends LitElement {
         this.holdReasonFilter,
         this.availabilityFilter,
         this.assigneeFilter,
+        this.taskStore,
       )
     ) {
       return false;

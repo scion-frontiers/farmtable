@@ -3,6 +3,7 @@ import '../src/components/ft-filter-chips.js';
 import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import { UNASSIGNED_FILTER_VALUE } from '../src/components/task-filters.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   STAGE_LABEL,
@@ -75,6 +76,19 @@ describe('ft-filter-chips — rendered chips', () => {
 
     const unavailable = await mount<HTMLElement>('ft-filter-chips', { availabilityFilter: 'unavailable' });
     expect(chipLabels(unavailable)).toEqual(['Availability: Unavailable']);
+  });
+
+  /**
+   * `'attention'` is the third string-valued availability filter, and the one
+   * most likely to be forgotten: the reason map is keyed by number, so a string
+   * that has no explicit branch falls through to `String(filter)` and the user
+   * is shown the raw value `attention` instead of words. The words come from
+   * production and are anchored in `vocabulary.contract.test.ts`.
+   */
+  it('labels the attention refinement in the same words as the badge and the filter option', async () => {
+    const chips = await mount<HTMLElement>('ft-filter-chips', { availabilityFilter: 'attention' });
+
+    expect(chipLabels(chips)).toEqual([`Availability: ${ATTENTION.label}`]);
   });
 
   it('labels the unassigned sentinel as Unassigned', async () => {
