@@ -3,7 +3,7 @@ import '../src/components/ready-queue/ft-ready-queue-view.js';
 import { TaskPriority } from '../src/gen/types.js';
 import { ALL_ENABLED, GITHUB_CAPABILITIES } from '../src/capabilities.js';
 import { PRIORITY_LABEL } from '../src/util/priority-utils.js';
-import { DROP_REFUSAL } from '../src/util/task-state-utils.js';
+import { DROP_REFUSAL, WRITE_FAILURE } from '../src/util/task-state-utils.js';
 import { dragOverOn, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { RecordingClient, storeWith, task } from './helpers/fixtures.js';
@@ -166,6 +166,66 @@ describe('ft-ready-queue-view — server rejection', () => {
     }
     expect(rowIds(view)).toEqual(['a', 'b', 'c']);
     expect(feedback.sawFeedback(), feedback.describe()).toBe(true);
+  });
+
+  /**
+   * The PRODUCER side of the write-error seam.
+   *
+   * `ft-app.write-error-seam.test.ts` proves `ft-app` prefers `message` over
+   * the raw error, but it synthesises the event by hand — so nothing proved
+   * the queue attaches `message` under the right condition, and only then.
+   * Both halves of that distinction were free to regress on a green suite,
+   * which is the half `WRITE_FAILURE.partialRenumber` exists to get right:
+   * "reload to see the saved order" is a lie after a single failed write,
+   * because nothing was saved.
+   */
+  it('attaches the partial-renumber message when a renumber wrote more than once', async () => {
+    const store = unrankedBand();
+    const { view, client } = await mountQueue(store);
+    const feedback = collectFeedback(view);
+    // Fail the SECOND write, not the first. `rejectUpdateWith` rejects from
+    // call one, which leaves nothing persisted and so is not the situation
+    // the message describes; this is a genuine part-way failure, with an
+    // earlier rank already on the server when a later one fails.
+    client.updateTaskResponse = (echoed) => {
+      if (client.updateTaskCalls.length >= 2) throw new Error('server said no');
+      return echoed;
+    };
+
+    dropTaskOn(rowFor(view, 'a'), 'c');
+    await flush();
+    await settle(view);
+
+    // Premise: this really is the multi-write renumber path. Without this the
+    // test would still pass if the drop silently became a single write.
+    expect(client.updateTaskCalls.length, 'expected a renumber, not a single write')
+      .toBeGreaterThan(1);
+
+    expect(feedback.writeErrors, feedback.describe()).toHaveLength(1);
+    const detail = feedback.writeErrors[0].detail;
+    expect(detail.reason).toBe('rank-change-failed');
+    expect(detail.message).toBe(WRITE_FAILURE.partialRenumber);
+  });
+
+  it('omits the partial-renumber message when only one rank was written', async () => {
+    const store = rankedBand();
+    const { view, client } = await mountQueue(store);
+    const feedback = collectFeedback(view);
+    client.rejectUpdateWith = new Error('server said no');
+
+    dropTaskOn(rowFor(view, 'b'), 'c');
+    await flush();
+    await settle(view);
+
+    // Premise: the band has usable ranks, so `ranksForMove` takes the
+    // single-write path and no earlier write can have landed.
+    expect(client.updateTaskCalls).toHaveLength(1);
+
+    expect(feedback.writeErrors, feedback.describe()).toHaveLength(1);
+    const detail = feedback.writeErrors[0].detail;
+    expect(detail.reason).toBe('rank-change-failed');
+    expect(detail.message, 'nothing was saved, so "reload to see the saved order" would be wrong')
+      .toBeUndefined();
   });
 });
 
