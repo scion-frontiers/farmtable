@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
@@ -19,9 +19,13 @@ import {
   compareAcceptedQueueOrder,
   availabilityLabel,
   isClosedStage,
+  priorityRank,
   type AvailabilityFilter,
   type TaskGroupFilter,
 } from '../../util/task-state-utils.js';
+import { ranksForMove } from '../../util/rank.js';
+import type { FarmTableServiceClient } from '../../gen/service.js';
+import type { CollectionCapabilities } from '../../capabilities.js';
 import '../ft-empty-state.js';
 
 /**
@@ -86,6 +90,16 @@ export class FtReadyQueueView extends LitElement {
     .queue-row.selected {
       border-color: var(--sl-color-primary-500);
       box-shadow: 0 0 0 1px var(--sl-color-primary-500);
+    }
+
+    .queue-row.dragging {
+      opacity: 0.45;
+    }
+
+    /* Marks the row the dragged task will take the place of. */
+    .queue-row.drop-target {
+      border-color: var(--sl-color-primary-500);
+      border-style: dashed;
     }
 
     .task-type {
@@ -190,6 +204,23 @@ export class FtReadyQueueView extends LitElement {
   @property({ attribute: false })
   assigneeFilter: string | null = null;
 
+  @property({ attribute: false })
+  client?: FarmTableServiceClient;
+
+  @property({ type: Boolean })
+  readOnly = false;
+
+  @property({ attribute: false })
+  capabilities?: CollectionCapabilities;
+
+  /** Task currently being dragged, used to dim its row. */
+  @state()
+  private draggingId: string | null = null;
+
+  /** Row the pointer is currently over, used to show the drop indicator. */
+  @state()
+  private dropTargetId: string | null = null;
+
   connectedCallback() {
     super.connectedCallback();
     new TaskStoreController(this, this.store);
@@ -270,6 +301,144 @@ export class FtReadyQueueView extends LitElement {
     this.onRowClick(taskId);
   }
 
+  // ── Drag reorder (design contract §10: reorder within a priority band) ──
+
+  private onRowDragStart(e: DragEvent, taskId: string) {
+    this.draggingId = taskId;
+    e.dataTransfer?.setData('text/plain', taskId);
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  }
+
+  /**
+   * Accept the drag gesture on *every* row, including rows this view will
+   * refuse.
+   *
+   * A `drop` event only fires when `dragover` called `preventDefault()`.
+   * Bailing out early here — on a read-only board, on a foreign priority band,
+   * on anything — means the browser never fires `drop`, the refusal handler
+   * never runs, and the gesture dies looking like a frozen UI. Refusals are
+   * decided in `onRowDrop` and reported as a toast; see the matching note in
+   * `ft-kanban-column.onDragOver`.
+   */
+  private onRowDragOver(e: DragEvent, taskId: string) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    this.dropTargetId = taskId;
+  }
+
+  private onRowDragEnd() {
+    this.draggingId = null;
+    this.dropTargetId = null;
+  }
+
+  private onRowDrop(e: DragEvent, targetTaskId: string) {
+    e.preventDefault();
+    const draggedId = e.dataTransfer?.getData('text/plain') ?? '';
+    this.draggingId = null;
+    this.dropTargetId = null;
+    if (!draggedId) return;
+    void this.reorder(draggedId, targetTaskId);
+  }
+
+  /**
+   * Surface a client-side refusal on the same toast channel as server write
+   * failures. A drag this view declines must never be a silent no-op.
+   */
+  private reportRefusal(message: string) {
+    this.dispatchEvent(new CustomEvent('write-error', {
+      bubbles: true,
+      composed: true,
+      detail: { message, reason: 'rank-change-refused' },
+    }));
+  }
+
+  /**
+   * Move `draggedId` to the position of `targetTaskId` within its priority
+   * band and persist the resulting ranks.
+   */
+  private async reorder(draggedId: string, targetTaskId: string) {
+    const dragged = this.store.getTask(draggedId);
+    const target = this.store.getTask(targetTaskId);
+    if (!dragged || !target) return;
+    // Genuine no-op: the row was dropped back onto itself.
+    if (draggedId === targetTaskId) return;
+
+    // NOTE(i18n): Hardcoded English; extract if i18n is added.
+    if (this.readOnly) {
+      this.reportRefusal('This queue is read-only — the order is not saved.');
+      return;
+    }
+    if (this.capabilities?.canDragReorder === false) {
+      this.reportRefusal('This collection does not support drag reordering.');
+      return;
+    }
+
+    // Cross-band drag (dropping into another priority) is an explicitly
+    // optional convenience in contract §10 and is not implemented. Refuse it
+    // out loud rather than letting the row snap back with no explanation.
+    if (priorityRank(dragged.priority) !== priorityRank(target.priority)) {
+      this.reportRefusal(
+        `Drag reordering works within one priority band. Change the priority of ` +
+          `“${dragged.name}” to move it into ${PRIORITY_LABEL[target.priority ?? TaskPriority.UNSPECIFIED] ?? 'that'}.`,
+      );
+      return;
+    }
+
+    const bandPriority = priorityRank(dragged.priority);
+    const band = this.getReadyTasks().filter((task) => priorityRank(task.priority) === bandPriority);
+    const targetIndex = band.findIndex((task) => task.id === targetTaskId);
+    if (targetIndex === -1) return;
+
+    const writes = ranksForMove(band, draggedId, targetIndex);
+    if (writes.length === 0) return;
+
+    // Optimistic update first so the row moves under the pointer immediately.
+    const originals = writes
+      .map((write) => this.store.getTask(write.id))
+      .filter((task): task is Task => task !== undefined);
+    for (const write of writes) {
+      const task = this.store.getTask(write.id);
+      if (task) this.store.upsert({ ...task, rank: write.rank });
+    }
+
+    if (!this.client) {
+      console.warn('No client configured — queue reorder is local only');
+      return;
+    }
+
+    try {
+      for (const write of writes) {
+        // Contract: the queue writes `rank` only — never `priority`, never `phase`.
+        const updated = await this.client.updateTask(write.id, { rank: write.rank });
+        this.store.upsert(updated);
+      }
+    } catch (error) {
+      // Partial-failure policy for the renumber case: writes are sequential,
+      // so an earlier task in the batch may already be persisted when a later
+      // one fails. We roll the *whole* band back to its pre-drag ranks and
+      // report the failure, because showing the user the order they started
+      // from plus an explicit error beats leaving a half-applied order on
+      // screen that looks like it saved. The local store can then disagree
+      // with the server for the already-written tasks until the next snapshot
+      // or watch event; the toast tells the user to reload for exactly that
+      // reason. Re-fetching here instead would need a list entry point this
+      // view does not have.
+      console.warn('Failed to update task rank; rolled back optimistic reorder', error);
+      for (const original of originals) this.store.upsert(original);
+      this.dispatchEvent(new CustomEvent('write-error', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          error,
+          reason: 'rank-change-failed',
+          ...(writes.length > 1
+            ? { message: 'Reordering the queue failed part way through — reload to see the saved order.' }
+            : {}),
+        },
+      }));
+    }
+  }
+
   render() {
     if (this.store.isLoading) {
       return html`<div style="display:flex;align-items:center;justify-content:center;height:100%;"><sl-spinner style="font-size:2rem;"></sl-spinner></div>`;
@@ -314,13 +483,20 @@ export class FtReadyQueueView extends LitElement {
         class=${classMap({
           'queue-row': true,
           selected: this.selectedTaskId === task.id,
+          dragging: this.draggingId === task.id,
+          'drop-target': this.dropTargetId === task.id && this.draggingId !== task.id,
         })}
         tabindex="0"
         role="option"
         aria-label=${`Task: ${task.name}`}
         aria-selected=${String(this.selectedTaskId === task.id)}
+        draggable="true"
         @click=${() => this.onRowClick(task.id)}
         @keydown=${(e: KeyboardEvent) => this.onRowKeyDown(e, task.id)}
+        @dragstart=${(e: DragEvent) => this.onRowDragStart(e, task.id)}
+        @dragover=${(e: DragEvent) => this.onRowDragOver(e, task.id)}
+        @dragend=${() => this.onRowDragEnd()}
+        @drop=${(e: DragEvent) => this.onRowDrop(e, task.id)}
       >
         <span class="priority-cell"><sl-badge variant=${priorityVariant} pill>${priorityLabel}</sl-badge></span>
 
