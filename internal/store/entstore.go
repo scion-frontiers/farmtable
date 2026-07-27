@@ -1074,9 +1074,17 @@ func terminalStageSatisfiesDependency(stage task.Stage) bool {
 
 // IsTerminalStage reports whether a stage makes the task holding it
 // permanently unavailable for claim. It is the single source of truth for the
-// terminal arm of availability, shared by every availability implementation
-// (EntStore, MultiStore's fallback, the server's basic projection, and the
-// GitHub pass-through store).
+// stage half of that rule, and every availability implementation (EntStore,
+// MultiStore's fallback, the server's basic projection, and the GitHub
+// pass-through store) reaches it through this function rather than restating
+// the stage set.
+//
+// Callers may legitimately test more than this. MultiStore's fallback ORs in a
+// PhaseClosed arm, because it must treat a closed task as terminal even when
+// the stage is not; the GitHub tree walk pairs it with a sub-issue check. This
+// function is the shared stage rule, not the whole of any one call site — do
+// not "simplify" a site down to a bare call to it without checking what else
+// that site's condition carries.
 //
 // This is deliberately NOT the same concept as "a stage CloseTask accepts as a
 // close target", nor as the stage->phase projection in phaseForStage, even
