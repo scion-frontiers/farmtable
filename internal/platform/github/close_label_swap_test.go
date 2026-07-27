@@ -1,9 +1,11 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -623,4 +625,88 @@ func TestPassThroughCloseTask_CloseFailureTouchesNoLabel(t *testing.T) {
 	if fake.state != "OPEN" {
 		t.Errorf("issue state = %s, want OPEN", fake.state)
 	}
+}
+
+// TestPassThroughCloseTask_BestEffortFailuresAreLogged covers audit-194 F5.
+//
+// CloseTask discards four errors on purpose, because the close has already
+// happened and returning any of them would read to the caller as a failed
+// close. Discarding them silently is what makes a stale stage label
+// indistinguishable from the outside: a rejected label write and a bug in the
+// swap logic leave identical residue on the issue. The log line is the only
+// thing that tells them apart, so it is asserted rather than assumed.
+//
+// The control flow is deliberately unchanged — each subtest re-asserts that the
+// close still succeeds — so this test would also catch a future "improvement"
+// that turned one of these into a returned error.
+func TestPassThroughCloseTask_BestEffortFailuresAreLogged(t *testing.T) {
+	ctx := context.Background()
+
+	for _, tc := range []struct {
+		name string
+		fail func(*fakeIssueRepo)
+		want string
+	}{
+		{"label index", func(f *fakeIssueRepo) { f.failLabelIndex = true }, "label index unavailable"},
+		{"label writes", func(f *fakeIssueRepo) { f.failLabelWrites = true }, "removing stage labels"},
+		{"post-close re-read", func(f *fakeIssueRepo) { f.failIssueRead = true }, "post-close re-read failed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := newFakeIssueRepo(t, "ft:stage/working")
+			tc.fail(fake)
+			s := fake.store()
+
+			logged := captureLog(t)
+			got, err := s.CloseTask(ctx, s.issueUUID(1), task.StageCompleted, "", uuid.Nil)
+			if err != nil {
+				t.Fatalf("CloseTask returned %v; a best-effort failure must not fail the close", err)
+			}
+			if got.ClosedAt == nil {
+				t.Errorf("CloseTask reported ClosedAt = nil after a successful close")
+			}
+
+			out := logged()
+			if !strings.Contains(out, tc.want) {
+				t.Errorf("log output %q does not mention %q; the swallowed error left no trace", out, tc.want)
+			}
+			if !strings.Contains(out, "acme/repo#1") {
+				t.Errorf("log output %q does not identify the repo and issue", out)
+			}
+		})
+	}
+
+	// The add-label failure shares failLabelWrites with the remove above, so it
+	// needs an issue with no stage label to remove for its line to be the only
+	// one emitted.
+	t.Run("add label", func(t *testing.T) {
+		fake := newFakeIssueRepo(t)
+		fake.failLabelWrites = true
+		s := fake.store()
+
+		logged := captureLog(t)
+		if _, err := s.CloseTask(ctx, s.issueUUID(1), task.StageCompleted, "", uuid.Nil); err != nil {
+			t.Fatalf("CloseTask: %v", err)
+		}
+		if out := logged(); !strings.Contains(out, "adding stage label") {
+			t.Errorf("log output %q does not mention the failed label add", out)
+		}
+	})
+}
+
+// captureLog redirects the standard logger for the duration of a test and
+// returns the accumulated output. Package log is what the rest of the codebase
+// uses (internal/store/multistore.go does the same), so there is no logger to
+// inject.
+func captureLog(t *testing.T) func() string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	out, flags := log.Writer(), log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(out)
+		log.SetFlags(flags)
+	})
+	return buf.String
 }

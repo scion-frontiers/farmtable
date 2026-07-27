@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -55,6 +56,13 @@ func NewPassThroughStore(token, owner, repo string, cfg *GitHubConfig, collectio
 
 func (s *GitHubPassThroughStore) issueUUID(number int) uuid.UUID {
 	return deterministicUUID(fmt.Sprintf("github:%s/%s#%d", s.owner, s.repo, number))
+}
+
+// repoSlug is the owner/repo pair, for log messages. A pass-through store is
+// bound to one repository, but a process serves many, so a log line naming
+// only the issue number is ambiguous.
+func (s *GitHubPassThroughStore) repoSlug() string {
+	return s.owner + "/" + s.repo
 }
 
 func (s *GitHubPassThroughStore) commentUUID(id githubv4.ID) uuid.UUID {
@@ -634,18 +642,36 @@ func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, st
 	// — but the close would still not have happened, which is the effect the
 	// caller asked for. Label writes are therefore best effort and never fail
 	// an already-completed close.
+	// Each best-effort failure below is logged and not returned. Logging is the
+	// whole remedy available here: the close has already happened and cannot be
+	// undone, so there is nothing to report to the caller that would not read as
+	// "your close failed". What the log buys is the ability to tell a stale
+	// label caused by a rejected write from one caused by a bug, which is
+	// otherwise indistinguishable from the outside.
 	if err := s.ensureLabelIndex(ctx); err == nil {
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.StageLabelSwap(currentLabels, stage)
 
 		removeIDs := s.labelNamesToIDs(remove)
 		if len(removeIDs) > 0 {
-			_ = s.gql.removeLabels(ctx, target.ID, removeIDs)
+			if err := s.gql.removeLabels(ctx, target.ID, removeIDs); err != nil {
+				log.Printf("github passthrough: close %s#%d: removing stage labels %v failed, "+
+					"issue is closed but may carry a stale stage label: %v",
+					s.repoSlug(), target.Number, remove, err)
+			}
 		}
 		addIDs := s.labelNamesToIDs(add)
 		if len(addIDs) > 0 {
-			_ = s.gql.addLabels(ctx, target.ID, addIDs)
+			if err := s.gql.addLabels(ctx, target.ID, addIDs); err != nil {
+				log.Printf("github passthrough: close %s#%d: adding stage label %v failed, "+
+					"issue is closed but is not labelled %s: %v",
+					s.repoSlug(), target.Number, add, stage, err)
+			}
 		}
+	} else {
+		log.Printf("github passthrough: close %s#%d: label index unavailable, "+
+			"issue is closed but its stage label was not swapped to %s: %v",
+			s.repoSlug(), target.Number, stage, err)
 	}
 
 	// The closeIssue payload was captured before the label swap, so re-read the
@@ -654,6 +680,9 @@ func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, st
 	// error for work that succeeded.
 	refreshed, err := s.gql.getIssue(ctx, int(target.Number))
 	if err != nil {
+		log.Printf("github passthrough: close %s#%d: post-close re-read failed, "+
+			"reporting the pre-swap close payload instead: %v",
+			s.repoSlug(), target.Number, err)
 		return s.issueToTask(closed), nil
 	}
 	return s.issueToTask(refreshed), nil
