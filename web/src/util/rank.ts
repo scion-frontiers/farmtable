@@ -17,7 +17,21 @@
 export const RANK_STEP = 1024;
 
 /** The minimum rank this module will hand out. Ranks stay positive integers. */
-const MIN_RANK = 1;
+export const MIN_RANK = 1;
+
+/**
+ * Whether a rank read back from the server can anchor arithmetic.
+ *
+ * `Number.isSafeInteger` alone is not enough: zero and negatives are safe
+ * integers, so a hostile band like `[-5, 0, 5]` used to sail past the guard in
+ * `singleWrite` and the interior-midpoint branch then handed out `-3` — below
+ * the floor this module documents. Anything outside the range is treated the
+ * same way as a float or a NaN: not an anchor, so the band falls through to
+ * `renumber()` and comes back inside the invariant.
+ */
+function isUsableRank(rank: number | undefined): rank is number {
+  return Number.isSafeInteger(rank) && (rank as number) >= MIN_RANK;
+}
 
 /** A task as this module needs to see it: an identity and maybe a rank. */
 export interface RankedItem {
@@ -67,16 +81,17 @@ export function ranksForMove(
  * The one write that expresses this move, or `null` when no such write exists.
  *
  * A single write is only sound when every *other* item in the band already
- * carries a rank and those ranks are strictly increasing in display order —
- * otherwise the untouched items would not hold the order the user just dropped
- * (unranked tasks sort last by `created_at`, so they cannot anchor anything).
+ * carries an in-range rank and those ranks are strictly increasing in display
+ * order — otherwise the untouched items would not hold the order the user just
+ * dropped (unranked tasks sort last by `created_at`, so they cannot anchor
+ * anything), or the midpoint between them would itself be out of range.
  */
 function singleWrite(order: readonly RankedItem[], index: number): RankWrite | null {
   const others = order.filter((_, i) => i !== index);
   for (let i = 0; i < others.length; i++) {
     const rank = others[i].rank;
-    if (!Number.isSafeInteger(rank)) return null;
-    if (i > 0 && !(others[i - 1].rank! < rank!)) return null;
+    if (!isUsableRank(rank)) return null;
+    if (i > 0 && !(others[i - 1].rank! < rank)) return null;
   }
 
   const before = order[index - 1]?.rank;
@@ -90,6 +105,12 @@ function singleWrite(order: readonly RankedItem[], index: number): RankWrite | n
 /**
  * An integer strictly between `before` and `after`, or `null` when the gap is
  * exhausted. Either bound may be absent, meaning "this is an end of the band".
+ *
+ * Callers guarantee that any bound present satisfies `isUsableRank`, which is
+ * what keeps the result at or above `MIN_RANK`: the interior branch returns
+ * something strictly greater than `before >= MIN_RANK`, and the tail branch
+ * only ever counts upwards. The head branch has no lower bound to lean on and
+ * so checks the floor itself.
  */
 function midpoint(before: number | undefined, after: number | undefined): number | null {
   if (before === undefined && after === undefined) return null;
