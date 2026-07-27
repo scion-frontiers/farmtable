@@ -6,6 +6,7 @@ import {
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
   STAGE_LABEL,
+  WRITE_FAILURE,
 } from '../src/util/task-state-utils.js';
 
 /**
@@ -206,5 +207,30 @@ describe('DROP_REFUSAL — the refusal vocabulary itself', () => {
     ];
 
     expect(Object.keys(DROP_REFUSAL).sort()).toEqual([...anchored].sort());
+  });
+});
+
+/**
+ * The failure wording, which is NOT refusal wording.
+ *
+ * A sibling of `DROP_REFUSAL` rather than a member of it. A refusal is this UI
+ * declining a gesture before anything leaves the browser; a failure is the
+ * server having been asked and something having gone wrong. Round 4 restored
+ * `DROP_REFUSAL`'s precision after it had drifted, and absorbing a failure
+ * message into it would spend that back immediately.
+ *
+ * This string was built inline in `ft-ready-queue-view`'s partial-renumber
+ * path, with a hand-copied twin in `ft-app.write-error-seam.test.ts` — the same
+ * defect the rest of this file exists to prevent, one seam over.
+ */
+describe('WRITE_FAILURE — the write-failure vocabulary', () => {
+  it('says the reorder half-saved and tells the user how to see the truth', () => {
+    expect(WRITE_FAILURE.partialRenumber).toBe(
+      'Reordering the queue failed part way through — reload to see the saved order.',
+    );
+  });
+
+  it('pins every entry in WRITE_FAILURE, so a new failure message cannot slip in unpinned', () => {
+    expect(Object.keys(WRITE_FAILURE).sort()).toEqual(['partialRenumber']);
   });
 });

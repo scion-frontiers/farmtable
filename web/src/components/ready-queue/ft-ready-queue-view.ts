@@ -22,6 +22,7 @@ import {
   isClosedStage,
   priorityRank,
   rankBand,
+  WRITE_FAILURE,
   type AvailabilityFilter,
   type TaskGroupFilter,
 } from '../../util/task-state-utils.js';
@@ -487,7 +488,7 @@ export class FtReadyQueueView extends LitElement {
           error,
           reason: 'rank-change-failed',
           ...(writes.length > 1
-            ? { message: 'Reordering the queue failed part way through — reload to see the saved order.' }
+            ? { message: WRITE_FAILURE.partialRenumber }
             : {}),
         },
       }));
