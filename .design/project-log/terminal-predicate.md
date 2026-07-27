@@ -39,6 +39,7 @@ what it is *not*, and consolidated onto the four availability sites only.
 | `convert.go:61` `phaseForStage` | stage→phase projection | left alone |
 | `convert.go:127` `basicAvailabilityForTask` | availability | **consolidated** |
 | `passthrough.go:618` | availability | **consolidated** |
+| `treewalk.go:103` `computeReady` | availability ("still live enough to surface as ready") | **consolidated in round 2** |
 | `labels.go:422` `phaseForStage` | stage→phase projection | left alone |
 | `export_import.go:656`, `:901` | enumerate all ten stages | left alone |
 
@@ -46,6 +47,28 @@ The four left-alone sites merely share the same four stages *today*. Coupling
 them to the availability predicate would invent a dependency that does not
 exist: "valid close stage" and "stage→phase projection" are free to diverge from
 "terminal for availability" and should be.
+
+### treewalk.go — the fifth copy, found in round 2
+
+The round-1 scope analysis missed it, and all three reviewers flagged it. It is
+consolidated, and the reasoning is worth recording because it is the one site
+where the LEAVE/CONSOLIDATE call was not obvious.
+
+It asks *the same question* as availability — "is this work still live enough to
+surface as ready" — and merely packages the answer as a `readyResult` instead of
+an `AvailabilityReason`. Packaging is not concept. That is what separates it
+from the genuine LEAVE sites (`CloseTask`'s close-target validation,
+`phaseForStage`), which differ in what question they answer, not in how they
+return it.
+
+`treewalk.go` needed a new `internal/store` import. Go imports are per-file, so
+the package already depending on `store` via `passthrough.go` was not enough.
+No cycle: same package, existing dependency.
+
+**The consolidation was the less important half.** This site had *zero*
+coverage — round 1's mutation M11 (`isTerminal := false`) left the entire
+`internal/platform/github` suite passing. Consolidating an untested line only
+moves it. `TestComputeReady_*` now pins both directions, and M11 is killed.
 
 ### multistore.go — both local quirks preserved
 
@@ -74,6 +97,10 @@ the two dependency-semantics tests ("OwnTerminalStage", not "Terminal"):
   `IsTerminalStage` classifying all ten stages.
 - `internal/server/terminal_availability_test.go` — `basicAvailabilityForTask`.
 - `internal/platform/github/terminal_availability_test.go` — pass-through store.
+- `internal/platform/github/treewalk_test.go` (round 2) — `computeReady`, both
+  directions of the predicate plus the accepted branch, which is excluded from
+  the `includeUnblocked` arm because it is handled earlier, *not* because it is
+  terminal.
 
 The MultiStore fallback branch is reached with `struct{ store.Store }`, which
 promotes every `Store` method *without* supplying `ComputeAvailability`, so
@@ -107,6 +134,33 @@ failure mode as the tests this issue exists to fix.
 Mutation 5 is the trap called out in the brief: replacing the condition with a
 bare `IsTerminalStage` drops the `PhaseClosed` arm and changes live behaviour.
 
+### Round 2 mutations
+
+| # | Mutation | Result |
+|---|---|---|
+| 11 | `treewalk.go` predicate → `isTerminal := false` | **KILLED** by `..._TerminalParentIsNotReady`, all 4 stages (survived in round 1) |
+| 12 | `treewalk.go` predicate → always terminal | **KILLED** by `..._NonTerminalParentIsReady`, all 5 stages |
+| 13 | simulated new data-model stage `archived` | **KILLED** by the new exhaustiveness guard |
+| 14 | `ClaimTask`'s `PhaseClosed` guard removed | **KILLED** — `err = task unavailable, want ErrAlreadyClosed` |
+| 15 | `IsTerminalStage` → `return false` | **KILLED** by the `ComputeAvailability` assertion, *not* by the `ClaimTask` one |
+
+Mutation 12 exists because 11 alone would be satisfied by "return no results".
+
+**Mutation 15 is round 2's mutation 2.** It kills at the `ComputeAvailability`
+assertion and leaves the `ClaimTask` assertion passing. That is the direct proof
+that `ClaimTask` never reaches the terminal arm — the guard ordering means
+`ErrAlreadyClosed` fires first — and it is why that assertion now pins a
+specific error instead of `err != nil`. Mutation 14 confirms the ordering from
+the other side: remove the `PhaseClosed` guard and the terminal arm does run,
+returning `ErrUnavailable`.
+
+Mutation 13 was applied by genuinely adding a stage to the ent enum, its
+validator, and `StageFromProto`, then reverting. Worth noting *why* the cheap
+version does not work: adding a value to the proto enum alone falls through
+`StageFromProto`'s `default` to `triage`, which is already classified, so the
+guard would not fire. It defends against a full data-model addition, which is
+the case that matters.
+
 ## Verification
 
 - `go build ./...` — exit 0.
@@ -117,6 +171,23 @@ bare `IsTerminalStage` drops the `PhaseClosed` arm and changes live behaviour.
 
 ## Not done, and why
 
+- **Two pre-existing HIGH defects in the GitHub pass-through path.** Found by
+  round 2's security audit, both real, both outside this diff, neither blocking
+  it. Deliberately left for separate issues rather than widening a small,
+  behaviour-preserving PR:
+  - **HIGH-1, `labels.go:374-384`.** For a closed issue, labels are consulted
+    before real GitHub state, so an `accepted` label forges `available=true`
+    with an empty reason list.
+  - **HIGH-2, `passthrough.go:579-606`.** `CloseTask` never swaps stage labels,
+    unlike `UpdateTask:348` and `ClaimTask:548`. A claimed-then-closed task
+    keeps `ft:stage/working` and reports available on the ordinary happy path.
+
+  Both are label-vs-truth defects: the pass-through trusts labels over GitHub
+  state. That is a different failure mode from this PR's, which was one rule
+  hand-copied five times. Fixing them here would mean changing pass-through
+  behaviour in a PR whose entire claim is that it changes none.
+- **Also deferred:** MEDIUM-2 (`ClaimTask` non-atomic / fails open), MEDIUM-3
+  (hardcoded `ft:` prefix), MEDIUM-4 (advertised ≠ enforced availability).
 - **`phaseForStage` is duplicated** across `internal/server/convert.go:61` and
   `internal/platform/github/labels.go:422`. **Confirmed behaviourally
   identical**: both map the four closed stages → `PhaseClosed`, the four
