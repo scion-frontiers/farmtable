@@ -50,6 +50,9 @@ function rowFor(view: Element, id: string): Element {
 }
 
 
+/** A collection that is not `TEST_COLLECTION_ID`, for rank-scope tests. */
+const OTHER_COLLECTION_ID = '00000000-0000-0000-0000-0000000000c2';
+
 /** A ready, assigned task — the server marks it available despite the assignee. */
 function assigned(id: string, rank: number, owner: string): Task {
   return task({
@@ -278,19 +281,20 @@ describe('ft-ready-queue-view — hostile ranks from the server', () => {
 
 describe('ft-ready-queue-view — reordering while a filter hides part of the band', () => {
   /**
-   * FINDING F-2. `reorder()` computes midpoints over `getReadyTasks()`, which
-   * has every active filter applied, so a neighbour hidden by the filter is
-   * invisible to the arithmetic. Dropping between two visible rows can then
-   * assign the moved task a rank a hidden task already holds — and the queue
-   * comparator resolves that collision on `created_at`, not on where the user
-   * dropped it.
+   * FINDING F-2, now fixed. `reorder()` used to compute midpoints over
+   * `getReadyTasks()`, which has every active filter applied, so a neighbour
+   * hidden by the filter was invisible to the arithmetic: dropping between two
+   * visible rows could assign the moved task a rank a hidden task already held,
+   * and the queue comparator then resolved that collision on `created_at`
+   * rather than on where the user dropped it.
    *
-   * This test pins the observable damage (a duplicate rank persisted to the
-   * server) rather than the intermediate maths, so it stays meaningful whatever
-   * the fix turns out to be: filtering the band differently, refusing the drop,
-   * or renumbering the unfiltered band.
+   * The fix runs the arithmetic over the FULL band (`bandFor`), resolving only
+   * the drop *target* visually. These tests assert the observable contract —
+   * no duplicate rank persisted, the hidden neighbour keeps its place, the
+   * visible order is what the user dropped — rather than the intermediate
+   * maths, so they stay meaningful if the arithmetic is reworked again.
    */
-  it('persists a duplicate rank because a filtered-out neighbour is invisible to the arithmetic', async () => {
+  it('writes no duplicate rank when a filtered-out neighbour sits in the gap', async () => {
     const store = storeWith(
       // `availability` is set because the local readiness fallback rejects an
       // assigned task; the server is authoritative and says these are ready.
@@ -310,15 +314,103 @@ describe('ft-ready-queue-view — reordering while a filter hides part of the ba
     expect(client.updateTaskCalls).toHaveLength(1);
     const ranks = ranksInQueueOrder(store, ['a', 'h', 'b', 'c']);
     const values = ranks.map(([, rank]) => rank);
-    // Documented defect: `c` lands on 1536, the rank the hidden task `h` holds.
-    expect(new Set(values).size, `ranks are ${JSON.stringify(ranks)}`).toBeLessThan(values.length);
-    expect(store.getTask('c')?.rank).toBe(store.getTask('h')?.rank);
+    expect(new Set(values).size, `ranks are ${JSON.stringify(ranks)}`).toBe(values.length);
+    expect(store.getTask('c')?.rank).not.toBe(store.getTask('h')?.rank);
   });
 
   /**
-   * The positive counterpart, and the assertion that will start failing when
-   * F-2 is fixed: with the filter cleared, the same drop must produce a band
-   * whose ranks are all distinct.
+   * The ordering half of the same fix, and the part a duplicate-rank assertion
+   * alone would not catch: a rank can be distinct and still land on the wrong
+   * side of the hidden neighbour. `h` sat between `a` and `b` before the drag
+   * and must still sit between them afterwards, while the visible rows show
+   * exactly the order the user dropped.
+   */
+  it('keeps a hidden neighbour in its relative position and honours the drop', async () => {
+    const store = storeWith(
+      assigned('a', 1024, 'u1'),
+      assigned('h', 1536, 'u2'),
+      assigned('b', 2048, 'u1'),
+      assigned('c', 3072, 'u1'),
+    );
+    const { view } = await mountQueue(store, { assigneeFilter: 'u1' });
+
+    dropTaskOn(rowFor(view, 'b'), 'c');
+    await flush();
+    await settle(view);
+
+    // Full band, filter ignored: `h` is still second, exactly where it was.
+    expect(ranksInQueueOrder(store, ['a', 'h', 'b', 'c']).map(([id]) => id)).toEqual([
+      'a',
+      'h',
+      'c',
+      'b',
+    ]);
+    // And what the user actually sees is the order they dropped.
+    expect(rowIds(view)).toEqual(['a', 'c', 'b']);
+  });
+
+  /**
+   * The filter must change nothing about the arithmetic. Same store, same
+   * gesture, once with `h` hidden and once with it visible: the persisted ranks
+   * must be identical, which is the strongest single statement of the fix.
+   */
+  it('writes exactly the same ranks whether or not the filter hides the neighbour', async () => {
+    const bandFixture = () => [
+      assigned('a', 1024, 'u1'),
+      assigned('h', 1536, 'u2'),
+      assigned('b', 2048, 'u1'),
+      assigned('c', 3072, 'u1'),
+    ];
+
+    const filteredStore = storeWith(...bandFixture());
+    const filtered = await mountQueue(filteredStore, { assigneeFilter: 'u1' });
+    dropTaskOn(rowFor(filtered.view, 'b'), 'c');
+    await flush();
+    await settle(filtered.view);
+
+    const unfilteredStore = storeWith(...bandFixture());
+    const unfiltered = await mountQueue(unfilteredStore);
+    dropTaskOn(rowFor(unfiltered.view, 'b'), 'c');
+    await flush();
+    await settle(unfiltered.view);
+
+    expect(filtered.client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank })))
+      .toEqual(unfiltered.client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank })));
+    expect(filtered.client.updateTaskCalls, 'the gesture must actually write something').not.toHaveLength(0);
+  });
+
+  /**
+   * The other half of "the full band": full means the whole *rank scope*, and
+   * contract §4.6 scopes rank to (collection, priority band). Widening the band
+   * past the collection would be as wrong as narrowing it past the filter — a
+   * foreign collection's ranks would start anchoring this one's arithmetic.
+   *
+   * `f` deliberately holds 1536, the midpoint this drop must produce. The
+   * assertion is that the drop still writes 1536: a foreign task is not a
+   * neighbour, so colliding with it is correct and stepping around it is not.
+   */
+  it('ignores a same-band task from another collection when computing the midpoint', async () => {
+    const store = storeWith(
+      task({ id: 'a', name: 'a', rank: 1024 }),
+      task({ id: 'f', name: 'f', rank: 1536, collectionId: OTHER_COLLECTION_ID }),
+      task({ id: 'b', name: 'b', rank: 2048 }),
+      task({ id: 'c', name: 'c', rank: 3072 }),
+    );
+    const { view, client } = await mountQueue(store);
+
+    dropTaskOn(rowFor(view, 'b'), 'c');
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls.map((call) => ({ id: call.id, rank: call.fields.rank }))).toEqual([
+      { id: 'c', rank: 1536 },
+    ]);
+    expect(store.getTask('f')?.rank, 'a foreign collection must never be renumbered').toBe(1536);
+  });
+
+  /**
+   * The positive counterpart with no filter at all: the same drop must produce
+   * a band whose ranks are all distinct.
    */
   it('keeps every rank distinct when no filter is hiding a neighbour', async () => {
     const store = storeWith(
