@@ -45,7 +45,7 @@ vi.mock('../src/gen/grpc-client.js', () => ({
 import '../src/components/ft-app.js';
 import { TaskPriority, TaskStage, type Task } from '../src/gen/types.js';
 import { PRIORITY_LABEL } from '../src/util/priority-utils.js';
-import { DROP_REFUSAL, STAGE_LABEL } from '../src/util/task-state-utils.js';
+import { DROP_REFUSAL, STAGE_LABEL, WRITE_FAILURE } from '../src/util/task-state-utils.js';
 import { dropTaskOn, flush, mount, queryAllDeep, queryDeep, settle } from './helpers/dom.js';
 import { task } from './helpers/fixtures.js';
 
@@ -315,14 +315,17 @@ describe('ft-app — the four write-error reasons are each surfaced', () => {
   it('prefers the explanatory message over the raw error when a renumber fails part way', async () => {
     const view = await mountAppShowing('ready-queue');
 
+    // The real constant `ft-ready-queue-view` emits. It used to be a literal
+    // here: user-visible vocabulary outside the anchor, with a test copy free
+    // to drift from the production string it was standing in for.
     dispatchWriteError(view, {
       error: new Error('server said no'),
       reason: 'rank-change-failed',
-      message: 'Reordering the queue failed part way through — reload to see the saved order.',
+      message: WRITE_FAILURE.partialRenumber,
     });
 
     const text = toastText();
-    expect(text).toContain('reload to see the saved order');
+    expect(text).toContain(WRITE_FAILURE.partialRenumber);
     expect(text).not.toContain('server said no');
   });
 });
