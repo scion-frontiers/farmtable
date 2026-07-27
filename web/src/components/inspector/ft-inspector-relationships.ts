@@ -6,6 +6,8 @@ import type { TaskStore } from '../../store/task-store.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
 import {
+  ATTENTION,
+  AVAILABILITY_REASON_LABEL,
   attentionBlockers,
   hasAvailabilityReason,
   STAGE_COLOR,
@@ -221,13 +223,9 @@ export class FtInspectorRelationships extends LitElement {
       <div class="attention" role="status">
         <div class="attention-title">
           <sl-icon name="exclamation-triangle"></sl-icon>
-          Dependency attention needed
+          ${ATTENTION.calloutTitle}
         </div>
-        <div>
-          ${blockers.length === 1
-            ? html`An unsuccessful terminal prerequisite is still blocking this task.`
-            : html`${blockers.length} unsuccessful terminal prerequisites are still blocking this task.`}
-        </div>
+        <div>${ATTENTION.calloutBody(blockers.length)}</div>
         ${this.readOnly
           ? nothing
           : html`
@@ -305,7 +303,7 @@ export class FtInspectorRelationships extends LitElement {
         ? html`<div class="attention" role="status">
             <div class="attention-title">
               <sl-icon name="lock"></sl-icon>
-              Blocked by dependency
+              ${AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY]}
             </div>
           </div>`
         : nothing}
