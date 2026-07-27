@@ -177,5 +177,56 @@ Verification:
 
 Postgres verification:
 
-- No `FARMTABLE_TEST_POSTGRES_URL`, `POSTGRES`, `DATABASE_URL`, or `PG*` DSN was present in this container environment, so I could not run the live Postgres migration proof locally.
-- The production path now includes the explicit Postgres advisory lock guard required for cross-instance rollout; manager/staging should still run the final Cloud SQL proof against `deploy-demo-test:us-central1:scion-postgres-test`.
+- The developer container did not have a Postgres DSN, but the manager ran the final Cloud SQL proof after R2 completion. Evidence is recorded below.
+- The production path now includes the explicit Postgres advisory lock guard required for cross-instance rollout.
+
+## Manager Verification: Cloud SQL Postgres Scratch Schema
+
+Date: 2026-07-27
+
+The manager ran the R2 branch against a real Cloud SQL Postgres instance:
+
+- instance: `deploy-demo-test:us-central1:scion-postgres-test`
+- database: `scion_test`
+- user: `farmtable`
+- connection path: public Cloud SQL IPv4 with `lib/pq`
+- scratch schema: `task_state_predeploy_8564f0063682`
+- cleanup: scratch schema was dropped by the verifier after evidence capture
+
+The verifier created schema/tables through `store.NewEntStore(... Dialect:"postgres", Migrate:true)`, seeded a dogfood-scale dataset through the store path, directly rewrote selected rows to persisted old stages, then invoked the real startup migration path twice.
+
+Pre-migration:
+
+- `tasks`: 4,045 (`4,044` dogfood-scale tasks plus one unsatisfied blocker fixture)
+- old native stage rows: `backlog=4`, `blocked=5`, `ready=15`
+- existing `task_state_migration` notes: 0
+- stage counts:
+  - `accepted`: 4,015
+  - `backlog`: 4
+  - `blocked`: 5
+  - `completed`: 1
+  - `in_qa`: 2
+  - `ready`: 15
+  - `working`: 3
+
+First Postgres startup migration:
+
+- old native stage rows remaining: 0
+- `task_state_migration` notes: 24
+- stage counts:
+  - `accepted`: 4,039
+  - `completed`: 1
+  - `in_qa`: 2
+  - `working`: 3
+- note reasons:
+  - `old_backlog_stage_to_accepted`: 4
+  - `old_blocked_stage_with_blocker_to_dependency_availability`: 5
+  - `old_ready_stage_to_accepted`: 15
+
+Second Postgres startup migration:
+
+- old native stage rows remaining: 0
+- `task_state_migration` notes: 24
+- stage counts and note reason counts unchanged.
+
+This closes the deploy-gate requirement to run the predeploy migration against a real Postgres instance rather than relying on SQLite plus dialect-compatible reasoning.
