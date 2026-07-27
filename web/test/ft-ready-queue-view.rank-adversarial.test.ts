@@ -737,6 +737,16 @@ describe('ft-ready-queue-view — the view and the rank module agree', () => {
    * asks the module and sends what it gets back, which is the actual contract
    * between them. If the sparse-rank strategy changes, this follows it; if the
    * view starts computing ranks of its own, this breaks.
+   *
+   * FINDING M-1. The band and the target index used to be rebuilt here from
+   * `rowIds(view)` — the rendered rows — which is a *second implementation* of
+   * the thing under test, and a wrong one: the view ranks against the full
+   * band, filters and availability included, not against what is on screen.
+   * Against these all-visible fixtures the two agreed, so the oracle looked
+   * sound while quietly asserting the very defect in I-1. Both inputs now come
+   * from the production helpers — `rankBand` for the scope, `isReady` for
+   * queue membership — so the oracle cannot drift from the view by
+   * construction, and a scope regression fails here instead of hiding.
    */
   const scenarios: { label: string; band: Task[]; moved: string; onto: string }[] = [
     {
@@ -765,6 +775,28 @@ describe('ft-ready-queue-view — the view and the rank module agree', () => {
       moved: 'c',
       onto: 'b',
     },
+    {
+      // The discriminating scenario, and the reason the oracle no longer reads
+      // the rendered rows. `h` holds a live rank in the middle of the gap but
+      // the server hides it, so "the band" and "the rows on screen" are
+      // different lists here and an oracle built from either one is a claim
+      // about which the view uses.
+      label: 'a band whose middle task the server hides',
+      band: [
+        task({ id: 'a', name: 'a', rank: 1024 }),
+        task({
+          id: 'h',
+          name: 'h',
+          rank: 1536,
+          holdReason: TaskHoldReason.WAITING_FOR_INPUT,
+          availability: { available: false, reasons: [AvailabilityReason.HELD] },
+        }),
+        task({ id: 'b', name: 'b', rank: 2048 }),
+        task({ id: 'c', name: 'c', rank: 3072 }),
+      ],
+      moved: 'b',
+      onto: 'c',
+    },
   ];
 
   for (const scenario of scenarios) {
@@ -772,12 +804,13 @@ describe('ft-ready-queue-view — the view and the rank module agree', () => {
       const store = storeWith(...scenario.band);
       const { view, client } = await mountQueue(store);
 
-      const visible = rowIds(view);
-      const expected = ranksForMove(
-        visible.map((id) => store.getTask(id)!),
-        scenario.moved,
-        visible.indexOf(scenario.onto),
+      const band = rankBand(store.getTask(scenario.moved)!, store.allTasks, (candidate) =>
+        isReady(candidate, store),
       );
+      const targetIndex = band.findIndex((task) => task.id === scenario.onto);
+      expect(targetIndex, 'the drop target must be in the band').toBeGreaterThanOrEqual(0);
+
+      const expected = ranksForMove(band, scenario.moved, targetIndex);
       expect(expected.length, 'the scenario must actually produce writes').toBeGreaterThan(0);
 
       dropTaskOn(rowFor(view, scenario.onto), scenario.moved);
