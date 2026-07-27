@@ -36,7 +36,7 @@ if (typeof globalThis.crypto.randomUUID !== 'function') {
   let counter = 0;
   (globalThis.crypto as { randomUUID: () => string }).randomUUID = () =>
     `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`;
-};
+}
 
 // ── Shoelace stand-ins ────────────────────────────────────────────────────
 
@@ -72,8 +72,23 @@ class ShoelaceStubElement extends HTMLElement {
     this.dispatchEvent(new CustomEvent('sl-hide', { bubbles: true, composed: true }));
   }
 
+  /**
+   * Show the alert as a toast, the way real `<sl-alert>` does.
+   *
+   * This is deliberately NOT a no-op. Production appends the `<sl-alert>` to
+   * `document.body` *before* calling `toast()`, so a stub that did nothing
+   * would leave `document.querySelector('sl-alert')` satisfied whether or not
+   * `toast()` was ever reached — every toast assertion in the suite would prove
+   * only that an element exists in the DOM, not that a user would see it.
+   * Deleting the `toast()` call from `ft-app.showErrorToast` survived the
+   * round-2 mutation run for exactly that reason.
+   *
+   * Real Shoelace `toast()` moves the alert into the toast stack and calls
+   * `show()`, which sets `open`. Mirroring that here makes `alert.open` the
+   * honest "the user saw it" assertion, and an un-toasted alert stays closed.
+   */
   async toast(): Promise<void> {
-    /* no-op: the alert element is already in the document */
+    await this.show();
   }
 
   select(): void {

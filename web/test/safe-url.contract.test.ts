@@ -50,10 +50,50 @@ describe('safeExternalUrl', () => {
     });
   }
 
+  /**
+   * The conditional body is the point of the test, so the loop has to be
+   * stopped from proving nothing: if `safeExternalUrl` regressed to always
+   * returning `null`, every `if` would be skipped and this would pass having
+   * executed zero assertions. Pinning the exact accepted count fails both ways
+   * — an over-permissive change and a fail-closed one.
+   */
   it('never returns a value whose scheme is not http(s)', () => {
-    for (const testCase of cases) {
-      const result = safeExternalUrl(testCase.input);
-      if (result !== null) expect(result).toMatch(/^https?:\/\//);
+    expect.hasAssertions();
+    const accepted = cases
+      .map((testCase) => safeExternalUrl(testCase.input))
+      .filter((result): result is string => result !== null);
+
+    expect(accepted).toHaveLength(cases.filter((testCase) => testCase.expected !== null).length);
+    expect(accepted.length).toBeGreaterThan(0);
+    for (const result of accepted) {
+      expect(result).toMatch(/^https?:\/\//);
     }
   });
+
+  /**
+   * `safeExternalUrl` returns `url.href` — the WHATWG-normalized form — not the
+   * raw input, and the docstring makes that a contract. Normalization is the
+   * security-relevant half: it is what collapses the casing and whitespace
+   * tricks the scheme check then relies on. Returning `raw` instead survived
+   * the round-2 mutation run because every other case in this file happens to
+   * be already-normalized. These inputs are not.
+   */
+  const normalizations: { input: string; expected: string; why: string }[] = [
+    { input: 'HTTPS://Example.COM/a', expected: 'https://example.com/a', why: 'scheme and host are lowercased' },
+    { input: '  https://example.com/a  ', expected: 'https://example.com/a', why: 'surrounding whitespace is stripped' },
+    { input: 'https://example.com', expected: 'https://example.com/', why: 'an empty path becomes /' },
+    { input: 'https://example.com:443/a', expected: 'https://example.com/a', why: 'the default port is dropped' },
+    { input: 'https://example.com/a/../b', expected: 'https://example.com/b', why: 'dot segments are resolved' },
+  ];
+
+  for (const testCase of normalizations) {
+    it(`returns the normalized href, not the raw input: ${testCase.why}`, () => {
+      const result = safeExternalUrl(testCase.input);
+
+      expect(result).toBe(testCase.expected);
+      // Guard against a future fixture that is accidentally already normalized,
+      // which would make the assertion above pass on a raw-input regression.
+      expect(result, 'this case no longer exercises normalization').not.toBe(testCase.input);
+    });
+  }
 });
