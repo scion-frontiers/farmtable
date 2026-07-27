@@ -7,7 +7,7 @@ import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
 import { isReady } from '../utils/task-ready.js';
 import {
   AVAILABILITY_REASON_LABEL,
-  holdReasonLabel,
+  hasHoldReason,
   isClosedStage,
 } from '../util/task-state-utils.js';
 import './ft-empty-state.js';
@@ -143,7 +143,7 @@ export class FtDashboardView extends LitElement {
     for (const task of tasks) {
       if (isClosedStage(task.stage)) closed++;
       else active++;
-      if (holdReasonLabel(task.holdReason)) held++;
+      if (hasHoldReason(task.holdReason)) held++;
       if (task.availability?.available === false) unavailable++;
     }
 
@@ -212,7 +212,12 @@ export class FtDashboardView extends LitElement {
       [AvailabilityReason.FUTURE_START_DATE]: 0,
     };
     for (const task of tasks) {
-      for (const reason of task.availability?.reasons ?? []) {
+      // This renders under an "Unavailable Reasons" heading, so only tasks the
+      // server actually marked unavailable belong in the tally. The server
+      // sends no reasons for available tasks today, but counting them here
+      // would silently contradict the heading if that ever changed.
+      if (task.availability?.available !== false) continue;
+      for (const reason of task.availability.reasons ?? []) {
         if (counts[reason] !== undefined) {
           counts[reason]++;
         }

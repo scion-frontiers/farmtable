@@ -129,6 +129,8 @@ function run(): void {
     ['cancelled-blocker'],
     'attention workflow finds unsuccessful terminal prerequisites',
   );
+
+  console.log('task-state-utils tests passed');
 }
 
 run();

@@ -87,6 +87,29 @@ export function acceptsStageDrop(stage: TaskStage): boolean {
   return !isClosedStage(stage) || stage === TaskStage.COMPLETED;
 }
 
+/**
+ * Why a board refuses a stage drop.
+ *
+ * `ft-kanban-column` renders these as a hover affordance and `ft-kanban-view`
+ * reports them as a toast after a drop. They live here, next to
+ * `acceptsStageDrop()` — the rule they explain — so the tooltip and the toast
+ * cannot drift apart.
+ *
+ * The two terminal-lane variants are deliberately worded differently: the hint
+ * is read *before* the gesture and names the lane, while the toast is read
+ * *after* it and has to explain why the drop did nothing.
+ *
+ * NOTE(i18n): Hardcoded English; extract if i18n is added.
+ */
+export const DROP_REFUSAL = {
+  readOnlyBoard: 'This board is read-only — stage changes are not saved.',
+  stageChangeUnsupported: 'This collection does not support stage changes.',
+  terminalLaneHint: (label: string) =>
+    `“${label}” is set through the API, CLI, or MCP — dragging here will not change the stage.`,
+  terminalLaneToast: (label: string) =>
+    `“${label}” needs a reason, so it is set through the API, CLI, or MCP rather than by dragging.`,
+} as const;
+
 export function isUnsuccessfulTerminalStage(stage: TaskStage): boolean {
   return stage === TaskStage.WONT_FIX || stage === TaskStage.CANCELLED || stage === TaskStage.DUPLICATE;
 }
@@ -98,9 +121,22 @@ export function availabilityLabel(task: Task): string {
   return reasons.map((reason) => AVAILABILITY_REASON_LABEL[reason] ?? String(reason)).join(', ');
 }
 
+/**
+ * Whether a hold reason is actually set.
+ *
+ * `undefined` and `UNSPECIFIED` (0) both mean "not held", and every caller has
+ * to normalise both. `toObject({ defaults: false })` omits zero-valued enums so
+ * an unset reason normally arrives as `undefined` — but if the proto ever
+ * declares the field `optional` and sends an explicit 0, a bare
+ * `!== undefined` test would treat every task as held.
+ */
+export function hasHoldReason(reason: TaskHoldReason | undefined): boolean {
+  return reason !== undefined && reason !== TaskHoldReason.UNSPECIFIED;
+}
+
 export function holdReasonLabel(reason: TaskHoldReason | undefined): string {
-  if (reason === undefined || reason === TaskHoldReason.UNSPECIFIED) return '';
-  return HOLD_REASON_LABEL[reason] ?? String(reason);
+  if (!hasHoldReason(reason)) return '';
+  return HOLD_REASON_LABEL[reason!] ?? String(reason);
 }
 
 export function hasAvailabilityReason(task: Task, reason: AvailabilityReason): boolean {
