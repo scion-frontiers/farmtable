@@ -21,6 +21,7 @@ import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.
 import { isReady } from '../utils/task-ready.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
 import { isClosedStage } from '../util/task-state-utils.js';
+import { isServerRejection } from '../util/grpc-error.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
@@ -310,10 +311,14 @@ export class FtApp extends LitElement {
    * localStorage token fallback, show the login dialog.
    */
   private async checkSessionAndRoute() {
-    // Check for localStorage token fallback (dev/testing).
-    const localToken = localStorage.getItem('farmtable.token');
-    if (localToken) {
-      // User has a localStorage token — skip session check.
+    // Check for the localStorage token fallback (dev/testing only). The same
+    // build flag as in grpc-client.ts gates it: session validation must not be
+    // skipped just because a `farmtable.token` key exists. `import.meta.env.DEV`
+    // is statically false in production builds, so this branch is dropped.
+    const isDevTokenFallbackEnabled =
+      import.meta.env.DEV && import.meta.env.VITE_ENABLE_LOCAL_TOKEN === 'true';
+    if (isDevTokenFallbackEnabled && localStorage.getItem('farmtable.token')) {
+      // Dev token fallback is active — skip session check.
       void this.applyRoute();
       return;
     }
@@ -814,7 +819,12 @@ export class FtApp extends LitElement {
 
     let message: string;
 
-    if (/permission|403|forbidden/i.test(raw)) {
+    if (isServerRejection(error)) {
+      // Farm Table itself refused the transition (missing scope, hold, or
+      // availability gate). Surface the server's own reason — telling the user
+      // to check their GitHub token here would be misleading.
+      message = `Farm Table rejected this change: ${raw}`;
+    } else if (/permission|403|forbidden/i.test(raw)) {
       message = 'GitHub rejected this edit — your token may not have write access';
     } else if (/rate.?limit|429|too many requests/i.test(raw)) {
       message = 'GitHub rate limit reached — please wait before making more edits';
@@ -824,6 +834,11 @@ export class FtApp extends LitElement {
       message = `Failed to save changes: ${raw}`;
     }
 
+    this.showErrorToast(message);
+  }
+
+  /** Render a message as a danger toast. */
+  private showErrorToast(message: string) {
     const alert = Object.assign(document.createElement('sl-alert'), {
       variant: 'danger',
       closable: true,
@@ -838,7 +853,15 @@ export class FtApp extends LitElement {
   }
 
   private onWriteError(e: CustomEvent) {
-    this.showWriteError(e.detail.error);
+    // Views may report a client-side refusal (`message`) instead of a failed
+    // server write (`error`); both surface on the same toast channel so a
+    // rejected edit is never a silent no-op.
+    const detail = e.detail as { error?: unknown; message?: string };
+    if (detail.message) {
+      this.showErrorToast(detail.message);
+      return;
+    }
+    this.showWriteError(detail.error);
   }
 
   private onIsolateToggle(e: CustomEvent) {
