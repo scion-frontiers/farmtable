@@ -2,9 +2,10 @@ import { LitElement, html, svg, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
-import { RelationshipType, TaskPhase } from '../../gen/types.js';
+import { RelationshipType } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import { isReady } from '../../utils/task-ready.js';
+import { isClosedStage } from '../../util/task-state-utils.js';
 import '../tree/ft-tree-node.js';
 import '../ft-empty-state.js';
 import '../minimap/ft-minimap.js';
@@ -123,7 +124,7 @@ function getDirectedReachableIds(
       // CLOSED — this fixes Solo mode on completed tasks.  All OTHER
       // nodes encountered during traversal still respect the CLOSED
       // filter so the graph doesn't pull in unrelated closed tasks.
-      if (!task || (task.phase === TaskPhase.CLOSED && id !== taskId)) continue;
+      if (!task || (isClosedStage(task.stage) && id !== taskId)) continue;
       visited.add(id);
       ids.add(id);
       for (const rel of task.relationships) {
@@ -185,7 +186,7 @@ function computeLayers(
       const blocker = store.getTask(rel.targetTaskId);
       if (
         !blocker ||
-        (blocker.phase === TaskPhase.CLOSED &&
+        (isClosedStage(blocker.stage) &&
           !exemptClosedIds?.has(rel.targetTaskId))
       )
         continue;
@@ -649,8 +650,8 @@ export class FtDependencyView extends LitElement {
   /**
    * Get the set of tasks that should appear in this view:
    * - All OPEN/IN_PROGRESS tasks that are unblocked (Layer 0 = Ready Queue set)
-   * - All non-CLOSED tasks that are involved in active blocking relationships
-   *   (including ON_HOLD tasks in the "blocked" stage)
+   * - All tasks in a non-closed stage that are involved in active blocking
+   *   relationships (including tasks held via `hold_reason`)
    *
    * CLOSED tasks are excluded — except in Solo mode when the user
    * explicitly selects and solos a CLOSED task, which is allowed through
@@ -662,20 +663,20 @@ export class FtDependencyView extends LitElement {
     const involvedIds = new Set<string>();
 
     for (const task of this.store.allTasks) {
-      if (task.phase === TaskPhase.CLOSED) continue;
+      if (isClosedStage(task.stage)) continue;
 
       // Check blocking relationships
       for (const rel of task.relationships) {
         if (rel.type === RelationshipType.BLOCKED_BY) {
           const blocker = this.store.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          if (blocker && !isClosedStage(blocker.stage)) {
             involvedIds.add(task.id);
             involvedIds.add(rel.targetTaskId);
           }
         }
         if (rel.type === RelationshipType.BLOCKS) {
           const target = this.store.getTask(rel.targetTaskId);
-          if (target && target.phase !== TaskPhase.CLOSED) {
+          if (target && !isClosedStage(target.stage)) {
             involvedIds.add(task.id);
             involvedIds.add(rel.targetTaskId);
           }
@@ -694,7 +695,7 @@ export class FtDependencyView extends LitElement {
     // in the graph.  Other unrelated CLOSED tasks remain hidden.
     if (this.isolateMode && this.selectedTaskId) {
       const selectedTask = this.store.getTask(this.selectedTaskId);
-      if (selectedTask && selectedTask.phase === TaskPhase.CLOSED) {
+      if (selectedTask && isClosedStage(selectedTask.stage)) {
         involvedIds.add(selectedTask.id);
         for (const rel of selectedTask.relationships) {
           if (
@@ -711,14 +712,14 @@ export class FtDependencyView extends LitElement {
     }
 
     // Build the filtered task list.  In solo mode, the explicitly-selected
-    // CLOSED task is allowed through the phase filter — all other CLOSED
-    // tasks are still excluded.
+    // CLOSED task is allowed through the closed-stage filter — all other
+    // CLOSED tasks are still excluded.
     const isExemptClosed = (t: Task) =>
       this.isolateMode && this.selectedTaskId === t.id;
     let tasks = this.store.allTasks.filter(
       (t) =>
         involvedIds.has(t.id) &&
-        (t.phase !== TaskPhase.CLOSED || isExemptClosed(t)),
+        (!isClosedStage(t.stage) || isExemptClosed(t)),
     );
 
     // Solo mode: filter to the directed reachability set of the selected task.
@@ -744,7 +745,7 @@ export class FtDependencyView extends LitElement {
       tasks
         .map(
           (t) =>
-            `${t.id}:${t.phase}:${t.relationships
+            `${t.id}:${t.stage}:${t.relationships
               .map((r) => `${r.type}-${r.targetTaskId}`)
               .sort()
               .join(',')}`,
@@ -804,7 +805,7 @@ export class FtDependencyView extends LitElement {
       this.isolateMode && this.selectedTaskId
         ? (() => {
             const sel = this.store.getTask(this.selectedTaskId!);
-            return sel && sel.phase === TaskPhase.CLOSED
+            return sel && isClosedStage(sel.stage)
               ? new Set([this.selectedTaskId!])
               : undefined;
           })()
@@ -853,7 +854,7 @@ export class FtDependencyView extends LitElement {
         const blocker = this.store.getTask(rel.targetTaskId);
         if (
           !blocker ||
-          (blocker.phase === TaskPhase.CLOSED &&
+          (isClosedStage(blocker.stage) &&
             !exemptClosedIds?.has(rel.targetTaskId))
         )
           continue;
