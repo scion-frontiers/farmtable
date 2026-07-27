@@ -37,6 +37,15 @@ const cases: { input: string | null | undefined; expected: string | null }[] = [
   { input: 'vbscript:msgbox(1)', expected: null },
   { input: 'file:///etc/passwd', expected: null },
   { input: '/relative/path', expected: null },
+  // Embedded credentials, rejected to defeat destination confusion: both call
+  // sites render STATIC link text, so `https://github.com@evil.example/` reads
+  // as github.com in the status bar while navigating to evil.example. The
+  // check lived at `safe-url.ts:63` guarded only by the plain-Node suite —
+  // deleting it left this contract table fully green, so if the Node runner is
+  // ever retired in favour of this harness the defence loses all coverage.
+  { input: 'https://github.com@evil.example/', expected: null },
+  { input: 'https://user:pass@evil.example/', expected: null },
+  { input: 'https://:pass@evil.example/', expected: null },
   { input: 'not a url', expected: null },
   { input: '', expected: null },
   { input: null, expected: null },
