@@ -153,6 +153,8 @@ function run(): void {
     false,
     'fallback still excludes tasks with incomplete blockers',
   );
+
+  console.log('task-ready tests passed');
 }
 
 run();

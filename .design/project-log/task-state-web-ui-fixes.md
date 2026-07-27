@@ -135,9 +135,19 @@ phase *write* was removed.
   comment noting that its `phase` is a lane display grouping and is never sent
   to the server.
 - `ft-kanban-column.ts` deleted its local seven-entry `STAGE_COLOR` and now
-  imports the ten-entry `STAGE_COLOR` from `web/src/util/task-state-utils.ts`
-  (single source of truth). All ten `--ft-stage-*` CSS variables already exist
-  in `src/styles/theme.css`, including `wont-fix`, `duplicate` and `cancelled`.
+  imports the ten-entry `STAGE_COLOR` from `web/src/util/task-state-utils.ts`.
+  All ten `--ft-stage-*` CSS variables already exist in `src/styles/theme.css`,
+  including `wont-fix`, `duplicate` and `cancelled`.
+
+  **Correction (round-2 polish pass, 2026-07-27):** this was originally written
+  as "single source of truth", which overstated it. At the time of the round-2
+  review `STAGE_COLOR` was unified across *three of four* call sites: the two
+  inspector components still reached it through a re-export shim
+  (`inspector-stage-utils.ts`), and `ft-tree-node.ts:6-30` keeps a fourth
+  private copy with deliberately abbreviated labels. The polish pass deleted the
+  shim and re-pointed both inspector imports at `util/task-state-utils.js`, so
+  three of four is now accurate for the shim and the `ft-tree-node.ts` copy is a
+  deliberate, documented exception rather than drift.
 - The old inline guard `CLOSED_STAGES.has(stage) && stage !== COMPLETED` is
   replaced by `acceptsStageDrop(stage)` in `task-state-utils.ts`, so the
   policy has one definition shared by the view (which refuses) and the column
