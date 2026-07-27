@@ -21,12 +21,11 @@
     "TaskStage": {
       "type": "string",
       "enum": [
-        "triage", "backlog", "ready",
+        "triage", "accepted",
         "working", "in_review", "in_qa", "deploying",
-        "blocked", "waiting_for_input", "deferred", "scheduled",
         "completed", "wont_fix", "duplicate", "cancelled"
       ],
-      "description": "Tier 2 status: fixed set of finer-grained positions within each phase. Farm Table controls this enum. Agents use this for precise decision-making ('is this task ready to start or still in triage?')."
+      "description": "Native asserted workflow stage. Farm Table controls this enum; availability is computed from stage, hold reason, start date, and dependencies."
     },
 
     "PhaseStageMapping": {
@@ -35,15 +34,11 @@
       "properties": {
         "OPEN": {
           "type": "array",
-          "items": { "type": "string", "enum": ["triage", "backlog", "ready"] }
+          "items": { "type": "string", "enum": ["triage", "accepted"] }
         },
         "IN_PROGRESS": {
           "type": "array",
           "items": { "type": "string", "enum": ["working", "in_review", "in_qa", "deploying"] }
-        },
-        "ON_HOLD": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["blocked", "waiting_for_input", "deferred", "scheduled"] }
         },
         "CLOSED": {
           "type": "array",

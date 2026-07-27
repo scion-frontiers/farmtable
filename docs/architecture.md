@@ -71,9 +71,9 @@ Stage determines phase — the mapping is a pure function
 (`phaseForStage` in `internal/server/convert.go`):
 
 ```
- OPEN         triage → backlog → ready
+ OPEN         triage → accepted; accepted + hold_reason(waiting_for_input | deferred)
  IN_PROGRESS  working → in_review → in_qa → deploying
- ON_HOLD      blocked → waiting_for_input → deferred → scheduled
+ ON_HOLD      compatibility-only projection for external statuses
  CLOSED       completed / wont_fix / duplicate / cancelled
 ```
 
@@ -302,8 +302,8 @@ Implemented in `internal/server/server.go`.
 
 ### GetReadyTasks
 
-Returns actionable tasks: in `ready` stage (or optionally any unblocked
-open task) with no unresolved blockers. The store query finds tasks
+Returns actionable tasks: accepted work that is available (or optionally any
+unblocked open task) with no unresolved blockers. The store query finds tasks
 whose `blocked_by` relationships all point to closed tasks. Response
 includes `blockers_resolved` count so agents can prioritize recently
 unblocked work.
@@ -403,7 +403,7 @@ abstract the connection setup.
 | `task_close` | `CloseTask` | Close with stage (completed, wont_fix, ...) |
 | `task_search` | `ListTasks` | Name substring search (client-side filter) |
 | `task_tree` | `GetDependencyTree` | Dependency tree traversal |
-| `task_ready` | `GetReadyTasks` | Unblocked tasks ready to work on |
+| `task_ready` | `GetReadyTasks` | Available accepted tasks ready to work on |
 | `task_critical_path` | `GetCriticalPath` | Longest dependency chain |
 
 Each handler parses `CallToolRequest` arguments, maps to gRPC request

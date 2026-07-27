@@ -112,6 +112,10 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 			return nil, err
 		}
 		stage = convert.StageFromProto(*req.Stage)
+		if stage == task.StageWorking {
+			return nil, status.Error(codes.InvalidArgument,
+				"cannot create directly in working; create accepted work, then use ClaimTask so availability and self-assignment are enforced")
+		}
 		// Creating a task directly in a non-default stage is the same privilege
 		// as creating it in triage and transitioning it there.
 		if required := TransitionScope(string(task.StageTriage), string(stage)); required != ScopeTaskWrite {
@@ -167,6 +171,17 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 		d := req.GetStartDate().AsTime()
 		p.StartDate = &d
 	}
+	if req.HoldReason != nil && *req.HoldReason != pb.TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED {
+		if err := validateDefinedEnum("hold_reason", int32(*req.HoldReason), pb.TaskHoldReason_name); err != nil {
+			return nil, err
+		}
+		hr := holdReasonFromProto(*req.HoldReason)
+		p.HoldReason = &hr
+	}
+	if req.Rank != nil {
+		rank := int(req.GetRank())
+		p.Rank = &rank
+	}
 	for _, idStr := range req.GetBlocksTaskIds() {
 		bid, err := uuid.Parse(idStr)
 		if err != nil {
@@ -192,7 +207,7 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "creating task: %v", err)
 	}
-	proto := taskToProto(t)
+	proto := s.taskToProto(ctx, t)
 	if s.eventBus != nil {
 		s.eventBus.Publish(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CREATED,
@@ -268,10 +283,10 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 	}
 
 	resp := &pb.InsertTasksAfterResponse{
-		AnchorTask: taskToProto(result.AnchorTask),
+		AnchorTask: s.taskToProto(ctx, result.AnchorTask),
 	}
 	for _, inserted := range result.InsertedTasks {
-		proto := taskToProto(inserted)
+		proto := s.taskToProto(ctx, inserted)
 		resp.InsertedTasks = append(resp.InsertedTasks, proto)
 		if s.eventBus != nil {
 			s.eventBus.Publish(&pb.TaskEvent{
@@ -309,7 +324,7 @@ func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) 
 		return nil, err
 	}
 
-	resp := &pb.GetTaskResponse{Task: taskToProto(t)}
+	resp := &pb.GetTaskResponse{Task: s.taskToProto(ctx, t)}
 
 	if req.GetIncludeComments() {
 		comments, _, err := s.store.ListComments(ctx, store.ListCommentsParams{
@@ -449,7 +464,7 @@ func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksReque
 		TotalCount: int32(total),
 	}
 	for _, t := range tasks {
-		resp.Items = append(resp.Items, taskToProto(t))
+		resp.Items = append(resp.Items, s.taskToProto(ctx, t))
 	}
 
 	sortField := p.SortField
@@ -513,6 +528,10 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 			return nil, err
 		}
 		st := convert.StageFromProto(*req.Stage)
+		if st == task.StageWorking {
+			return nil, status.Error(codes.InvalidArgument,
+				"stage=working starts execution; use ClaimTask so availability and self-assignment are enforced")
+		}
 		// Lifecycle transitions may require a scope beyond task:write
 		// (task:accept to leave triage or reopen, task:close to close).
 		if transitionScope := TransitionScope(string(existing.Stage), string(st)); transitionScope != ScopeTaskWrite {
@@ -566,6 +585,21 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	}
 	if req.GetClearStartDate() {
 		p.ClearStartDate = true
+	}
+	if req.GetClearHoldReason() {
+		p.ClearHoldReason = true
+	} else if req.HoldReason != nil && *req.HoldReason != pb.TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED {
+		if err := validateDefinedEnum("hold_reason", int32(*req.HoldReason), pb.TaskHoldReason_name); err != nil {
+			return nil, err
+		}
+		hr := holdReasonFromProto(*req.HoldReason)
+		p.HoldReason = &hr
+	}
+	if req.GetClearRank() {
+		p.ClearRank = true
+	} else if req.Rank != nil {
+		rank := int(req.GetRank())
+		p.Rank = &rank
 	}
 
 	if len(req.GetAddLabels()) > 0 {
@@ -636,7 +670,7 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
-	proto := taskToProto(t)
+	proto := s.taskToProto(ctx, t)
 	if s.eventBus != nil {
 		s.eventBus.Publish(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
@@ -654,7 +688,7 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 				if tt, err := s.store.GetTask(ctx, targetID); err == nil {
 					s.eventBus.Publish(&pb.TaskEvent{
 						EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
-						Task:      taskToProto(tt),
+						Task:      s.taskToProto(ctx, tt),
 						Timestamp: timestamppb.Now(),
 					})
 				}
@@ -685,21 +719,14 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 	if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
 		return nil, err
 	}
-	if existing.Stage == task.StageTriage {
-		return nil, status.Error(codes.FailedPrecondition,
-			"task must be accepted out of triage before it can be claimed; this requires the task:accept scope")
+	if req.AssigneeId != nil {
+		return nil, status.Error(codes.InvalidArgument,
+			"assignee_id is not accepted by ClaimTask; assign the task first, then let the assignee claim available work")
 	}
 
 	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
 	// In open-access mode (no auth configured), this will be uuid.Nil.
 	assigneeID, _ := UserIDFromContext(ctx)
-	if req.AssigneeId != nil {
-		parsed, err := uuid.Parse(*req.AssigneeId)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
-		}
-		assigneeID = parsed
-	}
 
 	version := ""
 	if req.Version != nil {
@@ -711,7 +738,7 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 		return nil, storeErr(err, "task")
 	}
 
-	proto := taskToProto(t)
+	proto := s.taskToProto(ctx, t)
 	if s.eventBus != nil {
 		s.eventBus.Publish(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
@@ -763,7 +790,7 @@ func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskReque
 	if err != nil {
 		return nil, storeErr(err, "task")
 	}
-	proto := taskToProto(t)
+	proto := s.taskToProto(ctx, t)
 	if s.eventBus != nil {
 		s.eventBus.Publish(&pb.TaskEvent{
 			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CLOSED,
@@ -1531,7 +1558,7 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 	}
 	for _, r := range results {
 		resp.Items = append(resp.Items, &pb.ReadyTask{
-			Task:             taskToProto(r.Task),
+			Task:             s.taskToProto(ctx, r.Task),
 			BlockersResolved: int32(r.BlockersResolved),
 		})
 	}
@@ -1633,7 +1660,7 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 	}
 	for _, r := range results {
 		bt := &pb.BlockedTask{
-			Task: taskToProto(r.Task),
+			Task: s.taskToProto(ctx, r.Task),
 		}
 		for _, b := range r.Blockers {
 			bt.BlockedBy = append(bt.BlockedBy, &pb.BlockerInfo{
@@ -1705,7 +1732,7 @@ func (s *FarmTableService) buildDependencyNode(ctx context.Context, taskID uuid.
 	}
 
 	node := &pb.DependencyNode{
-		Task: taskToProto(t),
+		Task: s.taskToProto(ctx, t),
 	}
 
 	if dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_DOWN || dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_BOTH {
@@ -2137,6 +2164,9 @@ func storeErr(err error, entity string) error {
 	if errors.Is(err, store.ErrAlreadyClosed) {
 		return status.Errorf(codes.FailedPrecondition, "%s already closed", entity)
 	}
+	if errors.Is(err, store.ErrUnavailable) {
+		return status.Errorf(codes.FailedPrecondition, "%s unavailable", entity)
+	}
 	if errors.Is(err, store.ErrInvalidArgument) {
 		return status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -2145,6 +2175,20 @@ func storeErr(err error, entity string) error {
 	}
 	log.Printf("internal error for %s: %v", entity, err)
 	return status.Errorf(codes.Internal, "internal error for %s", entity)
+}
+
+type availabilityComputer interface {
+	ComputeAvailability(context.Context, *ent.Task) (store.TaskAvailability, error)
+}
+
+func (s *FarmTableService) taskToProto(ctx context.Context, t *ent.Task) *pb.Task {
+	proto := taskToProto(t)
+	if computer, ok := s.store.(availabilityComputer); ok {
+		if availability, err := computer.ComputeAvailability(ctx, t); err == nil {
+			proto.Availability = availabilityToProto(availability)
+		}
+	}
+	return proto
 }
 
 func encodePageToken(offset int) string {

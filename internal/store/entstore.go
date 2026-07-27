@@ -129,6 +129,9 @@ func (s *EntStore) Close() error {
 }
 
 func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Task, error) {
+	if err := validateTaskStateForWrite(p.Stage, p.HoldReason, p.StartDate, false); err != nil {
+		return nil, err
+	}
 	tx, err := s.client.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starting transaction: %w", err)
@@ -145,8 +148,14 @@ func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Tas
 		SetType(p.Type).
 		SetVersion("1")
 
+	if p.HoldReason != nil {
+		create.SetHoldReason(*p.HoldReason)
+	}
 	if p.Priority != nil {
 		create.SetPriority(*p.Priority)
+	}
+	if p.Rank != nil {
+		create.SetRank(*p.Rank)
 	}
 	if p.AssigneeID != nil {
 		create.SetAssigneeID(*p.AssigneeID)
@@ -558,6 +567,29 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	}
 
 	update := tx.Task.Update().Where(task.IDEQ(id))
+	stage := old.Stage
+	if p.Stage != nil {
+		stage = *p.Stage
+	}
+	holdReason := old.HoldReason
+	if p.ClearHoldReason {
+		holdReason = nil
+	} else if p.HoldReason != nil {
+		holdReason = p.HoldReason
+	}
+	startDate := old.StartDate
+	if p.ClearStartDate {
+		startDate = nil
+	} else if p.StartDate != nil {
+		startDate = p.StartDate
+		if holdReason != nil && *holdReason == task.HoldReasonDeferred && p.HoldReason == nil {
+			holdReason = nil
+			update.ClearHoldReason()
+		}
+	}
+	if err := validateTaskStateForWrite(stage, holdReason, startDate, p.ClearStartDate); err != nil {
+		return nil, err
+	}
 
 	if p.Version != "" {
 		update = update.Where(task.VersionEQ(p.Version))
@@ -581,6 +613,11 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	if p.Stage != nil {
 		update.SetStage(*p.Stage)
 	}
+	if p.ClearHoldReason {
+		update.ClearHoldReason()
+	} else if p.HoldReason != nil {
+		update.SetHoldReason(*p.HoldReason)
+	}
 	if p.NativeLabel != nil {
 		update.SetNativeLabel(*p.NativeLabel)
 	}
@@ -591,6 +628,11 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 		update.ClearPriority()
 	} else if p.Priority != nil {
 		update.SetPriority(*p.Priority)
+	}
+	if p.ClearRank {
+		update.ClearRank()
+	} else if p.Rank != nil {
+		update.SetRank(*p.Rank)
 	}
 	if p.ClearAssignee {
 		update.ClearAssigneeID()
@@ -754,6 +796,21 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	return s.getTaskWithEdges(ctx, id)
 }
 
+func validateTaskStateForWrite(stage task.Stage, holdReason *task.HoldReason, startDate *time.Time, clearingStartDate bool) error {
+	if holdReason == nil {
+		return nil
+	}
+	switch stage {
+	case task.StageAccepted, task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying:
+	default:
+		return ErrInvalidArgument
+	}
+	if *holdReason == task.HoldReasonDeferred && startDate != nil && startDate.After(time.Now()) && !clearingStartDate {
+		return ErrInvalidArgument
+	}
+	return nil
+}
+
 func mergeLabels(current, add, remove []string) []string {
 	set := make(map[string]struct{}, len(current))
 	for _, l := range current {
@@ -773,10 +830,108 @@ func mergeLabels(current, add, remove []string) []string {
 	return result
 }
 
+func terminalStageSatisfiesDependency(stage task.Stage) bool {
+	return stage == task.StageCompleted
+}
+
+func isTerminalStage(stage task.Stage) bool {
+	switch stage {
+	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *EntStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+	return computeAvailability(ctx, t, s.client.Task.Get)
+}
+
+func computeAvailability(ctx context.Context, t *ent.Task, getTask func(context.Context, uuid.UUID) (*ent.Task, error)) (TaskAvailability, error) {
+	reasons := make([]AvailabilityReason, 0, 4)
+	if t.Stage == task.StageTriage {
+		reasons = append(reasons, AvailabilityReasonTriage)
+	}
+	if isTerminalStage(t.Stage) {
+		reasons = append(reasons, AvailabilityReasonTerminal)
+	}
+	if t.HoldReason != nil {
+		reasons = append(reasons, AvailabilityReasonHeld)
+	}
+	if t.StartDate != nil && t.StartDate.After(time.Now()) {
+		reasons = append(reasons, AvailabilityReasonFutureStartDate)
+	}
+
+	blocked, err := hasUnsatisfiedBlocker(ctx, t, getTask)
+	if err != nil {
+		return TaskAvailability{}, err
+	}
+	if blocked {
+		reasons = append(reasons, AvailabilityReasonBlockedByDependency)
+	}
+
+	return TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
+}
+
+func hasUnsatisfiedBlocker(ctx context.Context, t *ent.Task, getTask func(context.Context, uuid.UUID) (*ent.Task, error)) (bool, error) {
+	checkBlocker := func(id uuid.UUID) (bool, error) {
+		blocker, err := getTask(ctx, id)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return !terminalStageSatisfiesDependency(blocker.Stage), nil
+	}
+	for _, rel := range t.Edges.SourceRelationships {
+		if rel.Type != relationship.TypeBlockedBy {
+			continue
+		}
+		blocked, err := checkBlocker(rel.TargetTaskID)
+		if err != nil || blocked {
+			return blocked, err
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type != relationship.TypeBlocks {
+			continue
+		}
+		blocked, err := checkBlocker(rel.SourceTaskID)
+		if err != nil || blocked {
+			return blocked, err
+		}
+	}
+	return false, nil
+}
+
+func noUnsatisfiedBlockerPredicates() []predicate.Task {
+	return []predicate.Task{
+		task.Not(task.HasSourceRelationshipsWith(
+			relationship.TypeEQ(relationship.TypeBlockedBy),
+			relationship.HasTargetTaskWith(task.StageNEQ(task.StageCompleted)),
+		)),
+		task.Not(task.HasTargetRelationshipsWith(
+			relationship.TypeEQ(relationship.TypeBlocks),
+			relationship.HasSourceTaskWith(task.StageNEQ(task.StageCompleted)),
+		)),
+	}
+}
+
 func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error) {
 	for attempt := 0; ; attempt++ {
-		old, err := s.client.Task.Get(ctx, id)
+		tx, err := s.client.Tx(ctx)
 		if err != nil {
+			return nil, fmt.Errorf("starting claim transaction: %w", err)
+		}
+
+		old, err := tx.Task.Query().
+			Where(task.IDEQ(id)).
+			WithSourceRelationships().
+			WithTargetRelationships().
+			Only(ctx)
+		if err != nil {
+			_ = tx.Rollback()
 			if ent.IsNotFound(err) {
 				return nil, ErrNotFound
 			}
@@ -784,16 +939,35 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 		}
 
 		if old.Phase == task.PhaseClosed {
+			_ = tx.Rollback()
 			return nil, ErrAlreadyClosed
 		}
+		availability, err := computeAvailability(ctx, old, tx.Task.Get)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, fmt.Errorf("computing claim availability: %w", err)
+		}
+		if !availability.Available {
+			_ = tx.Rollback()
+			return nil, ErrUnavailable
+		}
 		if old.AssigneeID != nil {
+			_ = tx.Rollback()
 			return nil, ErrAlreadyClaimed
 		}
 
 		v, _ := strconv.Atoi(old.Version)
-		q := s.client.Task.Update().
-			Where(task.IDEQ(id), task.AssigneeIDIsNil(), task.PhaseNEQ(task.PhaseClosed)).
+		q := tx.Task.Update().
+			Where(
+				task.IDEQ(id),
+				task.AssigneeIDIsNil(),
+				task.PhaseEQ(task.PhaseOpen),
+				task.StageEQ(task.StageAccepted),
+				task.HoldReasonIsNil(),
+				task.Or(task.StartDateIsNil(), task.StartDateLTE(time.Now())),
+			).
 			SetVersion(strconv.Itoa(v + 1))
+		q = q.Where(noUnsatisfiedBlockerPredicates()...)
 
 		if version != "" {
 			q = q.Where(task.VersionEQ(version))
@@ -805,15 +979,48 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 			SetAssigneeID(assigneeID).
 			SetPhase(task.PhaseInProgress).
 			SetStage(task.StageWorking).
+			ClearHoldReason().
 			Save(ctx)
 		if err != nil {
+			_ = tx.Rollback()
 			return nil, fmt.Errorf("claiming task: %w", err)
 		}
 		if n == 0 {
+			_ = tx.Rollback()
+			current, getErr := s.client.Task.Query().
+				Where(task.IDEQ(id)).
+				WithSourceRelationships().
+				WithTargetRelationships().
+				Only(ctx)
+			if getErr != nil {
+				if ent.IsNotFound(getErr) {
+					return nil, ErrNotFound
+				}
+				return nil, fmt.Errorf("getting task after failed claim: %w", getErr)
+			}
+			if current.AssigneeID != nil {
+				return nil, ErrAlreadyClaimed
+			}
+			if current.Phase == task.PhaseClosed {
+				return nil, ErrAlreadyClosed
+			}
+			if current.Phase != task.PhaseOpen || current.Stage != task.StageAccepted || current.HoldReason != nil {
+				return nil, ErrUnavailable
+			}
+			availability, availabilityErr := s.ComputeAvailability(ctx, current)
+			if availabilityErr != nil {
+				return nil, fmt.Errorf("computing availability after failed claim: %w", availabilityErr)
+			}
+			if !availability.Available {
+				return nil, ErrUnavailable
+			}
 			if version == "" && attempt == 0 {
 				continue
 			}
 			return nil, ErrConflict
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("committing claim: %w", err)
 		}
 
 		result, err := s.getTaskWithEdges(ctx, id)
@@ -1696,6 +1903,12 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 		if imported.Priority != nil {
 			create.SetPriority(*imported.Priority)
 		}
+		if imported.HoldReason != nil {
+			create.SetHoldReason(*imported.HoldReason)
+		}
+		if imported.Rank != nil {
+			create.SetRank(*imported.Rank)
+		}
 		if imported.AssigneeID != nil {
 			create.SetAssigneeID(*imported.AssigneeID)
 		}
@@ -2046,18 +2259,10 @@ func (s *EntStore) Truncate(ctx context.Context) error {
 // ── Graph Query Methods ──
 
 func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
-	var stagePreds []predicate.Task
-	stagePreds = append(stagePreds, task.StageEQ(task.StageReady))
-	if p.IncludeUnblockedOpen {
-		stagePreds = append(stagePreds, task.StageEQ(task.StageTriage))
-		stagePreds = append(stagePreds, task.StageEQ(task.StageBacklog))
+	q := s.client.Task.Query().Where(task.PhaseEQ(task.PhaseOpen))
+	if !p.IncludeUnblockedOpen {
+		q = q.Where(task.StageEQ(task.StageAccepted), task.HoldReasonIsNil())
 	}
-
-	q := s.client.Task.Query().
-		Where(
-			task.PhaseEQ(task.PhaseOpen),
-			task.Or(stagePreds...),
-		)
 
 	if p.CollectionID != nil {
 		q = q.Where(task.CollectionIDEQ(*p.CollectionID))
@@ -2084,25 +2289,27 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 
 	var results []*ReadyTaskResult
 	for _, t := range tasks {
-		blockersResolved := 0
-		hasOpenBlocker := false
+		availability, err := s.ComputeAvailability(ctx, t)
+		if err != nil {
+			return nil, 0, fmt.Errorf("computing availability: %w", err)
+		}
+		if !availability.Available {
+			if !p.IncludeUnblockedOpen || availability.HasReason(AvailabilityReasonBlockedByDependency) {
+				continue
+			}
+		}
 
+		blockersResolved := 0
 		for _, rel := range t.Edges.SourceRelationships {
 			if rel.Type == relationship.TypeBlockedBy {
 				blocker, bErr := s.client.Task.Get(ctx, rel.TargetTaskID)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase == task.PhaseClosed {
+				if terminalStageSatisfiesDependency(blocker.Stage) {
 					blockersResolved++
-				} else {
-					hasOpenBlocker = true
-					break
 				}
 			}
-		}
-		if hasOpenBlocker {
-			continue
 		}
 
 		for _, rel := range t.Edges.TargetRelationships {
@@ -2111,16 +2318,10 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase == task.PhaseClosed {
+				if terminalStageSatisfiesDependency(blocker.Stage) {
 					blockersResolved++
-				} else {
-					hasOpenBlocker = true
-					break
 				}
 			}
-		}
-		if hasOpenBlocker {
-			continue
 		}
 
 		results = append(results, &ReadyTaskResult{
@@ -2130,6 +2331,19 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 	}
 
 	total := len(results)
+	sort.SliceStable(results, func(i, j int) bool {
+		a, b := results[i].Task, results[j].Task
+		if priorityOrder(a.Priority) != priorityOrder(b.Priority) {
+			return priorityOrder(a.Priority) < priorityOrder(b.Priority)
+		}
+		if rankValue(a.Rank) != rankValue(b.Rank) {
+			return rankValue(a.Rank) < rankValue(b.Rank)
+		}
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			return a.CreatedAt.Before(b.CreatedAt)
+		}
+		return a.ID.String() < b.ID.String()
+	})
 
 	if p.Offset > 0 && p.Offset < len(results) {
 		results = results[p.Offset:]
@@ -2141,6 +2355,31 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 	}
 
 	return results, total, nil
+}
+
+func priorityOrder(p *task.Priority) int {
+	if p == nil {
+		return 4
+	}
+	switch *p {
+	case task.PriorityUrgent:
+		return 0
+	case task.PriorityHigh:
+		return 1
+	case task.PriorityNormal:
+		return 2
+	case task.PriorityLow:
+		return 3
+	default:
+		return 4
+	}
+}
+
+func rankValue(rank *int) int {
+	if rank == nil {
+		return int(^uint(0) >> 1)
+	}
+	return *rank
 }
 
 func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error) {
@@ -2174,7 +2413,7 @@ func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase != task.PhaseClosed {
+				if !terminalStageSatisfiesDependency(blocker.Stage) {
 					blockers = append(blockers, BlockerInfoResult{
 						TaskID: blocker.ID,
 						Name:   blocker.Title,
@@ -2191,7 +2430,7 @@ func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase != task.PhaseClosed {
+				if !terminalStageSatisfiesDependency(blocker.Stage) {
 					blockers = append(blockers, BlockerInfoResult{
 						TaskID: blocker.ID,
 						Name:   blocker.Title,

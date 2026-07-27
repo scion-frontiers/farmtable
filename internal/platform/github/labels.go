@@ -10,36 +10,26 @@ import (
 // When multiple label-mapped stages appear on a single issue, the stage
 // with the lowest index in this slice is selected.
 var stagePrecedence = []task.Stage{
-	task.StageBlocked,
 	task.StageWorking,
 	task.StageInReview,
 	task.StageInQa,
 	task.StageDeploying,
-	task.StageReady,
-	task.StageScheduled,
-	task.StageWaitingForInput,
-	task.StageBacklog,
+	task.StageAccepted,
 	task.StageTriage,
 	task.StageCompleted,
 	task.StageWontFix,
 	task.StageDuplicate,
 	task.StageCancelled,
-	task.StageDeferred,
 }
 
 // allStages enumerates every valid Stage for default auto-mapping.
 var allStages = []task.Stage{
 	task.StageTriage,
-	task.StageBacklog,
-	task.StageReady,
+	task.StageAccepted,
 	task.StageWorking,
 	task.StageInReview,
 	task.StageInQa,
 	task.StageDeploying,
-	task.StageBlocked,
-	task.StageWaitingForInput,
-	task.StageDeferred,
-	task.StageScheduled,
 	task.StageCompleted,
 	task.StageWontFix,
 	task.StageDuplicate,
@@ -375,7 +365,7 @@ func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add
 //     - "not_planned" -> PhaseClosed, StageWontFix
 //     - otherwise     -> PhaseClosed, StageCompleted
 //  2. If labels map to a stage, use that stage with the appropriate phase.
-//  3. Fallback: open -> (PhaseOpen, StageBacklog), closed -> (PhaseClosed, StageCompleted).
+//  3. Fallback: open -> (PhaseOpen, StageAccepted), closed -> (PhaseClosed, StageCompleted).
 func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []string) (task.Phase, task.Stage) {
 	isClosed := strings.EqualFold(state, "closed")
 
@@ -398,13 +388,13 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 		return phaseForStage(stage), stage
 	}
 
-	// Fallback for open issues: use StageBacklog, not StageTriage.
+	// Fallback for open issues: use StageAccepted, not StageTriage.
 	// An unlabelled GitHub issue was never explicitly triaged — it was
 	// never placed in triage, so treating it as accepted-but-unprioritized
 	// keeps ClaimTask working.  StageTriage + the auth-stage4 accept gate
 	// would block ALL roles (including admin) from claiming unlabelled issues
 	// on pass-through collections.
-	return phaseForStage(task.StageBacklog), task.StageBacklog
+	return phaseForStage(task.StageAccepted), task.StageAccepted
 }
 
 // stripForMatch normalises a label for lookup: lowercase, strip push prefix,
@@ -434,8 +424,6 @@ func phaseForStage(s task.Stage) task.Phase {
 	switch s {
 	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 		return task.PhaseClosed
-	case task.StageBlocked, task.StageWaitingForInput, task.StageDeferred:
-		return task.PhaseOnHold
 	case task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying:
 		return task.PhaseInProgress
 	default:

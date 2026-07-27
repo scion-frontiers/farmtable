@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
@@ -230,6 +231,29 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
 		return nil, err
 	}
 	return s.ClaimTask(ctx, id, assigneeID, version)
+}
+
+func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+	s := m.storeForCtx(ctx, t.CollectionID)
+	if computer, ok := s.(interface {
+		ComputeAvailability(context.Context, *ent.Task) (TaskAvailability, error)
+	}); ok {
+		return computer.ComputeAvailability(ctx, t)
+	}
+	reasons := make([]AvailabilityReason, 0, 3)
+	if t.Stage == task.StageTriage {
+		reasons = append(reasons, AvailabilityReasonTriage)
+	}
+	if t.Phase == task.PhaseClosed || t.Stage == task.StageCompleted || t.Stage == task.StageWontFix || t.Stage == task.StageDuplicate || t.Stage == task.StageCancelled {
+		reasons = append(reasons, AvailabilityReasonTerminal)
+	}
+	if t.HoldReason != nil {
+		reasons = append(reasons, AvailabilityReasonHeld)
+	}
+	if t.StartDate != nil && t.StartDate.After(time.Now()) {
+		reasons = append(reasons, AvailabilityReasonFutureStartDate)
+	}
+	return TaskAvailability{Available: len(reasons) == 0 && t.Phase == task.PhaseOpen && t.Stage == task.StageAccepted, Reasons: reasons}, nil
 }
 
 func (m *MultiStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error) {

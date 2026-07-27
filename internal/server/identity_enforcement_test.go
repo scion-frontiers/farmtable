@@ -206,7 +206,7 @@ func TestIdentity_MutatingRPCsAcceptValidAuth(t *testing.T) {
 	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "valid-task",
 		CollectionId: coll.GetId(),
-		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)

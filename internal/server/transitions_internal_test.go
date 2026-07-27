@@ -37,7 +37,6 @@ func TestStageGroupsPartitionAllStages(t *testing.T) {
 		"accepted": stagesAccepted,
 		"working":  stagesWorking,
 		"handoff":  stagesHandoff,
-		"onHold":   stagesOnHold,
 		"terminal": stagesTerminal,
 	}
 

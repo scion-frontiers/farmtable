@@ -155,19 +155,13 @@ const MOCK_COLLECTIONS: Collection[] = [
 export function phaseForStage(stage: TaskStage): TaskPhase {
   switch (stage) {
     case TaskStage.TRIAGE:
-    case TaskStage.BACKLOG:
-    case TaskStage.READY:
+    case TaskStage.ACCEPTED:
       return TaskPhase.OPEN;
     case TaskStage.WORKING:
     case TaskStage.IN_REVIEW:
     case TaskStage.IN_QA:
     case TaskStage.DEPLOYING:
       return TaskPhase.IN_PROGRESS;
-    case TaskStage.BLOCKED:
-    case TaskStage.WAITING_FOR_INPUT:
-    case TaskStage.DEFERRED:
-    case TaskStage.SCHEDULED:
-      return TaskPhase.ON_HOLD;
     case TaskStage.COMPLETED:
     case TaskStage.WONT_FIX:
     case TaskStage.DUPLICATE:
@@ -184,7 +178,7 @@ const MOCK_TASKS: Task[] = [
     name: 'Set up CI/CD pipeline',
     description: 'Configure GitHub Actions for build, test, and deploy.',
     phase: TaskPhase.OPEN,
-    stage: TaskStage.READY,
+    stage: TaskStage.ACCEPTED,
     priority: TaskPriority.HIGH,
     assignees: [{ id: 'u1', name: 'Alice', type: UserType.HUMAN, status: IdentityStatus.ACTIVE }],
     labels: ['infra'],
@@ -216,7 +210,7 @@ const MOCK_TASKS: Task[] = [
     name: 'Implement task CRUD API',
     description: 'gRPC endpoints for create, read, update, delete tasks.',
     phase: TaskPhase.OPEN,
-    stage: TaskStage.BACKLOG,
+    stage: TaskStage.ACCEPTED,
     priority: TaskPriority.NORMAL,
     assignees: [],
     labels: ['feature'],
@@ -274,7 +268,7 @@ const MOCK_TASKS: Task[] = [
     name: 'Fix login redirect loop',
     description: 'OAuth callback redirects back to login page indefinitely.',
     phase: TaskPhase.ON_HOLD,
-    stage: TaskStage.BLOCKED,
+    stage: TaskStage.ACCEPTED,
     priority: TaskPriority.URGENT,
     assignees: [{ id: 'u2', name: 'Bob', type: UserType.HUMAN, status: IdentityStatus.ACTIVE }],
     labels: ['bug'],

@@ -17,9 +17,34 @@ var (
 	ErrConflict        = errors.New("version conflict")
 	ErrAlreadyClaimed  = errors.New("task already claimed")
 	ErrAlreadyClosed   = errors.New("task already closed")
+	ErrUnavailable     = errors.New("task unavailable")
 	ErrInvalidArgument = errors.New("invalid argument")
 	ErrNotImplemented  = errors.New("not implemented")
 )
+
+type AvailabilityReason string
+
+const (
+	AvailabilityReasonTriage              AvailabilityReason = "triage"
+	AvailabilityReasonTerminal            AvailabilityReason = "terminal"
+	AvailabilityReasonHeld                AvailabilityReason = "held"
+	AvailabilityReasonBlockedByDependency AvailabilityReason = "blocked_by_dependency"
+	AvailabilityReasonFutureStartDate     AvailabilityReason = "future_start_date"
+)
+
+type TaskAvailability struct {
+	Available bool
+	Reasons   []AvailabilityReason
+}
+
+func (a TaskAvailability) HasReason(reason AvailabilityReason) bool {
+	for _, r := range a.Reasons {
+		if r == reason {
+			return true
+		}
+	}
+	return false
+}
 
 type CreateTaskParams struct {
 	Title              string
@@ -27,9 +52,11 @@ type CreateTaskParams struct {
 	CollectionID       uuid.UUID
 	Phase              task.Phase
 	Stage              task.Stage
+	HoldReason         *task.HoldReason
 	NativeLabel        string
 	Type               string
 	Priority           *task.Priority
+	Rank               *int
 	AssigneeID         *uuid.UUID
 	ParentTaskID       *uuid.UUID
 	AcceptanceCriteria *string
@@ -48,9 +75,13 @@ type UpdateTaskParams struct {
 	Description         *string
 	Phase               *task.Phase
 	Stage               *task.Stage
+	HoldReason          *task.HoldReason
+	ClearHoldReason     bool
 	NativeLabel         *string
 	Type                *string
 	Priority            *task.Priority
+	Rank                *int
+	ClearRank           bool
 	ClearPriority       bool
 	AssigneeID          *uuid.UUID
 	ClearAssignee       bool
@@ -213,9 +244,11 @@ type ImportTask struct {
 	Description        string
 	Phase              task.Phase
 	Stage              task.Stage
+	HoldReason         *task.HoldReason
 	NativeLabel        string
 	Type               string
 	Priority           *task.Priority
+	Rank               *int
 	AssigneeID         *uuid.UUID
 	ParentTaskID       *uuid.UUID
 	StartDate          *time.Time
@@ -399,13 +432,13 @@ type CreateLinkedAccountParams struct {
 }
 
 type UpdateLinkedAccountParams struct {
-	AuthToken       *string
-	RefreshToken    *string
-	TokenExpiry     *time.Time
+	AuthToken        *string
+	RefreshToken     *string
+	TokenExpiry      *time.Time
 	ClearTokenExpiry bool
-	Status          *string
-	ScopesGranted   []string
-	LastValidatedAt *time.Time
+	Status           *string
+	ScopesGranted    []string
+	LastValidatedAt  *time.Time
 }
 
 type ListLinkedAccountsParams struct {

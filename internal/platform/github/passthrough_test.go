@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
 	githubv4 "github.com/shurcooL/githubv4"
@@ -96,5 +97,60 @@ func TestPassThroughStore_CreateTaskWithParentAddsSubIssue(t *testing.T) {
 	}
 	if created.ParentTaskID == nil || *created.ParentTaskID != parentUUID {
 		t.Fatalf("created ParentTaskID = %v, want %v", created.ParentTaskID, parentUUID)
+	}
+}
+
+func TestComputeBlocked_DoesNotTreatAcceptedAsBlocked(t *testing.T) {
+	nodes := map[int]*issueTreeNode{
+		1: {Number: 1, Title: "accepted", State: "OPEN", Stage: task.StageAccepted},
+		2: {Number: 2, Title: "parent", State: "OPEN", Stage: task.StageAccepted, Children: []*issueTreeNode{
+			{Number: 3, Title: "accepted child", State: "CLOSED", Stage: task.StageAccepted},
+		}},
+	}
+
+	got := computeBlocked(nodes)
+	if len(got) != 0 {
+		t.Fatalf("computeBlocked returned %d entries for plain accepted issues: %#v", len(got), got)
+	}
+}
+
+func TestComputeBlocked_ExternalUnavailableLabelAndOpenChildren(t *testing.T) {
+	child := &issueTreeNode{Number: 2, Title: "child", State: "OPEN", Stage: task.StageAccepted}
+	nodes := map[int]*issueTreeNode{
+		1: {Number: 1, Title: "label blocked", State: "OPEN", Stage: task.StageAccepted, Labels: []string{"blocked"}},
+		3: {Number: 3, Title: "parent", State: "OPEN", Stage: task.StageAccepted, Children: []*issueTreeNode{child}},
+	}
+
+	got := computeBlocked(nodes)
+	if len(got) != 2 {
+		t.Fatalf("computeBlocked returned %d entries, want 2", len(got))
+	}
+}
+
+func TestIssueUnavailableForClaim(t *testing.T) {
+	openChild := subIssueNode{}
+	openChild.State = githubv4.String("OPEN")
+	withOpenChild := &issueNode{}
+	withOpenChild.SubIssues.Nodes = []subIssueNode{openChild}
+
+	cases := []struct {
+		name  string
+		issue *issueNode
+		task  *ent.Task
+		want  bool
+	}{
+		{"accepted", &issueNode{}, &ent.Task{Stage: task.StageAccepted}, false},
+		{"triage", &issueNode{}, &ent.Task{Stage: task.StageTriage}, true},
+		{"legacy blocked label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"blocked"}}, true},
+		{"legacy deferred label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/deferred"}}, true},
+		{"open child", withOpenChild, &ent.Task{Stage: task.StageAccepted}, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := issueUnavailableForClaim(tc.issue, tc.task); got != tc.want {
+				t.Fatalf("issueUnavailableForClaim = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

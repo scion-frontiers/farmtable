@@ -188,7 +188,7 @@ func TestPostgresRPC_ClaimTask(t *testing.T) {
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Claim RPC test",
-		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)
@@ -341,7 +341,7 @@ func TestPostgresRPC_GetReadyTasks(t *testing.T) {
 
 	collID := createTestCollectionPostgres(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Ready task A",
@@ -399,7 +399,7 @@ func TestPostgresRPC_GetBlockedTasks(t *testing.T) {
 
 	collID := createTestCollectionPostgres(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Blocker",
@@ -454,7 +454,7 @@ func TestPostgresRPC_GetBottlenecks(t *testing.T) {
 
 	collID := createTestCollectionPostgres(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Bottleneck A",

@@ -59,12 +59,16 @@ task and moves it to `working`. Do not claim work you do not intend to start.
 
 Use these stages consistently:
 
-- `ready`: unblocked and available.
+- `triage`: no acceptance decision has been made.
+- `accepted`: accepted work that has not started; availability is computed.
 - `working`: actively owned.
-- `blocked`: cannot proceed because of a dependency or external issue.
-- `waiting_for_input`: user or stakeholder decision needed.
 - `in_review`, `in_qa`, `deploying`: handoff stages.
 - `completed`, `wont_fix`, `duplicate`, `cancelled`: terminal stages.
+
+Use `hold_reason=waiting_for_input` when accepted or active work needs input.
+Use `hold_reason=deferred` when work is intentionally postponed without a
+concrete start date. A future `start_date` makes a task unavailable but is not
+a hold reason. Claim starts execution and requires computed availability.
 
 ## Dev Environment
 

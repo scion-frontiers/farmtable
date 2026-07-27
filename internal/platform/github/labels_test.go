@@ -21,15 +21,9 @@ func TestMapLabelsToStage_ExactMatch(t *testing.T) {
 	}{
 		{"working", task.StageWorking},
 		{"triage", task.StageTriage},
-		{"backlog", task.StageBacklog},
-		{"ready", task.StageReady},
 		{"in_review", task.StageInReview},
 		{"in_qa", task.StageInQa},
 		{"deploying", task.StageDeploying},
-		{"blocked", task.StageBlocked},
-		{"waiting_for_input", task.StageWaitingForInput},
-		{"deferred", task.StageDeferred},
-		{"scheduled", task.StageScheduled},
 		{"completed", task.StageCompleted},
 		{"wont_fix", task.StageWontFix},
 		{"duplicate", task.StageDuplicate},
@@ -52,7 +46,7 @@ func TestMapLabelsToStage_ExactMatch(t *testing.T) {
 func TestMapLabelsToStage_CaseInsensitive(t *testing.T) {
 	m := defaultMapper()
 
-	tests := []string{"Working", "WORKING", "Blocked", "IN_REVIEW", "Triage"}
+	tests := []string{"Working", "WORKING", "Accepted", "IN_REVIEW", "Triage"}
 	for _, label := range tests {
 		t.Run(label, func(t *testing.T) {
 			_, ok := m.MapLabelsToStage([]string{label})
@@ -91,13 +85,13 @@ func TestMapLabelsToStage_CustomMapping(t *testing.T) {
 func TestMapLabelsToStage_Precedence(t *testing.T) {
 	m := defaultMapper()
 
-	// blocked has higher precedence than ready.
-	stage, ok := m.MapLabelsToStage([]string{"ready", "blocked"})
+	// working has higher precedence than accepted.
+	stage, ok := m.MapLabelsToStage([]string{"accepted", "working"})
 	if !ok {
 		t.Fatal("expected match")
 	}
-	if stage != task.StageBlocked {
-		t.Errorf("stage = %q, want %q (blocked has higher precedence)", stage, task.StageBlocked)
+	if stage != task.StageWorking {
+		t.Errorf("stage = %q, want %q (working has higher precedence)", stage, task.StageWorking)
 	}
 
 	// working beats in_review.
@@ -109,8 +103,8 @@ func TestMapLabelsToStage_Precedence(t *testing.T) {
 		t.Errorf("stage = %q, want %q", stage, task.StageWorking)
 	}
 
-	// deploying beats ready.
-	stage, ok = m.MapLabelsToStage([]string{"ready", "deploying"})
+	// deploying beats accepted.
+	stage, ok = m.MapLabelsToStage([]string{"accepted", "deploying"})
 	if !ok {
 		t.Fatal("expected match")
 	}
@@ -254,7 +248,7 @@ func TestStageToLabel(t *testing.T) {
 	}{
 		{task.StageWorking, "ft:stage/working"},
 		{task.StageTriage, "ft:stage/triage"},
-		{task.StageBlocked, "ft:stage/blocked"},
+		{task.StageAccepted, "ft:stage/accepted"},
 		{task.StageCompleted, "ft:stage/completed"},
 		{task.StageInReview, "ft:stage/in_review"},
 	}
@@ -419,8 +413,8 @@ func TestLabelMapper_Disabled(t *testing.T) {
 	}
 
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"ft:stage/working"})
-	if phase != task.PhaseOpen || stage != task.StageBacklog {
-		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageBacklog)
+	if phase != task.PhaseOpen || stage != task.StageAccepted {
+		t.Fatalf("IssueToPhaseStage(open) = (%q, %q), want (%q, %q) when mapping is disabled", phase, stage, task.PhaseOpen, task.StageAccepted)
 	}
 
 	phase, stage = m.IssueToPhaseStage("closed", "completed", []string{"cancelled"})
@@ -480,15 +474,15 @@ func TestIssueToPhaseStage_LabelsOverride(t *testing.T) {
 func TestIssueToPhaseStage_Fallback(t *testing.T) {
 	m := defaultMapper()
 
-	// Open issue with no matching labels falls back to StageBacklog
+	// Open issue with no matching labels falls back to StageAccepted
 	// (not StageTriage — unlabelled issues were never explicitly triaged,
 	// and StageTriage + the accept gate blocks ClaimTask for all roles).
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"enhancement"})
 	if phase != task.PhaseOpen {
 		t.Errorf("phase = %q, want %q", phase, task.PhaseOpen)
 	}
-	if stage != task.StageBacklog {
-		t.Errorf("stage = %q, want %q (fallback)", stage, task.StageBacklog)
+	if stage != task.StageAccepted {
+		t.Errorf("stage = %q, want %q (fallback)", stage, task.StageAccepted)
 	}
 }
 
@@ -496,11 +490,11 @@ func TestIssueToPhaseStage_OpenBlocked(t *testing.T) {
 	m := defaultMapper()
 
 	phase, stage := m.IssueToPhaseStage("open", "", []string{"blocked"})
-	if phase != task.PhaseOnHold {
-		t.Errorf("phase = %q, want %q", phase, task.PhaseOnHold)
+	if phase != task.PhaseOpen {
+		t.Errorf("phase = %q, want %q", phase, task.PhaseOpen)
 	}
-	if stage != task.StageBlocked {
-		t.Errorf("stage = %q, want %q", stage, task.StageBlocked)
+	if stage != task.StageAccepted {
+		t.Errorf("stage = %q, want %q", stage, task.StageAccepted)
 	}
 }
 
@@ -519,12 +513,12 @@ func TestPrefixStripping(t *testing.T) {
 	}
 
 	// Case-insensitive prefix stripping.
-	stage, ok = m.MapLabelsToStage([]string{"FT:stage/blocked"})
+	stage, ok = m.MapLabelsToStage([]string{"FT:stage/accepted"})
 	if !ok {
 		t.Fatal("expected match for case-insensitive prefixed label")
 	}
-	if stage != task.StageBlocked {
-		t.Errorf("stage = %q, want %q", stage, task.StageBlocked)
+	if stage != task.StageAccepted {
+		t.Errorf("stage = %q, want %q", stage, task.StageAccepted)
 	}
 
 	// Priority prefix stripping.

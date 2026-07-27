@@ -23,18 +23,22 @@ func (Task) Fields() []ent.Field {
 			Default("open"),
 		field.Enum("stage").
 			Values(
-				"triage", "backlog", "ready",
+				"triage", "accepted",
 				"working", "in_review", "in_qa", "deploying",
-				"blocked", "waiting_for_input", "deferred", "scheduled",
 				"completed", "wont_fix", "duplicate", "cancelled",
 			).
 			Default("triage"),
+		field.Enum("hold_reason").
+			Values("waiting_for_input", "deferred").
+			Optional().
+			Nillable(),
 		field.String("native_label").Optional().Default(""),
 		field.String("type").Optional().Default(""),
 		field.Enum("priority").
 			Values("urgent", "high", "normal", "low").
 			Optional().
 			Nillable(),
+		field.Int("rank").Optional().Nillable(),
 		field.UUID("assignee_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("collection_id", uuid.UUID{}),
 		field.UUID("parent_task_id", uuid.UUID{}).Optional().Nillable(),

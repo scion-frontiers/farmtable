@@ -210,8 +210,8 @@ func TestMultiStore_ClaimTask_RoutesToPlatform(t *testing.T) {
 		Title:        "Claim me",
 		CollectionID: platCollID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
-		NativeLabel:  "triage",
+		Stage:        task.StageAccepted,
+		NativeLabel:  "accepted",
 		Type:         "task",
 	})
 	if err != nil {
@@ -658,7 +658,7 @@ func TestMultiStore_GetReadyTasks_RoutesToPlatform(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := platform.CreateTask(ctx, store.CreateTaskParams{
-		Title: "Ready", CollectionID: platCollID, Phase: task.PhaseOpen, Stage: task.StageReady, NativeLabel: "ready", Type: "task",
+		Title: "Ready", CollectionID: platCollID, Phase: task.PhaseOpen, Stage: task.StageAccepted, NativeLabel: "ready", Type: "task",
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)

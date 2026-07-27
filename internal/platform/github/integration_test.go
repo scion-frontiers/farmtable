@@ -257,10 +257,10 @@ func TestIntegration_LabelMapperDefaultConfig(t *testing.T) {
 		ok     bool
 	}{
 		{"working label", []string{"working"}, task.StageWorking, true},
-		{"ft:stage/blocked", []string{"ft:stage/blocked"}, task.StageBlocked, true},
+		{"ft:stage/blocked", []string{"ft:stage/blocked"}, task.StageAccepted, true},
 		{"bug label (not a stage)", []string{"bug"}, "", false},
 		{"case insensitive", []string{"WORKING"}, task.StageWorking, true},
-		{"precedence: blocked > working", []string{"working", "blocked"}, task.StageBlocked, true},
+		{"precedence: blocked > working", []string{"working", "blocked"}, task.StageAccepted, true},
 	}
 
 	for _, tc := range tests {

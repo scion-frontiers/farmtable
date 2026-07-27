@@ -38,13 +38,13 @@ Farm Table operates transparently in two modes from the exact same codebase:
 
 ### 📦 Normalized Task Object (NTO)
 Every task—whether synced from GitHub or managed locally—is represented in a single, predictable schema defined in Protobuf (`proto/farmtable/v1/farmtable.proto`).
-- **Three-Tier Status Model**: Status is decoupled into three fields (`phase`, `stage`, and `native_label`) to let agents easily branch on high-level lifecycles while humans and dashboards enjoy fine-grained stage tracking.
+- **Task State Model**: Native tasks use asserted stages such as `triage`, `accepted`, `working`, handoff stages, and terminal outcomes. Availability is computed from stage, hold reason, start date, and dependencies.
 - **Code Context Tracking**: Tasks natively carry Git repo and branch references, pull request info, and CI status.
 - **Remote Lossless Sync**: Original platform fields are preserved in `remote_id`, `remote_url`, and custom `remote_data` JSON.
 
-### 🕸️ Graph Queries & Ready-Task Detection
+### 🕸️ Graph Queries & Work Availability
 Farm Table handles task dependencies as a directed dependency graph:
-- **`GetReadyTasks`**: Returns actionable tasks in `ready` stage that have no unresolved blocking dependencies.
+- **`GetReadyTasks`**: Returns available accepted tasks that have no unresolved blocking dependencies.
 - **`GetDependencyTree`**: Recursively traverses downstream (`blocks`) and upstream (`blocked_by`) relationships.
 - **`GetCriticalPath`**: Calculates the longest blocking chain in a collection, identifying the absolute bottleneck determining minimum completion time.
 - **`GetBottlenecks`**: Highlights tasks blocking the highest number of transitive downstream dependents.

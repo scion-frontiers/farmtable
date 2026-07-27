@@ -35,8 +35,8 @@ func TestCreateAndGetTask(t *testing.T) {
 		Description:  "A test",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
-		NativeLabel:  "triage",
+		Stage:        task.StageAccepted,
+		NativeLabel:  "accepted",
 		Type:         "task",
 	})
 	if err != nil {
@@ -93,7 +93,7 @@ func TestListTasks_Filters(t *testing.T) {
 		stage task.Stage
 	}{
 		{"open-triage", collID, task.PhaseOpen, task.StageTriage},
-		{"open-backlog", collID, task.PhaseOpen, task.StageBacklog},
+		{"open-backlog", collID, task.PhaseOpen, task.StageAccepted},
 		{"in-progress-working", collID, task.PhaseInProgress, task.StageWorking},
 		{"other-coll", collID2, task.PhaseOpen, task.StageTriage},
 	} {
@@ -240,7 +240,7 @@ func TestClaimTask(t *testing.T) {
 		Title:        "Claim me",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
+		Stage:        task.StageAccepted,
 		NativeLabel:  "triage",
 	})
 	if err != nil {
@@ -298,6 +298,247 @@ func TestClaimTask_ClosedTask(t *testing.T) {
 	}
 }
 
+func TestComputeAvailability_ReasonsAndTerminalDependencies(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, s)
+
+	waiting := task.HoldReasonWaitingForInput
+	future := time.Now().Add(24 * time.Hour)
+	triage, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Triage", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage,
+	})
+	if err != nil {
+		t.Fatalf("create triage: %v", err)
+	}
+	held, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Held", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, HoldReason: &waiting,
+	})
+	if err != nil {
+		t.Fatalf("create held: %v", err)
+	}
+	scheduled, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Future", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, StartDate: &future,
+	})
+	if err != nil {
+		t.Fatalf("create future: %v", err)
+	}
+	blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Blocker", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted,
+	})
+	if err != nil {
+		t.Fatalf("create blocker: %v", err)
+	}
+	blocked, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Blocked", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, BlockedByTaskIDs: []uuid.UUID{blocker.ID},
+	})
+	if err != nil {
+		t.Fatalf("create blocked: %v", err)
+	}
+
+	tests := []struct {
+		name   string
+		taskID uuid.UUID
+		want   store.AvailabilityReason
+	}{
+		{"triage", triage.ID, store.AvailabilityReasonTriage},
+		{"held", held.ID, store.AvailabilityReasonHeld},
+		{"future", scheduled.ID, store.AvailabilityReasonFutureStartDate},
+		{"dependency", blocked.ID, store.AvailabilityReasonBlockedByDependency},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTask, err := s.GetTask(ctx, tt.taskID)
+			if err != nil {
+				t.Fatalf("GetTask: %v", err)
+			}
+			availability, err := s.ComputeAvailability(ctx, gotTask)
+			if err != nil {
+				t.Fatalf("ComputeAvailability: %v", err)
+			}
+			if availability.Available {
+				t.Fatalf("available = true, want false")
+			}
+			if !hasAvailabilityReason(availability, tt.want) {
+				t.Fatalf("reasons = %v, want %s", availability.Reasons, tt.want)
+			}
+			if _, err := s.ClaimTask(ctx, tt.taskID, uuid.New(), ""); err != store.ErrUnavailable {
+				t.Fatalf("ClaimTask err = %v, want ErrUnavailable", err)
+			}
+		})
+	}
+
+	if _, err := s.CloseTask(ctx, blocker.ID, task.StageCompleted, "", uuid.Nil); err != nil {
+		t.Fatalf("close blocker: %v", err)
+	}
+	gotBlocked, err := s.GetTask(ctx, blocked.ID)
+	if err != nil {
+		t.Fatalf("GetTask blocked: %v", err)
+	}
+	availability, err := s.ComputeAvailability(ctx, gotBlocked)
+	if err != nil {
+		t.Fatalf("ComputeAvailability after close: %v", err)
+	}
+	if !availability.Available {
+		t.Fatalf("available = false, reasons = %v; want dependency satisfied by completed blocker", availability.Reasons)
+	}
+}
+
+func TestComputeAvailability_TerminalDependencyMatrix(t *testing.T) {
+	tests := []struct {
+		stage         task.Stage
+		wantAvail     bool
+		wantReason    bool
+		documentation string
+	}{
+		{task.StageCompleted, true, false, "completed blockers satisfy dependencies"},
+		{task.StageWontFix, false, true, "wont_fix blockers do not satisfy dependencies in v1"},
+		{task.StageCancelled, false, true, "cancelled blockers do not satisfy dependencies in v1"},
+		{task.StageDuplicate, false, true, "duplicate blockers without a persisted canonical replacement do not satisfy dependencies in v1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.stage.String(), func(t *testing.T) {
+			s, cleanup := testutil.NewTestStore(t)
+			defer cleanup()
+			ctx := context.Background()
+			collID := createTestCollection(t, s)
+
+			blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocker", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted,
+			})
+			if err != nil {
+				t.Fatalf("create blocker: %v", err)
+			}
+			blocked, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocked", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, BlockedByTaskIDs: []uuid.UUID{blocker.ID},
+			})
+			if err != nil {
+				t.Fatalf("create blocked: %v", err)
+			}
+			if _, err := s.CloseTask(ctx, blocker.ID, tt.stage, "", uuid.Nil); err != nil {
+				t.Fatalf("close blocker as %s: %v", tt.stage, err)
+			}
+
+			gotBlocked, err := s.GetTask(ctx, blocked.ID)
+			if err != nil {
+				t.Fatalf("GetTask blocked: %v", err)
+			}
+			availability, err := s.ComputeAvailability(ctx, gotBlocked)
+			if err != nil {
+				t.Fatalf("ComputeAvailability: %v", err)
+			}
+			if availability.Available != tt.wantAvail {
+				t.Fatalf("%s: available = %v, want %v; reasons=%v", tt.documentation, availability.Available, tt.wantAvail, availability.Reasons)
+			}
+			if hasAvailabilityReason(availability, store.AvailabilityReasonBlockedByDependency) != tt.wantReason {
+				t.Fatalf("%s: blocked_by_dependency reason = %v, want %v; reasons=%v", tt.documentation, hasAvailabilityReason(availability, store.AvailabilityReasonBlockedByDependency), tt.wantReason, availability.Reasons)
+			}
+		})
+	}
+}
+
+func TestGetBlockedTasks_TerminalDependencyMatrix(t *testing.T) {
+	tests := []struct {
+		stage       task.Stage
+		wantBlocked bool
+	}{
+		{task.StageCompleted, false},
+		{task.StageWontFix, true},
+		{task.StageCancelled, true},
+		{task.StageDuplicate, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.stage.String(), func(t *testing.T) {
+			s, cleanup := testutil.NewTestStore(t)
+			defer cleanup()
+			ctx := context.Background()
+			collID := createTestCollection(t, s)
+
+			blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocker", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted,
+			})
+			if err != nil {
+				t.Fatalf("create blocker: %v", err)
+			}
+			blocked, err := s.CreateTask(ctx, store.CreateTaskParams{
+				Title: "Blocked", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, BlockedByTaskIDs: []uuid.UUID{blocker.ID},
+			})
+			if err != nil {
+				t.Fatalf("create blocked: %v", err)
+			}
+			if _, err := s.CloseTask(ctx, blocker.ID, tt.stage, "", uuid.Nil); err != nil {
+				t.Fatalf("close blocker: %v", err)
+			}
+
+			results, _, err := s.GetBlockedTasks(ctx, store.GetBlockedTasksParams{CollectionID: &collID})
+			if err != nil {
+				t.Fatalf("GetBlockedTasks: %v", err)
+			}
+			if tt.wantBlocked {
+				if len(results) != 1 || results[0].Task.ID != blocked.ID {
+					t.Fatalf("blocked results = %#v, want dependent blocked by %s", results, tt.stage)
+				}
+				if len(results[0].Blockers) != 1 || results[0].Blockers[0].Stage != tt.stage {
+					t.Fatalf("blockers = %#v, want %s blocker", results[0].Blockers, tt.stage)
+				}
+				return
+			}
+			if len(results) != 0 {
+				t.Fatalf("blocked results = %#v, want none for completed blocker", results)
+			}
+		})
+	}
+}
+
+func TestTaskStateValidation_HoldReasonRules(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, s)
+	waiting := task.HoldReasonWaitingForInput
+	deferred := task.HoldReasonDeferred
+	future := time.Now().Add(24 * time.Hour)
+
+	if _, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "triage hold", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageTriage, HoldReason: &waiting,
+	}); err != store.ErrInvalidArgument {
+		t.Fatalf("CreateTask triage hold err = %v, want ErrInvalidArgument", err)
+	}
+	if _, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "future deferred", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, HoldReason: &deferred, StartDate: &future,
+	}); err != store.ErrInvalidArgument {
+		t.Fatalf("CreateTask future deferred err = %v, want ErrInvalidArgument", err)
+	}
+	accepted, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "accepted hold", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, HoldReason: &deferred,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask accepted hold: %v", err)
+	}
+	updated, err := s.UpdateTask(ctx, accepted.ID, store.UpdateTaskParams{StartDate: &future}, uuid.Nil)
+	if err != nil {
+		t.Fatalf("UpdateTask future start should clear deferred hold: %v", err)
+	}
+	if updated.HoldReason != nil {
+		t.Fatalf("hold_reason = %v, want nil after future start_date", updated.HoldReason)
+	}
+	if _, err := s.UpdateTask(ctx, accepted.ID, store.UpdateTaskParams{HoldReason: &waiting, Stage: &[]task.Stage{task.StageCompleted}[0]}, uuid.Nil); err != store.ErrInvalidArgument {
+		t.Fatalf("UpdateTask terminal hold err = %v, want ErrInvalidArgument", err)
+	}
+}
+
+func hasAvailabilityReason(a store.TaskAvailability, want store.AvailabilityReason) bool {
+	for _, got := range a.Reasons {
+		if got == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestVersionIncrement_WithoutHook(t *testing.T) {
 	s, cleanup := testutil.NewTestStore(t)
 	defer cleanup()
@@ -308,7 +549,7 @@ func TestVersionIncrement_WithoutHook(t *testing.T) {
 		Title:        "Version test",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
+		Stage:        task.StageAccepted,
 		NativeLabel:  "triage",
 	})
 	if err != nil {
@@ -849,7 +1090,7 @@ func TestUpdateTask_ChangesRecorded(t *testing.T) {
 	}
 
 	newTitle := "Updated"
-	newStage := task.StageBacklog
+	newStage := task.StageAccepted
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,
@@ -875,7 +1116,7 @@ func TestUpdateTask_ChangesRecorded(t *testing.T) {
 				t.Errorf("title change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		case "stage":
-			if c.OldValue != string(task.StageTriage) || c.NewValue != string(task.StageBacklog) {
+			if c.OldValue != string(task.StageTriage) || c.NewValue != string(task.StageAccepted) {
 				t.Errorf("stage change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		}
@@ -901,8 +1142,8 @@ func TestClaimTask_ChangesRecorded(t *testing.T) {
 		Title:        "Claim changes",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
-		NativeLabel:  "triage",
+		Stage:        task.StageAccepted,
+		NativeLabel:  "accepted",
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)
@@ -931,7 +1172,7 @@ func TestClaimTask_ChangesRecorded(t *testing.T) {
 				t.Errorf("phase change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		case "stage":
-			if c.OldValue != string(task.StageTriage) || c.NewValue != string(task.StageWorking) {
+			if c.OldValue != string(task.StageAccepted) || c.NewValue != string(task.StageWorking) {
 				t.Errorf("stage change: old=%q new=%q", c.OldValue, c.NewValue)
 			}
 		case "assignee_id":
@@ -1037,7 +1278,7 @@ func TestListChanges_FieldFilter(t *testing.T) {
 	}
 
 	newTitle := "Changed"
-	newStage := task.StageBacklog
+	newStage := task.StageAccepted
 	_, err = s.UpdateTask(ctx, created.ID, store.UpdateTaskParams{
 		Title: &newTitle,
 		Stage: &newStage,

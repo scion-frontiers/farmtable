@@ -31,20 +31,32 @@
               "values": {
                 "TASK_STAGE_UNSPECIFIED": 0,
                 "TASK_STAGE_TRIAGE": 1,
-                "TASK_STAGE_BACKLOG": 2,
-                "TASK_STAGE_READY": 3,
+                "TASK_STAGE_ACCEPTED": 2,
                 "TASK_STAGE_WORKING": 4,
                 "TASK_STAGE_IN_REVIEW": 5,
                 "TASK_STAGE_IN_QA": 6,
                 "TASK_STAGE_DEPLOYING": 7,
-                "TASK_STAGE_BLOCKED": 8,
-                "TASK_STAGE_WAITING_FOR_INPUT": 9,
-                "TASK_STAGE_DEFERRED": 10,
-                "TASK_STAGE_SCHEDULED": 11,
                 "TASK_STAGE_COMPLETED": 12,
                 "TASK_STAGE_WONT_FIX": 13,
                 "TASK_STAGE_DUPLICATE": 14,
                 "TASK_STAGE_CANCELLED": 15
+              }
+            },
+            "TaskHoldReason": {
+              "values": {
+                "TASK_HOLD_REASON_UNSPECIFIED": 0,
+                "TASK_HOLD_REASON_WAITING_FOR_INPUT": 1,
+                "TASK_HOLD_REASON_DEFERRED": 2
+              }
+            },
+            "AvailabilityReason": {
+              "values": {
+                "AVAILABILITY_REASON_UNSPECIFIED": 0,
+                "AVAILABILITY_REASON_TRIAGE": 1,
+                "AVAILABILITY_REASON_TERMINAL": 2,
+                "AVAILABILITY_REASON_HELD": 3,
+                "AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY": 4,
+                "AVAILABILITY_REASON_FUTURE_START_DATE": 5
               }
             },
             "TaskPriority": {
@@ -559,6 +571,16 @@
                   "oneof": [
                     "remoteUrl"
                   ]
+                },
+                "_holdReason": {
+                  "oneof": [
+                    "holdReason"
+                  ]
+                },
+                "_rank": {
+                  "oneof": [
+                    "rank"
+                  ]
                 }
               },
               "fields": {
@@ -744,6 +766,39 @@
                 "version": {
                   "type": "string",
                   "id": 27
+                },
+                "holdReason": {
+                  "type": "TaskHoldReason",
+                  "id": 28,
+                  "protoName": "hold_reason",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "rank": {
+                  "type": "int64",
+                  "id": 29,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "availability": {
+                  "type": "TaskAvailability",
+                  "id": 30
+                }
+              }
+            },
+            "TaskAvailability": {
+              "fields": {
+                "available": {
+                  "type": "bool",
+                  "id": 1
+                },
+                "reasons": {
+                  "rule": "repeated",
+                  "type": "AvailabilityReason",
+                  "id": 2
                 }
               }
             },
@@ -1355,6 +1410,16 @@
                     "parentTaskId"
                   ]
                 },
+                "_holdReason": {
+                  "oneof": [
+                    "holdReason"
+                  ]
+                },
+                "_rank": {
+                  "oneof": [
+                    "rank"
+                  ]
+                },
                 "_repo": {
                   "oneof": [
                     "repo"
@@ -1487,6 +1552,22 @@
                   "options": {
                     "proto3_optional": true
                   }
+                },
+                "holdReason": {
+                  "type": "TaskHoldReason",
+                  "id": 18,
+                  "protoName": "hold_reason",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "rank": {
+                  "type": "int64",
+                  "id": 19,
+                  "options": {
+                    "proto3_optional": true
+                  }
                 }
               }
             },
@@ -1520,6 +1601,16 @@
                 "_type": {
                   "oneof": [
                     "type"
+                  ]
+                },
+                "_holdReason": {
+                  "oneof": [
+                    "holdReason"
+                  ]
+                },
+                "_rank": {
+                  "oneof": [
+                    "rank"
                   ]
                 },
                 "_parentTaskId": {
@@ -1647,6 +1738,20 @@
                   "id": 15,
                   "protoName": "clear_start_date"
                 },
+                "holdReason": {
+                  "type": "TaskHoldReason",
+                  "id": 18,
+                  "protoName": "hold_reason",
+                  "options": {
+                    "(buf.validate.field).enum.defined_only": true,
+                    "proto3_optional": true
+                  }
+                },
+                "clearHoldReason": {
+                  "type": "bool",
+                  "id": 19,
+                  "protoName": "clear_hold_reason"
+                },
                 "parentTaskId": {
                   "type": "string",
                   "id": 16,
@@ -1690,6 +1795,18 @@
                   "type": "string",
                   "id": 24,
                   "protoName": "remove_relationships"
+                },
+                "rank": {
+                  "type": "int64",
+                  "id": 25,
+                  "options": {
+                    "proto3_optional": true
+                  }
+                },
+                "clearRank": {
+                  "type": "bool",
+                  "id": 26,
+                  "protoName": "clear_rank"
                 },
                 "repo": {
                   "type": "string",

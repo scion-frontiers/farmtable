@@ -483,6 +483,61 @@ func TestRPC_UpdateTask_InvalidTextInput(t *testing.T) {
 	}
 }
 
+func TestRPC_CreateTaskRejectsDirectWorkingStage(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, client)
+	working := pb.TaskStage_TASK_STAGE_WORKING
+
+	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "direct working",
+		Stage:        &working,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("CreateTask err = %v, want InvalidArgument", err)
+	}
+	if !strings.Contains(status.Convert(err).Message(), "ClaimTask") {
+		t.Fatalf("CreateTask error = %q, want ClaimTask guidance", status.Convert(err).Message())
+	}
+}
+
+func TestRPC_UpdateTaskRejectsDirectWorkingStage(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	hold := pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT
+	held, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "held accepted",
+		Stage:        &accepted,
+		HoldReason:   &hold,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask held: %v", err)
+	}
+
+	working := pb.TaskStage_TASK_STAGE_WORKING
+	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{Id: held.GetId(), Stage: &working})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("UpdateTask held->working err = %v, want InvalidArgument", err)
+	}
+	if !strings.Contains(status.Convert(err).Message(), "ClaimTask") {
+		t.Fatalf("UpdateTask error = %q, want ClaimTask guidance", status.Convert(err).Message())
+	}
+
+	fetched, err := client.GetTask(ctx, &pb.GetTaskRequest{Id: held.GetId()})
+	if err != nil {
+		t.Fatalf("GetTask held: %v", err)
+	}
+	if fetched.GetTask().GetStage() != pb.TaskStage_TASK_STAGE_ACCEPTED {
+		t.Fatalf("stage after rejected update = %s, want ACCEPTED", fetched.GetTask().GetStage())
+	}
+}
+
 func TestRPC_ListTasks_Pagination(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
@@ -648,7 +703,7 @@ func TestRPC_ClaimTask(t *testing.T) {
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Claim RPC test",
-		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_READY),
+		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
 	})
 	if err != nil {
 		t.Fatalf("CreateTask: %v", err)
@@ -1136,7 +1191,7 @@ func TestRPC_UpdateTask_AuditTrail(t *testing.T) {
 	}
 
 	newName := "Renamed"
-	newStage := pb.TaskStage_TASK_STAGE_BACKLOG
+	newStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
 		Id:    created.GetId(),
 		Name:  &newName,
@@ -1187,7 +1242,7 @@ func TestRPC_GetReadyTasks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Ready task A",
@@ -1274,6 +1329,106 @@ func TestRPC_GetReadyTasks(t *testing.T) {
 	_ = taskA
 }
 
+func TestRPC_GetReadyTasksIncludeUnblockedOpenIncludesUnavailableReasons(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	acceptedStage := pb.TaskStage_TASK_STAGE_ACCEPTED
+	triageStage := pb.TaskStage_TASK_STAGE_TRIAGE
+	hold := pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT
+
+	_, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Claimable accepted",
+		Stage:        &acceptedStage,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask accepted: %v", err)
+	}
+	triageTask, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Unblocked triage",
+		Stage:        &triageStage,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask triage: %v", err)
+	}
+	heldTask, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Held accepted",
+		Stage:        &acceptedStage,
+		HoldReason:   &hold,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask held: %v", err)
+	}
+	blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "Open blocker",
+		Stage:        &acceptedStage,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask blocker: %v", err)
+	}
+	blocked, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId:     collID,
+		Name:             "Dependency blocked",
+		Stage:            &acceptedStage,
+		BlockedByTaskIds: []string{blocker.GetId()},
+	})
+	if err != nil {
+		t.Fatalf("CreateTask blocked: %v", err)
+	}
+
+	resp, err := client.GetReadyTasks(ctx, &pb.GetReadyTasksRequest{CollectionId: &collID})
+	if err != nil {
+		t.Fatalf("GetReadyTasks default: %v", err)
+	}
+	defaultNames := taskNames(resp.GetItems())
+	if defaultNames[triageTask.GetName()] || defaultNames[heldTask.GetName()] || defaultNames[blocked.GetName()] {
+		t.Fatalf("default ready results = %v, want only claimable tasks", defaultNames)
+	}
+
+	resp, err = client.GetReadyTasks(ctx, &pb.GetReadyTasksRequest{CollectionId: &collID, IncludeUnblockedOpen: true})
+	if err != nil {
+		t.Fatalf("GetReadyTasks include unblocked: %v", err)
+	}
+	compat := tasksByName(resp.GetItems())
+	if _, ok := compat["Unblocked triage"]; !ok {
+		t.Fatalf("compat results missing triage: %v", taskNames(resp.GetItems()))
+	}
+	if _, ok := compat["Held accepted"]; !ok {
+		t.Fatalf("compat results missing held task: %v", taskNames(resp.GetItems()))
+	}
+	if _, ok := compat["Dependency blocked"]; ok {
+		t.Fatalf("compat results included dependency-blocked task")
+	}
+	if got := compat["Unblocked triage"].GetTask().GetAvailability().GetReasons(); len(got) != 1 || got[0] != pb.AvailabilityReason_AVAILABILITY_REASON_TRIAGE {
+		t.Fatalf("triage availability reasons = %v, want TRIAGE", got)
+	}
+	if got := compat["Held accepted"].GetTask().GetAvailability().GetReasons(); len(got) != 1 || got[0] != pb.AvailabilityReason_AVAILABILITY_REASON_HELD {
+		t.Fatalf("held availability reasons = %v, want HELD", got)
+	}
+}
+
+func taskNames(items []*pb.ReadyTask) map[string]bool {
+	out := make(map[string]bool, len(items))
+	for _, item := range items {
+		out[item.GetTask().GetName()] = true
+	}
+	return out
+}
+
+func tasksByName(items []*pb.ReadyTask) map[string]*pb.ReadyTask {
+	out := make(map[string]*pb.ReadyTask, len(items))
+	for _, item := range items {
+		out[item.GetTask().GetName()] = item
+	}
+	return out
+}
+
 func TestRPC_GetReadyTasksRejectsInvalidMinPriority(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
@@ -1305,7 +1460,7 @@ func TestRPC_GetBlockedTasks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Blocker",
@@ -1356,6 +1511,67 @@ func TestRPC_GetBlockedTasks(t *testing.T) {
 	}
 }
 
+func TestRPC_GetBlockedTasks_TerminalDependencyMatrix(t *testing.T) {
+	tests := []struct {
+		stage       pb.TaskStage
+		wantBlocked bool
+	}{
+		{pb.TaskStage_TASK_STAGE_COMPLETED, false},
+		{pb.TaskStage_TASK_STAGE_WONT_FIX, true},
+		{pb.TaskStage_TASK_STAGE_CANCELLED, true},
+		{pb.TaskStage_TASK_STAGE_DUPLICATE, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.stage.String(), func(t *testing.T) {
+			client, cleanup := testutil.NewTestServer(t)
+			defer cleanup()
+			ctx := context.Background()
+			collID := createTestCollection(t, client)
+			accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+
+			blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+				CollectionId: collID,
+				Name:         "Blocker",
+				Stage:        &accepted,
+			})
+			if err != nil {
+				t.Fatalf("CreateTask blocker: %v", err)
+			}
+			blocked, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+				CollectionId:     collID,
+				Name:             "Blocked",
+				Stage:            &accepted,
+				BlockedByTaskIds: []string{blocker.GetId()},
+			})
+			if err != nil {
+				t.Fatalf("CreateTask blocked: %v", err)
+			}
+			closeStage := tt.stage
+			if _, err := client.CloseTask(ctx, &pb.CloseTaskRequest{Id: blocker.GetId(), Stage: &closeStage}); err != nil {
+				t.Fatalf("CloseTask blocker: %v", err)
+			}
+
+			resp, err := client.GetBlockedTasks(ctx, &pb.GetBlockedTasksRequest{CollectionId: &collID})
+			if err != nil {
+				t.Fatalf("GetBlockedTasks: %v", err)
+			}
+			if tt.wantBlocked {
+				if len(resp.GetItems()) != 1 || resp.GetItems()[0].GetTask().GetId() != blocked.GetId() {
+					t.Fatalf("items = %v, want blocked dependent", resp.GetItems())
+				}
+				if got := resp.GetItems()[0].GetBlockedBy(); len(got) != 1 || got[0].GetStage() != tt.stage {
+					t.Fatalf("blocked_by = %v, want %s blocker", got, tt.stage)
+				}
+				return
+			}
+			if len(resp.GetItems()) != 0 {
+				t.Fatalf("items = %v, want none for completed blocker", resp.GetItems())
+			}
+		})
+	}
+}
+
 func TestRPC_GetDependencyTree(t *testing.T) {
 	client, cleanup := testutil.NewTestServer(t)
 	defer cleanup()
@@ -1363,7 +1579,7 @@ func TestRPC_GetDependencyTree(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "A",
@@ -1446,7 +1662,7 @@ func TestRPC_GetCriticalPath(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "A",
@@ -1542,7 +1758,7 @@ func TestRPC_GetBottlenecks(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Bottleneck A",
@@ -1600,7 +1816,7 @@ func TestRPC_GetBottlenecks_BlockedBy(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "Bottleneck A",
@@ -1658,7 +1874,7 @@ func TestRPC_GetCriticalPath_DiamondDAG(t *testing.T) {
 
 	collID := createTestCollection(t, client)
 
-	readyStage := pb.TaskStage_TASK_STAGE_READY
+	readyStage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	// Diamond: A -> B -> D, A -> C -> D
 	// Longest path should be A -> B -> D or A -> C -> D (length 3)
 	taskA, err := client.CreateTask(ctx, &pb.CreateTaskRequest{

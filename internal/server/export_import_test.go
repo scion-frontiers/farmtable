@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 
@@ -31,6 +32,13 @@ type testExportDoc struct {
 	Comments      []map[string]interface{} `json:"comments"`
 	Relationships []map[string]interface{} `json:"relationships"`
 	Changes       []map[string]interface{} `json:"changes"`
+}
+
+func assertJSONMapEqual(t *testing.T, name string, got, want map[string]interface{}) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("%s payload = %#v, want %#v", name, got, want)
+	}
 }
 
 func newExportImportTestServer(t *testing.T) (pb.FarmTableServiceClient, *store.EntStore, func()) {
@@ -291,6 +299,204 @@ func TestRPC_ImportCollection_DryRunDoesNotCreateCollection(t *testing.T) {
 	}
 	if before.GetTotalCount() != after.GetTotalCount() {
 		t.Fatalf("collection count changed from %d to %d during dry-run", before.GetTotalCount(), after.GetTotalCount())
+	}
+}
+
+func TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	now := time.Now().UTC()
+	future := now.Add(24 * time.Hour)
+
+	ids := map[string]string{
+		"ready":             uuid.New().String(),
+		"blocked_with":      uuid.New().String(),
+		"blocker":           uuid.New().String(),
+		"blocked_without":   uuid.New().String(),
+		"scheduled_with":    uuid.New().String(),
+		"scheduled_without": uuid.New().String(),
+		"deferred_future":   uuid.New().String(),
+		"adapter_blocked":   uuid.New().String(),
+	}
+	taskDoc := func(key, stage string, start *time.Time, nativeLabel string) map[string]interface{} {
+		return map[string]interface{}{
+			"id": ids[key], "title": key, "description": "", "phase": "open", "stage": stage,
+			"native_label": nativeLabel, "type": "", "labels": []string{}, "repo": "", "branch": "",
+			"pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+			"start_date": start,
+		}
+	}
+	tasks := []map[string]interface{}{
+		taskDoc("ready", "ready", nil, "ready"),
+		taskDoc("blocker", "accepted", nil, "accepted"),
+		taskDoc("blocked_with", "blocked", nil, "blocked"),
+		taskDoc("blocked_without", "blocked", nil, "blocked"),
+		taskDoc("scheduled_with", "scheduled", &future, "scheduled"),
+		taskDoc("scheduled_without", "scheduled", nil, "scheduled"),
+		taskDoc("deferred_future", "deferred", &future, "deferred"),
+		taskDoc("adapter_blocked", "blocked", nil, "beads:blocked"),
+	}
+	doc := minimalImportDoc("old states", nil, tasks, nil, []map[string]interface{}{
+		{"id": uuid.New().String(), "source_task_id": ids["blocked_with"], "target_task_id": ids["blocker"], "type": "blocked_by"},
+	}, nil)
+	data, _ := json.Marshal(doc)
+
+	resp, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	if err != nil {
+		t.Fatalf("ImportCollection: %v", err)
+	}
+	collID := uuid.MustParse(resp.GetCollectionId())
+	imported, err := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{CollectionID: collID})
+	if err != nil {
+		t.Fatalf("ListAllTasksForCollection: %v", err)
+	}
+	byTitle := map[string]*ent.Task{}
+	for _, tsk := range imported {
+		byTitle[tsk.Title] = tsk
+		if tsk.Stage.String() != "accepted" {
+			t.Fatalf("%s stage = %q, want accepted", tsk.Title, tsk.Stage)
+		}
+	}
+	if byTitle["blocked_without"].HoldReason == nil || byTitle["blocked_without"].HoldReason.String() != "waiting_for_input" {
+		t.Fatalf("blocked_without hold_reason = %v, want waiting_for_input", byTitle["blocked_without"].HoldReason)
+	}
+	if byTitle["scheduled_without"].HoldReason == nil || byTitle["scheduled_without"].HoldReason.String() != "deferred" {
+		t.Fatalf("scheduled_without hold_reason = %v, want deferred", byTitle["scheduled_without"].HoldReason)
+	}
+	if byTitle["deferred_future"].HoldReason != nil {
+		t.Fatalf("deferred_future hold_reason = %v, want nil because future start_date is concrete scheduling", byTitle["deferred_future"].HoldReason)
+	}
+
+	wantNotes := map[string]struct {
+		old map[string]interface{}
+		new map[string]interface{}
+	}{
+		"ready": {
+			old: map[string]interface{}{"phase": "open", "stage": "ready", "native_label": "ready", "start_date": nil, "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "reason": "old_ready_stage_to_accepted"},
+		},
+		"blocked_with": {
+			old: map[string]interface{}{"phase": "open", "stage": "blocked", "native_label": "blocked", "start_date": nil, "has_blocker": true},
+			new: map[string]interface{}{"stage": "accepted", "reason": "old_blocked_stage_with_blocker_to_dependency_availability"},
+		},
+		"blocked_without": {
+			old: map[string]interface{}{"phase": "open", "stage": "blocked", "native_label": "blocked", "start_date": nil, "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "hold_reason": "waiting_for_input", "reason": "old_blocked_stage_without_blocker_to_waiting_for_input"},
+		},
+		"scheduled_with": {
+			old: map[string]interface{}{"phase": "open", "stage": "scheduled", "native_label": "scheduled", "start_date": future.Format(time.RFC3339Nano), "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "reason": "old_scheduled_stage_with_start_date"},
+		},
+		"scheduled_without": {
+			old: map[string]interface{}{"phase": "open", "stage": "scheduled", "native_label": "scheduled", "start_date": nil, "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "hold_reason": "deferred", "reason": "old_scheduled_stage_without_start_date_to_deferred"},
+		},
+		"deferred_future": {
+			old: map[string]interface{}{"phase": "open", "stage": "deferred", "native_label": "deferred", "start_date": future.Format(time.RFC3339Nano), "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "reason": "old_deferred_stage_future_start_date_cleared_hold"},
+		},
+		"adapter_blocked": {
+			old: map[string]interface{}{"phase": "open", "stage": "blocked", "native_label": "beads:blocked", "start_date": nil, "has_blocker": false},
+			new: map[string]interface{}{"stage": "accepted", "hold_reason": "waiting_for_input", "reason": "old_blocked_stage_without_blocker_to_waiting_for_input"},
+		},
+	}
+	seenNotes := map[string]bool{}
+	for _, tsk := range imported {
+		changes, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: tsk.ID})
+		if err != nil {
+			t.Fatalf("ListAllChangesForTask: %v", err)
+		}
+		for _, change := range changes {
+			if change.FieldName == "task_state_migration" {
+				if !json.Valid([]byte(change.OldValue)) || !json.Valid([]byte(change.NewValue)) {
+					t.Fatalf("migration note for %s is not compact JSON: old=%q new=%q", tsk.Title, change.OldValue, change.NewValue)
+				}
+				want, ok := wantNotes[tsk.Title]
+				if !ok {
+					t.Fatalf("unexpected migration note for %s", tsk.Title)
+				}
+				var oldPayload, newPayload map[string]interface{}
+				if err := json.Unmarshal([]byte(change.OldValue), &oldPayload); err != nil {
+					t.Fatalf("old payload for %s: %v", tsk.Title, err)
+				}
+				if err := json.Unmarshal([]byte(change.NewValue), &newPayload); err != nil {
+					t.Fatalf("new payload for %s: %v", tsk.Title, err)
+				}
+				assertJSONMapEqual(t, tsk.Title+".old", oldPayload, want.old)
+				assertJSONMapEqual(t, tsk.Title+".new", newPayload, want.new)
+				seenNotes[tsk.Title] = true
+			}
+		}
+	}
+	if len(seenNotes) != len(wantNotes) {
+		t.Fatalf("migration notes = %d, want %d: seen=%v", len(seenNotes), len(wantNotes), seenNotes)
+	}
+}
+
+func TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	for _, removed := range []string{"backlog", "ready", "blocked", "waiting_for_input", "deferred", "scheduled"} {
+		t.Run(removed, func(t *testing.T) {
+			doc := minimalImportDoc("v2 reject "+removed, nil, []map[string]interface{}{
+				{
+					"id": uuid.New().String(), "title": removed, "description": "", "phase": "open", "stage": removed,
+					"native_label": removed, "type": "", "labels": []string{}, "repo": "", "branch": "",
+					"pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+				},
+			}, nil, nil, nil)
+			doc["format_version"] = 2
+			data, _ := json.Marshal(doc)
+
+			_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("ImportCollection err = %v, want InvalidArgument", err)
+			}
+		})
+	}
+}
+
+func TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+	future := time.Now().UTC().Add(24 * time.Hour)
+
+	tests := []struct {
+		name       string
+		stage      string
+		holdReason string
+		startDate  *time.Time
+	}{
+		{"hold on triage", "triage", "waiting_for_input", nil},
+		{"hold on terminal", "completed", "waiting_for_input", nil},
+		{"deferred future start", "accepted", "deferred", &future},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskDoc := map[string]interface{}{
+				"id": uuid.New().String(), "title": tt.name, "description": "", "phase": "open", "stage": tt.stage,
+				"hold_reason": tt.holdReason, "native_label": tt.stage, "type": "", "labels": []string{},
+				"repo": "", "branch": "", "pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+				"start_date": tt.startDate,
+			}
+			if tt.stage == "completed" {
+				taskDoc["phase"] = "closed"
+				taskDoc["closed_at"] = time.Now().UTC()
+			}
+			doc := minimalImportDoc("v2 invalid hold "+tt.name, nil, []map[string]interface{}{taskDoc}, nil, nil, nil)
+			doc["format_version"] = 2
+			data, _ := json.Marshal(doc)
+
+			_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("ImportCollection err = %v, want InvalidArgument", err)
+			}
+		})
 	}
 }
 

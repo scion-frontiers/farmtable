@@ -11,7 +11,7 @@ to active work when the user asks broadly for current tasks.
 ## Common Filters
 
 - `phase`: `OPEN` or `CLOSED`
-- `stage`: task stage such as `ready`, `working`, or `blocked`
+- `stage`: task stage such as `accepted`, `working`, or `in_review`
 - `priority`: `URGENT`, `HIGH`, `NORMAL`, `LOW`
 - `labels`: one or more labels
 - `assignee`: agent or user id

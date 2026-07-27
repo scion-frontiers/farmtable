@@ -8,16 +8,11 @@ import type { FtTaskCard } from './ft-task-card.js';
 
 const STAGE_COLOR: Record<number, string> = {
   [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
-  [TaskStage.BACKLOG]: 'var(--ft-stage-backlog)',
-  [TaskStage.READY]: 'var(--ft-stage-ready)',
+  [TaskStage.ACCEPTED]: 'var(--ft-stage-accepted)',
   [TaskStage.WORKING]: 'var(--ft-stage-working)',
   [TaskStage.IN_REVIEW]: 'var(--ft-stage-in-review)',
   [TaskStage.IN_QA]: 'var(--ft-stage-in-qa)',
   [TaskStage.DEPLOYING]: 'var(--ft-stage-deploying)',
-  [TaskStage.BLOCKED]: 'var(--ft-stage-blocked)',
-  [TaskStage.WAITING_FOR_INPUT]: 'var(--ft-stage-blocked)',
-  [TaskStage.DEFERRED]: 'var(--ft-stage-triage)',
-  [TaskStage.SCHEDULED]: 'var(--ft-stage-triage)',
   [TaskStage.COMPLETED]: 'var(--ft-stage-completed)',
 };
 

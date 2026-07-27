@@ -146,33 +146,33 @@ func init() {
 	// task.DefaultDescription holds the default value on creation for the description field.
 	task.DefaultDescription = taskDescDescription.Default.(string)
 	// taskDescNativeLabel is the schema descriptor for native_label field.
-	taskDescNativeLabel := taskFields[5].Descriptor()
+	taskDescNativeLabel := taskFields[6].Descriptor()
 	// task.DefaultNativeLabel holds the default value on creation for the native_label field.
 	task.DefaultNativeLabel = taskDescNativeLabel.Default.(string)
 	// taskDescType is the schema descriptor for type field.
-	taskDescType := taskFields[6].Descriptor()
+	taskDescType := taskFields[7].Descriptor()
 	// task.DefaultType holds the default value on creation for the type field.
 	task.DefaultType = taskDescType.Default.(string)
 	// taskDescCreatedAt is the schema descriptor for created_at field.
-	taskDescCreatedAt := taskFields[14].Descriptor()
+	taskDescCreatedAt := taskFields[16].Descriptor()
 	// task.DefaultCreatedAt holds the default value on creation for the created_at field.
 	task.DefaultCreatedAt = taskDescCreatedAt.Default.(func() time.Time)
 	// taskDescUpdatedAt is the schema descriptor for updated_at field.
-	taskDescUpdatedAt := taskFields[15].Descriptor()
+	taskDescUpdatedAt := taskFields[17].Descriptor()
 	// task.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	task.DefaultUpdatedAt = taskDescUpdatedAt.Default.(func() time.Time)
 	// task.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	task.UpdateDefaultUpdatedAt = taskDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// taskDescRepo is the schema descriptor for repo field.
-	taskDescRepo := taskFields[19].Descriptor()
+	taskDescRepo := taskFields[21].Descriptor()
 	// task.DefaultRepo holds the default value on creation for the repo field.
 	task.DefaultRepo = taskDescRepo.Default.(string)
 	// taskDescBranch is the schema descriptor for branch field.
-	taskDescBranch := taskFields[20].Descriptor()
+	taskDescBranch := taskFields[22].Descriptor()
 	// task.DefaultBranch holds the default value on creation for the branch field.
 	task.DefaultBranch = taskDescBranch.Default.(string)
 	// taskDescVersion is the schema descriptor for version field.
-	taskDescVersion := taskFields[23].Descriptor()
+	taskDescVersion := taskFields[25].Descriptor()
 	// task.DefaultVersion holds the default value on creation for the version field.
 	task.DefaultVersion = taskDescVersion.Default.(string)
 	// taskDescID is the schema descriptor for id field.

@@ -24,12 +24,16 @@ const (
 	FieldPhase = "phase"
 	// FieldStage holds the string denoting the stage field in the database.
 	FieldStage = "stage"
+	// FieldHoldReason holds the string denoting the hold_reason field in the database.
+	FieldHoldReason = "hold_reason"
 	// FieldNativeLabel holds the string denoting the native_label field in the database.
 	FieldNativeLabel = "native_label"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldRank holds the string denoting the rank field in the database.
+	FieldRank = "rank"
 	// FieldAssigneeID holds the string denoting the assignee_id field in the database.
 	FieldAssigneeID = "assignee_id"
 	// FieldCollectionID holds the string denoting the collection_id field in the database.
@@ -130,9 +134,11 @@ var Columns = []string{
 	FieldDescription,
 	FieldPhase,
 	FieldStage,
+	FieldHoldReason,
 	FieldNativeLabel,
 	FieldType,
 	FieldPriority,
+	FieldRank,
 	FieldAssigneeID,
 	FieldCollectionID,
 	FieldParentTaskID,
@@ -222,21 +228,16 @@ const DefaultStage = StageTriage
 
 // Stage values.
 const (
-	StageTriage          Stage = "triage"
-	StageBacklog         Stage = "backlog"
-	StageReady           Stage = "ready"
-	StageWorking         Stage = "working"
-	StageInReview        Stage = "in_review"
-	StageInQa            Stage = "in_qa"
-	StageDeploying       Stage = "deploying"
-	StageBlocked         Stage = "blocked"
-	StageWaitingForInput Stage = "waiting_for_input"
-	StageDeferred        Stage = "deferred"
-	StageScheduled       Stage = "scheduled"
-	StageCompleted       Stage = "completed"
-	StageWontFix         Stage = "wont_fix"
-	StageDuplicate       Stage = "duplicate"
-	StageCancelled       Stage = "cancelled"
+	StageTriage    Stage = "triage"
+	StageAccepted  Stage = "accepted"
+	StageWorking   Stage = "working"
+	StageInReview  Stage = "in_review"
+	StageInQa      Stage = "in_qa"
+	StageDeploying Stage = "deploying"
+	StageCompleted Stage = "completed"
+	StageWontFix   Stage = "wont_fix"
+	StageDuplicate Stage = "duplicate"
+	StageCancelled Stage = "cancelled"
 )
 
 func (s Stage) String() string {
@@ -246,10 +247,33 @@ func (s Stage) String() string {
 // StageValidator is a validator for the "stage" field enum values. It is called by the builders before save.
 func StageValidator(s Stage) error {
 	switch s {
-	case StageTriage, StageBacklog, StageReady, StageWorking, StageInReview, StageInQa, StageDeploying, StageBlocked, StageWaitingForInput, StageDeferred, StageScheduled, StageCompleted, StageWontFix, StageDuplicate, StageCancelled:
+	case StageTriage, StageAccepted, StageWorking, StageInReview, StageInQa, StageDeploying, StageCompleted, StageWontFix, StageDuplicate, StageCancelled:
 		return nil
 	default:
 		return fmt.Errorf("task: invalid enum value for stage field: %q", s)
+	}
+}
+
+// HoldReason defines the type for the "hold_reason" enum field.
+type HoldReason string
+
+// HoldReason values.
+const (
+	HoldReasonWaitingForInput HoldReason = "waiting_for_input"
+	HoldReasonDeferred        HoldReason = "deferred"
+)
+
+func (hr HoldReason) String() string {
+	return string(hr)
+}
+
+// HoldReasonValidator is a validator for the "hold_reason" field enum values. It is called by the builders before save.
+func HoldReasonValidator(hr HoldReason) error {
+	switch hr {
+	case HoldReasonWaitingForInput, HoldReasonDeferred:
+		return nil
+	default:
+		return fmt.Errorf("task: invalid enum value for hold_reason field: %q", hr)
 	}
 }
 
@@ -332,6 +356,11 @@ func ByStage(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStage, opts...).ToFunc()
 }
 
+// ByHoldReason orders the results by the hold_reason field.
+func ByHoldReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHoldReason, opts...).ToFunc()
+}
+
 // ByNativeLabel orders the results by the native_label field.
 func ByNativeLabel(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNativeLabel, opts...).ToFunc()
@@ -345,6 +374,11 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByPriority orders the results by the priority field.
 func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
+}
+
+// ByRank orders the results by the rank field.
+func ByRank(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRank, opts...).ToFunc()
 }
 
 // ByAssigneeID orders the results by the assignee_id field.

@@ -531,6 +531,14 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 		return nil, store.ErrNotFound
 	}
 
+	current := s.issueToTask(target)
+	if current.AssigneeID != nil {
+		return nil, store.ErrAlreadyClaimed
+	}
+	if issueUnavailableForClaim(target, current) {
+		return nil, store.ErrUnavailable
+	}
+
 	issueID := target.ID
 
 	if err := s.ensureLabelIndex(ctx); err != nil {
@@ -553,6 +561,19 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 		return nil, err
 	}
 	return s.issueToTask(refreshed), nil
+}
+
+func hasOpenSubIssue(issue *issueNode) bool {
+	for _, child := range issue.SubIssues.Nodes {
+		if strings.EqualFold(string(child.State), "open") {
+			return true
+		}
+	}
+	return false
+}
+
+func issueUnavailableForClaim(issue *issueNode, t *ent.Task) bool {
+	return t.Stage != task.StageAccepted || t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) || hasOpenSubIssue(issue)
 }
 
 func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error) {
@@ -586,6 +607,21 @@ func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, st
 
 func (s *GitHubPassThroughStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	return fmt.Errorf("delete task: %w", store.ErrNotImplemented)
+}
+
+func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent.Task) (store.TaskAvailability, error) {
+	reasons := make([]store.AvailabilityReason, 0, 3)
+	if t.Stage == task.StageTriage {
+		reasons = append(reasons, store.AvailabilityReasonTriage)
+	}
+	switch t.Stage {
+	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+		reasons = append(reasons, store.AvailabilityReasonTerminal)
+	}
+	if t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) {
+		reasons = append(reasons, store.AvailabilityReasonHeld)
+	}
+	return store.TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
 }
 
 // ── Collections ──

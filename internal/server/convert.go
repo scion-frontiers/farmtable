@@ -1,7 +1,10 @@
 package server
 
 import (
+	"time"
+
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount"
@@ -32,10 +35,8 @@ func stageToProto(s task.Stage) pb.TaskStage {
 	switch s {
 	case task.StageTriage:
 		return pb.TaskStage_TASK_STAGE_TRIAGE
-	case task.StageBacklog:
-		return pb.TaskStage_TASK_STAGE_BACKLOG
-	case task.StageReady:
-		return pb.TaskStage_TASK_STAGE_READY
+	case task.StageAccepted:
+		return pb.TaskStage_TASK_STAGE_ACCEPTED
 	case task.StageWorking:
 		return pb.TaskStage_TASK_STAGE_WORKING
 	case task.StageInReview:
@@ -44,14 +45,6 @@ func stageToProto(s task.Stage) pb.TaskStage {
 		return pb.TaskStage_TASK_STAGE_IN_QA
 	case task.StageDeploying:
 		return pb.TaskStage_TASK_STAGE_DEPLOYING
-	case task.StageBlocked:
-		return pb.TaskStage_TASK_STAGE_BLOCKED
-	case task.StageWaitingForInput:
-		return pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT
-	case task.StageDeferred:
-		return pb.TaskStage_TASK_STAGE_DEFERRED
-	case task.StageScheduled:
-		return pb.TaskStage_TASK_STAGE_SCHEDULED
 	case task.StageCompleted:
 		return pb.TaskStage_TASK_STAGE_COMPLETED
 	case task.StageWontFix:
@@ -67,17 +60,84 @@ func stageToProto(s task.Stage) pb.TaskStage {
 
 func phaseForStage(s task.Stage) task.Phase {
 	switch s {
-	case task.StageTriage, task.StageBacklog, task.StageReady:
+	case task.StageTriage, task.StageAccepted:
 		return task.PhaseOpen
 	case task.StageWorking, task.StageInReview, task.StageInQa, task.StageDeploying:
 		return task.PhaseInProgress
-	case task.StageBlocked, task.StageWaitingForInput, task.StageDeferred, task.StageScheduled:
-		return task.PhaseOnHold
 	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 		return task.PhaseClosed
 	default:
 		return task.PhaseOpen
 	}
+}
+
+func holdReasonToProto(hr task.HoldReason) pb.TaskHoldReason {
+	switch hr {
+	case task.HoldReasonWaitingForInput:
+		return pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT
+	case task.HoldReasonDeferred:
+		return pb.TaskHoldReason_TASK_HOLD_REASON_DEFERRED
+	default:
+		return pb.TaskHoldReason_TASK_HOLD_REASON_UNSPECIFIED
+	}
+}
+
+func holdReasonFromProto(hr pb.TaskHoldReason) task.HoldReason {
+	switch hr {
+	case pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT:
+		return task.HoldReasonWaitingForInput
+	case pb.TaskHoldReason_TASK_HOLD_REASON_DEFERRED:
+		return task.HoldReasonDeferred
+	default:
+		return ""
+	}
+}
+
+func availabilityReasonToProto(reason store.AvailabilityReason) pb.AvailabilityReason {
+	switch reason {
+	case store.AvailabilityReasonTriage:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_TRIAGE
+	case store.AvailabilityReasonTerminal:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_TERMINAL
+	case store.AvailabilityReasonHeld:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_HELD
+	case store.AvailabilityReasonBlockedByDependency:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY
+	case store.AvailabilityReasonFutureStartDate:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_FUTURE_START_DATE
+	default:
+		return pb.AvailabilityReason_AVAILABILITY_REASON_UNSPECIFIED
+	}
+}
+
+func availabilityToProto(availability store.TaskAvailability) *pb.TaskAvailability {
+	resp := &pb.TaskAvailability{Available: availability.Available}
+	for _, reason := range availability.Reasons {
+		resp.Reasons = append(resp.Reasons, availabilityReasonToProto(reason))
+	}
+	return resp
+}
+
+func basicAvailabilityForTask(t *ent.Task) store.TaskAvailability {
+	reasons := make([]store.AvailabilityReason, 0, 3)
+	if t.Stage == task.StageTriage {
+		reasons = append(reasons, store.AvailabilityReasonTriage)
+	}
+	switch t.Stage {
+	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+		reasons = append(reasons, store.AvailabilityReasonTerminal)
+	}
+	if t.HoldReason != nil {
+		reasons = append(reasons, store.AvailabilityReasonHeld)
+	}
+	if t.StartDate != nil && t.StartDate.After(timeNow()) {
+		reasons = append(reasons, store.AvailabilityReasonFutureStartDate)
+	}
+	return store.TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}
+}
+
+func timeNow() time.Time {
+	return time.Now()
 }
 
 func priorityToProto(p task.Priority) pb.TaskPriority {
@@ -211,6 +271,7 @@ func taskToProto(t *ent.Task) *pb.Task {
 		CreatedAt:    timestamppb.New(t.CreatedAt),
 		UpdatedAt:    timestamppb.New(t.UpdatedAt),
 		Version:      t.Version,
+		Availability: availabilityToProto(basicAvailabilityForTask(t)),
 	}
 
 	if t.Description != "" {
@@ -228,6 +289,14 @@ func taskToProto(t *ent.Task) *pb.Task {
 	if t.Priority != nil {
 		p := priorityToProto(*t.Priority)
 		pt.Priority = &p
+	}
+	if t.HoldReason != nil {
+		hr := holdReasonToProto(*t.HoldReason)
+		pt.HoldReason = &hr
+	}
+	if t.Rank != nil {
+		rank := int64(*t.Rank)
+		pt.Rank = &rank
 	}
 	if t.AssigneeID != nil {
 		pt.Assignees = []*pb.User{{Id: t.AssigneeID.String()}}

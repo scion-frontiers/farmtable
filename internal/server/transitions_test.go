@@ -16,26 +16,22 @@ func TestTransitionScope_Table(t *testing.T) {
 		want string
 	}{
 		// Accepting work out of triage.
-		{"triage to backlog", task.StageTriage, task.StageBacklog, server.ScopeTaskAccept},
-		{"triage to ready", task.StageTriage, task.StageReady, server.ScopeTaskAccept},
+		{"triage to accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
+		{"triage remains accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
 		{"triage to working", task.StageTriage, task.StageWorking, server.ScopeTaskAccept},
 		{"triage to in_review", task.StageTriage, task.StageInReview, server.ScopeTaskAccept},
 		{"triage to in_qa", task.StageTriage, task.StageInQa, server.ScopeTaskAccept},
 		{"triage to deploying", task.StageTriage, task.StageDeploying, server.ScopeTaskAccept},
-		// On-hold stages are not an escape hatch out of triage: parking a task
-		// in blocked/scheduled and then moving it on would otherwise launder it
-		// past the accept gate with only task:write.
-		{"triage to blocked", task.StageTriage, task.StageBlocked, server.ScopeTaskAccept},
-		{"triage to waiting_for_input", task.StageTriage, task.StageWaitingForInput, server.ScopeTaskAccept},
-		{"triage to deferred", task.StageTriage, task.StageDeferred, server.ScopeTaskAccept},
-		{"triage to scheduled", task.StageTriage, task.StageScheduled, server.ScopeTaskAccept},
+		// Moving triage into accepted work is not an escape hatch: follow-on
+		// writes still require the accept gate first.
+		{"triage to held accepted", task.StageTriage, task.StageAccepted, server.ScopeTaskAccept},
 
 		// Taking ownership.
-		{"backlog to working", task.StageBacklog, task.StageWorking, server.ScopeTaskClaim},
-		{"ready to working", task.StageReady, task.StageWorking, server.ScopeTaskClaim},
-		{"blocked to working", task.StageBlocked, task.StageWorking, server.ScopeTaskClaim},
+		{"accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"claimable accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
+		{"held accepted to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
 		{"in_review to working", task.StageInReview, task.StageWorking, server.ScopeTaskClaim},
-		{"deferred to working", task.StageDeferred, task.StageWorking, server.ScopeTaskClaim},
+		{"deferred hold to working", task.StageAccepted, task.StageWorking, server.ScopeTaskClaim},
 
 		// Handoff stages.
 		{"working to in_review", task.StageWorking, task.StageInReview, server.ScopeTaskWrite},
@@ -45,9 +41,9 @@ func TestTransitionScope_Table(t *testing.T) {
 		// Closing, from every phase group.
 		{"working to completed", task.StageWorking, task.StageCompleted, server.ScopeTaskClose},
 		{"triage to completed", task.StageTriage, task.StageCompleted, server.ScopeTaskClose},
-		{"ready to wont_fix", task.StageReady, task.StageWontFix, server.ScopeTaskClose},
-		{"backlog to duplicate", task.StageBacklog, task.StageDuplicate, server.ScopeTaskClose},
-		{"blocked to cancelled", task.StageBlocked, task.StageCancelled, server.ScopeTaskClose},
+		{"accepted to wont_fix", task.StageAccepted, task.StageWontFix, server.ScopeTaskClose},
+		{"accepted to duplicate", task.StageAccepted, task.StageDuplicate, server.ScopeTaskClose},
+		{"accepted to cancelled", task.StageAccepted, task.StageCancelled, server.ScopeTaskClose},
 		{"in_review to completed", task.StageInReview, task.StageCompleted, server.ScopeTaskClose},
 		// Moving between terminal stages is still a close, not a reopen.
 		{"completed to cancelled", task.StageCompleted, task.StageCancelled, server.ScopeTaskClose},
@@ -55,25 +51,25 @@ func TestTransitionScope_Table(t *testing.T) {
 
 		// Reopening a closed task is a re-accept.
 		{"completed to triage", task.StageCompleted, task.StageTriage, server.ScopeTaskAccept},
-		{"completed to backlog", task.StageCompleted, task.StageBacklog, server.ScopeTaskAccept},
-		{"cancelled to backlog", task.StageCancelled, task.StageBacklog, server.ScopeTaskAccept},
+		{"completed to accepted", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
+		{"cancelled to accepted", task.StageCancelled, task.StageAccepted, server.ScopeTaskAccept},
 		{"wont_fix to triage", task.StageWontFix, task.StageTriage, server.ScopeTaskAccept},
-		{"duplicate to ready", task.StageDuplicate, task.StageReady, server.ScopeTaskAccept},
+		{"duplicate to accepted", task.StageDuplicate, task.StageAccepted, server.ScopeTaskAccept},
 		{"completed to working", task.StageCompleted, task.StageWorking, server.ScopeTaskAccept},
-		{"completed to blocked", task.StageCompleted, task.StageBlocked, server.ScopeTaskAccept},
+		{"completed to held accepted", task.StageCompleted, task.StageAccepted, server.ScopeTaskAccept},
 
 		// Pausing work.
-		{"working to blocked", task.StageWorking, task.StageBlocked, server.ScopeTaskWrite},
-		{"working to waiting_for_input", task.StageWorking, task.StageWaitingForInput, server.ScopeTaskWrite},
-		{"working to deferred", task.StageWorking, task.StageDeferred, server.ScopeTaskWrite},
-		{"ready to blocked", task.StageReady, task.StageBlocked, server.ScopeTaskWrite},
+		{"working to accepted hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to waiting hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to deferred hold", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
+		{"accepted to held accepted", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
 
 		// Ordinary movement within accepted work.
-		{"backlog to ready", task.StageBacklog, task.StageReady, server.ScopeTaskWrite},
-		{"ready to backlog", task.StageReady, task.StageBacklog, server.ScopeTaskWrite},
+		{"accepted order change", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"accepted metadata change", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
 		{"in_review to in_qa", task.StageInReview, task.StageInQa, server.ScopeTaskWrite},
-		{"blocked to ready", task.StageBlocked, task.StageReady, server.ScopeTaskWrite},
-		{"working to ready", task.StageWorking, task.StageReady, server.ScopeTaskWrite},
+		{"held accepted to accepted", task.StageAccepted, task.StageAccepted, server.ScopeTaskWrite},
+		{"working to accepted", task.StageWorking, task.StageAccepted, server.ScopeTaskWrite},
 	}
 
 	for _, tt := range tests {
@@ -89,11 +85,11 @@ func TestTransitionScope_Table(t *testing.T) {
 func TestTransitionScope_NoOpStageIsWrite(t *testing.T) {
 	stages := []task.Stage{
 		task.StageTriage,
-		task.StageBacklog,
-		task.StageReady,
+		task.StageAccepted,
+		task.StageAccepted,
 		task.StageWorking,
 		task.StageInReview,
-		task.StageBlocked,
+		task.StageAccepted,
 		task.StageCompleted,
 	}
 	for _, s := range stages {
@@ -107,7 +103,7 @@ func TestTransitionScope_UnknownStagesFallBackToWrite(t *testing.T) {
 	if got := server.TransitionScope("not_a_stage", "also_not_a_stage"); got != server.ScopeTaskWrite {
 		t.Errorf("unknown transition = %q, want %q", got, server.ScopeTaskWrite)
 	}
-	if got := server.TransitionScope("", string(task.StageReady)); got != server.ScopeTaskWrite {
+	if got := server.TransitionScope("", string(task.StageAccepted)); got != server.ScopeTaskWrite {
 		t.Errorf("empty from stage = %q, want %q", got, server.ScopeTaskWrite)
 	}
 }
@@ -116,9 +112,9 @@ func TestTransitionScope_UnknownStagesFallBackToWrite(t *testing.T) {
 // through the table into an empty or unrecognized scope.
 func TestTransitionScope_AllStagePairsResolveToKnownScope(t *testing.T) {
 	all := []task.Stage{
-		task.StageTriage, task.StageBacklog, task.StageReady, task.StageWorking,
-		task.StageInReview, task.StageInQa, task.StageDeploying, task.StageBlocked,
-		task.StageWaitingForInput, task.StageDeferred, task.StageScheduled,
+		task.StageTriage, task.StageAccepted, task.StageAccepted, task.StageWorking,
+		task.StageInReview, task.StageInQa, task.StageDeploying, task.StageAccepted,
+		task.StageAccepted, task.StageAccepted, task.StageAccepted,
 		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
 	}
 	known := map[string]bool{
@@ -140,8 +136,8 @@ func TestTransitionScope_AllStagePairsResolveToKnownScope(t *testing.T) {
 // The collectionID variadic is reserved for future per-collection policy
 // binding and must not change the result today.
 func TestTransitionScope_CollectionIDIgnored(t *testing.T) {
-	withoutID := server.TransitionScope(string(task.StageTriage), string(task.StageReady))
-	withID := server.TransitionScope(string(task.StageTriage), string(task.StageReady), uuid.New())
+	withoutID := server.TransitionScope(string(task.StageTriage), string(task.StageAccepted))
+	withID := server.TransitionScope(string(task.StageTriage), string(task.StageAccepted), uuid.New())
 	if withoutID != withID {
 		t.Errorf("collection id changed result: %q vs %q", withoutID, withID)
 	}

@@ -38,7 +38,7 @@ func createTaskWithBlocking(
 	blockedBy []string,
 ) *pb.Task {
 	t.Helper()
-	stage := pb.TaskStage_TASK_STAGE_READY
+	stage := pb.TaskStage_TASK_STAGE_ACCEPTED
 	tsk, err := client.CreateTask(context.Background(), &pb.CreateTaskRequest{
 		CollectionId:     collID,
 		Name:             name,
