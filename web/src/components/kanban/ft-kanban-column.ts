@@ -5,18 +5,12 @@ import type { Task } from '../../gen/types.js';
 import { TaskStage } from '../../gen/types.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtTaskCard } from './ft-task-card.js';
-import { compareAcceptedQueueOrder } from '../../util/task-state-utils.js';
+import {
+  acceptsStageDrop,
+  compareAcceptedQueueOrder,
+  STAGE_COLOR,
+} from '../../util/task-state-utils.js';
 import type { TaskStore } from '../../store/task-store.js';
-
-const STAGE_COLOR: Record<number, string> = {
-  [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
-  [TaskStage.ACCEPTED]: 'var(--ft-stage-accepted)',
-  [TaskStage.WORKING]: 'var(--ft-stage-working)',
-  [TaskStage.IN_REVIEW]: 'var(--ft-stage-in-review)',
-  [TaskStage.IN_QA]: 'var(--ft-stage-in-qa)',
-  [TaskStage.DEPLOYING]: 'var(--ft-stage-deploying)',
-  [TaskStage.COMPLETED]: 'var(--ft-stage-completed)',
-};
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort(compareAcceptedQueueOrder);
@@ -101,6 +95,10 @@ export class FtKanbanColumn extends LitElement {
       outline-offset: -2px;
       border-radius: 0.25rem;
     }
+    .cards.dragover.drop-refused {
+      background: rgba(245, 158, 11, 0.1);
+      outline-color: var(--sl-color-warning-500);
+    }
     .empty-filter-message {
       color: var(--sl-color-neutral-500);
       font-size: 0.8rem;
@@ -174,30 +172,52 @@ export class FtKanbanColumn extends LitElement {
     }
   }
 
-  private get isStageChangeDragDisabled(): boolean {
-    return this.readOnly || this.capabilities?.canChangeStage === false;
+  /**
+   * Whether this lane will refuse an incoming stage change.
+   *
+   * Refusing lanes still accept the drop *gesture* on purpose: the drop
+   * handler dispatches `stage-change` and `ft-kanban-view` answers with an
+   * explicit toast. Blocking the gesture here (or setting `dropEffect` to
+   * `none`, which cancels the drop event) would make the refusal silent and
+   * leave the terminal lanes looking broken.
+   */
+  private get isDropRefused(): boolean {
+    return (
+      this.readOnly ||
+      this.capabilities?.canChangeStage === false ||
+      !acceptsStageDrop(this.stage)
+    );
+  }
+
+  /** Human-readable reason this lane refuses drops; empty when it accepts them. */
+  private get dropHint(): string {
+    // NOTE(i18n): Hardcoded English; extract if i18n is added.
+    if (this.readOnly) return 'This board is read-only — stage changes are not saved.';
+    if (this.capabilities?.canChangeStage === false) {
+      return 'This collection does not support stage changes.';
+    }
+    if (!acceptsStageDrop(this.stage)) {
+      return `“${this.label}” is set through the API, CLI, or MCP — dragging here will not change the stage.`;
+    }
+    return '';
   }
 
   private onDragEnter() {
-    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount++;
     this.isDragOver = true;
   }
 
   private onDragOver(e: DragEvent) {
-    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
   }
 
   private onDragLeave() {
-    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount--;
     this.isDragOver = this._dragEnterCount > 0;
   }
 
   private onDrop(e: DragEvent) {
-    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     this._dragEnterCount = 0;
     this.isDragOver = false;
@@ -299,6 +319,7 @@ export class FtKanbanColumn extends LitElement {
   render() {
     const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
+    const dropHint = this.dropHint;
     const isFiltered = this.totalCount > 0 && sorted.length !== this.totalCount;
     // NOTE(i18n): Hardcoded English; extract if i18n is added.
     const countLabel = isFiltered ? `${sorted.length} of ${this.totalCount}` : `${sorted.length}`;
@@ -329,9 +350,15 @@ export class FtKanbanColumn extends LitElement {
         ></sl-icon-button>`}
       </div>
       <div
-        class=${classMap({ cards: true, dragover: this.isDragOver })}
+        class=${classMap({
+          cards: true,
+          dragover: this.isDragOver,
+          'drop-refused': this.isDropRefused,
+        })}
         role="listbox"
         aria-label=${this.label}
+        aria-description=${dropHint || nothing}
+        title=${dropHint || nothing}
         @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}
