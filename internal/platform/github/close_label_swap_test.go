@@ -47,6 +47,19 @@ type fakeIssueRepo struct {
 	// error, standing in for a permissions failure or rate limit.
 	failLabelWrites bool
 
+	// failLabelIndex makes the repository-labels query return a GraphQL error,
+	// standing in for a token that cannot read labels. This is the failure
+	// ensureLabelIndex reports, distinct from a rejected label write.
+	failLabelIndex bool
+
+	// failIssueRead makes the single-issue query return a GraphQL error. Only
+	// getIssue uses it, so this fails the post-swap re-read without disturbing
+	// the listIssues lookup that finds the target.
+	failIssueRead bool
+
+	// failClose makes the closeIssue mutation return a GraphQL error.
+	failClose bool
+
 	closeCalls  int
 	addCalls    int
 	removeCalls int
@@ -60,12 +73,18 @@ func newFakeIssueRepo(t *testing.T, labels ...string) *fakeIssueRepo {
 		number: 1,
 		state:  "OPEN",
 		labels: labels,
+		// Mirrors the full production stage-label set. A narrower universe here
+		// would silently no-op the swap for the stages it omits.
 		labelIDs: map[string]string{
 			"ft:stage/triage":    "L_TRIAGE",
 			"ft:stage/accepted":  "L_ACCEPTED",
 			"ft:stage/working":   "L_WORKING",
+			"ft:stage/in_review": "L_INREVIEW",
+			"ft:stage/in_qa":     "L_INQA",
+			"ft:stage/deploying": "L_DEPLOYING",
 			"ft:stage/completed": "L_COMPLETED",
 			"ft:stage/wont_fix":  "L_WONTFIX",
+			"ft:stage/duplicate": "L_DUPLICATE",
 			"ft:stage/cancelled": "L_CANCELLED",
 		},
 	}
@@ -93,7 +112,9 @@ func (f *fakeIssueRepo) removeLabelByID(id string) {
 		if lid != id {
 			continue
 		}
-		kept := f.labels[:0]
+		// Build into a fresh slice rather than aliasing f.labels' backing array
+		// while ranging over it. The aliased form was correct but a trap to edit.
+		kept := make([]string, 0, len(f.labels))
 		for _, l := range f.labels {
 			if l != name {
 				kept = append(kept, l)
@@ -160,6 +181,10 @@ func (f *fakeIssueRepo) handler() http.HandlerFunc {
 		switch {
 		case strings.Contains(body, "closeIssue"):
 			f.closeCalls++
+			if f.failClose {
+				_, _ = w.Write([]byte(`{"errors":[{"message":"close rejected"}]}`))
+				return
+			}
 			f.state = "CLOSED"
 			f.closedAt = "2026-01-02T00:00:00Z"
 			if strings.Contains(body, "NOT_PLANNED") {
@@ -197,12 +222,20 @@ func (f *fakeIssueRepo) handler() http.HandlerFunc {
 			// the repository-labels query.
 			switch {
 			case strings.Contains(body, "issue(number:"):
+				if f.failIssueRead {
+					_, _ = w.Write([]byte(`{"errors":[{"message":"issue read rejected"}]}`))
+					return
+				}
 				_, _ = fmt.Fprintf(w, `{"data":{"repository":{"issue":%s}}}`, f.issueJSON())
 			case strings.Contains(body, "issues("):
 				_, _ = fmt.Fprintf(w,
 					`{"data":{"repository":{"issues":{"nodes":[%s],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}`,
 					f.issueJSON())
 			case strings.Contains(body, "labels("):
+				if f.failLabelIndex {
+					_, _ = w.Write([]byte(`{"errors":[{"message":"label index read rejected"}]}`))
+					return
+				}
 				_, _ = w.Write([]byte(f.repoLabelsJSON()))
 			default:
 				f.t.Fatalf("unexpected repository query: %s", body)
@@ -431,5 +464,163 @@ func TestPassThroughComputeAvailability_OpenTaskStillAvailable(t *testing.T) {
 	}
 	if !availability.Available {
 		t.Fatalf("accepted open task reports available = false; reasons = %v", availability.Reasons)
+	}
+}
+
+// TestPassThroughGetTask_OpenIssueStaysAvailable closes test-194's gap 1, the
+// one with total-outage blast radius.
+//
+// Part 2 of #194 made issueToTask's ClosedAt assignment safety-critical for the
+// first time: before it, ClosedAt had no effect on availability at all; after
+// it, ClosedAt alone determines terminality. Only the CLOSED direction of that
+// premise was pinned. Every inverse test constructed ent.Task by hand and so
+// bypassed issueToTask entirely, which let a mutation setting ClosedAt for OPEN
+// issues pass the whole suite while making every open task in the pass-through
+// store unavailable.
+//
+// Parameterised across the stages rather than testing one, which also closes
+// gap 6. Terminal stages are absent on purpose: an open issue cannot hold one
+// any more (audit-194 F2), and reopen_test.go covers that.
+func TestPassThroughGetTask_OpenIssueStaysAvailable(t *testing.T) {
+	ctx := context.Background()
+
+	for _, stage := range []task.Stage{
+		task.StageTriage,
+		task.StageAccepted,
+		task.StageWorking,
+		task.StageInReview,
+		task.StageInQa,
+		task.StageDeploying,
+	} {
+		t.Run(stage.String(), func(t *testing.T) {
+			fake := newFakeIssueRepo(t, "ft:stage/"+stage.String())
+			s := fake.store()
+
+			readBack, err := s.GetTask(ctx, s.issueUUID(1))
+			if err != nil {
+				t.Fatalf("GetTask: %v", err)
+			}
+			if readBack.ClosedAt != nil {
+				t.Errorf("ClosedAt = %v for an OPEN issue, want nil", readBack.ClosedAt)
+			}
+			if readBack.Stage != stage {
+				t.Errorf("stage = %s, want %s", readBack.Stage, stage)
+			}
+
+			availability, err := s.ComputeAvailability(ctx, readBack)
+			if err != nil {
+				t.Fatalf("ComputeAvailability: %v", err)
+			}
+			if availability.HasReason(store.AvailabilityReasonTerminal) {
+				t.Fatalf("OPEN %s issue reports reason %s; reasons = %v",
+					stage, store.AvailabilityReasonTerminal, availability.Reasons)
+			}
+			// Triage is unavailable for its own reason, which the assertion
+			// above has already distinguished from terminal.
+			if stage != task.StageTriage && !availability.Available {
+				t.Fatalf("OPEN %s issue reports available = false; reasons = %v", stage, availability.Reasons)
+			}
+		})
+	}
+}
+
+// TestPassThroughCloseTask_ReReadFailureStillReportsClosed closes test-194's
+// gap 2. CloseTask re-reads the issue after the label swap and falls back to
+// the closeIssue payload when that read fails, rather than returning an error
+// for work that already succeeded. That deliberate divergence from ClaimTask
+// was defended at length in the original report and enforced by nothing: a
+// mutation turning the fallback into "return nil, err" survived the suite.
+//
+// It matters because CloseTask resolves its target from an IssueStateOpen
+// filtered list. Once the close lands the issue is CLOSED, so a retry returns
+// ErrNotFound — the user sees an error, retries, is told the task does not
+// exist, and concludes the close failed when it did not.
+func TestPassThroughCloseTask_ReReadFailureStillReportsClosed(t *testing.T) {
+	ctx := context.Background()
+
+	fake := newFakeIssueRepo(t, "ft:stage/working")
+	fake.failIssueRead = true
+	s := fake.store()
+
+	closed, err := s.CloseTask(ctx, s.issueUUID(1), task.StageCompleted, "", uuid.Nil)
+	if err != nil {
+		t.Fatalf("CloseTask returned an error when only the post-swap re-read failed: %v", err)
+	}
+	if fake.state != "CLOSED" {
+		t.Fatalf("issue state = %s, want CLOSED", fake.state)
+	}
+
+	// The fallback payload has to carry enough to stay correct. closeIssue
+	// selects the full issueNode, so ClosedAt is populated and availability is
+	// right even though the re-read never returned.
+	if closed.ClosedAt == nil {
+		t.Fatal("ClosedAt is nil on the fallback payload; availability would report the closed task available")
+	}
+	availability, err := s.ComputeAvailability(ctx, closed)
+	if err != nil {
+		t.Fatalf("ComputeAvailability: %v", err)
+	}
+	if availability.Available {
+		t.Fatalf("closed task reports available = true off the fallback payload; reasons = %v", availability.Reasons)
+	}
+}
+
+// TestPassThroughCloseTask_LabelIndexFailureStillCloses closes test-194's gap
+// 3. This is a different failure from a rejected label write: the label index
+// read is what fails, so the swap is skipped entirely rather than attempted and
+// refused. CloseTask deliberately swallows it (err == nil guard) where
+// UpdateTask and ClaimTask return; a mutation making it fatal survived the
+// suite, with the same unretryable-close consequence as gap 2.
+func TestPassThroughCloseTask_LabelIndexFailureStillCloses(t *testing.T) {
+	ctx := context.Background()
+
+	fake := newFakeIssueRepo(t, "ft:stage/working")
+	fake.failLabelIndex = true
+	s := fake.store()
+
+	closed, err := s.CloseTask(ctx, s.issueUUID(1), task.StageCompleted, "", uuid.Nil)
+	if err != nil {
+		t.Fatalf("CloseTask returned an error when only the label index read failed: %v", err)
+	}
+	if fake.state != "CLOSED" {
+		t.Fatalf("issue state = %s, want CLOSED", fake.state)
+	}
+	if fake.addCalls != 0 || fake.removeCalls != 0 {
+		t.Errorf("label mutations attempted without a label index: add=%d remove=%d", fake.addCalls, fake.removeCalls)
+	}
+	// The stale label survives, and Part 2 has to absorb it.
+	if !fake.hasLabel("ft:stage/working") {
+		t.Errorf("expected the stale label to survive; labels = %v", fake.labels)
+	}
+
+	availability, err := s.ComputeAvailability(ctx, closed)
+	if err != nil {
+		t.Fatalf("ComputeAvailability: %v", err)
+	}
+	if availability.Available {
+		t.Fatalf("closed task reports available = true after a skipped swap; reasons = %v", availability.Reasons)
+	}
+}
+
+// TestPassThroughCloseTask_CloseFailureTouchesNoLabel pins the safety property
+// the close-then-swap ordering exists to provide, which test-194 listed as gap
+// 5: if the close itself fails, no label is written, so the issue is never left
+// OPEN carrying a terminal stage label.
+func TestPassThroughCloseTask_CloseFailureTouchesNoLabel(t *testing.T) {
+	fake := newFakeIssueRepo(t, "ft:stage/working")
+	fake.failClose = true
+	s := fake.store()
+
+	if _, err := s.CloseTask(context.Background(), s.issueUUID(1), task.StageCompleted, "", uuid.Nil); err == nil {
+		t.Fatal("CloseTask returned no error when the close itself failed")
+	}
+	if fake.addCalls != 0 || fake.removeCalls != 0 {
+		t.Errorf("labels were touched after a failed close: add=%d remove=%d", fake.addCalls, fake.removeCalls)
+	}
+	if fake.hasLabel("ft:stage/completed") {
+		t.Errorf("terminal label written to an issue that was never closed; labels = %v", fake.labels)
+	}
+	if fake.state != "OPEN" {
+		t.Errorf("issue state = %s, want OPEN", fake.state)
 	}
 }
