@@ -490,13 +490,17 @@ export class FtApp extends LitElement {
         return html`
           <ft-ready-queue-view
             .store=${this.taskStore}
+            .client=${this.client}
             .groupFilter=${this.groupFilter}
             .stageFilter=${this.stageFilter}
             .holdReasonFilter=${this.holdReasonFilter}
             .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
+            .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @write-error=${this.onWriteError}
           ></ft-ready-queue-view>
         `;
       case 'dependencies':
