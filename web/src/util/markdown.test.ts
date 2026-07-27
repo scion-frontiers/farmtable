@@ -589,6 +589,14 @@ function sinkBinding(): void {
   });
 }
 
+// A check that is deleted — or that stops being reached, or whose case list is
+// built by filtering through the very predicate under test — does not fail. It
+// ceases to exist, and the suite still prints a green count one lower than
+// before. Every mutation count this suite reports is only as trustworthy as its
+// total, so the total is pinned. Update this deliberately when adding or
+// removing a check; never to make a red suite go green.
+const EXPECTED_CHECKS = 49;
+
 function run(): void {
   formControls();
   spoofingAttributes();
@@ -597,6 +605,13 @@ function run(): void {
   ordinaryMarkdown();
   taskLists();
   sinkBinding();
+
+  if (checks !== EXPECTED_CHECKS) {
+    failures.push(
+      `check total pinned: expected ${EXPECTED_CHECKS} checks to run, ${checks} did — ` +
+        'a check was added or silently removed',
+    );
+  }
 
   if (failures.length > 0) {
     throw new Error(
