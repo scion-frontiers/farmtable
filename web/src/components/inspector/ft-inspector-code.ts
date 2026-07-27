@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { CodeContext } from '../../gen/types.js';
 import { CIStatus, PullRequestStatus } from '../../gen/types.js';
+import { safeExternalUrl } from '../../util/safe-url.js';
 
 const PR_VARIANT: Record<number, string> = {
   [PullRequestStatus.OPEN]: 'primary',
@@ -100,16 +101,24 @@ export class FtInspectorCode extends LitElement {
         ? html`<div class="row">
             <span class="label">PRs</span>
             <span class="pr-list">
-              ${ctx.pullRequests.map(
-                (pr) => html`
+              ${ctx.pullRequests.map((pr) => {
+                // `pr.url` is untrusted platform data — validate the scheme
+                // before it reaches an href, and render the id unlinked when
+                // the URL is not safe.
+                const prUrl = safeExternalUrl(pr.url);
+                return html`
                   <span class="pr-item">
-                    <a class="pr-link" href=${pr.url} target="_blank" rel="noopener">${pr.id}</a>
+                    ${prUrl
+                      ? html`<a class="pr-link" href=${prUrl} target="_blank" rel="noopener noreferrer"
+                          >${pr.id}</a
+                        >`
+                      : html`<span class="pr-link">${pr.id}</span>`}
                     <sl-badge variant=${PR_VARIANT[pr.status] ?? 'neutral'} pill>
                       ${PR_LABEL[pr.status] ?? 'Unknown'}
                     </sl-badge>
                   </span>
-                `,
-              )}
+                `;
+              })}
             </span>
           </div>`
         : nothing}
