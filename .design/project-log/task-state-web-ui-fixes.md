@@ -454,3 +454,165 @@ $ rm -f tsconfig.safe-url.tmp.json
   recommendation). Build-config change, outside this pass.
 - **`ready-queue` view id / `isReady()` naming** left as-is — URL-visible and
   owned by another agent's test file. Flagged above.
+
+---
+
+# Follow-up — closing the untyped half of finding (c)
+
+Date: 2026-07-27 (after the merge with `dev-p2-tests`' harness)
+Commit: see below
+Trigger: coordinator ruling of 2026-07-27T15:03Z. With both branches merged the
+suite was 133/135; the two failures were in `web/test/ft-app.write-error.test.ts`:
+
+- `does not blame the GitHub token for a Farm Table error whose text merely says "permission"`
+- `does not blame the GitHub token for a Farm Table error whose text merely says "forbidden"`
+
+Both call `showWriteError(new Error(...))` with a **plain `Error`**, not a
+`GrpcError`.
+
+## What was wrong
+
+My first pass at finding (c) fixed the *typed* path — `isServerRejection()`
+catches `GrpcError` with `PermissionDenied` / `FailedPrecondition` — and left
+the untyped fallback exactly as it was:
+
+```ts
+} else if (/permission|403|forbidden/i.test(raw)) {
+  message = 'GitHub rejected this edit — your token may not have write access';
+```
+
+That branch blames a specific credential on nothing more than the word
+"permission" or "forbidden" appearing in the text, which is the same
+confident-but-unfounded guess finding (c) was raised about. Any error reaching
+`showWriteError` without being a `GrpcError` — an adapter that rethrows, an
+error wrapped or serialized across a boundary, a future code path — still sent
+the user off to check a GitHub token that may be entirely unrelated, and
+discarded the actual server reason while doing it. The coordinator's ruling is
+correct and the tests are right; the code was changed to match them, and no
+test in `web/test/` was touched.
+
+## Change
+
+`ft-app.showWriteError()` now requires **positive evidence** of GitHub
+involvement before giving a GitHub-specific diagnosis:
+
+```ts
+const mentionsGitHub = /github/i.test(raw);
+
+if (isServerRejection(error)) {
+  message = `Farm Table rejected this change: ${raw}`;
+} else if (mentionsGitHub && /permission|403|forbidden/i.test(raw)) {
+  message = 'GitHub rejected this edit — your token may not have write access';
+} else if (/rate.?limit|429|too many requests/i.test(raw)) {
+  message = mentionsGitHub
+    ? 'GitHub rate limit reached — please wait before making more edits'
+    : 'Rate limit reached — please wait before making more edits';
+} else if (/network|fetch|ECONNREFUSED|unavailable|deadline/i.test(raw)) {
+  ...
+} else {
+  message = `Failed to save changes: ${raw}`;
+}
+```
+
+`isServerRejection()` is unchanged — the typed path stays exactly as designed.
+
+Reasoning for the two specific choices:
+
+- **Evidence = `/github/i` in the message, not the collection's platform.** The
+  call site can cheaply reach the current collection, but keying off
+  `platform === GITHUB` would re-introduce the same class of guess: a Farm
+  Table scope or availability rejection raised while working in a
+  GitHub-backed collection is still not a GitHub error, and would be
+  misdiagnosed for every user of every GitHub collection. Textual evidence is
+  the narrower and more defensible rule, so it is what shipped.
+- **Rate limiting gets a neutral variant rather than falling through to the
+  generic branch.** A rate limit names no credential, so
+  "Rate limit reached — please wait before making more edits" is truthful
+  regardless of source and keeps the actionable advice. Only the GitHub-
+  attributed wording is gated. (The generic fallback would also have passed the
+  test, which only asserts `/rate limit/i`, but it would have thrown away
+  useful guidance.)
+
+Accepted trade-off, per the ruling: a genuine GitHub 403 whose message happens
+not to contain the word "github" now gets the generic message with the real
+reason instead of the token hint. That is the correct direction to fail.
+
+Behaviour table after the change:
+
+| Input | Before | After |
+| --- | --- | --- |
+| `GrpcError(PermissionDenied, 'permission denied: …')` | Farm Table reason | unchanged |
+| `Error('permission denied: collection is archived')` | "GitHub rejected this edit — your token may not have write access" | `Failed to save changes: permission denied: collection is archived` |
+| `Error('forbidden: assignment requires an accepted stage')` | GitHub token hint | `Failed to save changes: forbidden: assignment requires an accepted stage` |
+| `Error('403 Forbidden from api.github.com/…')` | GitHub token hint | unchanged (evidence present) |
+| `GrpcError(PermissionDenied, 'github: 403 Forbidden writing issue #7')` | GitHub token hint | unchanged (excluded from `isServerRejection` by the `/github/i` test, then matched by the gated GitHub branch) |
+| `Error('rate limit exceeded (429)')` | "GitHub rate limit reached …" | "Rate limit reached …" |
+| `Error('fetch failed: ECONNREFUSED')` | unreachable-server message | unchanged |
+| `Error('boom')` | `Failed to save changes: boom` | unchanged |
+
+This closes the untyped half of finding (c). Both halves of the finding are now
+covered: typed rejections by `isServerRejection()`, untyped ones by requiring
+GitHub evidence before a GitHub diagnosis.
+
+## Verification
+
+```text
+$ npm test
+
+> farmtable-web@0.0.1 test
+> npm run test:node && npm run test:components
+
+> farmtable-web@0.0.1 test:node
+> node scripts/run-node-tests.mjs
+
+Compiling 3 Node test script(s) with tsconfig.test.json…
+
+▶ .tmp-test/util/safe-url.test.js
+safe-url tests passed
+
+▶ .tmp-test/util/task-state-utils.test.js
+
+▶ .tmp-test/utils/task-ready.test.js
+
+3 Node test script(s) passed.
+
+> farmtable-web@0.0.1 test:components
+> vitest run
+
+ RUN  v3.2.7 /workspace/web
+...
+ ✓ test/ft-toolbar.contract.test.ts (13 tests) 320ms
+ ✓ test/ft-kanban-view.contract.test.ts (20 tests) 552ms
+ ✓ test/ft-inspector-changes.vocabulary.test.ts (3 tests) 8504ms
+
+ Test Files  11 passed (11)
+      Tests  135 passed (135)
+   Duration  9.53s
+```
+
+**135/135, zero failures.** No file under `web/test/` was modified.
+
+```text
+$ npm run build > /tmp/build.log 2>&1; echo "BUILD EXIT=$?"
+BUILD EXIT=0
+```
+
+```text
+$ npm audit --audit-level=low
+found 0 vulnerabilities
+```
+
+```text
+$ grep -c "farmtable.token" dist/assets/*.js
+0
+```
+
+```text
+$ cd /workspace && git diff --check
+clean
+```
+
+The `dev-p2-tests` handoff item from the previous section is resolved: their
+harness wired `src/util/safe-url.test.ts` in via
+`tsconfig.test.json` (`include: ["src/**/*.test.ts"]`) and
+`scripts/run-node-tests.mjs`, and it runs green as part of `npm test`.
