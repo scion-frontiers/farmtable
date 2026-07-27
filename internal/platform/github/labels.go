@@ -3,6 +3,7 @@ package github
 import (
 	"strings"
 
+	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
@@ -366,6 +367,12 @@ func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add
 //     - otherwise     -> PhaseClosed, StageCompleted
 //  2. If labels map to a stage, use that stage with the appropriate phase.
 //  3. Fallback: open -> (PhaseOpen, StageAccepted), closed -> (PhaseClosed, StageCompleted).
+//
+// GitHub's own issue state is authoritative in both directions, and that
+// symmetry is the point. Labels are advisory metadata that anything can write
+// and nothing keeps in sync; state is not. So a closed issue is closed however
+// its labels are stamped, and — rule 2's exception below — an open issue is
+// open however its labels are stamped.
 func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []string) (task.Phase, task.Stage) {
 	isClosed := issueStateClosed(state)
 
@@ -383,8 +390,29 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 		return task.PhaseClosed, task.StageCompleted
 	}
 
-	// Open issue: labels determine stage.
-	if stage, ok := m.MapLabelsToStage(labels); ok {
+	// Open issue: labels determine stage, except that a terminal stage label
+	// may not outrank GitHub saying the issue is open.
+	//
+	// A terminal label on an open issue is reachable three ways, and none of
+	// them means the work is finished:
+	//
+	//   - Reopen. CloseTask writes a terminal stage label; reopening an issue
+	//     is an ordinary GitHub operation that clears state and closedAt but
+	//     leaves labels alone. In a pass-through collection GitHub is the UI,
+	//     so this happens outside Farm Table entirely (audit-194 F2).
+	//   - UpdateTask. ft update --stage completed relabels the issue without
+	//     closing it, because updateIssue never changes issue state
+	//     (audit-194 F7).
+	//   - A partially failed close, the case the ordering comment in CloseTask
+	//     already reasons about.
+	//
+	// Treating those as terminal reports live work as finished to every agent
+	// and human reading the queue. That is worse than the reverse error, not
+	// better: availability is advisory in the pass-through store, so nothing
+	// downstream re-checks it, and the failure is silent. Demote to accepted —
+	// the same stage an unlabelled open issue gets — and let a real close be
+	// what closes a task.
+	if stage, ok := m.MapLabelsToStage(labels); ok && !store.IsTerminalStage(stage) {
 		return phaseForStage(stage), stage
 	}
 

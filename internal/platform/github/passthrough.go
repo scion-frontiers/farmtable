@@ -610,10 +610,12 @@ func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, st
 	// so it runs first and its failure aborts before any label is touched.
 	// A label write that fails afterwards leaves a closed issue carrying a
 	// stale non-terminal stage label; the ClosedAt arm of ComputeAvailability
-	// keeps that residue harmless. The reverse order could leave an issue that
-	// is still OPEN on GitHub labelled with a terminal stage, which no
-	// downstream check can detect. Label writes are therefore best effort and
-	// never fail an already-completed close.
+	// keeps that residue harmless. The reverse order would leave an issue that
+	// is still OPEN on GitHub labelled with a terminal stage. IssueToPhaseStage
+	// now demotes that combination to accepted, so it is no longer undetectable
+	// — but the close would still not have happened, which is the effect the
+	// caller asked for. Label writes are therefore best effort and never fail
+	// an already-completed close.
 	if err := s.ensureLabelIndex(ctx); err == nil {
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.StageLabelSwap(currentLabels, stage)
@@ -655,6 +657,11 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
 	// over real closed state. ClosedAt is set from GitHub's own issue state in
 	// issueToTask, never from labels, so it is the reliable signal. Do not
 	// reduce this to a bare IsTerminalStage call.
+	//
+	// Phase cannot stand in for ClosedAt here, which is why this differs from
+	// the MultiStore implementation's Phase arm: Phase is label-derived too,
+	// and IssueToPhaseStage returns PhaseInProgress for exactly the closed
+	// issue with a stale working label that this arm exists to catch.
 	if store.IsTerminalStage(t.Stage) || t.ClosedAt != nil {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}
