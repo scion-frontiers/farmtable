@@ -438,7 +438,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 		t.Fatal("BEADS-002 not found")
 	}
 	check("BEADS-002.phase", string(task.PhaseOpen), string(t2.Phase))
-	check("BEADS-002.stage", string(task.StageTriage), string(t2.Stage))
+	check("BEADS-002.stage", string(task.StageBacklog), string(t2.Stage))
 	check("BEADS-002.type", "feature", t2.Type)
 	if t2.Priority != nil {
 		check("BEADS-002.priority", string(task.PriorityHigh), string(*t2.Priority))
@@ -509,7 +509,7 @@ func TestStatusMapping(t *testing.T) {
 		wantPhase   task.Phase
 		wantStage   task.Stage
 	}{
-		{"open", task.PhaseOpen, task.StageTriage},
+		{"open", task.PhaseOpen, task.StageBacklog},
 		{"in_progress", task.PhaseInProgress, task.StageWorking},
 		{"blocked", task.PhaseOpen, task.StageBlocked},
 		{"deferred", task.PhaseOnHold, task.StageDeferred},

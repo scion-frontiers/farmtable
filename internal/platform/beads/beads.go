@@ -309,7 +309,10 @@ func statusToPhaseStage(status string) (task.Phase, task.Stage) {
 	case "deferred":
 		return task.PhaseOnHold, task.StageDeferred
 	default:
-		return task.PhaseOpen, task.StageTriage
+		// StageBacklog, not StageTriage: items without an explicit status are
+		// treated as accepted-but-unprioritized. StageTriage + the auth-stage4
+		// accept gate would block ClaimTask for all roles.
+		return task.PhaseOpen, task.StageBacklog
 	}
 }
 

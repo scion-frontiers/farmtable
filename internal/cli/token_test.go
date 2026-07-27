@@ -1,19 +1,22 @@
 package cli
 
 import (
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestMergeScopes(t *testing.T) {
 	tests := []struct {
-		name    string
-		current []string
-		add     []string
-		remove  []string
-		set     []string
-		want    []string
-		wantErr string
+		name      string
+		current   []string
+		add       []string
+		remove    []string
+		set       []string
+		want      []string
+		wantErr   string
+		wantSenti error // sentinel error to check with errors.Is
 	}{
 		{
 			name:    "add scope to existing set",
@@ -55,51 +58,57 @@ func TestMergeScopes(t *testing.T) {
 
 		// C1: removing all scopes must error (would escalate to wildcard)
 		{
-			name:    "C1: remove all scopes errors instead of escalating to wildcard",
-			current: []string{"task:read"},
-			remove:  []string{"task:read"},
-			wantErr: "refusing to write an empty scope set",
+			name:      "C1: remove all scopes errors instead of escalating to wildcard",
+			current:   []string{"task:read"},
+			remove:    []string{"task:read"},
+			wantErr:   "empty scope",
+			wantSenti: errEmptyScopes,
 		},
 		{
-			name:    "C1: remove all from multi-scope token",
-			current: []string{"task:read", "task:write"},
-			remove:  []string{"task:read", "task:write"},
-			wantErr: "refusing to write an empty scope set",
+			name:      "C1: remove all from multi-scope token",
+			current:   []string{"task:read", "task:write"},
+			remove:    []string{"task:read", "task:write"},
+			wantErr:   "empty scope",
+			wantSenti: errEmptyScopes,
 		},
 
 		// H1: add/remove on nil-scope (wildcard) token must error
 		{
-			name:    "H1: add on nil-scope token errors",
-			current: nil,
-			add:     []string{"task:close"},
-			wantErr: "token has no stored scopes",
+			name:      "H1: add on nil-scope token errors",
+			current:   nil,
+			add:       []string{"task:close"},
+			wantErr:   "no stored scopes",
+			wantSenti: errUnscopedToken,
 		},
 		{
-			name:    "H1: add on empty-scope token errors",
-			current: []string{},
-			add:     []string{"task:close"},
-			wantErr: "token has no stored scopes",
+			name:      "H1: add on empty-scope token errors",
+			current:   []string{},
+			add:       []string{"task:close"},
+			wantErr:   "no stored scopes",
+			wantSenti: errUnscopedToken,
 		},
 		{
-			name:    "H1: remove on nil-scope token errors",
-			current: nil,
-			remove:  []string{"task:read"},
-			wantErr: "token has no stored scopes",
+			name:      "H1: remove on nil-scope token errors",
+			current:   nil,
+			remove:    []string{"task:read"},
+			wantErr:   "no stored scopes",
+			wantSenti: errUnscopedToken,
 		},
 
 		// H2: remove on wildcard ["*"] token must error
 		{
-			name:    "H2: remove on wildcard token errors",
-			current: []string{"*"},
-			remove:  []string{"task:close"},
-			wantErr: "token holds the wildcard scope",
+			name:      "H2: remove on wildcard token errors",
+			current:   []string{"*"},
+			remove:    []string{"task:close"},
+			wantErr:   "wildcard scope",
+			wantSenti: errWildcardToken,
 		},
 		{
-			name:    "H2: add on wildcard token without remove is still silently demoting",
+			name:    "add on wildcard token succeeds and remains wildcard",
 			current: []string{"*"},
 			add:     []string{"task:close"},
-			// This SHOULD succeed — adding to ["*"] yields ["*", "task:close"],
-			// which is still wildcard (RequireScope checks for "*" in the list).
+			// Adding to ["*"] yields ["*", "task:close"], which is still wildcard
+			// (RequireScope checks for "*" in the list).
 			want: []string{"*", "task:close"},
 		},
 
@@ -125,8 +134,11 @@ func TestMergeScopes(t *testing.T) {
 				if err == nil {
 					t.Fatalf("mergeScopes() = %v, want error containing %q", got, tt.wantErr)
 				}
-				if !containsSubstr(err.Error(), tt.wantErr) {
+				if !strings.Contains(err.Error(), tt.wantErr) {
 					t.Fatalf("mergeScopes() error = %q, want error containing %q", err, tt.wantErr)
+				}
+				if tt.wantSenti != nil && !errors.Is(err, tt.wantSenti) {
+					t.Errorf("mergeScopes() error does not wrap %v", tt.wantSenti)
 				}
 				return
 			}
@@ -138,17 +150,4 @@ func TestMergeScopes(t *testing.T) {
 			}
 		})
 	}
-}
-
-func containsSubstr(s, substr string) bool {
-	return len(s) >= len(substr) && searchSubstr(s, substr)
-}
-
-func searchSubstr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
