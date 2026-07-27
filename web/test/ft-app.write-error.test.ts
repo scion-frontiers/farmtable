@@ -53,10 +53,32 @@ describe('ft-app — Farm Table permission failures', () => {
     expect(toastText()).toContain(FARMTABLE_REASON);
   });
 
-  it('attributes a Farm Table PermissionDenied to Farm Table', () => {
+  /**
+   * `isServerRejection` fires for any PermissionDenied/FailedPrecondition whose
+   * text lacks "github", which includes a real GitHub 403 relayed by the adapter
+   * as `PermissionDenied("403 Forbidden writing issue")`. Blaming Farm Table here
+   * would be the round-1 misattribution bug pointed the other way, so the message
+   * names no culprit at all — it reports the reason the server gave.
+   */
+  it('reports a server rejection without attributing it to a specific system', () => {
     showWriteError(new GrpcError(grpc.Code.PermissionDenied, FARMTABLE_REASON));
 
-    expect(toastText()).toMatch(/farm ?table rejected this change/i);
+    const text = toastText();
+    expect(text).toMatch(/the change was rejected/i);
+    expect(text).not.toMatch(/farm ?table rejected/i);
+    // The neutral wording must not cost the user the actionable server reason.
+    expect(text).toContain(FARMTABLE_REASON);
+  });
+
+  it('does not blame Farm Table for a platform 403 relayed as PermissionDenied', () => {
+    // No literal "github" in the text, so this reaches the isServerRejection
+    // branch — the exact input that made the mirrored misattribution visible.
+    const reason = '403 Forbidden writing issue #7';
+    showWriteError(new GrpcError(grpc.Code.PermissionDenied, reason));
+
+    const text = toastText();
+    expect(text).not.toMatch(/farm ?table rejected/i);
+    expect(text).toContain(reason);
   });
 
   it('surfaces the server reason for a Farm Table FailedPrecondition', () => {

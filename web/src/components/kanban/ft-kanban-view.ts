@@ -7,7 +7,7 @@ import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
-import { acceptsStageDrop, STAGE_LABEL } from '../../util/task-state-utils.js';
+import { acceptsStageDrop, DROP_REFUSAL, STAGE_LABEL } from '../../util/task-state-utils.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
@@ -146,24 +146,26 @@ export class FtKanbanView extends LitElement {
   private async onStageChange(e: CustomEvent) {
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
 
+    // Resolve the task first. `dragover` now cancels unconditionally, so a lane
+    // also accepts content dragged in from another window or application; that
+    // payload arrives here as a `taskId` matching nothing. Refusing before this
+    // lookup would answer such a gesture with "This board is read-only", which
+    // is a claim about a task that does not exist.
+    const task = this.store.getTask(taskId);
+    // Not ours, or a genuine no-op: the card was dropped back on its own lane.
+    if (!task || task.stage === stage) return;
+
     if (this.readOnly) {
-      this.reportRefusal('This board is read-only — stage changes are not saved.');
+      this.reportRefusal(DROP_REFUSAL.readOnlyBoard);
       return;
     }
     if (this.capabilities?.canChangeStage === false) {
-      this.reportRefusal('This collection does not support stage changes.');
+      this.reportRefusal(DROP_REFUSAL.stageChangeUnsupported);
       return;
     }
 
-    const task = this.store.getTask(taskId);
-    // Genuine no-op: the card was dropped back onto the lane it came from.
-    if (!task || task.stage === stage) return;
-
     if (!acceptsStageDrop(stage)) {
-      this.reportRefusal(
-        `“${STAGE_LABEL[stage] ?? 'This outcome'}” needs a reason, so it is set through ` +
-          'the API, CLI, or MCP rather than by dragging.',
-      );
+      this.reportRefusal(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[stage] ?? 'This outcome'));
       return;
     }
 
@@ -355,7 +357,7 @@ export class FtKanbanView extends LitElement {
 
   private onColumnNav(e: CustomEvent<ColumnNavDetail>) {
     const { direction, fromIndex, stage } = e.detail;
-    const columns = this.columnsForStage(stage);
+    const columns = BOARD_COLUMNS;
     const sourceIndex = columns.findIndex((col) => col.stage === stage);
     if (sourceIndex === -1) return;
 
@@ -375,11 +377,6 @@ export class FtKanbanView extends LitElement {
       void targetColumn.focusTaskAt(Math.min(fromIndex, count - 1));
       return;
     }
-  }
-
-  private columnsForStage(stage: TaskStage): ColumnDef[] {
-    if (BOARD_COLUMNS.some((col) => col.stage === stage)) return BOARD_COLUMNS;
-    return [];
   }
 
   private renderedColumnForStage(stage: TaskStage): FtKanbanColumn | undefined {

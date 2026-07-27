@@ -1,4 +1,4 @@
-import { safeExternalUrl } from './safe-url.js';
+import { LOCAL_HTTP_LINKS_ENABLED, safeExternalUrl } from './safe-url.js';
 
 function assertEqual<T>(actual: T, expected: T, message: string): void {
   if (actual !== expected) {
@@ -35,22 +35,45 @@ function run(): void {
   assertRejected('//example.com/x', 'protocol-relative URL is rejected');
   assertRejected('https://', 'scheme without host is rejected');
 
-  // ── http: is local-only ───────────────────────────────────────────
+  // ── http: is always rejected off-loopback ─────────────────────────
   assertRejected('http://example.com/issues/1', 'non-localhost http: is rejected');
   assertRejected('http://localhost.evil.example/x', 'localhost-prefixed host is rejected');
   assertRejected('http://evil.example/?q=localhost', 'localhost in query is rejected');
   assertRejected('http://localhost@evil.example/', 'localhost in userinfo is rejected');
+  assertRejected('http://evil.example\\@localhost/', 'backslash userinfo trick is rejected');
+  assertRejected('http://localhost。evil.example/', 'ideographic-dot host is rejected');
 
+  // ── Embedded credentials are rejected (destination confusion) ─────
+  // Both call sites render *static* link text, so the status bar is the user's
+  // only cue: `https://github.com@evil.example/` reads as github.com.
+  assertRejected('https://user:pass@evil.example/', 'https: with user:pass is rejected');
+  assertRejected('https://ok.example@evil.example/', 'https: with userinfo is rejected');
+  assertRejected('https://github.com@evil.example/', 'github.com-lookalike userinfo is rejected');
+  assertRejected('https://:pass@evil.example/', 'https: with password only is rejected');
+  assertRejected('http://user:pass@localhost/', 'loopback http: with credentials is rejected');
+
+  // ── The http: loopback carve-out is dev-only ──────────────────────
+  // Pinned rather than branched blindly: under the Node runner
+  // `import.meta.env` does not exist, so this module takes its production
+  // configuration and the assertions below are the production contract.
   assertEqual(
-    safeExternalUrl('http://localhost:8080/tasks/1'),
-    'http://localhost:8080/tasks/1',
-    'http://localhost is allowed',
+    LOCAL_HTTP_LINKS_ENABLED,
+    false,
+    'Node test runner must exercise the production (https-only) configuration',
   );
-  assertEqual(
-    safeExternalUrl('http://127.0.0.1:3000/tasks/1'),
-    'http://127.0.0.1:3000/tasks/1',
-    'http://127.0.0.1 is allowed',
-  );
+
+  assertRejected('http://localhost:8080/tasks/1', 'http://localhost is rejected in production');
+  assertRejected('http://127.0.0.1:3000/tasks/1', 'http://127.0.0.1 is rejected in production');
+
+  // Obfuscated loopback forms. WHATWG normalizes every one of these to hostname
+  // `127.0.0.1`, so an allowlist that shipped would match them all.
+  assertRejected('http://0x7f000001/x', 'hex-encoded loopback is rejected in production');
+  assertRejected('http://2130706433/x', 'decimal-encoded loopback is rejected in production');
+  assertRejected('http://127.1/x', 'short-form loopback is rejected in production');
+  assertRejected('http://0177.0.0.1/x', 'octal-encoded loopback is rejected in production');
+  assertRejected('http://127．0．0．1/x', 'fullwidth-dot loopback is rejected in production');
+  assertRejected('http://0x7f000001:9200/api', 'hex loopback with port is rejected in production');
+  assertRejected('http://[::1]/x', 'IPv6 loopback is rejected');
 
   // ── https: is allowed and normalized ──────────────────────────────
   assertEqual(

@@ -513,14 +513,15 @@ export class FtApp extends LitElement {
         `;
       case 'tree':
         return html`
+          <!--
+            ft-tree-view declares no filter properties, so filter bindings here
+            are inert. They are omitted rather than passed: a binding that looks
+            wired but does nothing is worse than an obvious gap. Making the tree
+            view honour the contract filters is a feature, tracked separately.
+          -->
           <ft-tree-view
             .store=${this.taskStore}
             .client=${this.client}
-            .groupFilter=${this.groupFilter}
-            .stageFilter=${this.stageFilter}
-            .holdReasonFilter=${this.holdReasonFilter}
-            .availabilityFilter=${this.availabilityFilter}
-            .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             ?isolateMode=${this.isolateMode}
             .layoutOrientation=${this.layoutOrientation}
@@ -828,10 +829,11 @@ export class FtApp extends LitElement {
     const mentionsGitHub = /github/i.test(raw);
 
     if (isServerRejection(error)) {
-      // Farm Table itself refused the transition (missing scope, hold, or
-      // availability gate). Surface the server's own reason — telling the user
-      // to check their GitHub token here would be misleading.
-      message = `Farm Table rejected this change: ${raw}`;
+      // The rejection reached us from the Farm Table server, but it may have
+      // originated in a platform adapter (a GitHub 403 relayed as
+      // PermissionDenied whose text never says "github" lands here). Naming
+      // either culprit would be a guess, so report the reason, not the culprit.
+      message = `The change was rejected: ${raw}`;
     } else if (mentionsGitHub && /permission|403|forbidden/i.test(raw)) {
       message = 'GitHub rejected this edit — your token may not have write access';
     } else if (/rate.?limit|429|too many requests/i.test(raw)) {

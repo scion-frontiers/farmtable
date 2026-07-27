@@ -161,6 +161,38 @@ export function dropTaskOn(element: Element, taskId: string): Event {
   return event;
 }
 
+/**
+ * Simulate an HTML5 `dragover`.
+ *
+ * `dataTransfer.dropEffect` starts at `'none'` — the value a handler that does
+ * nothing would leave behind — so a test can tell an explicit `'move'` from an
+ * untouched default.
+ */
+export function dragOverOn(element: Element): Event {
+  const event = new Event('dragover', { bubbles: true, composed: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', {
+    value: { dropEffect: 'none', effectAllowed: 'move' },
+  });
+  element.dispatchEvent(event);
+  return event;
+}
+
+/**
+ * Simulate a complete drag gesture, honouring the browser rule that `drop` only
+ * fires on an element whose `dragover` handler called `preventDefault()`.
+ *
+ * `dropTaskOn` deliberately bypasses that rule so refusal handling can be tested
+ * in isolation. Use this helper when the question is whether a real user's drop
+ * would reach the application at all: it returns `false` when the gesture was
+ * swallowed at `dragover`, which is exactly the silent no-op that a `return`
+ * before `preventDefault()` reintroduces.
+ */
+export function dragTaskOnto(element: Element, taskId: string): boolean {
+  if (!dragOverOn(element).defaultPrevented) return false;
+  dropTaskOn(element, taskId);
+  return true;
+}
+
 /** Wait for pending promise jobs (optimistic update + awaited client call). */
 export async function flush(times = 4): Promise<void> {
   for (let i = 0; i < times; i++) await Promise.resolve();
