@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import '../src/components/kanban/ft-kanban-column.js';
+import '../src/components/kanban/ft-task-card.js';
+import '../src/components/ready-queue/ft-ready-queue-view.js';
+import { TaskPriority, TaskStage, type Task } from '../src/gen/types.js';
+import { compareAcceptedQueueOrder } from '../src/util/task-state-utils.js';
+import { mount, queryAllDeep } from './helpers/dom.js';
+import { storeWith, task } from './helpers/fixtures.js';
+
+const AVAILABLE = { available: true, reasons: [] };
+
+/**
+ * Deliberately mixed inputs: two priority bands separated only by rank, two
+ * tasks separated only by created-at, and two separated only by id.
+ */
+const MIXED: Task[] = [
+  task({ id: 'g-no-priority', name: 'G', priority: TaskPriority.UNSPECIFIED, availability: AVAILABLE }),
+  task({ id: 'e-normal-2a', name: 'E', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'c-high-late', name: 'C', priority: TaskPriority.HIGH, createdAt: '2026-06-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'a-urgent-rank5', name: 'A', priority: TaskPriority.URGENT, rank: 5, availability: AVAILABLE }),
+  task({ id: 'f-normal-2b', name: 'F', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-03-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'd-high-early', name: 'D', priority: TaskPriority.HIGH, createdAt: '2025-01-01T00:00:00.000Z', availability: AVAILABLE }),
+  task({ id: 'b-urgent-rank1', name: 'B', priority: TaskPriority.URGENT, rank: 1, availability: AVAILABLE }),
+];
+
+/** Priority band, then rank, then created-at, then id. */
+const EXPECTED_ORDER = ['B', 'A', 'D', 'C', 'E', 'F', 'G'];
+
+describe('compareAcceptedQueueOrder — expectation baseline', () => {
+  it('orders the mixed fixture by priority, rank, created-at, then id', () => {
+    const sorted = [...MIXED].sort(compareAcceptedQueueOrder).map((item) => item.name);
+
+    expect(sorted).toEqual(EXPECTED_ORDER);
+  });
+});
+
+describe('ft-kanban-column — rendered ordering', () => {
+  it('renders cards in accepted-queue order, not input order', async () => {
+    const column = await mount<HTMLElement>('ft-kanban-column', {
+      stage: TaskStage.ACCEPTED,
+      label: 'Accepted',
+      tasks: MIXED,
+      store: storeWith(...MIXED),
+      totalCount: MIXED.length,
+    });
+
+    const rendered = queryAllDeep<HTMLElement & { task: Task }>(column, 'ft-task-card').map(
+      (card) => card.task.name,
+    );
+
+    expect(rendered).toEqual(EXPECTED_ORDER);
+  });
+
+  it('re-sorts when the task list changes', async () => {
+    const first = task({ id: 'first', name: 'First', priority: TaskPriority.LOW });
+    const second = task({ id: 'second', name: 'Second', priority: TaskPriority.URGENT });
+    const column = await mount<HTMLElement>('ft-kanban-column', {
+      stage: TaskStage.ACCEPTED,
+      label: 'Accepted',
+      tasks: [first],
+      store: storeWith(first, second),
+      totalCount: 1,
+    });
+
+    (column as HTMLElement & { tasks: Task[] }).tasks = [first, second];
+    await (column as HTMLElement & { updateComplete: Promise<boolean> }).updateComplete;
+    await (column as HTMLElement & { updateComplete: Promise<boolean> }).updateComplete;
+
+    const rendered = queryAllDeep<HTMLElement & { task: Task }>(column, 'ft-task-card').map(
+      (card) => card.task.name,
+    );
+
+    expect(rendered).toEqual(['Second', 'First']);
+  });
+});
+
+describe('ft-ready-queue-view — rendered ordering', () => {
+  it('renders available rows in accepted-queue order', async () => {
+    const view = await mount<HTMLElement>('ft-ready-queue-view', { store: storeWith(...MIXED) });
+
+    const rendered = queryAllDeep<HTMLElement>(view, '.queue-row .task-title').map((cell) =>
+      (cell.textContent ?? '').trim(),
+    );
+
+    expect(rendered).toEqual(EXPECTED_ORDER);
+  });
+
+  it('counts the rendered rows in its header', async () => {
+    const view = await mount<HTMLElement>('ft-ready-queue-view', { store: storeWith(...MIXED) });
+
+    const header = queryAllDeep<HTMLElement>(view, '.queue-header')[0];
+    expect((header.textContent ?? '').trim()).toBe(`Available Queue (${MIXED.length})`);
+  });
+});
