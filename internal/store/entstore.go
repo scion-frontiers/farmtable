@@ -1072,7 +1072,17 @@ func terminalStageSatisfiesDependency(stage task.Stage) bool {
 	return stage == task.StageCompleted
 }
 
-func isTerminalStage(stage task.Stage) bool {
+// IsTerminalStage reports whether a stage makes the task holding it
+// permanently unavailable for claim. It is the single source of truth for the
+// terminal arm of availability, shared by every availability implementation
+// (EntStore, MultiStore's fallback, the server's basic projection, and the
+// GitHub pass-through store).
+//
+// This is deliberately NOT the same concept as "a stage CloseTask accepts as a
+// close target", nor as the stage->phase projection in phaseForStage, even
+// though all three enumerate the same four stages today. Do not reuse it for
+// those.
+func IsTerminalStage(stage task.Stage) bool {
 	switch stage {
 	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
 		return true
@@ -1090,7 +1100,7 @@ func computeAvailability(ctx context.Context, t *ent.Task, getTask func(context.
 	if t.Stage == task.StageTriage {
 		reasons = append(reasons, AvailabilityReasonTriage)
 	}
-	if isTerminalStage(t.Stage) {
+	if IsTerminalStage(t.Stage) {
 		reasons = append(reasons, AvailabilityReasonTerminal)
 	}
 	if t.HoldReason != nil {

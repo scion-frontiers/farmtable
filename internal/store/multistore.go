@@ -244,7 +244,10 @@ func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (Task
 	if t.Stage == task.StageTriage {
 		reasons = append(reasons, AvailabilityReasonTriage)
 	}
-	if t.Phase == task.PhaseClosed || t.Stage == task.StageCompleted || t.Stage == task.StageWontFix || t.Stage == task.StageDuplicate || t.Stage == task.StageCancelled {
+	// The PhaseClosed arm is intentional and unique to this fallback: it treats
+	// a closed task as terminal even when its stage is not. Do not reduce this
+	// to a bare IsTerminalStage call.
+	if IsTerminalStage(t.Stage) || t.Phase == task.PhaseClosed {
 		reasons = append(reasons, AvailabilityReasonTerminal)
 	}
 	if t.HoldReason != nil {

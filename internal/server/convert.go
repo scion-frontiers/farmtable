@@ -128,8 +128,7 @@ func basicAvailabilityForTask(t *ent.Task) store.TaskAvailability {
 	if t.Stage == task.StageTriage {
 		reasons = append(reasons, store.AvailabilityReasonTriage)
 	}
-	switch t.Stage {
-	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+	if store.IsTerminalStage(t.Stage) {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}
 	if t.HoldReason != nil {
