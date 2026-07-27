@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import {
   AVAILABILITY_REASON_LABEL,
+  DROP_REFUSAL,
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
   STAGE_LABEL,
@@ -106,5 +107,75 @@ describe('AVAILABILITY_REASON_LABEL — unavailability vocabulary', () => {
   it('gives the UNSPECIFIED zero value no label, so it can never be shown as one', () => {
     expect(AVAILABILITY_REASON_LABEL[AvailabilityReason.UNSPECIFIED]).toBeUndefined();
     expect(Object.keys(AVAILABILITY_REASON_LABEL)).toHaveLength(expected.length);
+  });
+});
+
+/**
+ * The refusal wording, board and queue.
+ *
+ * Moved here verbatim from `ft-kanban.drop-refusal-affordances.test.ts` so this
+ * file really is the *only* place a user-visible literal lives: with the queue
+ * strings lifted into `DROP_REFUSAL`, two anchor sites would have been two
+ * places to forget. Everything else in the suite derives its expectation from
+ * `DROP_REFUSAL`, so a reword propagates silently everywhere — which is the
+ * right trade for binding tests, and exactly why the copy itself has to be
+ * pinned once. Change the copy and exactly one test fails.
+ */
+describe('DROP_REFUSAL — the refusal vocabulary itself', () => {
+  it('states the read-only reason and what it means for the user', () => {
+    expect(DROP_REFUSAL.readOnlyBoard).toBe(
+      'This board is read-only — stage changes are not saved.',
+    );
+  });
+
+  it('states the unsupported-capability reason', () => {
+    expect(DROP_REFUSAL.stageChangeUnsupported).toBe(
+      'This collection does not support stage changes.',
+    );
+  });
+
+  // NB the apostrophe in "Won't Fix" is a STRAIGHT quote, matching
+  // `STAGE_LABEL`. The drifted literal this block replaces used a curly one.
+  it('names the lane and points at the API, CLI, or MCP in the hover hint', () => {
+    expect(DROP_REFUSAL.terminalLaneHint(STAGE_LABEL[TaskStage.WONT_FIX])).toBe(
+      '“Won\'t Fix” is set through the API, CLI, or MCP — dragging here will not change the stage.',
+    );
+  });
+
+  it('explains in the toast that the outcome needs a reason, not just that it failed', () => {
+    expect(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[TaskStage.WONT_FIX])).toBe(
+      '“Won\'t Fix” needs a reason, so it is set through the API, CLI, or MCP rather than by dragging.',
+    );
+  });
+
+  // ── Queue reorder ──
+  //
+  // Deliberately worded as "this queue"/"the order", not reused from the board
+  // entries above: a queue drag changes rank, not stage, and telling the user
+  // "stage changes are not saved" after a reorder would be wrong.
+
+  it('states the read-only reason in queue terms, not board terms', () => {
+    expect(DROP_REFUSAL.readOnlyQueue).toBe(
+      'This queue is read-only — the order is not saved.',
+    );
+  });
+
+  it('states the unsupported-reorder reason', () => {
+    expect(DROP_REFUSAL.reorderUnsupported).toBe(
+      'This collection does not support drag reordering.',
+    );
+  });
+
+  it('names the task and the destination band, and says how to get the same result', () => {
+    expect(DROP_REFUSAL.crossBandToast('Fix the leak', 'High')).toBe(
+      'Drag reordering works within one priority band. Change the priority of ' +
+        '“Fix the leak” to move it into High.',
+    );
+  });
+
+  it('says the order was not saved when there is no client, not merely that something failed', () => {
+    expect(DROP_REFUSAL.reorderNotConnected).toBe(
+      'Not connected to the server — the new order was not saved.',
+    );
   });
 });
