@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/ready-queue/ft-ready-queue-view.js';
 import { TaskPriority, type Task } from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
-import { ranksForMove } from '../src/util/rank.js';
+import { MIN_RANK, ranksForMove } from '../src/util/rank.js';
 import { compareAcceptedQueueOrder } from '../src/util/task-state-utils.js';
 import { dragTaskOnto, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
@@ -240,7 +240,7 @@ describe('ft-ready-queue-view — hostile ranks from the server', () => {
       for (const call of client.updateTaskCalls) {
         const written = call.fields.rank as number;
         expect(Number.isSafeInteger(written), `wrote ${written} for ${call.id}`).toBe(true);
-        expect(written).toBeGreaterThanOrEqual(1);
+        expect(written).toBeGreaterThanOrEqual(MIN_RANK);
       }
       for (const id of ['a', 'b', 'c']) {
         const rank = store.getTask(id)?.rank;
@@ -250,16 +250,18 @@ describe('ft-ready-queue-view — hostile ranks from the server', () => {
   }
 
   /**
-   * FINDING F-1, at component level. Negative and zero ranks pass
-   * `Number.isSafeInteger`, so unlike the cases above they do NOT force a
-   * renumber — the midpoint arithmetic runs on them and can produce a rank
-   * below the `MIN_RANK = 1` that `rank.ts` documents it will never hand out.
+   * FINDING F-1, at component level, now fixed. Negative and zero ranks pass
+   * `Number.isSafeInteger`, so unlike the cases above they used NOT to force a
+   * renumber — the midpoint arithmetic ran on them and produced `-3`, below the
+   * `MIN_RANK` floor `rank.ts` documents it will never hand out.
    *
-   * This asserts the CURRENT behaviour so the defect is recorded rather than
-   * discovered again later. It is deliberately not fixed here: this is a test
-   * pass, and the fix belongs to whoever owns `rank.ts`.
+   * `singleWrite` now rejects out-of-range anchors, so this band renumbers and
+   * comes back inside the invariant. The floor is imported from production, not
+   * transcribed. The ordering assertion is retained deliberately: the old value
+   * was wrong but the old *position* was right, so a fix that repaired the range
+   * at the cost of the order would be a regression this test still catches.
    */
-  it('writes a rank below the documented minimum when the server sent negative ranks (finding F-1)', async () => {
+  it('renumbers into the valid range when the server sent negative ranks (finding F-1)', async () => {
     const store = storeWith(
       task({ id: 'a', name: 'a', rank: -5 }),
       task({ id: 'b', name: 'b', rank: 0 }),
@@ -271,10 +273,19 @@ describe('ft-ready-queue-view — hostile ranks from the server', () => {
     await flush();
     await settle(view);
 
-    expect(client.updateTaskCalls).toHaveLength(1);
-    expect(client.updateTaskCalls[0].fields.rank).toBe(-3);
-    // The displayed order is right, which is why an order-only assertion would
-    // never have surfaced this.
+    expect(client.updateTaskCalls.length, 'an out-of-range band must renumber').toBeGreaterThan(1);
+    for (const call of client.updateTaskCalls) {
+      const written = call.fields.rank as number;
+      expect(Number.isSafeInteger(written), `wrote ${written} for ${call.id}`).toBe(true);
+      expect(written, `wrote ${written} for ${call.id}`).toBeGreaterThanOrEqual(MIN_RANK);
+    }
+    // No out-of-range rank survives anywhere in the band.
+    for (const id of ['a', 'b', 'c']) {
+      expect(store.getTask(id)?.rank, `${id} kept an out-of-range rank`).toBeGreaterThanOrEqual(
+        MIN_RANK,
+      );
+    }
+    // The displayed order is still the order the user dropped.
     expect(rowIds(view)).toEqual(['a', 'c', 'b']);
   });
 });
