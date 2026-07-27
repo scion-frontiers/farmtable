@@ -572,8 +572,26 @@ func hasOpenSubIssue(issue *issueNode) bool {
 	return false
 }
 
+// issueUnavailableForClaim is the pass-through store's claim gate. It is the
+// enforcement counterpart to ComputeAvailability, which is advisory here, and
+// the two must not disagree about what "unavailable" means.
+//
+// The ClosedAt arm is, today, a behaviour-preserving no-op: ClaimTask resolves
+// its target from a listIssues call filtered to IssueStateOpen, so every task
+// reaching this function came from an open issue and issueToTask left ClosedAt
+// nil. It is here because ComputeAvailability gained the same arm in #194 Part
+// 2, and the reason it gained it — that a stale non-terminal stage label can
+// outlive a close, leaving Stage alone unable to see terminality — applies
+// identically to the claim gate. Anything that widens the filter, adds a
+// caller, or reaches this function from a cached or replayed issue makes the
+// arm load-bearing without touching this line, and the failure it would
+// prevent is handing a closed task to an agent.
 func issueUnavailableForClaim(issue *issueNode, t *ent.Task) bool {
-	return t.Stage != task.StageAccepted || t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) || hasOpenSubIssue(issue)
+	return t.Stage != task.StageAccepted ||
+		t.ClosedAt != nil ||
+		t.HoldReason != nil ||
+		hasExternalUnavailableLabel(t.Labels) ||
+		hasOpenSubIssue(issue)
 }
 
 func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, stage task.Stage, version string, actorID uuid.UUID) (*ent.Task, error) {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
@@ -133,6 +134,8 @@ func TestIssueUnavailableForClaim(t *testing.T) {
 	withOpenChild := &issueNode{}
 	withOpenChild.SubIssues.Nodes = []subIssueNode{openChild}
 
+	closedAt := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+
 	cases := []struct {
 		name  string
 		issue *issueNode
@@ -144,6 +147,11 @@ func TestIssueUnavailableForClaim(t *testing.T) {
 		{"legacy blocked label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"blocked"}}, true},
 		{"legacy deferred label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/deferred"}}, true},
 		{"open child", withOpenChild, &ent.Task{Stage: task.StageAccepted}, true},
+
+		// review-194 H1. Unreachable through ClaimTask today — see
+		// TestPassThroughClaimTask_ClosedIssueIsNotClaimable for why the arm is
+		// here anyway, and for the end-to-end half of this case.
+		{"closed", &issueNode{}, &ent.Task{Stage: task.StageAccepted, ClosedAt: &closedAt}, true},
 	}
 
 	for _, tc := range cases {
