@@ -4,7 +4,7 @@ Date: 2026-07-27
 Branch: `task-state-core`
 Base: `origin/main`
 Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
-Review follow-up commit: `PENDING_FINAL_COMMIT_HASH`
+Review follow-up implementation commit: `bc3edf95f00947bd7f30f6a21b05f5309202c4e3`
 
 ## Implemented
 
