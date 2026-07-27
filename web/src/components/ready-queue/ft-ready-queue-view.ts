@@ -18,6 +18,7 @@ import {
   STAGE_COLOR,
   compareAcceptedQueueOrder,
   availabilityLabel,
+  DROP_REFUSAL,
   isClosedStage,
   priorityRank,
   type AvailabilityFilter,
@@ -387,13 +388,12 @@ export class FtReadyQueueView extends LitElement {
     // Genuine no-op: the row was dropped back onto itself.
     if (draggedId === targetTaskId) return;
 
-    // NOTE(i18n): Hardcoded English; extract if i18n is added.
     if (this.readOnly) {
-      this.reportRefusal('This queue is read-only — the order is not saved.');
+      this.reportRefusal(DROP_REFUSAL.readOnlyQueue);
       return;
     }
     if (this.capabilities?.canDragReorder === false) {
-      this.reportRefusal('This collection does not support drag reordering.');
+      this.reportRefusal(DROP_REFUSAL.reorderUnsupported);
       return;
     }
 
@@ -402,8 +402,10 @@ export class FtReadyQueueView extends LitElement {
     // out loud rather than letting the row snap back with no explanation.
     if (priorityRank(dragged.priority) !== priorityRank(target.priority)) {
       this.reportRefusal(
-        `Drag reordering works within one priority band. Change the priority of ` +
-          `“${dragged.name}” to move it into ${PRIORITY_LABEL[target.priority ?? TaskPriority.UNSPECIFIED] ?? 'that'}.`,
+        DROP_REFUSAL.crossBandToast(
+          dragged.name,
+          PRIORITY_LABEL[target.priority ?? TaskPriority.UNSPECIFIED] ?? 'that',
+        ),
       );
       return;
     }
