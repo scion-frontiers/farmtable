@@ -5,7 +5,7 @@ Branch: `task-state-core`
 Base: `origin/main`
 Implementation commit: `328e347d269c4f4748e9efdfa868b8deeddd5422`
 Review follow-up implementation commit: `bc3edf95f00947bd7f30f6a21b05f5309202c4e3`
-R2 follow-up implementation commit: `PENDING_FINAL_COMMIT_HASH`
+R2 follow-up implementation commit: `28d9f9493894b3b326ff572d30a050d12ed076e0`
 
 ## Implemented
 
