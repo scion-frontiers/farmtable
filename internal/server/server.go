@@ -685,21 +685,14 @@ func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskReque
 	if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
 		return nil, err
 	}
-	if existing.Stage == task.StageTriage {
-		return nil, status.Error(codes.FailedPrecondition,
-			"task must be accepted out of triage before it can be claimed; this requires the task:accept scope")
+	if req.AssigneeId != nil {
+		return nil, status.Error(codes.InvalidArgument,
+			"assignee_id is not accepted by ClaimTask; assign the task first, then let the assignee claim available work")
 	}
 
 	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
 	// In open-access mode (no auth configured), this will be uuid.Nil.
 	assigneeID, _ := UserIDFromContext(ctx)
-	if req.AssigneeId != nil {
-		parsed, err := uuid.Parse(*req.AssigneeId)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
-		}
-		assigneeID = parsed
-	}
 
 	version := ""
 	if req.Version != nil {
@@ -2136,6 +2129,9 @@ func storeErr(err error, entity string) error {
 	}
 	if errors.Is(err, store.ErrAlreadyClosed) {
 		return status.Errorf(codes.FailedPrecondition, "%s already closed", entity)
+	}
+	if errors.Is(err, store.ErrUnavailable) {
+		return status.Errorf(codes.FailedPrecondition, "%s unavailable", entity)
 	}
 	if errors.Is(err, store.ErrInvalidArgument) {
 		return status.Errorf(codes.InvalidArgument, "%v", err)
