@@ -619,7 +619,6 @@ export class FtInspectorMeta extends LitElement {
 
   render() {
     const t = this.task;
-
     return html`
       <div class="row">
         <span class="label">Assignees</span>
