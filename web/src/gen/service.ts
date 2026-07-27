@@ -404,7 +404,7 @@ const MOCK_CHANGES: Record<string, Change[]> = {
   '10000000-0000-0000-0000-000000000002': [
     {
       id: 'ch1', taskId: '10000000-0000-0000-0000-000000000002',
-      field: 'stage', oldValue: 'Ready', newValue: 'Working',
+      field: 'stage', oldValue: 'Accepted', newValue: 'Working',
       changedBy: MOCK_USERS.u2, changedAt: NOW,
     },
     {
@@ -428,7 +428,7 @@ const MOCK_CHANGES: Record<string, Change[]> = {
   '10000000-0000-0000-0000-000000000006': [
     {
       id: 'ch5', taskId: '10000000-0000-0000-0000-000000000006',
-      field: 'stage', oldValue: 'Working', newValue: 'Blocked',
+      field: 'hold_reason', oldValue: null, newValue: 'Waiting for input',
       changedBy: MOCK_USERS.u2, changedAt: NOW,
     },
   ],
