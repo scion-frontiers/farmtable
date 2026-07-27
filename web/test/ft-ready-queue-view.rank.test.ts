@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/ready-queue/ft-ready-queue-view.js';
 import { TaskPriority } from '../src/gen/types.js';
 import { ALL_ENABLED, GITHUB_CAPABILITIES } from '../src/capabilities.js';
-import { dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
+import { dragOverOn, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { RecordingClient, storeWith, task } from './helpers/fixtures.js';
 import type { TaskStore } from '../src/store/task-store.js';
@@ -37,20 +37,6 @@ function rowFor(view: Element, id: string): Element {
   );
   if (!row) throw new Error(`no queue row rendered for task ${id}; rendered: ${rowIds(view).join(', ')}`);
   return row;
-}
-
-/**
- * Synthesise a `dragover`. jsdom implements neither `DragEvent` nor
- * `DataTransfer`, so this carries the minimal surface the handler reads.
- *
- * Kept local rather than added to `helpers/dom.ts`: that file belongs to
- * another branch this round.
- */
-function dragOver(element: Element): Event {
-  const event = new Event('dragover', { bubbles: true, composed: true, cancelable: true });
-  Object.defineProperty(event, 'dataTransfer', { value: { dropEffect: 'none' } });
-  element.dispatchEvent(event);
-  return event;
 }
 
 /** Three ready tasks in one band, already ranked with room between them. */
@@ -233,17 +219,17 @@ describe('ft-ready-queue-view — dragover must not block the drop', () => {
    */
   it('cancels dragover on a normal row', async () => {
     const { view } = await mountQueue(rankedBand());
-    expect(dragOver(rowFor(view, 'b')).defaultPrevented).toBe(true);
+    expect(dragOverOn(rowFor(view, 'b')).defaultPrevented).toBe(true);
   });
 
   it('cancels dragover on a read-only queue, which will refuse the drop', async () => {
     const { view } = await mountQueue(rankedBand(), { readOnly: true });
-    expect(dragOver(rowFor(view, 'b')).defaultPrevented).toBe(true);
+    expect(dragOverOn(rowFor(view, 'b')).defaultPrevented).toBe(true);
   });
 
   it('cancels dragover when the collection cannot reorder', async () => {
     const { view } = await mountQueue(rankedBand(), { capabilities: GITHUB_CAPABILITIES });
-    expect(dragOver(rowFor(view, 'b')).defaultPrevented).toBe(true);
+    expect(dragOverOn(rowFor(view, 'b')).defaultPrevented).toBe(true);
   });
 
   it('cancels dragover on a row in another priority band', async () => {
@@ -252,7 +238,7 @@ describe('ft-ready-queue-view — dragover must not block the drop', () => {
       task({ id: 'lo', name: 'lo', priority: TaskPriority.LOW }),
     );
     const { view } = await mountQueue(store);
-    expect(dragOver(rowFor(view, 'lo')).defaultPrevented).toBe(true);
+    expect(dragOverOn(rowFor(view, 'lo')).defaultPrevented).toBe(true);
   });
 
   it('keeps rows draggable so a refusing queue can still report the refusal', async () => {

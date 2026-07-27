@@ -7,6 +7,13 @@ import {
   TaskStage,
   type Task,
 } from '../src/gen/types.js';
+import {
+  AVAILABILITY_REASON_LABEL,
+  HOLD_REASON_LABEL,
+  NATIVE_STAGE_OPTIONS,
+  availabilityLabel,
+  isUnsuccessfulTerminalStage,
+} from '../src/util/task-state-utils.js';
 import { mount, queryAllDeep, textDeep } from './helpers/dom.js';
 import { storeWith, task } from './helpers/fixtures.js';
 import type { TaskStore } from '../src/store/task-store.js';
@@ -35,7 +42,18 @@ async function mountCard(subject: Task, store: TaskStore) {
 }
 
 describe('ft-task-card — needs-attention badge', () => {
-  for (const blockerStage of [TaskStage.CANCELLED, TaskStage.DUPLICATE, TaskStage.WONT_FIX] as const) {
+  // Derived from the real predicate the component's `attentionBlockers` uses,
+  // not a transcription of it: widen `isUnsuccessfulTerminalStage` and this
+  // loop covers the new stage automatically instead of going quiet.
+  const attentionStages = NATIVE_STAGE_OPTIONS.filter(isUnsuccessfulTerminalStage);
+
+  it('derives its blocker-stage list from isUnsuccessfulTerminalStage', () => {
+    expect(attentionStages.length, 'no stage triggers attention, so the loop tests nothing')
+      .toBeGreaterThan(0);
+    expect(isUnsuccessfulTerminalStage(TaskStage.COMPLETED), 'the positive counterpart').toBe(false);
+  });
+
+  for (const blockerStage of attentionStages) {
     it(`shows "${ATTENTION_BADGE}" when blocked by a ${TaskStage[blockerStage]} prerequisite`, async () => {
       const blocker = task({ id: 'blocker', stage: blockerStage });
       const subject = dependent(blocker.id);
@@ -68,6 +86,10 @@ describe('ft-task-card — needs-attention negative cases', () => {
     const subject = dependent(blocker.id);
     const card = await mountCard(subject, storeWith(blocker, subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
@@ -76,6 +98,10 @@ describe('ft-task-card — needs-attention negative cases', () => {
     const subject = dependent(blocker.id);
     const card = await mountCard(subject, storeWith(blocker, subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
@@ -83,6 +109,10 @@ describe('ft-task-card — needs-attention negative cases', () => {
     const subject = dependent('not-loaded');
     const card = await mountCard(subject, storeWith(subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
@@ -93,14 +123,30 @@ describe('ft-task-card — needs-attention negative cases', () => {
     });
     const card = await mountCard(subject, storeWith(blocker, subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
-  it('does not show the badge when the server reports the task as available', async () => {
+  /**
+   * L-2. Retitled. `attentionBlockers` never reads `availability.available` —
+   * it keys off the presence of `BLOCKED_BY_DEPENDENCY` in `reasons`. So this
+   * is not "the server says available" at all; it is the same
+   * missing-reason path as the test above, reached through a different
+   * fixture. Kept because the fixture is a realistic server payload, but the
+   * name now states what is actually being pinned.
+   */
+  it('does not show the badge when reasons are empty, whatever available says', async () => {
     const blocker = task({ id: 'blocker', stage: TaskStage.CANCELLED });
     const subject = dependent(blocker.id, { availability: { available: true, reasons: [] } });
     const card = await mountCard(subject, storeWith(blocker, subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
@@ -111,6 +157,10 @@ describe('ft-task-card — needs-attention negative cases', () => {
     });
     const card = await mountCard(subject, storeWith(blocker, subject));
 
+    // L-1 positive guard: without it this passes on a card that renders no
+    // badges at all — including one whose whole badge block was deleted.
+    expect(badges(card).length, 'the card rendered no badges, so the negative proves nothing')
+      .toBeGreaterThan(0);
     expect(badges(card)).not.toContain(ATTENTION_BADGE);
   });
 
@@ -127,14 +177,14 @@ describe('ft-task-card — hold and availability badges', () => {
     const subject = task({ id: 'held', holdReason: TaskHoldReason.WAITING_FOR_INPUT });
     const card = await mountCard(subject, storeWith(subject));
 
-    expect(badges(card)).toContain('Waiting for input');
+    expect(badges(card)).toContain(HOLD_REASON_LABEL[TaskHoldReason.WAITING_FOR_INPUT]);
   });
 
   it('renders Available for server-available tasks', async () => {
     const subject = task({ id: 'ok', availability: { available: true, reasons: [] } });
     const card = await mountCard(subject, storeWith(subject));
 
-    expect(badges(card)).toContain('Available');
+    expect(badges(card)).toContain(availabilityLabel(subject));
   });
 
   it('renders the server availability reasons for unavailable tasks', async () => {
@@ -148,16 +198,37 @@ describe('ft-task-card — hold and availability badges', () => {
     });
     const card = await mountCard(subject, storeWith(subject));
 
-    expect(badges(card)).toContain('Held, Future start date');
-    expect(badges(card)).toContain('Deferred');
+    // Was `'Held, Future start date'` — a literal that duplicated not just the
+    // two labels but `availabilityLabel`'s ', ' join. Both now come from
+    // production, with an independent anchor on the label map so a mutated
+    // `availabilityLabel` cannot move expectation and actual in lockstep.
+    expect(badges(card)).toContain(availabilityLabel(subject));
+    expect(badges(card)).toContain(HOLD_REASON_LABEL[TaskHoldReason.DEFERRED]);
+    expect(availabilityLabel(subject)).toContain(AVAILABILITY_REASON_LABEL[AvailabilityReason.HELD]);
+    expect(availabilityLabel(subject)).toContain(
+      AVAILABILITY_REASON_LABEL[AvailabilityReason.FUTURE_START_DATE],
+    );
   });
 
+  /**
+   * L-3. As written this was three negatives against a component that has no
+   * stage vocabulary in any branch — it would pass on a card that rendered
+   * nothing whatsoever. The route by which deleted vocabulary could actually
+   * reappear here is a label map: the card renders `HOLD_REASON_LABEL` and
+   * `AVAILABILITY_REASON_LABEL` values verbatim. So the fixture is now one that
+   * renders badges from BOTH maps, and the positive assertions below prove the
+   * card really is rendering label text before the negatives are believed.
+   */
   it('renders no deleted stage vocabulary on the card', async () => {
     const blocker = task({ id: 'blocker', stage: TaskStage.CANCELLED });
     const subject = dependent(blocker.id, { holdReason: TaskHoldReason.WAITING_FOR_INPUT });
     const card = await mountCard(subject, storeWith(blocker, subject));
 
     const text = textDeep(card);
+    expect(badges(card).length, 'no badges rendered, so the negatives prove nothing')
+      .toBeGreaterThan(0);
+    expect(text).toContain(HOLD_REASON_LABEL[TaskHoldReason.WAITING_FOR_INPUT]);
+    expect(text).toContain(AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY]);
     expect(text).not.toMatch(/\bReady\b/);
     expect(text).not.toMatch(/\bBacklog\b/);
     expect(text).not.toMatch(/\bScheduled\b/);
