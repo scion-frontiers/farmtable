@@ -3,7 +3,7 @@ import '../src/components/ready-queue/ft-ready-queue-view.js';
 import { TaskPriority, type Task } from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
 import { MIN_RANK, ranksForMove } from '../src/util/rank.js';
-import { compareAcceptedQueueOrder } from '../src/util/task-state-utils.js';
+import { compareAcceptedQueueOrder, DROP_REFUSAL } from '../src/util/task-state-utils.js';
 import { dragTaskOnto, dropTaskOn, flush, mount, queryAllDeep, settle } from './helpers/dom.js';
 import { collectFeedback } from './helpers/feedback.js';
 import { RecordingClient, storeWith, task, user } from './helpers/fixtures.js';
@@ -449,16 +449,19 @@ describe('ft-ready-queue-view — reordering while a filter hides part of the ba
 
 describe('ft-ready-queue-view — a queue with no client attached', () => {
   /**
-   * FINDING F-3. With no `client`, `reorder()` performs the optimistic store
-   * write, then returns after a `console.warn`. The row moves, nothing is
-   * persisted, and the user is told nothing — the same silent-no-op class this
-   * round exists to eliminate, arriving through a different door. The early
-   * return also sits *after* the optimistic write, so the store is left holding
-   * ranks the server has never seen.
+   * FINDING F-3, now fixed. With no `client`, `reorder()` used to perform the
+   * optimistic store write and then return after a `console.warn`: the row
+   * moved, nothing was persisted, and the user was told nothing — the same
+   * silent-no-op class this round exists to eliminate, arriving through a
+   * different door, and leaving the store holding ranks the server had never
+   * seen.
    *
-   * Asserted as current behaviour, flagged as a finding, not fixed here.
+   * The guard now runs BEFORE the optimistic write and reports on the same
+   * `write-error` channel as every other refusal. `ft-app` always assigns a
+   * client so this is a defensive path, which is why it is not the priority
+   * item — but "defensive" must still mean "refuses out loud".
    */
-  it('moves the row and mutates the store while telling the user nothing (finding F-3)', async () => {
+  async function mountClientlessQueue() {
     const store = storeWith(
       task({ id: 'a', name: 'a', rank: 1024 }),
       task({ id: 'b', name: 'b', rank: 2048 }),
@@ -468,17 +471,33 @@ describe('ft-ready-queue-view — a queue with no client attached', () => {
       store,
       capabilities: ALL_ENABLED,
     });
+    return { store, view };
+  }
+
+  it('leaves the store and the visible order untouched (finding F-3)', async () => {
+    const { store, view } = await mountClientlessQueue();
+
+    dropTaskOn(rowFor(view, 'b'), 'c');
+    await flush();
+    await settle(view);
+
+    // No optimistic write happened, so the store still holds the server's ranks
+    // rather than ranks the server has never seen.
+    expect(store.getTask('c')?.rank).toBe(3072);
+    expect(rowIds(view)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('tells the user the order was not saved (finding F-3)', async () => {
+    const { view } = await mountClientlessQueue();
     const feedback = collectFeedback(view);
 
     dropTaskOn(rowFor(view, 'b'), 'c');
     await flush();
     await settle(view);
 
-    // The store really was changed — this is not a harmless no-op.
-    expect(store.getTask('c')?.rank).toBe(1536);
-    expect(rowIds(view)).toEqual(['a', 'c', 'b']);
-    // And the user was told nothing at all.
-    expect(feedback.sawFeedback(), feedback.describe()).toBe(false);
+    expect(feedback.sawFeedback(), feedback.describe()).toBe(true);
+    expect(feedback.reasons()).toContain('rank-change-refused');
+    expect(feedback.writeErrors[0].detail.message).toBe(DROP_REFUSAL.reorderNotConnected);
   });
 });
 
