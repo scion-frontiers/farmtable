@@ -1,7 +1,8 @@
 # markdown-sanitize cleanup — pre-merge round on #195
 
 Branch: `markdown-sanitize`, from `204af7e`.
-Commit: `f202448 Harden markdown sanitizer: dialog, class, svg style; bind sinks (#195)`
+Commits: `f202448 Harden markdown sanitizer: dialog, class, svg style; bind sinks (#195)`,
+`7084880 test: pin the markdown sanitizer check total (#195)`
 
 Follow-up to `.design/project-log/markdown-sanitize.md`. All three reviewers
 (`review-195`, `audit-195`, `test-195`) returned **APPROVE**; this round is the
@@ -46,6 +47,8 @@ Tests: **32 → 49 checks**, all against the real exported `renderMarkdown`.
   sink (`innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`) exists.
   Nothing previously bound the sinks — dropping either wrapper reintroduced the
   whole bug class with all 32 checks still green.
+- Check-total pin (test-195 G7, reopened by the EM after the first pass). See
+  "Tests that disappear instead of failing" below.
 
 Dependency: `jsdom` `^29.1.1` → **`^26.1.0`** (review L1, expanded by the EM).
 
@@ -71,6 +74,33 @@ under "spoofing" at the EM's instruction.
 
 Fixed here by one word in `FORBID_TAGS`, on the EM's ruling, with the
 remote-fetch vector pinned by its own test rather than only the visual one.
+
+## Tests that disappear instead of failing (G7)
+
+This suite printed its own check count and asserted nothing about it. A deleted
+or unreached check therefore did not fail — it ceased to exist, and the suite
+stayed green one count lower. Which means every mutation count in the table
+below, the evidence this branch's merge decision rests on, was a number nothing
+checked.
+
+Pinned in `run()`: `EXPECTED_CHECKS = 49`, compared against `checks`, reported
+through the existing `failures` array so it formats like every other failure and
+does not mask earlier ones. It is not counted as a check itself, so the printed
+total still means "sanitizer checks that ran".
+
+Mutation-verified both directions: deleting the `dialog` check with the pin in
+place gives `1 of 48 ... expected 49 checks to run, 48 did`; the *same* deletion
+with the pin removed prints `48 checks passed`, exit 0, with the `dialog` control
+proved by nothing. The two original mutation counts were re-measured with the pin
+in place and are unchanged (14 and 33 of 49), because a mutated control fails
+checks without removing them.
+
+Worth recording beyond this branch: within the same hour, `test-phase2`
+independently hit the same defect class on the Phase 2 branch by a different
+mechanism — two test files building their case list by filtering a stage list
+through the predicate under test, so narrowing the predicate deleted tests rather
+than failing them (407 → 405 and 407 → 402, green both times). Two agents, two
+branches, one class. A suite that reports a count should assert it.
 
 ## Item 4 (jsdom) — resolved empirically, not by judgement
 
@@ -104,6 +134,8 @@ Every control added this round was mutation-tested with real failing output
 | comments sink bypasses `renderMarkdown` | 1 of 49 fails |
 | new `innerHTML` sink added to `src/` | 1 of 49 fails |
 | renderer drops `role`/`aria-label` | 1 of 49 fails |
+| delete a check, pin in place | 1 of 48 fails (`expected 49 ... 48 did`) |
+| delete a check, pin removed | **48 passed, exit 0** — the defect, shown live |
 | original 1 — drop FORBID config | 14 of 49 (original **8** all present) |
 | original 2 — drop `DOMPurify.sanitize` | 33 of 49 (original **20** all present) |
 | review 3 — drop checkbox renderer | 3 of 49 (was 2 of 32) |
@@ -126,16 +158,18 @@ tsconfig.test.json --noEmit` 0 · `npm run build` 0 · `npm audit --audit-level=
   `audit-195` (LOW-3) and `test-195` both independently recorded `1` at `204af7e`.
 - **`optgroup` not added to `FORBID_TAGS`** (review L4). The brief scoped item 1
   to `dialog` — "one word". `optgroup` is inert with `select`/`option` forbidden.
-  Zero-cost if wanted, but not mine to add unasked.
+  Raised with the EM, who **declined it for this round and routed it to the
+  follow-up cleanup branch** rather than dropping it. Logged, not lost.
 - **Review L3 (unreachable `action`/`formaction` comment) — explicitly out of
   scope** in the brief. The comment still reads as though they are active
   controls. Untouched.
 - **Audit INFO items — explicitly out of scope.** INFO-3 (renderer output is
   injected pre-escaped in marked's loose-list path) is the one worth taking
   later; it is a comment, not a defect.
-- **test-195 G3–G9 not addressed.** Only G1 and G2 (the two Highs) were in scope.
-  G7 in particular — pinning the check total so a deleted check cannot silently
-  shrink the suite — is cheap and would protect everything else here.
+- **test-195 G3–G6, G8, G9 not addressed.** Only G1 and G2 (the two Highs) were
+  in scope. G7 was originally listed here as out-of-scope-but-recommended; the EM
+  reopened it and it is now done (see above). Listing a gap as both out of scope
+  and as undermining every other test in the suite was not a coherent position.
 - **No CSP** (audit LOW-2). Still the highest-value follow-up: `form-action
   'self'` makes this entire bug class structurally impossible, and `style-src`
   would have independently blunted the `<svg><style>` finding above. Belongs with
