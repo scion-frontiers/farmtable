@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/ft-filter-chips.js';
 import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import { UNASSIGNED_FILTER_VALUE } from '../src/components/task-filters.js';
+import {
+  AVAILABILITY_REASON_LABEL,
+  HOLD_REASON_LABEL,
+  STAGE_LABEL,
+} from '../src/util/task-state-utils.js';
 import type { TaskFilterChangeDetail } from '../src/components/task-filters.js';
 import { mount, queryAllDeep, removeTag, textDeep } from './helpers/dom.js';
 import { user } from './helpers/fixtures.js';
@@ -42,11 +47,14 @@ describe('ft-filter-chips — rendered chips', () => {
   it('renders one labelled chip per active filter', async () => {
     const chips = await mount<HTMLElement>('ft-filter-chips', ALL_FILTERS);
 
+    // Prefixes are this component's own spec; the vocabulary after the colon
+    // is production's, so it is read from the real maps. The words themselves
+    // are anchored once, in `vocabulary.contract.test.ts`.
     expect(chipLabels(chips)).toEqual([
       'Group: Active',
-      'Stage: In QA',
-      'Hold: Waiting for input',
-      'Availability: Blocked by dependency',
+      `Stage: ${STAGE_LABEL[TaskStage.IN_QA]}`,
+      `Hold: ${HOLD_REASON_LABEL[TaskHoldReason.WAITING_FOR_INPUT]}`,
+      `Availability: ${AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY]}`,
       'Assignee: Alice',
     ]);
   });
@@ -56,7 +64,9 @@ describe('ft-filter-chips — rendered chips', () => {
       holdReasonFilter: TaskHoldReason.DEFERRED,
     });
 
-    expect(chipLabels(chips)).toEqual(['Hold: Deferred']);
+    expect(chipLabels(chips)).toEqual([
+      `Hold: ${HOLD_REASON_LABEL[TaskHoldReason.DEFERRED]}`,
+    ]);
   });
 
   it('labels string availability filters', async () => {
@@ -83,6 +93,27 @@ describe('ft-filter-chips — rendered chips', () => {
 });
 
 describe('ft-filter-chips — clearing', () => {
+  /**
+   * M-4. Every clearing test below fires `sl-remove` through `removeTag()`,
+   * which dispatches the event on any element whatsoever. A real `<sl-tag>`
+   * only renders the remove button — and therefore only ever emits
+   * `sl-remove` — when `removable` is set, so dropping the attribute from all
+   * five chips left every clearing test green while making the chips
+   * unclearable for an actual user. This is the assertion that closes that gap;
+   * `removable` is in the stub's `BOOLEAN_PROPS`, so it reflects the attribute.
+   */
+  it('renders every chip removable, so the remove button a user clicks exists', async () => {
+    const chips = await mount<HTMLElement>('ft-filter-chips', ALL_FILTERS);
+    const tags = queryAllDeep<HTMLElement & { removable?: boolean }>(chips, 'sl-tag');
+
+    // Pin the count: a component rendering zero chips would otherwise satisfy
+    // the loop below without asserting anything.
+    expect(tags).toHaveLength(5);
+    for (const tag of tags) {
+      expect(tag.removable, `chip "${(tag.textContent ?? '').trim()}" is not removable`).toBe(true);
+    }
+  });
+
   it('clears only the removed filter and preserves the rest', async () => {
     const chips = await mount<HTMLElement>('ft-filter-chips', ALL_FILTERS);
     const cleared: TaskFilterChangeDetail[] = [];
