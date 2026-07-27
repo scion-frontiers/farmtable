@@ -513,14 +513,15 @@ export class FtApp extends LitElement {
         `;
       case 'tree':
         return html`
+          <!--
+            ft-tree-view declares no filter properties, so filter bindings here
+            are inert. They are omitted rather than passed: a binding that looks
+            wired but does nothing is worse than an obvious gap. Making the tree
+            view honour the contract filters is a feature, tracked separately.
+          -->
           <ft-tree-view
             .store=${this.taskStore}
             .client=${this.client}
-            .groupFilter=${this.groupFilter}
-            .stageFilter=${this.stageFilter}
-            .holdReasonFilter=${this.holdReasonFilter}
-            .availabilityFilter=${this.availabilityFilter}
-            .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             ?isolateMode=${this.isolateMode}
             .layoutOrientation=${this.layoutOrientation}
