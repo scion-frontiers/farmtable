@@ -145,8 +145,14 @@ func (s *EntStore) CreateTask(ctx context.Context, p CreateTaskParams) (*ent.Tas
 		SetType(p.Type).
 		SetVersion("1")
 
+	if p.HoldReason != nil {
+		create.SetHoldReason(*p.HoldReason)
+	}
 	if p.Priority != nil {
 		create.SetPriority(*p.Priority)
+	}
+	if p.Rank != nil {
+		create.SetRank(*p.Rank)
 	}
 	if p.AssigneeID != nil {
 		create.SetAssigneeID(*p.AssigneeID)
@@ -581,6 +587,11 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 	if p.Stage != nil {
 		update.SetStage(*p.Stage)
 	}
+	if p.ClearHoldReason {
+		update.ClearHoldReason()
+	} else if p.HoldReason != nil {
+		update.SetHoldReason(*p.HoldReason)
+	}
 	if p.NativeLabel != nil {
 		update.SetNativeLabel(*p.NativeLabel)
 	}
@@ -591,6 +602,11 @@ func (s *EntStore) doUpdateTask(ctx context.Context, id uuid.UUID, p UpdateTaskP
 		update.ClearPriority()
 	} else if p.Priority != nil {
 		update.SetPriority(*p.Priority)
+	}
+	if p.ClearRank {
+		update.ClearRank()
+	} else if p.Rank != nil {
+		update.SetRank(*p.Rank)
 	}
 	if p.ClearAssignee {
 		update.ClearAssigneeID()
@@ -773,9 +789,84 @@ func mergeLabels(current, add, remove []string) []string {
 	return result
 }
 
+func terminalStageSatisfiesDependency(stage task.Stage) bool {
+	return stage == task.StageCompleted
+}
+
+func isTerminalStage(stage task.Stage) bool {
+	switch stage {
+	case task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *EntStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+	reasons := make([]AvailabilityReason, 0, 4)
+	if t.Stage == task.StageTriage {
+		reasons = append(reasons, AvailabilityReasonTriage)
+	}
+	if isTerminalStage(t.Stage) {
+		reasons = append(reasons, AvailabilityReasonTerminal)
+	}
+	if t.HoldReason != nil {
+		reasons = append(reasons, AvailabilityReasonHeld)
+	}
+	if t.StartDate != nil && t.StartDate.After(time.Now()) {
+		reasons = append(reasons, AvailabilityReasonFutureStartDate)
+	}
+
+	blocked, err := s.hasUnsatisfiedBlocker(ctx, t)
+	if err != nil {
+		return TaskAvailability{}, err
+	}
+	if blocked {
+		reasons = append(reasons, AvailabilityReasonBlockedByDependency)
+	}
+
+	return TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
+}
+
+func (s *EntStore) hasUnsatisfiedBlocker(ctx context.Context, t *ent.Task) (bool, error) {
+	checkBlocker := func(id uuid.UUID) (bool, error) {
+		blocker, err := s.client.Task.Get(ctx, id)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return !terminalStageSatisfiesDependency(blocker.Stage), nil
+	}
+	for _, rel := range t.Edges.SourceRelationships {
+		if rel.Type != relationship.TypeBlockedBy {
+			continue
+		}
+		blocked, err := checkBlocker(rel.TargetTaskID)
+		if err != nil || blocked {
+			return blocked, err
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type != relationship.TypeBlocks {
+			continue
+		}
+		blocked, err := checkBlocker(rel.SourceTaskID)
+		if err != nil || blocked {
+			return blocked, err
+		}
+	}
+	return false, nil
+}
+
 func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.UUID, version string) (*ent.Task, error) {
 	for attempt := 0; ; attempt++ {
-		old, err := s.client.Task.Get(ctx, id)
+		old, err := s.client.Task.Query().
+			Where(task.IDEQ(id)).
+			WithSourceRelationships().
+			WithTargetRelationships().
+			Only(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
 				return nil, ErrNotFound
@@ -785,6 +876,13 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 
 		if old.Phase == task.PhaseClosed {
 			return nil, ErrAlreadyClosed
+		}
+		availability, err := s.ComputeAvailability(ctx, old)
+		if err != nil {
+			return nil, fmt.Errorf("computing claim availability: %w", err)
+		}
+		if !availability.Available {
+			return nil, ErrUnavailable
 		}
 		if old.AssigneeID != nil {
 			return nil, ErrAlreadyClaimed
@@ -805,6 +903,7 @@ func (s *EntStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uuid.
 			SetAssigneeID(assigneeID).
 			SetPhase(task.PhaseInProgress).
 			SetStage(task.StageWorking).
+			ClearHoldReason().
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("claiming task: %w", err)
@@ -2046,17 +2145,11 @@ func (s *EntStore) Truncate(ctx context.Context) error {
 // ── Graph Query Methods ──
 
 func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
-	var stagePreds []predicate.Task
-	stagePreds = append(stagePreds, task.StageEQ(task.StageAccepted))
-	if p.IncludeUnblockedOpen {
-		stagePreds = append(stagePreds, task.StageEQ(task.StageTriage))
-		stagePreds = append(stagePreds, task.StageEQ(task.StageAccepted))
-	}
-
 	q := s.client.Task.Query().
 		Where(
 			task.PhaseEQ(task.PhaseOpen),
-			task.Or(stagePreds...),
+			task.StageEQ(task.StageAccepted),
+			task.HoldReasonIsNil(),
 		)
 
 	if p.CollectionID != nil {
@@ -2084,25 +2177,28 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 
 	var results []*ReadyTaskResult
 	for _, t := range tasks {
-		blockersResolved := 0
-		hasOpenBlocker := false
+		if t.StartDate != nil && t.StartDate.After(time.Now()) {
+			continue
+		}
+		availability, err := s.ComputeAvailability(ctx, t)
+		if err != nil {
+			return nil, 0, fmt.Errorf("computing availability: %w", err)
+		}
+		if !availability.Available {
+			continue
+		}
 
+		blockersResolved := 0
 		for _, rel := range t.Edges.SourceRelationships {
 			if rel.Type == relationship.TypeBlockedBy {
 				blocker, bErr := s.client.Task.Get(ctx, rel.TargetTaskID)
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase == task.PhaseClosed {
+				if terminalStageSatisfiesDependency(blocker.Stage) {
 					blockersResolved++
-				} else {
-					hasOpenBlocker = true
-					break
 				}
 			}
-		}
-		if hasOpenBlocker {
-			continue
 		}
 
 		for _, rel := range t.Edges.TargetRelationships {
@@ -2111,16 +2207,10 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 				if bErr != nil {
 					continue
 				}
-				if blocker.Phase == task.PhaseClosed {
+				if terminalStageSatisfiesDependency(blocker.Stage) {
 					blockersResolved++
-				} else {
-					hasOpenBlocker = true
-					break
 				}
 			}
-		}
-		if hasOpenBlocker {
-			continue
 		}
 
 		results = append(results, &ReadyTaskResult{
@@ -2130,6 +2220,19 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 	}
 
 	total := len(results)
+	sort.SliceStable(results, func(i, j int) bool {
+		a, b := results[i].Task, results[j].Task
+		if priorityOrder(a.Priority) != priorityOrder(b.Priority) {
+			return priorityOrder(a.Priority) < priorityOrder(b.Priority)
+		}
+		if rankValue(a.Rank) != rankValue(b.Rank) {
+			return rankValue(a.Rank) < rankValue(b.Rank)
+		}
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			return a.CreatedAt.Before(b.CreatedAt)
+		}
+		return a.ID.String() < b.ID.String()
+	})
 
 	if p.Offset > 0 && p.Offset < len(results) {
 		results = results[p.Offset:]
@@ -2141,6 +2244,31 @@ func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]
 	}
 
 	return results, total, nil
+}
+
+func priorityOrder(p *task.Priority) int {
+	if p == nil {
+		return 4
+	}
+	switch *p {
+	case task.PriorityUrgent:
+		return 0
+	case task.PriorityHigh:
+		return 1
+	case task.PriorityNormal:
+		return 2
+	case task.PriorityLow:
+		return 3
+	default:
+		return 4
+	}
+}
+
+func rankValue(rank *int) int {
+	if rank == nil {
+		return int(^uint(0) >> 1)
+	}
+	return *rank
 }
 
 func (s *EntStore) GetBlockedTasks(ctx context.Context, p GetBlockedTasksParams) ([]*BlockedTaskResult, int, error) {

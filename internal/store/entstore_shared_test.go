@@ -252,7 +252,7 @@ func runClaimTask(t *testing.T, newStore storeFactory) {
 		Title:        "Claim me",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
+		Stage:        task.StageAccepted,
 		NativeLabel:  "triage",
 	})
 	if err != nil {
@@ -764,7 +764,7 @@ func runVersionIncrement(t *testing.T, newStore storeFactory) {
 		Title:        "Version test",
 		CollectionID: collID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
+		Stage:        task.StageAccepted,
 		NativeLabel:  "triage",
 	})
 	if err != nil {

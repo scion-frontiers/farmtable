@@ -210,8 +210,8 @@ func TestMultiStore_ClaimTask_RoutesToPlatform(t *testing.T) {
 		Title:        "Claim me",
 		CollectionID: platCollID,
 		Phase:        task.PhaseOpen,
-		Stage:        task.StageTriage,
-		NativeLabel:  "triage",
+		Stage:        task.StageAccepted,
+		NativeLabel:  "accepted",
 		Type:         "task",
 	})
 	if err != nil {

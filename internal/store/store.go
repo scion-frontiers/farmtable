@@ -17,9 +17,25 @@ var (
 	ErrConflict        = errors.New("version conflict")
 	ErrAlreadyClaimed  = errors.New("task already claimed")
 	ErrAlreadyClosed   = errors.New("task already closed")
+	ErrUnavailable     = errors.New("task unavailable")
 	ErrInvalidArgument = errors.New("invalid argument")
 	ErrNotImplemented  = errors.New("not implemented")
 )
+
+type AvailabilityReason string
+
+const (
+	AvailabilityReasonTriage              AvailabilityReason = "triage"
+	AvailabilityReasonTerminal            AvailabilityReason = "terminal"
+	AvailabilityReasonHeld                AvailabilityReason = "held"
+	AvailabilityReasonBlockedByDependency AvailabilityReason = "blocked_by_dependency"
+	AvailabilityReasonFutureStartDate     AvailabilityReason = "future_start_date"
+)
+
+type TaskAvailability struct {
+	Available bool
+	Reasons   []AvailabilityReason
+}
 
 type CreateTaskParams struct {
 	Title              string
