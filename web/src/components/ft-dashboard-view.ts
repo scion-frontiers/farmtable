@@ -156,15 +156,15 @@ export class FtDashboardView extends LitElement {
   }
 
   /** Count tasks available under the shared Available Queue predicate. */
-  private computeReadyCount(tasks: readonly Task[]): number {
+  private computeAvailableCount(tasks: readonly Task[]): number {
     return tasks.filter((task) => isReady(task, this.store)).length;
   }
 
   /**
-   * Navigate to the Ready Queue view by dispatching the same view-change
+   * Navigate to the Available Queue view by dispatching the same view-change
    * event the toolbar uses.
    */
-  private navigateToReadyQueue() {
+  private navigateToAvailableQueue() {
     this.dispatchEvent(
       new CustomEvent('view-change', {
         detail: { view: 'ready-queue' },
@@ -243,7 +243,7 @@ export class FtDashboardView extends LitElement {
     const priorityStats = this.computePriorityStats(tasks);
     const availabilityReasons = this.computeAvailabilityReasons(tasks);
     const totalCount = tasks.length;
-    const readyCount = this.computeReadyCount(tasks);
+    const availableCount = this.computeAvailableCount(tasks);
 
     return html`
       <div class="dashboard">
@@ -261,17 +261,17 @@ export class FtDashboardView extends LitElement {
             class="stat-card ready"
             role="link"
             tabindex="0"
-            aria-label="Available: ${readyCount} — click to view Available Queue"
+            aria-label="Available: ${availableCount} — click to view Available Queue"
             title="View Available Queue"
-            @click=${this.navigateToReadyQueue}
+            @click=${this.navigateToAvailableQueue}
             @keydown=${(e: KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                this.navigateToReadyQueue();
+                this.navigateToAvailableQueue();
               }
             }}
           >
-            <div class="stat-count">${readyCount}</div>
+            <div class="stat-count">${availableCount}</div>
             <div class="stat-label">Available</div>
           </div>
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
