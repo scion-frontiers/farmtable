@@ -91,5 +91,57 @@ Rendered text snippet included migrated tasks as `Accepted`, `Working`, and `In 
 
 ## Residual Risk
 
-- The required 4,044-task live-copy DB was not available at `/workspace/.farmtable/farmtable.db` in this container. Evidence above uses the only mounted DB copy found, with actual counts recorded.
+- The developer container did not have `/workspace/.farmtable/farmtable.db` mounted. The manager reran the startup migration against that 4,044-task dogfood DB copy after developer completion; evidence is recorded below.
 - The migration actor uses zero UUID because the current `changes` schema has a required `author_id` UUID and no dedicated system actor/table.
+
+## Manager Verification: 4,044-task dogfood DB copy
+
+After developer completion, the manager copied `/workspace/.farmtable/farmtable.db`
+to `/tmp/farmtable-predeploy-4044.db` and ran the predeploy startup migration
+against the copy with `cmd/farmtable-server`.
+
+Pre-migration:
+
+- `tasks`: 4,044
+- old native stage rows: `backlog=4`, `blocked=5`, `ready=15`
+- existing `task_state_migration` notes: 0
+
+First startup:
+
+- command path: `FARMTABLE_DB_DIALECT=sqlite3 FARMTABLE_DB_URL='file:/tmp/farmtable-predeploy-4044.db?_fk=1' FARMTABLE_OPEN_ACCESS=1 PORT=18091 /tmp/farmtable-server-predeploy`
+- server initialized and listened successfully.
+
+Post-migration:
+
+- stage/hold counts:
+  - `accepted`, no hold: 24
+  - `completed`, no hold: 1
+  - `in_qa`, no hold: 2
+  - `triage`, no hold: 4,014
+  - `working`, no hold: 3
+- old native stage rows remaining: 0
+- `task_state_migration` notes: 24
+- note reasons:
+  - `old_backlog_stage_to_accepted`: 4
+  - `old_blocked_stage_with_blocker_to_dependency_availability`: 5
+  - `old_ready_stage_to_accepted`: 15
+
+Sample note payloads:
+
+- `{"has_blocker":false,"native_label":"backlog","phase":"open","stage":"backlog","start_date":null}` -> `{"reason":"old_backlog_stage_to_accepted","stage":"accepted"}`
+- `{"has_blocker":false,"native_label":"ready","phase":"open","stage":"ready","start_date":"2026-07-20T00:00:00Z"}` -> `{"reason":"old_ready_stage_to_accepted","stage":"accepted"}`
+
+Second startup idempotency:
+
+- old native stage rows remaining: 0
+- `task_state_migration` notes: 24
+- stage/hold counts unchanged.
+
+Manager web smoke:
+
+- Served the migrated 4,044-task DB copy with the predeploy build on
+  `http://127.0.0.1:18092`.
+- Playwright selected the default Farm Table collection and reached the
+  Phase1-aware `ft-ready-queue-view`.
+- Screenshot: `/tmp/farmtable-predeploy-4044-web.png`.
+- Only observed network error was `/api/auth/session` 404 in open-access mode.
