@@ -158,7 +158,7 @@ func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task {
 		t.ParentTaskID = &pid
 	}
 
-	if stateStr == "CLOSED" {
+	if issueStateClosed(stateStr) {
 		if issue.ClosedAt != nil {
 			closedAt := issue.ClosedAt.Time
 			t.ClosedAt = &closedAt
@@ -565,7 +565,7 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 
 func hasOpenSubIssue(issue *issueNode) bool {
 	for _, child := range issue.SubIssues.Nodes {
-		if strings.EqualFold(string(child.State), "open") {
+		if issueStateOpen(string(child.State)) {
 			return true
 		}
 	}

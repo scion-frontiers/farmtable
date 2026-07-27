@@ -367,7 +367,7 @@ func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add
 //  2. If labels map to a stage, use that stage with the appropriate phase.
 //  3. Fallback: open -> (PhaseOpen, StageAccepted), closed -> (PhaseClosed, StageCompleted).
 func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []string) (task.Phase, task.Stage) {
-	isClosed := strings.EqualFold(state, "closed")
+	isClosed := issueStateClosed(state)
 
 	// For closed issues, labels can still override the stage, but we default
 	// based on stateReason.
