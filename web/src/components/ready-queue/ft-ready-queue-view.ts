@@ -290,6 +290,7 @@ export class FtReadyQueueView extends LitElement {
             this.holdReasonFilter,
             this.availabilityFilter,
             this.assigneeFilter,
+            this.store,
           ),
       )
       .sort(compareAcceptedQueueOrder);

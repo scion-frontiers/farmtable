@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import {
+  ATTENTION,
   AVAILABILITY_REASON_LABEL,
   DROP_REFUSAL,
   HOLD_REASON_LABEL,
@@ -232,5 +233,41 @@ describe('WRITE_FAILURE — the write-failure vocabulary', () => {
 
   it('pins every entry in WRITE_FAILURE, so a new failure message cannot slip in unpinned', () => {
     expect(Object.keys(WRITE_FAILURE).sort()).toEqual(['partialRenumber']);
+  });
+});
+
+/**
+ * The attention vocabulary — contract §10's "attention view".
+ *
+ * One phrase reaches the user in four places (card badge, Availability filter
+ * option, active-filter chip, dashboard tile) and they must all read the same,
+ * because the affordance only works if a user who saw the badge recognises the
+ * filter. Anchoring the words here is what keeps those four from drifting into
+ * three synonyms.
+ */
+describe('ATTENTION — the needs-attention vocabulary', () => {
+  it('names the state in the two words the card badge has always used', () => {
+    expect(ATTENTION.label).toBe('Needs attention');
+  });
+
+  /**
+   * The label cannot say why, and the why is the entire justification for the
+   * feature: contract §11 makes these tasks permanently stranded, so the copy
+   * has to say that nothing will clear them rather than implying a wait.
+   */
+  it('explains that the block is permanent, not merely current', () => {
+    expect(ATTENTION.explanation).toBe(
+      'Blocked by a prerequisite that was cancelled, dropped as a duplicate, or ' +
+        "won't be fixed. Closing a prerequisite that way does not unblock its " +
+        'dependents, so nothing will clear these on its own.',
+    );
+  });
+
+  it('says what activating the dashboard tile will do', () => {
+    expect(ATTENTION.tileAction).toBe('click to list them on the board');
+  });
+
+  it('pins every entry in ATTENTION, so new attention copy cannot slip in unpinned', () => {
+    expect(Object.keys(ATTENTION).sort()).toEqual(['explanation', 'label', 'tileAction']);
   });
 });
