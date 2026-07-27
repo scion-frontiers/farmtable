@@ -190,7 +190,23 @@ export class FtKanbanColumn extends LitElement {
     );
   }
 
-  /** Human-readable reason this lane refuses drops; empty when it accepts them. */
+  /**
+   * Human-readable reason this lane refuses drops; empty when it accepts them.
+   *
+   * This single value drives BOTH channels — the `title` tooltip and the
+   * `aria-description`. It used to drive only the description, with `title`
+   * gated on `acceptsStageDrop` alone (finding M-1a), so a read-only board or a
+   * stage-incapable collection gave a screen-reader user a reason and a pointer
+   * user nothing at all. The two channels answer the same question, so they
+   * must not disagree about whether there is anything to explain.
+   *
+   * The previous gating was justified as tooltip-noise avoidance on the
+   * board-level refusals: those put a tooltip on all ten lanes rather than one.
+   * That is a real cost, but it is the smaller one — a pointer user with no
+   * other explanation for why their drag does nothing is worse than a hover
+   * hint they can ignore, and it is the same reason the drop gesture is
+   * accepted and answered rather than blocked.
+   */
   private get dropHint(): string {
     if (this.readOnly) return DROP_REFUSAL.readOnlyBoard;
     if (this.capabilities?.canChangeStage === false) {
@@ -200,20 +216,6 @@ export class FtKanbanColumn extends LitElement {
       return DROP_REFUSAL.terminalLaneHint(this.label);
     }
     return '';
-  }
-
-  /**
-   * Reason to show in a native `title` tooltip, if any.
-   *
-   * Only the lane-intrinsic refusal qualifies. `readOnly` and
-   * `canChangeStage: false` are properties of the whole board, so surfacing them
-   * through `title` puts a permanent tooltip on all ten lanes whether or not a
-   * drag is in progress — noise that the board-level read-only affordance
-   * already covers. Those reasons still reach the user: `dropHint` keeps them
-   * for the accessible description, and a real drop answers with a toast.
-   */
-  private get dropTooltip(): string {
-    return acceptsStageDrop(this.stage) ? '' : DROP_REFUSAL.terminalLaneHint(this.label);
   }
 
   private onDragEnter() {
@@ -372,7 +374,7 @@ export class FtKanbanColumn extends LitElement {
         role="listbox"
         aria-label=${this.label}
         aria-description=${dropHint || nothing}
-        title=${this.dropTooltip || nothing}
+        title=${dropHint || nothing}
         @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}
