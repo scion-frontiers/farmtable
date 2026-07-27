@@ -328,4 +328,33 @@ describe('ft-app — the four write-error reasons are each surfaced', () => {
     expect(text).toContain(WRITE_FAILURE.partialRenumber);
     expect(text).not.toContain('server said no');
   });
+
+  /**
+   * The toast body must be TEXT, never markup.
+   *
+   * `showErrorToast` builds it with `document.createTextNode`, which is the
+   * injection-proof construction — but nothing pinned that, and this range
+   * both refactored the sink and gave it user-controlled input: the
+   * `crossBandToast` refusal interpolates a raw task title
+   * (`ft-ready-queue-view.ts` passes `dragged.name`) and routes it through
+   * this exact path. Swapping the sink to `insertAdjacentHTML` left the whole
+   * suite green, so a regression here would be stored XSS in the app origin —
+   * a task title containing `<img src=x onerror=...>` executing for any user
+   * who drags that row across a priority band.
+   */
+  it('renders a refusal message as text, never as markup', async () => {
+    const view = await mountAppShowing('ready-queue');
+    const hostile = '<img src=x onerror="globalThis.__xss = 1">';
+
+    dispatchWriteError(view, { message: hostile, reason: 'rank-change-refused' });
+
+    const alert = toasts()[0];
+    expect(alert, 'no toast was shown').toBeDefined();
+    // The markup must not have been parsed into a node...
+    expect(alert.querySelector('img'), 'the message was parsed as HTML').toBeNull();
+    // ...it must be visible to the user verbatim...
+    expect(toastText()).toContain(hostile);
+    // ...and nothing in it may have executed.
+    expect((globalThis as Record<string, unknown>).__xss).toBeUndefined();
+  });
 });
