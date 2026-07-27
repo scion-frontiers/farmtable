@@ -77,13 +77,13 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 	var results []readyResult
 
 	for _, node := range nodes {
-		if node.State != "OPEN" {
+		if !issueStateOpen(node.State) {
 			continue
 		}
 
 		hasOpenChildren := false
 		for _, child := range node.Children {
-			if child.State == "OPEN" {
+			if issueStateOpen(child.State) {
 				hasOpenChildren = true
 				break
 			}
@@ -118,7 +118,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 	var results []blockedResult
 
 	for _, node := range nodes {
-		if node.State != "OPEN" {
+		if !issueStateOpen(node.State) {
 			continue
 		}
 
@@ -132,7 +132,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 
 		var openChildren []*issueTreeNode
 		for _, child := range node.Children {
-			if child.State == "OPEN" {
+			if issueStateOpen(child.State) {
 				openChildren = append(openChildren, child)
 			}
 		}
