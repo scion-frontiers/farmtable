@@ -15,6 +15,7 @@ import type {
   UpdateTaskFields,
 } from '../../src/gen/service.js';
 import { applyTaskUpdateFields, phaseForStage } from '../../src/gen/service.js';
+import { NATIVE_STAGE_OPTIONS } from '../../src/util/task-state-utils.js';
 
 export const TEST_COLLECTION_ID = '00000000-0000-0000-0000-0000000000c1';
 
@@ -121,8 +122,24 @@ export class RecordingClient implements FarmTableServiceClient {
     const current = this.source?.getTask(id) ?? task({ id });
     const updated = applyTaskUpdateFields(current, fields);
     // The server keeps the wire-only phase projection consistent with stage.
-    return { ...updated, phase: phaseForStage(updated.stage) };
+    const echoed = { ...updated, phase: phaseForStage(updated.stage) };
+    return this.updateTaskResponse ? this.updateTaskResponse(echoed, { id, fields }) : echoed;
   }
+
+  /**
+   * Rewrite the response so it DIVERGES from what the caller asked for.
+   *
+   * By default this client echoes the optimistic write straight back, which
+   * makes "the view reconciled from the server response" and "the view kept
+   * its own optimistic value" indistinguishable — a component that discarded
+   * the response entirely would pass every reconciliation test. A real server
+   * never echoes: it bumps `version`, and it may normalise or override the
+   * value (rank collisions, stage side effects, server-side clamping).
+   *
+   * Set this to return a modified task and the assertion becomes real: only a
+   * view that actually upserts the response can show the diverged value.
+   */
+  updateTaskResponse: ((echoed: Task, call: UpdateTaskCall) => Task) | null = null;
 
   async addComment(): Promise<never> {
     throw new Error('not implemented');
@@ -148,19 +165,18 @@ export class RecordingClient implements FarmTableServiceClient {
 /** Stage vocabulary removed from the native model by the task-state contract. */
 export const DELETED_STAGE_LABELS = ['Ready', 'Blocked', 'Backlog', 'Scheduled'] as const;
 
-/** The ten native stages the contract allows (design contract §4.1). */
-export const NATIVE_STAGES: TaskStage[] = [
-  TaskStage.TRIAGE,
-  TaskStage.ACCEPTED,
-  TaskStage.WORKING,
-  TaskStage.IN_REVIEW,
-  TaskStage.IN_QA,
-  TaskStage.DEPLOYING,
-  TaskStage.COMPLETED,
-  TaskStage.WONT_FIX,
-  TaskStage.DUPLICATE,
-  TaskStage.CANCELLED,
-];
+/**
+ * The native stages the contract allows (design contract §4.1).
+ *
+ * DERIVED from production's `NATIVE_STAGE_OPTIONS`, not a second copy of the
+ * list. This helper feeds "for every stage" sweeps across the suite; when it
+ * was a hand-maintained array, adding a stage to the contract would make those
+ * sweeps quietly stop covering it — the suite gets less thorough without
+ * getting redder, which is the worst failure mode a test helper has.
+ *
+ * The membership of this list is anchored in `vocabulary.contract.test.ts`.
+ */
+export const NATIVE_STAGES: TaskStage[] = [...NATIVE_STAGE_OPTIONS];
 
 export const ALL_TASK_PHASES: TaskPhase[] = [
   TaskPhase.UNSPECIFIED,

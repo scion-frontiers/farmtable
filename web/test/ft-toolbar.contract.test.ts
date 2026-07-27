@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import '../src/components/ft-toolbar.js';
-import { TaskHoldReason, TaskStage } from '../src/gen/types.js';
+import { AvailabilityReason, TaskHoldReason, TaskStage } from '../src/gen/types.js';
 import {
+  AVAILABILITY_REASON_LABEL,
   HOLD_REASON_LABEL,
   NATIVE_STAGE_OPTIONS,
   STAGE_LABEL,
@@ -163,14 +164,19 @@ describe('ft-toolbar — availability filter', () => {
   it('renders available/unavailable plus one option per availability reason', async () => {
     const toolbar = await mountToolbar();
 
+    // The values and their ORDER are the toolbar's own spec and stay literal.
+    // The labels belong to production's `AVAILABILITY_REASON_LABEL`, so they
+    // are read from it rather than transcribed; the words are anchored once,
+    // in `vocabulary.contract.test.ts`.
+    const label = (reason: AvailabilityReason) => AVAILABILITY_REASON_LABEL[reason];
     expect(optionsOf(selectByPlaceholder(toolbar, 'Availability'))).toEqual([
       { value: 'available', label: 'Available' },
       { value: 'unavailable', label: 'Unavailable' },
-      { value: '1', label: 'Triage' },
-      { value: '3', label: 'Held' },
-      { value: '4', label: 'Blocked by dependency' },
-      { value: '5', label: 'Future start date' },
-      { value: '2', label: 'Terminal' },
+      { value: '1', label: label(AvailabilityReason.TRIAGE) },
+      { value: '3', label: label(AvailabilityReason.HELD) },
+      { value: '4', label: label(AvailabilityReason.BLOCKED_BY_DEPENDENCY) },
+      { value: '5', label: label(AvailabilityReason.FUTURE_START_DATE) },
+      { value: '2', label: label(AvailabilityReason.TERMINAL) },
     ]);
   });
 
