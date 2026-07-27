@@ -50,7 +50,7 @@ tokens using the new `ft token update` command.
 ### 1. Token inventory
 ```bash
 # List all tokens and identify agent-typed ones
-ft token list --output json | jq '.items[] | {id, name, user_name, scopes}'
+ft token list --output json | jq '.items[]? | {id, name, user_name, scopes}'
 ```
 
 Reading the output:
@@ -65,7 +65,7 @@ Reading the output:
 
 ```bash
 # Triage the dangerous ones first
-ft token list --output json | jq '.items[] | select(.scopes == null) | {id, name, user_name}'
+ft token list --output json | jq '.items[]? | select(.scopes == null) | {id, name, user_name}'
 
 # ft token list caps at 200 rows and has no pagination flag. Confirm you saw everything:
 ft token list --output json | jq '{returned: (.items | length), total: .total_count}'
@@ -93,7 +93,7 @@ ft token create <reviewer-user-id> --name "lifecycle-reviewer"
 
 # MUST verify: an unrecognised --type (e.g. a "reviewr" typo) silently mints a
 # WILDCARD token instead of a scoped reviewer token.
-ft token list --output json | jq '.items[] | select(.name == "lifecycle-reviewer") | .scopes'
+ft token list --output json | jq '.items[]? | select(.name == "lifecycle-reviewer") | .scopes'
 # Expected exactly:
 # ["task:read","task:write","task:claim","task:accept","task:close","collection:read"]
 # If this prints null or is absent, the user type was not recognised — revoke
@@ -105,7 +105,7 @@ ft token list --output json | jq '.items[] | select(.name == "lifecycle-reviewer
 ### 4. Verify after deploy
 ```bash
 # Confirm agent token scopes
-ft token list --output json | jq '.items[] | select(.name == "<agent-token>") | .scopes'
+ft token list --output json | jq '.items[]? | select(.name == "<agent-token>") | .scopes'
 
 # Test the lifecycle: create task, accept (reviewer), claim (agent),
 # update (agent), close (reviewer)
@@ -156,8 +156,9 @@ SELECT id, name, scopes FROM api_tokens WHERE id = '<token-id>';
 
 **This path bypasses the `ft token update` guard rails. In particular:**
 - **NEVER** write `'[]'` or `NULL` — an empty scope set is interpreted as
-  **wildcard (full access)** by `RequireScope`. Use `ft token revoke` semantics
-  (delete the row) to disable a token instead.
+  **wildcard (full access)** by `RequireScope`. To disable a token, delete the
+  row (`DELETE FROM api_tokens WHERE id = '<token-id>'` — the equivalent of
+  `ft token revoke` on SQLite).
 - Scope strings are **not validated** by SQL. A typo (`task:cl0se`) is stored
   happily and the capability is silently denied at runtime. Valid scopes are
   listed in `internal/server/scopes.go`.
@@ -205,10 +206,18 @@ WHERE t.name = 'lifecycle-reviewer';
 **NEVER** omit the `scopes` column or write `'[]'` — NULL/empty is interpreted
 as wildcard (full access).
 
-> **Note:** This SQL block has been verified against the ent schema definitions
-> (`internal/store/ent/migrate/schema.go`) and a live SQLite database, but has
-> not been executed against a live PostgreSQL instance. Validate against your
-> Postgres deployment before relying on it in production.
+### Verification (replaces step 4)
+```sql
+-- Confirm agent token scopes after deploy
+SELECT t.name, t.scopes FROM api_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE u.type = 'agent' OR t.name = '<agent-token>';
+```
+
+> **Note:** The SQL blocks in this section have been verified against the ent
+> schema definitions (`internal/store/ent/migrate/schema.go`) and a live SQLite
+> database, but have not been executed against a live PostgreSQL instance.
+> Validate against your Postgres deployment before relying on it in production.
 
 A server-mode RPC for token/user CLI management is tracked as a follow-up
 (#169, #170).
