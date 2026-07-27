@@ -13,21 +13,13 @@ var (
 	stagesTriage = newStageSet(task.StageTriage)
 
 	// stagesAccepted is work that has been accepted into the queue.
-	stagesAccepted = newStageSet(task.StageBacklog, task.StageReady)
+	stagesAccepted = newStageSet(task.StageAccepted)
 
 	// stagesWorking is active ownership of a task.
 	stagesWorking = newStageSet(task.StageWorking)
 
 	// stagesHandoff covers the post-working handoff stages.
 	stagesHandoff = newStageSet(task.StageInReview, task.StageInQa, task.StageDeploying)
-
-	// stagesOnHold covers stages where work is paused.
-	stagesOnHold = newStageSet(
-		task.StageBlocked,
-		task.StageWaitingForInput,
-		task.StageDeferred,
-		task.StageScheduled,
-	)
 
 	// stagesTerminal covers the closed stages.
 	stagesTerminal = newStageSet(
@@ -80,7 +72,6 @@ type transitionRule struct {
 //	terminal    → anything non-terminal : task:accept  (reopen = re-accept)
 //	any         → working               : task:claim
 //	working     → handoff               : task:write
-//	any         → on hold               : task:write
 var transitionTable = []transitionRule{
 	{
 		// Closing always wins: it is the most privileged transition, and it
@@ -117,12 +108,6 @@ var transitionTable = []transitionRule{
 		to:     stagesHandoff,
 		scope:  ScopeTaskWrite,
 		reason: "handing off work in progress",
-	},
-	{
-		from:   nil,
-		to:     stagesOnHold,
-		scope:  ScopeTaskWrite,
-		reason: "pausing work",
 	},
 }
 

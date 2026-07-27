@@ -2047,10 +2047,10 @@ func (s *EntStore) Truncate(ctx context.Context) error {
 
 func (s *EntStore) GetReadyTasks(ctx context.Context, p GetReadyTasksParams) ([]*ReadyTaskResult, int, error) {
 	var stagePreds []predicate.Task
-	stagePreds = append(stagePreds, task.StageEQ(task.StageReady))
+	stagePreds = append(stagePreds, task.StageEQ(task.StageAccepted))
 	if p.IncludeUnblockedOpen {
 		stagePreds = append(stagePreds, task.StageEQ(task.StageTriage))
-		stagePreds = append(stagePreds, task.StageEQ(task.StageBacklog))
+		stagePreds = append(stagePreds, task.StageEQ(task.StageAccepted))
 	}
 
 	q := s.client.Task.Query().

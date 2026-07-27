@@ -4918,9 +4918,12 @@ type TaskMutation struct {
 	description                 *string
 	phase                       *task.Phase
 	stage                       *task.Stage
+	hold_reason                 *task.HoldReason
 	native_label                *string
 	_type                       *string
 	priority                    *task.Priority
+	rank                        *int
+	addrank                     *int
 	assignee_id                 *uuid.UUID
 	start_date                  *time.Time
 	due_date                    *time.Time
@@ -5223,6 +5226,55 @@ func (m *TaskMutation) ResetStage() {
 	m.stage = nil
 }
 
+// SetHoldReason sets the "hold_reason" field.
+func (m *TaskMutation) SetHoldReason(tr task.HoldReason) {
+	m.hold_reason = &tr
+}
+
+// HoldReason returns the value of the "hold_reason" field in the mutation.
+func (m *TaskMutation) HoldReason() (r task.HoldReason, exists bool) {
+	v := m.hold_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHoldReason returns the old "hold_reason" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldHoldReason(ctx context.Context) (v *task.HoldReason, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHoldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHoldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHoldReason: %w", err)
+	}
+	return oldValue.HoldReason, nil
+}
+
+// ClearHoldReason clears the value of the "hold_reason" field.
+func (m *TaskMutation) ClearHoldReason() {
+	m.hold_reason = nil
+	m.clearedFields[task.FieldHoldReason] = struct{}{}
+}
+
+// HoldReasonCleared returns if the "hold_reason" field was cleared in this mutation.
+func (m *TaskMutation) HoldReasonCleared() bool {
+	_, ok := m.clearedFields[task.FieldHoldReason]
+	return ok
+}
+
+// ResetHoldReason resets all changes to the "hold_reason" field.
+func (m *TaskMutation) ResetHoldReason() {
+	m.hold_reason = nil
+	delete(m.clearedFields, task.FieldHoldReason)
+}
+
 // SetNativeLabel sets the "native_label" field.
 func (m *TaskMutation) SetNativeLabel(s string) {
 	m.native_label = &s
@@ -5368,6 +5420,76 @@ func (m *TaskMutation) PriorityCleared() bool {
 func (m *TaskMutation) ResetPriority() {
 	m.priority = nil
 	delete(m.clearedFields, task.FieldPriority)
+}
+
+// SetRank sets the "rank" field.
+func (m *TaskMutation) SetRank(i int) {
+	m.rank = &i
+	m.addrank = nil
+}
+
+// Rank returns the value of the "rank" field in the mutation.
+func (m *TaskMutation) Rank() (r int, exists bool) {
+	v := m.rank
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRank returns the old "rank" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldRank(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRank is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRank requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRank: %w", err)
+	}
+	return oldValue.Rank, nil
+}
+
+// AddRank adds i to the "rank" field.
+func (m *TaskMutation) AddRank(i int) {
+	if m.addrank != nil {
+		*m.addrank += i
+	} else {
+		m.addrank = &i
+	}
+}
+
+// AddedRank returns the value that was added to the "rank" field in this mutation.
+func (m *TaskMutation) AddedRank() (r int, exists bool) {
+	v := m.addrank
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearRank clears the value of the "rank" field.
+func (m *TaskMutation) ClearRank() {
+	m.rank = nil
+	m.addrank = nil
+	m.clearedFields[task.FieldRank] = struct{}{}
+}
+
+// RankCleared returns if the "rank" field was cleared in this mutation.
+func (m *TaskMutation) RankCleared() bool {
+	_, ok := m.clearedFields[task.FieldRank]
+	return ok
+}
+
+// ResetRank resets all changes to the "rank" field.
+func (m *TaskMutation) ResetRank() {
+	m.rank = nil
+	m.addrank = nil
+	delete(m.clearedFields, task.FieldRank)
 }
 
 // SetAssigneeID sets the "assignee_id" field.
@@ -6505,7 +6627,7 @@ func (m *TaskMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TaskMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 25)
 	if m.title != nil {
 		fields = append(fields, task.FieldTitle)
 	}
@@ -6518,6 +6640,9 @@ func (m *TaskMutation) Fields() []string {
 	if m.stage != nil {
 		fields = append(fields, task.FieldStage)
 	}
+	if m.hold_reason != nil {
+		fields = append(fields, task.FieldHoldReason)
+	}
 	if m.native_label != nil {
 		fields = append(fields, task.FieldNativeLabel)
 	}
@@ -6526,6 +6651,9 @@ func (m *TaskMutation) Fields() []string {
 	}
 	if m.priority != nil {
 		fields = append(fields, task.FieldPriority)
+	}
+	if m.rank != nil {
+		fields = append(fields, task.FieldRank)
 	}
 	if m.assignee_id != nil {
 		fields = append(fields, task.FieldAssigneeID)
@@ -6591,12 +6719,16 @@ func (m *TaskMutation) Field(name string) (ent.Value, bool) {
 		return m.Phase()
 	case task.FieldStage:
 		return m.Stage()
+	case task.FieldHoldReason:
+		return m.HoldReason()
 	case task.FieldNativeLabel:
 		return m.NativeLabel()
 	case task.FieldType:
 		return m.GetType()
 	case task.FieldPriority:
 		return m.Priority()
+	case task.FieldRank:
+		return m.Rank()
 	case task.FieldAssigneeID:
 		return m.AssigneeID()
 	case task.FieldCollectionID:
@@ -6646,12 +6778,16 @@ func (m *TaskMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldPhase(ctx)
 	case task.FieldStage:
 		return m.OldStage(ctx)
+	case task.FieldHoldReason:
+		return m.OldHoldReason(ctx)
 	case task.FieldNativeLabel:
 		return m.OldNativeLabel(ctx)
 	case task.FieldType:
 		return m.OldType(ctx)
 	case task.FieldPriority:
 		return m.OldPriority(ctx)
+	case task.FieldRank:
+		return m.OldRank(ctx)
 	case task.FieldAssigneeID:
 		return m.OldAssigneeID(ctx)
 	case task.FieldCollectionID:
@@ -6721,6 +6857,13 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStage(v)
 		return nil
+	case task.FieldHoldReason:
+		v, ok := value.(task.HoldReason)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHoldReason(v)
+		return nil
 	case task.FieldNativeLabel:
 		v, ok := value.(string)
 		if !ok {
@@ -6741,6 +6884,13 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPriority(v)
+		return nil
+	case task.FieldRank:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRank(v)
 		return nil
 	case task.FieldAssigneeID:
 		v, ok := value.(uuid.UUID)
@@ -6861,13 +7011,21 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *TaskMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addrank != nil {
+		fields = append(fields, task.FieldRank)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *TaskMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case task.FieldRank:
+		return m.AddedRank()
+	}
 	return nil, false
 }
 
@@ -6876,6 +7034,13 @@ func (m *TaskMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *TaskMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case task.FieldRank:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRank(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Task numeric field %s", name)
 }
@@ -6887,6 +7052,9 @@ func (m *TaskMutation) ClearedFields() []string {
 	if m.FieldCleared(task.FieldDescription) {
 		fields = append(fields, task.FieldDescription)
 	}
+	if m.FieldCleared(task.FieldHoldReason) {
+		fields = append(fields, task.FieldHoldReason)
+	}
 	if m.FieldCleared(task.FieldNativeLabel) {
 		fields = append(fields, task.FieldNativeLabel)
 	}
@@ -6895,6 +7063,9 @@ func (m *TaskMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(task.FieldPriority) {
 		fields = append(fields, task.FieldPriority)
+	}
+	if m.FieldCleared(task.FieldRank) {
+		fields = append(fields, task.FieldRank)
 	}
 	if m.FieldCleared(task.FieldAssigneeID) {
 		fields = append(fields, task.FieldAssigneeID)
@@ -6949,6 +7120,9 @@ func (m *TaskMutation) ClearField(name string) error {
 	case task.FieldDescription:
 		m.ClearDescription()
 		return nil
+	case task.FieldHoldReason:
+		m.ClearHoldReason()
+		return nil
 	case task.FieldNativeLabel:
 		m.ClearNativeLabel()
 		return nil
@@ -6957,6 +7131,9 @@ func (m *TaskMutation) ClearField(name string) error {
 		return nil
 	case task.FieldPriority:
 		m.ClearPriority()
+		return nil
+	case task.FieldRank:
+		m.ClearRank()
 		return nil
 	case task.FieldAssigneeID:
 		m.ClearAssigneeID()
@@ -7014,6 +7191,9 @@ func (m *TaskMutation) ResetField(name string) error {
 	case task.FieldStage:
 		m.ResetStage()
 		return nil
+	case task.FieldHoldReason:
+		m.ResetHoldReason()
+		return nil
 	case task.FieldNativeLabel:
 		m.ResetNativeLabel()
 		return nil
@@ -7022,6 +7202,9 @@ func (m *TaskMutation) ResetField(name string) error {
 		return nil
 	case task.FieldPriority:
 		m.ResetPriority()
+		return nil
+	case task.FieldRank:
+		m.ResetRank()
 		return nil
 	case task.FieldAssigneeID:
 		m.ResetAssigneeID()

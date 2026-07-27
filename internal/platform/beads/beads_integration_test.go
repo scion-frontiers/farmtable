@@ -438,7 +438,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 		t.Fatal("BEADS-002 not found")
 	}
 	check("BEADS-002.phase", string(task.PhaseOpen), string(t2.Phase))
-	check("BEADS-002.stage", string(task.StageBacklog), string(t2.Stage))
+	check("BEADS-002.stage", string(task.StageAccepted), string(t2.Stage))
 	check("BEADS-002.type", "feature", t2.Type)
 	if t2.Priority != nil {
 		check("BEADS-002.priority", string(task.PriorityHigh), string(*t2.Priority))
@@ -466,7 +466,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 		t.Fatal("BEADS-004 not found")
 	}
 	check("BEADS-004.phase", string(task.PhaseOnHold), string(t4.Phase))
-	check("BEADS-004.stage", string(task.StageDeferred), string(t4.Stage))
+	check("BEADS-004.stage", string(task.StageAccepted), string(t4.Stage))
 	if t4.Priority != nil {
 		check("BEADS-004.priority", string(task.PriorityLow), string(*t4.Priority))
 	} else {
@@ -479,7 +479,7 @@ func TestBeadsSyncIntegration(t *testing.T) {
 		t.Fatal("BEADS-005 not found")
 	}
 	check("BEADS-005.phase", string(task.PhaseOpen), string(t5.Phase))
-	check("BEADS-005.stage", string(task.StageBlocked), string(t5.Stage))
+	check("BEADS-005.stage", string(task.StageAccepted), string(t5.Stage))
 	check("BEADS-005.type", "epic", t5.Type)
 	if t5.Priority != nil {
 		check("BEADS-005.priority", string(task.PriorityLow), string(*t5.Priority))
@@ -509,10 +509,10 @@ func TestStatusMapping(t *testing.T) {
 		wantPhase   task.Phase
 		wantStage   task.Stage
 	}{
-		{"open", task.PhaseOpen, task.StageBacklog},
+		{"open", task.PhaseOpen, task.StageAccepted},
 		{"in_progress", task.PhaseInProgress, task.StageWorking},
-		{"blocked", task.PhaseOpen, task.StageBlocked},
-		{"deferred", task.PhaseOnHold, task.StageDeferred},
+		{"blocked", task.PhaseOpen, task.StageAccepted},
+		{"deferred", task.PhaseOnHold, task.StageAccepted},
 		{"closed", task.PhaseClosed, task.StageCompleted},
 	}
 

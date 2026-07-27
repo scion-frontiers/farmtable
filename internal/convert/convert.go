@@ -24,10 +24,13 @@ func StageFromProto(s pb.TaskStage) task.Stage {
 	switch s {
 	case pb.TaskStage_TASK_STAGE_TRIAGE:
 		return task.StageTriage
-	case pb.TaskStage_TASK_STAGE_BACKLOG:
-		return task.StageBacklog
-	case pb.TaskStage_TASK_STAGE_READY:
-		return task.StageReady
+	case pb.TaskStage_TASK_STAGE_ACCEPTED,
+		pb.TaskStage_TASK_STAGE_READY,
+		pb.TaskStage_TASK_STAGE_BLOCKED,
+		pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT,
+		pb.TaskStage_TASK_STAGE_DEFERRED,
+		pb.TaskStage_TASK_STAGE_SCHEDULED:
+		return task.StageAccepted
 	case pb.TaskStage_TASK_STAGE_WORKING:
 		return task.StageWorking
 	case pb.TaskStage_TASK_STAGE_IN_REVIEW:
@@ -36,14 +39,6 @@ func StageFromProto(s pb.TaskStage) task.Stage {
 		return task.StageInQa
 	case pb.TaskStage_TASK_STAGE_DEPLOYING:
 		return task.StageDeploying
-	case pb.TaskStage_TASK_STAGE_BLOCKED:
-		return task.StageBlocked
-	case pb.TaskStage_TASK_STAGE_WAITING_FOR_INPUT:
-		return task.StageWaitingForInput
-	case pb.TaskStage_TASK_STAGE_DEFERRED:
-		return task.StageDeferred
-	case pb.TaskStage_TASK_STAGE_SCHEDULED:
-		return task.StageScheduled
 	case pb.TaskStage_TASK_STAGE_COMPLETED:
 		return task.StageCompleted
 	case pb.TaskStage_TASK_STAGE_WONT_FIX:

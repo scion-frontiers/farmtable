@@ -206,10 +206,12 @@ var (
 		{Name: "title", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "phase", Type: field.TypeEnum, Enums: []string{"open", "in_progress", "on_hold", "closed"}, Default: "open"},
-		{Name: "stage", Type: field.TypeEnum, Enums: []string{"triage", "backlog", "ready", "working", "in_review", "in_qa", "deploying", "blocked", "waiting_for_input", "deferred", "scheduled", "completed", "wont_fix", "duplicate", "cancelled"}, Default: "triage"},
+		{Name: "stage", Type: field.TypeEnum, Enums: []string{"triage", "accepted", "working", "in_review", "in_qa", "deploying", "completed", "wont_fix", "duplicate", "cancelled"}, Default: "triage"},
+		{Name: "hold_reason", Type: field.TypeEnum, Nullable: true, Enums: []string{"waiting_for_input", "deferred"}},
 		{Name: "native_label", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "type", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "priority", Type: field.TypeEnum, Nullable: true, Enums: []string{"urgent", "high", "normal", "low"}},
+		{Name: "rank", Type: field.TypeInt, Nullable: true},
 		{Name: "assignee_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "start_date", Type: field.TypeTime, Nullable: true},
 		{Name: "due_date", Type: field.TypeTime, Nullable: true},
@@ -235,13 +237,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tasks_collections_tasks",
-				Columns:    []*schema.Column{TasksColumns[22]},
+				Columns:    []*schema.Column{TasksColumns[24]},
 				RefColumns: []*schema.Column{CollectionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "tasks_tasks_children",
-				Columns:    []*schema.Column{TasksColumns[23]},
+				Columns:    []*schema.Column{TasksColumns[25]},
 				RefColumns: []*schema.Column{TasksColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -250,12 +252,12 @@ var (
 			{
 				Name:    "task_id_version",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[0], TasksColumns[21]},
+				Columns: []*schema.Column{TasksColumns[0], TasksColumns[23]},
 			},
 			{
 				Name:    "task_collection_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[22]},
+				Columns: []*schema.Column{TasksColumns[24]},
 			},
 			{
 				Name:    "task_phase",
@@ -265,7 +267,7 @@ var (
 			{
 				Name:    "task_assignee_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[8]},
+				Columns: []*schema.Column{TasksColumns[10]},
 			},
 		},
 	}

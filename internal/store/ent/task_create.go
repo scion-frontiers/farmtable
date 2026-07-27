@@ -73,6 +73,20 @@ func (_c *TaskCreate) SetNillableStage(v *task.Stage) *TaskCreate {
 	return _c
 }
 
+// SetHoldReason sets the "hold_reason" field.
+func (_c *TaskCreate) SetHoldReason(v task.HoldReason) *TaskCreate {
+	_c.mutation.SetHoldReason(v)
+	return _c
+}
+
+// SetNillableHoldReason sets the "hold_reason" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableHoldReason(v *task.HoldReason) *TaskCreate {
+	if v != nil {
+		_c.SetHoldReason(*v)
+	}
+	return _c
+}
+
 // SetNativeLabel sets the "native_label" field.
 func (_c *TaskCreate) SetNativeLabel(v string) *TaskCreate {
 	_c.mutation.SetNativeLabel(v)
@@ -111,6 +125,20 @@ func (_c *TaskCreate) SetPriority(v task.Priority) *TaskCreate {
 func (_c *TaskCreate) SetNillablePriority(v *task.Priority) *TaskCreate {
 	if v != nil {
 		_c.SetPriority(*v)
+	}
+	return _c
+}
+
+// SetRank sets the "rank" field.
+func (_c *TaskCreate) SetRank(v int) *TaskCreate {
+	_c.mutation.SetRank(v)
+	return _c
+}
+
+// SetNillableRank sets the "rank" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableRank(v *int) *TaskCreate {
+	if v != nil {
+		_c.SetRank(*v)
 	}
 	return _c
 }
@@ -527,6 +555,11 @@ func (_c *TaskCreate) check() error {
 			return &ValidationError{Name: "stage", err: fmt.Errorf(`ent: validator failed for field "Task.stage": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.HoldReason(); ok {
+		if err := task.HoldReasonValidator(v); err != nil {
+			return &ValidationError{Name: "hold_reason", err: fmt.Errorf(`ent: validator failed for field "Task.hold_reason": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.Priority(); ok {
 		if err := task.PriorityValidator(v); err != nil {
 			return &ValidationError{Name: "priority", err: fmt.Errorf(`ent: validator failed for field "Task.priority": %w`, err)}
@@ -603,6 +636,10 @@ func (_c *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 		_spec.SetField(task.FieldStage, field.TypeEnum, value)
 		_node.Stage = value
 	}
+	if value, ok := _c.mutation.HoldReason(); ok {
+		_spec.SetField(task.FieldHoldReason, field.TypeEnum, value)
+		_node.HoldReason = &value
+	}
 	if value, ok := _c.mutation.NativeLabel(); ok {
 		_spec.SetField(task.FieldNativeLabel, field.TypeString, value)
 		_node.NativeLabel = value
@@ -614,6 +651,10 @@ func (_c *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(task.FieldPriority, field.TypeEnum, value)
 		_node.Priority = &value
+	}
+	if value, ok := _c.mutation.Rank(); ok {
+		_spec.SetField(task.FieldRank, field.TypeInt, value)
+		_node.Rank = &value
 	}
 	if value, ok := _c.mutation.AssigneeID(); ok {
 		_spec.SetField(task.FieldAssigneeID, field.TypeUUID, value)

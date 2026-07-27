@@ -27,9 +27,11 @@ type CreateTaskParams struct {
 	CollectionID       uuid.UUID
 	Phase              task.Phase
 	Stage              task.Stage
+	HoldReason         *task.HoldReason
 	NativeLabel        string
 	Type               string
 	Priority           *task.Priority
+	Rank               *int
 	AssigneeID         *uuid.UUID
 	ParentTaskID       *uuid.UUID
 	AcceptanceCriteria *string
@@ -48,9 +50,13 @@ type UpdateTaskParams struct {
 	Description         *string
 	Phase               *task.Phase
 	Stage               *task.Stage
+	HoldReason          *task.HoldReason
+	ClearHoldReason     bool
 	NativeLabel         *string
 	Type                *string
 	Priority            *task.Priority
+	Rank                *int
+	ClearRank           bool
 	ClearPriority       bool
 	AssigneeID          *uuid.UUID
 	ClearAssignee       bool
@@ -213,9 +219,11 @@ type ImportTask struct {
 	Description        string
 	Phase              task.Phase
 	Stage              task.Stage
+	HoldReason         *task.HoldReason
 	NativeLabel        string
 	Type               string
 	Priority           *task.Priority
+	Rank               *int
 	AssigneeID         *uuid.UUID
 	ParentTaskID       *uuid.UUID
 	StartDate          *time.Time
