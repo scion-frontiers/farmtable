@@ -25,6 +25,12 @@ For PostgreSQL deployments, use the direct SQL procedure in
 User and token *creation* on Postgres must go through the server's RPC or
 dashboard — those operations are out of scope for this runbook's CLI path.
 
+**Split-brain hazard:** `ft user create` writes to local SQLite, but `ft user
+get` / `ft user list` / `ft user whoami` read from the server via gRPC. An
+operator who creates a user then verifies with `ft user list` will get a
+contradictory "not found" from the same CLI — the user exists only in the
+local throwaway SQLite file. (Tracked: #170)
+
 A server-mode RPC for `ft token`/`ft user` commands is tracked as a follow-up
 (see GitHub issue).
 
