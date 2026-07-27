@@ -602,7 +602,41 @@ func (s *GitHubPassThroughStore) CloseTask(ctx context.Context, id uuid.UUID, st
 	if err != nil {
 		return nil, err
 	}
-	return s.issueToTask(closed), nil
+
+	// Swap the stage labels so the closed issue carries a label matching its
+	// terminal stage, the same way UpdateTask and ClaimTask do.
+	//
+	// Ordering is deliberate. The close is the primary, user-requested effect,
+	// so it runs first and its failure aborts before any label is touched.
+	// A label write that fails afterwards leaves a closed issue carrying a
+	// stale non-terminal stage label; the ClosedAt arm of ComputeAvailability
+	// keeps that residue harmless. The reverse order could leave an issue that
+	// is still OPEN on GitHub labelled with a terminal stage, which no
+	// downstream check can detect. Label writes are therefore best effort and
+	// never fail an already-completed close.
+	if err := s.ensureLabelIndex(ctx); err == nil {
+		currentLabels := issueLabels(target)
+		add, remove := s.mapper.StageLabelSwap(currentLabels, stage)
+
+		removeIDs := s.labelNamesToIDs(remove)
+		if len(removeIDs) > 0 {
+			_ = s.gql.removeLabels(ctx, target.ID, removeIDs)
+		}
+		addIDs := s.labelNamesToIDs(add)
+		if len(addIDs) > 0 {
+			_ = s.gql.addLabels(ctx, target.ID, addIDs)
+		}
+	}
+
+	// The closeIssue payload was captured before the label swap, so re-read the
+	// issue to report the post-swap stage. If the re-read fails the close still
+	// happened, so fall back to the mutation payload rather than reporting an
+	// error for work that succeeded.
+	refreshed, err := s.gql.getIssue(ctx, int(target.Number))
+	if err != nil {
+		return s.issueToTask(closed), nil
+	}
+	return s.issueToTask(refreshed), nil
 }
 
 func (s *GitHubPassThroughStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
@@ -614,7 +648,14 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
 	if t.Stage == task.StageTriage {
 		reasons = append(reasons, store.AvailabilityReasonTriage)
 	}
-	if store.IsTerminalStage(t.Stage) {
+	// The ClosedAt arm is intentional and unique to the pass-through store: it
+	// treats an issue that is really closed on GitHub as terminal even when its
+	// stage is not. Stage here is label-derived, and IssueToPhaseStage lets a
+	// stale non-terminal label (e.g. ft:stage/working left by ClaimTask) win
+	// over real closed state. ClosedAt is set from GitHub's own issue state in
+	// issueToTask, never from labels, so it is the reliable signal. Do not
+	// reduce this to a bare IsTerminalStage call.
+	if store.IsTerminalStage(t.Stage) || t.ClosedAt != nil {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}
 	if t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) {
