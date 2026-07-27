@@ -21,6 +21,7 @@ import {
   DROP_REFUSAL,
   isClosedStage,
   priorityRank,
+  rankBand,
   type AvailabilityFilter,
   type TaskGroupFilter,
 } from '../../util/task-state-utils.js';
@@ -222,6 +223,18 @@ export class FtReadyQueueView extends LitElement {
   @state()
   private dropTargetId: string | null = null;
 
+  /**
+   * True while a reorder's writes are on the wire.
+   *
+   * `drop` ends the gesture immediately but `reorder()` keeps awaiting, so
+   * nothing stops a second drag from starting mid-flight. Two overlapping
+   * reorders interleave their writes, and if the first then fails, its rollback
+   * restores pre-first-drag ranks over rows the second already persisted —
+   * leaving the store contradicting the server with nothing to trigger a
+   * refetch. Not `@state()`: it changes no rendered output.
+   */
+  private reorderInFlight = false;
+
   connectedCallback() {
     super.connectedCallback();
     new TaskStoreController(this, this.store);
@@ -282,27 +295,16 @@ export class FtReadyQueueView extends LitElement {
   }
 
   /**
-   * Every task sharing `task`'s rank scope: same collection, same priority
-   * band, queue-eligible, in real queue order.
+   * The rank scope of `task` — see `rankBand()`, which owns the rule and the
+   * reasoning behind it.
    *
-   * Deliberately NOT `getReadyTasks()`. That applies the view filters, and rank
-   * arithmetic run over a *filtered* band cannot see the neighbours the filter
-   * hid — so a midpoint can land exactly on a hidden task's rank, or on the
-   * wrong side of one, and that bad ordering is persisted silently. Contract
-   * §4.6 scopes rank to (collection, priority band) and says nothing about what
-   * the viewer happens to be looking at: a filter decides what is *drawn*,
-   * never what the arithmetic is computed over.
+   * This is deliberately NOT the set of rows on screen, and the whole store is
+   * handed over unfiltered: what this view draws is not what the arithmetic is
+   * computed over. Living in `task-state-utils` rather than here also lets a
+   * test derive the band the way production does instead of rebuilding it.
    */
   private bandFor(task: Task): Task[] {
-    const bandPriority = priorityRank(task.priority);
-    return this.store.allTasks
-      .filter(
-        (candidate) =>
-          candidate.collectionId === task.collectionId &&
-          priorityRank(candidate.priority) === bandPriority &&
-          this.isReady(candidate),
-      )
-      .sort(compareAcceptedQueueOrder);
+    return rankBand(task, this.store.allTasks, (candidate) => this.isReady(candidate));
   }
 
   private shortId(id: string): string {
@@ -396,6 +398,13 @@ export class FtReadyQueueView extends LitElement {
       this.reportRefusal(DROP_REFUSAL.reorderUnsupported);
       return;
     }
+    // Serialise reorders rather than interleaving them; see `reorderInFlight`.
+    // Refused out loud on the same channel as every other refusal, because a
+    // drag this view declines must never look like a frozen row.
+    if (this.reorderInFlight) {
+      this.reportRefusal(DROP_REFUSAL.reorderBusy);
+      return;
+    }
 
     // Cross-band drag (dropping into another priority) is an explicitly
     // optional convenience in contract §10 and is not implemented. Refuse it
@@ -441,6 +450,7 @@ export class FtReadyQueueView extends LitElement {
       if (task) this.store.upsert({ ...task, rank: write.rank });
     }
 
+    this.reorderInFlight = true;
     try {
       for (const write of writes) {
         // Contract: the queue writes `rank` only — never `priority`, never `phase`.
@@ -458,8 +468,18 @@ export class FtReadyQueueView extends LitElement {
       // or watch event; the toast tells the user to reload for exactly that
       // reason. Re-fetching here instead would need a list entry point this
       // view does not have.
+      //
+      // Roll back the `rank` field ONLY, merged onto whatever the store holds
+      // now. Re-upserting the whole pre-drag snapshot would also revert every
+      // field that changed while the writes were on the wire — a watch event
+      // carrying a rename, a stage change, or a `version` bump — silently
+      // undoing server state this view never touched, and a stale `version`
+      // then fails the *next* optimistic write.
       console.warn('Failed to update task rank; rolled back optimistic reorder', error);
-      for (const original of originals) this.store.upsert(original);
+      for (const original of originals) {
+        const current = this.store.getTask(original.id);
+        this.store.upsert(current ? { ...current, rank: original.rank } : original);
+      }
       this.dispatchEvent(new CustomEvent('write-error', {
         bubbles: true,
         composed: true,
@@ -471,6 +491,8 @@ export class FtReadyQueueView extends LitElement {
             : {}),
         },
       }));
+    } finally {
+      this.reorderInFlight = false;
     }
   }
 

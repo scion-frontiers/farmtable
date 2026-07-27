@@ -129,6 +129,12 @@ export const DROP_REFUSAL = {
    * still say so rather than move the row and stay quiet.
    */
   reorderNotConnected: 'Not connected to the server — the new order was not saved.',
+  /**
+   * A previous reorder is still being saved. Two overlapping reorders interleave
+   * their writes, and a rollback from the first would clobber ranks the second
+   * already persisted, so the second gesture is refused rather than queued.
+   */
+  reorderBusy: 'Still saving the last reorder — wait for it to finish, then try again.',
 } as const;
 
 export function isUnsuccessfulTerminalStage(stage: TaskStage): boolean {
@@ -181,6 +187,54 @@ export function compareAcceptedQueueOrder(a: Task, b: Task): number {
   if (createdDelta !== 0) return createdDelta;
 
   return a.id.localeCompare(b.id);
+}
+
+/**
+ * The rank band a task belongs to: every task sharing its collection and its
+ * priority band, in queue order.
+ *
+ * Contract §4.6 scopes `rank` to (collection, priority band), so this is the
+ * exact set a reorder's arithmetic may look at. It is deliberately NOT "the
+ * rows on screen". A task can be missing from the queue for three unrelated
+ * reasons, and only one of them says anything about its rank:
+ *
+ * 1. **The view filter.** The user narrowed the queue by search text, stage, or
+ *    availability reason. Purely presentational — those tasks still hold ranks
+ *    in the band, so a reorder that ignored them would hand out ranks already
+ *    in use.
+ * 2. **Availability.** The server reports the task as unavailable: held,
+ *    blocked by a dependency, or not started yet. Also temporary — the hold is
+ *    released, the blocker closes, the start date arrives, and the task walks
+ *    straight back into the queue carrying the rank it had all along. Its rank
+ *    is live and must anchor the arithmetic.
+ * 3. **A closed stage.** Completed, won't fix, duplicate, cancelled. This one
+ *    is different in kind: terminal tasks do not re-enter the queue, so their
+ *    ranks are dead. Counting them would wedge live ranks into ever-smaller
+ *    gaps and force renumbers that buy nothing. Mirrors the server's
+ *    `store.IsTerminalStage` (PR #191).
+ *
+ * So membership turns on stage, not on availability — with one union clause.
+ * `isQueueMember` is the caller's queue-membership predicate (`isReady`), and
+ * server-reported availability outranks stage everywhere else in this UI: a
+ * closed task the server still calls available IS rendered in the queue and IS
+ * draggable. Excluding it here would let a visible row be reordered against a
+ * band it is not part of — a silent no-op. If it is on screen, it is in the
+ * band.
+ */
+export function rankBand(
+  task: Task,
+  candidates: readonly Task[],
+  isQueueMember: (candidate: Task) => boolean,
+): Task[] {
+  const bandPriority = priorityRank(task.priority);
+  return candidates
+    .filter(
+      (candidate) =>
+        candidate.collectionId === task.collectionId &&
+        priorityRank(candidate.priority) === bandPriority &&
+        (!isClosedStage(candidate.stage) || isQueueMember(candidate)),
+    )
+    .sort(compareAcceptedQueueOrder);
 }
 
 export function attentionBlockers(task: Task, store: TaskStore): Task[] {
