@@ -448,6 +448,19 @@ describe('ft-inspector-relationships — adding a relationship', () => {
 });
 
 describe('ft-inspector-relationships — dependency attention callout', () => {
+  /**
+   * The derived loop below protects against WIDENING and is blind to
+   * NARROWING: drop a stage from the predicate and the case for that stage
+   * does not fail, it ceases to exist, and the runner reports green on a
+   * smaller number. Contract §11 names all three outcomes, so the cardinality
+   * is required rather than incidental — pin it explicitly.
+   */
+  it('warns for exactly the three contract §11 outcomes', () => {
+    expect([...UNSUCCESSFUL_TERMINAL_STAGES].sort()).toEqual(
+      [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED].sort(),
+    );
+  });
+
   for (const stage of UNSUCCESSFUL_TERMINAL_STAGES) {
     it(`warns that a ${STAGE_LABEL[stage]} prerequisite is still blocking the task`, async () => {
       const blocker = task({ id: 'blocker', name: 'Dead prerequisite', stage });

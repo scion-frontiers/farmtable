@@ -228,7 +228,21 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
 describe('ft-kanban-view — refusals must be visible', () => {
   // Derived from the real predicate rather than transcribed, so a lane that
   // starts refusing drops is covered automatically instead of silently missed.
-  for (const stage of NATIVE_STAGES.filter((candidate) => !acceptsStageDrop(candidate))) {
+  const REFUSING = NATIVE_STAGES.filter((candidate) => !acceptsStageDrop(candidate));
+
+  /**
+   * Derivation is blind to narrowing: a lane that stops refusing deletes its
+   * own cases instead of failing them, leaving a smaller green suite. Pin the
+   * membership so the board cannot start accepting a drag onto a lane whose
+   * stage change needs a reason or a duplicate target.
+   */
+  it('requires visible feedback on exactly the three refusing lanes', () => {
+    expect([...REFUSING].sort()).toEqual(
+      [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED].sort(),
+    );
+  });
+
+  for (const stage of REFUSING) {
     it(`gives visible feedback when a card is dropped on the ${TaskStage[stage]} lane`, async () => {
       const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
       const { view, client } = await mountBoard(store);
@@ -331,6 +345,13 @@ describe('ft-kanban-view — refusing lanes must still accept the drop gesture',
     expect(REFUSING_LANES.length, 'no lane refuses drops, so the loop below tests nothing')
       .toBeGreaterThan(0);
     expect(acceptsStageDrop(TaskStage.COMPLETED), 'the positive counterpart').toBe(true);
+  });
+
+  /** Same narrowing blindness as the loops above; pin the membership. */
+  it('keeps the drop gesture alive on exactly the three refusing lanes', () => {
+    expect(REFUSING_LANES.map(([, stage]) => stage).sort()).toEqual(
+      [TaskStage.WONT_FIX, TaskStage.DUPLICATE, TaskStage.CANCELLED].sort(),
+    );
   });
 
   for (const [name, stage] of REFUSING_LANES) {
