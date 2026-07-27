@@ -8,8 +8,15 @@ import { safeExternalUrl } from '../src/util/safe-url.js';
  *   export function safeExternalUrl(raw: string | null | undefined): string | null
  *
  * - https: is always allowed
- * - http: is allowed only for localhost / 127.0.0.1
+ * - http: is allowed only for localhost / 127.0.0.1, and only in a DEV build
  * - everything else returns null
+ *
+ * The loopback cases below pass because Vitest runs with `import.meta.env.DEV`
+ * true. They are the *development* contract, not the production one: a
+ * production bundle constant-folds the carve-out away and rejects loopback
+ * http: entirely. The production side is asserted in
+ * `src/util/safe-url.test.ts`, which runs under plain Node where
+ * `import.meta.env` is undefined.
  *
  * Until that module lands this whole file fails to load, which is the intended
  * "the contracted API does not exist yet" signal. The rendered evidence that

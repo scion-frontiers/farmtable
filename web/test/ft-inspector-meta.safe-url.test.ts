@@ -80,7 +80,10 @@ describe('ft-inspector-meta — safe remoteUrl values', () => {
     expect(anchor.getAttribute('rel') ?? '').toContain('noopener');
   });
 
-  it('renders a link for a localhost http: remoteUrl', async () => {
+  // Vitest runs with `import.meta.env.DEV` true, so this asserts the dev-build
+  // behaviour. Production folds the loopback carve-out out of the bundle and
+  // renders no link here; see `src/util/safe-url.test.ts`.
+  it('renders a link for a localhost http: remoteUrl (dev builds only)', async () => {
     const meta = await mountMeta('http://localhost:8080/tasks/1');
 
     const hrefs = links(meta).map((anchor) => anchor.getAttribute('href'));
