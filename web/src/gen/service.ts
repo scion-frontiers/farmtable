@@ -18,7 +18,14 @@ import {
   IdentityStatus,
 } from './types.js';
 
-export type UpdateTaskFields = Omit<Partial<Task>, 'parentTaskId' | 'dueDate' | 'startDate' | 'labels' | 'assignees'> & {
+/**
+ * Fields the client may write on UpdateTask.
+ *
+ * `phase` is deliberately excluded: it is a server-derived wire projection of
+ * `stage`, and the UI must never assert a phase value. Omitting it here makes
+ * a phase write a compile error rather than a silent contract violation.
+ */
+export type UpdateTaskFields = Omit<Partial<Task>, 'phase' | 'parentTaskId' | 'dueDate' | 'startDate' | 'labels' | 'assignees'> & {
   parentTaskId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
@@ -397,7 +404,7 @@ const MOCK_CHANGES: Record<string, Change[]> = {
   '10000000-0000-0000-0000-000000000002': [
     {
       id: 'ch1', taskId: '10000000-0000-0000-0000-000000000002',
-      field: 'stage', oldValue: 'Ready', newValue: 'Working',
+      field: 'stage', oldValue: 'Accepted', newValue: 'Working',
       changedBy: MOCK_USERS.u2, changedAt: NOW,
     },
     {
@@ -421,7 +428,7 @@ const MOCK_CHANGES: Record<string, Change[]> = {
   '10000000-0000-0000-0000-000000000006': [
     {
       id: 'ch5', taskId: '10000000-0000-0000-0000-000000000006',
-      field: 'stage', oldValue: 'Working', newValue: 'Blocked',
+      field: 'hold_reason', oldValue: null, newValue: 'Waiting for input',
       changedBy: MOCK_USERS.u2, changedAt: NOW,
     },
   ],
@@ -508,7 +515,10 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     const taskIndex = MOCK_TASKS.findIndex((t) => t.id === id);
     const task = MOCK_TASKS[taskIndex];
     if (!task) throw new Error(`Task not found: ${id}`);
-    const updated = applyTaskUpdateFields(task, fields);
+    const applied = applyTaskUpdateFields(task, fields);
+    // The server derives `phase` from `stage` and returns it on the wire;
+    // mirror that projection so the mock matches the contract.
+    const updated: Task = { ...applied, phase: phaseForStage(applied.stage) };
     MOCK_TASKS[taskIndex] = updated;
     return updated;
   }
