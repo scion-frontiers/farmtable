@@ -421,6 +421,17 @@ export class FtReadyQueueView extends LitElement {
     const writes = ranksForMove(band, draggedId, targetIndex);
     if (writes.length === 0) return;
 
+    // Bail BEFORE touching the store. This guard used to sit after the
+    // optimistic write, so a queue with no client moved the row, left the store
+    // holding ranks the server had never seen, and said nothing but a
+    // `console.warn` — a silent fake success. `ft-app` always assigns a client,
+    // so this is defensive rather than a live path, but a reorder that cannot
+    // be saved must refuse out loud like every other refusal in this view.
+    if (!this.client) {
+      this.reportRefusal(DROP_REFUSAL.reorderNotConnected);
+      return;
+    }
+
     // Optimistic update first so the row moves under the pointer immediately.
     const originals = writes
       .map((write) => this.store.getTask(write.id))
@@ -428,11 +439,6 @@ export class FtReadyQueueView extends LitElement {
     for (const write of writes) {
       const task = this.store.getTask(write.id);
       if (task) this.store.upsert({ ...task, rank: write.rank });
-    }
-
-    if (!this.client) {
-      console.warn('No client configured — queue reorder is local only');
-      return;
     }
 
     try {
