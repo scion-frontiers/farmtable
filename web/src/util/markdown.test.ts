@@ -297,6 +297,60 @@ function scriptExecution(): void {
     assertNotContains(out, 'onerror', 'onerror survived');
   });
 
+  // Positive control for `assertNoEventHandlers` ITSELF (r10 S7). Every other
+  // caller hands it SANITIZED output, so nothing above ever gives it HTML that
+  // really carries a handler: both of its scanning loops (the descendant walk
+  // and the attribute walk) can be replaced with `[]` and the whole suite stays
+  // GREEN. It is the only `assert*` helper with a scanning loop, and until this
+  // fixture it was the only one with no proof it can fail. A silently emptied
+  // helper would go on "passing" the four checks above forever.
+  //
+  // These fixtures deliberately do NOT go through renderMarkdown: the claim
+  // under test is that the CHECKER catches a handler, which needs input the
+  // sanitizer would never produce.
+  //
+  // MEASURED (jsdom 26, this tree): the HTML parser lowercases attribute names,
+  // so `OnClick` reaches the helper as `onclick` and the helper's own
+  // `.toLowerCase()` is defensive, not load-bearing, on this path. The
+  // mixed-case entry below therefore pins the PARSE path, not that call.
+  check('fixture: the inline-handler assertion fires on HTML that carries a handler', () => {
+    const HANDLER_BEARING: { label: string; html: string }[] = [
+      { label: 'a handler on a top-level element', html: '<img src=x onerror=alert(1)>' },
+      { label: 'a handler written in mixed case, lowercased by the parser', html: '<div OnClick="alert(1)"></div>' },
+      { label: 'a handler on a descendant, which needs the subtree walk', html: '<p><span onmouseover="alert(1)">x</span></p>' },
+    ];
+
+    const missed: string[] = [
+      fixtureTableViolation('HANDLER_BEARING', HANDLER_BEARING, 3),
+    ].filter((v): v is string => v !== null);
+
+    let caught = 0;
+    for (const { label, html } of HANDLER_BEARING) {
+      try {
+        assertNoEventHandlers(html, 'inline-handler positive control');
+        missed.push(`assertNoEventHandlers ACCEPTED ${label}: ${html}`);
+      } catch {
+        caught += 1;
+      }
+    }
+    if (caught !== HANDLER_BEARING.length) {
+      missed.push(`expected ${HANDLER_BEARING.length} rejections, got ${caught}`);
+    }
+
+    // Mirror. Without this, the control above would also pass if the helper
+    // threw on everything, which would make the four checks above vacuous in
+    // the opposite direction.
+    try {
+      assertNoEventHandlers('<p><a href="https://example.test">one</a> <em>two</em></p>', 'inline-handler mirror');
+    } catch (e) {
+      missed.push(`FALSE POSITIVE on handler-free HTML: ${(e as Error).message}`);
+    }
+
+    if (missed.length > 0) {
+      throw new Error('assertNoEventHandlers is not a working control: ' + missed.join(' | '));
+    }
+  });
+
   check('javascript: href stripped', () => {
     const out = renderMarkdown('[click](javascript:alert(1))');
     assertNotContains(out, 'javascript:', 'javascript: URL survived');
@@ -5013,10 +5067,15 @@ function sinkBinding(): void {
 //   2. fixture: the tree-wide vacuity control fires on every unsound scan
 //      (the positive control `treeWideScanViolation` never had; its body
 //      replaced by `return null` was GREEN at 79/127)
+//   3. fixture: the inline-handler assertion fires on HTML that carries a
+//      handler
+//      (`assertNoEventHandlers` is the only assert* helper with a scanning loop
+//      and had no positive control; both of its loops emptied were GREEN at
+//      79/127)
 // Round 10 also added the tree-wide control census, which is deliberately NOT a
 // check() call site — it is stated in `run()` alongside the two totals, for the
 // reason given there.
-const EXPECTED_CHECK_CALL_SITES = 80;
+const EXPECTED_CHECK_CALL_SITES = 81;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
@@ -5062,7 +5121,14 @@ const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 // Moved 123 -> 127 in round 9: the four assertions of `renderMarkdown does not
 // use the process-global DOMPurify singleton` — two positive controls proving
 // the singleton really is poisoned, then the two that matter.
-const EXPECTED_ASSERTIONS = 127;
+//
+// Moved 127 -> 131 in round 10: the four `assertNoEventHandlers` calls of
+// `fixture: the inline-handler assertion fires on HTML that carries a handler`
+// — three that must throw, one mirror that must not. NOTE that a call which
+// THROWS still counts here, because `assertions += 1` is the helper's first
+// statement; that is deliberate and is why the number moves by four and not by
+// one.
+const EXPECTED_ASSERTIONS = 131;
 
 /**
  * Two claims this file makes about `web/package.json` that nothing evaluated.
