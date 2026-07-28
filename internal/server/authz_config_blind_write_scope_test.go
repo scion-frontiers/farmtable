@@ -141,6 +141,15 @@ func TestLabelWriteScope_IsBlindToTodaysConfig(t *testing.T) {
 				}
 
 				f := newLabelWriteFixtureWithConfig(t, axis.mutate, "OPEN", "")
+
+				// THE CONTROL HAS TO BE ABLE TO WRITE THE LABEL (#194 round 11,
+				// B6a). The GraphQL mock resolves label names through a node-ID
+				// index and silently drops anything not in it, so "ft2:stage/
+				// completed" and "ft:shipped" were unwritable by construction.
+				// Both principals get the same registration, because a control
+				// that differs from the cell it controls for is not a control.
+				f.issue.registerLabel(axis.label)
+
 				err := f.addLabels(principal.scopes, axis.label)
 
 				if principal.wantAllowed {
@@ -150,6 +159,20 @@ func TestLabelWriteScope_IsBlindToTodaysConfig(t *testing.T) {
 							"prove nothing about scope. Fix the fixture before reading the "+
 							"narrow cell. err=%v",
 							axis.name, axis.label, err)
+					}
+					// AND THE WRITE MUST HAVE LANDED. `err == nil` alone is
+					// satisfied by an UpdateTask that authorized fine and then
+					// wrote nothing, which is precisely the state this fixture
+					// was in for 3 of the 5 axes: the control certified that
+					// the narrow cell's refusal was about scope, on the
+					// strength of a write that never happened.
+					if got := f.issue.currentLabels(); !containsLabelFold(got, axis.label) {
+						t.Fatalf("POSITIVE CONTROL IS HOLLOW for axis %q: the wildcard principal's "+
+							"UpdateTask returned no error and %q is NOT on the issue; labels now "+
+							"%v. The control's whole job is to prove the write is otherwise "+
+							"well-formed and would have landed. It cannot do that for a write "+
+							"that did not land, and the narrow cell below it is then "+
+							"uninterpretable.", axis.name, axis.label, got)
 					}
 					return
 				}
@@ -167,6 +190,15 @@ func TestLabelWriteScope_IsBlindToTodaysConfig(t *testing.T) {
 				refusedCells++
 				requireDeniedFor(t, err, server.ScopeTaskClose,
 					fmt.Sprintf("adding %q under axis %q", axis.label, axis.name))
+
+				// A denial that still wrote the label would be worse than no
+				// denial at all: the caller is told no and the privilege change
+				// happens anyway. Cheap to check now that the label is
+				// writable, and impossible to check before.
+				if got := f.issue.currentLabels(); containsLabelFold(got, axis.label) {
+					t.Fatalf("axis %q: the narrow principal was DENIED and %q is on the issue "+
+						"anyway; labels now %v", axis.name, axis.label, got)
+				}
 			})
 		}
 	}
@@ -225,6 +257,83 @@ func TestLabelWriteScope_PriorityAndTypeAxesDoNotPriceStages(t *testing.T) {
 			label:      "needs-triage",
 			wantDenied: false,
 		},
+
+		// ── THE ROWS THAT CAN ACTUALLY FAIL (#194 round 11) ──
+		//
+		// The three rows above cannot fail for the reason this test exists.
+		// "priority:high", "bug" and "needs-triage" have no stage name in them
+		// at all, so no plausible widening of the claim predicate reaches them;
+		// they were green against round 10's predicate too, which denied four
+		// measured labels of ordinary work.
+		//
+		// A denial-of-legitimate-work pin has to carry the shape that gets
+		// denied: a FOREIGN NAMESPACE whose tail is an English word that is
+		// also a Farm Table stage name. These four are the exact labels round
+		// 10 broke, MEASURED at 6d8f19e against a task:write holder — all four
+		// DENIED task:close, all four allowed at base and allowed here.
+		//
+		// They are not hypothetical spellings. "status:duplicate" and
+		// "release:completed" are ordinary GitHub project conventions, and
+		// "release:" is itself a legal push_prefix, which is why no predicate
+		// can price "ft2:completed" and free "release:completed" — see the
+		// axis-2 residue table in lifecycle_claim.go.
+		{
+			name:       "foreign_namespace_status_duplicate_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "status:duplicate",
+			wantDenied: false,
+		},
+		{
+			name:       "foreign_namespace_kanban_working_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "kanban:working",
+			wantDenied: false,
+		},
+		{
+			name:       "foreign_namespace_release_completed_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "release:completed",
+			wantDenied: false,
+		},
+		{
+			name:       "foreign_namespace_epic_cancelled_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "epic:cancelled",
+			wantDenied: false,
+		},
+		{
+			name:       "slash_namespace_area_duplicate_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "area/duplicate",
+			wantDenied: false,
+		},
+		{
+			// The same shape with the toggle off, because a predicate that
+			// ignores the toggle is exactly what this round installed and the
+			// free rows have to hold on both sides of it.
+			name:       "foreign_namespace_while_disabled_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) { cfg.GitHub.Labels.Enabled = false },
+			label:      "status:duplicate",
+			wantDenied: false,
+		},
+
+		// SECOND POSITIVE CONTROL, one character away from the free rows above.
+		// "notastage/completed" is free and "ft-stage/completed" is charged;
+		// the only difference is whether the "stage/" marker sits at a segment
+		// boundary. Without this row the free rows are consistent with a
+		// predicate that simply stopped charging for anything namespaced.
+		{
+			name:       "marker_at_a_boundary_is_charged_positive_control",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "ft-stage/completed",
+			wantDenied: true,
+		},
+		{
+			name:       "marker_not_at_a_boundary_is_free",
+			mutate:     func(cfg *ghplatform.GitHubConfig) {},
+			label:      "notastage/completed",
+			wantDenied: false,
+		},
 		{
 			// POSITIVE CONTROL. Same principal, same fixture, same call.
 			name:       "stage_label_is_charged_positive_control",
@@ -238,6 +347,7 @@ func TestLabelWriteScope_PriorityAndTypeAxesDoNotPriceStages(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newLabelWriteFixtureWithConfig(t, tc.mutate, "OPEN", "")
+			f.issue.registerLabel(tc.label)
 			err := f.addLabels(narrowPrincipal, tc.label)
 
 			if tc.wantDenied {
@@ -253,12 +363,21 @@ func TestLabelWriteScope_PriorityAndTypeAxesDoNotPriceStages(t *testing.T) {
 
 			sawFree++
 			if err != nil {
-				t.Fatalf("DENIAL OF LEGITIMATE WORK: %q is not a stage assertion under "+
-					"any configuration — Priorities and Types cannot name a stage, and "+
-					"checkLifecycleKeyCollisions refuses a config that aims one at a "+
-					"lifecycle label — so a task:write holder must be able to write it. "+
-					"The round-10 claim predicate has widened too far. err=%v",
-					tc.label, err)
+				t.Fatalf("DENIAL OF LEGITIMATE WORK: %q carries no lifecycle stage claim — "+
+					"either it names no stage at all, or its stage name sits behind no "+
+					"recognised \"stage/\" marker and so is an ordinary namespaced label "+
+					"such as any GitHub project uses — so a task:write holder must be able "+
+					"to write it. The claim predicate has widened too far; this is the "+
+					"round-10 failure, which denied four measured labels of ordinary work. "+
+					"err=%v", tc.label, err)
+			}
+			// "Free" has to mean the write HAPPENED, not that it was waved
+			// through and then dropped. Without this the free rows would pass
+			// against a store that silently discarded every label (B6a).
+			if got := f.issue.currentLabels(); !containsLabelFold(got, tc.label) {
+				t.Fatalf("%q was not denied and did not land either; labels now %v. A row "+
+					"that asserts a write is free must first show that the write occurs",
+					tc.label, got)
 			}
 		})
 	}

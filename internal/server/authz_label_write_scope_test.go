@@ -276,6 +276,22 @@ func mockKnowsLabel(idToName map[string]string, name string) bool {
 	return false
 }
 
+// registerLabel makes a label name resolvable by the mock's name -> node ID
+// index, so a mutation naming it actually lands.
+//
+// It exists because labelNamesToIDs SILENTLY DROPS an unregistered name: the
+// mutation is accepted, the response is a success and the label never appears.
+// A positive control that asserts only `err == nil` therefore passes on a
+// fixture that wrote nothing, which is exactly what 3 of the 5 axes in
+// TestLabelWriteScope_IsBlindToTodaysConfig were doing before round 11 (B6a).
+func (m *labelWriteIssueMock) registerLabel(name string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !mockKnowsLabel(m.idToName, name) {
+		m.idToName["L_registered_"+name] = name
+	}
+}
+
 func (m *labelWriteIssueMock) add(name string) {
 	for _, l := range m.labels {
 		if strings.EqualFold(l, name) {
@@ -2519,6 +2535,21 @@ func TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw(t *testing.T)
 // and silently disables a removal the gate DID price and DID charge for. The
 // two halves are positive controls for each other along different axes, and a
 // fix has to survive both.
+// containsLabelFold matches a label the way GitHub matches one: trimmed and
+// case-insensitive. containsLabel is exact, which is the right rule when the
+// expected spelling is a fixed constant and the WRONG rule when it comes from
+// a table row whose entire purpose is an alternate spelling — there, an exact
+// match turns "the attack did not land" into "the attack did not land under
+// the attacker's own capitalisation", which is not the same claim.
+func containsLabelFold(labels []string, want string) bool {
+	for _, l := range labels {
+		if strings.EqualFold(strings.TrimSpace(l), strings.TrimSpace(want)) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T) {
 	completed := stageLabel(task.StageCompleted)
 	accepted := stageLabel(task.StageAccepted)
@@ -2560,8 +2591,14 @@ func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T
 	executed := 0
 
 	for _, row := range absent {
-		executed++
 		t.Run("absent_from_the_snapshot/"+row.name, func(t *testing.T) {
+			// COUNTED INSIDE THE SUBTEST, not in the loop (#194 round 11, B6c).
+			// Outside, this counts iterations of a range statement, which is a
+			// fact about the table and not about the assertions. A subtest that
+			// is filtered out by -run, or that grows a t.Skip, still increments
+			// it — so the counter would certify a sweep that never ran.
+			executed++
+
 			// An ordinary open, accepted, available task. Not a bare issue:
 			// "still available work" is the user-visible harm, and a triage
 			// task is unavailable before the attack for an unrelated reason,
@@ -2592,10 +2629,29 @@ func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T
 
 			// THE MEASUREMENT. The gate predicted no change; the write must
 			// have produced no change.
-			if got := f.issue.currentLabels(); containsLabel(got, completed) {
-				t.Fatalf("a task:write-only caller applied %q with a request the gate priced "+
-					"at nothing (add=%v remove=%v); labels now %v.\n\nwhy this row exists: %s",
-					completed, row.add, row.remove, got, row.why)
+			//
+			// THE ORACLE IS THE ROW'S OWN add LIST (#194 round 11, B6b). Until
+			// round 11 these assertions named the literal `completed` and never
+			// read row.add or row.remove at all, so the table and the oracle
+			// were only related by the fact that someone wrote them at the same
+			// time. Change a row to attack a different label and the assertion
+			// keeps checking `completed`, finds it absent, and reports a pass
+			// for an attack it never looked at.
+			for _, added := range row.add {
+				// The row must still BE the C-1 attack. GitHub matches label
+				// names case-insensitively after trimming, so every spelling in
+				// the table has to name the one terminal label.
+				if !strings.EqualFold(strings.TrimSpace(added), completed) {
+					t.Fatalf("TABLE DRIFT: row %q adds %q, which does not name %q. This test "+
+						"is the pin for a cross-list cancellation applying a TERMINAL label; "+
+						"a row naming something else measures a different thing under this "+
+						"test's name", row.name, added, completed)
+				}
+				if got := f.issue.currentLabels(); containsLabelFold(got, added) {
+					t.Fatalf("a task:write-only caller applied %q with a request the gate priced "+
+						"at nothing (add=%v remove=%v); labels now %v.\n\nwhy this row exists: %s",
+						added, row.add, row.remove, got, row.why)
+				}
 			}
 			if got := f.lifecycleStages(t); containsStage(got, task.StageCompleted) {
 				t.Fatalf("the lifecycle stage set is %v, want it not to name completed; a free "+
@@ -2716,8 +2772,11 @@ func TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling(t *testing.T) {
 	executed := 0
 
 	for _, sp := range spellings {
-		executed++
 		t.Run(sp.name, func(t *testing.T) {
+			// Inside the subtest, for the reason given at the cross-list
+			// counter above (#194 round 11, B6c).
+			executed++
+
 			f := openIssue(t, wontFix, "bug")
 			if got := f.issue.currentLabels(); !containsLabel(got, wontFix) {
 				t.Fatalf("BASELINE BROKEN: the issue does not carry %q; labels %v", wontFix, got)
