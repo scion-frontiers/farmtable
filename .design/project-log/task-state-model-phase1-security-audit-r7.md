@@ -116,7 +116,10 @@ the old bug's axis and licensed a far broader negative claim than it validated.
 **Proposed fix is sound** (8 attempts on the fixed form, 0 residual), provided the
 cross-list test uses `labelMatchKey` and not `==`.
 
-**Proposed pin is VACUOUS and must not ship.** The property
+**~~Proposed pin is VACUOUS and must not ship.~~ — WRONG, RETRACTED in Addendum 2 below.
+Measured against the real implementation the pin fails on C-1 and on a case-blind mutant.
+It ships. The paragraph is kept only to show how the error was made; do not cite it.** The
+property
 `applyLabelDelta(snap, Restrict(...)) == applyLabelDelta(snap, add, remove)` is satisfied
 by the identity function — i.e. by the pre-fix A-4 code itself. Measured `true` in all 8
 rows; it never discriminates. Shipping it would re-commit in r8 exactly the false
