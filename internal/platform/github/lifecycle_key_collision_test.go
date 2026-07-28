@@ -149,6 +149,21 @@ func TestValidate_StillAcceptsLegitimateConfigs(t *testing.T) {
 			},
 		},
 		{
+			// ADDED AFTER MEASURING (#194 r8): the two rows above did not
+			// actually pin the stages-table exemption. Their keys ("doing",
+			// "shipped") do not normalise onto any stage, so a mutant that
+			// added the stages table to checkLifecycleKeyCollisions SURVIVED
+			// them. These rows are the ones that make the exemption load-
+			// bearing, and they are legitimate configs: a redundant self-
+			// mapping is harmless, and remapping one lifecycle spelling to a
+			// different stage is precisely what the stages table is for.
+			// checkAliasKeyCollisions permits both today.
+			"a stages key that IS a stage name",
+			func(c *LabelConfig) {
+				c.Stages = map[string]string{"completed": "completed", "duplicate": "wont_fix"}
+			},
+		},
+		{
 			// A type whose name merely CONTAINS a stage word is fine; only an
 			// exact normalised match captures the label.
 			"type names that resemble a stage without matching it",
@@ -170,6 +185,50 @@ func TestValidate_StillAcceptsLegitimateConfigs(t *testing.T) {
 				t.Fatalf("CONTROL BROKEN: Validate() rejected a legitimate config: %v", err)
 			}
 		})
+	}
+}
+
+// TestLifecycleKeyCollision_OracleIsStructurallyEquivalentToday records an
+// honest limit of the tests above, and pins the condition that limit rests on.
+//
+// checkLifecycleKeyCollisions builds its key set as
+// stripForMatch(StageToLabel(stage)) — the functions themselves rather than a
+// model of them. MEASURED (#194 r8): replacing that with a hardcoded
+// "strip ft:stage/ and lowercase" SURVIVES every test in this file, including
+// the custom-push-prefix row. That row only pins the error MESSAGE, which calls
+// StageToLabel separately.
+//
+// It survives because the two forms are equivalent by construction today:
+// StageToLabel writes pushPrefix + "stage/" + stage, and stripForMatch removes
+// exactly those two segments, so the round trip is the bare lowercased stage
+// name for every prefix. There is no config that separates them, so no test
+// can. Reporting a mutation-matrix row as killed when it is not is how this
+// project has produced fourteen confidently wrong harnesses.
+//
+// What CAN be pinned is the equivalence itself. If either function's spelling
+// changes so that the round trip stops being the bare stage name, the derived
+// form stays correct and the hardcoded form silently stops matching — so this
+// test failing is the signal that the structural choice has become a
+// measurable one, and that anyone who "simplified" it back has broken the check.
+func TestLifecycleKeyCollision_OracleIsStructurallyEquivalentToday(t *testing.T) {
+	for _, prefix := range []string{"", "ft:", "acme:", "x"} {
+		labels := DefaultConfig().GitHub.Labels
+		labels.PushPrefix = prefix
+		m := NewLabelMapper(labels)
+
+		for _, stage := range allStages {
+			got := m.stripForMatch(m.StageToLabel(stage))
+			want := strings.ToLower(string(stage))
+			if got != want {
+				t.Errorf("push_prefix %q, stage %s: stripForMatch(StageToLabel(...)) = %q, "+
+					"want the bare stage name %q.\n\n"+
+					"The round trip that made the derived and hardcoded forms of "+
+					"checkLifecycleKeyCollisions equivalent no longer holds. The derived form "+
+					"— the one in the tree — is the correct one. Do not replace it with a "+
+					"literal prefix; do add a test row that now distinguishes them.",
+					prefix, stage, got, want)
+			}
+		}
 	}
 }
 

@@ -165,15 +165,28 @@ func (c *GitHubConfig) Validate() error {
 // either as "strip 'ft:stage/' and compare" is how the round-7 audit missed a
 // Critical: a check that mirrors F must BE F.
 //
+// STATED HONESTLY: that choice is not measurable today. The hardcoded form is
+// equivalent by construction, because StageToLabel writes pushPrefix +
+// "stage/" + stage and stripForMatch strips exactly those, so no config
+// separates them and a mutant using the literal prefix survives every test.
+// The choice is structural — it stays correct if either function's spelling
+// changes. TestLifecycleKeyCollision_OracleIsStructurallyEquivalentToday pins
+// the equivalence so that the day it stops holding is a test failure and not a
+// silent divergence.
+//
 // Scope is deliberately narrow. Only priorities and types are checked, and only
 // against lifecycle labels:
 //
 //   - A priorities/types collision with EACH OTHER is a display ambiguity, not
 //     a privilege one, and rejecting it would break configs that work today.
-//   - The `stages` table is not checked against itself here, because an
-//     operator aliasing one stage spelling onto another stage is the documented
-//     purpose of that table. checkAliasKeyCollisions already catches the case
-//     where they contradict.
+//   - The `stages` table is not checked, because an operator aliasing one stage
+//     spelling onto another stage is the documented purpose of that table:
+//     `stages: {duplicate: wont_fix}` is a deliberate remapping, not a capture.
+//     checkAliasKeyCollisions already catches the case where two keys
+//     contradict. MEASURED: adding the stages table here rejects that config
+//     and a redundant `{completed: completed}` self-mapping, both of which load
+//     today, which is why TestValidate_StillAcceptsLegitimateConfigs carries a
+//     row for each.
 //
 // Note that item 3 of this round (assertStageWriteAllowed) also closes this,
 // structurally, at writeLabelSwap. Both ship: this one tells the operator at
