@@ -4,5 +4,9 @@
     "noEmit": false,
     "outDir": ".tmp-test"
   },
-  "include": ["src/utils/task-ready.test.ts"]
+  "include": [
+    "src/utils/task-ready.test.ts",
+    "src/util/safe-url.test.ts",
+    "src/util/url-binding-scan.test.ts"
+  ]
 }

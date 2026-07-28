@@ -3,10 +3,28 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { Task, User } from '../../gen/types.js';
 import type { FarmTableServiceClient, UpdateTaskFields } from '../../gen/service.js';
 import { formatDate } from '../../util/format.js';
+import { safeHref } from '../../util/safe-url.js';
 import { CAPABILITY_TOOLTIPS, type CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
+
+// Renders the external-source link only when the stored URL passes the scheme
+// allow-list. Rows written before the server-side check existed may still hold
+// a javascript:/data: URL, so the render path re-checks. A rejected URL degrades
+// to visible text rather than disappearing.
+function renderExternalSourceLink(remoteUrl: string) {
+  const href = safeHref(remoteUrl);
+  if (href === undefined) {
+    return html`<span class="external-source-unsafe" title=${`Unsupported URL: ${remoteUrl}`}
+      >Unsupported external source URL</span
+    >`;
+  }
+  return html`<a href=${href} target="_blank" rel="noopener" class="external-source-link">
+    <sl-icon name="box-arrow-up-right"></sl-icon>
+    <span>Open External Source</span>
+  </a>`;
+}
 
 @customElement('ft-inspector-meta')
 export class FtInspectorMeta extends LitElement {
@@ -606,17 +624,7 @@ export class FtInspectorMeta extends LitElement {
       ${t.remoteUrl
         ? html`<div class="row">
             <span class="label">External Source</span>
-            <span class="value">
-              <a
-                href=${t.remoteUrl}
-                target="_blank"
-                rel="noopener"
-                class="external-source-link"
-              >
-                <sl-icon name="box-arrow-up-right"></sl-icon>
-                <span>Open External Source</span>
-              </a>
-            </span>
+            <span class="value">${renderExternalSourceLink(t.remoteUrl)}</span>
           </div>`
         : nothing}
 
