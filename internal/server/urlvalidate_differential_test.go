@@ -3,11 +3,16 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -198,6 +203,11 @@ func divergenceNoteProblems(tc urlSchemeCase) []string {
 	return problems
 }
 
+// baseDependenceNegators are the ways a note can say a case is NOT
+// base-dependent. Matched as whole words, immediately before the term.
+var baseDependenceNegation = regexp.MustCompile(
+	`(?:\bnot\b|\bnever\b|\bno longer\b|\bnon-?\b|\bneither\b|\bnor\b|\bwithout\b|n't\b)[^.;:!?]{0,24}$`)
+
 // noteDeclaresBaseDependence reports whether a lowercased note asserts that its
 // case IS base-dependent.
 //
@@ -208,8 +218,88 @@ func divergenceNoteProblems(tc urlSchemeCase) []string {
 // reads "Not base-dependent -- measured evil.com under both bases" -- survived
 // on the Go side. The client-side marker test still killed it, but a rule that
 // only fires when another test would have caught it anyway is not a rule.
+//
+// The version after that stripped the literal string "not base-dependent" and
+// then looked for the term. That handles ONE spelling of the negation. Review
+// found three more that invert it -- "never base-dependent", "isn't
+// base-dependent", "no longer base-dependent" -- each of which leaves the term
+// standing after the strip and so reads as a positive declaration. For a case
+// that IS marked base_dependent, a note reading "never base-dependent" then
+// contradicts the marker and passes.
+//
+// So: find every occurrence of the term and look for a negator in the words
+// immediately preceding it, stopping at a sentence boundary. A note that
+// contains both a negated and an unnegated occurrence declares base-dependence,
+// because one of its sentences does.
 func noteDeclaresBaseDependence(lower string) bool {
-	return strings.Contains(strings.ReplaceAll(lower, "not base-dependent", ""), "base-dependent")
+	const term = "base-dependent"
+	for i := 0; ; {
+		j := strings.Index(lower[i:], term)
+		if j < 0 {
+			return false
+		}
+		at := i + j
+		start := max(at-64, 0)
+		if !baseDependenceNegation.MatchString(lower[start:at]) {
+			return true
+		}
+		i = at + len(term)
+	}
+}
+
+// TestNoteDeclaresBaseDependence pins the negation handling.
+//
+// Every row marked false is a spelling that the previous implementation read as
+// a POSITIVE declaration, because it stripped one literal phrase and then looked
+// for the term. On a fixture marked base_dependent, a note reading "never
+// base-dependent" therefore contradicted the marker and passed.
+//
+// The rows marked true are the anti-vacuity half: a rule that returns false for
+// everything would satisfy all the negatives and prove nothing.
+func TestNoteDeclaresBaseDependence(t *testing.T) {
+	cases := []struct {
+		note string
+		want bool
+	}{
+		// Declares base-dependence.
+		{"base-dependent: resolves against the document base", true},
+		{"this one is base-dependent", true},
+		{"measured base-dependent under two bases", true},
+		{"not a scheme issue; this case is base-dependent", true},
+		{"not base-dependent on the client, but base-dependent on the server", true},
+
+		// Denies it. Each of the middle three used to invert.
+		{"not base-dependent -- measured evil.com under both bases", false},
+		{"never base-dependent; the host is absolute", false},
+		{"isn't base-dependent, the parse is the same either way", false},
+		{"no longer base-dependent after the safeHref change", false},
+		{"non-base-dependent by construction", false},
+		{"resolves without base-dependent behaviour", false},
+
+		// Says nothing about it.
+		{"server rejects the scheme; client is more permissive", false},
+		{"", false},
+	}
+
+	for _, tc := range cases {
+		if got := noteDeclaresBaseDependence(tc.note); got != tc.want {
+			t.Errorf("noteDeclaresBaseDependence(%q) = %v, want %v", tc.note, got, tc.want)
+		}
+	}
+
+	// Anti-vacuity: both outcomes must occur in the table, or a constant
+	// function passes half of it by construction.
+	var trues, falses int
+	for _, tc := range cases {
+		if tc.want {
+			trues++
+		} else {
+			falses++
+		}
+	}
+	if trues == 0 || falses == 0 {
+		t.Fatalf("the table proves nothing: %d true rows, %d false rows", trues, falses)
+	}
 }
 
 func containsAny(s string, terms []string) bool {
@@ -449,6 +539,12 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 		filepath.Join("internal", "platform", "github", "graphql_queries.go"),
 		filepath.Join("internal", "platform", "github", "github.go"),
 		filepath.Join("internal", "platform", "beads", "beads.go"),
+		// Not an adapter. UpdateTask builds remote_data straight from an RPC
+		// request, so it is a writer on equal footing with the three above --
+		// and the previous name-keyed scanner never looked at it, because the
+		// function is not called buildRemoteData. Review found it; it is in the
+		// list rather than in a comment about the list.
+		filepath.Join("internal", "server", "server.go"),
 	}
 
 	var found, nested []string
@@ -458,7 +554,10 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reading %s: %v", rel, err)
 		}
-		fileTop, fileNested := remoteDataLiteralKeysIn(string(src))
+		fileTop, fileNested, err := remoteDataLiteralKeysIn(string(src))
+		if err != nil {
+			t.Fatalf("scanning %s: %v", rel, err)
+		}
 		for _, key := range fileTop {
 			if !slices.Contains(found, key) {
 				found = append(found, key)
@@ -699,107 +798,335 @@ func TestURLBearingRemoteDataKeyClassification(t *testing.T) {
 }
 
 // remoteDataBuilderFuncs are the functions that construct a task's RemoteData
-// map. Scanning whole adapter files instead would sweep up the GraphQL variable
+// map by name. Scanning whole files instead would sweep up the GraphQL variable
 // maps that live beside them ("repo", "states", "title", ...), which are not
 // remote_data at all.
+//
+// Functions NOT in this list are still scanned if they assign to a
+// `.RemoteData` selector -- see remoteDataFuncs. That is how server.go's
+// UpdateTask is reached, which writes remote_data directly from a request and
+// which the previous name-only scanner never looked at.
 var remoteDataBuilderFuncs = []string{
-	"func issueBuildRemoteData(",
-	"func buildRemoteData(",
+	"issueBuildRemoteData",
+	"buildRemoteData",
 }
 
-// remoteDataLiteralKeysIn extracts the keys written into a remote_data map by
-// any of remoteDataBuilderFuncs, split by nesting.
+// remoteDataLiteralKeysIn extracts the keys written into a remote_data map,
+// split by nesting.
 //
 // TOP is the set of keys at the top level of the map that becomes
-// Task.RemoteData. NESTED is every key of a map literal underneath one of those
-// (issueBuildRemoteData's "parent" and "sub_issues_summary",
-// beads' "dependencies", ...). The split is load-bearing rather than cosmetic:
-// sanitizeRemoteData walks only the top level, so a URL under a nested key would
-// be shipped unvalidated. Merging the two sets would let a nested key inherit a
-// top-level key's "validated on both boundaries" verdict, which is exactly the
-// kind of true-measurement-false-sentence this round exists to remove.
+// Task.RemoteData. NESTED is every key of a map literal underneath one of those.
+// The split is load-bearing rather than cosmetic: before this round
+// sanitizeRemoteData walked only the top level, so a URL under a nested key
+// would be shipped unvalidated. Merging the two sets would let a nested key
+// inherit a top-level key's "validated on both boundaries" verdict, which is
+// exactly the kind of true-measurement-false-sentence this round exists to
+// remove.
 //
-// Within a builder body it matches two shapes:
+// WHY THIS IS AN AST WALK NOW, having been a line scanner. The line scanner
+// matched the literal string "map[string]any{" at end of line and tracked depth
+// by counting lines that begin with "}". Three measured consequences:
 //
-//	"key": value          inside a map literal
-//	rd["key"] = value     conditional additions after it
+//   - `map[string]interface{}{` -- which is how gofmt spells it in generated
+//     code, and what internal/store/ent/task.go:60 contains -- did not open a
+//     frame at all. Its keys were attributed to whatever frame was open, so a
+//     nested key could be reported as top-level: a nested URL carrier reading
+//     as "validated on both boundaries".
+//   - a one-line literal, `map[string]any{"html_url": u}`, opened a frame that
+//     never closed and contributed no keys.
+//   - the function body was cut at the first "\n}\n", so anything after a
+//     nested func literal was silently dropped.
 //
-// Nesting is tracked by a stack rather than by counting braces, because `if`
-// blocks and `append(deps, map[string]any{...})` both open braces that have
-// nothing to do with map depth. Only the map literal assigned to `rd :=` is
-// top-level; every other literal pushes a nested frame.
+// The parser has no such failure modes and is in the standard library. A
+// text-scan of Go source was the wrong tool; this says so rather than adding a
+// fourth special case to it.
 //
-// Deliberately dumb, like remoteDataKeysIn: a false positive costs one line in
-// nonURLKeys, a false negative costs coverage, and the positive control in the
-// caller is what catches a scan that has stopped working entirely.
-func remoteDataLiteralKeysIn(src string) (top, nested []string) {
+// Deliberately still generous about what counts as a key: a false positive costs
+// one line in nonURLKeys, a false negative costs coverage, and the positive
+// controls in the caller are what catch a scan that has stopped working.
+func remoteDataLiteralKeysIn(src string) (top, nested []string, err error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "src.go", src, 0)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing: %w", err)
+	}
+
 	add := func(dst *[]string, k string) {
 		if k != "" && !slices.Contains(*dst, k) {
 			*dst = append(*dst, k)
 		}
 	}
 
-	for _, marker := range remoteDataBuilderFuncs {
-		start := strings.Index(src, marker)
-		if start < 0 {
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil || !buildsRemoteData(fn) {
 			continue
 		}
-		body := src[start:]
-		// The function body ends at the first line that is a closing brace at
-		// column 0, which gofmt guarantees for a top-level declaration.
-		if end := strings.Index(body, "\n}\n"); end >= 0 {
-			body = body[:end]
-		}
 
-		// stack[i] reports whether the i'th enclosing map literal is the
-		// top-level remote_data map.
-		var stack []bool
-		for _, line := range strings.Split(body, "\n") {
-			line = strings.TrimSpace(line)
+		// The root literal: the map assigned to `rd`/`remoteData`, or to any
+		// `.RemoteData` field. Everything else in the function that is a map
+		// literal is nested by definition -- including
+		// `append(deps, map[string]any{...})`, whose literal is lexically a
+		// sibling of the root but semantically underneath it.
+		root := rootRemoteDataLiteral(fn)
 
-			if len(stack) > 0 && strings.HasPrefix(line, "}") {
-				stack = stack[:len(stack)-1]
-				continue
-			}
-
-			// Shape 1: "key": value, attributed to the innermost open literal.
-			if len(stack) > 0 && strings.HasPrefix(line, `"`) {
-				if end := strings.Index(line[1:], `"`); end >= 0 &&
-					strings.HasPrefix(strings.TrimSpace(line[end+2:]), ":") {
-					if stack[len(stack)-1] {
-						add(&top, line[1:1+end])
-					} else {
-						add(&nested, line[1:1+end])
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.CompositeLit:
+				dst := &nested
+				if node == root {
+					dst = &top
+				}
+				for _, elt := range node.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					if k, ok := stringLit(kv.Key); ok {
+						add(dst, k)
+					}
+				}
+			case *ast.AssignStmt:
+				// rd["key"] = v, remoteData["key"] = v, p.RemoteData["key"] = v.
+				for _, lhs := range node.Lhs {
+					idx, ok := lhs.(*ast.IndexExpr)
+					if !ok || !isRemoteDataTarget(idx.X) {
+						continue
+					}
+					if k, ok := stringLit(idx.Index); ok {
+						add(&top, k)
 					}
 				}
 			}
+			return true
+		})
+	}
+	return top, nested, nil
+}
 
-			// Shape 2: rd["key"] = value, only meaningful outside any literal.
-			if len(stack) == 0 {
-				for _, recv := range []string{`rd["`, `remoteData["`} {
-					if !strings.HasPrefix(line, recv) {
-						continue
-					}
-					tail := line[len(recv):]
-					end := strings.IndexByte(tail, '"')
-					if end < 0 {
-						continue
-					}
-					if strings.HasPrefix(strings.TrimSpace(tail[end+2:]), "=") {
-						add(&top, tail[:end])
-					}
-				}
+// buildsRemoteData reports whether fn is one of the named builders, or assigns
+// to a `.RemoteData` field anywhere in its body.
+func buildsRemoteData(fn *ast.FuncDecl) bool {
+	if slices.Contains(remoteDataBuilderFuncs, fn.Name.Name) {
+		return true
+	}
+	found := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for _, lhs := range assign.Lhs {
+			if sel, ok := lhs.(*ast.SelectorExpr); ok && sel.Sel.Name == "RemoteData" {
+				found = true
 			}
-
-			if strings.HasSuffix(line, "map[string]any{") {
-				isTop := strings.HasPrefix(line, "rd := ") ||
-					strings.HasPrefix(line, "remoteData := ")
-				stack = append(stack, isTop)
+			if idx, ok := lhs.(*ast.IndexExpr); ok && isRemoteDataTarget(idx.X) {
+				found = true
 			}
 		}
+		return true
+	})
+	return found
+}
+
+// rootRemoteDataLiteral finds the composite literal that BECOMES
+// Task.RemoteData, or nil if the function only writes to it by index.
+func rootRemoteDataLiteral(fn *ast.FuncDecl) *ast.CompositeLit {
+	var root *ast.CompositeLit
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+			return true
+		}
+		if !isRemoteDataTarget(assign.Lhs[0]) {
+			return true
+		}
+		if lit, ok := assign.Rhs[0].(*ast.CompositeLit); ok && root == nil {
+			root = lit
+		}
+		return true
+	})
+	return root
+}
+
+// isRemoteDataTarget reports whether expr names the remote_data map itself:
+// the local `rd`/`remoteData`, or any `X.RemoteData` field.
+func isRemoteDataTarget(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return e.Name == "rd" || e.Name == "remoteData"
+	case *ast.SelectorExpr:
+		return e.Sel.Name == "RemoteData"
+	}
+	return false
+}
+
+// stringLit unwraps a quoted string literal.
+func stringLit(expr ast.Expr) (string, bool) {
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		return "", false
+	}
+	s, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return "", false
+	}
+	return s, true
+}
+
+// TestRemoteDataLiteralKeysIn pins the extractor against the shapes the previous
+// line-scanner got wrong, and against the shapes it must keep NOT matching.
+//
+// The caller has positive controls ("remote_url" and "html_url" must be found,
+// "percent_completed" must be nested), but those only prove the scan still works
+// on the tree as it is today. They cannot show it handles a spelling no adapter
+// currently uses -- and every defect below is exactly that: a spelling that was
+// mis-parsed silently, waiting for an adapter to adopt it.
+func TestRemoteDataLiteralKeysIn(t *testing.T) {
+	cases := []struct {
+		name       string
+		src        string
+		wantTop    []string
+		wantNested []string
+	}{
+		{
+			// The ent/gofmt spelling. The line scanner matched the literal text
+			// "map[string]any{" and this is not it, so the frame never opened
+			// and "html_url" was attributed to the enclosing frame -- a nested
+			// URL carrier reading as a validated top-level key.
+			name: "map[string]interface{} spelling",
+			src: `package p
+func buildRemoteData() map[string]any {
+	rd := map[string]any{"remote_url": u}
+	rd["parent"] = map[string]interface{}{
+		"html_url": p.URL,
+	}
+	return rd
+}`,
+			wantTop:    []string{"remote_url", "parent"},
+			wantNested: []string{"html_url"},
+		},
+		{
+			// A literal that opens and closes on one line. The line scanner
+			// pushed a frame that no line ever popped, so everything after it
+			// was misattributed, and the literal's own key was never read.
+			name: "one-line nested literal",
+			src: `package p
+func buildRemoteData() map[string]any {
+	rd := map[string]any{
+		"remote_url": u,
+		"parent":     map[string]any{"html_url": x},
+		"number":     n,
+	}
+	return rd
+}`,
+			wantTop:    []string{"remote_url", "parent", "number"},
+			wantNested: []string{"html_url"},
+		},
+		{
+			// The line scanner cut the body at the first "\n}\n". A nested func
+			// literal produces one, so everything after it was dropped.
+			name: "keys after a nested func literal",
+			src: `package p
+func buildRemoteData() map[string]any {
+	rd := map[string]any{"number": n}
+	sort.Slice(xs, func(i, j int) bool {
+		return xs[i] < xs[j]
+	})
+	rd["html_url"] = u
+	return rd
+}`,
+			wantTop: []string{"number", "html_url"},
+		},
+		{
+			// server.go's UpdateTask: no builder-shaped name, no root literal
+			// worth reading, all the keys arriving by index write. Never
+			// scanned at all before this round.
+			name: "index writes to a .RemoteData field, in a function with no builder name",
+			src: `package p
+func (s *Server) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) error {
+	if req.RemoteId != nil || req.RemoteUrl != nil {
+		p.RemoteData = map[string]any{}
+		p.RemoteData["remote_id"] = req.GetRemoteId()
+		p.RemoteData["remote_url"] = req.GetRemoteUrl()
+	}
+	return nil
+}`,
+			wantTop: []string{"remote_id", "remote_url"},
+		},
+		{
+			// A map literal that is lexically a sibling of the root but ends up
+			// underneath it. It must be NESTED, or its keys inherit the
+			// top-level "validated on both boundaries" verdict.
+			name: "literal appended into a slice that becomes a top-level value",
+			src: `package p
+func buildRemoteData() map[string]any {
+	rd := map[string]any{"number": n}
+	var deps []map[string]any
+	for _, d := range ds {
+		deps = append(deps, map[string]any{"html_url": d.URL})
+	}
+	rd["dependencies"] = deps
+	return rd
+}`,
+			wantTop:    []string{"number", "dependencies"},
+			wantNested: []string{"html_url"},
+		},
+		{
+			// NEGATIVE. The reason the scan is keyed on builder functions at
+			// all: GraphQL variable maps live in the same files and are not
+			// remote_data. If this starts returning keys the nonURLKeys table
+			// fills up with unrelated names and stops being read.
+			name: "a map in a function that never touches remote_data",
+			src: `package p
+func query(ctx context.Context) error {
+	vars := map[string]any{"repo": r, "states": s, "url": u}
+	return gql.Run(ctx, q, vars)
+}`,
+		},
+		{
+			// NEGATIVE. A non-string key cannot be a remote_data key.
+			name: "non-string keys",
+			src: `package p
+func buildRemoteData() map[string]any {
+	rd := map[string]any{"number": n}
+	byID := map[int]string{1: "a", 2: "b"}
+	_ = byID
+	return rd
+}`,
+			wantTop: []string{"number"},
+		},
 	}
 
-	return top, nested
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			top, nested, err := remoteDataLiteralKeysIn(tc.src)
+			if err != nil {
+				t.Fatalf("remoteDataLiteralKeysIn: %v", err)
+			}
+			slices.Sort(top)
+			slices.Sort(nested)
+			wantTop := slices.Clone(tc.wantTop)
+			wantNested := slices.Clone(tc.wantNested)
+			slices.Sort(wantTop)
+			slices.Sort(wantNested)
+			if !slices.Equal(top, wantTop) {
+				t.Errorf("top keys = %v, want %v", top, wantTop)
+			}
+			if !slices.Equal(nested, wantNested) {
+				t.Errorf("nested keys = %v, want %v", nested, wantNested)
+			}
+		})
+	}
+
+	// A parse error must be reported, not swallowed into an empty result. The
+	// caller's positive controls would catch an empty result today, but only
+	// because two keys happen to be pinned; a file that stopped parsing should
+	// say so rather than quietly contributing nothing.
+	if _, _, err := remoteDataLiteralKeysIn("package p\nfunc ("); err == nil {
+		t.Error("unparseable source returned no error; a file that fails to parse would " +
+			"contribute zero keys and read as 'this adapter writes nothing'")
+	}
 }
 
 // remoteDataKeysIn extracts the string literal K from every `RemoteData["K"]`
