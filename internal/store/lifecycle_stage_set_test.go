@@ -188,9 +188,25 @@ func TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected(t *testing.T)
 	if err != nil {
 		t.Fatalf("LabelDeltaLifecycleStages on a native store errored: %v", err)
 	}
-	if !store.SameStageSet(before, after) {
-		t.Errorf("a native store reported a label-induced transition %v -> %v; no label "+
-			"can move a stage that lives in its own column", before, after)
+	// Each endpoint is checked against a LITERAL, not against the other one.
+	//
+	// This assertion used to be `SameStageSet(before, after)` alone (#194 round
+	// 7, T-F5). The non-implementer arm returns `(current, current, nil)` — one
+	// slice header handed back twice — so that compared a value to itself and
+	// could not fail. MEASURED: changing that arm to answer [cancelled] for both
+	// endpoints left it GREEN; the two literals below turn it RED.
+	//
+	// The property is still "no label-induced transition", and it is still
+	// asserted: before == [accepted] and after == [accepted] implies before ==
+	// after, and now also says WHICH stage, which is the part a self-comparison
+	// threw away.
+	want := []task.Stage{task.StageAccepted}
+	if !store.SameStageSet(before, want) {
+		t.Errorf("before = %v, want %v: the task's own stage column is the answer", before, want)
+	}
+	if !store.SameStageSet(after, want) {
+		t.Errorf("after = %v, want %v: no label can move a stage that lives in its own "+
+			"column, so adding ft:stage/completed must induce no transition", after, want)
 	}
 }
 
@@ -284,9 +300,24 @@ func TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer(t *testing.T)
 	if got := ms.LifecycleStages(ctx, tk); !store.SameStageSet(got, []task.Stage{task.StageInReview}) {
 		t.Errorf("got %v, want [in_review]", got)
 	}
+	// Both endpoints against a literal, for the same reason as the native-store
+	// case above: MultiStore's unrouted arm also returns one slice header twice,
+	// so `SameStageSet(before, after)` is a value compared to itself.
+	//
+	// Honest note on what that cost here, because it is less than T-F5 assumed:
+	// the round-6 pair was `SameStageSet(before, after) && SameStageSet(before,
+	// [in_review])`, and the second clause DID pin the value — mutating the arm
+	// to answer [cancelled] turned this test RED before this change as well as
+	// after. The self-comparison was load-bearing only via the slice-header
+	// identity it did not itself check. Spelling both endpoints out removes the
+	// dependence on that identity.
 	before, after := ms.LabelDeltaLifecycleStages(ctx, tk, []string{"ft:stage/completed"}, nil)
-	if !store.SameStageSet(before, after) ||
-		!store.SameStageSet(before, []task.Stage{task.StageInReview}) {
-		t.Errorf("got (%v, %v), want ([in_review], [in_review])", before, after)
+	want := []task.Stage{task.StageInReview}
+	if !store.SameStageSet(before, want) {
+		t.Errorf("before = %v, want %v", before, want)
+	}
+	if !store.SameStageSet(after, want) {
+		t.Errorf("after = %v, want %v: an unrouted collection's stage lives in its own "+
+			"column, so a label edit induces no transition", after, want)
 	}
 }
