@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -17,11 +18,12 @@ import (
 
 // urlSchemeCase is one row of testdata/url-scheme-cases.json.
 type urlSchemeCase struct {
-	Name   string `json:"name"`
-	Input  string `json:"input"`
-	Server string `json:"server"`
-	Client string `json:"client"`
-	Note   string `json:"note"`
+	Name          string `json:"name"`
+	Input         string `json:"input"`
+	Server        string `json:"server"`
+	Client        string `json:"client"`
+	BaseDependent bool   `json:"base_dependent"`
+	Note          string `json:"note"`
 }
 
 // repoRoot walks up from this source file to the directory holding go.mod.
@@ -108,30 +110,162 @@ func TestValidateURLFieldMatchesSharedFixtures(t *testing.T) {
 	}
 }
 
+// Vocabulary a divergence note has to draw on. A note that explains a
+// DISAGREEMENT has to say something about both sides of it; naming only one
+// implementation describes a decision, not a divergence.
+//
+// These are deliberately implementation names rather than a keyword soup: they
+// are the terms that appear when someone has actually looked at why the two
+// parsers differ.
+var (
+	serverMechanismTerms = []string{"net/url", "validateURLField", "control-character"}
+	clientMechanismTerms = []string{"WHATWG", "new URL("}
+)
+
+// minDivergenceNoteLen is a floor, not a target. Measured: the shortest note in
+// the file at the time of writing is 187 characters.
+const minDivergenceNoteLen = 80
+
+// divergenceNoteProblems returns the reasons tc's note fails to describe tc's
+// divergence, or nil if it is acceptable. Callers pass only divergent cases.
+//
+// Every rule here is derived from the case's own columns and marker, so this is
+// not a checklist of expected note texts that would have to be maintained in
+// lockstep with the file.
+func divergenceNoteProblems(tc urlSchemeCase) []string {
+	var problems []string
+	note := tc.Note
+
+	if strings.TrimSpace(note) == "" {
+		return []string{"has no \"note\" at all"}
+	}
+	if len(note) < minDivergenceNoteLen {
+		problems = append(problems, fmt.Sprintf(
+			"note is %d characters; a description of a parser divergence needs at least %d",
+			len(note), minDivergenceNoteLen))
+	}
+
+	// The direction is derivable from the columns, so it can be CHECKED rather
+	// than trusted. This is the rule that catches a note swapped onto the wrong
+	// case, and a note rewritten to prose that says nothing.
+	lower := strings.ToLower(note)
+	const serverDir = "server is more permissive"
+	const clientDir = "client is more permissive"
+	wantDir, otherDir := clientDir, serverDir
+	if tc.Server == "accept" {
+		wantDir, otherDir = serverDir, clientDir
+	}
+	if !strings.Contains(lower, wantDir) {
+		problems = append(problems, fmt.Sprintf(
+			"server=%s client=%s, so the note must say %q; it does not",
+			tc.Server, tc.Client, wantDir))
+	}
+	if strings.Contains(lower, otherDir) {
+		problems = append(problems, fmt.Sprintf(
+			"the note claims %q, which contradicts server=%s client=%s",
+			otherDir, tc.Server, tc.Client))
+	}
+
+	if !containsAny(note, serverMechanismTerms) {
+		problems = append(problems, fmt.Sprintf(
+			"the note names no server-side mechanism (one of %v); a divergence note has to say "+
+				"what the SERVER did", serverMechanismTerms))
+	}
+	if !containsAny(note, clientMechanismTerms) {
+		problems = append(problems, fmt.Sprintf(
+			"the note names no client-side mechanism (one of %v); a divergence note has to say "+
+				"what the CLIENT did", clientMechanismTerms))
+	}
+
+	// A base-dependent case states a host that the browser may not use. The
+	// marker is checked against a real anchor on the client side
+	// (testBaseDependenceMarkersAreAccurate); this makes the note carry it too,
+	// so a reader who only ever sees the note is not misled. Both directions,
+	// because a note that claims base-dependence for an unmarked case is just as
+	// wrong as a marked case that stays silent.
+	switch declares := noteDeclaresBaseDependence(lower); {
+	case tc.BaseDependent && !declares:
+		problems = append(problems, "the fixture is marked \"base_dependent\" but the note does "+
+			"not say so; any host it quotes is safeHref's base-less parse, not necessarily the "+
+			"browser's")
+	case !tc.BaseDependent && declares:
+		problems = append(problems, "the note declares this case base-dependent but the fixture "+
+			"is not marked \"base_dependent\". The marker is the measured one -- "+
+			"testBaseDependenceMarkersAreAccurate() resolves every input at two document bases -- "+
+			"so the note is what is wrong")
+	}
+
+	return problems
+}
+
+// noteDeclaresBaseDependence reports whether a lowercased note asserts that its
+// case IS base-dependent.
+//
+// "Not base-dependent" is a useful thing for a note to say, and a plain
+// Contains("base-dependent") reads it as the opposite. Measured, and it was not
+// a hypothetical: the first version of this rule used Contains, and the
+// mutation that moves a marker onto "backslash host confusion" -- whose note
+// reads "Not base-dependent -- measured evil.com under both bases" -- survived
+// on the Go side. The client-side marker test still killed it, but a rule that
+// only fires when another test would have caught it anyway is not a rule.
+func noteDeclaresBaseDependence(lower string) bool {
+	return strings.Contains(strings.ReplaceAll(lower, "not base-dependent", ""), "base-dependent")
+}
+
+func containsAny(s string, terms []string) bool {
+	for _, term := range terms {
+		if strings.Contains(s, term) {
+			return true
+		}
+	}
+	return false
+}
+
 // TestSharedFixturesRecordRealDivergences is the anti-vacuity control for the
 // pair of differential tests.
 //
 // Without it, both halves would stay green if someone "resolved" the
 // disagreement by rewriting every client column to match the server column.
 // The disagreement is the finding; erasing it on paper must not be silent.
+//
+// WHAT CHANGED AND WHY. This used to check `Note != ""`, which is a check on the
+// existence of a note rather than on its content: rewriting all nine notes to
+// "Bananas." left it GREEN. That is the same defect as a declared constraint
+// nothing invokes -- the file looked documented and was not. The rules now
+// applied are in divergenceNoteProblems, and each is derived from the case's own
+// columns rather than from a table of expected texts. Notably the direction rule
+// is identity-reactive: swapping two notes between cases that diverge in
+// opposite directions fails, with the note count and every note's text unchanged.
 func TestSharedFixturesRecordRealDivergences(t *testing.T) {
 	cases := loadURLSchemeCases(t)
 
 	var divergent, agreeing int
+	noteOwner := map[string]string{}
 	for _, tc := range cases {
 		if tc.Client != "accept" && tc.Client != "reject" {
 			t.Errorf("fixture %q has an invalid \"client\" value %q; want accept or reject", tc.Name, tc.Client)
 			continue
 		}
 		if tc.Server == tc.Client {
+			if tc.Note != "" {
+				t.Errorf("fixture %q agrees on both sides (server=client=%s) but carries a "+
+					"divergence note. Either the columns are wrong or the note is.", tc.Name, tc.Server)
+			}
 			agreeing++
 			continue
 		}
 		divergent++
-		if tc.Note == "" {
-			t.Errorf("fixture %q: server=%s client=%s is a divergence with no \"note\". "+
-				"Every divergence must record the measured reason, or the next reader has to "+
-				"re-derive it.", tc.Name, tc.Server, tc.Client)
+		for _, problem := range divergenceNoteProblems(tc) {
+			t.Errorf("fixture %q (server=%s client=%s): %s\nnote: %q",
+				tc.Name, tc.Server, tc.Client, problem, tc.Note)
+		}
+		// Nine notes that are all the same string satisfy every per-note rule
+		// above while telling the reader nothing about any individual case.
+		if prev, dup := noteOwner[tc.Note]; dup {
+			t.Errorf("fixtures %q and %q share the same note verbatim; a divergence note has to "+
+				"describe ITS divergence", prev, tc.Name)
+		} else {
+			noteOwner[tc.Note] = tc.Name
 		}
 	}
 
@@ -147,6 +281,102 @@ func TestSharedFixturesRecordRealDivergences(t *testing.T) {
 			"That is almost certainly a broken measurement rather than a real result.")
 	}
 	t.Logf("shared fixtures: %d cases, %d agree, %d diverge", len(cases), agreeing, divergent)
+}
+
+// TestDivergenceNoteRuleRejectsANoteThatDescribesNothing is the control for the
+// control.
+//
+// divergenceNoteProblems is only worth having if it actually rejects the note
+// that provoked it. The previous `Note != ""` check would have passed every
+// negative case below. Both directions are exercised: a real note from the file
+// must be accepted, or the rule is merely strict rather than correct.
+func TestDivergenceNoteRuleRejectsANoteThatDescribesNothing(t *testing.T) {
+	// A real, unmodified fixture: the rule must not simply reject everything.
+	var real urlSchemeCase
+	for _, tc := range loadURLSchemeCases(t) {
+		if tc.Server != tc.Client {
+			real = tc
+			break
+		}
+	}
+	if real.Name == "" {
+		t.Fatal("no divergent fixture found; this control cannot run")
+	}
+	if problems := divergenceNoteProblems(real); len(problems) != 0 {
+		t.Fatalf("positive control: the rule rejects the real fixture %q: %v", real.Name, problems)
+	}
+
+	good := urlSchemeCase{
+		Name: "synthetic", Input: "http:/example.com", Server: "reject", Client: "accept",
+		Note: "Client is MORE permissive: WHATWG's new URL() yields a host here, while net/url " +
+			"treats the input as a rootless path with Host == \"\" and the server rejects it.",
+	}
+	if problems := divergenceNoteProblems(good); len(problems) != 0 {
+		t.Errorf("a well-formed synthetic note was rejected: %v", problems)
+	}
+
+	// Every negative holds the note COUNT fixed at one and corrupts only its
+	// identity, which is the mutation class the old check could not see.
+	negatives := []struct {
+		name string
+		tc   urlSchemeCase
+	}{
+		{
+			"the mutation the old check survived: prose that says nothing",
+			mutateNote(good, "Bananas. Bananas bananas bananas bananas bananas bananas bananas bananas bananas."),
+		},
+		{
+			"empty",
+			mutateNote(good, ""),
+		},
+		{
+			"too short to be a description",
+			mutateNote(good, "Client is MORE permissive: WHATWG, net/url."),
+		},
+		{
+			"the wrong direction, everything else intact",
+			mutateNote(good, strings.Replace(good.Note, "Client is MORE", "Server is MORE", 1)),
+		},
+		{
+			"names only the client's mechanism",
+			mutateNote(good, "Client is MORE permissive: WHATWG's new URL() accepts this input, and the "+
+				"server does not accept it, which is the whole of the difference between them here."),
+		},
+		{
+			"names only the server's mechanism",
+			mutateNote(good, "Client is MORE permissive: net/url treats the input as a rootless path with "+
+				"an empty Host, so validateURLField rejects it, and the client does not reject it."),
+		},
+		{
+			"base-dependent but the note does not say so",
+			func() urlSchemeCase { c := good; c.BaseDependent = true; return c }(),
+		},
+		{
+			// The mutation that survived the first version of this rule.
+			"base-dependent, and the note says the exact opposite",
+			func() urlSchemeCase {
+				c := good
+				c.BaseDependent = true
+				c.Note += " Not base-dependent -- measured the same host under both document bases."
+				return c
+			}(),
+		},
+		{
+			"not base-dependent, but the note claims it is",
+			mutateNote(good, good.Note+" BASE-DEPENDENT: the browser may resolve this elsewhere."),
+		},
+	}
+	for _, neg := range negatives {
+		if problems := divergenceNoteProblems(neg.tc); len(problems) == 0 {
+			t.Errorf("%s: divergenceNoteProblems accepted a note it must reject.\nnote: %q",
+				neg.name, neg.tc.Note)
+		}
+	}
+}
+
+func mutateNote(tc urlSchemeCase, note string) urlSchemeCase {
+	tc.Note = note
+	return tc
 }
 
 // TestRemoteDataKeysWrittenByAdaptersAreClassified replaces

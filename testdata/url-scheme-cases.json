@@ -13,12 +13,39 @@
     "SCHEME SETS agree. The DECISIONS do not: 9 of these 42 inputs are decided",
     "differently. Every divergence is recorded below with a measured reason.",
     "",
+    "PINNED AND SAMPLED -- NOT BOUNDED. An earlier version of this README said the",
+    "disagreement was \"pinned and bounded\", and the word mattered: it invites a",
+    "reader to treat these 9 as the whole set. An independent audit ran 39 further",
+    "inputs through both validators and found 10 MORE divergent shapes outside this",
+    "file, among them http:\\\\evil.com, https:/\\evil.com, http:\\/\\/evil.com,",
+    "http://example.com\\@evil.com/, https://ex%41mple.com/ (percent-encoded host:",
+    "net/url errors, WHATWG decodes to example.com), https:example.com/x,",
+    "https:/example.com/x, https:////x, https://///x and https://example.com:65536/x.",
+    "So at least 19 shapes are known to diverge and this file pins 9 of them. The",
+    "set is NOT closed. All 19 resolve to http(s) or are inert, which is the useful",
+    "result -- finding a new divergent shape is not by itself evidence that",
+    "something broke, and adding it here as a pin is welcome.",
+    "",
     "SECURITY READING: none of the 9 is a scheme escalation. In every case where",
     "the client is the more permissive of the two, the input resolves to an http(s)",
     "URL -- an attacker-chosen HOST, which is already reachable through a plainly",
     "accepted https://evil.com/, and not an attacker-chosen SCHEME. They are",
     "broken-link and inconsistency bugs, not XSS. Do not delete a case because it",
-    "looks harmless; the point is that the disagreement is pinned and bounded.",
+    "looks harmless; the point is that the disagreement is pinned and its measured",
+    "reason recorded next to it.",
+    "",
+    "BASE-DEPENDENCE. safeHref decides on new URL(raw) with NO base. The sink is an",
+    "<a> in a document, which ALWAYS resolves against the document base, and under",
+    "WHATWG rules an input whose scheme equals the base's scheme is parsed as a",
+    "RELATIVE reference. So for some inputs the host safeHref reasoned about is not",
+    "the host the browser will navigate to. \"base_dependent\": true marks every case",
+    "whose resolved host differs between an http dashboard and an https one. It is",
+    "measured at a real JSDOM anchor by testBaseDependenceMarkersAreAccurate() in",
+    "safe-url.test.ts, which fails if a marker is added or omitted wrongly -- so the",
+    "marker is a checked fact, not an annotation. Do not quote a host out of a note",
+    "as the host the browser will use unless the case is unmarked. This is a",
+    "correctness-of-documentation issue only: the base is always http(s), so a",
+    "base-relative resolution can never escalate the SCHEME.",
     "",
     "\"accept\" for the server means validateURLField returns nil. \"accept\" for the",
     "client means safeHref returns the input unchanged."
@@ -76,7 +103,8 @@
       "name": "javascript embedded DEL",
       "input": "java\u007fscript:alert(1)",
       "server": "reject",
-      "client": "reject"
+      "client": "reject",
+      "base_dependent": true
     },
     {
       "name": "data html",
@@ -142,20 +170,23 @@
       "name": "absolute path",
       "input": "/relative/path",
       "server": "reject",
-      "client": "reject"
+      "client": "reject",
+      "base_dependent": true
     },
     {
       "name": "bare word",
       "input": "not-a-url",
       "server": "reject",
-      "client": "reject"
+      "client": "reject",
+      "base_dependent": true
     },
     {
       "name": "empty",
       "input": "",
       "server": "accept",
       "client": "reject",
-      "note": "Deliberate on both sides. The server treats \"\" as \"unset\" so callers can clear the field; the client renders no link for it. Same outcome, different vocabulary."
+      "base_dependent": true,
+      "note": "Server is MORE permissive: validateURLField treats \"\" as \"unset\" so a caller can clear the field, while on the client new URL(\"\") throws and safeHref renders no link. Same user-visible outcome, different vocabulary. BASE-DEPENDENT: an empty href resolves to the document itself, so at the sink the host is the dashboard's own and no host of the input is involved at all."
     },
     {
       "name": "http no host",
@@ -168,21 +199,23 @@
       "input": "http:/\\/\\evil.com",
       "server": "reject",
       "client": "accept",
-      "note": "WHATWG reads the backslashes as slashes: new URL() yields host \"evil.com\" and the browser navigates there. net/url yields Host == \"\" and the server's host check rejects it. Client is MORE permissive."
+      "note": "Client is MORE permissive: WHATWG reads the backslashes as slashes, so new URL() yields host \"evil.com\" and the browser navigates there; net/url yields Host == \"\" and the server's host check rejects it. Not base-dependent -- measured \"evil.com\" under both an http and an https document base."
     },
     {
       "name": "single slash host",
       "input": "http:/example.com",
       "server": "reject",
       "client": "accept",
-      "note": "WHATWG normalises to http://example.com/ (host \"example.com\"); net/url treats it as an opaque/rootless path with Host == \"\"."
+      "base_dependent": true,
+      "note": "Client is MORE permissive: WHATWG normalises new URL(\"http:/example.com\") to host \"example.com\"; net/url treats it as an opaque/rootless path with Host == \"\". BASE-DEPENDENT: \"example.com\" is the base-less parse safeHref decides on, not necessarily the browser's host. On an HTTP dashboard this is a same-scheme relative reference and resolves to the dashboard's own host (measured at a JSDOM anchor); on an HTTPS dashboard it resolves to example.com. No scheme escalation either way."
     },
     {
       "name": "opaque no slash",
       "input": "http:example.com",
       "server": "reject",
       "client": "accept",
-      "note": "Same as above with no slash at all: WHATWG yields host \"example.com\", net/url yields Host == \"\"."
+      "base_dependent": true,
+      "note": "Client is MORE permissive: same as \"single slash host\" with no slash at all -- WHATWG's new URL() yields host \"example.com\", net/url yields Host == \"\". BASE-DEPENDENT for the same reason: on an HTTP dashboard the browser resolves it to the dashboard's own host, not to example.com (measured at a JSDOM anchor)."
     },
     {
       "name": "https ok",
@@ -243,7 +276,7 @@
       "input": "http://example.com/a b",
       "server": "reject",
       "client": "accept",
-      "note": "Rejected by the server's control-character pre-check (space <= ' '). WHATWG percent-encodes it to /a%20b and accepts."
+      "note": "Client is MORE permissive: the server's control-character pre-check rejects it (space <= ' ') before net/url is ever consulted, while WHATWG percent-encodes the space to /a%20b and accepts. Not base-dependent: the input carries its own authority, so the host is example.com under either document base."
     },
     {
       "name": "bare space in host",
@@ -256,7 +289,7 @@
       "input": "https://example.com/x\n",
       "server": "reject",
       "client": "accept",
-      "note": "Rejected by the server's control-character pre-check. WHATWG strips ASCII newlines before parsing, so the client sees a clean URL."
+      "note": "Client is MORE permissive: the server's control-character pre-check rejects the trailing \\n outright, and net/url would too; WHATWG strips ASCII newlines before parsing, so new URL() sees a clean URL. Not base-dependent: the input carries its own authority."
     },
     {
       "name": "idn host",
@@ -269,21 +302,21 @@
       "input": "http://example.com/%zz",
       "server": "reject",
       "client": "accept",
-      "note": "net/url errors on an invalid escape sequence; WHATWG leaves %zz alone and accepts."
+      "note": "Client is MORE permissive: net/url errors on an invalid escape sequence, while WHATWG's new URL() leaves %zz alone and accepts. Not base-dependent: the input carries its own authority."
     },
     {
       "name": "out of range port",
       "input": "https://example.com:99999/x",
       "server": "accept",
       "client": "reject",
-      "note": "Server is MORE permissive here: net/url does not range-check the port at Parse time, while new URL() throws on a port above 65535."
+      "note": "Server is MORE permissive here, which is the minority direction: net/url does not range-check the port at Parse time, while WHATWG requires it to be <= 65535 and new URL() throws above that. Not base-dependent: the client rejects it, so nothing reaches a sink to be resolved."
     },
     {
       "name": "empty host with path",
       "input": "https:///x",
       "server": "reject",
       "client": "accept",
-      "note": "WHATWG collapses the empty authority and promotes the first path segment to the host: new URL(\"https:///x\").hostname === \"x\". net/url yields Host == \"\" and the server rejects."
+      "note": "Client is MORE permissive: WHATWG collapses the empty authority and promotes the first path segment to the host, so new URL(\"https:///x\").hostname === \"x\"; net/url yields Host == \"\" and the server rejects. Not base-dependent -- measured host \"x\" under both an http and an https document base."
     }
   ]
 }
