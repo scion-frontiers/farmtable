@@ -173,58 +173,115 @@ function testHostGuardIsAFailClosedBackstop(): void {
 }
 
 /**
- * The behavioural pin the brief asks for: a persisted javascript: URL must not
- * reach the href attribute of a real DOM node.
+ * Install a JSDOM window as the global environment.
  *
- * This renders through JSDOM and reads the attribute back, rather than asserting
- * on a string, so it measures what the DOM ends up holding.
+ * This has to happen BEFORE lit or any component module is loaded: lit
+ * evaluates DOM globals at module scope, and the component modules call
+ * customElements.define() via @customElement as a side effect of being
+ * imported. Hence the dynamic import()s in the test below rather than
+ * top-of-file static imports.
  */
-function testPayloadNeverReachesHrefAttribute(): void {
-  const dom = new JSDOM('<!doctype html><body><div id="host"></div></body>');
+function installDOMGlobals(dom: InstanceType<typeof JSDOM>): void {
+  for (const key of Object.getOwnPropertyNames(dom.window)) {
+    if (key in globalThis) continue;
+    try {
+      (globalThis as Record<string, unknown>)[key] = (dom.window as unknown as Record<string, unknown>)[key];
+    } catch {
+      // Some window properties are getter-only; none of those are needed here.
+    }
+  }
+  (globalThis as Record<string, unknown>).window = dom.window;
+  (globalThis as Record<string, unknown>).document = dom.window.document;
+}
+
+/**
+ * The behavioural pin: a persisted javascript: URL must not reach the href
+ * attribute of a real DOM node.
+ *
+ * This drives the two REAL production render functions --
+ * ft-inspector-code.ts::renderPrLink and
+ * ft-inspector-meta.ts::renderExternalSourceLink -- through lit's render() into
+ * a real JSDOM tree, and reads the attribute back off the resulting node.
+ *
+ * It previously declared its own renderGuarded() copy of the guarded shape
+ * inside this file and asserted against that. That version was decorative:
+ * changing `const href = safeHref(url)` to `const href = url` in EITHER
+ * production function shipped green, because neither function was ever
+ * imported. A check that derives from the thing it is checking cannot falsify
+ * it. The copy is gone; these assertions now fail if either real function
+ * stops calling safeHref.
+ */
+async function testPayloadNeverReachesHrefAttribute(): Promise<void> {
+  const dom = new JSDOM('<!doctype html><body><div id="host"></div></body>', {
+    pretendToBeVisual: true,
+  });
+  installDOMGlobals(dom);
+
+  const { render } = await import('lit');
+  const { renderPrLink } = await import('../components/inspector/ft-inspector-code.js');
+  const { renderExternalSourceLink } = await import('../components/inspector/ft-inspector-meta.js');
+
   const doc = dom.window.document;
   const host = doc.getElementById('host')!;
 
-  // Mirrors the guarded shape used by ft-inspector-code.ts and
-  // ft-inspector-meta.ts: link when safeHref accepts, inert span when it does not.
-  const renderGuarded = (raw: string): void => {
-    const href = safeHref(raw);
-    if (href === undefined) {
-      const span = doc.createElement('span');
-      span.textContent = raw;
-      host.replaceChildren(span);
-    } else {
-      const a = doc.createElement('a');
-      a.setAttribute('href', href);
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener');
-      a.textContent = 'link';
-      host.replaceChildren(a);
-    }
-  };
+  const cases: ReadonlyArray<{
+    readonly name: string;
+    readonly renderBad: () => void;
+    readonly renderGood: () => void;
+    readonly good: string;
+  }> = [
+    {
+      name: 'ft-inspector-code.ts::renderPrLink',
+      renderBad: () => render(renderPrLink(XSS, 'PR-1'), host),
+      renderGood: () => render(renderPrLink('https://github.com/o/r/pull/1', 'PR-1'), host),
+      good: 'https://github.com/o/r/pull/1',
+    },
+    {
+      name: 'ft-inspector-meta.ts::renderExternalSourceLink',
+      renderBad: () => render(renderExternalSourceLink(XSS), host),
+      renderGood: () => render(renderExternalSourceLink('https://example.com/x'), host),
+      good: 'https://example.com/x',
+    },
+  ];
 
-  renderGuarded(XSS);
-  assert(host.querySelector('a') === null, 'a javascript: URL must not produce an anchor at all');
-  assert(
-    !host.innerHTML.includes('href'),
-    `no href attribute should be emitted, got: ${host.innerHTML}`,
-  );
-  // Degrade, do not drop: the value stays visible to the user as inert text.
-  assert(
-    host.textContent === XSS,
-    `rejected URL should remain visible as text, got: ${host.textContent}`,
-  );
+  for (const c of cases) {
+    c.renderBad();
+    assert(
+      host.querySelector('a') === null,
+      `${c.name}: a javascript: URL must not produce an anchor at all, got: ${host.innerHTML}`,
+    );
+    assert(
+      host.querySelector('[href]') === null,
+      `${c.name}: no element should carry an href attribute, got: ${host.innerHTML}`,
+    );
+    // Degrade, do not drop: the rejected value stays visible to the user. Both
+    // functions surface it in a title attribute on an inert element.
+    const inert = host.querySelector('[title]');
+    assert(
+      inert !== null && (inert.getAttribute('title') ?? '').includes(XSS),
+      `${c.name}: rejected URL should stay visible in a title attribute, got: ${host.innerHTML}`,
+    );
 
-  // Positive control for this harness: the identical render path DOES produce an
-  // href for a legitimate URL. Without this, an assertion of "no href" would
-  // pass even if renderGuarded were silently broken and rendered nothing ever.
-  const good = 'https://github.com/o/r/pull/1';
-  renderGuarded(good);
-  const anchor = host.querySelector('a');
-  assert(anchor !== null, 'positive control: a legitimate https URL must produce an anchor');
-  assert(
-    anchor!.getAttribute('href') === good,
-    `positive control: href should be ${good}, got ${anchor!.getAttribute('href')}`,
-  );
+    // Positive control, and note what it controls: it controls THIS harness --
+    // that lit + JSDOM + these real functions can produce an href at all. If
+    // this failed, the "no href" assertions above would be passing vacuously,
+    // for example because render() silently no-opped. It does NOT control the
+    // guard; the assertions above do.
+    c.renderGood();
+    const anchor = host.querySelector('a');
+    assert(
+      anchor !== null,
+      `${c.name}: positive control -- a legitimate https URL must produce an anchor`,
+    );
+    assert(
+      anchor!.getAttribute('href') === c.good,
+      `${c.name}: positive control -- href should be ${c.good}, got ${anchor!.getAttribute('href')}`,
+    );
+    assert(
+      anchor!.getAttribute('target') === '_blank' && anchor!.getAttribute('rel') === 'noopener',
+      `${c.name}: positive control -- the rendered anchor must keep target="_blank" rel="noopener", got: ${host.innerHTML}`,
+    );
+  }
 }
 
 /**
@@ -257,13 +314,13 @@ function testExternalAnchorsKeepTargetBlank(): void {
   }
 }
 
-function run(): void {
+async function run(): Promise<void> {
   testRejectsUnsafeSchemes();
   testAcceptsHTTPAndHTTPS();
   testHostGuardIsAFailClosedBackstop();
-  testPayloadNeverReachesHrefAttribute();
+  await testPayloadNeverReachesHrefAttribute();
   testExternalAnchorsKeepTargetBlank();
   console.log('safe-url: ok');
 }
 
-run();
+await run();

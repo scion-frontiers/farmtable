@@ -13,7 +13,11 @@ type EditableDateField = 'startDate' | 'dueDate';
 // allow-list. Rows written before the server-side check existed may still hold
 // a javascript:/data: URL, so the render path re-checks. A rejected URL degrades
 // to visible text rather than disappearing.
-function renderExternalSourceLink(remoteUrl: string) {
+//
+// Exported solely so safe-url.test.ts can drive its JSDOM assertions through
+// THIS function rather than through a copy of it. See the note on
+// renderPrLink in ft-inspector-code.ts.
+export function renderExternalSourceLink(remoteUrl: string) {
   const href = safeHref(remoteUrl);
   if (href === undefined) {
     return html`<span class="external-source-unsafe" title=${`Unsupported URL: ${remoteUrl}`}

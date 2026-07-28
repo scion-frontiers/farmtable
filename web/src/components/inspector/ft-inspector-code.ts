@@ -20,7 +20,13 @@ const PR_LABEL: Record<number, string> = {
 // Rows written before the server-side check existed may still hold a
 // javascript:/data: URL, so the render path re-checks. A rejected URL degrades
 // to plain text rather than disappearing, so the user can still see the value.
-function renderPrLink(url: string, id: string) {
+//
+// Exported solely so safe-url.test.ts can drive its JSDOM assertions through
+// THIS function rather than through a copy of it. A previous version of that
+// test declared its own renderGuarded() and asserted against that, which meant
+// replacing `safeHref(url)` with `url` here shipped green. Do not inline this
+// back into the template without moving the pin with it.
+export function renderPrLink(url: string, id: string) {
   const href = safeHref(url);
   if (href === undefined) {
     return html`<span class="pr-link pr-link-unsafe" title=${`Unsupported URL: ${url}`}>${id}</span>`;
