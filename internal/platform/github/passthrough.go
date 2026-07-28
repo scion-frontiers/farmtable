@@ -1008,15 +1008,37 @@ func applyLabelDelta(current, add, remove []string) []string {
 // a snapshot; this drops the entries of that edit which were no-ops against the
 // SAME snapshot, so the write can only carry out the thing that was priced.
 //
-// It is exactly the complement of applyLabelDelta and shares its matching
-// semantics deliberately. applyLabelDelta answers "what would this edit do to
-// this label set?" for the gate; this answers "which parts of that edit did the
-// gate's answer actually depend on?" for the write. The two must agree on when
-// two names are the same label, or the write would drop something the gate
-// priced, or keep something it did not — so both go through labelMatchKey, and
-// neither uses exact string equality. remove_labels=["FT:Stage/Wont_Fix"] does
-// strip "ft:stage/wont_fix" from the issue, because labelNamesToIDs resolves
-// through a lowercased index, and both sides of this control have to know that.
+// IT DERIVES FROM applyLabelDelta RATHER THAN MIRRORING IT (#194 round 8, C-1).
+//
+// The round-7 version of this function reimplemented applyLabelDelta's rule by
+// hand: it filtered addLabels against `present` in one loop and removeLabels
+// against `present` in a second, independent loop. The docblock then asserted
+// that the two functions "must agree". They did not, and the disagreement was a
+// Critical:
+//
+//	add_labels=[ft:stage/completed], remove_labels=[ft:stage/completed]
+//
+// applyLabelDelta is REMOVE-WINS, so the gate predicted no change and charged
+// nothing. Two independent per-list loops kept the add (absent from the
+// snapshot) and dropped the remove (also absent), and a task:write-only caller
+// got a free terminal label — reversal costing task:accept, which it does not
+// hold. That was a REGRESSION against 6ced24e, where both lists were forwarded
+// verbatim and the identical request netted to nothing.
+//
+// A cross-list test would have closed that one input. This function instead
+// CALLS applyLabelDelta and emits the minimal edit that carries the snapshot to
+// the answer applyLabelDelta gave. Agreement is then a property of the
+// construction rather than of two implementations staying in step, and NO
+// FUTURE CHANGE TO applyLabelDelta CAN DESYNCHRONISE THEM. If somebody makes
+// remove stop winning, or teaches it a new normalisation, this follows
+// automatically. Do not "simplify" this back into a pair of per-list filters:
+// that is the shape the Critical lived in, and it looks tidier.
+//
+// The pins are internal/platform/github/restrict_label_write_property_test.go:
+// P1 (this must land exactly the label set the gate priced) and P2 (nothing it
+// returns may be a no-op against the snapshot). Both were demonstrated RED
+// against the round-7 implementation before this rewrite. Neither is redundant;
+// see that file for why P1 alone cannot see the A-4 class.
 //
 // WHY IT ONLY LOOKS AT THE SNAPSHOT. Consulting a fresh read here would be the
 // defect again with a shorter window: the free retryable primitive survives any
@@ -1035,22 +1057,58 @@ func (s *GitHubPassThroughStore) RestrictLabelWriteToSnapshot(ctx context.Contex
 		}
 	}
 
-	// An addition of a label the snapshot already carried is a no-op against
-	// the snapshot, so the gate charged nothing for it. Sending it anyway lets
-	// a free request re-apply a label another actor has since removed.
-	for _, l := range addLabels {
-		if key := labelMatchKey(l); key != "" && !present[key] {
-			add = append(add, l)
+	// THE ORACLE. Not a model of the gate's rule — the gate's rule.
+	after := applyLabelDelta(t.Labels, addLabels, removeLabels)
+	afterKeys := make(map[string]bool, len(after))
+	for _, l := range after {
+		if key := labelMatchKey(l); key != "" {
+			afterKeys[key] = true
 		}
 	}
-	// A removal of a label the snapshot did not carry is likewise a no-op the
-	// gate charged nothing for, and sending it is what destroyed a label the
-	// gate never saw.
+
+	// ADDS: every label the priced outcome carries that the snapshot did not.
+	// applyLabelDelta already dropped anything the remove list cancelled and
+	// anything the snapshot already had, so this loop cannot re-introduce
+	// either. The caller's own spelling is kept: the label is not on the issue,
+	// so there is no canonical spelling to prefer.
+	addSeen := make(map[string]bool, len(after))
+	for _, l := range after {
+		key := labelMatchKey(l)
+		if key == "" || present[key] || addSeen[key] {
+			continue
+		}
+		addSeen[key] = true
+		add = append(add, l)
+	}
+
+	// REMOVES: every label the snapshot carried that the priced outcome does
+	// not. These are emitted in the SNAPSHOT's spelling, not the caller's,
+	// because the snapshot spelling is the issue's real label name and is the
+	// one labelNamesToIDs is guaranteed to resolve — its index is keyed by
+	// strings.ToLower with no TrimSpace, so a padded spelling from the caller
+	// silently resolves to nothing and the priced removal never lands.
+	//
+	// The removeKeys test is a safety belt, not the rule. A label can only
+	// leave `after` by being named in removeLabels, so it is redundant for any
+	// real GitHub issue — but ent.Task.Labels is a plain slice and two entries
+	// sharing a match key would make applyLabelDelta's dedup drop one, which
+	// without this test would emit a removal the caller never asked for.
+	removeKeys := make(map[string]bool, len(removeLabels))
 	for _, l := range removeLabels {
-		if key := labelMatchKey(l); key != "" && present[key] {
-			remove = append(remove, l)
+		if key := labelMatchKey(l); key != "" {
+			removeKeys[key] = true
 		}
 	}
+	removeSeen := make(map[string]bool, len(t.Labels))
+	for _, l := range t.Labels {
+		key := labelMatchKey(l)
+		if key == "" || afterKeys[key] || !removeKeys[key] || removeSeen[key] {
+			continue
+		}
+		removeSeen[key] = true
+		remove = append(remove, l)
+	}
+
 	return add, remove
 }
 
