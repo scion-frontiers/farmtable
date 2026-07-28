@@ -33,9 +33,29 @@ func readyNumbers(results []readyResult) []int {
 }
 
 // TestComputeReady_TerminalParentIsNotReady pins the terminal arm of
-// computeReady's includeUnblocked branch. A GitHub issue can be OPEN while its
-// stage labels say the work is finished, so the stage — not the issue state —
-// has to be what keeps it out of the ready set.
+// computeReady's includeUnblocked branch: given a node already carrying a
+// terminal stage, the stage — not the issue state — is what keeps it out of the
+// ready set. It builds the node map directly, so it says nothing about which
+// stage a real issue ends up with; that is the constructor's job, and this test
+// cannot fail if the constructor changes.
+//
+// Read alongside F2. F2's rule is that an OPEN issue may not hold a terminal
+// stage, and the earlier wording here ("a GitHub issue can be OPEN while its
+// stage labels say the work is finished") read as a denial of exactly that. The
+// two are not in conflict, because they are two different paths:
+//
+//   - The pass-through store maps through IssueToPhaseStage, which applies F2's
+//     demotion. The terminal label survives as the lifecycle stage, which is
+//     what ComputeAvailability and the claim gate consult (#194 item 2).
+//   - The tree walk maps through buildIssueTree, which calls MapLabelsToStage
+//     directly and does not demote. The terminal stage reaches computeReady
+//     intact, and this arm excludes it.
+//
+// Different mechanisms, same outcome: an OPEN issue carrying a terminal label is
+// never scheduled. The end-to-end version of the tree-walk half — real
+// constructor, real labels — is
+// TestComputeReady_OpenTerminalLabelledIssueIsNotReady in reopen_test.go, and it
+// is the one that fails if buildIssueTree is taught to demote.
 func TestComputeReady_TerminalParentIsNotReady(t *testing.T) {
 	for _, stage := range []task.Stage{
 		task.StageCompleted,

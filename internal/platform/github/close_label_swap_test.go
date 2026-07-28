@@ -366,6 +366,23 @@ func TestPassThroughCloseTask_LabelWriteFailureStillCloses(t *testing.T) {
 // invariant on its own: real GitHub closed state wins over a label-derived
 // non-terminal stage. This test must fail if the ClosedAt arm is removed, even
 // with the CloseTask label swap in place.
+//
+// The shape it constructs is reachable, not hypothetical. GetTask and ListTasks
+// build the task through issueToTask, which sets ClosedAt for every CLOSED
+// issue (passthrough.go, including the UpdatedAt fallback), while
+// IssueToPhaseStage's closed branch lets a label override the stage without
+// checking whether that label is terminal (labels.go). A CLOSED issue still
+// carrying ft:stage/working therefore arrives here with exactly Phase=open,
+// Stage=working, ClosedAt set. Two live producers: CloseTask's label swap
+// failing after the close has already landed — the end-to-end case in the test
+// directly above — and a maintainer closing an issue in the GitHub UI while it
+// is labelled as in-flight, which in a pass-through collection is the normal
+// way to close things. Only ClosedAt distinguishes them from live work, which
+// is why the arm cannot be folded into the stage check.
+//
+// Note the zero-value store: no mapper is configured. ComputeAvailability is
+// total on a zero-value GitHubPassThroughStore and must stay that way, which is
+// what the nil-receiver guard in TerminalLabelStage protects.
 func TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel(t *testing.T) {
 	s := &GitHubPassThroughStore{}
 	ctx := context.Background()
