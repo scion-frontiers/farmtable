@@ -108,7 +108,7 @@ func newPassThroughStoreWithMock(t *testing.T, mockServer *httptest.Server, owne
 	s := ghplatform.NewPassThroughStore("mock-token", owner, repo, cfg, &collectionID)
 
 	// Inject the mock GraphQL client via the exported test helper.
-	ghplatform.SetTestGraphQLClient(s, gqlClient)
+	ghplatform.SetTestGraphQLClient(t, s, gqlClient)
 
 	return s
 }
