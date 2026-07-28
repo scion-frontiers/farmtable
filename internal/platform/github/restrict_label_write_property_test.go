@@ -490,7 +490,17 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 	//     RestrictLabelWriteToSnapshot was "covered by a named row"; it was
 	//     not, and no vocabulary in this file reached that shape either. See
 	//     that clause's comment for the invariant this sweep now exercises.
-	snapVocab := []string{completed, strings.ToUpper(completed), "bug", "ft:stage/accepted"}
+	//  3. The PADDED entry was added in round 10, and it repairs a proof rather
+	//     than adding coverage for its own sake. The removeKeys clause justified
+	//     itself by a mutant "that drops labels whose name is not already
+	//     trimmed" — and that mutant could not reach the clause, because no
+	//     snapshot this sweep generated carried a padded label, so the trim
+	//     never dropped anything. The rationale was therefore unfalsifiable in
+	//     exactly the way it claimed not to be. MEASURED, round 10: with this
+	//     entry present the trim mutant fails P4 on 128 of 32768 triples with
+	//     the clause deleted and is silent with it present. Without this entry
+	//     it is silent BOTH ways. See that clause's comment for the full table.
+	snapVocab := []string{completed, strings.ToUpper(completed), " " + completed + " ", "bug", "ft:stage/accepted"}
 
 	s := propertyStore(t)
 

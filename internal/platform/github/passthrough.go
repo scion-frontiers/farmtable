@@ -1308,11 +1308,38 @@ func (s *GitHubPassThroughStore) RestrictLabelWriteToSnapshot(ctx context.Contex
 	//
 	// Both halves of that are MEASURED, not argued. Deleting !removeKeys[key]
 	// against today's applyLabelDelta leaves the package green — that is the
-	// unreachability claim. Deleting it against an applyLabelDelta mutated to
-	// drop labels whose name is not already trimmed makes property P4 ("every
-	// removal returned was NAMED in removeLabels") fail on 128 of 16384 triples,
-	// where with the clause present P4 is silent — that is the protection
-	// claim. Before P4 existed the two mutants were byte-identical in their
+	// unreachability claim. The protection claim is the mutant table below.
+	//
+	// THE ROUND-9 VERSION OF THIS PARAGRAPH NAMED A MUTANT THAT PROVES THE
+	// OPPOSITE OF WHAT IT CLAIMED, and round 10 fixed the sweep rather than
+	// just the prose. It said "an applyLabelDelta mutated to drop labels whose
+	// name is not already trimmed ... fails on 128 of 16384 triples". Read
+	// literally that is `l != strings.TrimSpace(l)`, and at the time this was
+	// written that mutant was SILENT WITH THE CLAUSE DELETED — because the
+	// sweep's snapshot vocabulary contained no padded entry, so the trim never
+	// dropped anything and the mutant never reached this clause. An engineer
+	// checking the comment would have observed P4 silent both ways and deleted
+	// this clause as unjustified dead code, which is the outcome the paragraph
+	// exists to prevent. The author's 128 was real but came from a case-only
+	// mutant, not a trim one.
+	//
+	// MEASURED, round 10, all six cells, P4 = "every removal returned was NAMED
+	// in removeLabels":
+	//
+	//	mutant dropping l when...    belt present   belt deleted     distinguishes
+	//	l != strings.TrimSpace(l)     silent        128 / 32768       yes  <-- now
+	//	l != labelMatchKey(l)         silent        256 / 32768*      yes
+	//	l != strings.ToLower(l)       silent        128 / 32768*      yes
+	//
+	// (* measured at 16384 before the vocabulary grew; the ratio is what
+	// matters, not the count.) The first row is the one this paragraph names,
+	// and it distinguishes only because round 10 added a padded entry to
+	// snapVocab in restrict_label_write_property_test.go. If that entry is ever
+	// removed, this row silently returns to "silent both ways" and the
+	// rationale below becomes unfalsifiable again — that entry and this
+	// paragraph are one artefact in two files.
+	//
+	// Before P4 existed all of these mutants were byte-identical in their
 	// output, so this clause's rationale was unfalsifiable; if P4 is ever
 	// deleted it goes back to being unfalsifiable.
 	removeKeys := make(map[string]bool, len(removeLabels))

@@ -186,3 +186,65 @@ func TestAuthorizationStage_IsSilentWhenLabelMappingIsOff(t *testing.T) {
 			"wrote decide a Farm Table privilege question.", own, stage)
 	}
 }
+
+// TestExternalUnavailableLabel_IsToggleBlind pins the correction round 10 made
+// to authorizationStage's doc comment.
+//
+// Round 9 wrote that github.labels.enabled=false "removes lifecycle-label
+// AUTHORITY entirely". It does not: hasExternalUnavailableLabel carries no
+// toggle guard, so a hold label still withholds work with the mapping off.
+//
+// The behaviour is fail-closed, pre-existing and deliberately unchanged. This
+// test exists so the CLAIM cannot drift back: a future edit that adds a toggle
+// guard to hasExternalUnavailableLabel — which the round-9 sentence would
+// license — turns this red and has to argue with the operator whose hold it is
+// about to drop.
+//
+// The free rows are the positive control. Without them a function that simply
+// returned true would pass every held row.
+func TestExternalUnavailableLabel_IsToggleBlind(t *testing.T) {
+	cases := []struct {
+		label    string
+		wantHeld bool
+	}{
+		{"ft:stage/blocked", true},
+		{"blocked", true},
+		{"ft:blocked", true},
+		{"deferred", true},
+		{"waiting_for_input", true},
+		{"scheduled", true},
+		{"ft:stage/completed", false}, // control: a lifecycle label that is NOT a hold
+		{"ordinary-label", false},     // control: not a lifecycle label at all
+	}
+
+	held, free := 0, 0
+	for _, enabled := range []bool{true, false} {
+		m := NewLabelMapper(LabelConfig{Enabled: enabled})
+		for _, tc := range cases {
+			got := m.hasExternalUnavailableLabel([]string{tc.label})
+			if tc.wantHeld {
+				held++
+			} else {
+				free++
+			}
+			if got != tc.wantHeld {
+				t.Fatalf("hasExternalUnavailableLabel(%q) at enabled=%v = %v, want %v. "+
+					"This function must give the SAME answer at both toggle settings: it "+
+					"can only ever withhold work, and an operator's explicit hold is a "+
+					"signal to obey whether or not label mapping is on. If you are "+
+					"deliberately making holds toggle-dependent, you are dropping holds "+
+					"that issues are relying on — say so out loud and fix the doc comment "+
+					"on authorizationStage, which now documents this as toggle-blind",
+					tc.label, enabled, got, tc.wantHeld)
+			}
+		}
+	}
+
+	if want := 2 * len(cases); held+free != want {
+		t.Fatalf("SWEEP BROKEN: evaluated %d cells, want %d", held+free, want)
+	}
+	if held == 0 || free == 0 {
+		t.Fatalf("VACUOUS: %d held rows and %d free rows. Without both, this test "+
+			"cannot tell a discriminating function from a constant one", held, free)
+	}
+}

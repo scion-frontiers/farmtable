@@ -43,29 +43,53 @@ import (
 // an empty config, so treating empty as "accept anything" would make the
 // deployment that pushes our own labels the one deployment that also honours
 // everyone else's.
-// THE SECOND REQUIREMENT, added in #194 round 9 (MUST 5) on an explicit
-// product ruling: github.labels.enabled=false removes lifecycle-label AUTHORITY
-// entirely, not merely lifecycle-label WRITES. TerminalLabelStage and
-// AllTerminalLabelStages already say exactly that in their guards —
-// "scanning anyway would make a disabled mapper start honouring labels it is
-// configured to ignore" — and this function was the one out of step with them,
-// not the other way around.
+// THE SECOND REQUIREMENT, added in #194 round 9 (MUST 5) and CORRECTED in
+// round 10: with github.labels.enabled=false this function is silent.
 //
-// STATED HONESTLY: this guard is UNOBSERVABLE through any production path
-// today, and the round-9 report records that rather than claiming a kill. Every
-// caller that can reach a privilege decision already short-circuits on
-// !m.enabled before getting here — StageLabelSwap, PriorityLabelSwap,
-// TypeLabelSwap, TerminalLabelStage, AllTerminalLabelStages — and the one
-// caller that does not, assertStageWriteAllowed, is handed empty label lists by
-// those same short-circuits whenever the toggle is off. MEASURED: adding the
-// guard changed no existing test.
+// Round 9 justified that guard with a sentence that is FALSE, and the sentence
+// is corrected here rather than deleted because the next reader will otherwise
+// trust it. It said:
 //
-// It is here because "correct only because every caller remembers to check
-// first" is the state-dependent correctness this workstream exists to remove:
-// the next caller added to this function inherits the rule instead of having to
-// know it. TestAuthorizationStage_IsSilentWhenLabelMappingIsOff is what makes
-// the rule enforced rather than merely stated — deleting the guard turns that
-// test red and nothing else.
+//	"github.labels.enabled=false removes lifecycle-label AUTHORITY entirely,
+//	 not merely lifecycle-label WRITES."
+//
+// It does not. MEASURED in round 10, with a positive control:
+//
+//	                            enabled=true   enabled=false
+//	  ft:stage/blocked              held           held        <-- still authoritative
+//	  blocked / ft:blocked          held           held
+//	  deferred                      held           held
+//	  ft:stage/completed            free           free        <-- control: discriminates
+//	  ordinary-label                free           free        <-- control: discriminates
+//
+// hasExternalUnavailableLabel (treewalk.go) carries no toggle guard, so a
+// lifecycle label still withholds work from every agent with the mapping off.
+// That behaviour is FAIL-CLOSED and PRE-EXISTING and round 10 deliberately did
+// not change it: the function can only ever withhold work, an operator's
+// explicit hold is a signal to obey whatever the mapping setting, and removing
+// it would hand out work someone meant to keep back. Only the claim about it
+// was wrong.
+//
+// So the true scope of the toggle is narrower than round 9 stated: it governs
+// what a label MEANS to the read path, and it governs nothing else.
+//
+// WHICH IS WHY THIS FUNCTION IS THE READ PREDICATE, AND ONLY THAT (round 10,
+// Rulings 1 and 2). It answers "is this label authoritative under the config
+// running today?" — the right question for display, availability and the
+// terminal scan. It is the WRONG question for a write gate, because a label
+// outlives the config in force when it was written and nothing re-prices it.
+// Write gates use lifecycleStageClaim (lifecycle_claim.go), which is a strict
+// superset of this function.
+//
+// Round 9 also recorded that this guard was "UNOBSERVABLE through any
+// production path today", on the grounds that assertStageWriteAllowed was the
+// only caller that did not short-circuit first and was handed empty label
+// lists anyway. That is no longer the situation to reason about:
+// assertStageWriteAllowed no longer calls this function at all. The guard is
+// now load-bearing in the ordinary way — it keeps the read side config-
+// dependent — rather than being correct only because every caller remembers to
+// check first. TestAuthorizationStage_IsSilentWhenLabelMappingIsOff still pins
+// it: deleting the guard turns that test red.
 func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
 	if !m.enabled {
 		return "", false

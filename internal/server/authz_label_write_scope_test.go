@@ -2552,7 +2552,15 @@ func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T
 		},
 	}
 
+	// executed counts the rows that actually ran. MEASURED, round 10: replacing
+	// the range with absent[:0] left this test GREEN at exit 0. The pin is
+	// real, but the table driving it could not report its own disappearance,
+	// so an edit that emptied it would have looked like a passing test rather
+	// than a deleted control (#194 round 10, C3).
+	executed := 0
+
 	for _, row := range absent {
+		executed++
 		t.Run("absent_from_the_snapshot/"+row.name, func(t *testing.T) {
 			// An ordinary open, accepted, available task. Not a bare issue:
 			// "still available work" is the user-visible harm, and a triage
@@ -2640,6 +2648,14 @@ func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T
 			t.Fatalf("the authorized addition did nothing; labels now %v", got)
 		}
 	})
+
+	if executed != len(absent) || executed == 0 {
+		t.Fatalf("SWEEP BROKEN: executed %d cross-list rows of %d. This test is the "+
+			"pin for THE CRITICAL (a task:write holder applying a terminal label "+
+			"for free via add/remove cancellation) and it cannot pass on an empty "+
+			"table. Restore the rows or delete the test deliberately",
+			executed, len(absent))
+	}
 }
 
 // ── #194 round 8 / F-2 closure: the spelling a removal is emitted in ──
@@ -2695,7 +2711,12 @@ func TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling(t *testing.T) {
 		},
 	}
 
+	// See the counter on the cross-list test above for why this is here:
+	// MEASURED, round 10, spellings[:0] left this test GREEN at exit 0.
+	executed := 0
+
 	for _, sp := range spellings {
+		executed++
 		t.Run(sp.name, func(t *testing.T) {
 			f := openIssue(t, wontFix, "bug")
 			if got := f.issue.currentLabels(); !containsLabel(got, wontFix) {
@@ -2723,6 +2744,14 @@ func TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling(t *testing.T) {
 				t.Fatalf("the lifecycle stage set is %v, want it to no longer name wont_fix", got)
 			}
 		})
+	}
+
+	if executed != len(spellings) || executed == 0 {
+		t.Fatalf("SWEEP BROKEN: executed %d spelling rows of %d. This test is the "+
+			"end-to-end pin for \"a priced removal lands whatever the caller "+
+			"spelled\", and the defect it covers was invisible to both property "+
+			"sweeps by construction. It cannot pass on an empty table",
+			executed, len(spellings))
 	}
 }
 
