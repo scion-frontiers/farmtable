@@ -784,6 +784,61 @@ function stripImportStatements(code: string): string {
     .replace(/\bimport\s*['"][^'"]*['"]\s*;/g, wipe);
 }
 
+/**
+ * The balanced argument text of every `name(…)` call in `code`.
+ *
+ * A regex cannot do this: `unsafeHTML(renderMarkdown(c.body) + c.body)` and
+ * `unsafeHTML(renderMarkdown(c.body))` share every prefix a regex would test.
+ * Counting parens is the whole point — see `sinkArgumentIsSanitized`.
+ */
+function callArguments(code: string, name: string): string[] {
+  const args: string[] = [];
+  const re = new RegExp(`\\b${name}\\s*\\(`, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(code)) !== null) {
+    const start = m.index + m[0].length;
+    let depth = 1;
+    let i = start;
+    while (i < code.length && depth > 0) {
+      if (code[i] === '(') depth += 1;
+      else if (code[i] === ')') depth -= 1;
+      i += 1;
+    }
+    args.push(depth === 0 ? code.slice(start, i - 1) : code.slice(start));
+  }
+  return args;
+}
+
+/**
+ * True only if `arg` is a single `renderMarkdown(…)` call and NOTHING else.
+ *
+ * The rule that this replaces asked whether the sanitized call appeared at the
+ * START of the argument, which is a different and much weaker question. Both of
+ * the following passed it, at the live sink, with the required literal intact,
+ * no new file, no new binding and the sink count unchanged:
+ *
+ *   unsafeHTML(renderMarkdown(c.body) + c.body)
+ *   unsafeHTML(renderMarkdown('') || this.description)
+ *
+ * The first renders attacker markup raw immediately after the sanitized copy of
+ * it; the second sanitizes a value nobody displays. Anything appended to,
+ * short-circuited with, or substituted for the sanitizer's output is raw at the
+ * sink, so the argument has to be the call and only the call.
+ */
+function sinkArgumentIsSanitized(arg: string): boolean {
+  const t = arg.trim();
+  const head = /^renderMarkdown\s*\(/.exec(t);
+  if (!head) return false;
+  let depth = 1;
+  let i = head[0].length;
+  while (i < t.length && depth > 0) {
+    if (t[i] === '(') depth += 1;
+    else if (t[i] === ')') depth -= 1;
+    i += 1;
+  }
+  return depth === 0 && t.slice(i).trim() === '';
+}
+
 /** 1-based line numbers at which `re` matches, for actionable failure messages. */
 function matchLines(code: string, re: RegExp): number[] {
   const lines: number[] = [];
@@ -883,7 +938,9 @@ const SINK_BINDINGS = [
  *       provide it, by a value import (not `import type`);
  *   R3  neither identifier is re-bound by a local const/let/var/function/class;
  *   R4  outside its import statement, neither identifier may appear in ANY
- *       position other than immediately called — `name(`.
+ *       position other than immediately called — `name(`;
+ *   R5  every `unsafeHTML(…)` argument is a `renderMarkdown(…)` call AND
+ *       NOTHING ELSE — see sinkArgumentIsSanitized.
  *
  * R4 is the rule that generalises, and it is why this is not round 5's problem.
  * `const raw = unsafeHTML`, `const S = { raw: unsafeHTML }`, `const { unsafeHTML:
@@ -912,6 +969,17 @@ function sinkBindingViolations(rel: string, src: string): string[] {
   // R1
   if (!/unsafeHTML\s*\(\s*renderMarkdown\s*\(/.test(code)) {
     bad.push(`${rel}: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone`);
+  }
+
+  // R5
+  for (const arg of callArguments(code, 'unsafeHTML')) {
+    if (!sinkArgumentIsSanitized(arg)) {
+      bad.push(
+        `${rel}: unsafeHTML(${arg.trim().slice(0, 60)}) — the argument is not a bare ` +
+          'renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or ' +
+          "substituted for the sanitizer's output reaches the DOM raw.",
+      );
+    }
   }
 
   const clauses = [
@@ -1054,8 +1122,8 @@ function sinkBinding(): void {
 
   const sinks: { file: string; arg: string }[] = [];
   for (const { rel, code } of scanned) {
-    for (const m of code.matchAll(/unsafeHTML\s*\(\s*([A-Za-z0-9_$.]*)/g)) {
-      sinks.push({ file: rel, arg: m[1] ?? '' });
+    for (const arg of callArguments(code, 'unsafeHTML')) {
+      sinks.push({ file: rel, arg });
     }
   }
 
@@ -1089,12 +1157,15 @@ function sinkBinding(): void {
     }
   });
 
-  check('every unsafeHTML call site passes renderMarkdown', () => {
-    const unbound = sinks.filter((s) => s.arg !== 'renderMarkdown');
+  // The argument must be a bare renderMarkdown(…) call, not merely start with
+  // one. `unsafeHTML(renderMarkdown(c.body) + c.body)` satisfied the old
+  // prefix-shaped version of this check while rendering the raw body.
+  check('every unsafeHTML call site passes nothing but renderMarkdown output', () => {
+    const unbound = sinks.filter((s) => !sinkArgumentIsSanitized(s.arg));
     if (unbound.length > 0) {
       throw new Error(
         'unsanitized unsafeHTML sink(s): ' +
-          unbound.map((s) => `${s.file} -> unsafeHTML(${s.arg}`).join(', '),
+          unbound.map((s) => `${s.file} -> unsafeHTML(${s.arg.trim().slice(0, 60)})`).join(', '),
       );
     }
   });
@@ -1302,6 +1373,21 @@ function sinkBinding(): void {
       label: 'V4 sanitizer wrapper dropped at the sink',
       find: '${unsafeHTML(renderMarkdown(this.body))}',
       replace: '${unsafeHTML(this.body)}',
+    },
+    {
+      label: 'V6 raw body concatenated onto the sanitized output',
+      find: '${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '${unsafeHTML(renderMarkdown(this.body) + this.body)}',
+    },
+    {
+      label: 'V6b sanitizer applied to a value nobody renders',
+      find: '${unsafeHTML(renderMarkdown(this.body))}',
+      replace: "${unsafeHTML(renderMarkdown('') || this.body)}",
+    },
+    {
+      label: 'V6c sanitized output wrapped in an unsanitized template literal',
+      find: '${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '${unsafeHTML(`<div>` + renderMarkdown(this.body) + this.body)}',
     },
     {
       label: 'V5 sanitizer imported as a type only',
