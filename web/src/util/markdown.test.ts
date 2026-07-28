@@ -736,6 +736,129 @@ function inputContract(): void {
     }
   });
 
+  // ── THE ROUND-9 STRUCTURAL DECISION, PINNED. ────────────────────────────────
+  //
+  // "DECIDE OVER THE BLINDED VIEW, REPORT FROM THE ORIGINAL." Every structural
+  // scanner in this file counts brackets over `literalBlindView` and then takes
+  // its RESULT out of the raw text, so that failure messages quote real source
+  // and `dynamicImportSpecifierOffenders` receives the characters it has to
+  // classify. `literalBlindView` preserves length and offsets precisely so that
+  // an index decided on one view can slice the other; that property is stated at
+  // the helper and nothing exercised it.
+  //
+  // Round 9 established the split. Round 10 measured that NOTHING ASSERTED IT, at
+  // any of its five sites. Every one of these one-word edits was GREEN at 79
+  // checks / 127 assertions, `tsc --noEmit` 0:
+  //
+  //   balancedDeclarationParameterLists  code.slice -> scan.slice   GREEN 79/127
+  //   splitTopLevelParameters            params[i]  -> scan[i]      GREEN 79/127
+  //   callArguments                      code.slice -> scan.slice   GREEN 79/127
+  //   sinkArgumentIsSanitized, extra-arg t.slice    -> scan.slice   GREEN 79/127
+  //   sinkArgumentIsSanitized, trailing  t.slice    -> scan.slice   GREEN 79/127
+  //
+  // The first of those is not cosmetic. With it applied, DELETING the blinding
+  // inside `splitTopLevelParameters`, or inside `hasTopLevelDefault`, is ALSO
+  // GREEN at 79/127 — and each of those deletions is RED on its own. That is the
+  // round-8 caller-masking `e3002b9` was written to remove, walking back in
+  // through a different door: `balancedDeclarationParameterLists`' return value
+  // is the new common ancestor, and handing a pre-blinded value down it makes the
+  // callees' own blinding unobservable exactly as pre-blinding at the caller did.
+  // The comment in `renderMarkdownArityViolation` claiming each scanner "is load
+  // bearing on its own" is true today, and it is true only because of the three
+  // slices pinned here.
+  //
+  // Each table entry is a call whose result must QUOTE A CHARACTER THAT ONLY
+  // EXISTS IN THE ORIGINAL — a paren, comma or backtick body that
+  // `literalBlindView` blanks to spaces. A blinded slice returns the spaces and
+  // the containment fails. Segments are joined with ` ~ ` rather than `|` so the
+  // separator cannot be confused with a union type inside a probe.
+  check('fixture: every structural scanner reports from the original, not the blinded view', () => {
+    const REPORT_FROM_ORIGINAL: { label: string; produced: string; mustContain: string }[] = [
+      {
+        label: 'balancedDeclarationParameterLists slices the parameter list from the original',
+        produced: balancedDeclarationParameterLists(
+          'export function renderMarkdown(md: string | `)`): string {',
+        ).lists.join(' ~ '),
+        mustContain: '`)`',
+      },
+      {
+        label: 'splitTopLevelParameters slices each segment from the original',
+        produced: splitTopLevelParameters('md: string | `a,b`').join(' ~ '),
+        mustContain: '`a,b`',
+      },
+      {
+        label: 'callArguments slices each argument from the original',
+        produced: callArguments('unsafeHTML(renderMarkdown(`a)b`))', 'unsafeHTML').join(' ~ '),
+        mustContain: '`a)b`',
+      },
+    ];
+
+    const problems: string[] = [
+      fixtureTableViolation('REPORT_FROM_ORIGINAL', REPORT_FROM_ORIGINAL, 3),
+    ].filter((v): v is string => v !== null);
+
+    for (const { label, produced, mustContain } of REPORT_FROM_ORIGINAL) {
+      if (!produced.includes(mustContain)) {
+        problems.push(
+          `${label}: expected the result to quote ${mustContain}, got ${JSON.stringify(produced)}` +
+            ' — the scanner is reporting the BLINDED view, so its message no longer quotes real ' +
+            'source and every callee that blinds its own input has just gone unobservable',
+        );
+      }
+    }
+
+    // THE TWO ARMS OF `sinkArgumentIsSanitized` THAT READ THE ORIGINAL `t`, pinned
+    // directly, because NO ENTRY IN SINK_EVASIONS CAN REACH THEM AND THE REASON IS
+    // A MEASUREMENT, not an oversight.
+    //
+    // The round-9 review proposed closing these with a SINK_EVASIONS entry
+    // `unsafeHTML(renderMarkdown(this.body) /* x */)`, described as "currently
+    // rejected". Measured through the real pipeline, IT IS CURRENTLY ACCEPTED:
+    // `sinkBindingViolations` and the tree-wide sink collection both run
+    // `callArguments` over `stripInertText(src, …)`, which has ALREADY blanked
+    // every comment, so the argument that reaches this function is
+    // `"renderMarkdown(this.body)        "` and it is sanitized. That entry would
+    // have gone into the evasion table as an evasion that is not caught. The
+    // suggestion was measured on the function in isolation and relayed to the
+    // pipeline; it is the same "a measurement is indexed to a context" error the
+    // round is about, so it is recorded here rather than quietly not taken.
+    //
+    // The consequence is that a COMMENT — the only construct `literalBlindView`
+    // reduces to pure whitespace, see the note at the trailing-text arm — never
+    // reaches this function from any production path. So both arms are DEFENCE IN
+    // DEPTH AND CURRENTLY UNREACHABLE THROUGH THE PIPELINE, and they are kept
+    // deliberately: round 9's whole thesis is that a scanner must be sound on its
+    // own input rather than sound because its caller happened to prepare one. The
+    // blinding half of that already applies here; this is the other half.
+    if (sinkArgumentIsSanitized('renderMarkdown(this.body, /* opts */)')) {
+      problems.push(
+        'the extra-argument arm is reading the blinded view: a second argument consisting only ' +
+          'of a comment blanks to spaces and the call was accepted',
+      );
+    }
+    if (sinkArgumentIsSanitized('renderMarkdown(this.body) /* trailing */')) {
+      problems.push(
+        'the trailing-text arm is reading the blinded view: trailing text consisting only of a ' +
+          'comment blanks to spaces and the call was accepted',
+      );
+    }
+    // The false-positive mirror, in the same check for the usual reason: without
+    // it both assertions above are satisfied by a function that rejects
+    // everything. The second is prettier's default `trailingComma: "all"` output.
+    if (!sinkArgumentIsSanitized('renderMarkdown(this.body)')) {
+      problems.push('FALSE POSITIVE: the bare sanitizer call was rejected');
+    }
+    if (!sinkArgumentIsSanitized('renderMarkdown(this.body,)')) {
+      problems.push("FALSE POSITIVE: prettier's trailing comma was rejected");
+    }
+
+    if (problems.length > 0) {
+      throw new Error(
+        'the decide-blinded / report-raw split is broken: ' + problems.join(' | '),
+      );
+    }
+  });
+
   // INPUT DOMAIN. marked throws on undefined, null and non-strings, and both
   // sinks pass values that arrive over gRPC (`c.body`, `this.description`). A
   // throw inside a Lit `render()` takes down the whole component, not the one
@@ -2255,13 +2378,34 @@ function hasTopLevelDefault(param: string): boolean {
  * Counting parens is the whole point — see `sinkArgumentIsSanitized`.
  *
  * Parens are counted over `literalBlindView` and the argument text is SLICED
- * FROM THE ORIGINAL, so a paren inside a string or a template no longer moves
- * the boundary while `dynamicImportSpecifierOffenders` still sees the real
- * specifier characters it has to classify. Before round 9 a `)` inside a
- * template in the sanitizer's own argument list truncated the captured argument;
- * R5 then rejected it as "not a bare call", which is the right verdict for the
- * wrong reason — see the note above `sinkArgumentIsSanitized` about the second
- * layer, and V11f.
+ * FROM THE ORIGINAL. Before round 9 a `)` inside a template in the sanitizer's
+ * own argument list truncated the captured argument; R5 then rejected it as "not
+ * a bare call", which is the right verdict for the wrong reason — see the note
+ * above `sinkArgumentIsSanitized` about the second layer, and V11f.
+ *
+ * WHAT THE RAW SLICE BUYS, STATED PRECISELY, because the round-9 wording ("so
+ * that `dynamicImportSpecifierOffenders` still sees the real specifier
+ * characters it has to classify") over-claims and round 10 measured the
+ * difference. Return the blinded slice instead and:
+ *
+ *   - the CLASSIFICATION barely moves. `dynamicImportSpecifierOffenders` tests
+ *     `/^\s*['"][^'"]*['"]\s*$/`, and blinding keeps the delimiters, so every
+ *     shape in DYNAMIC_IMPORT_EVASIONS classifies identically raw and blinded —
+ *     measured, all of them. The single divergence found by sweeping the shapes
+ *     is `import("a'b")`, where the raw text is REJECTED (the inner `'` ends the
+ *     character class early) and the blinded text is ACCEPTED. That is blinding
+ *     being MORE permissive, and it is also a standing false positive in the
+ *     regex itself: `"a'b"` is a plain quoted literal. No file in this tree
+ *     spells one, so it is recorded and not fixed here.
+ *   - the FAILURE MESSAGE breaks, and takes its line number with it. The message
+ *     interpolates the argument text and locates it with `code.indexOf(arg)`,
+ *     which returns -1 for a slice that is not in `code`, so `lineOf` reports
+ *     line 1 for every offender and the quoted specifier is spaces. A rule whose
+ *     report cannot be acted on is most of the way to not having the rule.
+ *
+ * Both directions are pinned by 'fixture: every structural scanner reports from
+ * the original, not the blinded view' and by the provenance assertion in the
+ * DYNAMIC_IMPORT_EVASIONS loop.
  *
  * THE NAME MATCH DELIBERATELY STAYS ON THE ORIGINAL `code`, not on the blinded
  * view. Blinding is for COUNTING; a call spelled inside template text is still a
@@ -2334,9 +2478,28 @@ function callArguments(code: string, name: string): string[] {
  *
  * Structural characters are read from `literalBlindView(t)` so that a bracket
  * or comma spelled inside a literal cannot move the boundary. The TRAILING-TEXT
- * arm deliberately reads the ORIGINAL `t`: blinding replaces literal text with
- * spaces, so `t.slice(i).trim()` over the blinded view would treat a trailing
- * template as empty and accept `renderMarkdown(x)` followed by junk.
+ * arm deliberately reads the ORIGINAL `t`, and the reason given for that through
+ * round 9 was WRONG. It said blinding "would treat a trailing template as empty
+ * and accept `renderMarkdown(x)` followed by junk". Measured in round 10:
+ *
+ *   literalBlindView('renderMarkdown(x) `junk`')  ->  'renderMarkdown(x) `    `'
+ *
+ * `literalBlindView` blanks literal CONTENTS and keeps the DELIMITERS. A trailing
+ * template leaves two backticks behind, `.trim()` is non-empty, and the blinded
+ * read rejects it exactly as the raw read does. Same for a trailing string, and
+ * for a trailing identifier or operator, which are not literals at all.
+ *
+ * THE ONE CONSTRUCT THAT BLINDS TO PURE WHITESPACE IS A COMMENT — `/* … *\/` and
+ * `// …` have no surviving delimiter, because `stripInertText` blanks them
+ * wholesale. So the honest statement of what this arm buys is narrower and it is
+ * this: reading the blinded view here would accept `renderMarkdown(x) /* c *\/`,
+ * and NO PRODUCTION PATH CAN DELIVER THAT SHAPE, because every caller runs
+ * `callArguments` over an already-comment-stripped view. The arm is DEFENCE IN
+ * DEPTH against a future caller that stops pre-stripping, which is precisely the
+ * self-sufficiency-at-your-own-boundary rule the scanners above follow, and it is
+ * pinned as such by 'fixture: every structural scanner reports from the original,
+ * not the blinded view'. It is kept because that rule is worth keeping, not
+ * because a template would slip past it.
  */
 function sinkArgumentIsSanitized(arg: string): boolean {
   const t = arg.trim();
@@ -2370,11 +2533,25 @@ function sinkArgumentIsSanitized(arg: string): boolean {
   // rejects correct code gets deleted, so the comma only counts when something
   // follows it before the closing paren.
   //
-  // That test reads the ORIGINAL text, not the blinded view, and the direction
-  // matters: blinding turns a string second argument into spaces, so
-  // `renderMarkdown(x, 'y')` would read as a trailing comma and pass. The
-  // blinded view decides WHERE the boundaries are; the original decides whether
-  // anything is there.
+  // That test reads the ORIGINAL text, not the blinded view. THE REASON GIVEN
+  // FOR THAT THROUGH ROUND 9 WAS WRONG. It said "blinding turns a string second
+  // argument into spaces, so `renderMarkdown(x, 'y')` would read as a trailing
+  // comma and pass". Measured in round 10:
+  //
+  //   literalBlindView("renderMarkdown(x, 'y')")  ->  "renderMarkdown(x, ' ')"
+  //
+  // The QUOTES SURVIVE — `literalBlindView` blanks literal contents and keeps the
+  // delimiters — so the blinded slice is `' '`, `.trim()` is non-empty, and the
+  // blinded read rejects that call exactly as the raw read does. A string second
+  // argument was never at risk here.
+  //
+  // The one construct that blinds to pure whitespace is a COMMENT, so what this
+  // arm actually buys is the rejection of `renderMarkdown(x, /* opts */)`, and no
+  // production path can deliver that shape: every caller runs `callArguments`
+  // over an already-comment-stripped view. Defence in depth against a caller that
+  // stops pre-stripping — the same bargain as the trailing-text arm, and pinned
+  // with it. The blinded view still decides WHERE the boundaries are; the
+  // original decides whether anything is there.
   const closeParen = i - 1;
   const extraArgument = topLevelCommas.some((ci) => t.slice(ci + 1, closeParen).trim() !== '');
   return !extraArgument && t.slice(i).trim() === '';
@@ -3770,6 +3947,21 @@ function sinkBinding(): void {
         if (!/^<fixture>:\d+: /.test(offender)) {
           problems.push(`offender has no line number: ${offender}`);
         }
+        // PROVENANCE. The specifier quoted back has to be text that is actually
+        // in the file, not text `callArguments` invented. It is the report half
+        // of "decide over the blinded view, report from the original", asserted
+        // where the report is consumed: return the blinded slice from
+        // `callArguments` and the quoted specifier is spaces, `code.indexOf(arg)`
+        // is -1 and the line number above reads 1 for every offender in the tree.
+        const quoted = /^<fixture>:\d+: import\((.*?)\) — /.exec(offender);
+        if (quoted === null) {
+          problems.push(`offender does not quote a specifier: ${offender}`);
+        } else if (!code.includes(quoted[1])) {
+          problems.push(
+            `offender quotes text that is not in the source: ${JSON.stringify(quoted[1])} ` +
+              `not found in ${JSON.stringify(code)}`,
+          );
+        }
       }
     }
     for (const fixture of DYNAMIC_IMPORT_LEGITIMATE) {
@@ -4416,7 +4608,14 @@ function sinkBinding(): void {
 // the arity tables, SINK_CALL_LEGITIMATE and the unterminated-list assertion all
 // went into checks that already existed, which is why the call-site total moves
 // by one while the assertion total below moves by four.
-const EXPECTED_CHECK_CALL_SITES = 78;
+//
+// Moved 78 -> 79 (CHECK() CALL SITES) in round 10, measured the same way against
+// round-9 head `13680c2`:
+//   1. fixture: every structural scanner reports from the original, not the
+//      blinded view
+//      (the round-9 decide-blinded/report-raw split, unpinned at all five of its
+//      sites; every one of the five one-word edits was GREEN at 79/127)
+const EXPECTED_CHECK_CALL_SITES = 79;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
