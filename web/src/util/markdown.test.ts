@@ -533,7 +533,7 @@ function taskLists(): void {
 //    it matched no files — so the file count and the sink count are both pinned
 //    below, and locating the tree throws rather than returning empty.
 //
-//    Read the guarantees here narrowly, and read them as TWO mechanisms with
+//    Read the guarantees here narrowly, and read them as THREE mechanisms with
 //    very different strength. They keep getting cited as one thing ("G1"), and
 //    that conflation is what carried three rounds of evadable checks past
 //    sign-off. They are named separately below and they fail with separately
@@ -545,8 +545,8 @@ function taskLists(): void {
 //        unaliased from the one module allowed to provide them, never re-bound
 //        locally, and never named anywhere except immediately called. That is a
 //        finite claim over an enumerated set of two files, so it can be
-//        finished, and the bar for it is that no edit to those two files can
-//        leave them rendering unsanitized while this suite is green.
+//        finished. Its bar is the amended criterion stated at the end of this
+//        comment — innocent-looking regression, not an arbitrary committer.
 //
 //    (b) THE TREE-WIDE SCAN — open world, and a TRIPWIRE, NOT A PROOF.
 //        BANNED_SINKS, the indirection ban and the call-site collection
@@ -560,11 +560,80 @@ function taskLists(): void {
 //        present in the files that were scanned" — never "no raw sink exists".
 //        Do not cite it as the latter; its failure messages will not let you.
 //
-//    Soundness therefore lives in (a), plus the follow-up issue for type-aware
-//    lint (typescript-eslint over resolved symbols) and Trusted Types. Those
-//    answer "does any expression in this program evaluate to the raw directive"
-//    using the compiler's own scope analysis, which is the question (b) is
-//    failing to ask. Extending (b) with more patterns is not a route to (a).
+//    (c) SANITIZER OWNERSHIP — closed world over an enumerated dependency list.
+//        R8 and R9, see sanitizerOwnershipViolations. (a) proves the sink CALLS
+//        the sanitizer. It does not prove the sanitizer still SANITIZES, and
+//        that is a separate axis: two `DOMPurify.addHook` calls at module scope
+//        in a sink file satisfied every rule in (a) and rendered
+//        `<img src=x onerror=alert(1)><script>alert(2)</script>` raw. (c) denies
+//        every file but the sanitizer the ability to name its dependencies.
+//
+//    Soundness therefore lives in (a) and (c), plus the follow-up issue for
+//    type-aware lint (typescript-eslint over resolved symbols) and Trusted
+//    Types. Those answer "does any expression in this program evaluate to the
+//    raw directive" using the compiler's own scope analysis, which is the
+//    question (b) is failing to ask. Extending (b) with more patterns is not a
+//    route to (a).
+//
+//    WHAT THIS GUARD CLAIMS, AND WHAT IT DOES NOT
+//    --------------------------------------------
+//    The criterion this guard was originally built against — "no mutation of
+//    the two REQUIRED_SINKS files can leave them rendering unsanitized while
+//    the suite is green" — never named an adversary, and read literally it is
+//    unsatisfiable by anything in this file. It demands a guard that holds
+//    against someone who can land arbitrary code in those files, and that
+//    person can also edit this guard. The amended claim:
+//
+//      This guard defends against INNOCENT-LOOKING REGRESSION at the two
+//      enumerated sinks: aliasing, shadowing, re-homing, rebinding,
+//      argument-shape drift, laundering through an unscanned file, and capture
+//      of the sanitizer's own configuration. It does NOT defend against a
+//      committer who can land arbitrary code. That adversary is answered by
+//      code review, CSP and Trusted Types, not by a scan the same commit
+//      could edit.
+//
+//    THE BOUNDARY OF THE TECHNIQUE: rules of this kind can own a NAME. They
+//    cannot own an EFFECT. R8 could kill the `addHook` attack because the
+//    attack had to NAME 'dompurify' and a rule can take that name away. The
+//    known survivor below names nothing:
+//
+//      const origRemoveAttribute = Element.prototype.removeAttribute;
+//      Element.prototype.removeAttribute = function (name: string): void {
+//        if (String(name).startsWith('on')) return;
+//        origRemoveAttribute.call(this, name);
+//      };
+//      const origRemoveChild = Node.prototype.removeChild;
+//      Node.prototype.removeChild = function <T extends Node>(child: T): T {
+//        if (child && child.nodeName === 'SCRIPT') return child;
+//        return origRemoveChild.call(this, child) as T;
+//      };
+//
+//    Placed in a REQUIRED_SINKS file this leaves the suite fully green and is
+//    runtime-verified to defeat the sanitizer — DOMPurify strips attributes
+//    with `removeAttribute` and nodes with `removeChild`:
+//
+//      before: "<p><img src=\"x\"></p>\n"
+//      after : "<p><img src=\"x\" onerror=\"alert(1)\"><script>alert(2)</script></p>\n"
+//
+//    This is KNOWN, ACCEPTED AND DOCUMENTED, not an oversight. It is recorded
+//    as V25 in the mutation vector table — reports/dev-195-vectors.json, with
+//    its runtime-verified before/after and the reason it is accepted — so the
+//    next reviewer meets it as disclosed prior art rather than rediscovering it
+//    and rating it High. The same table records the other disclosed
+//    limitations: indirect eval, computed globalThis access, new Function, and
+//    the unresolved non-relative specifier. Do not close V25 by banning
+//    `.prototype` assignment: the equivalents are unbounded (Object.
+//    defineProperty, Object.assign, Reflect.defineProperty, setPrototypeOf,
+//    __proto__, and non-prototype globals such as
+//    document.implementation.createHTMLDocument), so such a ban would fake
+//    coverage rather than provide it.
+//
+//    Observing the EFFECT instead of the name is the only closure, and it
+//    requires LOADING the two sink modules and re-asserting the sanitizer
+//    afterwards. That needs the component graph compiled, which is the Phase 2
+//    component harness. It is ROUTED THERE, not dropped: V23 (the addHook
+//    capture) and V25 (the prototype patch) are that harness's acceptance
+//    vectors.
 // ---------------------------------------------------------------------------
 
 /**
@@ -1052,6 +1121,12 @@ const SINK_BINDINGS = [
  * There is deliberately NO ignore-line opt-out: disarming the sound half must
  * require editing this file, where a reviewer sees it, not adding a comment to a
  * component.
+ *
+ * SCOPE OF THE CLAIM. "Sound" here means sound over BINDINGS — R1–R7 decide
+ * which names may reach the sink and in what shape. They say nothing about what
+ * the sanitizer does once called; that is mechanism (c), and (c) has a known
+ * documented survivor of its own. See "WHAT THIS GUARD CLAIMS, AND WHAT IT DOES
+ * NOT" in the header comment before reporting a green result as a proof.
  */
 /**
  * Candidate on-disk paths, web-root-relative, for a relative import specifier
@@ -1299,6 +1374,19 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
  * reason the closed-world rules have none: disarming a rule that pins the
  * security boundary must require editing THIS file, where a reviewer sees it,
  * not adding a comment to a component.
+ *
+ * KNOWN SURVIVOR — READ BEFORE EXTENDING THIS RULE. R8 works because the
+ * `addHook` attack had to NAME 'dompurify', and a rule can take a name away.
+ * Patching `Element.prototype.removeAttribute` and `Node.prototype.removeChild`
+ * defeats the sanitizer just as completely and names nothing: R8 has no
+ * specifier to match, and the suite stays green at 61/61. That is recorded as
+ * V25 in reports/dev-195-vectors.json with its runtime-verified before/after,
+ * and it is ACCEPTED, not missed. Rules of this kind can own a name; they
+ * cannot own an effect. Do NOT respond by banning `.prototype` assignment — the
+ * equivalents are unbounded and the ban would fake coverage. The closure is to
+ * observe the effect by loading the sink modules and re-asserting the
+ * sanitizer, which needs the component graph compiled and is routed to the
+ * Phase 2 harness with V23 and V25 as its acceptance vectors.
  */
 const SANITIZER_OWNER = 'src/util/markdown.ts';
 const SANITIZER_DEPENDENCIES = ['dompurify', 'marked'];
