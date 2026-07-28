@@ -58,6 +58,11 @@ const defaultPageSize = 50
 const maxTaskNameLength = 512
 const maxTaskDescriptionLength = 65536
 
+// maxTaskTypeLength bounds the open-ended task type string. Types name a
+// category, not prose; 128 runes is generous for that and stops an unbounded
+// caller-supplied string reaching the store and the label mapper.
+const maxTaskTypeLength = 128
+
 func validateDefinedEnum(field string, value int32, names map[int32]string) error {
 	if _, ok := names[value]; !ok {
 		return status.Errorf(codes.InvalidArgument, "invalid %s: %d", field, value)
@@ -71,6 +76,35 @@ func validateTaskName(name string) error {
 	}
 	if utf8.RuneCountInString(name) > maxTaskNameLength {
 		return status.Errorf(codes.InvalidArgument, "name must be at most %d characters", maxTaskNameLength)
+	}
+	return nil
+}
+
+// validateTaskType checks the shape of the caller-supplied task type.
+//
+// It deliberately does NOT check membership in a set of known types (#194
+// round 8). The Ent schema declares type as field.String("type") so that native
+// collections can use arbitrary types, and on a GitHub collection the set of
+// valid types is whatever the operator put in github.labels.types — which the
+// server does not have and must not need. An allow-list here would be a
+// behaviour break for every native caller, and it would put the server in the
+// business of knowing a per-collection platform config.
+//
+// What it does close is the part that has no legitimate use: a type that is
+// blank-but-not-empty, or unboundedly long. The DESTRUCTIVE half of the
+// unvalidated-type finding is fixed in the store, where the knowledge lives —
+// see LabelMapper.TypeLabelSwap, which no longer strips the issue's existing
+// type labels for a type it cannot represent.
+//
+// The empty string is valid and means "clear the type".
+func validateTaskType(taskType string) error {
+	if taskType != "" && strings.TrimSpace(taskType) == "" {
+		return status.Errorf(codes.InvalidArgument,
+			"type must not be blank: use an empty string to clear the type")
+	}
+	if utf8.RuneCountInString(taskType) > maxTaskTypeLength {
+		return status.Errorf(codes.InvalidArgument,
+			"type must be at most %d characters", maxTaskTypeLength)
 	}
 	return nil
 }
@@ -180,6 +214,10 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 				}
 			}
 		}
+	}
+
+	if err := validateTaskType(req.GetType()); err != nil {
+		return nil, err
 	}
 
 	p := store.CreateTaskParams{
@@ -358,6 +396,10 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 						"Create the task and move it with UpdateTask, which prices the "+
 						"transition", i, step.GetLabels(), after)
 			}
+		}
+
+		if err := validateTaskType(step.GetType()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].type: %v", i, err)
 		}
 
 		params := store.CreateTaskParams{
@@ -694,6 +736,9 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.Priority = &pr
 	}
 	if req.Type != nil {
+		if err := validateTaskType(req.GetType()); err != nil {
+			return nil, err
+		}
 		p.Type = req.Type
 	}
 	if req.GetClearAssignees() {

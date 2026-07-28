@@ -472,12 +472,42 @@ func (m *LabelMapper) TypeToLabel(typ string) string {
 
 // TypeLabelSwap computes the label add/remove sets needed to transition
 // an issue from its current labels to a new type.
+//
+// AN UNKNOWN TYPE STRIPS NOTHING (#194 round 8, from the round-7 audit).
+//
+// req.Type is an open-ended caller-supplied string — the Ent schema has it as
+// field.String("type") precisely so native collections can use arbitrary types
+// — so unlike stage and priority it gets no enum validation, and it never can.
+// TypeToLabel returns "" for a type this mapper has no label for, so nothing
+// was added; but the remove loop below used to run anyway, stripping EVERY type
+// label on the issue. Measured under DefaultConfig:
+// TypeLabelSwap("totally-unknown-type") removed [bug].
+//
+// So a task:write caller destroyed triage metadata on any GitHub-backed issue,
+// repeatably, with a value that names nothing — the same free-blind-retryable
+// shape as A-4, needing no operator config and reachable under DefaultConfig
+// today. The audit rated it the most reachable of its findings.
+//
+// The fix is to make the remove side agree with the add side: a type this
+// mapper cannot represent as a label produces no label write at all. GitHub has
+// no type field, so an unrepresentable type is a request this store genuinely
+// cannot carry out, and doing nothing is the honest answer. Doing SOMETHING —
+// deleting the labels of the type the issue currently has — is the answer that
+// costs the caller nothing and the maintainer their metadata.
+//
+// newType == "" is the documented spelling of "clear the type", and it is still
+// honoured: the strip runs, nothing is added. That is the one case where "no
+// label to add" is what the caller asked for rather than a value we could not
+// map.
 func (m *LabelMapper) TypeLabelSwap(currentLabels []string, newType string) (add []string, remove []string) {
 	if !m.enabled {
 		return nil, nil
 	}
 
 	newLabel := m.TypeToLabel(newType)
+	if newLabel == "" && newType != "" {
+		return nil, nil
+	}
 
 	for _, raw := range currentLabels {
 		key := m.stripForMatch(raw)
