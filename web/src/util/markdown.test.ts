@@ -1646,10 +1646,29 @@ function stripInertText(src: string, opts: { strings: boolean; templateText?: bo
  * THE FIX IS THE CLASS, NOT THE INSTANCE. Only `balancedDeclarationParameterLists`
  * was exploited, but `splitTopLevelParameters`, `hasTopLevelDefault`,
  * `callArguments` and `sinkArgumentIsSanitized` all count raw characters over the
- * same view and all had the same blindness — measured, not assumed: each of the
- * five has a fixture in this file that moves when its use of this helper is
- * removed, and those fixtures are named in the mutation table in the round-9
- * report. Repairing only the exploited counter is how this finding survived
+ * same view and all had the same blindness — measured, not assumed. Re-measured
+ * in round 10 on this tree, one at a time, `const scan = literalBlindView(x)`
+ * replaced by `const scan = x`, `npm test` exit code from the child, no mutant
+ * failing `tsc`:
+ *
+ *   balancedDeclarationParameterLists  RED  the arity pin, and the round-10 slice pin
+ *   splitTopLevelParameters            RED  the arity pin, and the round-10 slice pin
+ *   hasTopLevelDefault                 RED  the arity pin
+ *   callArguments                      RED  `fixture: the sink-binding rules accept a
+ *                                            correct sink file` (a FALSE POSITIVE)
+ *   sinkArgumentIsSanitized            RED  the same false-positive control
+ *
+ * ALL FIVE, and the second half of what stood here — "those fixtures are named in
+ * the mutation table in the round-9 report" — WAS FALSE. That table has entries
+ * C-4/C-5/C-6 only, for the first three; nothing in it covers `callArguments` or
+ * `sinkArgumentIsSanitized`. Those two were covered later, by a different commit
+ * for a different reason (`6103b9a`'s SINK_CALL_LEGITIMATE template-argument
+ * entries), and the coverage is a FALSE-POSITIVE control rather than a bypass
+ * fixture. A claim that points at an archived report for its evidence is a claim
+ * nobody can check from the tree, which is the failure mode this paragraph is
+ * about; the measurement is written out above instead.
+ *
+ * Repairing only the exploited counter is how this finding survived
  * rounds 7 and 8: round 7 fixed `[,=]`, round 8 fixed `[^)]*`, and each fix was
  * defeated one construct further in by the same reasoning error — A COUNTER THAT
  * DOES NOT MODEL THE LEXER CANNOT SEE WHAT THE LEXER HIDES.
@@ -2257,7 +2276,15 @@ function renderMarkdownArityViolation(src: string): string | null {
   // the blinding INSIDE `balancedDeclarationParameterLists`,
   // `splitTopLevelParameters` or `hasTopLevelDefault` was GREEN at 78/123 —
   // three of the five shared call sites the class fix exists to create had no
-  // unique coverage at all, which is the same masking shape as T-3. Each
+  // unique coverage at all, which is the same masking shape as T-3. THAT COUNT
+  // IS AN UNDERCOUNT AND ROUND 10 CORRECTED IT: it was five of five. The
+  // per-revision half of that is the round-9 reviewer's measurement, not
+  // re-measured here — all five GREEN at `affa615`, the first three RED at
+  // `e3002b9`, the sink pair not RED until `6103b9a`. What IS re-measured here
+  // is the two endpoints that matter: all five are RED at HEAD (table above
+  // `literalBlindView`), and `6103b9a` is where SINK_CALL_LEGITIMATE grows from
+  // one mention to six, so the sink pair's coverage does arrive by a different
+  // commit for a different reason, which is why it was not counted. Each
   // scanner blinds its own input at its own boundary, so each one is load
   // bearing on its own and C-4/C-5/C-6 are red individually. It also means the
   // messages below quote REAL source text instead of blanked spaces.
