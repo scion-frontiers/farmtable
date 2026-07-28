@@ -61,10 +61,10 @@ var _ store.Store = (*GitHubPassThroughStore)(nil)
 // a check.
 //
 // One line, and the failure becomes a compile error at the site that caused it.
-// NOTE FOR internal/store: multiStore satisfies the same interface by the same
-// runtime assertion (multistore.go:251, :264) and has no compile-time pin
-// either. That file is not this leg's to edit; it is called out in the round-6
-// leg-A log entry.
+// MultiStore reaches the same interface by the same runtime assertion and had
+// the same gap; leg B pinned it in internal/store/multistore.go in the same
+// round. Both implementers are covered — this note is a cross-reference, not an
+// open item.
 var _ store.LifecycleStageSetStager = (*GitHubPassThroughStore)(nil)
 
 // NewPassThroughStore creates a store that proxies to GitHub Issues.

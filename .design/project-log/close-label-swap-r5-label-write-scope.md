@@ -317,6 +317,18 @@ GO_TEST_EXIT=0
 MAKE_RACE_EXIT=0
 ```
 
+> **Correction, round 6.** `GO_BUILD_EXIT=0` above was measured against a tree
+> whose `web/dist` was a **stub**. `assets.go` embeds `all:web/dist`, which is
+> gitignored, so a fresh clone does not build until `make web` has run: measured
+> at `ea8ac39`, `go build ./...` exits **1** before `make web` and **0** after.
+> The number was true of the tree it was run on. What it does not support is the
+> sentence *"the branch builds,"* which nobody had measured at the time. The stub
+> does not affect `internal/platform/github/` behaviour and **no round-5
+> label-authorization finding is invalidated by it.** Three round-5 agent reports
+> carry the same unqualified claim (`review-194-r5:27`, `audit-194-r5:47`,
+> `test-194-r5:277`). See
+> `.design/project-log/label-prefix-terminal-set-r6a.md`.
+
 ## Where I pushed back on the brief
 
 - **B1's sketch called the reconstruction twice, once per endpoint.** I made it
