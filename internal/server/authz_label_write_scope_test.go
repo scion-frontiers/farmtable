@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -109,6 +110,20 @@ type labelWriteIssueMock struct {
 	// rests on that. Counting it is what turns "we believe UpdateTask does not
 	// close the issue" into a measurement.
 	closeCalls int
+
+	// creates records one entry per createIssue mutation, holding the labels
+	// that mutation asked for.
+	//
+	// The round-5 audit declared this fixture's inability to tell CREATE from
+	// UPDATE as a limit on its own CreateTask probe: the create arm applies the
+	// requested labels to the single issue the mock serves, so afterwards
+	// currentLabels() cannot say whether a label arrived through createIssue or
+	// through a later addLabelsToLabelable. A #194 round-6 test that asserted on
+	// currentLabels() alone would therefore be pinning the mock, not the server.
+	//
+	// Recording the create separately is what makes "the caller's label was
+	// attached AT CREATION" an answerable question. See B1 / audit A-1.
+	creates [][]string
 }
 
 func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []string) (*httptest.Server, *labelWriteIssueMock) {
@@ -164,11 +179,20 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 			// The fixture stays single-issue: the requested labels are applied
 			// to the one issue it serves, so "did the caller's label land?"
 			// remains answerable.
+			//
+			// The labels this particular mutation asked for are ALSO recorded
+			// separately, because applying them to the shared issue is exactly
+			// what makes create and update indistinguishable afterwards. See
+			// the `creates` field.
+			asked := []string{}
 			for id, name := range m.idToName {
 				if strings.Contains(b, `"`+id+`"`) {
 					m.add(name)
+					asked = append(asked, name)
 				}
 			}
+			sort.Strings(asked)
+			m.creates = append(m.creates, asked)
 			_, _ = w.Write([]byte(`{"data":{"createIssue":{"issue":` + m.issueJSON() + `}}}`))
 		case strings.Contains(b, "closeIssue"):
 			m.closeCalls++
@@ -254,6 +278,20 @@ func (m *labelWriteIssueMock) closes() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.closeCalls
+}
+
+// createdIssues returns, per createIssue mutation, the labels that mutation
+// requested. Unlike currentLabels() this cannot be satisfied by a later
+// addLabelsToLabelable, so it distinguishes the create path from the update
+// path.
+func (m *labelWriteIssueMock) createdIssues() [][]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([][]string, 0, len(m.creates))
+	for _, c := range m.creates {
+		out = append(out, append([]string(nil), c...))
+	}
+	return out
 }
 
 func (m *labelWriteIssueMock) issueJSON() string {
@@ -465,6 +503,41 @@ func requireDeniedFor(t *testing.T, err error, wantScope string, what string) {
 	if !strings.Contains(st.Message(), wantScope) {
 		t.Fatalf("%s: denied with %q, want the denial to name %q", what, st.Message(), wantScope)
 	}
+}
+
+// deniedScope extracts the scope name a PermissionDenied names, so two gates
+// can be compared against EACH OTHER instead of against a literal.
+//
+// A test that writes `want: "task:close"` re-states the configuration it is
+// meant to be checking: weaken TransitionScope and you would update the literal
+// in the same edit, and the test would stay green. Comparing the scope the
+// stage door demands with the scope the label door demands has no such shared
+// source — closing one door without the other makes them differ.
+//
+// Fails rather than returning "" on anything that is not a scope denial: a
+// transport error or a validation failure laundered into this comparison would
+// make two unrelated errors compare equal.
+func deniedScope(t *testing.T, err error, what string) string {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("%s: allowed, want PermissionDenied", what)
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.PermissionDenied {
+		t.Fatalf("%s: got %v (%s), want PermissionDenied", what, st.Code(), st.Message())
+	}
+	const marker = `missing required scope "`
+	msg := st.Message()
+	i := strings.Index(msg, marker)
+	if i < 0 {
+		t.Fatalf("%s: denial %q does not name a scope in the expected form", what, msg)
+	}
+	rest := msg[i+len(marker):]
+	j := strings.Index(rest, `"`)
+	if j < 0 {
+		t.Fatalf("%s: denial %q has an unterminated scope name", what, msg)
+	}
+	return rest[:j]
 }
 
 // withScope is agentScopes() plus one. Used for the differential baselines:
@@ -1340,8 +1413,14 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
 			// (IssueToPhaseStage fallback) are two different reconstructions of
 			// the same issue, and the gates sit next to each other in
 			// UpdateTask. They must give the same answer.
-			want := store.LifecycleStages(ctx, f.ms, tasks[0])
-			before, after := store.LabelDeltaLifecycleStages(ctx, f.ms, tasks[0], nil, nil)
+			want, err := store.LifecycleStages(ctx, f.ms, tasks[0])
+			if err != nil {
+				t.Fatalf("LifecycleStages: %v", err)
+			}
+			before, after, err := store.LabelDeltaLifecycleStages(ctx, f.ms, tasks[0], nil, nil)
+			if err != nil {
+				t.Fatalf("LabelDeltaLifecycleStages: %v", err)
+			}
 			if !store.SameStageSet(before, want) {
 				t.Fatalf("LabelDeltaLifecycleStages reports before=%v but LifecycleStages says "+
 					"%v for the same task. The two readings of the issue must agree or the "+
@@ -1353,77 +1432,6 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
 			}
 		})
 	}
-}
-
-// ── disclosed residual: CreateTask is a fifth verb with the same root ──
-
-// TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday pins a residual
-// this round's control does NOT close, found while building it.
-//
-// CreateTask passes req.labels straight through to the new GitHub issue
-// (server.go sets p.Labels; the pass-through store resolves each name and
-// attaches it), and nothing inspects them. So:
-//
-//	CreateTask(stage=completed)             -> DENIED, needs task:close
-//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED with task:write, and the
-//	                                           new task's lifecycle stage is
-//	                                           completed
-//
-// That is the same root as the finding this round fixes — a write path to the
-// field authorization reads, guarded only by task:write — reached through a
-// different verb. InsertTasksAfter takes labels the same way.
-//
-// IT IS NOT FIXED HERE, deliberately:
-//
-//   - The impact is materially lower. The attacker is fabricating a completion
-//     record on a task it is creating, not overriding a maintainer's existing
-//     decision and not making anyone else's work unclaimable. Nothing is
-//     revoked and nothing needs task:accept to undo.
-//   - It is a different verb, and verbs are being sequenced one at a time on
-//     this branch (the `ft ready` tree-walk sink is out for the same reason).
-//     Folding it in would collide.
-//   - Most importantly it is the third instance of the point that matters:
-//     every control here is a control over ONE VERB, and the verb set is
-//     open-ended — UpdateTask today, CreateTask and InsertTasksAfter now, bulk
-//     edit, sync, import or a webhook reconciler tomorrow. Enumerating verbs
-//     loses against a single mutable field. #203 is the fix; this test is
-//     evidence for it.
-//
-// Pinning CURRENT behaviour, like the unprefixed-label test in
-// authz_terminal_reopen_test.go does, so the residual is visible and closing it
-// is a deliberate act. If you are here because this test failed, you are
-// probably closing it — update the test rather than working around it.
-func TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday(t *testing.T) {
-	f := openIssue(t, stageLabel(task.StageAccepted))
-
-	// BASELINE: the straight route to a terminal stage at creation is closed
-	// for this token, so the label route is a bypass of a real gate.
-	completed := pb.TaskStage_TASK_STAGE_COMPLETED
-	_, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
-		CollectionId: f.collID.String(), Name: "direct", Stage: &completed,
-	})
-	requireDeniedFor(t, err, server.ScopeTaskClose, "BASELINE: CreateTask(stage=completed)")
-
-	// The label route.
-	if _, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
-		CollectionId: f.collID.String(), Name: "via labels",
-		Labels: []string{stageLabel(task.StageCompleted)},
-	}); err != nil {
-		t.Fatalf("CreateTask with a terminal stage label was rejected (%v). That may well be "+
-			"the intended change — see the doc comment — but it is a behaviour change at a "+
-			"security gate and must be made deliberately, not as a side effect", err)
-	}
-
-	// And it really lands: the label is attached, so the residual is real
-	// rather than a request the store quietly dropped.
-	if !containsLabel(f.issue.currentLabels(), stageLabel(task.StageCompleted)) {
-		t.Skipf("the terminal label did not reach the issue (labels %v), so CreateTask is not "+
-			"in fact a live write path and this disclosure should be corrected",
-			f.issue.currentLabels())
-	}
-	t.Log("DISCLOSED RESIDUAL: CreateTask attaches a caller-supplied terminal stage label with " +
-		"task:write, while CreateTask(stage=completed) requires task:close. Same root, " +
-		"different verb, not closed by round 5.")
 }
 
 // ── B3: can a native task hold a terminal stage with an open phase? ──

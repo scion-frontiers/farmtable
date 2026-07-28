@@ -233,6 +233,16 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
 	return s.ClaimTask(ctx, id, assigneeID, version)
 }
 
+// MultiStore must route the multi-valued lifecycle seam, not just the
+// single-valued one. Without this assertion it can satisfy the interface by
+// accident, and losing a method silently demotes every routed store to the
+// one-element fallback: no compile error, no failing test, and the #194 round-5
+// label-write gates inert. See F6.
+var (
+	_ LifecycleStager         = (*MultiStore)(nil)
+	_ LifecycleStageSetStager = (*MultiStore)(nil)
+)
+
 // LifecycleStage implements LifecycleStager by routing to the store that owns
 // the task's collection. A platform store whose Stage field is a display value
 // answers for itself; every other store's Stage is already authoritative.
@@ -247,28 +257,37 @@ func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
 // that owns the task's collection. A store where a task can name several
 // stages at once answers for itself; for every other store the task names
 // exactly the one stage in its column.
+//
+// The inner store's answer is propagated VERBATIM, including an empty one. This
+// used to substitute the current stage for an empty result, which duplicated
+// the package-level helper's fallback and meant a contract-violating inner
+// store was silently converted into "no transition" — an open gate — at
+// whichever of the two copies ran first. Passing the violation up lets the one
+// remaining rule in LifecycleStages deny it. See B2 / B4.
 func (m *MultiStore) LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage {
-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
-			return stages
-		}
+	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
+	if !ok {
+		return []task.Stage{m.LifecycleStage(ctx, t)}
 	}
-	return []task.Stage{m.LifecycleStage(ctx, t)}
+	return stager.LifecycleStages(ctx, t)
 }
 
 // LabelDeltaLifecycleStages implements LifecycleStageSetStager by routing to
 // the store that owns the task's collection. A store that keeps the lifecycle
 // stage in labels answers for itself; for every other store a label edit
 // cannot move the stage, so both endpoints are the task's current one.
+//
+// As in LifecycleStages above, the inner store's answer is propagated verbatim
+// rather than repaired here, so that a contract violation reaches the single
+// rule that denies it instead of being absorbed by a second copy of the
+// fallback. See B2 / B4.
 func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
-		if len(b) > 0 && len(a) > 0 {
-			return b, a
-		}
+	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
+	if !ok {
+		current := []task.Stage{m.LifecycleStage(ctx, t)}
+		return current, current
 	}
-	current := []task.Stage{m.LifecycleStage(ctx, t)}
-	return current, current
+	return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
 }
 
 func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {

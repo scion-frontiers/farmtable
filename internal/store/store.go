@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/farmtable-io/farmtable/internal/store/ent"
@@ -127,16 +128,39 @@ type LifecycleStageSetStager interface {
 	LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage)
 }
 
+// ErrEmptyLifecycleStageSet reports that a LifecycleStageSetStager returned an
+// empty stage set, which its contract forbids.
+//
+// This is not a condition any correct store reaches, and it is deliberately not
+// recoverable. An empty set means "this task names no lifecycle stage", and
+// every caller of these helpers is an authorization gate that charges for the
+// stages it is handed — so an empty set spends nothing and ALLOWS. Returning
+// "no transition" here, which is what this package used to do, converts a
+// broken store into a silently open gate. Callers must deny instead. See F7.
+var ErrEmptyLifecycleStageSet = errors.New(
+	"store: LifecycleStageSetStager returned an empty lifecycle stage set")
+
 // LifecycleStages returns every lifecycle stage a task names. Authorization
 // must evaluate its decision against all of them and demand the strongest
 // answer, rather than picking one. Never empty.
-func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
-	if stager, ok := s.(LifecycleStageSetStager); ok {
-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
-			return stages
-		}
+//
+// A store that does not implement LifecycleStageSetStager is answered from
+// LifecycleStage. That is the correct answer and not a stub: a task whose stage
+// lives in its own column names exactly one stage and no label can forge it.
+//
+// A store that DOES implement the interface and returns empty has violated its
+// contract, and gets ErrEmptyLifecycleStageSet rather than a substituted
+// answer. Substituting here is what made the old fallback fail open.
+func LifecycleStages(ctx context.Context, s Store, t *ent.Task) ([]task.Stage, error) {
+	stager, ok := s.(LifecycleStageSetStager)
+	if !ok {
+		return []task.Stage{LifecycleStage(ctx, s, t)}, nil
 	}
-	return []task.Stage{LifecycleStage(ctx, s, t)}
+	stages := stager.LifecycleStages(ctx, t)
+	if len(stages) == 0 {
+		return nil, fmt.Errorf("%w: LifecycleStages", ErrEmptyLifecycleStageSet)
+	}
+	return stages, nil
 }
 
 // LabelDeltaLifecycleStages reports the lifecycle stages a task names now and
@@ -149,15 +173,27 @@ func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
 // "a label edit induces no stage transition" is the correct answer rather than
 // a missing one. Callers that gate on before != after are therefore inert on
 // those stores by construction.
-func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
-	if stager, ok := s.(LifecycleStageSetStager); ok {
-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
-		if len(b) > 0 && len(a) > 0 {
-			return b, a
-		}
+//
+// A store that DOES implement the interface and returns either side empty has
+// violated its contract, and gets ErrEmptyLifecycleStageSet. The previous
+// version required len(b) > 0 && len(a) > 0 and otherwise fell through to
+// (current, current) — "no transition", which charges nothing. For an
+// implementation that returned one empty side that was fail-OPEN, and it was
+// the same rule written twice (here and in MultiStore), so the two copies could
+// drift. There is now one rule, in one place, and it denies. See F7 / B4.
+func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage, err error) {
+	stager, ok := s.(LifecycleStageSetStager)
+	if !ok {
+		current := []task.Stage{LifecycleStage(ctx, s, t)}
+		return current, current, nil
 	}
-	current := []task.Stage{LifecycleStage(ctx, s, t)}
-	return current, current
+	b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+	if len(b) == 0 || len(a) == 0 {
+		return nil, nil, fmt.Errorf(
+			"%w: LabelDeltaLifecycleStages (before=%d after=%d)",
+			ErrEmptyLifecycleStageSet, len(b), len(a))
+	}
+	return b, a, nil
 }
 
 // SameStageSet reports whether two lifecycle stage sets name the same stages.

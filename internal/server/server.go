@@ -568,7 +568,11 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		// "any -> terminal costs task:close" row and the conversion closes.
 		// At zero or one terminal stage the set has one member and this is
 		// exactly the round-4 check.
-		for _, authStage := range store.LifecycleStages(ctx, s.store, existing) {
+		authStages, err := store.LifecycleStages(ctx, s.store, existing)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving lifecycle stages: %v", err)
+		}
+		for _, authStage := range authStages {
 			if transitionScope := TransitionScope(string(authStage), string(st)); transitionScope != ScopeTaskWrite {
 				if err := RequireScope(ctx, transitionScope); err != nil {
 					return nil, err
@@ -686,8 +690,11 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	// sets, and when they differ charge for every (from, to) pair — the
 	// strongest scope any pair implies is the one the caller must hold.
 	if len(req.GetAddLabels()) > 0 || len(req.GetRemoveLabels()) > 0 {
-		before, after := store.LabelDeltaLifecycleStages(
+		before, after, err := store.LabelDeltaLifecycleStages(
 			ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving label lifecycle delta: %v", err)
+		}
 		if !store.SameStageSet(before, after) {
 			for _, from := range before {
 				for _, to := range after {
