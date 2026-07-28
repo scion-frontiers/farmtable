@@ -1980,11 +1980,13 @@ function balancedDeclarationParameterLists(code: string): DeclarationParameterLi
  * So the rule is stated in three parts, each of which is a separate way for the
  * previous versions to have been wrong:
  *
- *   A. run over `literalBlindView(src)` — `stripInertText` with string contents
- *      AND template TEXT blanked. Comments, string literals and template-literal
- *      types cannot shadow the real declaration or hide a paren from the counter.
- *      The plain `{ strings: true }` view was not enough, and that is round 9's
- *      finding: see `literalBlindView`.
+ *   A. every structural decision is taken over `literalBlindView` — comments,
+ *      string contents AND template-literal TEXT blanked — so none of them can
+ *      shadow the real declaration or hide a paren from a counter. The plain
+ *      `{ strings: true }` view was not enough, and that is round 9's finding:
+ *      see `literalBlindView`. The blinding is applied by each scanner to its
+ *      own input rather than once here; see the comment in the body for the
+ *      measurement that forced that.
  *   B. `matchAll`, and EXACTLY ONE match is permitted. An overload signature is
  *      a second declaration, and an overload set whose implementation widens the
  *      arity is precisely the configuration channel this pin exists to deny.
@@ -2014,8 +2016,18 @@ function balancedDeclarationParameterLists(code: string): DeclarationParameterLi
  * correct code gets deleted.
  */
 function renderMarkdownArityViolation(src: string): string | null {
-  const code = literalBlindView(src);
-  const { lists: decls, unterminated } = balancedDeclarationParameterLists(code);
+  // THIS FUNCTION DELIBERATELY DOES NOT PRE-BLIND ITS INPUT, and that is a
+  // measurement, not a style choice. The first draft of the round-9 fix did
+  // `const code = literalBlindView(src)` here and passed the blinded text down.
+  // Every scanner below then received text that was already blind, so deleting
+  // the blinding INSIDE `balancedDeclarationParameterLists`,
+  // `splitTopLevelParameters` or `hasTopLevelDefault` was GREEN at 78/123 —
+  // three of the five shared call sites the class fix exists to create had no
+  // unique coverage at all, which is the same masking shape as T-3. Each
+  // scanner blinds its own input at its own boundary, so each one is load
+  // bearing on its own and C-4/C-5/C-6 are red individually. It also means the
+  // messages below quote REAL source text instead of blanked spaces.
+  const { lists: decls, unterminated } = balancedDeclarationParameterLists(src);
 
   if (unterminated) {
     return (
