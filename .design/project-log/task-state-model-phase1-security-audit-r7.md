@@ -139,3 +139,66 @@ path is entitled to move the stage (an explicit flag set by the stage arm, `Clai
 and `CloseTask`). That is a real single-point control at the narrow seam, it fixes the
 HIGH structurally regardless of operator config, and it is defence in depth for C-1. I
 now rate it the highest-value change available for r8.
+
+## Addendum 2 — corrected M-1 premise, severity re-rate, and a self-correction
+
+**M-1 is NOT shipped and NOT live.** The coordinator measured this against `origin/main`:
+`NewPlatformResolver()` takes no config there, `DefaultConfigPath` does not exist there,
+and `1d4442f` is not an ancestor of `origin/main`. M-1 exists only in the unmerged #194
+branch. The brief's phrase "live in production" was true of the *defect* and false of the
+*fix*; the label M-1 names both. Further: `Dockerfile.server`'s final stage copies only the
+compiled binary, `FARMTABLE_GITHUB_CONFIG` is absent from the live env, and volumeMounts
+are null — so `.farmtable/github.yaml` **structurally cannot resolve** in this deployment
+even after M-1 merges.
+
+**My lesson, independent of the ambiguous sentence: a fact doing severity work has to be
+measured, not inherited.** I hardened an inherited premise into a load-bearing rating.
+
+### Re-rate: HIGH → MEDIUM
+
+Not reflexive. The HOLD argument — that the only operator who can trigger this is exactly
+the operator M-1 exists to serve, so benefit and exposure arrive in one act — is decisive
+about **ordering** and I accept it fully. But coupling is a scheduling property, not a
+severity one. Rated as if merged today it is still not exploitable: three independent
+things must change, one of them infrastructure that does not exist. Holding it at High to
+force sequencing would be using severity as a scheduling lever, and downstream "High"
+reads as "exploitable now". The correct instrument is a merge gate.
+
+Note the mitigator that actually bites is the **deployment shape**, not the merge status —
+for a pre-merge audit everything in the branch is "not live" by definition, so
+non-liveness alone can never justify lowering.
+
+**MEDIUM, returning to HIGH on the first deployment that mounts a GitHub config file.
+The Validate fix is a blocking condition on the M-1 merge commit, not next-sprint work.**
+
+### Order changes, not just the label
+
+1. **C-1 (Critical) is now the top r8 item** — it needs no operator config and is reachable
+   under `DefaultConfig()`. Previously I had the cross-table finding first. Wrong.
+2. Ship P1 ∧ P2 with C-1's fix.
+3. `writeLabelSwap` ownership assertion — fixes the cross-table finding structurally and is
+   defence in depth for C-1.
+4. Validate cross-table check — gated to the M-1 merge.
+
+**Knock-on:** the unvalidated-`req.Type` MEDIUM needs no config file and is reachable under
+`DefaultConfig()` today, so it is now the more immediately reachable of my two findings.
+
+### I was wrong in Addendum 1: the proposed pin is NOT vacuous
+
+Measured against the **real HEAD implementation**, which I had never run it against:
+P1 **fails** on C-1 (`add=[ft:stage/completed] remove=[]` vs a predicted no-op) and
+**fails** on a case-blind mutant. The coordinator's read was right; mine was wrong.
+"Must not ship as specified" is **withdrawn** — it should read "must not ship *alone*".
+
+**How I got it wrong is the point.** I evaluated P1 against only `identity` and my `fixed`
+form, neither of which exhibits a snapshot-visible divergence, saw "true in all 8 rows",
+and generalised to "it never discriminates". That was a property of the implementation set
+I chose, not of the property. **I committed inside the addendum the identical error I had
+just diagnosed in the main report** — a conclusion silently bounded by a self-chosen
+enumeration, stated as general. Twice in one audit, same axis.
+
+**P1's real blind spot** is structural: it quantifies over outcomes *against the snapshot
+only*, so it cannot see a narrowing failure that is a no-op against the snapshot but not
+against drifted remote state — exactly the A-4 class. It misses the bug the function was
+written for and catches the regression introduced while fixing it. No extra test input
+closes that; the quantifier is the limitation. Hence P2 (minimality) alongside it.
