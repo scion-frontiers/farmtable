@@ -619,6 +619,27 @@ function collectSourceFiles(dir: string, out: string[]): void {
  * two raw directives and are the ones a developer in this codebase would most
  * plausibly reach for next.
  */
+/**
+ * Lit's three raw-injection directives, with the module each is exported from.
+ *
+ * Every call-site scan in this file matches on the directive's own name, so any
+ * indirection that renames it — an alias, a namespace import, a re-export
+ * barrel — makes the sink invisible to all of them at once. Those three forms
+ * are therefore banned outright below; that ban is what makes the name-based
+ * scans mean anything.
+ *
+ * Module paths are matched on their SUFFIX, not the full specifier. Both
+ * `lit/directives/unsafe-html.js` and `lit-html/directives/unsafe-html.js`
+ * resolve to the same directive and both packages are installed here, so
+ * anchoring on the `lit/` prefix would leave the second path as a one-word
+ * bypass. (Verified: it was.)
+ */
+const RAW_DIRECTIVES = [
+  { name: 'unsafeHTML', module: 'directives/unsafe-html.js' },
+  { name: 'unsafeSVG', module: 'directives/unsafe-svg.js' },
+  { name: 'unsafeStatic', module: 'static-html.js' },
+];
+
 const BANNED_SINKS: { name: string; pattern: RegExp }[] = [
   { name: 'innerHTML/outerHTML assignment', pattern: /\.(inner|outer)HTML\s*\+?=/ },
   { name: 'innerHTML/outerHTML indexed assignment', pattern: /\[['"](inner|outer)HTML['"]\]\s*\+?=/ },
@@ -680,25 +701,31 @@ function sinkBinding(): void {
     }
   });
 
-  // An alias defeats every other scan in this function: `import { unsafeHTML as
-  // raw }` followed by `raw(x)` matches neither `unsafeHTML(` nor the banned
-  // list below, so the sink simply disappears from both case lists. Requiring
-  // the directive to be imported under its own name is what makes those two
-  // scans meaningful.
-  check('no file aliases or re-exports the unsafeHTML directive', () => {
-    const offenders = files
-      .filter((f) => {
-        const src = readFileSync(f, 'utf8');
-        return (
-          /from ['"]lit\/directives\/unsafe-html\.js['"]/.test(src) &&
-          !/import \{ unsafeHTML \} from ['"]lit\/directives\/unsafe-html\.js['"]/.test(src)
-        );
-      })
-      .map((f) => relative(root, f));
+  // Indirection defeats every other scan in this function: `import { unsafeHTML
+  // as raw }` followed by `raw(x)` matches neither `unsafeHTML(` nor the banned
+  // list below, so the sink disappears from both case lists rather than failing
+  // either. Requiring each directive to be used under its own name is what makes
+  // those name-based scans meaningful. See RAW_DIRECTIVES.
+  check('no file aliases, namespaces or re-exports a raw-HTML directive', () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8');
+      const rel = relative(root, file);
+      for (const { name, module } of RAW_DIRECTIVES) {
+        const mod = module.replace(/\./g, '\\.');
+        if (new RegExp(`\\b${name}\\s+as\\s+`).test(src)) {
+          offenders.push(`${rel}: ${name} renamed with 'as'`);
+        }
+        if (new RegExp(`import\\s+\\*\\s+as\\s+\\w+\\s+from\\s+['"][^'"]*${mod}['"]`).test(src)) {
+          offenders.push(`${rel}: ${module} imported as a namespace`);
+        }
+        if (new RegExp(`export\\s+[^;]*from\\s+['"][^'"]*${mod}['"]`).test(src)) {
+          offenders.push(`${rel}: ${module} re-exported`);
+        }
+      }
+    }
     if (offenders.length > 0) {
-      throw new Error(
-        `unsafeHTML imported under an alias or re-exported in: ${offenders.join(', ')}`,
-      );
+      throw new Error(`raw-HTML directive obscured by indirection: ${offenders.join(', ')}`);
     }
   });
 
