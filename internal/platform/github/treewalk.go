@@ -81,6 +81,38 @@ func computeReady(m *LabelMapper, nodes map[int]*issueTreeNode, includeUnblocked
 			continue
 		}
 
+		// A task carrying an authoritative terminal label is not ready work,
+		// however node.Stage reads.
+		//
+		// #194 A7, MEASURED. node.Stage comes from MapLabelsToStage, the DISPLAY
+		// collapse, and stagePrecedence ranks every non-terminal stage above
+		// every terminal one. So this walk was the FOURTH consumer of the round-3
+		// masking defect, and nobody had enumerated it:
+		//
+		//	labels                             node.Stage  offered as ready?
+		//	[ft:stage/completed]               completed   no
+		//	[ft:stage/completed, working]      working     YES  <- one bare label
+		//	[ft:stage/completed, accepted]     accepted    YES
+		//
+		// The second row is the bad one. "working" carries no push prefix, so
+		// anyone at all can apply it, and applying it hands a completed task back
+		// to an agent as available work. Asking the SET-valued reader instead
+		// means the answer cannot depend on what else the issue is labelled.
+		//
+		// This is a WITHHOLD, which is why it is safe to widen: it can only
+		// remove entries from a ready list, never add one. It also makes the walk
+		// agree with ComputeAvailability, which already treats a terminal label
+		// as unavailable through LifecycleStage — two views of "can this be
+		// worked on" that disagreed.
+		//
+		// It does NOT contradict IssueToPhaseStage's deliberate demotion of a
+		// terminal label on an open issue. That rule exists so live work is not
+		// DISPLAYED as finished; this one decides whether to OFFER the work, and
+		// for offering, the cautious direction is the other one.
+		if len(m.AllTerminalLabelStages(node.Labels)) > 0 {
+			continue
+		}
+
 		hasOpenChildren := false
 		for _, child := range node.Children {
 			if issueStateOpen(child.State) {
