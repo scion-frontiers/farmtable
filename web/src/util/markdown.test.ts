@@ -1070,6 +1070,28 @@ function resolveRelativeImport(fromRel: string, spec: string): string[] {
   return out;
 }
 
+/**
+ * Does a relative import specifier land on a file this guard reads?
+ *
+ * Inert assets are accepted without resolving. A `.css` or `.json` file cannot
+ * hold code, which is exactly the argument for not scanning it in the first
+ * place, so accepting it here is the same decision as INERT_EXTENSIONS rather
+ * than an exemption carved out to make the tree pass. The tree has two:
+ * `src/index.ts -> ./styles/theme.css` and
+ * `src/gen/grpc-client.ts -> ./farmtable.json`.
+ */
+function importResolvesIntoScannedSet(
+  fromRel: string,
+  spec: string,
+  scanned: ReadonlySet<string>,
+): boolean {
+  if (INERT_EXTENSIONS.some((ext) => spec.endsWith(ext))) return true;
+  return resolveRelativeImport(fromRel, spec).some((cand) => scanned.has(cand));
+}
+
+/** Every relative or `require`d specifier in a file, in source order. */
+const RELATIVE_SPECIFIER = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*['"](\.[^'"]*)['"]/g;
+
 function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<string>): string[] {
   const bad: string[] = [];
   const withStrings = stripInertText(src, { strings: false });
@@ -1133,8 +1155,8 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
   }
 
   // R6
-  for (const [, spec] of withStrings.matchAll(/(?:\bfrom|\bimport|\brequire)\s*\(?\s*['"](\.[^'"]*)['"]/g)) {
-    if (!resolveRelativeImport(rel, spec).some((cand) => scanned.has(cand))) {
+  for (const [, spec] of withStrings.matchAll(new RegExp(RELATIVE_SPECIFIER))) {
+    if (!importResolvesIntoScannedSet(rel, spec, scanned)) {
       bad.push(
         `${rel}: imports '${spec}', which does not resolve to any file this guard scans — ` +
           'a binding that arrives from outside the scanned set can be the raw directive ' +
@@ -1281,9 +1303,32 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
 const SANITIZER_OWNER = 'src/util/markdown.ts';
 const SANITIZER_DEPENDENCIES = ['dompurify', 'marked'];
 
-function sanitizerOwnershipViolations(rel: string, code: string): string[] {
-  if (rel === SANITIZER_OWNER) return [];
+function sanitizerOwnershipViolations(
+  rel: string,
+  code: string,
+  scanned: ReadonlySet<string>,
+): string[] {
   const out: string[] = [];
+
+  // R9. R8 matches on the specifier, so an unscanned file is a laundering point
+  // for it: `export { default as P } from 'dompurify'` in a `*.test.ts` file,
+  // imported by any scanned component, reaches the singleton without any
+  // scanned file naming either dependency. My own hunt, V24b. R6 already said
+  // "an unscanned file is only safe while nothing scanned imports it" — it was
+  // simply scoped to the two REQUIRED_SINKS files, which is why V24b routed
+  // around it through a non-sink component. The statement was right and the
+  // scope was wrong, so the same rule now covers the whole scanned set. R8 is
+  // not sound without it.
+  for (const [, spec] of code.matchAll(new RegExp(RELATIVE_SPECIFIER))) {
+    if (!importResolvesIntoScannedSet(rel, spec, scanned)) {
+      out.push(
+        `${rel}: imports '${spec}', which is outside the scanned set — an unscanned file can ` +
+          're-export anything, including the sanitizer dependencies R8 forbids naming here',
+      );
+    }
+  }
+
+  if (rel === SANITIZER_OWNER) return out;
   for (const dep of SANITIZER_DEPENDENCIES) {
     const spec = new RegExp(`['"\`]${dep}(?:/[^'"\`]*)?['"\`]`);
     for (const line of matchLines(code, spec)) {
@@ -1345,7 +1390,7 @@ function sinkBinding(): void {
     for (const file of files) {
       const rel = relative(root, file);
       const code = stripInertText(readFileSync(file, 'utf8'), { strings: false });
-      offenders.push(...sanitizerOwnershipViolations(rel, code));
+      offenders.push(...sanitizerOwnershipViolations(rel, code, scannedRel));
     }
     if (offenders.length > 0) {
       throw new Error(`sanitizer configuration is reachable from another file:\n      ${offenders.join('\n      ')}`);
@@ -1727,7 +1772,7 @@ function sinkBinding(): void {
     const missed: string[] = [];
     for (const fixture of OWNERSHIP_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
-      if (sanitizerOwnershipViolations('src/components/some-component.ts', code).length === 0) {
+      if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
         missed.push(fixture);
       }
     }
@@ -1735,7 +1780,7 @@ function sinkBinding(): void {
     // produce nothing, or the rule is not a rule about ownership at all.
     for (const fixture of OWNERSHIP_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
-      if (sanitizerOwnershipViolations(SANITIZER_OWNER, code).length !== 0) {
+      if (sanitizerOwnershipViolations(SANITIZER_OWNER, code, scannedRel).length !== 0) {
         missed.push(`OWNER REJECTED: ${fixture}`);
       }
     }
@@ -1744,16 +1789,36 @@ function sinkBinding(): void {
       "import { html } from 'lit';",
       "import { renderMarkdown } from '../../util/markdown.js';",
       'const label = purifyLabel;',
+      'const note = purifyTheInput;',
     ]) {
       const code = stripInertText(clean, { strings: false });
-      if (sanitizerOwnershipViolations('src/components/some-component.ts', code).length !== 0) {
+      if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length !== 0) {
         missed.push(`FALSE POSITIVE: ${clean}`);
       }
     }
     // The ignore-line marker must NOT disarm this rule.
     const marked = "import DOMPurify from 'dompurify'; // raw-sink-scan: ignore-line";
-    if (sanitizerOwnershipViolations('src/components/some-component.ts', stripInertText(marked, { strings: false })).length === 0) {
+    if (sanitizerOwnershipViolations(FIXTURE_REL, stripInertText(marked, { strings: false }), scannedRel).length === 0) {
       missed.push(`OPT-OUT HONOURED: ${marked}`);
+    }
+
+    // R9: the laundering route. An unscanned file may re-export anything.
+    for (const laundered of [
+      "import { P } from './purify-shim.test.js';",
+      "export { P } from './purify-shim.test.js';",
+      "const { P } = await import('./purify-shim.test.js');",
+    ]) {
+      const code = stripInertText(laundered, { strings: false });
+      if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
+        missed.push(`LAUNDERED: ${laundered}`);
+      }
+    }
+    // ...but an inert asset is not a laundering route, and must not be flagged.
+    for (const asset of ["import './styles/theme.css';", "import data from './farmtable.json';"]) {
+      const code = stripInertText(asset, { strings: false });
+      if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length !== 0) {
+        missed.push(`FALSE POSITIVE: ${asset}`);
+      }
     }
     if (missed.length > 0) {
       throw new Error(`sanitizer-ownership rule broken: ${missed.join(' | ')}`);
