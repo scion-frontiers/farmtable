@@ -1,5 +1,5 @@
 import { Marked, type Tokens } from 'marked';
-import DOMPurify from 'dompurify';
+import createDOMPurify from 'dompurify';
 
 // Task descriptions and comment bodies are mirrored verbatim from third-party
 // sources (see IssueToCreateParams in internal/platform/github), so the markdown
@@ -83,33 +83,52 @@ const parser = new Marked({
   },
 });
 
-// WHY `marked` IS PRIVATE HERE AND DOMPurify IS NOT. The asymmetry is
-// deliberate but it is not comfortable, and it is recorded rather than left for
-// the next reader to notice (audit INFO-2).
+// A PRIVATE DOMPurify INSTANCE, for the same reason `marked` is private above.
+// Round 7 left these asymmetric — `marked` private, DOMPurify the process-global
+// singleton — and recorded the asymmetry as accepted (audit INFO-2). It is no
+// longer accepted, because the argument for accepting it was measured false.
 //
-// `DOMPurify` below is the process-global singleton, and its configuration is
-// STICKY: `DOMPurify.setConfig(...)` called anywhere persists, and it overrides
-// the per-call FORBID_TAGS/FORBID_ATTR passed here. Measured, not inferred —
-// after a `setConfig({ FORBID_TAGS: [], FORBID_ATTR: [] })` this function
-// renders `# hi <form><input></form>` as `<h1>hi <form><input></form></h1>`,
-// where it returns `<h1>hi </h1>` untouched. So the whole form-control and
-// overlay policy argued for at the top of this file is defeatable by any module
-// that can reach the singleton.
+// The singleton's configuration is STICKY: `setConfig(...)` called anywhere
+// persists and OVERRIDES the per-call FORBID_TAGS/FORBID_ATTR passed below. The
+// round-7 wording here said that was narrow — "the phishing form and the
+// spoofing overlay come back, `alert(1)` does not" — and that it was unreachable
+// anyway, since "nothing can reach the singleton today". BOTH SENTENCES WERE
+// FALSE, and they were the stated justification for deferring this fix, so the
+// deferral rested on nothing. Measured, against the singleton:
 //
-// NARROWER THAN IT SOUNDS, in both directions. `<script>` is still stripped in
-// that state (measured: returns ''), so this is a policy bypass, not a direct
-// script-execution bypass — the phishing form and the spoofing overlay come
-// back, `alert(1)` does not. And nothing can reach the singleton today: R8/R9
-// in markdown.test.ts deny every file but this one the ability to name
-// `dompurify` at all. That guard is what is holding here, which is exactly why
-// it is worth saying so — the protection is a lint-shaped rule over the source
-// tree, not a property of this code.
+//   setConfig({ ADD_TAGS: ['script'], ADD_ATTR: ['onerror'] })
+//   renderMarkdown('<img src=x onerror=alert(1)><script>alert(2)</script>')
+//     baseline: <p><img src="x"></p>
+//     captured: <p><img src="x" onerror="alert(1)"><script>alert(2)</script></p>
 //
-// NOT FIXED IN THIS ROUND, on purpose. `DOMPurify(window)` would give a private
-// instance and close it the way `new Marked({…})` closes the marked half, but it
-// moves a `window` dependency to module-load time in the security-critical path
-// to close a finding filed as INFO with the ownership guard already standing.
-// That trade is worth a round of its own rather than a cleanup commit.
+// `alert(1)` comes back. The round-7 measurement was of ONE config
+// (`FORBID_TAGS: [], FORBID_ATTR: []`, which indeed leaves <script> stripped)
+// generalised to all of them; `ADD_TAGS` is not a weakening of our policy but an
+// addition to DOMPurify's own allowlist, and it reaches script execution.
+//
+// It was reachable, too. R8/R9 own the CONTIGUOUS QUOTED LITERAL `'dompurify'`,
+// so `import('dompur' + 'ify')` in any scanned non-sink component named nothing
+// either rule could match. Measured end-to-end: all gates green, the capture
+// verbatim in the shipped bundle, Rollup resolving it to the same chunk, and
+// `(await import('dompur'+'ify')).default === (await import('dompurify')).default`
+// true — the split specifier is the same instance.
+//
+// A pattern-matching guard cannot own a global. Only ownership can, which is
+// what the line below now does: a private instance's config is not reachable
+// from the singleton at all, whatever specifier spelling a caller invents. The
+// tokenizer half of the hole is closed separately (see `stripImportStatements`
+// in markdown.test.ts, and R6b promoted tree-wide), but that is defence in
+// depth now rather than the only thing standing here.
+//
+// THE COST, stated because round 7 declined this fix on it: it "moves a `window`
+// dependency to module-load time in the security-critical path". That cost was
+// already being paid in full. `import DOMPurify from 'dompurify'` ALREADY binds
+// to `globalThis.window` when the module is first evaluated — markdown.test.ts
+// constructs a JSDOM before importing this file for exactly that reason, and has
+// since round 1. Naming `window` here makes an existing module-load dependency
+// explicit; it does not introduce one.
+const purifier = createDOMPurify(window);
+
 //
 // THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY,
 // not a style preference. A second parameter is a configuration channel into the
@@ -159,7 +178,7 @@ const parser = new Marked({
 // payload, and every non-empty string still goes through the sanitizer.
 export function renderMarkdown(md: string): string {
   if (typeof md !== 'string') return '';
-  return DOMPurify.sanitize(parser.parse(md) as string, {
+  return purifier.sanitize(parser.parse(md) as string, {
     FORBID_TAGS,
     FORBID_ATTR,
   });
