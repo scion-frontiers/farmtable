@@ -425,6 +425,33 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 	return phaseForStage(task.StageAccepted), task.StageAccepted
 }
 
+// TerminalLabelStage reports the terminal stage a label set names, if any.
+//
+// This is the un-demoted counterpart to the rule-2 exception in
+// IssueToPhaseStage above. That exception deliberately hides a terminal label
+// on an OPEN issue, reporting "accepted" instead, so live work is never
+// presented as finished. Hiding it is right for DISPLAY and wrong for anything
+// that grants privilege or schedules work: a maintainer's wont_fix must still
+// cost task:accept to undo, and must not be offered to an agent as ready work.
+//
+// Callers that need the authoritative lifecycle stage go through
+// GitHubPassThroughStore.LifecycleStage, which is built on this. Deliberately
+// returns only TERMINAL stages: a non-terminal label is never demoted, so for
+// every other stage the task's own Stage field is already the right answer.
+// A nil receiver means no label mapping is configured, so no label can name a
+// stage. Guarded because callers reach this from ComputeAvailability, which is
+// total on a zero-value store and must stay that way.
+func (m *LabelMapper) TerminalLabelStage(labels []string) (task.Stage, bool) {
+	if m == nil {
+		return "", false
+	}
+	stage, ok := m.MapLabelsToStage(labels)
+	if !ok || !store.IsTerminalStage(stage) {
+		return "", false
+	}
+	return stage, true
+}
+
 // stripForMatch normalises a label for lookup: lowercase, strip push prefix,
 // strip "stage/" or "priority:" path segments.
 func (m *LabelMapper) stripForMatch(raw string) string {

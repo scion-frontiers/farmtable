@@ -136,27 +136,45 @@ func TestIssueUnavailableForClaim(t *testing.T) {
 
 	closedAt := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
 
+	// lifecycle is the authoritative stage the caller supplies. It is stated
+	// per case rather than derived from tc.task, so that these rows say what
+	// the predicate is being asked, instead of re-running the mapper's demotion
+	// logic here and agreeing with it by construction.
 	cases := []struct {
-		name  string
-		issue *issueNode
-		task  *ent.Task
-		want  bool
+		name      string
+		issue     *issueNode
+		task      *ent.Task
+		lifecycle task.Stage
+		want      bool
 	}{
-		{"accepted", &issueNode{}, &ent.Task{Stage: task.StageAccepted}, false},
-		{"triage", &issueNode{}, &ent.Task{Stage: task.StageTriage}, true},
-		{"legacy blocked label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"blocked"}}, true},
-		{"legacy deferred label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/deferred"}}, true},
-		{"open child", withOpenChild, &ent.Task{Stage: task.StageAccepted}, true},
+		{"accepted", &issueNode{}, &ent.Task{Stage: task.StageAccepted}, task.StageAccepted, false},
+		{"triage", &issueNode{}, &ent.Task{Stage: task.StageTriage}, task.StageTriage, true},
+		{"legacy blocked label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"blocked"}}, task.StageAccepted, true},
+		{"legacy deferred label", &issueNode{}, &ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/deferred"}}, task.StageAccepted, true},
+		{"open child", withOpenChild, &ent.Task{Stage: task.StageAccepted}, task.StageAccepted, true},
 
 		// review-194 H1. Unreachable through ClaimTask today — see
 		// TestPassThroughClaimTask_ClosedIssueIsNotClaimable for why the arm is
 		// here anyway, and for the end-to-end half of this case.
-		{"closed", &issueNode{}, &ent.Task{Stage: task.StageAccepted, ClosedAt: &closedAt}, true},
+		{"closed", &issueNode{}, &ent.Task{Stage: task.StageAccepted, ClosedAt: &closedAt}, task.StageAccepted, true},
+
+		// #194 item 2. The display stage has been demoted to accepted, so a
+		// gate reading tc.task.Stage would wave these through; the lifecycle
+		// stage is what makes them unavailable. These rows fail if the
+		// predicate goes back to reading t.Stage.
+		{"terminal label, demoted display stage: wont_fix", &issueNode{},
+			&ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/wont_fix"}}, task.StageWontFix, true},
+		{"terminal label, demoted display stage: duplicate", &issueNode{},
+			&ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/duplicate"}}, task.StageDuplicate, true},
+		{"terminal label, demoted display stage: cancelled", &issueNode{},
+			&ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/cancelled"}}, task.StageCancelled, true},
+		{"terminal label, demoted display stage: completed", &issueNode{},
+			&ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/completed"}}, task.StageCompleted, true},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := issueUnavailableForClaim(tc.issue, tc.task); got != tc.want {
+			if got := issueUnavailableForClaim(tc.issue, tc.task, tc.lifecycle); got != tc.want {
 				t.Fatalf("issueUnavailableForClaim = %v, want %v", got, tc.want)
 			}
 		})

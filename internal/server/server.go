@@ -534,7 +534,23 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		}
 		// Lifecycle transitions may require a scope beyond task:write
 		// (task:accept to leave triage or reopen, task:close to close).
-		if transitionScope := TransitionScope(string(existing.Stage), string(st)); transitionScope != ScopeTaskWrite {
+		//
+		// The source stage is the task's LIFECYCLE stage, not the stage it
+		// displays. For a GitHub pass-through collection existing.Stage is
+		// label-derived, and IssueToPhaseStage deliberately demotes an OPEN
+		// issue carrying a terminal label to "accepted" so live work is never
+		// shown as finished (#194 F2). Feeding that demoted value to the
+		// transition table silently downgraded the reopen rule below: the
+		// terminal→anything row stopped matching, so moving a wont_fix issue
+		// back into the pipeline fell through to plain task:write. It also
+		// broke the table's from == to no-op short-circuit, which turned
+		// re-asserting a stage the issue already carries into a fresh close
+		// demanding task:close. Reading the lifecycle stage restores both.
+		//
+		// Authorization must never read a field that a GitHub label can
+		// rewrite. Splitting the two meanings apart at the source is #203.
+		authStage := store.LifecycleStage(ctx, s.store, existing)
+		if transitionScope := TransitionScope(string(authStage), string(st)); transitionScope != ScopeTaskWrite {
 			if err := RequireScope(ctx, transitionScope); err != nil {
 				return nil, err
 			}

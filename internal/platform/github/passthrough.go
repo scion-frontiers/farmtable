@@ -609,7 +609,7 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 	if current.AssigneeID != nil {
 		return nil, store.ErrAlreadyClaimed
 	}
-	if issueUnavailableForClaim(target, current) {
+	if issueUnavailableForClaim(target, current, s.LifecycleStage(ctx, current)) {
 		return nil, store.ErrUnavailable
 	}
 
@@ -660,8 +660,16 @@ func hasOpenSubIssue(issue *issueNode) bool {
 // caller, or reaches this function from a cached or replayed issue makes the
 // arm load-bearing without touching this line, and the failure it would
 // prevent is handing a closed task to an agent.
-func issueUnavailableForClaim(issue *issueNode, t *ent.Task) bool {
-	return t.Stage != task.StageAccepted ||
+//
+// lifecycleStage is the task's authoritative stage, not its display stage. The
+// caller passes it because this function cannot derive it: for an OPEN issue
+// carrying a terminal label, t.Stage has already been demoted to "accepted" by
+// IssueToPhaseStage, and reading it here would let a maintainer's wont_fix,
+// duplicate or cancelled be claimed as ordinary work. Keeping this in step with
+// ComputeAvailability is the invariant this doc comment opens with; both now
+// read the lifecycle stage.
+func issueUnavailableForClaim(issue *issueNode, t *ent.Task, lifecycleStage task.Stage) bool {
+	return lifecycleStage != task.StageAccepted ||
 		t.ClosedAt != nil ||
 		t.HoldReason != nil ||
 		hasExternalUnavailableLabel(t.Labels) ||
@@ -758,6 +766,27 @@ func (s *GitHubPassThroughStore) DeleteTask(ctx context.Context, id uuid.UUID) e
 	return fmt.Errorf("delete task: %w", store.ErrNotImplemented)
 }
 
+// LifecycleStage implements store.LifecycleStager. It returns the stage that
+// authorization and work-scheduling decisions must use for a task this store
+// produced, which is not always the stage the task displays.
+//
+// issueToTask reports an OPEN issue carrying a terminal stage label as
+// "accepted" (see the rule-2 exception in IssueToPhaseStage) so that live work
+// is never presented as finished. That demotion must not reach a decision that
+// grants privilege or hands work to an agent, because a maintainer's wont_fix,
+// duplicate or cancelled label is a real statement about the work regardless of
+// whether someone has reopened the issue on GitHub.
+//
+// The labels are read from the task rather than re-fetched: issueToTask copies
+// the issue's labels onto t.Labels verbatim, so this is the same input
+// IssueToPhaseStage saw, not a second round trip that could disagree with it.
+func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage {
+	if stage, ok := s.mapper.TerminalLabelStage(t.Labels); ok {
+		return stage
+	}
+	return t.Stage
+}
+
 func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent.Task) (store.TaskAvailability, error) {
 	reasons := make([]store.AvailabilityReason, 0, 3)
 	if t.Stage == task.StageTriage {
@@ -775,7 +804,18 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
 	// the MultiStore implementation's Phase arm: Phase is label-derived too,
 	// and IssueToPhaseStage returns PhaseInProgress for exactly the closed
 	// issue with a stale working label that this arm exists to catch.
-	if store.IsTerminalStage(t.Stage) || t.ClosedAt != nil {
+	//
+	// The stage arm reads LifecycleStage, not t.Stage. t.Stage is the display
+	// stage, and for an OPEN issue carrying a terminal label it has been
+	// demoted to "accepted" — so reading it here would report an issue a
+	// maintainer marked wont_fix / duplicate / cancelled as available work to
+	// every consumer of this field: `ft ready`, MCP task_ready, and the web
+	// dashboard, which defers to availability when the server supplies it
+	// (web/src/utils/task-ready.ts). Availability is where the terminal label
+	// has to be honoured, because it is the one answer every client inherits
+	// instead of re-deriving. Widens the arm only: LifecycleStage returns
+	// t.Stage whenever no terminal label is present.
+	if store.IsTerminalStage(s.LifecycleStage(ctx, t)) || t.ClosedAt != nil {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}
 	if t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) {

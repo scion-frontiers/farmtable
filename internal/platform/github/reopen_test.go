@@ -2,32 +2,50 @@ package github
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
+	githubv4 "github.com/shurcooL/githubv4"
 
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
-// TestAudit_ReopenAfterCloseStaysAvailable is audit-194 F2's reproduction,
-// committed as a permanent regression test. (The audit filed it as
-// TestAudit_ReopenAfterCloseIsUnavailable, naming the bug; it is named for the
-// property it now asserts.)
+// TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled is audit-194 F2's
+// reproduction, committed as a permanent regression test and NARROWED in the
+// round-3 fix pass. Read the whole comment before changing either half: the two
+// halves assert deliberately opposite things.
 //
 // Before #194, ft close left ft:stage/working on the issue. #194 made it write
-// a terminal stage label instead — and reopening an issue is an ordinary
-// GitHub operation which, in a pass-through collection where GitHub is the UI,
-// happens entirely outside Farm Table. GitHub sets state=OPEN and clears
-// closedAt on reopen; it does not touch labels. That left the issue carrying a
-// terminal stage label with no contradicting non-label signal, reporting
-// available=false reasons=[terminal] for live, open work.
+// a terminal stage label instead — and reopening an issue is an ordinary GitHub
+// operation which, in a pass-through collection where GitHub is the UI, happens
+// entirely outside Farm Table. GitHub sets state=OPEN and clears closedAt on
+// reopen; it does not touch labels. F2's response was to demote (open, terminal
+// label) to (open, accepted) everywhere.
 //
-// This is the same shape as the failure the ordering comment in CloseTask
-// cites to justify closing before swapping. That argument only considered a
-// failed close; a successful close plus a later reopen reaches the identical
-// state by a completely normal workflow.
-func TestAudit_ReopenAfterCloseStaysAvailable(t *testing.T) {
+// Round-2 review found that demotion reaching two places it must not: the RBAC
+// transition gate, where it downgraded reopening a wont_fix issue from
+// task:accept to task:write, and computed availability, where it presented work
+// a maintainer had declined as available. The ruling was to split the field's
+// two jobs: the demotion stands for DISPLAY, and authorization and scheduling
+// read the un-demoted, label-derived stage.
+//
+// So this test now asserts BOTH:
+//
+//   - DISPLAY (F2's surviving half): the task reads back as open/accepted with
+//     no ClosedAt. Nothing tells a human this work is finished.
+//   - SCHEDULING (the round-3 narrowing): it is NOT offered as available work.
+//
+// The honest cost, stated plainly because the report must carry it: OPEN plus a
+// terminal label is produced both by a legitimate reopen (this test) and by a
+// maintainer declining an open issue. Labels and issue state alone cannot tell
+// them apart, so scheduling now takes the conservative branch for both, and a
+// genuine reopen needs its stale terminal label cleared before it is offered
+// again. Absence from a queue is recoverable; handing an agent work that was
+// explicitly declined is not. Distinguishing the two cases properly — GitHub's
+// stateReason=REOPENED is the candidate signal — is #203, not this branch.
+func TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled(t *testing.T) {
 	ctx := context.Background()
 
 	fake := newFakeIssueRepo(t, "ft:stage/working")
@@ -53,19 +71,29 @@ func TestAudit_ReopenAfterCloseStaysAvailable(t *testing.T) {
 		t.Errorf("ClosedAt = %v for a reopened issue, want nil", readBack.ClosedAt)
 	}
 
+	// ── Display half: the demotion still applies. ──
+	if readBack.Stage != task.StageAccepted {
+		t.Errorf("reopened issue reports stage = %s, want %s (the F2 demotion is a display "+
+			"decision and still stands)", readBack.Stage, task.StageAccepted)
+	}
+	if readBack.Phase != task.PhaseOpen {
+		t.Errorf("reopened issue reports phase = %s, want %s", readBack.Phase, task.PhaseOpen)
+	}
+
+	// ── Scheduling half: the terminal label is honoured. ──
 	availability, err := s.ComputeAvailability(ctx, readBack)
 	if err != nil {
 		t.Fatalf("ComputeAvailability: %v", err)
 	}
-	if !availability.Available {
-		t.Fatalf("DENIAL-OF-WORK: reopened OPEN issue reports available=false; stage = %s, reasons = %v",
+	if availability.Available {
+		t.Fatalf("an OPEN issue still carrying a terminal stage label is offered as available "+
+			"work; the demotion must not reach computed availability, or a maintainer's "+
+			"wont_fix is laundered into claimable work (stage = %s, reasons = %v)",
 			readBack.Stage, availability.Reasons)
 	}
-	if readBack.Stage != task.StageAccepted {
-		t.Errorf("reopened issue reports stage = %s, want %s", readBack.Stage, task.StageAccepted)
-	}
-	if readBack.Phase != task.PhaseOpen {
-		t.Errorf("reopened issue reports phase = %s, want %s", readBack.Phase, task.PhaseOpen)
+	if !availability.HasReason(store.AvailabilityReasonTerminal) {
+		t.Errorf("availability reasons = %v, want to contain %q so the caller can tell WHY "+
+			"the work is withheld", availability.Reasons, store.AvailabilityReasonTerminal)
 	}
 }
 
@@ -148,69 +176,188 @@ func TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage(t *testing.T) {
 	}
 }
 
-// TestPassThroughClaimTask_ReopenedIssueIsClaimable checks the symmetric rule
-// reaches the enforcement path too, not just the advisory one. Availability
-// saying "yes" while ClaimTask says ErrUnavailable would be the #194 shape
-// inverted: a truthful report the enforcement path disagrees with.
-func TestPassThroughClaimTask_ReopenedIssueIsClaimable(t *testing.T) {
+// TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable checks that the
+// enforcement path agrees with the advisory one. issueUnavailableForClaim's own
+// doc comment states the invariant: it "is the enforcement counterpart to
+// ComputeAvailability [...] and the two must not disagree about what
+// 'unavailable' means." Availability withholding a terminal-labelled open issue
+// while ClaimTask handed it out would be exactly that disagreement.
+//
+// This inverts the assertion F2 originally committed here
+// (TestPassThroughClaimTask_ReopenedIssueIsClaimable). See
+// TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled for the reasoning and
+// the cost; the short version is that a claim is the point where an agent is
+// actually handed the work, so it is the last place the demotion should reach.
+//
+// This also closes the laundering route audit-194-r2 raised as a Medium: stage
+// labels match bare and unprefixed, and `duplicate` ships by default in every
+// new GitHub repository, so before this the stock label alone made an open
+// issue claimable.
+func TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable(t *testing.T) {
+	for _, label := range []string{
+		"ft:stage/completed",
+		"ft:stage/wont_fix",
+		"ft:stage/duplicate",
+		"ft:stage/cancelled",
+		// Bare and unprefixed, which is how GitHub's own stock label arrives.
+		"duplicate",
+	} {
+		t.Run(label, func(t *testing.T) {
+			ctx := context.Background()
+
+			// The state both a reopen and a maintainer's decline leave behind:
+			// open on GitHub, terminal label intact.
+			fake := newFakeIssueRepo(t, label)
+			s := fake.store()
+
+			_, err := s.ClaimTask(ctx, s.issueUUID(1), uuid.New(), "")
+			if !errors.Is(err, store.ErrUnavailable) {
+				t.Fatalf("ClaimTask on an OPEN issue labelled %s returned %v, want %v; "+
+					"the claim gate must read the lifecycle stage, not the demoted "+
+					"display stage", label, err, store.ErrUnavailable)
+			}
+			if fake.hasLabel("ft:stage/working") {
+				t.Errorf("a refused claim still stamped ft:stage/working; labels = %v", fake.labels)
+			}
+		})
+	}
+}
+
+// TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability is the
+// positive control for the test above, and the documented remedy for the
+// denial-of-work cost it imposes: once the stale terminal label is gone, a
+// reopened issue is ordinary claimable work again. Without this, a claim gate
+// that refused everything would satisfy the test above.
+func TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability(t *testing.T) {
 	ctx := context.Background()
 
-	// The state a reopen leaves behind: open on GitHub, terminal label intact.
-	fake := newFakeIssueRepo(t, "ft:stage/completed")
+	fake := newFakeIssueRepo(t)
 	s := fake.store()
 
 	if _, err := s.ClaimTask(ctx, s.issueUUID(1), uuid.New(), ""); err != nil {
-		t.Fatalf("ClaimTask on a reopened issue: %v", err)
+		t.Fatalf("ClaimTask on an open, unlabelled issue: %v", err)
 	}
 	if !fake.hasLabel("ft:stage/working") {
 		t.Errorf("claim did not stamp ft:stage/working; labels = %v", fake.labels)
 	}
-	if fake.hasLabel("ft:stage/completed") {
-		t.Errorf("claim left the stale terminal label behind; labels = %v", fake.labels)
+}
+
+// openParentWithClosedChildIssues builds the RAW GraphQL shapes buildIssueTree
+// consumes — an OPEN parent carrying the given label whose only sub-issue is
+// CLOSED — rather than hand-building issueTreeNodes.
+//
+// Driving the real constructor is the entire point. buildIssueTree is the
+// function that would have to learn a demotion rule, so a test that skips it
+// cannot detect one being added.
+func openParentWithClosedChildIssues(label string) []issueNode {
+	parent := issueNode{Number: 1, Title: "parent", State: "OPEN"}
+	parent.Labels.Nodes = []struct {
+		Name githubv4.String
+	}{{Name: githubv4.String(label)}}
+
+	child := subIssueNode{Number: 2, Title: "child", State: "CLOSED"}
+	parent.SubIssues.Nodes = []subIssueNode{child}
+	parent.SubIssues.TotalCount = 1
+
+	return []issueNode{parent}
+}
+
+// TestComputeReady_OpenTerminalLabelledIssueIsNotReady pins the tree-walk half
+// of the terminal rule: an OPEN issue whose stage labels say the work is
+// finished must not surface as ready.
+//
+// This test was rewritten in the round-3 fix pass because the version F2
+// committed was TAUTOLOGICAL. It hand-built a node with Stage=StageCompleted
+// and called computeReady(nodes, false); with includeUnblocked=false the only
+// appending arm requires Stage==StageAccepted, so a completed node was excluded
+// regardless of any terminal handling, and buildIssueTree was never invoked at
+// all. audit-194-r2 proved it with mutation MUT-T: teaching buildIssueTree the
+// demotion — the precise change the old failure message told the reader to make
+// — left the whole package green. "We pinned it rather than fixing it" was not
+// true in effect.
+//
+// Two things make this version able to fail where that one could not:
+//
+//   - it goes through buildIssueTree, so a demotion inserted there is visible;
+//   - it uses includeUnblocked=true, the branch whose guard actually consults
+//     store.IsTerminalStage (treewalk.go), reached via a parent whose children
+//     are all closed.
+//
+// Under MUT-T the parent's stage becomes accepted, the FIRST arm of computeReady
+// then appends it, and this test fails. That is the property being bought.
+func TestComputeReady_OpenTerminalLabelledIssueIsNotReady(t *testing.T) {
+	mapper := NewLabelMapper(DefaultConfig().GitHub.Labels)
+
+	for _, label := range []string{
+		"ft:stage/completed",
+		"ft:stage/wont_fix",
+		"ft:stage/duplicate",
+		"ft:stage/cancelled",
+	} {
+		t.Run(label, func(t *testing.T) {
+			nodes := buildIssueTree(openParentWithClosedChildIssues(label), mapper)
+			if got := readyNumbers(computeReady(nodes, true)); len(got) != 0 {
+				t.Fatalf("computeReady returned %v for an OPEN issue labelled %s, want none; "+
+					"a task whose stage labels say the work is finished must never surface "+
+					"as ready", got, label)
+			}
+		})
 	}
 }
 
-// TestComputeReady_OpenTerminalLabelledIssueIsNotReady pins a known divergence
-// rather than a desired property.
-//
-// The symmetric rule lives in IssueToPhaseStage, which the tree walk does not
-// use — buildIssueTree calls MapLabelsToStage directly and so still sees
-// "completed" for an open issue carrying a terminal label. Such an issue is
-// therefore reported available by GetTask and claimable by ClaimTask, but does
-// not appear in GetReadyTasks.
-//
-// This is deliberate and left as a follow-up. The divergence is fail-safe (the
-// ready queue under-reports rather than over-reports), and closing it means
-// changing the semantics of a tree-walk predicate that #191 consolidated in
-// the commit immediately below this branch — a ready-queue behaviour change
-// that deserves its own review rather than riding along here.
-func TestComputeReady_OpenTerminalLabelledIssueIsNotReady(t *testing.T) {
-	nodes := map[int]*issueTreeNode{
-		1: {Number: 1, Title: "reopened", State: "OPEN", Stage: task.StageCompleted},
-	}
-	if got := readyNumbers(computeReady(nodes, false)); len(got) != 0 {
-		t.Fatalf("computeReady returned %v; this test documents the current "+
-			"divergence between the tree walk and IssueToPhaseStage — if the "+
-			"tree walk has been taught the symmetric rule, delete this test", got)
-	}
+// TestComputeReady_OpenNonTerminalLabelledIssueIsReady guards the other side of
+// the same predicate through the same real constructor. Without it, a
+// buildIssueTree that returned nothing — or a computeReady that appended
+// nothing — would satisfy the test above.
+func TestComputeReady_OpenNonTerminalLabelledIssueIsReady(t *testing.T) {
+	mapper := NewLabelMapper(DefaultConfig().GitHub.Labels)
 
-	// ...while the same issue read through the store is available. Asserting
-	// both halves here is what makes the divergence visible to the next reader
-	// instead of surprising them.
+	nodes := buildIssueTree(openParentWithClosedChildIssues("ft:stage/accepted"), mapper)
+	if got := readyNumbers(computeReady(nodes, true)); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("computeReady returned %v for an OPEN accepted issue with all children "+
+			"closed, want [1]", got)
+	}
+}
+
+// TestPassThroughStore_OpenTerminalLabelledIssueIsDisplayedOpenButNotScheduled
+// is the store-path counterpart, split out of the tree-walk pin above so that
+// each test has one subject. (test-194-r2 F-5: the combined test carried a
+// "delete this test" instruction that was only ever correct for the pin half,
+// and a literal reading would have taken these assertions with it.)
+//
+// The two paths now AGREE that a terminal-labelled open issue is not offered as
+// work — the tree walk excludes it from ready, and the store reports it
+// unavailable — while still displaying it as open/accepted. Before round 3 they
+// disagreed: the store said available, the tree walk said not ready.
+func TestPassThroughStore_OpenTerminalLabelledIssueIsDisplayedOpenButNotScheduled(t *testing.T) {
+	ctx := context.Background()
+
 	fake := newFakeIssueRepo(t, "ft:stage/completed")
 	s := fake.store()
-	readBack, err := s.GetTask(context.Background(), s.issueUUID(1))
+	readBack, err := s.GetTask(ctx, s.issueUUID(1))
 	if err != nil {
 		t.Fatalf("GetTask: %v", err)
 	}
-	availability, err := s.ComputeAvailability(context.Background(), readBack)
+
+	// Display: demoted, so nothing reports live work as finished.
+	if readBack.Stage != task.StageAccepted {
+		t.Errorf("stage = %s, want %s", readBack.Stage, task.StageAccepted)
+	}
+
+	// Scheduling: the terminal label is honoured.
+	availability, err := s.ComputeAvailability(ctx, readBack)
 	if err != nil {
 		t.Fatalf("ComputeAvailability: %v", err)
 	}
-	if !availability.Available {
-		t.Fatalf("open terminal-labelled issue reports available=false; reasons = %v", availability.Reasons)
+	if availability.Available {
+		t.Fatalf("open terminal-labelled issue reports available=true; reasons = %v",
+			availability.Reasons)
 	}
-	if !availability.HasReason(store.AvailabilityReasonTerminal) && readBack.Stage != task.StageAccepted {
-		t.Fatalf("unexpected stage %s", readBack.Stage)
+	// Unconditional, replacing a compound `&&` guard that could never fire:
+	// audit-194-r2 and test-194-r2 both showed the old form contributed zero
+	// detection even in the scenario it was written for.
+	if !availability.HasReason(store.AvailabilityReasonTerminal) {
+		t.Fatalf("availability reasons = %v, want to contain %q",
+			availability.Reasons, store.AvailabilityReasonTerminal)
 	}
 }

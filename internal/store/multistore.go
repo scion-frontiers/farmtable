@@ -233,6 +233,16 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
 	return s.ClaimTask(ctx, id, assigneeID, version)
 }
 
+// LifecycleStage implements LifecycleStager by routing to the store that owns
+// the task's collection. A platform store whose Stage field is a display value
+// answers for itself; every other store's Stage is already authoritative.
+func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage {
+	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStager); ok {
+		return stager.LifecycleStage(ctx, t)
+	}
+	return t.Stage
+}
+
 func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
 	s := m.storeForCtx(ctx, t.CollectionID)
 	if computer, ok := s.(interface {

@@ -46,6 +46,39 @@ func (a TaskAvailability) HasReason(reason AvailabilityReason) bool {
 	return false
 }
 
+// LifecycleStager is implemented by stores whose Task.Stage is a presentation
+// value that may differ from the stage governing authorization and work
+// scheduling.
+//
+// The GitHub pass-through store is the case that motivated this (#194). It
+// deliberately demotes an OPEN issue carrying a terminal stage label to
+// "accepted", because reporting live work as finished is the worse error for
+// anyone reading a queue. But that demotion is a DISPLAY decision, and the same
+// field was being fed to the RBAC transition table, where it silently downgraded
+// the scope required to reopen a declined issue from task:accept to task:write.
+//
+// LifecycleStage is the un-demoted answer: the stage a decision that grants or
+// withholds privilege, or that schedules work, must be evaluated against.
+// Stores whose Stage field is already authoritative need not implement this;
+// callers should go through the LifecycleStage helper, which falls back to
+// t.Stage.
+//
+// This is a narrow seam, not the full display-vs-authoritative split. That
+// larger refactor of IssueToPhaseStage is tracked as #203.
+type LifecycleStager interface {
+	LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
+}
+
+// LifecycleStage returns the stage that authorization and scheduling decisions
+// must use for a task, which is not always the stage the task displays. Stores
+// that do not distinguish the two are answered from t.Stage.
+func LifecycleStage(ctx context.Context, s Store, t *ent.Task) task.Stage {
+	if stager, ok := s.(LifecycleStager); ok {
+		return stager.LifecycleStage(ctx, t)
+	}
+	return t.Stage
+}
+
 type CreateTaskParams struct {
 	Title              string
 	Description        string
