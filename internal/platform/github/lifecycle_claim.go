@@ -272,13 +272,6 @@ func lifecycleMarkerSuffix(s string) (string, bool) {
 	return "", false
 }
 
-// isLabelSegmentDelimiter reports whether b can end a namespace segment. Input
-// is always already lowercased, so upper case needs no case here.
-//
-// TestPushPrefixDelimiterClass_MatchesWhatTheClaimRecognises pins that this is
-// the SAME class GitHubConfig.Validate constrains push_prefix to. That is what
-// makes "every push_prefix a deployment can legally hold is recognised by the
-// claim" true by construction rather than by review.
 // lowerASCII lowercases one ASCII byte. GitHubConfig.Validate needs it because
 // it tests the operator's LITERAL prefix, which preserves case, against a class
 // defined over the lowercased form the matcher actually sees.
@@ -289,6 +282,13 @@ func lowerASCII(b byte) byte {
 	return b
 }
 
+// isLabelSegmentDelimiter reports whether b can end a namespace segment. Input
+// is always already lowercased, so upper case needs no case here.
+//
+// TestPushPrefixDelimiterClass_MatchesWhatTheClaimRecognises pins that this is
+// the SAME class GitHubConfig.Validate constrains push_prefix to. That is what
+// makes "every push_prefix a deployment can legally hold is recognised by the
+// claim" true by construction rather than by review.
 func isLabelSegmentDelimiter(b byte) bool {
 	switch {
 	case b >= 'a' && b <= 'z':
@@ -375,6 +375,15 @@ func (m *LabelMapper) writeViewMapper() writeView {
 //
 // Order is preserved and length is preserved, so a caller comparing two label
 // sets before and after a delta compares like with like.
+//
+// ITS ONLY REMAINING CONSUMER IS A TEST, AND THAT IS DELIBERATE. The pricing
+// path now goes through canonicalAdditions, which applies this rewrite to the
+// caller's genuine additions only. What is left here is the UNRESTRICTED form —
+// which is to say, the round-10 Critical itself. It is kept, unexported and
+// uncalled by production code, so that TestLabelWritePrice_MonotonicityPinCanFail
+// can reproduce the defect with the real function instead of a hand-copied
+// imitation of it. A positive control that reimplements the bug proves only
+// that the reimplementation is buggy.
 func (m *LabelMapper) canonicalLifecycleLabels(labels []string) []string {
 	if m == nil || len(labels) == 0 {
 		return labels
@@ -388,6 +397,67 @@ func (m *LabelMapper) canonicalLifecycleLabels(labels []string) []string {
 			continue
 		}
 		out[i] = raw
+	}
+	return out
+}
+
+// canonicalAdditions canonicalises the entries of a post-delta label set that
+// the caller is genuinely ADDING, and leaves every label the task already
+// carried exactly as it is.
+//
+// WHY THIS IS NOT "canonicalLifecycleLabels(addLabels), THEN applyLabelDelta",
+// which is what round 11 shipped first and what the monotonicity property test
+// caught within an hour of existing.
+//
+// Canonicalising the additions BEFORE the delta hands applyLabelDelta a label
+// the caller never named, and applyLabelDelta matches removals against exactly
+// that. MEASURED, DefaultConfig, CLOSED issue carrying stock "duplicate":
+//
+//	add_labels=[stage/completed]  remove_labels=[ft:stage/completed]
+//	  read predicate  duplicate -> completed   task:close
+//	  pre-delta form  duplicate -> duplicate   FREE          <-- fail-open
+//
+// The removal names a label the issue does not carry, so it is a no-op against
+// reality — but the caller's addition had already been rewritten INTO that
+// spelling, so the model deleted the addition and priced a close at nothing.
+// The write that then lands still adds the raw "stage/completed" and the issue
+// still reads as completed. The model must apply the delta the way the store
+// applies it, on the labels the caller actually named, and canonicalise only
+// afterwards.
+//
+// THE `current` EXCLUSION is the round-10 rule restated for the overlap case.
+// applyLabelDelta dedups by key and keeps the existing entry, so a caller
+// re-adding a label the task already has contributes nothing to the after-set.
+// Rewriting that entry would be canonicalising a PRE-EXISTING label, which is
+// the round-10 Critical exactly; keys already present are therefore dropped
+// from the rewrite set rather than merely deduped.
+func (m *LabelMapper) canonicalAdditions(after, current, add []string) []string {
+	if m == nil || len(add) == 0 {
+		return after
+	}
+
+	rewrite := make(map[string]bool, len(add))
+	for _, l := range add {
+		if key := labelMatchKey(l); key != "" {
+			rewrite[key] = true
+		}
+	}
+	for _, l := range current {
+		delete(rewrite, labelMatchKey(l))
+	}
+	if len(rewrite) == 0 {
+		return after
+	}
+
+	view := m.writeViewMapper()
+	out := make([]string, len(after))
+	for i, raw := range after {
+		stage, ok := m.lifecycleStageClaim(raw)
+		if !ok || !rewrite[labelMatchKey(raw)] {
+			out[i] = raw
+			continue
+		}
+		out[i] = view.StageToLabel(stage)
 	}
 	return out
 }
