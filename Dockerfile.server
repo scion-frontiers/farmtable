@@ -3,6 +3,10 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
+# The URL-binding guard runs here or nowhere. `npm ci` above installs
+# devDependencies, so tsc/jsdom are present at this stage; the release path
+# must not be able to ship a tree whose guard is red. See Makefile: test-web.
+RUN npm test
 RUN npm run build
 
 FROM golang:1.26-bookworm AS builder

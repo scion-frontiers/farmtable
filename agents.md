@@ -30,10 +30,14 @@ Development commands:
 ```bash
 export PATH=/workspace/.farmtable/bin:$PATH
 export FARMTABLE_DB_PATH=/workspace/.farmtable/farmtable.db
-go test ./...
+make test          # go test ./... AND cd web && npm test
 go build ./...
 go build -o /workspace/.farmtable/bin/ft ./cmd/ft
 ```
+
+`make test` runs both suites. Do not substitute a bare `go test ./...`: the
+URL-scheme security guard lives in `web/src/util/*.test.ts` and is executed only
+by `npm test`. An agent that follows a Go-only workflow will not run it.
 
 ## farmtable-dev Skill Reference
 
@@ -90,9 +94,15 @@ If `ft` reports `invalid token`, the token in
 
 ```bash
 go build ./...
-go test ./...
+make test          # go test ./... AND the web suite (cd web && npm test)
 go generate ./internal/store/ent
 ```
+
+`make test` is `test-go` plus `test-web`; both are separately invocable. The web
+half is not optional cosmetics — `web/src/util/url-binding-scan.test.ts` and
+`safe-url.test.ts` are the client-side half of the URL-scheme security property,
+and `npm test` is their only executor. Both container builds run it too, so a
+red guard fails the image.
 
 Run `go generate ./internal/store/ent` after Ent schema changes. Run
 `go test ./... -tags integration` only when a live Postgres instance is
