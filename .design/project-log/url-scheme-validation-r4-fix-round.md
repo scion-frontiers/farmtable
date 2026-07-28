@@ -111,12 +111,36 @@ other drops. The single documented disagreement — a URL-bearing key holding an
 unvalidatable scalar, which the sanitizer drops and the import accepts — is
 pinned *as* the asymmetry, so it cannot quietly become two.
 
-**The brief said four write sites. There are six.** Instead of trusting the
-number I wrote `TestEveryRemoteDataWriteSiteSanitizes`, which scans the non-test
-sources for `RemoteData` field assignments. It found two more shipping the map
-raw: `export_import.go:139` (collection export) and `:332` (collection import).
-`server.go:661` is exempt with a stated reason. A seventh site added later fails
-that test rather than becoming the next silent hole.
+**The brief said four write sites. There are six.**
+
+The correction matters less than how it was found. I did not audit the four and
+call it done, and I did not take the number: I wrote
+`TestEveryRemoteDataWriteSiteSanitizes`, which scans the non-test sources for
+`RemoteData` field assignments and reports what it finds. It found two more
+shipping the map raw:
+
+| Site | What it is | Was |
+|---|---|---|
+| `export_import.go:139` | collection **export** | raw |
+| `export_import.go:332` | collection **import** | raw |
+
+Both now sanitize; six sites total.
+
+One site is exempt, and the reason is recorded in the test rather than in a
+person's memory:
+
+- **`server.go:661`** — `p.RemoteData = map[string]any{}`. It constructs an
+  *empty* map; the only two keys ever written into it are `remote_id` and
+  `remote_url`, assigned on the following lines from request fields that are
+  already validated upstream. There is nothing to sanitize at the point of
+  assignment. The exemption lives in an `exempt` map keyed by the exact source
+  line, so if that line changes the exemption stops applying and the site
+  reappears as a violation.
+
+The scanner is a **lower bound** — a write through reflection or an aliased
+struct is invisible to it — and the test says so. Its value is that the shape
+that has now been added six times is caught the seventh time, rather than
+becoming the next silent hole.
 
 ## How I verified it
 
@@ -172,14 +196,37 @@ I inspected every mutation site before touching anything. **One was live:**
 Two things matter about this:
 
 1. `refs/preserve/xss-r4/wip-snapshot` (`27e0ee0`), taken by the coordinator
-   during recovery, **contains that mutant.** It is not a clean copy.
+   during recovery, **contains that mutant** at `urlvalidate.go:430`. It is not
+   a clean copy. The coordinator confirmed this by reading canonical rather than
+   taking my word, and renamed the ref so the warning cannot be missed by
+   whoever reaches for it:
+   `refs/preserve/xss-r4/wip-snapshot-CONTAMINATED-live-mutant-P5cn-urlvalidate-L430`.
+   A note in a file would not have been read by the person doing the restore; a
+   name is read by definition. `refs/preserve/xss-r4/branch` (`d12f572`) is
+   clean by construction — those lines do not exist in it yet.
 2. **`P5cn` was a mutant that had survived the suite**, so a green test run would
    not have caught it. Inspection did. A recovery procedure that verifies by
    running tests would have adopted it silently.
 
-Lesson for the harness: restore before mutating the *next* row is not enough;
-it needs an idempotent on-start restore, and its snapshot must live somewhere
+Lesson for the harness: restoring before mutating the *next* row is not enough.
+It needs an idempotent on-start restore, and its snapshot must live somewhere
 `/tmp` cleanup cannot reach.
+
+**The wider pattern, which this is the third instance of on this project and the
+second in one night:** *a probe's state escaping into a durable artefact through
+a channel the probe's own cleanup does not cover.* The `#194` leg had a
+differential probe's revert swept into a commit by `git commit`, and their
+post-hoc worktree check came back clean because the restore had already run.
+Mine is a third channel: a recovery snapshot copies whatever is on disk, and its
+verification step proves only that the snapshotter did not *disturb* the tree —
+which is exactly blind to whether what it copied was the work or the harness's
+scaffolding.
+
+The through-line is that **an instrument cannot see the corruption of the thing
+it measures.** A green test run is not evidence that the tree is the tree you
+think it is, and it is least evidence precisely for the mutants that survive —
+those are, by definition, the changes the suite is blind to. The only thing that
+caught `P5cn` was reading the source at the sites I already knew were mutable.
 
 After the revert, `P5cn` is RED — killed by
 `TestRemoteDataTraversalsTerminateOnACycle`, which did not exist when `P5cn`
@@ -199,9 +246,14 @@ first survived.
   read by nothing in `web/src` (test O-9). Any comment implying otherwise was
   corrected, but the underlying point is that the server-side sanitizer is the
   only control here.
-- **`internal/server/scopes.go` is left dirty on purpose.** It is pre-existing
-  gofmt-alignment noise in a file the round baseline explicitly fences. I neither
-  adopted nor destroyed it.
+- **`internal/server/scopes.go` is left dirty on purpose — this is a decision,
+  not an oversight.** The diff is six lines of pure gofmt alignment in a `const`
+  block, no semantic content, and it was already dirty before this round's leg
+  started. `gofmt -l` on that file is explicitly fenced out of scope by the round
+  baseline. Adopting it would mean committing a fenced change; reverting it would
+  mean destroying pre-existing state that is not mine to discard. So it stays
+  uncommitted and is reported as a dirty cell. An unexplained dirty file in a
+  handoff is how the next person ends up deciding it for you.
 - The four `go vet` copylocks, the `web/dist` clean-checkout defect (#100), CSP
   absence (#85), the `#195` markdown/DOMPurify branch and its two
   `unsafeHTML(renderMarkdown(...))` sinks (#163), the `#194` branch, absence of
