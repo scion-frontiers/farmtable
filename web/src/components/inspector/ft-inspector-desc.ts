@@ -229,7 +229,16 @@ export class FtInspectorDesc extends LitElement {
         ></sl-icon-button>`}
       </div>
       <div class="content" @dblclick=${this.readOnly ? undefined : this.startEdit}>
-        <!-- renderMarkdown sanitizes with DOMPurify before this HTML is injected. -->
+        <!--
+          renderMarkdown runs DOMPurify.sanitize over marked's output before this
+          is injected. That covers the markdown sink and nothing else: it is not
+          the URL-scheme policy, and it is not a compensating control for the
+          href bindings that policy governs. DOMPurify is configured with its
+          defaults here -- no explicit ALLOWED_URI_REGEXP -- so what it strips is
+          whatever the installed version's defaults strip, which is a dependency
+          fact rather than a property this repo states or tests. See
+          docs/url-policy.md for what IS stated.
+        -->
         ${unsafeHTML(renderMarkdown(this.description))}
       </div>
     `;

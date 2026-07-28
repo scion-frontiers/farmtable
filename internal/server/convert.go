@@ -527,7 +527,11 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		pc.RemoteId = &c.RemoteID
 	}
 	if c.RemoteData != nil {
-		pc.RemoteData, _ = structpb.NewStruct(c.RemoteData)
+		// Sanitized on the same terms as pb.Task.remote_data above. A collection
+		// carries the same untyped platform payload through the same
+		// structpb.Struct into the same client; there is no reason for the two to
+		// disagree, and until now they did -- this line shipped the map raw.
+		pc.RemoteData, _ = structpb.NewStruct(sanitizeRemoteData(c.RemoteData))
 	}
 	return pc
 }

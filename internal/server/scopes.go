@@ -12,12 +12,12 @@ import (
 
 // Scope constants define the RBAC permission vocabulary.
 const (
-	ScopeWildcard       = "*"
-	ScopeTaskRead       = "task:read"
-	ScopeTaskWrite      = "task:write"
-	ScopeTaskClaim      = "task:claim"
-	ScopeTaskAccept     = "task:accept"
-	ScopeTaskClose      = "task:close"
+	ScopeWildcard        = "*"
+	ScopeTaskRead        = "task:read"
+	ScopeTaskWrite       = "task:write"
+	ScopeTaskClaim       = "task:claim"
+	ScopeTaskAccept      = "task:accept"
+	ScopeTaskClose       = "task:close"
 	ScopeCollectionRead  = "collection:read"
 	ScopeCollectionWrite = "collection:write"
 	ScopeCollectionAdmin = "collection:admin"
