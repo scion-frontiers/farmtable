@@ -1362,7 +1362,7 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
  * blanked; its `unsafeHTML` sits before the `import` keyword and survives
  * regardless.
  *
- * `(?!\s*\.)` IS THE SAME DEFECT AGAIN, ONE KEYWORD FURTHER ALONG. Making the
+ * `(?!\s*[.(])` IS THE SAME DEFECT AGAIN, ONE KEYWORD FURTHER ALONG. Making the
  * terminator optional fixed the case where an import swallowed the next
  * statement, but `import` is not only a statement keyword: `import.meta` is an
  * EXPRESSION, it is legal mid-file, it does not need a semicolon, and it has no
@@ -1383,16 +1383,48 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
  * only, which is what its name claims. `import.meta` then survives into the
  * scanned view, where it is inert — no rule here matches it.
  *
- * The general lesson, since this is the third instance: every token this
+ * AND ONCE MORE FOR `import(…)`, WHICH IS WHY THE LOOKAHEAD IS A CHARACTER
+ * CLASS. The version that shipped in round 7 was `(?!\s*\.)`, and the docblock
+ * alongside it claimed this function "names all three" of `import`'s
+ * productions. IT NAMED TWO. `import(<non-literal>)` still started a statement
+ * match, and it is the same swallow for the same reason `import.meta` was:
+ *
+ *   const spec = getSpec()                   <- no semicolon
+ *   const dev = import(spec)                 <- no quoted specifier either
+ *   const rawHtml = unsafeHTML               <- swept away
+ *   export { css as _css } from 'lit';       <- swept to here
+ *
+ * A QUOTED specifier does not reproduce it — `import('lit')` stops the match at
+ * its own quote, which is exactly the property `[^;'"]` was chosen for, and it
+ * is why this production survived two rounds of looking at this function. The
+ * specifier has to be a non-literal, so there is no quote in the span.
+ *
+ * Measured on this tree, with one-token attribution: the block above appended to
+ * the real non-sink `src/util/format.ts` was GREEN 75/122 with `tsc` exit 0
+ * under `(?!\s*\.)`, and RED under `(?!\s*[.(])`. Both controls were RED — the
+ * identical block with `import.meta.env.DEV`, and the identical block with the
+ * `import(spec)` line deleted — so the single token `import(` is what did the
+ * work, not the block's shape. Pinned as the last entry of
+ * INDIRECTION_EVASIONS.
+ *
+ * The general lesson, since this is now the FOURTH instance: every token this
  * function keys on must be checked against the OTHER grammatical productions
  * that token appears in, not only against the one being parsed. `import` has
- * three (statement, `import(…)` expression, `import.meta` expression) and this
- * function now names all three.
+ * three — statement, `import(…)` expression, `import.meta` expression — and the
+ * lookahead now excludes both expression forms, so this function treats `import`
+ * as a statement keyword only, which is what its name claims. Do not restate
+ * that as "all three productions are handled" without checking it: that sentence
+ * has now been written once when it was false.
+ *
+ * Both expression forms then survive into the scanned view, where they are inert
+ * for the tokenizer's purposes — but `import(…)` is NOT inert for the guard as a
+ * whole, because a non-literal specifier is unresolvable. That is R6b's job, and
+ * R6b is enforced tree-wide; see `dynamicImportSpecifierOffenders`.
  */
 function stripImportStatements(code: string): string {
   const wipe = (m: string): string => m.replace(/[^\n]/g, ' ');
   return code
-    .replace(/\bimport\b(?!\s*\.)[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
+    .replace(/\bimport\b(?!\s*[.(])[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
     .replace(/\bimport\s*(['"])[^'"]*\1\s*;?/g, wipe);
 }
 
@@ -2042,19 +2074,12 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
     }
   }
 
-  // R6b. A dynamic import whose specifier is not a plain quoted literal defeats
-  // R6 by construction: there is nothing to resolve. A template-literal
-  // specifier is enough, because stripInertText deliberately preserves
-  // templates and `['"]` does not match a backtick.
-  for (const arg of callArguments(withStrings, 'import')) {
-    if (!/^\s*['"][^'"]*['"]\s*$/.test(arg)) {
-      bad.push(
-        `${rel}: import(${arg.trim().slice(0, 60)}) — a dynamic import specifier must be a ` +
-          'plain quoted literal, or R6 has nothing to resolve and the module it loads is ' +
-          'outside every rule here',
-      );
-    }
-  }
+  // R6b, the per-file half. The SAME predicate now also runs tree-wide — see
+  // `dynamicImportSpecifierOffenders`, which both call sites share so that the
+  // two scopes cannot drift apart. Kept here as well as tree-wide because the
+  // per-file half is the one SINK_EVASIONS exercises (V9b), and because R3 sets
+  // the precedent: a redundant rule is kept when it names the mistake precisely.
+  bad.push(...dynamicImportSpecifierOffenders(rel, withStrings));
 
   // R7. Deliberately run over `code`, not `outside`: an escape inside an IMPORT
   // statement is the whole attack. `import { \u0075nsafeHTML as rawHtml } from
@@ -2357,6 +2382,60 @@ function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {
 }
 
 /**
+ * R6b, PROMOTED FROM THE TWO SINK FILES TO THE WHOLE SCANNED TREE.
+ *
+ * A dynamic import whose specifier is not a plain quoted literal defeats R6 by
+ * construction: there is nothing to resolve, so the module it loads is outside
+ * every rule in this file. A template-literal specifier is enough, because
+ * `stripInertText` deliberately preserves templates and `['"]` does not match a
+ * backtick.
+ *
+ * WHY IT IS NO LONGER PER-FILE. Scoped to REQUIRED_SINKS this was the same
+ * mis-scoping W3 fixed for R7 and R9 fixed for R6 — "a property that holds for
+ * one consumer, relied on as if it held for all" — and here the gap was not
+ * theoretical. R8/R9 own the CONTIGUOUS QUOTED LITERAL `'dompurify'`, so these
+ * two lines in a scanned NON-SINK component left every gate green:
+ *
+ *   const __p = import('dompur' + 'ify');
+ *   void __p.then((m) => (m.default as { setConfig: (c: unknown) => void })
+ *     .setConfig({ ADD_TAGS: ['script'], ADD_ATTR: ['onerror'] }));
+ *
+ * Measured: same instance as the sanitizer's, capture verbatim in the shipped
+ * bundle, and renderMarkdown returning
+ * `<p><img src="x" onerror="alert(1)"><script>alert(2)</script></p>` against a
+ * baseline of `<p><img src="x"></p>`. The concatenation is a non-literal
+ * specifier, which is precisely what this rule rejects.
+ *
+ * READ THE CLAIM NARROWLY. This rule is NOT what closes that attack — the
+ * private `createDOMPurify(window)` instance in markdown.ts is, and it closes it
+ * by OWNERSHIP, which is the only thing that can own a global. A rule can own a
+ * name. This is the tripwire layer: it denies the scanner-blind SPELLING, so the
+ * next capture has to be written in a form a reader can see. Both layers were
+ * under-modelling `import(…)` independently, and neither was reassurance for the
+ * other.
+ *
+ * VACUOUS AGAINST THE TREE TODAY — no source file here uses a dynamic import at
+ * all — which is exactly the R8 situation, so the rule is pinned against
+ * DYNAMIC_IMPORT_EVASIONS and DYNAMIC_IMPORT_LEGITIMATE rather than against the
+ * tree, and those tables call this function BY NAME.
+ */
+function dynamicImportSpecifierOffenders(rel: string, code: string): string[] {
+  const out: string[] = [];
+  for (const arg of callArguments(code, 'import')) {
+    if (!/^\s*['"][^'"]*['"]\s*$/.test(arg)) {
+      out.push(
+        `${rel}:${lineOf(code, code.indexOf(arg))}: import(${arg.trim().slice(0, 60)}) — a ` +
+          'dynamic import specifier must be a plain quoted literal, or R6 has nothing to ' +
+          'resolve and the module it loads is outside every rule here. A concatenation, a ' +
+          'template literal or a variable also hides the specifier from R8/R9, which own the ' +
+          "sanitizer's dependencies by matching a contiguous quoted literal.",
+      );
+    }
+  }
+  return out;
+}
+
+/**
  * The SCOPE pin for mechanism (a). See EXPECTED_REQUIRED_SINKS for why this is
  * not a restatement of `REQUIRED_SINKS.length`: every other consumer, including
  * the check-total, is derived from that array and therefore moves with it.
@@ -2504,6 +2583,21 @@ function sinkBinding(): void {
     }
     if (offenders.length > 0) {
       throw new Error(`escaped identifier in code:\n      ${offenders.join('\n      ')}`);
+    }
+  });
+
+  // R6b, tree-wide. Every resolution-based rule in this file — R6, R8 and R9 —
+  // assumes a module specifier is a contiguous quoted literal it can read. A
+  // dynamic import that builds its specifier defeats all three at once, and that
+  // is how the sanitizer's own singleton was reachable from a non-sink component
+  // until this round. See dynamicImportSpecifierOffenders.
+  check('tripwire: every dynamic import specifier is a plain quoted literal', () => {
+    const offenders: string[] = [];
+    for (const { rel, code } of scanned) {
+      offenders.push(...dynamicImportSpecifierOffenders(rel, code));
+    }
+    if (offenders.length > 0) {
+      throw new Error(`unresolvable dynamic import specifier:\n      ${offenders.join('\n      ')}`);
     }
   });
 
@@ -2691,6 +2785,23 @@ function sinkBinding(): void {
     'const dev = import.meta.env.DEV\n' +
       'const rawHtml = unsafeHTML\n' +
       "export { css as _css } from 'lit';",
+    // B3b: the SAME swallow again, re-entered through the THIRD production of
+    // `import` — the call expression. `import(<non-literal>)` has no quoted
+    // specifier for `[^;'"]` to stop against, so the match ran forward to the
+    // next `from '…'` and blanked the alias between them, exactly as
+    // `import.meta` did before the entry above was added. A quoted specifier is
+    // NOT enough to reproduce it: `import('lit')` stops the match at its own
+    // quote, which is the property `[^;'"]` was chosen for. The specifier has to
+    // be an identifier.
+    //
+    // Measured on this tree with one-token attribution: this block appended to
+    // the real non-sink src/util/format.ts was GREEN 75/122 with tsc exit 0, and
+    // both controls were RED — the same block with `import.meta.env.DEV`, and
+    // the same block with the `import(spec)` line simply deleted.
+    'const spec = getSpec()\n' +
+      'const dev = import(spec)\n' +
+      'const rawHtml = unsafeHTML\n' +
+      "export { css as _css } from 'lit';",
   ];
 
   // The promoted R7's positives. V8 and V8b were pinned as SINK_EVASIONS, which
@@ -2708,7 +2819,7 @@ function sinkBinding(): void {
 
   check('fixture: every known indirection form is caught by the tripwire', () => {
     const missed: string[] = [
-      fixtureTableViolation('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 16),
+      fixtureTableViolation('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 17),
       fixtureTableViolation('ESCAPE_EVASIONS', ESCAPE_EVASIONS, 4),
     ].filter((v): v is string => v !== null);
     for (const fixture of INDIRECTION_EVASIONS) {
@@ -2845,6 +2956,65 @@ function sinkBinding(): void {
     }
     if (missed.length > 0) {
       throw new Error(`count pin no longer fires: ${missed.join(' | ')}`);
+    }
+  });
+
+  // R6b's positives and false-positive controls. The rule is VACUOUS against the
+  // tree — no source file here uses a dynamic import at all — so without this
+  // table the tree-wide check above would pass forever without the predicate
+  // ever running, which is the R8 defect exactly. The two tables are asserted in
+  // one check because a bypass fixture and its false-positive mirror have to move
+  // together, and this loop calls `dynamicImportSpecifierOffenders` BY NAME
+  // rather than asking whether any tree-wide rule fired.
+  const DYNAMIC_IMPORT_EVASIONS = [
+    // The B3a capture: a split specifier reaches the same instance R8/R9 are
+    // guarding, while naming no contiguous literal either can match.
+    "const p = import('dompur' + 'ify');",
+    'const p = import(spec);',
+    'const p = import(`dompurify`);',
+    'const p = import(cond ? "dompurify" : "marked");',
+    "const { unsafeHTML: raw } = await import(MODULES['raw']);",
+  ];
+
+  // `import.meta` is the entry that matters here: the lookahead in
+  // stripImportStatements now excludes BOTH expression forms of `import`, and
+  // this pins that excluding `import(` did not also make `import.meta` start
+  // matching this rule. A static import must not trip it either.
+  const DYNAMIC_IMPORT_LEGITIMATE = [
+    "const p = import('dompurify');",
+    'const p = await import("lit");',
+    "const p = await import('./helper.js');",
+    "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    'const dev = import.meta.env.DEV;',
+  ];
+
+  check('fixture: the dynamic-import specifier rule catches every unresolvable form', () => {
+    const problems: string[] = [
+      fixtureTableViolation('DYNAMIC_IMPORT_EVASIONS', DYNAMIC_IMPORT_EVASIONS, 5),
+      fixtureTableViolation('DYNAMIC_IMPORT_LEGITIMATE', DYNAMIC_IMPORT_LEGITIMATE, 5),
+    ].filter((v): v is string => v !== null);
+    for (const fixture of DYNAMIC_IMPORT_EVASIONS) {
+      const code = stripInertText(fixture, { strings: false });
+      const found = dynamicImportSpecifierOffenders('<fixture>', code);
+      if (found.length === 0) {
+        problems.push(`SURVIVED: ${fixture}`);
+        continue;
+      }
+      for (const offender of found) {
+        if (!/^<fixture>:\d+: /.test(offender)) {
+          problems.push(`offender has no line number: ${offender}`);
+        }
+      }
+    }
+    for (const fixture of DYNAMIC_IMPORT_LEGITIMATE) {
+      const code = stripInertText(fixture, { strings: false });
+      const found = dynamicImportSpecifierOffenders('<fixture>', code);
+      if (found.length > 0) {
+        problems.push(`FALSE POSITIVE: ${fixture} — ${found.join(' | ')}`);
+      }
+    }
+    if (problems.length > 0) {
+      throw new Error(`the dynamic-import specifier rule is broken: ${problems.join(' | ')}`);
     }
   });
 
@@ -3222,7 +3392,7 @@ function sinkBinding(): void {
 // the two sink files), the fixture for the arity pin, the shared-marked-singleton
 // pin, and the DOM-clobbering pin. The scope pin added in the same round is
 // deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
-const EXPECTED_CHECK_CALL_SITES = 74;
+const EXPECTED_CHECK_CALL_SITES = 76;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
