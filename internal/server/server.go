@@ -637,8 +637,11 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	if req.Branch != nil {
 		p.Branch = req.Branch
 	}
-	for _, pr := range req.GetAddPullRequests() {
-		if err := validateURLField("add_pull_requests.url", pr.GetUrl()); err != nil {
+	for i, pr := range req.GetAddPullRequests() {
+		// Name the index. Without it the caller cannot tell which of several
+		// pull requests was rejected, and a test cannot tell that the guard
+		// looked past the first one -- the import path already does this.
+		if err := validateURLField(fmt.Sprintf("add_pull_requests[%d].url", i), pr.GetUrl()); err != nil {
 			return nil, err
 		}
 		p.AddPullRequests = append(p.AddPullRequests, store.PullRequestParam{

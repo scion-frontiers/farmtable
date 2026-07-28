@@ -270,6 +270,25 @@ function installDOMGlobals(dom: InstanceType<typeof JSDOM>): void {
   (globalThis as Record<string, unknown>).document = dom.window.document;
 }
 
+let sharedDOM: InstanceType<typeof JSDOM> | undefined;
+
+/**
+ * One JSDOM window for the whole file. It has to be a singleton: custom
+ * elements are registered against whatever `customElements` is global at import
+ * time, so a second window would leave the already-registered components bound
+ * to the first one.
+ */
+function domEnvironment(): InstanceType<typeof JSDOM> {
+  if (sharedDOM === undefined) {
+    sharedDOM = new JSDOM('<!doctype html><body><div id="host"></div></body>', {
+      pretendToBeVisual: true,
+      url: 'https://dashboard.test/',
+    });
+    installDOMGlobals(sharedDOM);
+  }
+  return sharedDOM;
+}
+
 /**
  * The behavioural pin: a persisted javascript: URL must not reach the href
  * attribute of a real DOM node.
@@ -288,10 +307,7 @@ function installDOMGlobals(dom: InstanceType<typeof JSDOM>): void {
  * stops calling safeHref.
  */
 async function testPayloadNeverReachesHrefAttribute(): Promise<void> {
-  const dom = new JSDOM('<!doctype html><body><div id="host"></div></body>', {
-    pretendToBeVisual: true,
-  });
-  installDOMGlobals(dom);
+  const dom = domEnvironment();
 
   const { render } = await import('lit');
   const { renderPrLink } = await import('../components/inspector/ft-inspector-code.js');
@@ -360,6 +376,79 @@ async function testPayloadNeverReachesHrefAttribute(): Promise<void> {
   }
 }
 
+/** Minimal shape of a LitElement instance, for a node made by createElement. */
+interface LitLike extends HTMLElement {
+  codeContext: unknown;
+  updateComplete: Promise<unknown>;
+}
+
+/**
+ * The guard must hold for EVERY pull request in the list, not just the first.
+ *
+ * testPayloadNeverReachesHrefAttribute drives renderPrLink one call at a time,
+ * so it cannot see a list bug: a template that guarded pullRequests[0] and
+ * interpolated the rest raw would pass it. This renders the REAL
+ * <ft-inspector-code> custom element -- its own .map() over ctx.pullRequests,
+ * not a copy of it -- with a two-element list, in both orderings.
+ *
+ * Both orderings matter. Poisoned-first catches "the loop bails out after the
+ * first rejection"; poisoned-second catches "only index 0 is guarded".
+ */
+async function testGuardHoldsForEveryItemInAList(): Promise<void> {
+  const dom = domEnvironment();
+  // Importing the module is what registers <ft-inspector-code>, via @customElement.
+  await import('../components/inspector/ft-inspector-code.js');
+
+  const doc = dom.window.document;
+  const good = 'https://github.com/acme/widgets/pull/2';
+
+  const orderings: ReadonlyArray<{ readonly name: string; readonly urls: readonly string[] }> = [
+    { name: 'poisoned first', urls: [XSS, good] },
+    { name: 'poisoned second', urls: [good, XSS] },
+  ];
+
+  for (const { name, urls } of orderings) {
+    const el = doc.createElement('ft-inspector-code') as LitLike;
+    el.codeContext = {
+      repo: 'acme/widgets',
+      branch: 'main',
+      pullRequests: urls.map((url, i) => ({ url, id: `PR-${i + 1}`, status: 0 })),
+    };
+    doc.getElementById('host')!.appendChild(el);
+    await el.updateComplete;
+
+    const root = el.shadowRoot;
+    assert(root !== null, `${name}: component rendered no shadow root`);
+
+    const hrefs = [...root!.querySelectorAll('[href]')].map((a) => a.getAttribute('href'));
+    assert(
+      hrefs.length === 1 && hrefs[0] === good,
+      `${name}: exactly one href should survive the list, the legitimate one. Got ${JSON.stringify(hrefs)}. ` +
+        'If both survived, the list is interpolating raw URLs; if neither did, see the control below.',
+    );
+
+    // Degrade, do not drop: the rejected entry is still rendered, still shows
+    // its id, and still exposes the raw value.
+    const unsafe = root!.querySelector('.pr-link-unsafe');
+    assert(
+      unsafe !== null && (unsafe.getAttribute('title') ?? '').includes(XSS),
+      `${name}: the rejected PR should render as inert text carrying the raw URL in a title, got: ${root!.innerHTML}`,
+    );
+
+    // Positive control for THIS harness: the component must render both list
+    // items at all. Without it, "exactly one href" would also be satisfied by a
+    // component that silently dropped every item after the first.
+    const items = root!.querySelectorAll('.pr-item');
+    assert(
+      items.length === 2,
+      `${name}: positive control -- the component should render both list items, got ${items.length}. ` +
+        'The href assertion above is vacuous unless both items are actually in the tree.',
+    );
+
+    el.remove();
+  }
+}
+
 /**
  * target="_blank" is currently an incidental mitigation on both anchors: engines
  * block javascript: navigation into a new browsing context, but nothing pinned
@@ -396,6 +485,7 @@ async function run(): Promise<void> {
   testHostGuardIsAFailClosedBackstop();
   testSharedFixturesMatchClientColumn();
   await testPayloadNeverReachesHrefAttribute();
+  await testGuardHoldsForEveryItemInAList();
   testExternalAnchorsKeepTargetBlank();
   console.log('safe-url: ok');
 }
