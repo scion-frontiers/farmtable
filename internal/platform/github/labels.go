@@ -107,10 +107,22 @@ type LabelMapper struct {
 	labelToPriority map[string]task.Priority
 	labelToType     map[string]string
 
-	// writeView is this same config as if Enabled were true, built on demand
-	// by writeViewMapper and used only by the WRITE-side stage computation in
-	// lifecycle_claim.go. Nil when m.enabled is already true, because then
-	// this mapper IS its own write view.
+	// writeView is this same config as if Enabled were true, used only by the
+	// WRITE-side stage computation in lifecycle_claim.go. Nil when m.enabled is
+	// already true, because then this mapper IS its own write view.
+	//
+	// WRITTEN ONCE, BY NewLabelMapper, BEFORE THIS MAPPER IS PUBLISHED. Round 10
+	// filled it lazily on first use, which made LabelMapper mutable for the
+	// first time in its life and put an unlocked write on a pointer
+	// MultiStore.lazyResolve caches per collection and hands to every request
+	// goroutine (passthrough.go documents that sharing; it is why cacheMu
+	// exists). -race reported it, and reported a worse one besides: a read of
+	// this field racing the construction of the mapper holding it, with no
+	// happens-before edge, so an observer could see enabled=false, an empty
+	// labelToStage or an empty PushPrefix — every one of which biases toward
+	// refusing to recognise a label and therefore toward pricing a lifecycle
+	// write as FREE. Eager construction restores immutability, which is why
+	// there is no mutex here rather than a mutex someone has to remember.
 	writeView *LabelMapper
 }
 
@@ -230,6 +242,19 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 		typ := cfg.Types[label]
 		m.labelToType[m.stripForMatch(label)] = typ
 		m.typeToLabel[typ] = strings.ToLower(label)
+	}
+
+	// The WRITE-side view, built here so that the mapper is immutable once it is
+	// returned. See the writeView field and writeViewMapper for why this is
+	// eager rather than lazy-and-locked.
+	//
+	// TERMINATION IS BY CONSTRUCTION AND NEEDS NO ARGUMENT AT THE CALL SITE: the
+	// recursive call is guarded by !cfg.Enabled and passes Enabled=true, so the
+	// callee takes the other branch and never recurses. One level, always.
+	if !cfg.Enabled {
+		asIfEnabled := cfg
+		asIfEnabled.Enabled = true
+		m.writeView = NewLabelMapper(asIfEnabled)
 	}
 
 	return m

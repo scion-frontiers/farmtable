@@ -311,6 +311,35 @@ func (s *GitHubPassThroughStore) assertStageWriteAllowed(add, remove []string, p
 	if policy == stageWriteAllowed {
 		return nil
 	}
+
+	// FAIL CLOSED ON A MISSING MAPPER, AT THE GATE (#194 round 11, B8).
+	//
+	// The two halves of the write predicate disagree about a nil receiver and
+	// the disagreement is the wrong way round: authorizationStage dereferences m
+	// and PANICS, while lifecycleStageClaim guards nil and returns ("", false),
+	// which here means "not ours" and therefore ALLOWS. That is the single input
+	// in the whole superset property where the write side refuses strictly LESS
+	// than the read side.
+	//
+	// Not reachable today — NewPassThroughStore always sets mapper — but the
+	// codebase does construct zero-value stores (empty_stage_set_contract_test.go)
+	// and LifecycleStage's docblock says callers reach it from one. The guard
+	// belongs here and not in the predicate: a predicate that returns "not a
+	// stage" for a nil mapper is answering a question it cannot answer, whereas
+	// a gate that cannot evaluate its own precondition should refuse.
+	//
+	// HOW THIS WAS FOUND, because it says something about method: by reading the
+	// two functions side by side. Two independent sweeps — 8400 cells and 204
+	// pairs — both returned zero violations and both missed it, because a sweep
+	// varies INPUTS and this is a property of the RECEIVER. Scale is not
+	// coverage.
+	if s.mapper == nil {
+		return fmt.Errorf(
+			"refusing a lifecycle label write from a code path that is not authorized to " +
+				"move the lifecycle stage: this store has no label mapper, so whether these " +
+				"labels assert a stage cannot be decided. Refusing is the only answer that " +
+				"cannot be wrong in the dangerous direction")
+	}
 	for _, group := range [...]struct {
 		verb   string
 		labels []string
@@ -1036,12 +1065,64 @@ func (s *GitHubPassThroughStore) LifecycleStages(ctx context.Context, t *ent.Tas
 // two tiebreak winners hides an edit that swaps one of several present terminal
 // labels for another, and "the edit changed nothing" is precisely the answer
 // that costs nothing.
+// THE TWO ENDPOINTS ARE COMPUTED BY DIFFERENT PREDICATES, ON PURPOSE (#194
+// round 11, B1). This is the fix for the round-10 Critical and the reason it is
+// safe is a monotonicity argument, so it is written out rather than asserted.
+//
+// Round 10 applied the widened WRITE predicate to BOTH endpoints. Price is
+// charged only when the two endpoints DIFFER, so a predicate on both sides of a
+// set difference is not monotone in the price: widening BEFORE collapses it
+// onto AFTER and the write costs nothing. 29 cells got CHEAPER than they were
+// before the fix that was meant to make them dearer. MEASURED, narrow principal
+// {task:read, task:write}, DefaultConfig, enabled=true, no config change:
+//
+//	                                          base 06f01d7   round 10   here
+//	labels=[duplicate]      add ft:stage/duplicate   DENIED      FREE     DENIED
+//	labels=[completed]      add ft:stage/completed   DENIED      FREE     DENIED
+//	labels=[ft2:stage/wont_fix] add ft:stage/wont_fix DENIED     FREE     DENIED
+//	labels=[]               add ft:stage/duplicate   DENIED      DENIED   DENIED  <- control
+//	labels=[needs-triage]   add ft:stage/duplicate   DENIED      DENIED   DENIED  <- control
+//
+// "duplicate" is stock GitHub, created in every new repository, and the read
+// side does not render it as a lifecycle label, so the masking step was
+// invisible in the UI.
+//
+// THE SPLIT:
+//
+//	BEFORE  currentLifecycleStages — today's config, the task's RAW labels.
+//	        Byte-for-byte the computation base 06f01d7 performed. The state the
+//	        deployment actually believes the task is in.
+//	AFTER   writeView.claimedStages — the fully-enabled view, over the raw
+//	        labels with the CALLER'S ADDITIONS canonicalised.
+//
+// WHY THAT IS MONOTONE BY CONSTRUCTION, which is the property round 10 lacked:
+// the BEFORE arm IS the base behaviour, unchanged, so it cannot move. The AFTER
+// arm only ever recognises MORE than base did, because canonicalisation
+// rewrites a claimed foreign spelling into the local one and lifecycleStageClaim
+// agrees with the read side wherever the read side answers at all. A price is
+// max-over-pairs of a set difference whose left side is fixed and whose right
+// side can only gain elements, so postPrice >= prePrice pointwise. The base
+// behaviour is literally one of the arms — that is what makes the argument a
+// construction rather than a hope.
+// TestLabelWritePrice_IsMonotoneInThePredicate asserts it pointwise over a
+// vocabulary rather than over example cells, because every fixture in
+// configBlindAxes starts from an EMPTY label set and so structurally cannot
+// observe a change in the BEFORE endpoint — which is exactly why the suite
+// missed this.
+//
+// ONLY THE ADDITIONS ARE CANONICALISED. Removals stay raw because applyLabelDelta
+// matches removals against the task's own raw labels; canonicalising a removal
+// would delete a DIFFERENT label from the modelled after-set than the one the
+// caller named. And the task's existing labels stay raw because canonicalising
+// them is precisely the round-10 defect (see canonicalLifecycleLabels).
 func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
 	if s.mapper == nil {
 		return []task.Stage{t.Stage}, []task.Stage{t.Stage}
 	}
-	before = s.lifecycleStagesForLabels(t, t.Labels)
-	after = s.lifecycleStagesForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+	before = s.currentLifecycleStages(t, t.Labels)
+	after = s.mapper.writeViewMapper().claimedStages(
+		taskIssueState(t), taskStateReason(t),
+		applyLabelDelta(t.Labels, s.mapper.canonicalLifecycleLabels(addLabels), removeLabels))
 	return before, after
 }
 
@@ -1065,46 +1146,58 @@ func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, 
 // rather than re-fetching also matters for correctness, not just cost: a second
 // round trip could observe a different issue than the one the caller
 // authorized against.
-// IT IS THE WRITE SIDE, SO IT IS CONFIG-BLIND (#194 round 10). Both endpoints
-// of a price are computed here, so this function decides what a label WRITE
-// costs — and a write must be priced against what the label could ever mean,
-// not against what today's config says it means. See lifecycle_claim.go for
-// the ruling and its limits.
+// THIS IS THE READ/CURRENT ANSWER AND IT IS THE *BEFORE* ENDPOINT ONLY (#194
+// round 11). It answers "which lifecycle stages does this deployment believe
+// this task names, under the config running today?" — which is the correct
+// question for the state a caller is transitioning FROM.
 //
-// The mechanism is two lines: translate the label set into this deployment's
-// own spelling (canonicalLifecycleLabels), then ask the fully-enabled view of
-// this same mapper (writeViewMapper). Everything below that is the SAME
-// AllTerminalLabelStages and the SAME IssueToPhaseStage as before, with their
-// guards intact — the demotion rule, the closed-issue state_reason rule and
-// the terminal-first ordering are inherited rather than restated, so they
-// cannot drift from the read side's copy of them.
+// It is deliberately NOT config-blind, and round 10 making it so is what
+// produced the Critical. Config-blindness belongs on the endpoint that models
+// what the caller is about to WRITE, never on the endpoint that models what is
+// already there: over-claiming the FROM state makes a transition look shorter
+// and therefore cheaper. See LabelDeltaLifecycleStages for the split and the
+// monotonicity argument, and canonicalLifecycleLabels for the rule.
+//
+// THE AGREEMENT PIN. TestLifecycleStageForLabels_AgreesWithLifecycleStageOnThe
+// TasksOwnLabels demands that the before-endpoint match LifecycleStages. With
+// this function restored to the read predicate that agreement now holds at
+// enabled=false as well, not merely at the enabled=true its fixtures happen to
+// use.
+func (s *GitHubPassThroughStore) currentLifecycleStages(t *ent.Task, labels []string) []task.Stage {
+	if stages := s.mapper.AllTerminalLabelStages(labels); len(stages) > 0 {
+		return stages
+	}
+	_, stage := s.mapper.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), labels)
+	return []task.Stage{stage}
+}
+
+// claimedStages is the WRITE answer: which lifecycle stages would this label set
+// name if the deployment recognised everything it could ever recognise?
+//
+// DECLARED ON writeView, NOT ON *LabelMapper, AND THAT IS LOAD-BEARING. The
+// whole partition is "the write side must ask the fully-enabled view". As two
+// *LabelMapper values that rule is a habit and both spellings compile; as a
+// method on writeView, `s.mapper.claimedStages(...)` does not exist and the
+// compiler says so. See the writeView type for why this bites where a naming
+// convention would not.
+//
+// Everything inside is the SAME AllTerminalLabelStages and the SAME
+// IssueToPhaseStage the read side uses, with their guards intact — the demotion
+// rule, the closed-issue state_reason rule and the terminal-first ordering are
+// inherited rather than restated, so they cannot drift from the read side's
+// copy of them. The only difference is the view they are asked under.
 //
 // The read side is deliberately NOT changed to match. LifecycleStage and
 // LifecycleStages keep their guards and keep answering "per today's config",
 // because that is the right answer for display and availability: a deployment
 // with label mapping off must not start showing tasks as completed on the
 // strength of labels it is configured to ignore. Read and write answering
-// differently at enabled=false is the intended end state of this round, not an
-// inconsistency.
-//
-// THE AGREEMENT PIN STILL HOLDS, AND ONLY WHERE IT SHOULD.
-// TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels
-// demands that this function's before-endpoint match LifecycleStages. That
-// demand is correct at enabled=true and would be WRONG at enabled=false, where
-// the divergence above is the whole point. MEASURED: the test passes unchanged
-// after this change, because every one of its fixtures comes from
-// newLabelWriteFixture on DefaultConfig, which has Enabled=true — it never
-// reached the diverging case and still does not. It is left alone rather than
-// "scoped to enabled=true", because giving it a scope it already has would
-// imply it once covered enabled=false. It did not.
-func (s *GitHubPassThroughStore) lifecycleStagesForLabels(t *ent.Task, labels []string) []task.Stage {
-	view := s.mapper.writeViewMapper()
-	canonical := s.mapper.canonicalLifecycleLabels(labels)
-
-	if stages := view.AllTerminalLabelStages(canonical); len(stages) > 0 {
+// differently at enabled=false is the intended end state, not an inconsistency.
+func (v writeView) claimedStages(state, stateReason string, labels []string) []task.Stage {
+	if stages := v.AllTerminalLabelStages(labels); len(stages) > 0 {
 		return stages
 	}
-	_, stage := view.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), canonical)
+	_, stage := v.IssueToPhaseStage(state, stateReason, labels)
 	return []task.Stage{stage}
 }
 
