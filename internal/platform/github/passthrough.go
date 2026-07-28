@@ -212,6 +212,106 @@ func (s *GitHubPassThroughStore) labelNamesToIDs(names []string) []githubv4.ID {
 	return ids
 }
 
+// stageWritePolicy says whether the caller of writeLabelSwap is entitled to
+// move the authoritative lifecycle stage.
+//
+// WHY THIS EXISTS (#194 round 8, from the round-7 security audit's Addendum 1
+// §4, where it revised its own earlier "nothing can bind at writeLabelSwap").
+//
+// In this store the lifecycle stage IS a label, so "which code may write a
+// lifecycle label" is an authorization question, and until now it was answered
+// nowhere. writeLabelSwap is the seam six of the eight label-writing paths
+// traverse, and while it cannot do SNAPSHOT NARROWING — that genuinely needs
+// the server's authorized snapshot, which is not threaded here, and consulting
+// a fresh read instead would be the A-4 defect again with a shorter window — it
+// can enforce a weaker invariant using only the mapper it already holds:
+//
+//	code that is not a stage-moving path may not write a stage label AT ALL.
+//
+// The two arms this actually binds are the PRIORITY and TYPE arms of UpdateTask.
+// Both are reachable with bare task:write: neither carries a transition-scope
+// check, req.Type was not even validated until this same round, and neither is
+// covered by RestrictLabelWriteToSnapshot, because the labels they write are
+// generated inside the store rather than supplied by the caller. They decide
+// what to remove by testing stripForMatch against labelToPriority /
+// labelToType, and stripForMatch maps "ft:stage/duplicate" onto the bare key
+// "duplicate". Nothing stopped an operator config from putting a stage name in
+// the types table — `duplicate` is a label GitHub creates in every new
+// repository — at which point UpdateTask(type=feature) destroyed a maintainer's
+// ft:stage/duplicate for free, and types:{"ft:stage/wont_fix": bug} FORGED one.
+//
+// With this policy those two arms are STRUCTURALLY INCAPABLE of touching a
+// lifecycle label whatever the operator writes in their config. That is worth
+// more than the config validation that also ships in this change (see
+// GitHubConfig.Validate): the config check is one layer and this is another,
+// and only this one survives a config path nobody thought of.
+//
+// It is also defence in depth for C-1: the cross-list bypass came in through
+// the caller-supplied add/remove arms, which are stageWriteAllowed here because
+// the server DOES price them — so this is not what closes C-1 — but it bounds
+// how far the next drift in that area can reach.
+//
+// IT ERRORS RATHER THAN DROPPING SILENTLY, deliberately. A silent drop would
+// make the priority arm report success for a swap it did not perform, which is
+// the exact shape — a write that says nothing about what it did not do — that
+// kept A-4 invisible for five rounds. An operator whose config trips this has a
+// misconfiguration they must see; a developer who trips it while adding a
+// seventh call site has an authorization decision to make, and an error makes
+// them make it.
+type stageWritePolicy bool
+
+const (
+	// stageWriteForbidden is for call sites that have no business moving the
+	// lifecycle stage. Passing it asserts that; it does not merely permit.
+	stageWriteForbidden stageWritePolicy = false
+
+	// stageWriteAllowed is for the stage-moving paths: UpdateTask's stage arm
+	// (priced by TransitionScope at the server), UpdateTask's caller-supplied
+	// add_labels / remove_labels arms (priced by the label-delta gate and then
+	// narrowed by RestrictLabelWriteToSnapshot), and ClaimTask (which requires
+	// task:claim, strictly stronger than task:write).
+	//
+	// CloseTask is NOT in this list because CloseTask does not route through
+	// writeLabelSwap at all — it kept its own inline best-effort swap, which
+	// must not fail an already-completed close. If it is ever converted, it is
+	// a stage-moving path and belongs here.
+	stageWriteAllowed stageWritePolicy = true
+)
+
+// assertStageWriteAllowed refuses any label the mapper claims as a lifecycle
+// stage assertion when the caller is not entitled to move the stage.
+//
+// The predicate is authorizationStage, the SAME one StageLabelSwap uses to
+// decide what is ours to remove and the same one the readers use to decide what
+// a label asserts. Using anything else here — stripForMatch, a prefix test, a
+// hardcoded "ft:" — would add a FIFTH answer to "which labels are lifecycle
+// labels" to the four this codebase already disagrees between, and every round
+// of #194 has found a fresh disagreement among those four.
+func (s *GitHubPassThroughStore) assertStageWriteAllowed(add, remove []string, policy stageWritePolicy) error {
+	if policy == stageWriteAllowed {
+		return nil
+	}
+	for _, group := range [...]struct {
+		verb   string
+		labels []string
+	}{{"add", add}, {"remove", remove}} {
+		for _, raw := range group.labels {
+			stage, ours := s.mapper.authorizationStage(raw)
+			if !ours {
+				continue
+			}
+			return fmt.Errorf(
+				"refusing to %s lifecycle label %q (stage %q) from a code path that is not "+
+					"authorized to move the lifecycle stage: in this store the stage IS a label, "+
+					"so this write would change the authoritative stage with no transition scope "+
+					"charged. If an operator config maps a stage name into "+
+					"github.labels.types or github.labels.priorities, rename that key",
+				group.verb, raw, stage)
+		}
+	}
+	return nil
+}
+
 // writeLabelSwap applies a label swap to an issue and REPORTS its failures.
 //
 // Every call site used to discard the mutation error into `_`. That is how the
@@ -232,7 +332,13 @@ func (s *GitHubPassThroughStore) labelNamesToIDs(names []string) []githubv4.ID {
 // are NOT an error here. That is pre-existing behaviour and deliberately left
 // alone: it fails closed for the gate, which models such a label as applied and
 // so over-charges rather than under-charges (see applyLabelDelta).
-func (s *GitHubPassThroughStore) writeLabelSwap(ctx context.Context, issueID githubv4.ID, add, remove []string) error {
+//
+// THE policy ARGUMENT IS AN AUTHORIZATION CONTROL, NOT A FLAG (#194 round 8).
+// See stageWritePolicy.
+func (s *GitHubPassThroughStore) writeLabelSwap(ctx context.Context, issueID githubv4.ID, add, remove []string, policy stageWritePolicy) error {
+	if err := s.assertStageWriteAllowed(add, remove, policy); err != nil {
+		return err
+	}
 	if removeIDs := s.labelNamesToIDs(remove); len(removeIDs) > 0 {
 		if err := s.gql.removeLabels(ctx, issueID, removeIDs); err != nil {
 			return fmt.Errorf("removing labels %v: %w", remove, err)
@@ -474,18 +580,27 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.StageLabelSwap(currentLabels, *p.Stage)
-		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+		if err := s.writeLabelSwap(ctx, issueID, add, remove, stageWriteAllowed); err != nil {
 			return nil, err
 		}
 	}
 
+	// stageWriteForbidden on the priority and type arms is load-bearing, not
+	// tidiness. Both are reachable with bare task:write, neither is priced by a
+	// transition scope, and neither passes through
+	// RestrictLabelWriteToSnapshot, because the labels they write are generated
+	// here rather than named by the caller. They pick what to remove with
+	// stripForMatch, which maps "ft:stage/duplicate" onto the bare key
+	// "duplicate" — so an operator config with a stage name in
+	// github.labels.types or .priorities turned UpdateTask(type=...) into a
+	// free lifecycle-stage write. See stageWritePolicy.
 	if p.Priority != nil {
 		if err := s.ensureLabelIndex(ctx); err != nil {
 			return nil, err
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.PriorityLabelSwap(currentLabels, *p.Priority)
-		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+		if err := s.writeLabelSwap(ctx, issueID, add, remove, stageWriteForbidden); err != nil {
 			return nil, err
 		}
 	}
@@ -496,7 +611,7 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.TypeLabelSwap(currentLabels, *p.Type)
-		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+		if err := s.writeLabelSwap(ctx, issueID, add, remove, stageWriteForbidden); err != nil {
 			return nil, err
 		}
 	}
@@ -510,7 +625,7 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		if err := s.ensureLabelIndex(ctx); err != nil {
 			return nil, err
 		}
-		if err := s.writeLabelSwap(ctx, issueID, p.AddLabels, nil); err != nil {
+		if err := s.writeLabelSwap(ctx, issueID, p.AddLabels, nil, stageWriteAllowed); err != nil {
 			return nil, err
 		}
 	}
@@ -518,7 +633,7 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		if err := s.ensureLabelIndex(ctx); err != nil {
 			return nil, err
 		}
-		if err := s.writeLabelSwap(ctx, issueID, nil, p.RemoveLabels); err != nil {
+		if err := s.writeLabelSwap(ctx, issueID, nil, p.RemoveLabels, stageWriteAllowed); err != nil {
 			return nil, err
 		}
 	}
@@ -659,7 +774,7 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 	}
 	currentLabels := issueLabels(target)
 	add, remove := s.mapper.StageLabelSwap(currentLabels, task.StageWorking)
-	if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+	if err := s.writeLabelSwap(ctx, issueID, add, remove, stageWriteAllowed); err != nil {
 		return nil, err
 	}
 

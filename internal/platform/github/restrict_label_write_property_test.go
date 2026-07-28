@@ -211,8 +211,8 @@ func TestRestrictLabelWriteToSnapshot_NamedDefectShapes(t *testing.T) {
 			remove:   []string{"ft:stage/completed"},
 		},
 		{
-			name: "C1_cross_list_pad_split",
-			why: "The same attack with padding instead of case. Also bypasses ==.",
+			name:     "C1_cross_list_pad_split",
+			why:      "The same attack with padding instead of case. Also bypasses ==.",
 			snapshot: []string{"ft:stage/accepted", "bug"},
 			add:      []string{completed},
 			remove:   []string{"  " + completed + "\t"},
