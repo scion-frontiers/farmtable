@@ -1,0 +1,289 @@
+{
+  "_README": [
+    "Shared fixtures for the server/client URL-decision differential test.",
+    "",
+    "Read by BOTH internal/server/urlvalidate_differential_test.go (which asserts",
+    "the \"server\" column against validateURLField) and web/src/util/safe-url.test.ts",
+    "(which asserts the \"client\" column against safeHref). Neither side can drift",
+    "without turning its own test red, and a case can only be silenced by editing",
+    "this file, which shows up in review.",
+    "",
+    "This file exists because safe-url.ts used to claim the two guards agreed, so",
+    "that \"a scheme the client allows and the server rejects is unreachable\". The",
+    "SCHEME SETS agree. The DECISIONS do not: 9 of these 42 inputs are decided",
+    "differently. Every divergence is recorded below with a measured reason.",
+    "",
+    "SECURITY READING: none of the 9 is a scheme escalation. In every case where",
+    "the client is the more permissive of the two, the input resolves to an http(s)",
+    "URL -- an attacker-chosen HOST, which is already reachable through a plainly",
+    "accepted https://evil.com/, and not an attacker-chosen SCHEME. They are",
+    "broken-link and inconsistency bugs, not XSS. Do not delete a case because it",
+    "looks harmless; the point is that the disagreement is pinned and bounded.",
+    "",
+    "\"accept\" for the server means validateURLField returns nil. \"accept\" for the",
+    "client means safeHref returns the input unchanged."
+  ],
+  "cases": [
+    {
+      "name": "javascript",
+      "input": "javascript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript mixed case",
+      "input": "JaVaScRiPt:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript embedded tab",
+      "input": "java\tscript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript embedded newline",
+      "input": "java\nscript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript embedded carriage return",
+      "input": "java\rscript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript leading tab",
+      "input": "\tjavascript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript leading newline",
+      "input": "\njavascript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript leading space",
+      "input": " javascript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "javascript embedded DEL",
+      "input": "java\u007fscript:alert(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "data html",
+      "input": "data:text/html,<script>alert(1)</script>",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "vbscript",
+      "input": "vbscript:msgbox(1)",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "blob",
+      "input": "blob:https://example.com/uuid",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "file",
+      "input": "file:///etc/passwd",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "mailto",
+      "input": "mailto:a@b.com",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "ftp",
+      "input": "ftp://evil.com/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "ws",
+      "input": "ws://evil.com/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "wss",
+      "input": "wss://evil.com/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "httpx prefix not membership",
+      "input": "httpx://evil.com/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "protocol relative",
+      "input": "//evil.com/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "absolute path",
+      "input": "/relative/path",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "bare word",
+      "input": "not-a-url",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "empty",
+      "input": "",
+      "server": "accept",
+      "client": "reject",
+      "note": "Deliberate on both sides. The server treats \"\" as \"unset\" so callers can clear the field; the client renders no link for it. Same outcome, different vocabulary."
+    },
+    {
+      "name": "http no host",
+      "input": "http://",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "backslash host confusion",
+      "input": "http:/\\/\\evil.com",
+      "server": "reject",
+      "client": "accept",
+      "note": "WHATWG reads the backslashes as slashes: new URL() yields host \"evil.com\" and the browser navigates there. net/url yields Host == \"\" and the server's host check rejects it. Client is MORE permissive."
+    },
+    {
+      "name": "single slash host",
+      "input": "http:/example.com",
+      "server": "reject",
+      "client": "accept",
+      "note": "WHATWG normalises to http://example.com/ (host \"example.com\"); net/url treats it as an opaque/rootless path with Host == \"\"."
+    },
+    {
+      "name": "opaque no slash",
+      "input": "http:example.com",
+      "server": "reject",
+      "client": "accept",
+      "note": "Same as above with no slash at all: WHATWG yields host \"example.com\", net/url yields Host == \"\"."
+    },
+    {
+      "name": "https ok",
+      "input": "https://github.com/o/r/pull/1",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "http ok",
+      "input": "http://example.com/x",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "https scheme mixed case",
+      "input": "HtTpS://example.com",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "userinfo",
+      "input": "https://user:pass@example.com/x",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "port",
+      "input": "https://example.com:8443/x",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "query and fragment",
+      "input": "https://example.com/x?a=1&b=2#frag",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "uppercase host and path",
+      "input": "https://EXAMPLE.com/X",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "ipv6 host",
+      "input": "http://[::1]/x",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "malformed ipv6 host",
+      "input": "http://[::1/x",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "bare space in path",
+      "input": "http://example.com/a b",
+      "server": "reject",
+      "client": "accept",
+      "note": "Rejected by the server's control-character pre-check (space <= ' '). WHATWG percent-encodes it to /a%20b and accepts."
+    },
+    {
+      "name": "bare space in host",
+      "input": "http://exa mple.com",
+      "server": "reject",
+      "client": "reject"
+    },
+    {
+      "name": "trailing newline",
+      "input": "https://example.com/x\n",
+      "server": "reject",
+      "client": "accept",
+      "note": "Rejected by the server's control-character pre-check. WHATWG strips ASCII newlines before parsing, so the client sees a clean URL."
+    },
+    {
+      "name": "idn host",
+      "input": "http://例え.jp/x",
+      "server": "accept",
+      "client": "accept"
+    },
+    {
+      "name": "bad percent escape",
+      "input": "http://example.com/%zz",
+      "server": "reject",
+      "client": "accept",
+      "note": "net/url errors on an invalid escape sequence; WHATWG leaves %zz alone and accepts."
+    },
+    {
+      "name": "out of range port",
+      "input": "https://example.com:99999/x",
+      "server": "accept",
+      "client": "reject",
+      "note": "Server is MORE permissive here: net/url does not range-check the port at Parse time, while new URL() throws on a port above 65535."
+    },
+    {
+      "name": "empty host with path",
+      "input": "https:///x",
+      "server": "reject",
+      "client": "accept",
+      "note": "WHATWG collapses the empty authority and promotes the first path segment to the host: new URL(\"https:///x\").hostname === \"x\". net/url yields Host == \"\" and the server rejects."
+    }
+  ]
+}
