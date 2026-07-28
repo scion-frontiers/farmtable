@@ -3470,9 +3470,15 @@ function treeWideScanViolation(rule: string, scan: TreeWideScan): string | null 
  * outcome and therefore fails when the set is emptied, when a site is deleted,
  * when a site is replaced by a no-op, and when a site is renamed.
  *
- * Extra names are deliberately permitted, so that the self-test below can call
- * `treeWideScanViolation` directly under a sentinel rule without either half
- * having to know about the other. It is a Set, not a count, for the same reason.
+ * Extra names are deliberately permitted, so that the self-test below can drive
+ * this wrapper under a sentinel rule without either half having to know about
+ * the other. It is a Set of required names, not a count, for the same reason.
+ *
+ * The wrapper is itself self-tested, in `fixture: the tree-wide vacuity control
+ * fires on every unsound scan`, and it has to be: keeping the
+ * `treeWideScanViolation` call here and dropping only the throw leaves all five
+ * names recorded and was measured GREEN at 81/127. Consulting the control and
+ * obeying it are separate claims and both are asserted.
  *
  * THE REGRESS ENDS HERE, and say so plainly: nothing pins the `run()` census
  * itself. That is the same terminal position the check total and the assertion
@@ -4094,7 +4100,7 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All NINETEEN fixture tables are protected from silent shrinkage by exactly
+  // All TWENTY fixture tables are protected from silent shrinkage by exactly
   // one function, `fixtureTableViolation`, and until this check it was the only
   // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
@@ -4109,17 +4115,18 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Nineteen is `grep -c "^      fixtureTableViolation('"`. The indentation is
+  // Twenty is `grep -c "^      fixtureTableViolation('"`. The indentation is
   // load-bearing and this is the second version of the recipe: the first said
   // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
   // check's own body, which is off by one because THIS COMMENT contains the
   // string it greps for. A count recipe that counts itself is the same defect as
   // a rule derived from the thing it checks, three lines from where this file
-  // says so. The anchored form matches only the nineteen calls that sit inside
+  // says so. The anchored form matches only the twenty calls that sit inside
   // a `missed` array literal, which is every real table and nothing else.
   //
-  // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL and the
-  // unsound-scan table. Re-run the recipe, do not increment it.
+  // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL, the
+  // unsound-scan table and EXPECTED_TREE_WIDE_CONTROLS. Re-run the recipe, do
+  // not increment it.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
@@ -4213,6 +4220,11 @@ function sinkBinding(): void {
 
     const problems: string[] = [
       fixtureTableViolation('the unsound tree-wide scans', unsound, 9),
+      // The census in `run()` reads this array, and its assertion only ever
+      // PERMITS an empty result — so emptying the array makes the census pass
+      // over nothing. That is the corrected non-vacuity criterion applied to the
+      // pin this round added; the size pin is what makes the census non-vacuous.
+      fixtureTableViolation('EXPECTED_TREE_WIDE_CONTROLS', EXPECTED_TREE_WIDE_CONTROLS, 5),
     ].filter((v): v is string => v !== null);
 
     for (const { label, scan } of unsound) {
@@ -4220,6 +4232,37 @@ function sinkBinding(): void {
         missed.push(`the vacuity control is SILENT on ${label}`);
       }
     }
+
+    // THE WRAPPER MUST OBEY THE VERDICT, NOT MERELY CONSULT IT. Measured while
+    // building the census: leave `treeWideScanViolation(rule, scan)` in place
+    // inside `assertTreeWideScanSound` but drop the throw, keeping the
+    // `treeWideControlsRun.add(rule)`, and the suite is GREEN at 81/127 — all
+    // five names are recorded, the census is satisfied, and no unsound scan can
+    // fail anything. It is the same mutation a call counter misses, one layer in
+    // from where that was first noted, and it is why these two arms exist.
+    //
+    // The sentinel names are extra entries in the census set, which is permitted
+    // by construction. The unsound call throws, so it records nothing today; it
+    // records a sentinel under the mutation, which is still harmless.
+    let threw = false;
+    try {
+      assertTreeWideScanSound('X (wrapper self-test, unsound)', sound({ visited: 0 }));
+    } catch {
+      threw = true;
+    }
+    if (!threw) {
+      missed.push('assertTreeWideScanSound ACCEPTED an unsound scan instead of throwing');
+    }
+    const SOUND_SENTINEL = 'X (wrapper self-test, sound)';
+    try {
+      assertTreeWideScanSound(SOUND_SENTINEL, sound());
+    } catch (e) {
+      missed.push(`assertTreeWideScanSound REJECTED a sound scan: ${(e as Error).message}`);
+    }
+    if (!treeWideControlsRun.has(SOUND_SENTINEL)) {
+      missed.push('assertTreeWideScanSound did not record an accepted scan in the census');
+    }
+
     if (missed.length > 0) problems.push(missed.join(' | '));
     if (problems.length > 0) {
       throw new Error(`the tree-wide vacuity control no longer fires: ${problems.join(' | ')}`);
