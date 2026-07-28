@@ -2674,20 +2674,39 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
   // the precedent: a redundant rule is kept when it names the mistake precisely.
   bad.push(...dynamicImportSpecifierOffenders(rel, withStrings));
 
-  // R7. Deliberately run over `code`, not `outside`: an escape inside an IMPORT
-  // statement is the whole attack. `import { \u0075nsafeHTML as rawHtml } from
+  // R7, the per-file half. It now CALLS THE SHARED PREDICATE instead of
+  // re-implementing it, which is the R6b move three lines up and for the same
+  // stated reason: two copies of one rule drift.
+  //
+  // They had already drifted in the only way that matters here — in the
+  // DESCRIPTION. `escapeInCodeOffenders` said this half "keeps its own narrower
+  // view (`code`, strings blanked, imports NOT stripped)". Measured at round-9
+  // head: the per-file view is `stripInertText(src, { strings: true })` and the
+  // tree-wide view is `stripInertText(src, { strings: true })`, over the same
+  // `readFileSync(…, 'utf8')` bytes. The same expression. Not narrower, not
+  // differently scoped, and neither one strips imports — that clause described a
+  // round-7 arrangement in which `stripImportStatements` still ran here, and it
+  // was carried forward instead of recomputed.
+  //
+  // Running over `code` rather than `outside` IS still deliberate, and that half
+  // of the old comment is true: an escape inside an IMPORT statement is the whole
+  // attack. `import { \u0075nsafeHTML as rawHtml } from
   // 'lit/directives/unsafe-html.js'` leaves the audited unaliased import in
-  // place, so R2 is satisfied, and stripImportStatements used to hide the
-  // escape from this rule. Module specifiers are string literals and are
-  // blanked in `code`, so paths cannot false-positive here.
-  const escapeLines = matchLines(code, /\\[uxU]/);
-  if (escapeLines.length > 0) {
-    bad.push(
-      `${rel}:${escapeLines.join(',')}: contains a unicode or hex escape outside a string ` +
-        'literal — an escape lets an identifier be spelled so that the rules above cannot ' +
-        'match it. Write the name literally.',
-    );
-  }
+  // place, so R2 is satisfied. Module specifiers are string literals and are
+  // blanked in `code`, so paths cannot false-positive here. Measured, one token
+  // apart, in both directions:
+  //   this rule over `withStrings` (strings KEPT)   -> GREEN. Neither sink file
+  //     has an escape inside a string, so the per-file half cannot tell the two
+  //     views apart on today's tree. A real gap, recorded rather than hidden.
+  //   the TREE-WIDE half over `code` (strings KEPT) -> RED, on markdown.ts's
+  //     '☑\uFE0E'. That is the positive control for the view choice, and it comes
+  //     from a file the per-file half never reads.
+  //
+  // This half is kept rather than deleted because it has unique coverage:
+  // deleting it is RED at V8 and V8b in SINK_EVASIONS, which are synthetic
+  // strings handed to this function and never on disk, so the tree-wide loop
+  // cannot see them.
+  bad.push(...escapeInCodeOffenders(rel, code));
 
   return bad;
 }
@@ -2965,11 +2984,24 @@ function fixtureTableViolation(
  * purpose, because the literal character is invisible in source. A rule that
  * red-lit that is a rule that gets deleted. Blanking strings is also the
  * strictly correct view here: an escape inside a string literal is data, and an
- * escape anywhere else is an identifier spelled to evade a name scan. The
- * per-file R7 keeps its own narrower view (`code`, strings blanked, imports
- * NOT stripped) for the reason documented at its call site — an escape inside an
- * import statement is the whole attack, and this promoted copy does not replace
- * it.
+ * escape anywhere else is an identifier spelled to evade a name scan.
+ *
+ * THE PER-FILE R7 USES THE IDENTICAL VIEW, and the sentence that used to stand
+ * here — "the per-file R7 keeps its own narrower view (`code`, strings blanked,
+ * imports NOT stripped)" — was false in both of its claims. Re-measured at
+ * round-9 head: per-file is `stripInertText(src, { strings: true })`, tree-wide
+ * is `stripInertText(src, { strings: true })`, over the same
+ * `readFileSync(…, 'utf8')` bytes. Byte-identical, and neither strips imports.
+ * The clause was true of round 7, when `stripImportStatements` still ran on the
+ * per-file side, and it was carried instead of recomputed. Filed as test-195-r8
+ * T-8; this is the third false sentence in this file produced that way.
+ *
+ * The two halves still both exist, because the per-file one has coverage this
+ * one cannot have: deleting it is RED at V8/V8b, whose fixtures are strings
+ * handed to `sinkBindingViolations` and never written to disk, so no tree-wide
+ * loop can reach them. What changed in round 9 is that the per-file half now
+ * CALLS THIS FUNCTION rather than re-implementing the same regex, so the two
+ * cannot drift in behaviour the way their descriptions already had.
  */
 function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {
   const lines = matchLines(codeNoStrings, /\\[uxU]/);
