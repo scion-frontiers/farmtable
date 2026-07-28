@@ -1843,6 +1843,38 @@ const ARITY_DECL = 'export function renderMarkdown(md: string): string {';
  * that were measured GREEN at 69 checks with `tsc` clean against the round-6
  * version of this rule; the rest are forms the round-6 version did catch and
  * that must not regress while the rule is rewritten.
+ *
+ * ── LIVE vs FIXTURE-ONLY. READ THIS BEFORE RATING A NEW ENTRY. ──────────────
+ *
+ * Every entry here is valid TypeScript AS A DECLARATION — that is what makes it
+ * expressible as a fixture at all. It is a SEPARATE and weaker question whether
+ * the same declaration survives `tsc` WHEN PLANTED IN THE LIVE TREE, where real
+ * callers pass a `string`. An entry that fails there cannot be a working bypass,
+ * only a fixture; an entry that compiles there is a live severity.
+ *
+ * THE CRITERION, stated once as a property of the table rather than annotated
+ * entry by entry, because annotating one at a time is how this got missed twice:
+ * an entry is FIXTURE-ONLY exactly when its first parameter's type no longer
+ * ADMITS `string`. Callers then fail with TS2345 and the declaration never
+ * reaches production. Widening by union (`string | X`) keeps `string` and stays
+ * live; REPLACING the type with a function type drops it and does not.
+ *
+ * Measured in round 10 by planting each into `markdown.ts:218` and taking the
+ * exit code from the child process (`npm test`, which runs `tsc` first):
+ *
+ *   C7-l  md: string | ((x: string) => string)   LIVE          suite RED
+ *   C7-m  md: (x: string) => string              FIXTURE-ONLY  TS2345
+ *   C7-n  md: string | `)`                       LIVE          suite RED
+ *   C7-o  md: string | `(`                       LIVE          suite RED
+ *   C7-p  md: (x: string) => string | `)`        FIXTURE-ONLY  TS2345
+ *   C7-q  md: string | ')'                       LIVE          suite RED
+ *
+ * C7-p's fixture-only status was in the round-9 report and not in the tree;
+ * C7-m has the identical property and was recorded nowhere. Reports get
+ * archived, the tree is the next round's input, so it is written here. NEITHER
+ * IS A CANDIDATE FOR DELETION: they exist to stop a repair keying on the shape
+ * of the surrounding type, and a mutant that fails `tsc` is still a perfectly
+ * good input to a scanner that only ever sees text.
  */
 const ARITY_EVASIONS: { label: string; replace: string }[] = [
   {
@@ -1926,6 +1958,10 @@ const ARITY_EVASIONS: { label: string; replace: string }[] = [
     // The same truncation with the simplest possible type. Kept separate so a
     // partial repair that handles the union but not the bare function type
     // cannot pass on the entry above alone.
+    //
+    // FIXTURE-ONLY — the first parameter no longer admits `string`, so planting
+    // this in the live tree is TS2345, not a bypass. Same property as C7-p; see
+    // the criterion in this table's docblock.
     label: 'C7-m a function-typed first parameter hiding a defaulted second',
     replace:
       'export function renderMarkdown(md: (x: string) => string, ' +
@@ -1973,6 +2009,8 @@ const ARITY_EVASIONS: { label: string; replace: string }[] = [
     // The same payload in a function-type position rather than a union. Kept
     // separate for the reason C7-m is kept separate from C7-l: the shape of the
     // surrounding type must not be what the rule keys on.
+    //
+    // FIXTURE-ONLY, for the same reason as C7-m and by the same measurement.
     label: 'C7-p a function-type whose return type is a template containing a close paren',
     replace:
       'export function renderMarkdown(md: (x: string) => string | `)`, ' +
@@ -4172,7 +4210,7 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All TWENTY-ONE fixture tables are protected from silent shrinkage by exactly
+  // All TWENTY-TWO fixture tables are protected from silent shrinkage by exactly
   // one function, `fixtureTableViolation`, and until this check it was the only
   // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
@@ -4187,7 +4225,7 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Twenty-one is `grep -c "^      fixtureTableViolation('"`. THE SIX-SPACE
+  // Twenty-two is `grep -c "^      fixtureTableViolation('"`. THE SIX-SPACE
   // ANCHOR IS LOAD-BEARING: it matches only the calls that sit inside a
   // violations array literal, which is every real table and nothing else, and —
   // the part that matters — it does not match this comment, so the recipe does
@@ -4206,14 +4244,14 @@ function sinkBinding(): void {
   //
   // The unanchored form is therefore no longer written out here, and the residue
   // is stated rather than hidden: one prose spelling is unavoidable, because the
-  // line above has to quote the anchored recipe. Unanchored is 26 on this tree
-  // and 26 - 4 = 22 against a true 21 — still off by one, which is why the
+  // line above has to quote the anchored recipe. Unanchored is 27 on this tree
+  // and 27 - 4 = 23 against a true 22 — still off by one, which is why the
   // unanchored recipe is not the one to use. The anchored form is exact because
   // the six-space anchor excludes every comment line, including that one.
   //
   // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL, the
-  // unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS and COUNT_PIN_DELTAS.
-  // Re-run the recipe, do not increment it.
+  // unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS, COUNT_PIN_DELTAS and
+  // STRING_BLANKING_CONTROLS. Re-run the recipe, do not increment it.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
@@ -4473,17 +4511,53 @@ function sinkBinding(): void {
   // such a string. This is a FALSE-POSITIVE control, and the reason it matters
   // is line-for-line the reason the ignore-marker was defensible in the first
   // place: a guard that rejects correct code gets deleted.
+  //
+  // T8-4 (round 10). The table gained a second entry, and it closes a stated
+  // in-tree expiry date rather than adding a variation. `sinkBindingViolations`
+  // runs the per-file R7 over `code` (strings BLANKED) and the note above
+  // `escapeInCodeOffenders` recorded that NEITHER SINK FILE CAN TELL THE TWO
+  // CANDIDATE VIEWS APART — no file on disk has an escape inside a string, so
+  // switching the per-file half to the strings-kept view was unobservable, and
+  // that was logged as "a real gap, recorded rather than hidden". A fixture can
+  // express what the disk does not: `'\u2611\uFE0E'` is an escape that lives
+  // inside a string literal, which is DATA and must not be reported. Blank the
+  // strings and it is invisible; keep them and R7 fires on a correct file.
+  //
+  // No production change. One fixture line, and the gap is measurable instead of
+  // being an entry on a list of things nobody can test.
   check('fixture: a string literal naming the sink identifiers is not a violation', () => {
-    const withMessage = SOUND_SINK_FILE.replace(
-      'export class C extends LitElement {',
-      "export const MSG = 'always call renderMarkdown before unsafeHTML';\n" +
-        'export class C extends LitElement {',
-    );
-    const violations = sinkBindingViolations(FIXTURE_REL, withMessage, scannedRel);
-    if (violations.length > 0) {
+    const STRING_BLANKING_CONTROLS: { label: string; declaration: string }[] = [
+      {
+        label: 'an ordinary message naming both sink identifiers',
+        declaration: "export const MSG = 'always call renderMarkdown before unsafeHTML';",
+      },
+      {
+        label: 'a unicode escape inside a string literal, which is data (T8-4)',
+        declaration: "export const GLYPH = '\\u2611\\uFE0E';",
+      },
+    ];
+    const ANCHOR = 'export class C extends LitElement {';
+
+    const problems: string[] = [
+      fixtureTableViolation('STRING_BLANKING_CONTROLS', STRING_BLANKING_CONTROLS, 2),
+    ].filter((v): v is string => v !== null);
+
+    for (const { label, declaration } of STRING_BLANKING_CONTROLS) {
+      const occurrences = SOUND_SINK_FILE.split(ANCHOR).length - 1;
+      if (occurrences !== 1) {
+        problems.push(`${label}: fixture anchor matched ${occurrences} times, expected 1`);
+        continue;
+      }
+      const withDeclaration = SOUND_SINK_FILE.replace(ANCHOR, `${declaration}\n${ANCHOR}`);
+      const violations = sinkBindingViolations(FIXTURE_REL, withDeclaration, scannedRel);
+      if (violations.length > 0) {
+        problems.push(`FALSE POSITIVE on ${label}: ${violations.join(' | ')}`);
+      }
+    }
+    if (problems.length > 0) {
       throw new Error(
         'string blanking regressed — the guard now rejects a correct sink file: ' +
-          violations.join(' | '),
+          problems.join(' | '),
       );
     }
   });
