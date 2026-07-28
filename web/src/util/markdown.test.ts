@@ -2233,14 +2233,14 @@ function sinkArgumentIsSanitized(arg: string): boolean {
   const head = /^renderMarkdown\s*\(/.exec(t);
   if (!head) return false;
   let nesting = 0;
-  let extraArgument = false;
   let closed = false;
+  const topLevelCommas: number[] = [];
   let i = head[0].length;
   for (; i < t.length; i += 1) {
     const c = scan[i];
     if (c === '(' || c === '[' || c === '{') nesting += 1;
     else if (c === ']' || c === '}') nesting -= 1;
-    else if (c === ',' && nesting === 0) extraArgument = true;
+    else if (c === ',' && nesting === 0) topLevelCommas.push(i);
     else if (c === ')') {
       if (nesting === 0) {
         closed = true;
@@ -2250,7 +2250,23 @@ function sinkArgumentIsSanitized(arg: string): boolean {
       nesting -= 1;
     }
   }
-  return closed && !extraArgument && t.slice(i).trim() === '';
+  if (!closed) return false;
+  // A TRAILING comma is not a second argument. Measured while probing this
+  // function for round 9: `renderMarkdown(this.body,)` was REJECTED, and that is
+  // the exact spelling prettier's default `trailingComma: "all"` emits once the
+  // call wraps — the same false positive ARITY_LEGITIMATE already pins on the
+  // DECLARATION side and that this side had not been probed for. A guard that
+  // rejects correct code gets deleted, so the comma only counts when something
+  // follows it before the closing paren.
+  //
+  // That test reads the ORIGINAL text, not the blinded view, and the direction
+  // matters: blinding turns a string second argument into spaces, so
+  // `renderMarkdown(x, 'y')` would read as a trailing comma and pass. The
+  // blinded view decides WHERE the boundaries are; the original decides whether
+  // anything is there.
+  const closeParen = i - 1;
+  const extraArgument = topLevelCommas.some((ci) => t.slice(ci + 1, closeParen).trim() !== '');
+  return !extraArgument && t.slice(i).trim() === '';
 }
 
 /** 1-based line numbers at which `re` matches, for actionable failure messages. */
@@ -3559,10 +3575,71 @@ function sinkBinding(): void {
     '}',
   ].join('\n');
 
+  // CORRECT SINK CALLS THAT MUST BE ACCEPTED — the false-positive mirror of
+  // V11/V11f/V11g/V11h, and the other half of the round-9 second-layer pin.
+  //
+  // Pinning only the evasions licenses the degenerate fix: reject everything.
+  // Two of these were live FALSE POSITIVES at HEAD `3f6a695`, because
+  // `sinkArgumentIsSanitized` counted raw characters — a comma spelled inside a
+  // literal argument was read as a second argument. A third,
+  // `renderMarkdown(this.body,)`, is prettier's default `trailingComma: "all"`
+  // output once the call wraps, and it was rejected too; the DECLARATION side
+  // has pinned that exact spelling as legitimate since round 6, and nobody had
+  // probed this side for it.
+  const SINK_CALL_LEGITIMATE: { label: string; call: string }[] = [
+    { label: 'the sound call itself', call: '${unsafeHTML(renderMarkdown(this.body))}' },
+    {
+      label: 'a template-literal argument containing a comma',
+      call: '${unsafeHTML(renderMarkdown(`a,b`))}',
+    },
+    {
+      label: 'a string-literal argument containing a comma',
+      call: "${unsafeHTML(renderMarkdown('a,b'))}",
+    },
+    {
+      label: 'a template-literal argument containing a close paren',
+      call: '${unsafeHTML(renderMarkdown(`a)b`))}',
+    },
+    {
+      label: 'an interpolated template argument',
+      call: '${unsafeHTML(renderMarkdown(`# ${this.title}`))}',
+    },
+    {
+      label: 'a nested call whose own arguments are comma-separated',
+      call: '${unsafeHTML(renderMarkdown(fmt(this.body, this.lang)))}',
+    },
+    {
+      label: 'a comment containing a comma inside the argument list',
+      call: '${unsafeHTML(renderMarkdown(this.body /* body, raw */))}',
+    },
+    {
+      label: "prettier's default trailing comma on a wrapped call",
+      call: '${unsafeHTML(renderMarkdown(\n        this.body,\n      ))}',
+    },
+  ];
+
   check('fixture: the sink-binding rules accept a correct sink file', () => {
     const violations = sinkBindingViolations(FIXTURE_REL, SOUND_SINK_FILE, scannedRel);
     if (violations.length > 0) {
       throw new Error(`the sound fixture was rejected: ${violations.join(' | ')}`);
+    }
+
+    const rejected: string[] = [
+      fixtureTableViolation('SINK_CALL_LEGITIMATE', SINK_CALL_LEGITIMATE, 8),
+    ].filter((v): v is string => v !== null);
+    for (const { label, call } of SINK_CALL_LEGITIMATE) {
+      const mutated = SOUND_SINK_FILE.replace(
+        '${unsafeHTML(renderMarkdown(this.body))}',
+        call,
+      );
+      const bad = sinkBindingViolations(FIXTURE_REL, mutated, scannedRel);
+      if (bad.length > 0) rejected.push(`FALSE POSITIVE: ${label} — ${bad.join(' | ')}`);
+    }
+    if (rejected.length > 0) {
+      throw new Error(
+        `a correct sanitizer call was rejected at the sink — a guard that rejects correct ` +
+          `code gets deleted: ${rejected.join(' | ')}`,
+      );
     }
 
     // The MIRROR of V10, and the half of that defect that would have got this
@@ -3760,11 +3837,53 @@ function sinkBinding(): void {
       find: '      ${unsafeHTML(renderMarkdown(this.body))}',
       replace: '      ${unsafeHTML(renderMarkdown(this.body, { inline: true }))}',
     },
+    // ── V11f/V11g/V11h: THE SECOND LAYER OF THE ARITY PIN, PINNED ON PURPOSE ──
+    //
+    // Round 9's finding is that a template-literal type in the declaration
+    // defeats BOTH declaration-side halves at once. It was rated HIGH rather
+    // than Critical for exactly one reason: `sinkArgumentIsSanitized` still
+    // refused the resulting call, so the channel could be declared but not
+    // reached from either enumerated sink. NOTHING ASSERTED THAT. The defence
+    // was incidental — it fell out of the truncated capture leaving trailing
+    // text — and an innocent refactor would have deleted it with every test
+    // green, turning the finding Critical in silence. These three entries and
+    // SINK_CALL_LEGITIMATE are that assertion. If you weaken the call-site rule,
+    // the severity has to be re-rated in the same commit.
+    //
+    // Each varies the CALL shape, which is the axis the round-8 audit's negative
+    // did NOT vary: it held the call constant and varied template placement
+    // inside the declaration, so it licensed a negative only over declaration
+    // spellings.
+    {
+      // The truncate payload AT THE SINK. Before round 9 this was caught for the
+      // wrong reason — the `)` inside the template truncated `callArguments`, so
+      // R5 rejected the leftover as "not a bare call". Now the boundary is right
+      // and it is caught for the right one: a genuine top-level comma.
+      label: 'V11f second argument behind a template literal spelling a close paren',
+      find: '      ${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '      ${unsafeHTML(renderMarkdown(`)`, { inline: true }))}',
+    },
+    {
+      // Comments are blanked, so the comma they decorate is still structural.
+      // The mirror is in SINK_CALL_LEGITIMATE: a comment that CONTAINS a comma
+      // must not be read as one.
+      label: 'V11g second argument with a comment between the arguments',
+      find: '      ${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '      ${unsafeHTML(renderMarkdown(this.body /* body */, { inline: true }))}',
+    },
+    {
+      // A parenthesised first argument, so the comma is reached with the paren
+      // counter having gone up and back down. Pins that nesting is balanced
+      // rather than merely non-zero.
+      label: 'V11h second argument after a parenthesised first argument',
+      find: '      ${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '      ${unsafeHTML(renderMarkdown((this.body), { inline: true }))}',
+    },
   ];
 
   check('fixture: every known sink-binding evasion is caught', () => {
     const survived: string[] = [
-      fixtureTableViolation('SINK_EVASIONS', SINK_EVASIONS, 24),
+      fixtureTableViolation('SINK_EVASIONS', SINK_EVASIONS, 27),
     ].filter((v): v is string => v !== null);
     for (const { label, find, replace } of SINK_EVASIONS) {
       const occurrences = SOUND_SINK_FILE.split(find).length - 1;
