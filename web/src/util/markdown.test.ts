@@ -4103,30 +4103,63 @@ function sinkBinding(): void {
 // EXPECTED_REQUIRED_SINKS, asserted in `sink scan actually reads the source
 // tree`. That is the check to read if this one and the sink list disagree.
 //
-// Moved 54 -> 59 in the round-4 cleanup: five `check()` calls were added, all of
+// Moved 54 -> 59 (CHECKS RUN) in the round-4 cleanup: five `check()` calls were added, all of
 // them the `fixture:` ones in sinkBinding(). They assert the guard's own rules
 // against string tables rather than against the tree, so the false-positive
 // control and every historical bypass are exercised on every run instead of
 // only when the tree happens to contain the shape. No behavioural check was
 // removed; the two REQUIRED_SINKS checks were rewritten in place, not added to.
 //
-// Moved 59 -> 61 in the round-5 addendum: R8 (sanitizer ownership) is one
+// Moved 59 -> 61 (CHECKS RUN) in the round-5 addendum: R8 (sanitizer ownership) is one
 // tree-wide check plus one `fixture:` check. The fixture is not optional — R8
 // is satisfied vacuously by the tree today, so without a table the rule would
 // pass without ever being exercised, which is the same defect as the old
 // static-HTML control.
 //
-// Moved 61 -> 69 in round 6: two behavioural attribute pins (`action`, `slot`),
+// Moved 61 -> 69 (CHECKS RUN) in round 6: two behavioural attribute pins (`action`, `slot`),
 // one URI-policy pin, the two `inputContract` checks (arity and non-string
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
 //
-// (The round-6 line above says 61 -> 69. Round-6 head `86f30bc` measures 68, so
-// one of those two endpoints is wrong. It is left as written and unreconciled:
-// the numbers below are re-measured from the tree at each revision and do not
-// depend on it. Flagged here so the next reader does not take it for verified.)
+// ── READ THE UNIT MARKERS. THIS SERIES CHANGES UNITS PART-WAY THROUGH. ──
 //
-// Moved 68 -> 74 in round 7 — SIX checks, not the four this line used to name,
+// The entries above are in CHECKS RUN; the entries below are in `check()` CALL
+// SITES. The two differ by `REQUIRED_SINKS.length - 1`, because one call site
+// emits one check per required sink. They COINCIDED at 49, before the loop
+// existed, and have differed by exactly 1 ever since.
+//
+// A round-8 note stood here saying "the round-6 line says 61 -> 69, round-6 head
+// `86f30bc` measures 68, so one of those two endpoints is wrong". THAT NOTE IS
+// THE THING THAT WAS WRONG, and it has been deleted. Nobody made a measurement
+// error; the series silently changed units and the note compared a checks-run
+// figure with a call-site figure. Re-measured this round, at each revision, with
+// `git show <rev>:web/src/util/markdown.test.ts | grep -cE '^\s+check\('`:
+//
+//   7084880  EXPECTED_CHECKS = 49              call sites = 49   <-- EQUAL: the
+//                                                                 REQUIRED_SINKS
+//                                                                 loop does not
+//                                                                 exist yet
+//   849a9da  EXPECTED_CHECKS = 52              call sites = 51   <-- the loop is
+//                                                                 introduced here
+//                                                                 and the two
+//                                                                 diverge by 1
+//   951ee89  EXPECTED_CHECKS = 54              call sites = 53
+//   615a355  EXPECTED_CHECKS = 59              call sites = 58
+//   3b5312b  EXPECTED_CHECKS = 61              call sites = 60
+//   fc2b947  EXPECTED_CHECK_CALL_SITES = 68, REQUIRED_SINKS.length = 2
+//            => checks run = 68 + (2 - 1) = 69
+//
+// So `61 -> 69` is correct and BOTH its endpoints are checks-run: 61 at round-5
+// head `3b5312b`, 69 at round-6 head. `3b5312b` says so in its own words — the
+// arithmetic comment there reads "60 + (REQUIRED_SINKS.length - 1) = 61". The
+// unit switch happens at the NEXT entry, `68 -> 74`, which is the first one
+// written in call sites, and which already says "against a base of 68, not 69"
+// three lines below where the deleted note claimed the matter was unresolved.
+//
+// Do not "fix" 69 to 68. Rewriting a correct number to match a figure in a
+// different unit is how this file acquires the false sentences it keeps finding.
+//
+// Moved 68 -> 74 (CHECK() CALL SITES) in round 7 — SIX checks, not the four this line used to name,
 // and against a base of 68, not 69. Both endpoints are measured with
 // `git show <rev>:web/src/util/markdown.test.ts | grep -cE '^\s+check\('` at
 // round-6 head `86f30bc` and round-7 head `7b4f6dd`, and the six are enumerated
@@ -4143,14 +4176,14 @@ function sinkBinding(): void {
 // The scope pin added in the same round is deliberately NOT a call site of its
 // own; see EXPECTED_REQUIRED_SINKS.
 //
-// Moved 74 -> 77 in round 8, measured the same way against `7b4f6dd`:
+// Moved 74 -> 77 (CHECK() CALL SITES) in round 8, measured the same way against `7b4f6dd`:
 //   1. tripwire: every dynamic import specifier is a plain quoted literal
 //      (R6b promoted out of the two sink files, same move as R7 in round 7)
 //   2. fixture: the dynamic-import specifier rule catches every unresolvable form
 //   3. fixture: the table-size pin fires on a changed table length
 //      (the positive control `fixtureTableViolation` never had)
 //
-// Moved 77 -> 78 (check() call sites) in round 9, measured the same way against
+// Moved 77 -> 78 (CHECK() CALL SITES) in round 9, measured the same way against
 // round-8 head `3f6a695`:
 //   1. renderMarkdown does not use the process-global DOMPurify singleton
 //      (B3a, the round-8 production change that shipped with no pin at all)
