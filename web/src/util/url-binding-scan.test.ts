@@ -31,10 +31,25 @@ interface Rule {
 }
 
 const RULES: readonly Rule[] = [
-  // Lit template binding: <a href=${expr}> / <img src=${expr}>
-  { name: 'dynamic href/src attribute binding', pattern: /\b(?:href|src)\s*=\s*\$\{/ },
+  // Lit template binding, unquoted: <a href=${expr}> / <img src=${expr}>
+  { name: 'dynamic href/src attribute binding', pattern: /\b(?:href|src|xlink:href)\s*=\s*\$\{/ },
+  // The same binding with quotes around it: href="${expr}". Lit accepts this
+  // form and it is what most people write from muscle memory, but the unquoted
+  // pattern above does not match it, so the scanner had a recall hole wide
+  // enough to drive the original defect straight back through.
+  {
+    name: 'dynamic href/src attribute binding (quoted)',
+    pattern: /\b(?:href|src|xlink:href)\s*=\s*["'`][^"'`]*\$\{/,
+  },
   // Imperative DOM assignment: el.href = expr
   { name: 'dynamic href/src property assignment', pattern: /\.(?:href|src)\s*=\s*(?!=)/ },
+  // Imperative attribute write: el.setAttribute('href', expr). This bypasses
+  // both patterns above entirely and is the standard way to set an attribute
+  // outside a template.
+  {
+    name: 'href/src written via setAttribute',
+    pattern: /\.setAttribute(?:NS)?\s*\([^)]*["'](?:href|src|xlink:href)["']/i,
+  },
 ];
 
 // ── the allow-list ───────────────────────────────────────────────────────────
@@ -46,7 +61,15 @@ interface Allowed {
   readonly line: string;
   /** Why this binding cannot carry an attacker-controlled scheme. */
   readonly reason: string;
-  /** If set, the file must import safeHref, so the entry cannot be a rubber stamp. */
+  /**
+   * If set, the interpolated identifier on THIS line must be assigned from
+   * `safeHref(...)` inside the same enclosing block.
+   *
+   * This used to be a file-scoped check -- "the file imports safeHref
+   * somewhere" -- which is satisfied by a file that guards one binding and not
+   * the next one someone adds beside it. That is precisely the shape of the
+   * defect this scanner exists to catch, so it is now scoped to the binding.
+   */
   readonly viaSafeHref?: boolean;
 }
 
@@ -134,6 +157,48 @@ function assert(condition: boolean, message: string): void {
 }
 
 /**
+ * The nearest enclosing top-level construct around a 1-based line number:
+ * from the last preceding line that starts at column 0 and opens a block, to
+ * the first following line that is a closing brace at column 0.
+ *
+ * Deliberately crude. For a module-level `function foo() {` this is exactly the
+ * function; for a line inside a class it widens to the whole class. Widening is
+ * the safe direction -- it can only make the check more permissive than
+ * intended, never wrongly fail a guarded binding -- and it still cuts the scope
+ * down from "anywhere in the file", which was the actual hole.
+ */
+function enclosingBlock(lines: readonly string[], lineNo: number): readonly string[] {
+  const idx = lineNo - 1;
+  let start = 0;
+  for (let i = idx; i >= 0; i--) {
+    if (/^\S/.test(lines[i]!) && lines[i]!.includes('{')) {
+      start = i;
+      break;
+    }
+  }
+  let end = lines.length;
+  for (let i = idx + 1; i < lines.length; i++) {
+    if (/^\}/.test(lines[i]!)) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start, end + 1);
+}
+
+/**
+ * The identifier interpolated into a binding, e.g. `href` from
+ * `<a href=${href} ...>`. Returns undefined for anything that is not a bare
+ * identifier -- a call, a member expression, a template -- because those cannot
+ * be traced back to an assignment by text matching and must not be silently
+ * treated as guarded.
+ */
+function interpolatedIdentifier(line: string): string | undefined {
+  const m = /\b(?:href|src|xlink:href)\s*=\s*["'`]?\s*\$\{\s*([A-Za-z_$][\w$]*)\s*\}/.exec(line);
+  return m?.[1];
+}
+
+/**
  * MUST 3e: a detection pattern with no fixture proving it fires is itself the
  * defect it is meant to catch. These fixtures run through the same matcher the
  * tree scan uses.
@@ -147,6 +212,14 @@ function testPositiveFixtures(): void {
     ['imperative href assignment', 'anchor.href = attackerControlled;'],
     ['imperative src assignment', 'img.src = attackerControlled;'],
     ['iframe src binding', 'html`<iframe src=${embedUrl}></iframe>`'],
+    // Recall gaps found by review. Each of these shipped past the scanner.
+    ['double-quoted href binding', 'html`<a href="${raw}">x</a>`'],
+    ['single-quoted src binding', "html`<img src='${raw}'>`"],
+    ['quoted href with a prefix', 'html`<a href="${base}/issues/${n}">x</a>`'],
+    ['setAttribute href', "anchor.setAttribute('href', attackerControlled);"],
+    ['setAttribute src double quoted', 'img.setAttribute("src", attackerControlled);'],
+    ['setAttributeNS xlink href', "use.setAttributeNS(XLINK, 'xlink:href', raw);"],
+    ['svg xlink href binding', 'svg`<use xlink:href=${raw} />`'],
   ];
   for (const [name, fixture] of shouldFire) {
     const findings = scanText('fixture.ts', fixture);
@@ -159,6 +232,12 @@ function testPositiveFixtures(): void {
     ['href comparison', 'if (a.href === b.href) return;'],
     ['unrelated interpolation', 'html`<sl-badge variant=${v}>x</sl-badge>`'],
     ['reading location.href', 'const url = new URL(window.location.href);'],
+    // Guards against the new rules over-firing. A data-* attribute that merely
+    // contains the substring "href" is not an href.
+    ['data attribute containing href', "el.setAttribute('data-href', raw);"],
+    ['quoted static href', 'html`<a href="/docs/index">x</a>`'],
+    ['getAttribute href', "const h = el.getAttribute('href');"],
+    ['removeAttribute href', "el.removeAttribute('href');"],
   ];
   for (const [name, fixture] of shouldNotFire) {
     const findings = scanText('fixture.ts', fixture);
@@ -198,20 +277,56 @@ function testNoUnapprovedBindings(): void {
   );
 
   // Every allow-list entry must still correspond to real code, so entries do not
-  // rot into permanent exemptions after the code they describe has moved.
+  // rot into permanent exemptions after the code they describe has moved -- and
+  // to EXACTLY ONE line, so one approved line cannot launder a second identical
+  // line pasted in beside it.
+  //
+  // (An audit finding asked for a line number on each entry instead. A pinned
+  // line number churns on every edit above the binding and buys nothing once
+  // uniqueness is enforced, so uniqueness is what is enforced; the real line
+  // numbers are reported in the failure messages, where they are useful.)
   for (const a of ALLOWED) {
+    const matches = findings.filter((f) => f.file === a.file && f.line === a.line);
     assert(
-      findings.some((f) => f.file === a.file && f.line === a.line),
+      matches.length > 0,
       `stale ALLOWED entry, no longer present in the tree: ${a.file} :: ${a.line}`,
+    );
+    assert(
+      matches.length === 1,
+      `ambiguous ALLOWED entry: ${a.file} :: ${a.line}\n` +
+        `matches ${matches.length} lines (${matches.map((m) => m.lineNo).join(', ')}). ` +
+        'One approval must not cover several bindings -- they can be reviewed ' +
+        'separately and can diverge. Make the lines distinguishable, or route ' +
+        'them all through safeHref().',
     );
   }
 
-  // An allow-list entry claiming to go through safeHref must actually import it.
+  // An allow-list entry claiming to go through safeHref must actually route THIS
+  // binding through it, not merely import it somewhere in the file.
   for (const a of ALLOWED.filter((x) => x.viaSafeHref)) {
     const text = readFileSync(join(SRC, a.file), 'utf8');
     assert(
       text.includes("from '../../util/safe-url.js'") || text.includes("from '../util/safe-url.js'"),
       `${a.file} is allow-listed as using safeHref but does not import it`,
+    );
+
+    const lines = text.split('\n');
+    const finding = findings.find((f) => f.file === a.file && f.line === a.line)!;
+    const id = interpolatedIdentifier(a.line);
+    assert(
+      id !== undefined,
+      `${a.file}:${finding.lineNo} is marked viaSafeHref but does not interpolate a bare ` +
+        `identifier, so the guard cannot be traced: ${a.line}`,
+    );
+
+    const block = enclosingBlock(lines, finding.lineNo);
+    const assignment = new RegExp(`\\b${id}\\s*=\\s*safeHref\\s*\\(`);
+    assert(
+      block.some((l) => assignment.test(l)),
+      `${a.file}:${finding.lineNo} is allow-listed as "href comes from safeHref()", but ` +
+        `nothing in the enclosing block assigns ${id} from safeHref(). The file importing ` +
+        'safeHref is not enough -- a file can guard one binding and leave the next one bare, ' +
+        `which is the defect this scanner exists to catch.\n  binding: ${a.line}`,
     );
   }
 }
