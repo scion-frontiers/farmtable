@@ -83,6 +83,34 @@ const parser = new Marked({
   },
 });
 
+// WHY `marked` IS PRIVATE HERE AND DOMPurify IS NOT. The asymmetry is
+// deliberate but it is not comfortable, and it is recorded rather than left for
+// the next reader to notice (audit INFO-2).
+//
+// `DOMPurify` below is the process-global singleton, and its configuration is
+// STICKY: `DOMPurify.setConfig(...)` called anywhere persists, and it overrides
+// the per-call FORBID_TAGS/FORBID_ATTR passed here. Measured, not inferred —
+// after a `setConfig({ FORBID_TAGS: [], FORBID_ATTR: [] })` this function
+// renders `# hi <form><input></form>` as `<h1>hi <form><input></form></h1>`,
+// where it returns `<h1>hi </h1>` untouched. So the whole form-control and
+// overlay policy argued for at the top of this file is defeatable by any module
+// that can reach the singleton.
+//
+// NARROWER THAN IT SOUNDS, in both directions. `<script>` is still stripped in
+// that state (measured: returns ''), so this is a policy bypass, not a direct
+// script-execution bypass — the phishing form and the spoofing overlay come
+// back, `alert(1)` does not. And nothing can reach the singleton today: R8/R9
+// in markdown.test.ts deny every file but this one the ability to name
+// `dompurify` at all. That guard is what is holding here, which is exactly why
+// it is worth saying so — the protection is a lint-shaped rule over the source
+// tree, not a property of this code.
+//
+// NOT FIXED IN THIS ROUND, on purpose. `DOMPurify(window)` would give a private
+// instance and close it the way `new Marked({…})` closes the marked half, but it
+// moves a `window` dependency to module-load time in the security-critical path
+// to close a finding filed as INFO with the ownership guard already standing.
+// That trade is worth a round of its own rather than a cleanup commit.
+//
 // THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY,
 // not a style preference. A second parameter is a configuration channel into the
 // sanitizer opened from the call site: `renderMarkdown(body, { inline: true })`
