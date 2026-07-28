@@ -243,6 +243,18 @@ func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
 	return t.Stage
 }
 
+// LabelDeltaLifecycleStages implements LabelDeltaLifecycleStager by routing to
+// the store that owns the task's collection. A store that keeps the lifecycle
+// stage in labels answers for itself; for every other store a label edit
+// cannot move the stage, so both endpoints are the task's current one.
+func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (task.Stage, task.Stage) {
+	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LabelDeltaLifecycleStager); ok {
+		return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+	}
+	current := m.LifecycleStage(ctx, t)
+	return current, current
+}
+
 func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
 	s := m.storeForCtx(ctx, t.CollectionID)
 	if computer, ok := s.(interface {

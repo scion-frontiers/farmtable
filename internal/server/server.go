@@ -618,6 +618,57 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.Rank = &rank
 	}
 
+	// A label edit that moves the task's LIFECYCLE STAGE costs the same scope
+	// the equivalent stage change costs.
+	//
+	// The invariant: if authorization reads a value, every write path to that
+	// value must be guarded by the same authorization. For a GitHub
+	// pass-through task the authoritative lifecycle stage IS a label, and the
+	// transition-scope gate above sits inside the `if req.Stage != nil` arm, so
+	// a label-only request never reached it. A token holding nothing but
+	// task:write could therefore rewrite the field the gate reads:
+	//
+	//   remove_labels=[ft:stage/wont_fix] revoked a maintainer's decline, and
+	//   add_labels=[ft:stage/completed] marked ANY task terminal to Farm Table
+	//   — out of `ft ready`, unclaimable, Available=false Reasons=[terminal] —
+	//   with reversing it then costing task:accept, which the caller does not
+	//   hold.
+	//
+	// The gate is on the transition the edit INDUCES, not on "a stage label was
+	// touched". before != after is required, not incidental: routine label
+	// hygiene, and re-adding a label the issue already carries, must stay a
+	// plain write or every ordinary edit starts demanding task:accept.
+	//
+	// WHAT THIS DOES NOT DO. It does not make the label a trustworthy record of
+	// the stage — it guards Farm Table's own write path, and a maintainer with
+	// GitHub triage rights still edits labels directly, outside this process
+	// entirely. Moving the authoritative stage off labels is #203, and this
+	// control is a reason to do it rather than a substitute: every check here
+	// is a check on one verb, and the verb set is open-ended.
+	//
+	// It also does not change the ISSUE STATE. UpdateTask has never closed or
+	// reopened a GitHub issue — the pass-through store's UpdateTask acts on
+	// p.Stage by swapping labels and never reads p.Phase — so both the attack
+	// and this control are about the stage Farm Table believes, not about
+	// GitHub's own state:CLOSED field. That field is the one real floor here
+	// and it survives label stripping; see the REV9 test in
+	// authz_label_write_scope_test.go.
+	//
+	// Nothing changes for native Ent-backed tasks: their stage lives in its own
+	// column, no label can forge it, so LabelDeltaLifecycleStages reports
+	// before == after and this block is inert.
+	if len(req.GetAddLabels()) > 0 || len(req.GetRemoveLabels()) > 0 {
+		before, after := store.LabelDeltaLifecycleStages(
+			ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
+		if before != after {
+			if labelScope := TransitionScope(string(before), string(after)); labelScope != ScopeTaskWrite {
+				if err := RequireScope(ctx, labelScope); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	if len(req.GetAddLabels()) > 0 {
 		p.AddLabels = req.GetAddLabels()
 	}

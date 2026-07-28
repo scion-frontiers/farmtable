@@ -787,6 +787,128 @@ func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task
 	return t.Stage
 }
 
+// LabelDeltaLifecycleStages implements store.LabelDeltaLifecycleStager.
+//
+// In this store the authoritative lifecycle stage IS a label, so add_labels
+// and remove_labels are stage writes wearing the clothes of metadata edits.
+// This reports what such an edit would move the stage from and to, so the
+// caller can charge it the same scope the equivalent stage change would cost
+// (#194 round 5).
+//
+// Both endpoints go through lifecycleStageForLabels so the only difference
+// between them is the label set. "before" is deliberately NOT taken from
+// LifecycleStage above: that reads t.Stage as its non-terminal fallback while
+// this must model a hypothetical label set, and mixing the two sources would
+// make the two endpoints disagree for reasons that have nothing to do with the
+// edit. lifecycleStageForLabels(t, t.Labels) is expected to equal
+// LifecycleStage(t) for any task this store produced, and
+// TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels in
+// the server package pins that agreement.
+func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (task.Stage, task.Stage) {
+	if s.mapper == nil {
+		return t.Stage, t.Stage
+	}
+	before := s.lifecycleStageForLabels(t, t.Labels)
+	after := s.lifecycleStageForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+	return before, after
+}
+
+// lifecycleStageForLabels is LifecycleStage generalised to an arbitrary label
+// set: the un-demoted stage the issue would have if it carried these labels.
+//
+// The terminal scan comes first for the same reason it does in LifecycleStage
+// — IssueToPhaseStage demotes an OPEN issue's terminal label to "accepted" for
+// display, and that demotion must not reach a privilege decision. Below it,
+// IssueToPhaseStage is the right answer and not a reimplementation of one:
+// for non-terminal labels nothing is demoted, so the display mapping and the
+// lifecycle mapping coincide.
+//
+// state and stateReason are reconstructed from the task rather than re-fetched.
+// ClosedAt is set by issueToTask from GitHub's own issue state and never from
+// labels, so it is the same witness issueStateClosed consulted; state_reason is
+// copied verbatim into RemoteData by issueBuildRemoteData. Reconstructing
+// rather than re-fetching also matters for correctness, not just cost: a second
+// round trip could observe a different issue than the one the caller
+// authorized against.
+func (s *GitHubPassThroughStore) lifecycleStageForLabels(t *ent.Task, labels []string) task.Stage {
+	if stage, ok := s.mapper.TerminalLabelStage(labels); ok {
+		return stage
+	}
+	_, stage := s.mapper.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), labels)
+	return stage
+}
+
+// taskIssueState reconstructs the GitHub issue state string for a task this
+// store produced. issueToTask sets ClosedAt if and only if issueStateClosed
+// said the issue was closed, so this agrees with that reading by construction —
+// including on an unrecognised state, which issueStateClosed treats as open.
+func taskIssueState(t *ent.Task) string {
+	if t.ClosedAt != nil {
+		return "closed"
+	}
+	return "open"
+}
+
+// taskStateReason recovers the GitHub state_reason issueBuildRemoteData copied
+// onto the task. It is only consulted for a CLOSED issue whose labels name no
+// stage at all, where it decides wont_fix vs completed. Losing it there would
+// turn stripping the stage labels off a closed not_planned issue into an
+// apparent wont_fix -> completed transition and charge task:close for what is
+// really a no-op, so it is read rather than defaulted.
+func taskStateReason(t *ent.Task) string {
+	if t.RemoteData == nil {
+		return ""
+	}
+	reason, _ := t.RemoteData["state_reason"].(string)
+	return reason
+}
+
+// applyLabelDelta reports the label set an issue would carry after add and
+// remove are applied to current.
+//
+// Matching is case-insensitive, which is deliberately stricter than the
+// exact-string mergeLabels the Ent store uses for native tasks. GitHub label
+// names are unique case-insensitively and this store resolves BOTH add and
+// remove targets through labelNameToID, a lowercased name -> node ID index, so
+// remove_labels=["FT:Stage/Wont_Fix"] really does strip "ft:stage/wont_fix"
+// from the issue. Predicting that with case-sensitive equality would report
+// "no change" for a write that does change the lifecycle stage, and at an
+// authorization gate a missed change is a bypass rather than a rounding error.
+//
+// Remove wins over add for a label named in both, matching the order
+// UpdateTask applies them in (adds first, then removes).
+//
+// It over-predicts in one direction: a label that does not exist in the
+// repository is dropped by labelNamesToIDs and never actually added, but is
+// modelled here as added. That fails closed — the caller is charged for a
+// transition that would not have happened — which is the right side to err on.
+func applyLabelDelta(current, add, remove []string) []string {
+	removed := make(map[string]bool, len(remove))
+	for _, l := range remove {
+		removed[labelMatchKey(l)] = true
+	}
+
+	out := make([]string, 0, len(current)+len(add))
+	seen := make(map[string]bool, len(current)+len(add))
+	for _, l := range append(append([]string(nil), current...), add...) {
+		key := labelMatchKey(l)
+		if key == "" || removed[key] || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, l)
+	}
+	return out
+}
+
+// labelMatchKey normalises a label name for the identity comparison GitHub
+// itself makes. It is NOT stripForMatch: that also strips the push prefix and
+// path segments to answer "what stage does this label mean?", whereas this
+// answers "are these two names the same label?".
+func labelMatchKey(raw string) string {
+	return strings.ToLower(strings.TrimSpace(raw))
+}
+
 func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent.Task) (store.TaskAvailability, error) {
 	reasons := make([]store.AvailabilityReason, 0, 3)
 	if t.Stage == task.StageTriage {
