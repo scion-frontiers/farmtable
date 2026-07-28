@@ -361,7 +361,7 @@ func TestComputeReady_OpenTerminalLabelledIssueIsNotReady(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			nodes := buildIssueTree(openParentWithClosedChildIssues(label), mapper)
-			if got := readyNumbers(computeReady(nodes, true)); len(got) != 0 {
+			if got := readyNumbers(computeReady(mapper, nodes, true)); len(got) != 0 {
 				t.Fatalf("computeReady returned %v for an OPEN issue labelled %s, want none; "+
 					"a task whose stage labels say the work is finished must never surface "+
 					"as ready", got, label)
@@ -378,7 +378,7 @@ func TestComputeReady_OpenNonTerminalLabelledIssueIsReady(t *testing.T) {
 	mapper := NewLabelMapper(DefaultConfig().GitHub.Labels)
 
 	nodes := buildIssueTree(openParentWithClosedChildIssues("ft:stage/accepted"), mapper)
-	if got := readyNumbers(computeReady(nodes, true)); len(got) != 1 || got[0] != 1 {
+	if got := readyNumbers(computeReady(mapper, nodes, true)); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("computeReady returned %v for an OPEN accepted issue with all children "+
 			"closed, want [1]", got)
 	}

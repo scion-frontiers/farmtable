@@ -121,7 +121,7 @@ func TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer(t *te
 
 		issue := &issueNode{}
 		return answer{
-			claimRefused:   issueUnavailableForClaim(issue, tk, s.LifecycleStage(ctx, tk)),
+			claimRefused:   issueUnavailableForClaim(s.mapper, issue, tk, s.LifecycleStage(ctx, tk)),
 			available:      avail.Available,
 			terminalReason: avail.HasReason(store.AvailabilityReasonTerminal),
 		}
@@ -159,7 +159,7 @@ func TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer(t *te
 		t.Fatalf("ComputeAvailability(control): %v", err)
 	}
 	control := answer{
-		claimRefused:   issueUnavailableForClaim(&issueNode{}, live, s.LifecycleStage(ctx, live)),
+		claimRefused:   issueUnavailableForClaim(s.mapper, &issueNode{}, live, s.LifecycleStage(ctx, live)),
 		available:      liveAvail.Available,
 		terminalReason: liveAvail.HasReason(store.AvailabilityReasonTerminal),
 	}

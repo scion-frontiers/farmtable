@@ -149,7 +149,7 @@ func TestComputeReady_StateCasingIsIgnored(t *testing.T) {
 		nodes := parentWithClosedChild(task.StageAccepted)
 		nodes[1].State = "open"
 
-		if got := readyNumbers(computeReady(nodes, false)); len(got) != 1 || got[0] != 1 {
+		if got := readyNumbers(computeReady(nil, nodes, false)); len(got) != 1 || got[0] != 1 {
 			t.Fatalf("computeReady returned %v for a lowercase-open parent, want [1]", got)
 		}
 	})
@@ -158,7 +158,7 @@ func TestComputeReady_StateCasingIsIgnored(t *testing.T) {
 		nodes := parentWithClosedChild(task.StageAccepted)
 		nodes[2].State = "open"
 
-		if got := readyNumbers(computeReady(nodes, false)); len(got) != 0 {
+		if got := readyNumbers(computeReady(nil, nodes, false)); len(got) != 0 {
 			t.Fatalf("computeReady returned %v with a lowercase-open child, want none; "+
 				"an open sub-issue must block its parent regardless of casing", got)
 		}
@@ -172,7 +172,7 @@ func TestComputeBlocked_StateCasingIsIgnored(t *testing.T) {
 	nodes[1].State = "open"
 	nodes[2].State = "open"
 
-	results := computeBlocked(nodes)
+	results := computeBlocked(nil, nodes)
 	if len(results) != 1 {
 		t.Fatalf("computeBlocked returned %d results for a lowercase-open parent with a lowercase-open child, want 1", len(results))
 	}

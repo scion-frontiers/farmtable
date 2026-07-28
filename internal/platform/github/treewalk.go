@@ -73,7 +73,7 @@ func buildIssueTree(issues []issueNode, mapper *LabelMapper) map[int]*issueTreeN
 	return nodes
 }
 
-func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyResult {
+func computeReady(m *LabelMapper, nodes map[int]*issueTreeNode, includeUnblocked bool) []readyResult {
 	var results []readyResult
 
 	for _, node := range nodes {
@@ -90,7 +90,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 		}
 
 		if node.Stage == task.StageAccepted && !hasOpenChildren {
-			if hasExternalUnavailableLabel(node.Labels) {
+			if m.hasExternalUnavailableLabel(node.Labels) {
 				continue
 			}
 			reason := "accepted, no open sub-issues"
@@ -114,7 +114,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
 	return results
 }
 
-func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
+func computeBlocked(m *LabelMapper, nodes map[int]*issueTreeNode) []blockedResult {
 	var results []blockedResult
 
 	for _, node := range nodes {
@@ -122,7 +122,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 			continue
 		}
 
-		if hasExternalUnavailableLabel(node.Labels) {
+		if m.hasExternalUnavailableLabel(node.Labels) {
 			results = append(results, blockedResult{
 				Node:   node,
 				Reason: "explicitly unavailable (label)",
@@ -150,10 +150,54 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
 	return results
 }
 
-func hasExternalUnavailableLabel(labels []string) bool {
+// hasExternalUnavailableLabel reports whether any label asks for the task to be
+// withheld. It is deliberately PREFIX-TOLERANT, which is the opposite of the
+// rule authorizationStage enforces, and the difference is load-bearing rather
+// than an oversight:
+//
+//	authorizationStage answers "may this label GRANT something?" and must
+//	refuse anything a third party can apply. This answers "does anyone want
+//	this work held back?" and can only ever WITHHOLD. There is no privilege to
+//	escalate by honouring one more spelling, and "blocked" applied by a human
+//	who never heard of Farm Table is a signal we want to obey. The two
+//	functions differ because the questions differ, not because one of them
+//	forgot the rule.
+//
+// FIXED IN ROUND 6 (#194 A7): the prefix it stripped was the hardcoded literal
+// "ft:", not the configured one. So a deployment on push_prefix "acme:" had
+// "acme:blocked" silently ignored — an operator's explicit hold handing work
+// to an agent — while "ft:blocked", a namespace that deployment does not own,
+// was honoured. Exactly backwards.
+//
+// It now accepts THREE spellings: the configured prefix, the default prefix,
+// and no prefix at all. Keeping the default alongside the configured one is
+// deliberate. Dropping it would REMOVE a hold that some issue somewhere is
+// relying on, and this is the one direction where being wrong costs an
+// operator work they meant to withhold. Adding a spelling is monotone: this
+// function can only withhold, so a wider match can only withhold more. Both
+// prefixes come from named sources (m.matchPrefix and defaultPushPrefix), so
+// this is not a fourth copy of the literal that review F5 collapsed.
+//
+// The nil receiver is real: computeReady and computeBlocked are reached from
+// tests and from a zero-value store. A nil mapper falls back to the default
+// prefix, which is the same set of spellings the function honoured before this
+// change.
+func (m *LabelMapper) hasExternalUnavailableLabel(labels []string) bool {
+	prefixes := []string{defaultPushPrefix}
+	if m != nil {
+		if configured := m.matchPrefix(); configured != defaultPushPrefix {
+			prefixes = append(prefixes, configured)
+		}
+	}
+
 	for _, raw := range labels {
 		label := strings.ToLower(strings.TrimSpace(raw))
-		label = strings.TrimPrefix(label, "ft:")
+		for _, prefix := range prefixes {
+			if trimmed := strings.TrimPrefix(label, prefix); trimmed != label {
+				label = trimmed
+				break
+			}
+		}
 		label = strings.TrimPrefix(label, "stage/")
 		switch label {
 		case "blocked", "waiting_for_input", "deferred", "scheduled":

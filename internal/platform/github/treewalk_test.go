@@ -64,7 +64,7 @@ func TestComputeReady_TerminalParentIsNotReady(t *testing.T) {
 		task.StageCancelled,
 	} {
 		t.Run(stage.String(), func(t *testing.T) {
-			results := computeReady(parentWithClosedChild(stage), true)
+			results := computeReady(nil, parentWithClosedChild(stage), true)
 			if got := readyNumbers(results); len(got) != 0 {
 				t.Fatalf("computeReady returned %v for terminal stage %s, want none; "+
 					"a task in a terminal stage must never surface as ready", got, stage)
@@ -85,7 +85,7 @@ func TestComputeReady_NonTerminalParentIsReady(t *testing.T) {
 		task.StageDeploying,
 	} {
 		t.Run(stage.String(), func(t *testing.T) {
-			results := computeReady(parentWithClosedChild(stage), true)
+			results := computeReady(nil, parentWithClosedChild(stage), true)
 			got := readyNumbers(results)
 			if len(got) != 1 || got[0] != 1 {
 				t.Fatalf("computeReady returned %v for non-terminal stage %s, want [1]", got, stage)
@@ -102,7 +102,7 @@ func TestComputeReady_NonTerminalParentIsReady(t *testing.T) {
 // handled earlier, not because it is terminal. It stays ready with
 // includeUnblocked off, which no other stage does.
 func TestComputeReady_AcceptedTakesTheAcceptedBranch(t *testing.T) {
-	results := computeReady(parentWithClosedChild(task.StageAccepted), false)
+	results := computeReady(nil, parentWithClosedChild(task.StageAccepted), false)
 	if got := readyNumbers(results); len(got) != 1 || got[0] != 1 {
 		t.Fatalf("computeReady returned %v for accepted parent, want [1]", got)
 	}
@@ -110,7 +110,7 @@ func TestComputeReady_AcceptedTakesTheAcceptedBranch(t *testing.T) {
 		t.Fatalf("reason = %q, want %q", results[0].Reason, want)
 	}
 
-	if got := readyNumbers(computeReady(parentWithClosedChild(task.StageWorking), false)); len(got) != 0 {
+	if got := readyNumbers(computeReady(nil, parentWithClosedChild(task.StageWorking), false)); len(got) != 0 {
 		t.Fatalf("computeReady with includeUnblocked=false returned %v for working, want none", got)
 	}
 }

@@ -629,7 +629,7 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 	if current.AssigneeID != nil {
 		return nil, store.ErrAlreadyClaimed
 	}
-	if issueUnavailableForClaim(target, current, s.LifecycleStage(ctx, current)) {
+	if issueUnavailableForClaim(s.mapper, target, current, s.LifecycleStage(ctx, current)) {
 		return nil, store.ErrUnavailable
 	}
 
@@ -688,11 +688,11 @@ func hasOpenSubIssue(issue *issueNode) bool {
 // duplicate or cancelled be claimed as ordinary work. Keeping this in step with
 // ComputeAvailability is the invariant this doc comment opens with; both now
 // read the lifecycle stage.
-func issueUnavailableForClaim(issue *issueNode, t *ent.Task, lifecycleStage task.Stage) bool {
+func issueUnavailableForClaim(m *LabelMapper, issue *issueNode, t *ent.Task, lifecycleStage task.Stage) bool {
 	return lifecycleStage != task.StageAccepted ||
 		t.ClosedAt != nil ||
 		t.HoldReason != nil ||
-		hasExternalUnavailableLabel(t.Labels) ||
+		m.hasExternalUnavailableLabel(t.Labels) ||
 		hasOpenSubIssue(issue)
 }
 
@@ -1030,7 +1030,7 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
 	if store.IsTerminalStage(s.LifecycleStage(ctx, t)) || t.ClosedAt != nil {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}
-	if t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) {
+	if t.HoldReason != nil || s.mapper.hasExternalUnavailableLabel(t.Labels) {
 		reasons = append(reasons, store.AvailabilityReasonHeld)
 	}
 	return store.TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
@@ -1188,7 +1188,7 @@ func (s *GitHubPassThroughStore) GetReadyTasks(ctx context.Context, p store.GetR
 	}
 
 	nodes := buildIssueTree(issues, s.mapper)
-	readyNodes := computeReady(nodes, p.IncludeUnblockedOpen)
+	readyNodes := computeReady(s.mapper, nodes, p.IncludeUnblockedOpen)
 
 	var results []*store.ReadyTaskResult
 	for _, r := range readyNodes {
@@ -1217,7 +1217,7 @@ func (s *GitHubPassThroughStore) GetBlockedTasks(ctx context.Context, p store.Ge
 	}
 
 	nodes := buildIssueTree(issues, s.mapper)
-	blockedNodes := computeBlocked(nodes)
+	blockedNodes := computeBlocked(s.mapper, nodes)
 
 	var results []*store.BlockedTaskResult
 	for _, b := range blockedNodes {

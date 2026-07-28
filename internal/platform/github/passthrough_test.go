@@ -109,7 +109,7 @@ func TestComputeBlocked_DoesNotTreatAcceptedAsBlocked(t *testing.T) {
 		}},
 	}
 
-	got := computeBlocked(nodes)
+	got := computeBlocked(nil, nodes)
 	if len(got) != 0 {
 		t.Fatalf("computeBlocked returned %d entries for plain accepted issues: %#v", len(got), got)
 	}
@@ -122,7 +122,7 @@ func TestComputeBlocked_ExternalUnavailableLabelAndOpenChildren(t *testing.T) {
 		3: {Number: 3, Title: "parent", State: "OPEN", Stage: task.StageAccepted, Children: []*issueTreeNode{child}},
 	}
 
-	got := computeBlocked(nodes)
+	got := computeBlocked(nil, nodes)
 	if len(got) != 2 {
 		t.Fatalf("computeBlocked returned %d entries, want 2", len(got))
 	}
@@ -174,7 +174,7 @@ func TestIssueUnavailableForClaim(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := issueUnavailableForClaim(tc.issue, tc.task, tc.lifecycle); got != tc.want {
+			if got := issueUnavailableForClaim(nil, tc.issue, tc.task, tc.lifecycle); got != tc.want {
 				t.Fatalf("issueUnavailableForClaim = %v, want %v", got, tc.want)
 			}
 		})
