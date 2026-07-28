@@ -549,10 +549,30 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		//
 		// Authorization must never read a field that a GitHub label can
 		// rewrite. Splitting the two meanings apart at the source is #203.
-		authStage := store.LifecycleStage(ctx, s.store, existing)
-		if transitionScope := TransitionScope(string(authStage), string(st)); transitionScope != ScopeTaskWrite {
-			if err := RequireScope(ctx, transitionScope); err != nil {
-				return nil, err
+		//
+		// The source is a SET, and every member of it is charged for. A task
+		// can name several terminal stages at once — CloseTask stamps one, a
+		// human or an attacker adds another — and asking "which one is it?"
+		// requires a tiebreak whose answer then IS the authorization decision.
+		// Re-asserting a stage the task already names then converted a
+		// maintainer's wont_fix into completed for task:write alone, writing no
+		// label at all: the tiebreak reported the destination as the source, so
+		// the table saw from == to and short-circuited. Measured on 12 ordered
+		// pairs, 6 converted, and no ordering fixes it — a conversion exists
+		// exactly when rank(dest) < rank(start), and every total order has a
+		// rank-0 element.
+		//
+		// So do not pick a winner: demand the strongest scope any present stage
+		// implies. With two distinct terminal stages present, from == to can
+		// hold for at most one of them, so the other falls to the
+		// "any -> terminal costs task:close" row and the conversion closes.
+		// At zero or one terminal stage the set has one member and this is
+		// exactly the round-4 check.
+		for _, authStage := range store.LifecycleStages(ctx, s.store, existing) {
+			if transitionScope := TransitionScope(string(authStage), string(st)); transitionScope != ScopeTaskWrite {
+				if err := RequireScope(ctx, transitionScope); err != nil {
+					return nil, err
+				}
 			}
 		}
 		p.Stage = &st
@@ -657,13 +677,27 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	// Nothing changes for native Ent-backed tasks: their stage lives in its own
 	// column, no label can forge it, so LabelDeltaLifecycleStages reports
 	// before == after and this block is inert.
+	// Both endpoints are SETS, for the same reason the stage arm above reads
+	// one: a comparison between two tiebreak winners is blind to an edit that
+	// swaps one of several present terminal labels for another, and "nothing
+	// changed" is exactly the answer that costs nothing. Removing
+	// ft:stage/wont_fix from an issue also carrying ft:stage/completed erases a
+	// maintainer's decline while leaving the winner untouched. So compare the
+	// sets, and when they differ charge for every (from, to) pair — the
+	// strongest scope any pair implies is the one the caller must hold.
 	if len(req.GetAddLabels()) > 0 || len(req.GetRemoveLabels()) > 0 {
 		before, after := store.LabelDeltaLifecycleStages(
 			ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
-		if before != after {
-			if labelScope := TransitionScope(string(before), string(after)); labelScope != ScopeTaskWrite {
-				if err := RequireScope(ctx, labelScope); err != nil {
-					return nil, err
+		if !store.SameStageSet(before, after) {
+			for _, from := range before {
+				for _, to := range after {
+					labelScope := TransitionScope(string(from), string(to))
+					if labelScope == ScopeTaskWrite {
+						continue
+					}
+					if err := RequireScope(ctx, labelScope); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}

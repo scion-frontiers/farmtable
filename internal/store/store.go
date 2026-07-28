@@ -79,48 +79,100 @@ func LifecycleStage(ctx context.Context, s Store, t *ent.Task) task.Stage {
 	return t.Stage
 }
 
-// LabelDeltaLifecycleStager is implemented by stores whose lifecycle stage is
-// STORED IN the task's labels, so that an add/remove label edit can move it.
+// LifecycleStageSetStager is implemented by stores where a task can name MORE
+// THAN ONE lifecycle stage at once, and where a label edit can change which
+// ones it names.
 //
-// This is the write-side counterpart of LifecycleStager, and it exists because
-// of the invariant that side missed (#194 round 5): if authorization reads a
-// value, every write path to that value must be guarded by the same
-// authorization. LifecycleStager made the authorization gate read the labels
-// honestly; it did nothing about the fact that add_labels / remove_labels
-// rewrite the very field it reads, guarded only by the blanket task:write.
+// Two distinct problems drove this, and they share a call site (#194 round 5).
 //
-// A store implements this only if a label edit can change the answer
-// LifecycleStage gives. That is a stronger statement than LifecycleStager's:
-// a store can have a display/lifecycle split for other reasons and still have
-// labels be inert metadata. The two interfaces are therefore separate, and a
-// store may implement either, both, or neither.
-type LabelDeltaLifecycleStager interface {
-	// LabelDeltaLifecycleStages reports the task's lifecycle stage before and
-	// after applying an add/remove label delta to its current label set.
+// ONE — the read side is single-valued and must not be. LifecycleStager returns
+// one stage, so where a task names several terminal stages at once something
+// has to choose, and in an authorization path that choice IS the decision. An
+// attacker who can add a label picks which value the gate reads as the
+// transition SOURCE, and no ordering avoids it: a conversion is available
+// exactly when the destination outranks the source, so the rank-0 element is
+// reachable from every other one, and every total order has a rank-0 element.
+// Measured: 6 of the 12 ordered terminal->terminal pairs converted with
+// task:write alone, and three further cells converted with no label write at
+// all — merely re-asserting a stage the task already named. The invariant:
+//
+//	An authorization decision must not depend on which of several equally
+//	present values a tiebreak happens to select.
+//
+// TWO — the write side is unguarded. If authorization reads a value, every
+// write path to that value must be guarded by the same authorization.
+// LifecycleStager made the gate read the labels honestly; it did nothing about
+// add_labels / remove_labels rewriting the field it reads under the blanket
+// task:write.
+//
+// Stores whose Stage column is authoritative need not implement this. A task
+// with one stage column names exactly one stage, so there is nothing to choose
+// between and no label can forge it; the package-level helpers below answer for
+// them from LifecycleStage, which is the correct answer and not a stub.
+type LifecycleStageSetStager interface {
+	// LifecycleStages returns every lifecycle stage the task currently names,
+	// in a deterministic order. It is never empty: a task that names no stage
+	// through the multi-valued channel still has its own stage.
+	LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage
+
+	// LabelDeltaLifecycleStages reports the stages the task names now and the
+	// ones it would name if the given label delta were applied.
 	//
-	// Both endpoints must be computed the same way. Callers compare them for
-	// equality to decide whether a label edit is a lifecycle transition at
-	// all, so an implementation that derived "before" from one source and
-	// "after" from another would report spurious transitions wherever the two
-	// sources merely disagree.
-	LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after task.Stage)
+	// Both endpoints must be computed the same way. Callers compare the two
+	// sets to decide whether a label edit is a lifecycle transition at all, so
+	// an implementation that derived "before" from one source and "after" from
+	// another would report spurious transitions wherever the two sources
+	// merely disagree — and a spurious transition is a denial of legitimate
+	// work.
+	LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage)
 }
 
-// LabelDeltaLifecycleStages reports the lifecycle stage a task holds now and
-// the one it would hold if the given label delta were applied.
-//
-// Stores that do not store the lifecycle stage in labels answer with the
-// task's current lifecycle stage for both endpoints. That is not a stub: for a
-// native Ent-backed task the stage lives in its own column, no label can forge
-// it, and "a label edit induces no stage transition" is the correct answer
-// rather than a missing one. Callers that gate on before != after are
-// therefore a no-op on those stores by construction.
-func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (task.Stage, task.Stage) {
-	if stager, ok := s.(LabelDeltaLifecycleStager); ok {
-		return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+// LifecycleStages returns every lifecycle stage a task names. Authorization
+// must evaluate its decision against all of them and demand the strongest
+// answer, rather than picking one. Never empty.
+func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
+	if stager, ok := s.(LifecycleStageSetStager); ok {
+		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+			return stages
+		}
 	}
-	current := LifecycleStage(ctx, s, t)
+	return []task.Stage{LifecycleStage(ctx, s, t)}
+}
+
+// LabelDeltaLifecycleStages reports the lifecycle stages a task names now and
+// the ones it would name if the given label delta were applied. Neither is
+// empty.
+//
+// Stores that do not keep the lifecycle stage in labels answer with the task's
+// current lifecycle stage for both endpoints. That is not a stub: for a native
+// Ent-backed task the stage lives in its own column, no label can forge it, and
+// "a label edit induces no stage transition" is the correct answer rather than
+// a missing one. Callers that gate on before != after are therefore inert on
+// those stores by construction.
+func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+	if stager, ok := s.(LifecycleStageSetStager); ok {
+		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+		if len(b) > 0 && len(a) > 0 {
+			return b, a
+		}
+	}
+	current := []task.Stage{LifecycleStage(ctx, s, t)}
 	return current, current
+}
+
+// SameStageSet reports whether two lifecycle stage sets name the same stages.
+// Both are produced in a deterministic order by the same function, so this
+// compares them elementwise.
+func SameStageSet(a, b []task.Stage) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 type CreateTaskParams struct {

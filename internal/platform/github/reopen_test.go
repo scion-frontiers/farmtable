@@ -189,18 +189,17 @@ func TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage(t *testing.T) {
 // the cost; the short version is that a claim is the point where an agent is
 // actually handed the work, so it is the last place the demotion should reach.
 //
-// This also closes the laundering route audit-194-r2 raised as a Medium: stage
-// labels match bare and unprefixed, and `duplicate` ships by default in every
-// new GitHub repository, so before this the stock label alone made an open
-// issue claimable.
+// The bare stock `duplicate` row that used to live in this table has moved to
+// TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal below, and now
+// asserts the opposite. See there for the ruling and the reasoning; the table
+// here is deliberately all-prefixed so that it remains the positive control for
+// that inversion.
 func TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable(t *testing.T) {
 	for _, label := range []string{
 		"ft:stage/completed",
 		"ft:stage/wont_fix",
 		"ft:stage/duplicate",
 		"ft:stage/cancelled",
-		// Bare and unprefixed, which is how GitHub's own stock label arrives.
-		"duplicate",
 	} {
 		t.Run(label, func(t *testing.T) {
 			ctx := context.Background()
@@ -220,6 +219,52 @@ func TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable(t *testing.T) 
 				t.Errorf("a refused claim still stamped ft:stage/working; labels = %v", fake.labels)
 			}
 		})
+	}
+}
+
+// TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal is the INVERSION
+// of the "duplicate" row that used to sit in the table above, and it is
+// deliberately not a deletion: the old assertion is wrong now, and a reader
+// comparing rounds must be able to see that it was reconsidered rather than
+// quietly dropped.
+//
+// What it used to assert: a bare, unprefixed `duplicate` label made an open
+// issue unclaimable, on the reasoning that stage labels match bare and
+// prefixed alike, so the stock label was a laundering route (audit-194-r2,
+// Medium).
+//
+// Why that is now wrong. Round 4 made the terminal scan read the whole label
+// set instead of a precedence winner, which was correct, and in doing so
+// promoted every bare stock label into an AUTHORITATIVE terminal signal —
+// twelve label combinations changed answer. `duplicate` ships in every new
+// GitHub repository and any triager can apply it. Letting it decide a Farm
+// Table privilege question means a label with a lower permission bar, and no
+// Farm Table meaning at all, outranks the explicit ft:-prefixed one. The
+// ruling (#194 round 5, B6): require the configured prefix for any label
+// feeding an authorization or terminal-stage determination; keep
+// prefix-tolerant matching for display only.
+//
+// The direction of the cost is why this is acceptable as an interim state.
+// Denying the stock label its terminal reading makes some tasks appear
+// available that a human might consider finished — wrongly available, not
+// wrongly privileged — whereas honouring it hands a privilege decision to
+// whoever can click a stock label. The laundering route the old assertion
+// closed is still closed for the label that matters, because the prefixed
+// ft:stage/duplicate above is unchanged.
+func TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal(t *testing.T) {
+	ctx := context.Background()
+
+	// Exactly the state the old row used: open issue, stock label, nothing else.
+	fake := newFakeIssueRepo(t, "duplicate")
+	s := fake.store()
+
+	if _, err := s.ClaimTask(ctx, s.issueUUID(1), uuid.New(), ""); err != nil {
+		t.Fatalf("ClaimTask on an OPEN issue carrying only the stock GitHub "+
+			"label \"duplicate\" returned %v, want success; an unprefixed label "+
+			"is a human's triage note, not a Farm Table terminal assertion", err)
+	}
+	if !fake.hasLabel("ft:stage/working") {
+		t.Errorf("claim did not stamp ft:stage/working; labels = %v", fake.labels)
 	}
 }
 

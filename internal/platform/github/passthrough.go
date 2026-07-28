@@ -787,7 +787,30 @@ func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task
 	return t.Stage
 }
 
-// LabelDeltaLifecycleStages implements store.LabelDeltaLifecycleStager.
+// LifecycleStages implements store.LifecycleStageSetStager. It reports every
+// terminal stage the issue's labels name, not the one terminalStagePrecedence
+// selects.
+//
+// An issue carrying two terminal labels is an ordinary state, not an exotic
+// one: CloseTask stamps one, and a human applying GitHub's stock "duplicate"
+// or an independently created label produces the second without anyone
+// attacking anything. LifecycleStage has to collapse that to one value, and
+// collapsing it is what let a task:write holder convert a maintainer's wont_fix
+// into completed by re-asserting a stage the issue already carried — the
+// tiebreak reported the destination as the source, so the transition table saw
+// from == to and short-circuited to task:write. Returning the whole set lets
+// the caller demand the strongest scope any present stage implies.
+//
+// Falls back to t.Stage, exactly as LifecycleStage does, so at zero or one
+// terminal label this is byte-for-byte the round-4 answer wrapped in a slice.
+func (s *GitHubPassThroughStore) LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage {
+	if stages := s.mapper.AllTerminalLabelStages(t.Labels); len(stages) > 0 {
+		return stages
+	}
+	return []task.Stage{t.Stage}
+}
+
+// LabelDeltaLifecycleStages implements store.LifecycleStageSetStager.
 //
 // In this store the authoritative lifecycle stage IS a label, so add_labels
 // and remove_labels are stage writes wearing the clothes of metadata edits.
@@ -795,33 +818,41 @@ func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task
 // caller can charge it the same scope the equivalent stage change would cost
 // (#194 round 5).
 //
-// Both endpoints go through lifecycleStageForLabels so the only difference
+// Both endpoints go through lifecycleStagesForLabels so the only difference
 // between them is the label set. "before" is deliberately NOT taken from
 // LifecycleStage above: that reads t.Stage as its non-terminal fallback while
 // this must model a hypothetical label set, and mixing the two sources would
 // make the two endpoints disagree for reasons that have nothing to do with the
-// edit. lifecycleStageForLabels(t, t.Labels) is expected to equal
+// edit. lifecycleStagesForLabels(t, t.Labels) is expected to agree with
 // LifecycleStage(t) for any task this store produced, and
 // TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels in
 // the server package pins that agreement.
-func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (task.Stage, task.Stage) {
+//
+// Both endpoints are SETS for the same reason LifecycleStages is: comparing
+// two tiebreak winners hides an edit that swaps one of several present terminal
+// labels for another, and "the edit changed nothing" is precisely the answer
+// that costs nothing.
+func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
 	if s.mapper == nil {
-		return t.Stage, t.Stage
+		return []task.Stage{t.Stage}, []task.Stage{t.Stage}
 	}
-	before := s.lifecycleStageForLabels(t, t.Labels)
-	after := s.lifecycleStageForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+	before = s.lifecycleStagesForLabels(t, t.Labels)
+	after = s.lifecycleStagesForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
 	return before, after
 }
 
-// lifecycleStageForLabels is LifecycleStage generalised to an arbitrary label
-// set: the un-demoted stage the issue would have if it carried these labels.
+// lifecycleStagesForLabels is LifecycleStage generalised twice over: to an
+// arbitrary label set, and to every terminal stage that set names rather than
+// one. It answers "which lifecycle stages would this issue name if it carried
+// these labels?" and is never empty.
 //
 // The terminal scan comes first for the same reason it does in LifecycleStage
 // — IssueToPhaseStage demotes an OPEN issue's terminal label to "accepted" for
 // display, and that demotion must not reach a privilege decision. Below it,
 // IssueToPhaseStage is the right answer and not a reimplementation of one:
 // for non-terminal labels nothing is demoted, so the display mapping and the
-// lifecycle mapping coincide.
+// lifecycle mapping coincide, and a non-terminal label set names exactly one
+// stage.
 //
 // state and stateReason are reconstructed from the task rather than re-fetched.
 // ClosedAt is set by issueToTask from GitHub's own issue state and never from
@@ -830,12 +861,12 @@ func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, 
 // rather than re-fetching also matters for correctness, not just cost: a second
 // round trip could observe a different issue than the one the caller
 // authorized against.
-func (s *GitHubPassThroughStore) lifecycleStageForLabels(t *ent.Task, labels []string) task.Stage {
-	if stage, ok := s.mapper.TerminalLabelStage(labels); ok {
-		return stage
+func (s *GitHubPassThroughStore) lifecycleStagesForLabels(t *ent.Task, labels []string) []task.Stage {
+	if stages := s.mapper.AllTerminalLabelStages(labels); len(stages) > 0 {
+		return stages
 	}
 	_, stage := s.mapper.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), labels)
-	return stage
+	return []task.Stage{stage}
 }
 
 // taskIssueState reconstructs the GitHub issue state string for a task this

@@ -493,6 +493,18 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 // question here is "does this label set name a terminal stage at all?", and
 // the answer must not depend on what else the issue happens to be labelled.
 //
+// The scan goes through authorizationStage, not stripForMatch, so only a label
+// carrying the configured push prefix counts. A label may contribute to an
+// authorization or terminal-stage determination only if it is unambiguously
+// ours; prefix-tolerant matching is a display affordance. See
+// authorizationStage for why, and for the twelve cells that changed answer.
+//
+// This function still picks ONE stage and its callers still need that, but an
+// authorization decision must not depend on which of several equally present
+// values a tiebreak selects. Callers on a privilege path use
+// AllTerminalLabelStages instead; the remaining single-answer sinks are
+// sequenced separately (#194 round 5).
+//
 // !m.enabled returns false rather than scanning: with label mapping off,
 // IssueToPhaseStage also declines to map labels, so no demotion happens and
 // the task's own Stage is already authoritative. Scanning anyway would make a
@@ -509,7 +521,7 @@ func (m *LabelMapper) TerminalLabelStage(labels []string) (task.Stage, bool) {
 
 	present := make(map[task.Stage]bool, len(labels))
 	for _, raw := range labels {
-		if stage, ok := m.labelToStage[m.stripForMatch(raw)]; ok && store.IsTerminalStage(stage) {
+		if stage, ok := m.authorizationStage(raw); ok && store.IsTerminalStage(stage) {
 			present[stage] = true
 		}
 	}
@@ -530,12 +542,11 @@ func (m *LabelMapper) TerminalLabelStage(labels []string) (task.Stage, bool) {
 func (m *LabelMapper) stripForMatch(raw string) string {
 	s := strings.ToLower(strings.TrimSpace(raw))
 
-	// Strip the push prefix (e.g. "ft:").
-	prefix := strings.ToLower(m.config.PushPrefix)
-	if prefix == "" {
-		prefix = "ft:"
-	}
-	if strings.HasPrefix(s, prefix) {
+	// Strip the push prefix (e.g. "ft:"). matchPrefix is shared with
+	// authorizationStage, which REQUIRES the prefix this strips; the two must
+	// resolve the configured value identically or the requirement stops lining
+	// up with the lookup.
+	if prefix := m.matchPrefix(); strings.HasPrefix(s, prefix) {
 		s = s[len(prefix):]
 	}
 

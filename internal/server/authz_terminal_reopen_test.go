@@ -329,7 +329,8 @@ func maskLabels() []string {
 //	  exactly one non-terminal stage label, against every accepted reopen
 //	  destination.
 //	CANNOT express: two masks at once, non-stage labels, unprefixed labels
-//	  (deferred — see TestUpdateTask_UnprefixedTerminalLabelIsHonouredToday),
+//	  (no longer honoured at this gate — see
+//	  TestUpdateTask_UnprefixedTerminalLabelIsNoLongerHonoured),
 //	  closed issues with a state_reason, or which terminal stage wins when
 //	  several are present. The label-set predicate itself is covered on those
 //	  axes in internal/platform/github/terminal_label_stage_test.go.
@@ -783,45 +784,71 @@ func TestClaimTask_MaskedTerminalLabelIsNotClaimable(t *testing.T) {
 	}
 }
 
-// TestUpdateTask_UnprefixedTerminalLabelIsHonouredToday documents behaviour
-// that is DEFERRED, not endorsed.
+// TestUpdateTask_UnprefixedTerminalLabelIsNoLongerHonoured is the INVERSION of
+// TestUpdateTask_UnprefixedTerminalLabelIsHonouredToday, which pinned the
+// opposite answer for exactly this input. It is rewritten rather than deleted:
+// the old assertion was a deliberate deferral with a documented ruling attached,
+// and a reader must be able to see the ruling land rather than find the pin
+// gone. Its own failure message said so — "you are probably implementing that
+// ruling — update it rather than working around it."
 //
-// stripForMatch removes the configured prefix before lookup and NewLabelMapper
-// registers every bare stage name as a key, so an unprefixed "duplicate" — a
-// label GitHub ships in every new repository, appliable by anyone with triage
-// rights — is indistinguishable from "ft:stage/duplicate" at all three gates.
-// Round 3 added the authorization sink for this without disclosing it
-// (test-194-r3 F2).
+// WHAT IT USED TO ASSERT. stripForMatch removes the configured prefix before
+// lookup and NewLabelMapper registers every bare stage name as a key, so an
+// unprefixed "duplicate" — shipped in every new GitHub repository, appliable by
+// anyone with triage rights — was indistinguishable from "ft:stage/duplicate"
+// at all three gates, and reopening such an issue cost task:accept.
 //
-// The ruling is that the mapper should key off closed state + state_reason
-// rather than matching any label, prefixed or not; GitHub's native "close as
-// duplicate" requires real close permissions, a much higher bar than triage
-// rights. That changes mapping logic and is its own issue and its own round.
+// WHAT CHANGED (#194 round 5, B6). A label may contribute to an authorization
+// or terminal-stage determination only if it carries the configured push
+// prefix; prefix-tolerant matching is a display affordance. Round 4 made this
+// urgent rather than merely untidy: replacing the precedence collapse with a
+// whole-set scan was correct, and it promoted the stock label from "usually
+// masked by any other stage label" to "authoritative", changing 12 cells. A
+// label with a lower permission bar than an explicit ft: one must not decide a
+// Farm Table privilege question.
 //
-// This test therefore pins CURRENT behaviour so the product decision is
-// visible and so the change is deliberate when it lands. If you are here
-// because this test failed, you are probably implementing that ruling — update
-// it rather than working around it.
-func TestUpdateTask_UnprefixedTerminalLabelIsHonouredToday(t *testing.T) {
+// The original ruling recorded here — key off closed state + state_reason
+// instead of matching labels at all — is NOT what landed and is still open. B6
+// is narrower: it says which labels may be read, not that labels should stop
+// being read. Moving authoritative state off labels entirely is #203.
+//
+// The cost is real and accepted: a maintainer who declines work with only the
+// stock label now gets no protection from Farm Table, so the task reads as
+// live. Wrongly available is the safe direction; wrongly privileged is not.
+func TestUpdateTask_UnprefixedTerminalLabelIsNoLongerHonoured(t *testing.T) {
 	svc, _, taskID, _, _ := newTerminalLabelledService(t, "duplicate")
 	stage := pb.TaskStage_TASK_STAGE_ACCEPTED
 
-	_, err := svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+	if _, err := svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
 		Id: taskID, Stage: &stage,
+	}); err != nil {
+		t.Fatalf("the bare stock label \"duplicate\" still raises the scope required to "+
+			"reopen (%v). Since B6 only a prefixed label may feed an authorization "+
+			"decision, so this must cost no more than task:write", err)
+	}
+
+	// POSITIVE CONTROL, and the load-bearing half: the prefixed spelling must
+	// still be honoured. Without it, this test passes just as well if the
+	// terminal scan were deleted outright.
+	svcPrefixed, _, prefixedID, _, _ := newTerminalLabelledService(t, stageLabel(task.StageDuplicate))
+	prefixedStage := pb.TaskStage_TASK_STAGE_ACCEPTED
+	_, err := svcPrefixed.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+		Id: prefixedID, Stage: &prefixedStage,
 	})
 	if err == nil {
-		t.Fatalf("the bare label \"duplicate\" no longer raises the scope required to reopen. " +
-			"That may well be the intended product change (see the doc comment), but it is a " +
-			"behaviour change at a security gate and must be made deliberately")
+		t.Fatalf("CONTROL BROKEN: \"%s\" no longer raises the scope required to reopen "+
+			"either. B6 was meant to narrow which labels are read, not to stop reading "+
+			"them; this says the terminal scan is dead", stageLabel(task.StageDuplicate))
 	}
 	st, _ := status.FromError(err)
 	if st.Code() != codes.PermissionDenied || !strings.Contains(st.Message(), server.ScopeTaskAccept) {
-		t.Fatalf("bare \"duplicate\" denied with %v (%s), want PermissionDenied naming %q",
+		t.Fatalf("prefixed duplicate denied with %v (%s), want PermissionDenied naming %q",
 			st.Code(), st.Message(), server.ScopeTaskAccept)
 	}
 
 	// Control: an ordinary non-stage label must NOT raise the requirement, so
-	// this test cannot pass because the gate denies everything.
+	// the allow above cannot be an artefact of the gate allowing everything...
+	// which it also cannot be, given the denial just measured.
 	svc2, _, taskID2, _, _ := newTerminalLabelledService(t, "bug")
 	stage2 := pb.TaskStage_TASK_STAGE_ACCEPTED
 	if _, err := svc2.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{

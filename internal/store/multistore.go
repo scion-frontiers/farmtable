@@ -243,15 +243,31 @@ func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
 	return t.Stage
 }
 
-// LabelDeltaLifecycleStages implements LabelDeltaLifecycleStager by routing to
+// LifecycleStages implements LifecycleStageSetStager by routing to the store
+// that owns the task's collection. A store where a task can name several
+// stages at once answers for itself; for every other store the task names
+// exactly the one stage in its column.
+func (m *MultiStore) LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage {
+	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+			return stages
+		}
+	}
+	return []task.Stage{m.LifecycleStage(ctx, t)}
+}
+
+// LabelDeltaLifecycleStages implements LifecycleStageSetStager by routing to
 // the store that owns the task's collection. A store that keeps the lifecycle
 // stage in labels answers for itself; for every other store a label edit
 // cannot move the stage, so both endpoints are the task's current one.
-func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (task.Stage, task.Stage) {
-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LabelDeltaLifecycleStager); ok {
-		return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+		if len(b) > 0 && len(a) > 0 {
+			return b, a
+		}
 	}
-	current := m.LifecycleStage(ctx, t)
+	current := []task.Stage{m.LifecycleStage(ctx, t)}
 	return current, current
 }
 

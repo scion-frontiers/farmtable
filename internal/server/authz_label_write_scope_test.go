@@ -725,12 +725,22 @@ func TestUpdateTask_AddingATerminalLabelRequiresClose(t *testing.T) {
 // This is a genuine privilege change and not bookkeeping: it rewrites a
 // maintainer's "won't fix" into "completed", which is the record other tooling
 // and any dependency rule keyed on completion will read.
+//
+// ALL TWELVE ORDERED PAIRS ARE GATED, and an earlier revision of this test
+// pinned SIX. That count was correct against a control that compared two
+// tiebreak WINNERS: for the six pairs where the added label ranked below the
+// existing one the winner did not move, the gate saw from == to, and the write
+// was free — while the issue really did acquire a second terminal label. The
+// number six was therefore a measurement of the tiebreak, not of the control.
+// Comparing stage SETS removes the dependency (#194 round 5, B5), so every pair
+// that changes the label set is now charged. The pin is kept as a count so that
+// a regression to winner-comparison shows up as 6, not as a silent pass.
 func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T) {
 	stages := []task.Stage{
 		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
 	}
 
-	executed, bypassCandidates := 0, 0
+	executed, gated := 0, 0
 	for _, start := range stages {
 		for _, dest := range stages {
 			if start == dest {
@@ -743,25 +753,37 @@ func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T
 					t.Fatalf("BASELINE BROKEN: fixture reports lifecycle stage %q, want %q",
 						got, start)
 				}
+				before := f.issue.currentLabels()
 
 				err := f.addLabels(agentScopes(), stageLabel(dest))
-
-				// Adding a LOWER-precedence terminal label leaves the tiebreak
-				// answer unchanged, so it induces no transition and must stay
-				// free — from != to is required, not optional.
-				after := f.lifecycleStage(t)
 				if err == nil {
-					if after != start {
-						t.Fatalf("add_labels[%s] was allowed with task:write and moved the "+
-							"lifecycle stage %q -> %q", stageLabel(dest), start, after)
-					}
-					return
+					t.Fatalf("add_labels[%s] on a %s issue was allowed with task:write. "+
+						"The issue now names two terminal stages; whether the tiebreak "+
+						"winner moved is not the question", stageLabel(dest), start)
 				}
-				bypassCandidates++
+				gated++
 				requireDeniedFor(t, err, server.ScopeTaskClose,
 					fmt.Sprintf("add_labels[%s] on a %s issue", stageLabel(dest), start))
-				if after != start {
+
+				// The label state after refusal, not just the error: a denial
+				// that still wrote the label would be the whole finding again.
+				if after := f.issue.currentLabels(); !sameLabels(before, after) {
+					t.Fatalf("denied but the labels changed %v -> %v", before, after)
+				}
+				if after := f.lifecycleStage(t); after != start {
 					t.Fatalf("denied but the stage moved to %q anyway", after)
+				}
+
+				// DIFFERENTIAL. task:close, and nothing else, must permit it —
+				// otherwise this test passes just as well if the gate denied
+				// every label write.
+				if err := f.addLabels(withScope(server.ScopeTaskClose), stageLabel(dest)); err != nil {
+					t.Fatalf("add_labels[%s] with task:close was rejected (%v)",
+						stageLabel(dest), err)
+				}
+				if !containsLabel(f.issue.currentLabels(), stageLabel(dest)) {
+					t.Fatalf("add_labels[%s] with task:close was permitted but the label is "+
+						"not on the issue; labels %v", stageLabel(dest), f.issue.currentLabels())
 				}
 			})
 		}
@@ -770,14 +792,10 @@ func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T
 	if executed != 12 {
 		t.Fatalf("executed %d cells, want 12 (4 terminal stages, ordered pairs)", executed)
 	}
-	// Six of the twelve ordered pairs raise the precedence winner and are the
-	// cells that actually bypassed. Pinning the number keeps a future change
-	// that quietly stops gating them visible; pinning it WITHOUT this sentence
-	// would hide that the other six are free by design.
-	if bypassCandidates != 6 {
-		t.Fatalf("%d of 12 terminal->terminal pairs induced a stage change and were gated, "+
-			"want 6. Either the tiebreak order moved or the control stopped firing",
-			bypassCandidates)
+	if gated != 12 {
+		t.Fatalf("%d of 12 terminal->terminal pairs were gated, want 12. Six is the "+
+			"signature of a control that compares tiebreak winners instead of stage sets",
+			gated)
 	}
 }
 
@@ -1256,16 +1274,20 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
 				t.Fatalf("ListTasks: err=%v n=%d", err, len(tasks))
 			}
 
-			want := store.LifecycleStage(ctx, f.ms, tasks[0])
+			// The read-side set (t.Stage fallback) and the delta's before-set
+			// (IssueToPhaseStage fallback) are two different reconstructions of
+			// the same issue, and the gates sit next to each other in
+			// UpdateTask. They must give the same answer.
+			want := store.LifecycleStages(ctx, f.ms, tasks[0])
 			before, after := store.LabelDeltaLifecycleStages(ctx, f.ms, tasks[0], nil, nil)
-			if before != want {
-				t.Fatalf("LabelDeltaLifecycleStages reports before=%q but LifecycleStage says "+
-					"%q for the same task. The two readings of the issue must agree or the "+
+			if !store.SameStageSet(before, want) {
+				t.Fatalf("LabelDeltaLifecycleStages reports before=%v but LifecycleStages says "+
+					"%v for the same task. The two readings of the issue must agree or the "+
 					"control will charge a scope for a transition that is not happening",
 					before, want)
 			}
-			if before != after {
-				t.Fatalf("an EMPTY delta reported a transition %q -> %q", before, after)
+			if !store.SameStageSet(before, after) {
+				t.Fatalf("an EMPTY delta reported a transition %v -> %v", before, after)
 			}
 		})
 	}
