@@ -1008,7 +1008,30 @@ const SINK_BINDINGS = [
  *   R4  outside its import statement, neither identifier may appear in ANY
  *       position other than immediately called — `name(`;
  *   R5  every `unsafeHTML(…)` argument is a `renderMarkdown(…)` call AND
- *       NOTHING ELSE — see sinkArgumentIsSanitized.
+ *       NOTHING ELSE — see sinkArgumentIsSanitized;
+ *   R6  every relative import specifier resolves to a file this guard scans;
+ *   R7  no unicode/hex escape appears in code — identifiers must be spelled
+ *       literally.
+ *
+ * R6 and R7 exist because R1–R5 all assume two things they cannot themselves
+ * establish: that a name reaching the DOM comes from a file we looked at, and
+ * that `unsafeHTML` is spelled `unsafeHTML`. Both assumptions were false, and
+ * both mutations rendered attacker markup raw at the live sink with the suite
+ * green:
+ *
+ *   R6  export { unsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';
+ *       parked in `helper.test.ts` — excluded by isScannableSource, and so not
+ *       counted by EXPECTED_SOURCE_FILES either — then imported by the sink.
+ *       No rule fired: the sink file's own `unsafeHTML` was still perfect.
+ *   R7  const rawHtml = \u0075nsafeHTML;
+ *       TypeScript resolves the escape to the imported binding. `\bunsafeHTML\b`
+ *       cannot.
+ *
+ * R6 is the more important of the two. The `*.test.ts` exclusion is load-bearing
+ * for this file (it must be able to name the banned spellings in prose), so it
+ * cannot be removed; R6 instead denies the excluded region any path INTO the
+ * closed world. That is the general form: an unscanned file is only safe while
+ * nothing scanned imports it.
  *
  * R4 is the rule that generalises, and it is why this is not round 5's problem.
  * `const raw = unsafeHTML`, `const S = { raw: unsafeHTML }`, `const { unsafeHTML:
@@ -1029,7 +1052,24 @@ const SINK_BINDINGS = [
  * require editing this file, where a reviewer sees it, not adding a comment to a
  * component.
  */
-function sinkBindingViolations(rel: string, src: string): string[] {
+/**
+ * Candidate on-disk paths, web-root-relative, for a relative import specifier
+ * appearing in `fromRel`. TypeScript source imports carry a `.js` extension that
+ * resolves to `.ts` on disk, so the extension is re-derived rather than trusted.
+ */
+function resolveRelativeImport(fromRel: string, spec: string): string[] {
+  const base = join(dirname(fromRel), spec);
+  const stem = base.replace(/\.[cm]?jsx?$/, '');
+  const out: string[] = [];
+  for (const ext of ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']) {
+    out.push(stem + ext);
+    out.push(join(base, 'index' + ext));
+  }
+  out.push(base);
+  return out;
+}
+
+function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<string>): string[] {
   const bad: string[] = [];
   const withStrings = stripInertText(src, { strings: false });
   const code = stripInertText(src, { strings: true });
@@ -1089,6 +1129,27 @@ function sinkBindingViolations(rel: string, src: string): string[] {
           'same name all reach the sink under a name no scan in this file can follow.',
       );
     }
+  }
+
+  // R6
+  for (const [, spec] of withStrings.matchAll(/(?:\bfrom|\bimport|\brequire)\s*\(?\s*['"](\.[^'"]*)['"]/g)) {
+    if (!resolveRelativeImport(rel, spec).some((cand) => scanned.has(cand))) {
+      bad.push(
+        `${rel}: imports '${spec}', which does not resolve to any file this guard scans — ` +
+          'a binding that arrives from outside the scanned set can be the raw directive ' +
+          'under any name, and none of the rules above will see it',
+      );
+    }
+  }
+
+  // R7
+  const escapeLines = matchLines(outside, /\\[uxU]/);
+  if (escapeLines.length > 0) {
+    bad.push(
+      `${rel}:${escapeLines.join(',')}: contains a unicode or hex escape outside a string ` +
+        'literal — an escape lets an identifier be spelled so that the rules above cannot ' +
+        'match it. Write the name literally.',
+    );
   }
 
   return bad;
@@ -1165,6 +1226,10 @@ function sinkBinding(): void {
     }
   });
 
+  // Web-root-relative paths of every file this guard reads. R6 requires each
+  // relative import in a sink file to land in here.
+  const scannedRel = new Set(files.map((file) => relative(root, file)));
+
   // MECHANISM (a). Each required sink is read by explicit path, so a file that is
   // renamed, deleted, or rewritten into a form the tree-wide regexes no longer
   // match fails here instead of quietly leaving their results. See
@@ -1173,7 +1238,7 @@ function sinkBinding(): void {
   for (const rel of REQUIRED_SINKS) {
     check(`${rel} binds its markdown sink to the sanitizer`, () => {
       const src = readFileSync(join(root, rel), 'utf8');
-      const violations = sinkBindingViolations(rel, src);
+      const violations = sinkBindingViolations(rel, src, scannedRel);
       if (violations.length > 0) {
         throw new Error(`sink binding broken:\n      ${violations.join('\n      ')}`);
       }
@@ -1351,7 +1416,12 @@ function sinkBinding(): void {
     }
   });
 
-  // A minimal file that satisfies all four rules, used as the base for the
+  // The fixture is given a real path in the tree and checked against the real
+  // scanned set, so R6 is exercised against the same data the production files
+  // are, rather than against a hand-made stub that could drift.
+  const FIXTURE_REL = 'src/components/inspector/sound-fixture.ts';
+
+  // A minimal file that satisfies all seven rules, used as the base for the
   // mutation table below. It deliberately contains the HTML comment and the
   // security comment that used to turn the suite red.
   const SOUND_SINK_FILE = [
@@ -1370,7 +1440,7 @@ function sinkBinding(): void {
   ].join('\n');
 
   check('fixture: the sink-binding rules accept a correct sink file', () => {
-    const violations = sinkBindingViolations('<fixture>', SOUND_SINK_FILE);
+    const violations = sinkBindingViolations(FIXTURE_REL, SOUND_SINK_FILE, scannedRel);
     if (violations.length > 0) {
       throw new Error(`the sound fixture was rejected: ${violations.join(' | ')}`);
     }
@@ -1455,6 +1525,20 @@ function sinkBinding(): void {
         'export class C extends LitElement {',
     },
     {
+      label: 'V8 directive spelled with a unicode escape in the identifier',
+      find: 'export class C extends LitElement {',
+      replace:
+        'const rawHtml = \\u0075nsafeHTML;\n' +
+        'export class C extends LitElement {',
+    },
+    {
+      label: 'V9 alias imported from a file the scan does not cover',
+      find: "import { renderMarkdown } from '../../util/markdown.js';",
+      replace:
+        "import { renderMarkdown } from '../../util/markdown.js';\n" +
+        "import { rawHtml } from './helper.test.js';",
+    },
+    {
       label: 'V4 sanitizer wrapper dropped at the sink',
       find: '${unsafeHTML(renderMarkdown(this.body))}',
       replace: '${unsafeHTML(this.body)}',
@@ -1490,7 +1574,7 @@ function sinkBinding(): void {
         continue;
       }
       const mutated = SOUND_SINK_FILE.replace(find, replace);
-      if (sinkBindingViolations('<fixture>', mutated).length === 0) {
+      if (sinkBindingViolations(FIXTURE_REL, mutated, scannedRel).length === 0) {
         survived.push(label);
       }
     }
