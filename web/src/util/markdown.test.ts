@@ -765,10 +765,12 @@ function sinkBinding(): void {
 // total, so the total is pinned. Update this deliberately when adding or
 // removing a check; never to make a red suite go green.
 //
-// Note for anyone cross-checking this by grep: the checks generated from
-// REQUIRED_SINKS are emitted in a loop, so `grep -c "  check("` no longer equals
-// this number. The runtime count is the authoritative one, and it is what the
-// pin below compares against.
+// Note for anyone cross-checking this by grep: static and runtime counts no
+// longer agree, and that is expected. There are 53 literal call sites
+// (`grep -cE '^\s+check\('`) but 54 checks at runtime, because the REQUIRED_SINKS
+// checks are emitted from a loop — one call site, one check per required sink.
+// The runtime count is the authoritative one and is what the pin below compares
+// against. Keep this arithmetic up to date: 53 + (REQUIRED_SINKS.length - 1) = 54.
 const EXPECTED_CHECKS = 54;
 
 function run(): void {
