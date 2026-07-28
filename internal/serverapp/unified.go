@@ -41,6 +41,59 @@ type UnifiedHandlerOptions struct {
 	BaseURL string
 }
 
+// cspPolicy is the Content-Security-Policy served with the dashboard SPA.
+//
+// The dashboard and the gRPC-web API share one origin, and that origin holds a
+// long-lived API token in localStorage, so any script execution in this
+// document is credential theft rather than defacement. script-src 'self' makes
+// javascript: URLs and injected inline handlers non-exploitable; form-action
+// 'none' independently kills credential-phishing forms.
+//
+// Directive choices that are not obvious, all measured against this tree:
+//   - script-src carries a sha256 hash rather than 'unsafe-inline'.
+//     web/index.html has one hand-written inline bootstrap script that applies
+//     the stored theme before first paint; Vite copies it into dist verbatim.
+//     TestCSPCoversInlineScriptsInEmbeddedIndex recomputes the hash from the
+//     embedded index.html so editing that script fails the test suite instead
+//     of silently breaking the theme in the browser.
+//   - style-src needs 'unsafe-inline' for Lit adoptedStyleSheets and Shoelace.
+//   - img-src keeps https: because task descriptions render user-authored
+//     markdown, which may legitimately reference remote images.
+//   - connect-src 'self' is sufficient: the client never opens a WebSocket
+//     (the server enables grpc-web websockets, but nothing in web/src uses it).
+//   - Shoelace icons need no CDN allowance: the base path is set to a local
+//     directory and the icons are vendored into dist by vite-plugin-static-copy.
+const cspPolicy = "default-src 'self'; " +
+	"script-src 'self' 'sha256-aOXoiAodnrqbksBDmExDnXDeZYSJn1hg9f3uU5NUqgs='; " +
+	"style-src 'self' 'unsafe-inline'; " +
+	"img-src 'self' data: https:; " +
+	"media-src 'none'; " +
+	"object-src 'none'; " +
+	"base-uri 'none'; " +
+	"frame-ancestors 'none'; " +
+	"form-action 'none'; " +
+	"connect-src 'self'"
+
+// securityHeaders wraps the static asset handler with the dashboard CSP. A CSP
+// governs documents and the subresources they load, so it is meaningful on the
+// SPA and inert on gRPC-web responses; it is applied here rather than to the
+// whole mux for that reason.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", cspPolicy)
+		setBaseSecurityHeaders(w)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// setBaseSecurityHeaders sets the headers that are worth having on every
+// response the mux serves, API routes included. nosniff in particular matters
+// on API responses, where a content-type confusion is otherwise exploitable.
+func setBaseSecurityHeaders(w http.ResponseWriter) {
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+}
+
 func UnifiedHandler(grpcServer *grpc.Server, assets http.FileSystem, opts ...UnifiedHandlerOptions) http.Handler {
 	wrappedGrpc := grpcweb.WrapServer(grpcServer,
 		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
@@ -98,16 +151,19 @@ func UnifiedHandler(grpcServer *grpc.Server, assets http.FileSystem, opts ...Uni
 
 	mux.Handle("/farmtable.v1/", grpcWebHandler)
 	mux.Handle("/farmtable.v1.FarmTableService/", grpcWebHandler)
-	mux.Handle("/", http.FileServer(assets))
+	mux.Handle("/", securityHeaders(http.FileServer(assets)))
 
 	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if r.ProtoMajor == 2 &&
 			strings.HasPrefix(contentType, "application/grpc") &&
 			!strings.HasPrefix(contentType, "application/grpc-web") {
+			// Native gRPC (not gRPC-web): the response carries protocol
+			// metadata, not a browser-interpreted body, so it is left alone.
 			grpcServer.ServeHTTP(w, r)
 			return
 		}
+		setBaseSecurityHeaders(w)
 		mux.ServeHTTP(w, r)
 	}), &http2.Server{})
 }
