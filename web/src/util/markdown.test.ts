@@ -2757,13 +2757,41 @@ const RAW_DIRECTIVES = [
  * This is an enumeration of KNOWN SINKS. It can only catch the forms named here
  * and it must be revisited whenever this codebase adopts a new raw-injection
  * API. Do not read a green result as "no raw sink exists" — read it as "none of
- * these eight forms is present in the files that were scanned".
+ * these twelve forms is present in the files that were scanned".
  *
  * Known residue, recorded deliberately rather than chased: `Object.assign(el, {
  * innerHTML: x })`, a computed key (`el[k] = x` where `k` is built at runtime),
  * and any raw-write API not on this list all pass. Widening the list is the
  * treadmill this guard is on; the closed-world half plus the type-aware-lint
- * follow-up is the route off it, not a ninth pattern.
+ * follow-up is the route off it, not a thirteenth pattern.
+ *
+ * ── ROUND 10: FOUR ENTRIES ADDED, AND THIS IS TAXONOMY, NOT A CLASS FIX ──
+ *
+ * `[MEASURED-BY-audit-195-r9, M4]`, re-measured here: a non-sink component doing
+ * `new DOMParser().parseFromString(this.heading, 'text/html')` + `adoptNode` +
+ * `appendChild` was GREEN, while the same-file same-harness positive control
+ * (`.innerHTML =`) was RED — a real gap in this enumeration, not a broken probe.
+ * So `parseFromString(`, `parseHTMLUnsafe(`, `.setHTML(` and `XSLTProcessor(`
+ * are now listed.
+ *
+ * SAY PLAINLY WHAT THAT BOUGHT: four more spellings on a closed list. It moves
+ * the list from eight to twelve and moves the CLASS not at all — the very next
+ * unlisted raw-parse API is GREEN again by exactly the same argument that made
+ * `parseFromString` green. The paragraph above is still the honest statement of
+ * where this ends, and adding these entries is not evidence against it. They are
+ * here because the four named forms are cheap to name and were demonstrated
+ * missing, not because the treadmill has been escaped.
+ *
+ * Two of the four are also NOT raw sinks on their own, and the list does not
+ * pretend otherwise: `parseFromString` and `XSLTProcessor` build a detached
+ * document, which only reaches the page if something adopts and inserts it. They
+ * are banned as a chokepoint — outside `renderMarkdown` this codebase has no
+ * legitimate use for either — rather than as a proof that a use is exploitable.
+ * `.setHTML(` is the opposite case: it is the sanitizing sibling of
+ * `setHTMLUnsafe`, so it is banned for OWNERSHIP, not danger. A second sanitizer
+ * in the tree is exactly the "two ways to render user HTML" state mechanism (c)
+ * exists to deny. `\.setHTML` carries the dot deliberately, so it does not also
+ * match `setHTMLUnsafe(`, which has its own entry and its own fixture.
  *
  * The operator class is `(?:\+|\|\||&&|\?\?)?=` because `\s*\+?=` admitted `+=`
  * but not `||=`, `&&=` or `??=`. The trailing `(?!=)` keeps `el.innerHTML ===
@@ -2779,7 +2807,8 @@ const RAW_DIRECTIVES = [
  *
  * VACUITY: every pattern here is exercised directly by BANNED_SINK_POSITIVES.
  * Before that table existed the only fixtures touching this list were two
- * NEGATIVE controls, so all eight patterns were untested detection logic —
+ * NEGATIVE controls, so all of the patterns then present were untested detection
+ * logic —
  * measured, the whole list could be emptied with the suite green at 61 checks.
  * That is the same defect this file had already diagnosed and fixed three times
  * elsewhere; `directiveIndirectionOffenders` got INDIRECTION_EVASIONS, the sink
@@ -2798,6 +2827,13 @@ const BANNED_SINKS: { name: string; pattern: RegExp }[] = [
   { name: 'createContextualFragment', pattern: /createContextualFragment\s*\(/ },
   { name: 'lit unsafeSVG directive', pattern: /unsafeSVG\s*\(/ },
   { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\s*\(/ },
+  // Round 10, audit F4. Enumeration extension — see the docblock above for what
+  // this does and does not buy, and for why two of the four are chokepoints
+  // rather than raw sinks.
+  { name: 'DOMParser parseFromString', pattern: /parseFromString\s*\(/ },
+  { name: 'parseHTMLUnsafe', pattern: /parseHTMLUnsafe\s*\(/ },
+  { name: 'Sanitizer API setHTML', pattern: /\.setHTML\s*\(/ },
+  { name: 'XSLTProcessor', pattern: /XSLTProcessor\s*\(/ },
 ];
 
 /**
@@ -4098,6 +4134,12 @@ function sinkBinding(): void {
     // T3: a line still carrying the removed opt-out marker is ordinary source.
     // If someone re-honours the marker, this entry goes red.
     "const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line",
+    // Round 10, audit F4. One per added pattern. The first is the exact shape
+    // the audit demonstrated GREEN at r9 head.
+    "const doc = new DOMParser().parseFromString(this.heading, 'text/html');",
+    'const doc = Document.parseHTMLUnsafe(body);',
+    'el.setHTML(body, { sanitizer: new Sanitizer() });',
+    'const proc = new XSLTProcessor();',
   ];
 
   // BOTH QUANTIFIERS, AND THE SECOND IS THE ONE THAT WAS MISSING.
@@ -4118,8 +4160,8 @@ function sinkBinding(): void {
   // rather than papered over.
   check('fixture: every banned raw-HTML sink form is actually detected', () => {
     const problems: string[] = [
-      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 15),
-      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 8),
+      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 19),
+      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 12),
     ].filter((v): v is string => v !== null);
 
     const views = BANNED_SINK_POSITIVES.map((fixture) => ({
@@ -4140,6 +4182,22 @@ function sinkBinding(): void {
         );
       }
     }
+    // The two quantifiers above are both satisfied if a pattern matches MORE than
+    // it should, so state the one overlap the r10 additions create. `.setHTML(`
+    // and `setHTMLUnsafe(` are separate entries with separate fixtures, and the
+    // dot in the first is what keeps them separate; drop it and `setHTML` becomes
+    // a prefix of `setHTMLUnsafe`, one entry starts answering for both, and the
+    // per-pattern coverage loop above goes on passing.
+    const SET_HTML = BANNED_SINKS.find(({ name }) => name === 'Sanitizer API setHTML');
+    if (SET_HTML === undefined) {
+      problems.push("the 'Sanitizer API setHTML' entry is gone");
+    } else if (SET_HTML.pattern.test('el.setHTMLUnsafe(body);')) {
+      problems.push(
+        `the '${SET_HTML.name}' pattern also matches setHTMLUnsafe, so the two entries no ` +
+          'longer discriminate and either could be deleted unnoticed',
+      );
+    }
+
     if (problems.length > 0) {
       throw new Error(`banned sink no longer detected: ${problems.join(' | ')}`);
     }
