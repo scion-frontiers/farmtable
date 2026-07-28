@@ -62,6 +62,26 @@ export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
  * origin into an allowed scheme. Without a base both inputs throw and are
  * rejected, which matches the server exactly.
  *
+ * WHAT THE NO-BASE PARSE DOES AND DOES NOT GUARANTEE. The sink is an `<a>` in a
+ * document, and a document ALWAYS resolves an href against its base URL. So the
+ * decision here is made on a different URL than the browser will resolve, and
+ * under WHATWG rules an input whose scheme equals the base's scheme is parsed as
+ * a RELATIVE reference. That is safe for the SCHEME -- a base-relative
+ * resolution inherits the page's http(s) scheme, so it can never escalate, and
+ * that is the property this function exists to protect. It is NOT accurate for
+ * the HOST. Measured at a real JSDOM anchor:
+ *
+ *   new URL('http:/example.com').hostname                    === 'example.com'
+ *   <a href="http:/example.com"> on an HTTP dashboard         -> the DASHBOARD's host
+ *   <a href="http:/example.com"> on an HTTPS dashboard        -> 'example.com'
+ *
+ * Do not use this function's parse to reason about open-redirect targets. The
+ * fixtures whose host is base-dependent are marked `"base_dependent": true` in
+ * testdata/url-scheme-cases.json, and the marker is itself checked --
+ * testBaseDependenceMarkersAreAccurate() in safe-url.test.ts resolves every
+ * fixture at two document bases and fails if a marker is wrong in either
+ * direction.
+ *
  * The returned value is the ORIGINAL string, not `URL.href`. `new URL()`
  * normalises its input (it strips tab/newline characters, lowercases the host
  * and can percent-encode), and we only want to make a keep/reject decision here,
@@ -94,13 +114,33 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   // allow-list above can arrive here with hostname === ''. Measured: of every
   // empty-host shape tried, zero reach this line.
   //
-  // It is NOT dead weight, because it is what makes widening SAFE_SCHEMES
-  // fail closed instead of fail open: every script-bearing scheme
-  // (javascript:, data:, vbscript:, blob:, mailto:) is NON-special and parses
-  // with hostname === '', so if one is ever added to the allow-list by mistake
-  // this line still refuses it. testHostGuardIsAFailClosedBackstop() in
+  // WHAT IT IS AND IS NOT WORTH. An earlier version of this comment said it
+  // "makes widening SAFE_SCHEMES fail closed instead of fail open: every
+  // script-bearing scheme (javascript:, data:, vbscript:, blob:, mailto:) is
+  // NON-special and parses with hostname === '', so if one is ever added to the
+  // allow-list by mistake this line still refuses it."
+  //
+  // The first half is a correct measurement of the AUTHORITY-LESS form. The
+  // conclusion drawn from it is false, because the authority form of the same
+  // schemes parses with a hostname. Measured:
+  //
+  //   new URL('javascript:alert(1)').hostname            === ''
+  //   new URL('javascript://evil.com/%0aalert(1)').hostname === 'evil.com'
+  //
+  // and the second one EXECUTES: `//evil.com/` is a JavaScript line comment and
+  // %0a is the newline that ends it, so the browser runs `alert(1)`. Every one
+  // of the five schemes named above behaves the same way with `//host` (all
+  // measured). So if javascript: were ever added to SAFE_SCHEMES, this line
+  // would refuse `javascript:alert(1)` and wave `javascript://evil.com/%0a...`
+  // straight through. It is a partial backstop, not a fail-closed one.
+  //
+  // Kept anyway -- it costs nothing and closes the commonest shape -- but the
+  // thing that actually makes widening SAFE_SCHEMES fail closed is the
+  // allow-list being an allow-list. testHostGuardIsAFailClosedBackstop() in
   // safe-url.test.ts goes red the moment a non-special scheme is allow-listed,
-  // i.e. the moment this branch stops being unreachable.
+  // i.e. the moment this branch stops being unreachable, and it now carries the
+  // `javascript://evil.com/%0aalert(1)` fixture so the limit above is on the
+  // record next to the guard rather than in a commit message.
   //
   // Note the earlier comment here claimed this rejected 'http:/\/\evil.com'.
   // That was wrong: the WHATWG parser reads the backslashes as slashes and

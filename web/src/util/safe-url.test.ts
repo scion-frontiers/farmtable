@@ -86,15 +86,27 @@ function testRejectsUnsafeSchemes(): void {
     // outright, or widening it to include javascript:/data:/vbscript:, left
     // the suite GREEN.
     //
-    // These four are WHATWG "special" schemes: they parse successfully AND
-    // yield a non-empty hostname, so the host check cannot reject them. The
-    // allow-list is the only thing that does.
+    // Every row below this point parses successfully AND yields a non-empty
+    // hostname, so the host check cannot reject any of them. The allow-list is
+    // the only thing that does.
+    //
+    // The first four get there by being WHATWG "special" schemes; the last two
+    // by carrying an authority on a NON-special scheme, which is the case the
+    // host guard's docblock used to say could not happen.
     ['ftp', 'ftp://evil.com/x'],
     ['ws', 'ws://evil.com/x'],
     ['wss', 'wss://evil.com/x'],
     // Also distinguishes membership from a prefix test: a scheme that starts
     // with "http" but is not "http". Guards against `startsWith('http')`.
     ['httpx prefix not membership', 'httpx://evil.com/x'],
+    // The authority form of a script-bearing scheme. Unlike every other
+    // javascript:/data: row above, this one parses with hostname 'evil.com',
+    // so safeHref's hostname==='' guard does NOT reject it -- the allow-list
+    // is the only thing that does. In a browser `//evil.com/` is a line
+    // comment and %0a ends it, so alert(1) runs. See
+    // testHostGuardIsAFailClosedBackstop.
+    ['javascript with an authority', 'javascript://evil.com/%0aalert(1)'],
+    ['data with an authority', 'data://evil.com/x'],
   ];
 
   for (const [name, input] of rejected) {
@@ -134,12 +146,22 @@ function testAcceptsHTTPAndHTTPS(): void {
  * guard therefore leaves every behavioural test green, and no fixture can
  * change that -- unreachable code has no behaviour to assert on.
  *
- * What IS pinnable is the condition under which the guard becomes live. Every
- * script-bearing scheme (javascript:, data:, vbscript:, blob:, mailto:) is
- * NON-special and parses with hostname === '', so the guard is precisely what
- * makes an accidental widening of SAFE_SCHEMES fail closed. This test fails
- * the moment a non-special scheme is added to the allow-list -- i.e. the
- * moment the guard stops being unreachable and starts carrying weight.
+ * What IS pinnable is the condition under which the guard becomes live: a
+ * non-special scheme in SAFE_SCHEMES. This test fails the moment one is added
+ * -- i.e. the moment the guard stops being unreachable.
+ *
+ * HOW MUCH THE GUARD WOULD THEN BE WORTH, which an earlier version of this
+ * docblock overstated. It said "every script-bearing scheme (javascript:,
+ * data:, vbscript:, blob:, mailto:) is NON-special and parses with
+ * hostname === '', so the guard is precisely what makes an accidental widening
+ * of SAFE_SCHEMES fail closed". True of the authority-less form, false of the
+ * authority form, and the conclusion does not survive the difference:
+ * `javascript://evil.com/%0aalert(1)` parses with hostname 'evil.com' and
+ * executes, because `//evil.com/` is a JS line comment and %0a ends it. The
+ * guard would let it past. It closes the common shape, not the class.
+ *
+ * That is measured below rather than asserted in prose, and it is measured for
+ * all five schemes, not just javascript:.
  */
 function testHostGuardIsAFailClosedBackstop(): void {
   assert(SAFE_SCHEMES.size > 0, 'SAFE_SCHEMES is empty; this test would be vacuous');
@@ -179,6 +201,36 @@ function testHostGuardIsAFailClosedBackstop(): void {
     'positive control: a non-special scheme should yield hostname === "", which is the ' +
       'condition the guard under test exists to catch',
   );
+
+  // THE LIMIT OF THE GUARD, measured rather than argued. Each of these is a
+  // script-bearing scheme in its AUTHORITY form, and each yields a non-empty
+  // hostname -- so the hostname === '' guard would not stop any of them if the
+  // scheme were allow-listed by mistake.
+  const authorityForms: ReadonlyArray<readonly [string, string]> = [
+    ['javascript', 'javascript://evil.com/%0aalert(1)'],
+    ['data', 'data://evil.com/x'],
+    ['vbscript', 'vbscript://evil.com/x'],
+    ['blob', 'blob://evil.com/x'],
+    ['mailto', 'mailto://evil.com/x'],
+  ];
+  for (const [name, input] of authorityForms) {
+    assert(
+      new URL(input).hostname !== '',
+      `${name}: ${input} was expected to parse with a NON-empty hostname. If it now yields ` +
+        "'', the host guard has become a genuine fail-closed backstop for this scheme and " +
+        'the comments in safe-url.ts and above should be corrected in the other direction.',
+    );
+  }
+
+  // And the whole point of the exercise: the allow-list, not the host guard, is
+  // what rejects it today.
+  assert(
+    safeHref('javascript://evil.com/%0aalert(1)') === undefined,
+    'safeHref must reject javascript://evil.com/%0aalert(1). This is the input that shows ' +
+      'the hostname guard is not a fail-closed backstop: it parses with hostname ' +
+      "'evil.com', so only the scheme allow-list stands between it and an href -- and " +
+      'in a browser `//evil.com/` is a comment, %0a ends it, and alert(1) runs.',
+  );
 }
 
 interface URLSchemeCase {
@@ -186,7 +238,16 @@ interface URLSchemeCase {
   readonly input: string;
   readonly server: 'accept' | 'reject';
   readonly client: 'accept' | 'reject';
+  readonly base_dependent?: boolean;
   readonly note?: string;
+}
+
+function loadSchemeCases(): readonly URLSchemeCase[] {
+  const path = join(repoRoot(), 'testdata', 'url-scheme-cases.json');
+  const doc = JSON.parse(readFileSync(path, 'utf8')) as { cases?: readonly URLSchemeCase[] };
+  const cases = doc.cases ?? [];
+  assert(cases.length > 0, `${path} contains no cases; the tests reading it would be vacuous`);
+  return cases;
 }
 
 /**
@@ -213,10 +274,7 @@ interface URLSchemeCase {
  */
 function testSharedFixturesMatchClientColumn(): void {
   const path = join(repoRoot(), 'testdata', 'url-scheme-cases.json');
-  const doc = JSON.parse(readFileSync(path, 'utf8')) as { cases?: readonly URLSchemeCase[] };
-  const cases = doc.cases ?? [];
-
-  assert(cases.length > 0, `${path} contains no cases; this test would be vacuous`);
+  const cases = loadSchemeCases();
 
   let divergent = 0;
   for (const c of cases) {
@@ -243,6 +301,87 @@ function testSharedFixturesMatchClientColumn(): void {
     `${path} records no server/client divergences. safe-url.ts's comment says the two guards ` +
       'disagree and points here for the evidence; if that is no longer true, update the comment ' +
       'deliberately rather than letting this test pass over an empty set.',
+  );
+}
+
+/**
+ * Makes the `"base_dependent"` markers in testdata/url-scheme-cases.json a
+ * checked fact instead of an annotation.
+ *
+ * WHY THE MARKER EXISTS. safeHref decides on `new URL(raw)` with no base. The
+ * sink is an `<a>` in a document, which always resolves against the document
+ * base, and under WHATWG rules an input whose scheme equals the base's scheme is
+ * parsed as a RELATIVE reference. So for some inputs the host safeHref reasoned
+ * about is not the host the browser navigates to, and several fixture notes used
+ * to state those hosts as flat facts ('the browser navigates there'). Anyone
+ * later reasoning about open-redirect risk from a note would reason from the
+ * wrong host.
+ *
+ * WHAT IS MEASURED. Each input is set as the href of a real anchor in two real
+ * JSDOM documents, one based at an http origin and one at an https origin, and
+ * the resolved hostnames are compared. `"base_dependent": true` must be present
+ * exactly when they differ. Both directions fail: an unmarked case that turns
+ * out to be base-dependent, and a marker on a case that is not.
+ *
+ * This is deliberately NOT a check that the marked set has some expected size --
+ * a count would survive marking the wrong six cases.
+ */
+function testBaseDependenceMarkersAreAccurate(): void {
+  const HTTPS_BASE = 'https://dash.internal.test/app/';
+  const HTTP_BASE = 'http://localhost:8080/app/';
+
+  // Separate short-lived documents; deliberately not domEnvironment(), whose
+  // window is a singleton fixed at one base and shared with the component tests.
+  function hostAt(base: string, raw: string): string {
+    const dom = new JSDOM('<a id="probe"></a>', { url: base });
+    const a = dom.window.document.getElementById('probe')!;
+    a.setAttribute('href', raw);
+    return (a as HTMLAnchorElement).hostname;
+  }
+
+  // Positive control 1: the probe must resolve relative references against the
+  // base at all. Without this every "not base-dependent" verdict below could be
+  // an anchor that ignores its document.
+  assert(
+    hostAt(HTTPS_BASE, '/x') === 'dash.internal.test' && hostAt(HTTP_BASE, '/x') === 'localhost',
+    'positive control: a root-relative href must resolve against the document base; ' +
+      `got ${hostAt(HTTPS_BASE, '/x')} and ${hostAt(HTTP_BASE, '/x')}`,
+  );
+  // Positive control 2: an absolute URL must be unaffected by the base, or every
+  // case would look base-dependent.
+  assert(
+    hostAt(HTTPS_BASE, 'https://example.com/y') === 'example.com' &&
+      hostAt(HTTP_BASE, 'https://example.com/y') === 'example.com',
+    'positive control: an absolute URL must resolve to its own host under either base',
+  );
+
+  let marked = 0;
+  for (const c of loadSchemeCases()) {
+    const https = hostAt(HTTPS_BASE, c.input);
+    const http = hostAt(HTTP_BASE, c.input);
+    const measured = https !== http;
+    const declared = c.base_dependent === true;
+    if (declared) marked += 1;
+    assert(
+      measured === declared,
+      `fixture ${JSON.stringify(c.name)} (${JSON.stringify(c.input)}): resolved host is ` +
+        `${JSON.stringify(https)} on an https base and ${JSON.stringify(http)} on an http one, ` +
+        `so base_dependent should be ${measured}, but the fixture says ${declared}. ` +
+        (measured
+          ? 'Add "base_dependent": true and say in the note that the host in it is safeHref\'s ' +
+            'base-less parse, not the browser\'s.'
+          : 'Remove the marker: a marker on a case that is not base-dependent teaches the next ' +
+            'reader to distrust the ones that are.'),
+    );
+  }
+
+  // Anti-vacuity: if nothing is marked, the loop above is 42 assertions that
+  // "false === false" and the whole apparatus proves nothing.
+  assert(
+    marked > 0,
+    'no fixture is marked base_dependent. The property is real -- http:/example.com resolves ' +
+      "to the dashboard's own host on an http dashboard -- so an empty marked set means the " +
+      'markers were dropped, not that the problem went away.',
   );
 }
 
@@ -482,6 +621,7 @@ async function run(): Promise<void> {
   testAcceptsHTTPAndHTTPS();
   testHostGuardIsAFailClosedBackstop();
   testSharedFixturesMatchClientColumn();
+  testBaseDependenceMarkersAreAccurate();
   await testPayloadNeverReachesHrefAttribute();
   await testGuardHoldsForEveryItemInAList();
   testExternalAnchorsKeepTargetBlank();
