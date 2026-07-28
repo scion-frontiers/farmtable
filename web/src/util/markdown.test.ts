@@ -2875,7 +2875,7 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
   //   this rule over `withStrings` (strings KEPT)   -> GREEN. Neither sink file
   //     has an escape inside a string, so the per-file half cannot tell the two
   //     views apart on today's tree. A real gap, recorded rather than hidden.
-  //   the TREE-WIDE half over `code` (strings KEPT) -> RED, on markdown.ts's
+  //   the TREE-WIDE half over `withStrings` (strings KEPT) -> RED, on markdown.ts's
   //     '☑\uFE0E'. That is the positive control for the view choice, and it comes
   //     from a file the per-file half never reads.
   //
@@ -3156,7 +3156,7 @@ function fixtureTableViolation(
  * tripwire — but it removes the one rule whose absence a scope shrink could
  * convert directly into a working bypass.
  *
- * VIEW: `strings: true`. The tree-wide `scanned` view keeps string contents,
+ * VIEW: `strings: true`. The tree-wide `scanned[].withStrings` view keeps string contents,
  * and markdown.ts legitimately contains `'︎'` — written as an escape on
  * purpose, because the literal character is invisible in source. A rule that
  * red-lit that is a rule that gets deleted. Blanking strings is also the
@@ -3568,23 +3568,32 @@ function sinkBinding(): void {
     assertTreeWideScanSound('mechanism (c), sanitizer ownership', scan);
   });
 
-  // Comment-stripped view of every scanned file, computed once. `strings: false`
-  // keeps module specifiers and quoted property keys intact for the tree-wide
-  // patterns that need them. `codeNoStrings` is the same file with string
-  // contents blanked too — only the promoted R7 uses it, and it needs that view
-  // rather than this one; see escapeInCodeOffenders.
+  // Comment-stripped view of every scanned file, computed once. `withStrings`
+  // (`strings: false`) keeps module specifiers and quoted property keys intact
+  // for the tree-wide patterns that need them. `codeNoStrings` is the same file
+  // with string contents blanked too — only the promoted R7 uses it, and it
+  // needs that view rather than this one; see escapeInCodeOffenders.
+  //
+  // THE FIRST FIELD WAS CALLED `code` UNTIL ROUND 10, and `code` names the
+  // OPPOSITE view four hundred lines up: in `sinkBindingViolations` it is the
+  // strings-BLANKED text and `withStrings` is the strings-kept one. Two scopes,
+  // one name, two contradictory meanings — in a file where the T-8 finding was
+  // itself a mislabelled view, and where a comment below this one described "the
+  // tree-wide half over `code` (strings KEPT)" while the nearest `code` in scope
+  // had them blanked. Renamed to match `sinkBindingViolations`, so `withStrings`
+  // means strings-kept everywhere and `code` never means strings-kept anywhere.
   const scanned = files.map((file) => {
     const src = readFileSync(file, 'utf8');
     return {
       rel: relative(root, file),
-      code: stripInertText(src, { strings: false }),
+      withStrings: stripInertText(src, { strings: false }),
       codeNoStrings: stripInertText(src, { strings: true }),
     };
   });
 
   const sinks: { file: string; arg: string }[] = [];
-  for (const { rel, code } of scanned) {
-    for (const arg of callArguments(code, 'unsafeHTML')) {
+  for (const { rel, withStrings } of scanned) {
+    for (const arg of callArguments(withStrings, 'unsafeHTML')) {
       sinks.push({ file: rel, arg });
     }
   }
@@ -3603,7 +3612,7 @@ function sinkBinding(): void {
   // rather than failing either. See directiveIndirectionOffenders.
   check('tripwire: no file reaches a raw-HTML directive under another name', () => {
     const scan = scanTreeWide(
-      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      scanned.map(({ rel, withStrings }) => ({ rel, view: withStrings })),
       'const rawHtml = unsafeHTML;',
       directiveIndirectionOffenders,
     );
@@ -3654,7 +3663,7 @@ function sinkBinding(): void {
   // until this round. See dynamicImportSpecifierOffenders.
   check('tripwire: every dynamic import specifier is a plain quoted literal', () => {
     const scan = scanTreeWide(
-      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      scanned.map(({ rel, withStrings }) => ({ rel, view: withStrings })),
       "const m = await import('dompur' + 'ify');",
       dynamicImportSpecifierOffenders,
     );
@@ -3682,7 +3691,7 @@ function sinkBinding(): void {
   // above. See BANNED_SINKS for the scope and — importantly — the limits.
   check('tripwire: no listed raw-HTML sink other than unsafeHTML is present', () => {
     const scan = scanTreeWide(
-      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      scanned.map(({ rel, withStrings }) => ({ rel, view: withStrings })),
       'document.write(body);',
       (rel, view) =>
         BANNED_SINKS.filter(({ pattern }) => pattern.test(view)).map(
@@ -4151,14 +4160,29 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Twenty-one is `grep -c "^      fixtureTableViolation('"`. The indentation is
-  // load-bearing and this is the second version of the recipe: the first said
-  // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
-  // check's own body, which is off by one because THIS COMMENT contains the
-  // string it greps for. A count recipe that counts itself is the same defect as
-  // a rule derived from the thing it checks, three lines from where this file
-  // says so. The anchored form matches only the twenty-one calls that sit
-  // inside a `missed` array literal, which is every real table and nothing else.
+  // Twenty-one is `grep -c "^      fixtureTableViolation('"`. THE SIX-SPACE
+  // ANCHOR IS LOAD-BEARING: it matches only the calls that sit inside a
+  // violations array literal, which is every real table and nothing else, and —
+  // the part that matters — it does not match this comment, so the recipe does
+  // not count itself.
+  //
+  // An unanchored `grep -c` DOES count itself, and this file has now demonstrated
+  // that twice. Round 9 replaced the unanchored recipe and explained that it was
+  // "off by one because THIS COMMENT contains the string it greps for" — while
+  // spelling the grepped string a second time in the act of saying so, which made
+  // the sentence's own magnitude wrong. Measured before that second spelling was
+  // deleted: unanchored 27, minus the four sentinel calls in this check's body
+  // 23, against a true 21. OFF BY TWO, both extra hits being the two prose
+  // spellings. The correction re-created the defect it documented, at double the
+  // stated magnitude, three lines from where this file says a rule must not be
+  // derived from the thing it checks.
+  //
+  // The unanchored form is therefore no longer written out here, and the residue
+  // is stated rather than hidden: one prose spelling is unavoidable, because the
+  // line above has to quote the anchored recipe. Unanchored is 26 on this tree
+  // and 26 - 4 = 22 against a true 21 — still off by one, which is why the
+  // unanchored recipe is not the one to use. The anchored form is exact because
+  // the six-space anchor excludes every comment line, including that one.
   //
   // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL, the
   // unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS and COUNT_PIN_DELTAS.
