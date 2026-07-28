@@ -1227,6 +1227,78 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
   return offenders;
 }
 
+/**
+ * MECHANISM (c): sanitizer ownership. R8.
+ *
+ * R1–R7 are all rules about IDENTIFIERS AND CALL SHAPE. They prove that the sink
+ * calls the sanitizer. They do not prove that the sanitizer still sanitizes, and
+ * that is a different axis entirely. This mutation of ft-inspector-comments.ts
+ * left the real sink byte-identical, satisfied every one of R1–R7 — the import
+ * unaliased from the one permitted module, the name appearing nowhere but
+ * immediately called, the sole argument to unsafeHTML — and rendered
+ * `<img src=x onerror=alert(1)><script>alert(2)</script>` completely raw:
+ *
+ *   import DOMPurify from 'dompurify';
+ *   DOMPurify.addHook('uponSanitizeElement',   (_n, d) => { d.allowedTags[d.tagName] = true; });
+ *   DOMPurify.addHook('uponSanitizeAttribute', (_n, d) => { d.forceKeepAttr = true; });
+ *
+ * It is a module-level side effect in a component the app imports, so it runs on
+ * load. The behavioural checks in this file never see it: they import
+ * util/markdown.js directly and never load the component.
+ *
+ * The defect class is the one this whole issue keeps rediscovering — a check
+ * derived from the thing it is checking cannot falsify it. R1–R7 read the call
+ * graph, and the call graph is exactly what this attack leaves intact.
+ *
+ * R8  Across the scanned set, the sanitizer's own dependencies may be imported
+ *     by exactly one file: the sanitizer. Any other scanned file naming either
+ *     specifier is a violation.
+ *
+ * Stated as ownership of the IMPORT, deliberately not as a ban on `addHook`.
+ * `setConfig`, `removeHook`, `removeAllHooks`, `clearConfig` and direct property
+ * assignment are all equivalent, and enumerating them is the treadmill this
+ * round exists to get off. A file that cannot name the module cannot reach its
+ * configuration by any method name, present or future.
+ *
+ * The codebase already understood the sibling hazard and said so at
+ * util/markdown.ts — "A private Marked instance keeps this off the shared
+ * `marked` singleton" — but DOMPurify's default export IS the shared singleton
+ * and had no equivalent protection. `marked` is listed here anyway: the private
+ * instance is a property of how markdown.ts is written today, and R8 is what
+ * keeps it from being quietly undone from another file.
+ *
+ * Matching is on the SPECIFIER, not on import syntax, so static, side-effect,
+ * namespace, re-export, `require` and dynamic forms — including the
+ * template-literal specifier that defeated R6's first draft — are one rule
+ * rather than six. Subpaths count: `dompurify/dist/purify.es.mjs` is the same
+ * singleton.
+ *
+ * Read from a view with NO `raw-sink-scan: ignore-line` opt-out, for the same
+ * reason the closed-world rules have none: disarming a rule that pins the
+ * security boundary must require editing THIS file, where a reviewer sees it,
+ * not adding a comment to a component.
+ */
+const SANITIZER_OWNER = 'src/util/markdown.ts';
+const SANITIZER_DEPENDENCIES = ['dompurify', 'marked'];
+
+function sanitizerOwnershipViolations(rel: string, code: string): string[] {
+  if (rel === SANITIZER_OWNER) return [];
+  const out: string[] = [];
+  for (const dep of SANITIZER_DEPENDENCIES) {
+    const spec = new RegExp(`['"\`]${dep}(?:/[^'"\`]*)?['"\`]`);
+    for (const line of matchLines(code, spec)) {
+      out.push(
+        `${rel}:${line}: names the module specifier '${dep}'. Only ${SANITIZER_OWNER} may ` +
+          "import the sanitizer's dependencies. Any other file holding a reference to them " +
+          'can rewrite the shared configuration they are used through — DOMPurify\'s default ' +
+          'export is a singleton, and two addHook calls at module scope turn renderMarkdown ' +
+          'into a pass-through while every rule about the sink binding still holds.',
+      );
+    }
+  }
+  return out;
+}
+
 function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
@@ -1264,6 +1336,21 @@ function sinkBinding(): void {
       }
     });
   }
+
+  // MECHANISM (c). Deliberately NOT built from the `scanned` view below: that one
+  // honours the ignore-line marker, and R8 must not be disarmable from outside
+  // this file. See sanitizerOwnershipViolations.
+  check('the sanitizer exclusively owns its own dependencies', () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const rel = relative(root, file);
+      const code = stripInertText(readFileSync(file, 'utf8'), { strings: false });
+      offenders.push(...sanitizerOwnershipViolations(rel, code));
+    }
+    if (offenders.length > 0) {
+      throw new Error(`sanitizer configuration is reachable from another file:\n      ${offenders.join('\n      ')}`);
+    }
+  });
 
   // Comment-stripped view of every scanned file, computed once. `strings: false`
   // keeps module specifiers and quoted property keys intact for the tree-wide
@@ -1616,6 +1703,62 @@ function sinkBinding(): void {
       throw new Error(`sink-binding evasion no longer caught: ${survived.join(' | ')}`);
     }
   });
+
+  // R8 is satisfied vacuously today — exactly one file imports each dependency,
+  // so the tree-wide check above passes without ever exercising the rule. That
+  // is precisely the "control passes vacuously" failure the round-4 review
+  // called out, so the rule is pinned against a table instead of against the
+  // tree. Every entry is a route to the same shared singleton; none of them is
+  // an `addHook` spelling, because R8 does not know what addHook is.
+  const OWNERSHIP_EVASIONS = [
+    "import DOMPurify from 'dompurify';",
+    "import 'dompurify';",
+    "import * as P from 'dompurify';",
+    "export { default as P } from 'dompurify';",
+    "const P = await import('dompurify');",
+    'const P = await import(`dompurify`);',
+    "const P = require('dompurify');",
+    "import purify from 'dompurify/dist/purify.es.mjs';",
+    "import { Marked } from 'marked';",
+    "const { marked } = await import('marked');",
+  ];
+
+  check('fixture: sanitizer ownership holds against every route to the singleton', () => {
+    const missed: string[] = [];
+    for (const fixture of OWNERSHIP_EVASIONS) {
+      const code = stripInertText(fixture, { strings: false });
+      if (sanitizerOwnershipViolations('src/components/some-component.ts', code).length === 0) {
+        missed.push(fixture);
+      }
+    }
+    // The owner is exempt, and only the owner: the same text under its path must
+    // produce nothing, or the rule is not a rule about ownership at all.
+    for (const fixture of OWNERSHIP_EVASIONS) {
+      const code = stripInertText(fixture, { strings: false });
+      if (sanitizerOwnershipViolations(SANITIZER_OWNER, code).length !== 0) {
+        missed.push(`OWNER REJECTED: ${fixture}`);
+      }
+    }
+    // An unrelated file must stay clean, including one that merely says the word.
+    for (const clean of [
+      "import { html } from 'lit';",
+      "import { renderMarkdown } from '../../util/markdown.js';",
+      'const label = purifyLabel;',
+    ]) {
+      const code = stripInertText(clean, { strings: false });
+      if (sanitizerOwnershipViolations('src/components/some-component.ts', code).length !== 0) {
+        missed.push(`FALSE POSITIVE: ${clean}`);
+      }
+    }
+    // The ignore-line marker must NOT disarm this rule.
+    const marked = "import DOMPurify from 'dompurify'; // raw-sink-scan: ignore-line";
+    if (sanitizerOwnershipViolations('src/components/some-component.ts', stripInertText(marked, { strings: false })).length === 0) {
+      missed.push(`OPT-OUT HONOURED: ${marked}`);
+    }
+    if (missed.length > 0) {
+      throw new Error(`sanitizer-ownership rule broken: ${missed.join(' | ')}`);
+    }
+  });
 }
 
 // A check that is deleted — or that stops being reached, or whose case list is
@@ -1626,11 +1769,11 @@ function sinkBinding(): void {
 // removing a check; never to make a red suite go green.
 //
 // Note for anyone cross-checking this by grep: static and runtime counts no
-// longer agree, and that is expected. There are 58 literal call sites
-// (`grep -cE '^\s+check\('`) but 59 checks at runtime, because the REQUIRED_SINKS
+// longer agree, and that is expected. There are 60 literal call sites
+// (`grep -cE '^\s+check\('`) but 61 checks at runtime, because the REQUIRED_SINKS
 // checks are emitted from a loop — one call site, one check per required sink.
 // The runtime count is the authoritative one and is what the pin below compares
-// against. Keep this arithmetic up to date: 58 + (REQUIRED_SINKS.length - 1) = 59.
+// against. Keep this arithmetic up to date: 60 + (REQUIRED_SINKS.length - 1) = 61.
 //
 // Moved 54 -> 59 in the round-4 cleanup: five `check()` calls were added, all of
 // them the `fixture:` ones in sinkBinding(). They assert the guard's own rules
@@ -1638,7 +1781,13 @@ function sinkBinding(): void {
 // control and every historical bypass are exercised on every run instead of
 // only when the tree happens to contain the shape. No behavioural check was
 // removed; the two REQUIRED_SINKS checks were rewritten in place, not added to.
-const EXPECTED_CHECKS = 59;
+//
+// Moved 59 -> 61 in the round-5 addendum: R8 (sanitizer ownership) is one
+// tree-wide check plus one `fixture:` check. The fixture is not optional — R8
+// is satisfied vacuously by the tree today, so without a table the rule would
+// pass without ever being exercised, which is the same defect as the old
+// static-HTML control.
+const EXPECTED_CHECKS = 61;
 
 function run(): void {
   formControls();
