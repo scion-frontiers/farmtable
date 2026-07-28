@@ -4016,9 +4016,48 @@ function sinkBinding(): void {
     "const { marked } = await import('marked');",
   ];
 
+  // T-4. THESE THREE TABLES WERE INLINE ARRAY LITERALS INSIDE THE CHECK BELOW,
+  // and that made them silently emptiable. Measured on the r8 tree: emptying any
+  // one of the three — or all three at once — was GREEN, because an inline
+  // `for (const x of [])` runs its body zero times and asserts nothing, while
+  // the check still counts and still prints as passed. The contrast control was
+  // red at "expected 123 assertions to run, 118 did", which is the same defect
+  // one level out: the assertion total covers `assert*` helpers, and these
+  // fixtures throw directly instead.
+  //
+  // Hoisted to named consts so `fixtureTableViolation` can pin their lengths,
+  // which is the mechanism that already protects every other fixture table here.
+  // Same shape as the round-8 finding about `fixtureTableViolation` itself
+  // having had no positive control: a guard nothing can express a wrong input to
+  // is a guard nothing tests.
+  const OWNERSHIP_LEGITIMATE = [
+    "import { html } from 'lit';",
+    "import { renderMarkdown } from '../../util/markdown.js';",
+    'const label = purifyLabel;',
+    'const note = purifyTheInput;',
+  ];
+
+  // R9's laundering route: an UNSCANNED file may re-export anything, so reaching
+  // one is reaching everything it can reach.
+  const OWNERSHIP_LAUNDERING = [
+    "import { P } from './purify-shim.test.js';",
+    "export { P } from './purify-shim.test.js';",
+    "const { P } = await import('./purify-shim.test.js');",
+  ];
+
+  // ...but an inert asset is not a laundering route. The false-positive mirror
+  // of the table above, and it has to move with it.
+  const OWNERSHIP_INERT_ASSETS = [
+    "import './styles/theme.css';",
+    "import data from './farmtable.json';",
+  ];
+
   check('fixture: sanitizer ownership holds against every route to the singleton', () => {
     const missed: string[] = [
       fixtureTableViolation('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10),
+      fixtureTableViolation('OWNERSHIP_LEGITIMATE', OWNERSHIP_LEGITIMATE, 4),
+      fixtureTableViolation('OWNERSHIP_LAUNDERING', OWNERSHIP_LAUNDERING, 3),
+      fixtureTableViolation('OWNERSHIP_INERT_ASSETS', OWNERSHIP_INERT_ASSETS, 2),
     ].filter((v): v is string => v !== null);
     for (const fixture of OWNERSHIP_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
@@ -4035,12 +4074,7 @@ function sinkBinding(): void {
       }
     }
     // An unrelated file must stay clean, including one that merely says the word.
-    for (const clean of [
-      "import { html } from 'lit';",
-      "import { renderMarkdown } from '../../util/markdown.js';",
-      'const label = purifyLabel;',
-      'const note = purifyTheInput;',
-    ]) {
+    for (const clean of OWNERSHIP_LEGITIMATE) {
       const code = stripInertText(clean, { strings: false });
       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length !== 0) {
         missed.push(`FALSE POSITIVE: ${clean}`);
@@ -4053,18 +4087,14 @@ function sinkBinding(): void {
     }
 
     // R9: the laundering route. An unscanned file may re-export anything.
-    for (const laundered of [
-      "import { P } from './purify-shim.test.js';",
-      "export { P } from './purify-shim.test.js';",
-      "const { P } = await import('./purify-shim.test.js');",
-    ]) {
+    for (const laundered of OWNERSHIP_LAUNDERING) {
       const code = stripInertText(laundered, { strings: false });
       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
         missed.push(`LAUNDERED: ${laundered}`);
       }
     }
     // ...but an inert asset is not a laundering route, and must not be flagged.
-    for (const asset of ["import './styles/theme.css';", "import data from './farmtable.json';"]) {
+    for (const asset of OWNERSHIP_INERT_ASSETS) {
       const code = stripInertText(asset, { strings: false });
       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length !== 0) {
         missed.push(`FALSE POSITIVE: ${asset}`);
