@@ -313,6 +313,53 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].description: %v", i, err)
 		}
 
+		// LIFECYCLE-STAGE LABELS ARE REJECTED HERE (#194 round 7, M-2).
+		//
+		// This is the only task-CREATING RPC that took caller-supplied labels
+		// without the gate its neighbour CreateTask has. Today that is harmless
+		// by accident and not by design: MultiStore routes by collection, and
+		// for a GitHub collection the pass-through store answers
+		// ErrNotImplemented, so the ungated labels only ever reached EntStore,
+		// where the stage is a column and no label can forge it.
+		//
+		// A reachability accident is not a control. The day someone implements
+		// GitHubPassThroughStore.InsertTasksAfter, the round-6 hole reopens
+		// here, silently, with no test failing — which is precisely the shape of
+		// the defect #194 keeps rediscovering.
+		//
+		// REJECTING RATHER THAN PRICING is deliberate. Pricing would mean
+		// charging the triage -> stage transition the label names, as CreateTask
+		// does. But CreateTask has a req.Stage the caller can be authorized for
+		// and this RPC does not: every step is created in triage, so a label
+		// naming a terminal stage does not express an intent this endpoint can
+		// carry out. There is no legitimate request being refused, and refusing
+		// is a control a future implementer trips over rather than one they have
+		// to remember to reuse.
+		//
+		// The detection reuses LabelDeltaLifecycleStages so that it follows the
+		// operator's configured push_prefix automatically — hardcoding "ft:" here
+		// would rebuild M-1 in a new place. It is inert for native collections
+		// by construction: EntStore does not implement the stager, the helper
+		// reports before == after, and an ordinary label costs nothing anywhere.
+		if len(step.GetLabels()) > 0 {
+			before, after, err := store.LabelDeltaLifecycleStages(
+				ctx, s.store,
+				&ent.Task{Stage: task.StageTriage, CollectionID: collID},
+				step.GetLabels(), nil)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal,
+					"steps[%d]: resolving label lifecycle delta: %v", i, err)
+			}
+			if !store.SameStageSet(before, after) {
+				return nil, status.Errorf(codes.InvalidArgument,
+					"steps[%d].labels: %v names a lifecycle stage (%v). InsertTasksAfter "+
+						"creates every step in triage and has no authorization gate for a "+
+						"stage transition, so it will not accept a label that sets one. "+
+						"Create the task and move it with UpdateTask, which prices the "+
+						"transition", i, step.GetLabels(), after)
+			}
+		}
+
 		params := store.CreateTaskParams{
 			Title:        step.GetName(),
 			Description:  step.GetDescription(),

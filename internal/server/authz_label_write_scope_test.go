@@ -2465,3 +2465,146 @@ func containsStage(stages []task.Stage, want task.Stage) bool {
 	}
 	return false
 }
+
+// newNativeTaskFixture builds a NATIVE Ent-backed collection holding one task,
+// and returns the service, the store, the task's ID and the collection's.
+//
+// It is the same object graph the native rows above assemble inline, minus the
+// GitHub resolver — no pass-through store, so the task's stage really is a
+// column. Extracted because M-2 needs an ANCHOR task rather than a target, and
+// an inline third copy of this would be the point at which the three drift.
+func newNativeTaskFixture(t *testing.T) (*server.FarmTableService, *store.MultiStore, string, uuid.UUID) {
+	t.Helper()
+	ctx := context.Background()
+
+	entStore, cleanup := testutil.NewTestStore(t)
+	t.Cleanup(cleanup)
+	ms := store.NewMultiStore(entStore)
+	t.Cleanup(func() { _ = ms.Close() })
+
+	coll, err := ms.CreateCollection(ctx, store.CreateCollectionParams{Name: "native"})
+	if err != nil {
+		t.Fatalf("CreateCollection: %v", err)
+	}
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "native anchor task",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageAccepted,
+		Labels:       []string{"bug"},
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+	return server.NewFarmTableService(ms, "test"), ms, created.ID.String(), coll.ID
+}
+
+// ── #194 round 7 / M-2: InsertTasksAfter is not a second door ──
+
+// TestInsertTasksAfter_RejectsLifecycleStageLabels pins the M-2 decision so a
+// future implementer trips over it.
+//
+// InsertTasksAfter was the only task-creating RPC that took caller-supplied
+// labels with no lifecycle gate, while its neighbour CreateTask has one. It was
+// harmless only because MultiStore routes by collection and the GitHub
+// pass-through answers ErrNotImplemented, so the labels never reached a store
+// where a label IS the stage. That is a reachability accident, not a control,
+// and the accident ends the moment somebody implements the method.
+//
+// The rows below run against a GITHUB collection precisely because that is the
+// configuration where the accident is load-bearing, and they distinguish the
+// two reasons a request can fail there:
+//
+//	terminal label -> InvalidArgument   (this control, before the store)
+//	ordinary label -> Unimplemented     (the store, i.e. it got PAST this
+//	                                     control — which is what makes the row
+//	                                     above a specific rejection rather than
+//	                                     a blanket one)
+//
+// The Unimplemented row is therefore both the differential AND the executable
+// record of the reachability status. If someone implements pass-through
+// InsertTasksAfter, that row changes answer and they are forced to come here.
+func TestInsertTasksAfter_RejectsLifecycleStageLabels(t *testing.T) {
+	terminal := stageLabel(task.StageCompleted)
+
+	insert := func(t *testing.T, f *labelWriteFixture, labels []string) error {
+		t.Helper()
+		_, err := f.svc.InsertTasksAfter(scopedCtx(agentScopes()), &pb.InsertTasksAfterRequest{
+			AnchorTaskId: f.taskID,
+			CollectionId: f.collID.String(),
+			Steps:        []*pb.NewTaskSpec{{Name: "a follow-up step", Labels: labels}},
+		})
+		return err
+	}
+
+	t.Run("terminal_label_is_rejected_before_the_store", func(t *testing.T) {
+		f := openIssue(t)
+
+		err := insert(t, f, []string{terminal})
+		if err == nil {
+			t.Fatalf("InsertTasksAfter accepted a step labelled %q; that is an ungated "+
+				"lifecycle-stage write on a collection where the label IS the stage", terminal)
+		}
+		st, _ := status.FromError(err)
+		if st.Code() != codes.InvalidArgument {
+			t.Fatalf("got %v (%s), want InvalidArgument. Unimplemented here would mean the "+
+				"request reached the store and this control did not run",
+				st.Code(), st.Message())
+		}
+		if !strings.Contains(st.Message(), terminal) {
+			t.Fatalf("the rejection %q does not name the offending label %q; a diagnostic "+
+				"that does not say which label it objected to is not actionable",
+				st.Message(), terminal)
+		}
+	})
+
+	t.Run("ordinary_label_reaches_the_store", func(t *testing.T) {
+		f := openIssue(t)
+
+		// DIFFERENTIAL, and the reachability record. "bug" is not a lifecycle
+		// statement, so this control must let it through — and what it then
+		// meets is the ErrNotImplemented that has been the only thing standing
+		// between M-2 and a live bypass.
+		err := insert(t, f, []string{"bug"})
+		if err == nil {
+			t.Fatalf("InsertTasksAfter SUCCEEDED against a GitHub collection. The " +
+				"pass-through store used to answer ErrNotImplemented, which is the sole " +
+				"reason M-2 was not exploitable. If it is implemented now, the labels a " +
+				"step carries are a real write to the value authorization reads, and this " +
+				"endpoint must price them the way CreateTask does rather than merely " +
+				"rejecting terminal ones")
+		}
+		st, _ := status.FromError(err)
+		if st.Code() == codes.InvalidArgument {
+			t.Fatalf("an ordinary label was rejected with %q; this control must reject "+
+				"lifecycle-stage labels only, or routine metadata becomes unusable",
+				st.Message())
+		}
+		if st.Code() != codes.Unimplemented {
+			t.Fatalf("got %v (%s), want Unimplemented from the pass-through store",
+				st.Code(), st.Message())
+		}
+	})
+
+	t.Run("native_collection_is_unaffected", func(t *testing.T) {
+		// Inert for native tasks by construction: EntStore does not implement
+		// the stager, so the helper reports before == after for any label and
+		// nothing is rejected. Pinned because "inert by construction" is a claim
+		// about a fallback two packages away, and this file's whole subject is
+		// controls that turned out to behave differently than their comments said.
+		svc, _, anchorID, collID := newNativeTaskFixture(t)
+
+		_, err := svc.InsertTasksAfter(scopedCtx(agentScopes()), &pb.InsertTasksAfterRequest{
+			AnchorTaskId: anchorID,
+			CollectionId: collID.String(),
+			Steps: []*pb.NewTaskSpec{{
+				Name: "a follow-up step", Labels: []string{terminal, "bug"},
+			}},
+		})
+		if err != nil {
+			t.Fatalf("InsertTasksAfter on a NATIVE collection was rejected (%v); a native "+
+				"task's stage is a column that no label can forge, so there is nothing "+
+				"here to protect and nothing to refuse", err)
+		}
+	})
+}
