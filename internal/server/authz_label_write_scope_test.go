@@ -2456,6 +2456,179 @@ func TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw(t *testing.T)
 	}
 }
 
+// ── #194 round 8 / C-1: the cross-list cancel, pinned at the server ──
+//
+// C-1 is the Critical of round 8: UpdateTask{add_labels:[L], remove_labels:[L]}
+// against an issue that does not carry L, with a token holding only task:write.
+//
+//   - applyLabelDelta is REMOVE-WINS, so the gate predicted before == after,
+//     SameStageSet saw no lifecycle change, and nothing was charged. That part
+//     is correct and must stay correct: the request really does net to nothing.
+//   - The round-7 RestrictLabelWriteToSnapshot filtered addLabels and
+//     removeLabels in two independent per-list loops. The add survived (L is
+//     absent from the snapshot) and the remove was dropped (L is absent from
+//     the snapshot). The write then applied L.
+//
+// With L = ft:stage/completed the task becomes terminal and drops out of
+// `ft ready`, and undoing it costs task:accept — which the caller does not
+// hold. Free, retryable, and a REGRESSION against 6ced24e, where both lists
+// were forwarded verbatim and the identical request netted to nothing.
+//
+// WHY THIS TEST EXISTS AT THE SERVER LAYER, when the fix already has two
+// properties over it in internal/platform/github (#194 round 9, MUST 1).
+//
+// Measured last round: neuter both oracles in restrictProperties AND restore
+// the round-7 implementation, and `go test ./...` is exit 0 with zero failing
+// tests — the Critical ships green. Do the same neutering with the pre-A-4
+// identity restrictor and the suite goes RED here, at
+// TestUpdateTask_FreeRemovalCannotDestroyALabelTheGateNeverSaw and
+// TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw. The older A-4
+// defect survives destruction of the property file because it has two
+// independent SERVER-layer pins. C-1 had none: it was pinned in exactly one
+// file, and a single edit to that file unpinned an authorization bypass.
+//
+// "Correct" and "backstopped" are different claims. The property file is the
+// better description of the contract; this is the thing that notices when the
+// property file stops describing anything.
+//
+// It runs the REAL gate and the REAL write path — FarmTableService.UpdateTask
+// over MultiStore over GitHubPassThroughStore over the GraphQL mock — for the
+// same reason the A-4 pair does: the defect lives in the seam between the gate
+// and the write, and neither half is wrong on its own.
+
+// TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree is the C-1
+// reproduction. It is RED against the round-7 restrictor.
+//
+// The PRESENT twin at the bottom is not decoration and is not the same test
+// run twice. The absent rows are killed by restoring the round-7 per-list
+// filters; the present row is killed by the other tempting fix — "if a label
+// appears in both lists, drop it from both" — which satisfies every absent row
+// and silently disables a removal the gate DID price and DID charge for. The
+// two halves are positive controls for each other along different axes, and a
+// fix has to survive both.
+func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T) {
+	completed := stageLabel(task.StageCompleted)
+	accepted := stageLabel(task.StageAccepted)
+
+	// The three spellings exist because the cross-list test has to be made
+	// through labelMatchKey and not ==. A `==` cross-list check passes the
+	// first row and hands the bypass straight back on the other two.
+	absent := []struct {
+		name   string
+		why    string
+		add    []string
+		remove []string
+	}{
+		{
+			name:   "identical_spelling",
+			why:    "THE CRITICAL as reported.",
+			add:    []string{completed},
+			remove: []string{completed},
+		},
+		{
+			name:   "case_split",
+			why:    "The same attack with the two lists spelled in different cases. GitHub label names are unique case-insensitively, so these name one label.",
+			add:    []string{strings.ToUpper(completed)},
+			remove: []string{completed},
+		},
+		{
+			name:   "pad_split",
+			why:    "The same attack with padding instead of case.",
+			add:    []string{completed},
+			remove: []string{"  " + completed + "\t"},
+		},
+	}
+
+	for _, row := range absent {
+		t.Run("absent_from_the_snapshot/"+row.name, func(t *testing.T) {
+			// An ordinary open, accepted, available task. Not a bare issue:
+			// "still available work" is the user-visible harm, and a triage
+			// task is unavailable before the attack for an unrelated reason,
+			// so the assertion below would measure nothing.
+			f := openIssue(t, accepted, "bug")
+
+			// BASELINE SELF-CHECKS, before any conclusion is drawn.
+			if got := f.issue.currentLabels(); containsLabel(got, completed) {
+				t.Fatalf("BASELINE BROKEN: the issue already carries %q; labels %v", completed, got)
+			}
+			if avail := f.availability(t); !avail.Available {
+				t.Fatalf("BASELINE BROKEN: the task is already unavailable (%v); the "+
+					"availability assertion below could not fail", avail.Reasons)
+			}
+
+			// The attacker holds task:write and nothing else. This call is
+			// EXPECTED to succeed: remove wins, the request nets to nothing,
+			// and the gate correctly charged nothing for nothing. Succeeding
+			// cheaply is the PREMISE of the attack, not the defect. If a future
+			// fix chooses to reject cross-list cancels outright that is a
+			// defensible answer, but it is a behaviour change and whoever makes
+			// it has to come here and say so.
+			if err := f.swapLabels(agentScopes(), row.add, row.remove); err != nil {
+				t.Fatalf("add_labels=%v remove_labels=%v was rejected (%v); the gate priced "+
+					"this at nothing because remove wins, so denying it would make the "+
+					"denial disagree with the price", row.add, row.remove, err)
+			}
+
+			// THE MEASUREMENT. The gate predicted no change; the write must
+			// have produced no change.
+			if got := f.issue.currentLabels(); containsLabel(got, completed) {
+				t.Fatalf("a task:write-only caller applied %q with a request the gate priced "+
+					"at nothing (add=%v remove=%v); labels now %v.\n\nwhy this row exists: %s",
+					completed, row.add, row.remove, got, row.why)
+			}
+			if got := f.lifecycleStages(t); containsStage(got, task.StageCompleted) {
+				t.Fatalf("the lifecycle stage set is %v, want it not to name completed; a free "+
+					"request has forged a terminal stage", got)
+			}
+			if avail := f.availability(t); !avail.Available {
+				t.Fatalf("the task is no longer available (%v); a task:write-only caller has "+
+					"taken it out of `ft ready` for free", avail.Reasons)
+			}
+		})
+	}
+
+	// The PRESENT twin. Snapshot carries the label, so remove wins and the gate
+	// prices a REAL reopen. This must cost task:accept and must then actually
+	// remove — a restrictor that drops both lists on collision leaves the label
+	// in place after charging the caller for taking it off.
+	t.Run("present_on_the_snapshot/is_a_priced_removal", func(t *testing.T) {
+		f := openIssue(t, completed, "bug")
+		if got := f.issue.currentLabels(); !containsLabel(got, completed) {
+			t.Fatalf("BASELINE BROKEN: the issue does not carry %q; labels %v", completed, got)
+		}
+
+		requireDeniedFor(t, f.swapLabels(agentScopes(), []string{completed}, []string{completed}),
+			server.ScopeTaskAccept,
+			"add_labels+remove_labels of a terminal label the issue DOES carry")
+
+		if err := f.swapLabels(withScope(server.ScopeTaskAccept),
+			[]string{completed}, []string{completed}); err != nil {
+			t.Fatalf("the same request with task:accept was rejected (%v)", err)
+		}
+		if got := f.issue.currentLabels(); containsLabel(got, completed) {
+			t.Fatalf("the caller paid task:accept for a removal the gate priced and %q is "+
+				"still on the issue; labels now %v. The narrowing has swallowed a priced "+
+				"write, which is the mirror of C-1 and just as wrong", completed, got)
+		}
+		if got := f.lifecycleStages(t); containsStage(got, task.StageCompleted) {
+			t.Fatalf("the lifecycle stage set is %v, want it to no longer name completed", got)
+		}
+	})
+
+	// DIFFERENTIAL. The fix narrows the write; it does not disable it. A plain
+	// addition with the scope the gate names must still land.
+	t.Run("differential/a_priced_addition_still_lands", func(t *testing.T) {
+		f := openIssue(t, accepted, "bug")
+		if err := f.addLabels(withScope(server.ScopeTaskClose), completed); err != nil {
+			t.Fatalf("add_labels[%s] with task:close, on an issue that does not carry it, "+
+				"was rejected (%v); the fix has disabled legitimate additions", completed, err)
+		}
+		if got := f.issue.currentLabels(); !containsLabel(got, completed) {
+			t.Fatalf("the authorized addition did nothing; labels now %v", got)
+		}
+	})
+}
+
 // containsStage reports whether a lifecycle stage set names a stage.
 func containsStage(stages []task.Stage, want task.Stage) bool {
 	for _, s := range stages {
