@@ -3292,8 +3292,41 @@ function requiredSinkScopeViolation(found: number): string | null {
  * naming it. Emptying the loop, truncating it, passing it an empty list, or
  * neutering the predicate to return `[]` all fail one of those two arms.
  *
- * The probe is appended LAST on purpose: a loop mutated to visit only
- * `entries[0]` must not see it.
+ * The probe is appended LAST on purpose. That is DEFENCE IN DEPTH and it is
+ * currently unreachable: no mutation measured in round 9 or round 10 produces a
+ * loop that visits a prefix of `entries` and still satisfies the visit-count arm
+ * below, because the arm pins the count exactly. It costs one line of ordering
+ * and it survives someone relaxing that arm, so it stays — but it is not load
+ * bearing today and the previous wording implied it was.
+ *
+ * ── AND THE HARNESS WAS BLIND TO ITS OWN INPUT. ─────────────────────────────
+ *
+ * Round 10 measured that everything above pins what the loop DOES and nothing
+ * pinned what it is GIVEN. Replace `view` with `''` at all five call sites and
+ * the suite is GREEN at 79 checks / 127 assertions, `tsc --noEmit` 0: the visit
+ * count is still `EXPECTED_SOURCE_FILES`, the probe is a separate string and
+ * still produces its one planted offender, and every predicate runs 51 times
+ * over nothing. The control confirms the loop iterated; it said nothing about
+ * whether the loop iterated over the source tree. That is the same shape as the
+ * defect this harness was built to fix, one level further out — the fourth
+ * instance of it, and the second time it has been the harness itself.
+ *
+ * Two arms close it, and both are measured rather than assumed:
+ *
+ *   - NO ENTRY MAY HAVE A BLANK VIEW. Swept over all source files in both view
+ *     kinds this harness is ever given (`strings: false` and `strings: true`):
+ *     0 blank out of 54 in each. An exact zero, not a floor.
+ *   - THE SANITIZER'S OWN FILE MUST STILL BE RECOGNISABLE IN ITS VIEW. A blank
+ *     ban alone is satisfied by any constant, `view: 'x'` included, so one entry
+ *     is checked for content: the entry whose `rel` is
+ *     `TREE_WIDE_VIEW_CANARY_REL` must contain `TREE_WIDE_VIEW_CANARY_TEXT`.
+ *     Measured present in both view kinds. Attribution is by `rel` rather than
+ *     "some entry somewhere contains it", for the reason C2-e taught this file,
+ *     and it is ONE named file rather than a count so that this pin does not
+ *     become one more thing that has to move when REQUIRED_SINKS moves.
+ *
+ * Both arms require a POSITIVE outcome from the input, so both fail when the
+ * entry list is emptied as well as when it is blanked.
  *
  * This is the same repair as T-4 one level up. There the fix was to hoist inline
  * arrays so the size pin could reach them; here it is to hoist the loop so a
@@ -3302,6 +3335,13 @@ function requiredSinkScopeViolation(found: number): string | null {
  * has been the finding in this file.
  */
 const TREE_WIDE_PROBE_REL = '<tree-wide-probe>';
+
+/**
+ * The one entry whose CONTENT is pinned, so that a constant view cannot satisfy
+ * the blank-view ban. Built with `join` because `rel` comes from `relative()`.
+ */
+const TREE_WIDE_VIEW_CANARY_REL = join('src', 'util', 'markdown.ts');
+const TREE_WIDE_VIEW_CANARY_TEXT = 'renderMarkdown';
 
 interface TreeWideEntry {
   rel: string;
@@ -3315,6 +3355,10 @@ interface TreeWideScan {
   probed: string[];
   /** Entries the REAL run actually visited. */
   visited: number;
+  /** `rel` of every REAL entry handed to the loop with a blank view. */
+  blankViews: string[];
+  /** REAL entries named TREE_WIDE_VIEW_CANARY_REL whose view still contains the canary. */
+  canaries: number;
 }
 
 function runTreeWide(
@@ -3340,7 +3384,15 @@ function scanTreeWide(
     [...entries, { rel: TREE_WIDE_PROBE_REL, view: probe }],
     predicate,
   );
-  return { offenders: real.offenders, probed: control.offenders, visited: real.visited };
+  return {
+    offenders: real.offenders,
+    probed: control.offenders,
+    visited: real.visited,
+    blankViews: entries.filter((e) => e.view.trim() === '').map((e) => e.rel),
+    canaries: entries.filter(
+      (e) => e.rel === TREE_WIDE_VIEW_CANARY_REL && e.view.includes(TREE_WIDE_VIEW_CANARY_TEXT),
+    ).length,
+  };
 }
 
 /**
@@ -3353,6 +3405,25 @@ function scanTreeWide(
  * are different claims, and only the second one is worth asserting.
  */
 function treeWideScanViolation(rule: string, scan: TreeWideScan): string | null {
+  if (scan.blankViews.length > 0) {
+    return (
+      `${rule}: ${scan.blankViews.length} of its tree-wide entries were handed to the loop ` +
+      `with a blank view (${scan.blankViews.slice(0, 3).join(', ')}). The loop still visits ` +
+      'every entry and the planted probe is a separate string, so both other arms of this ' +
+      'control pass while every predicate runs over nothing — measured GREEN at 79/127 before ' +
+      'this arm existed. No source file produces a blank view in either view kind this ' +
+      'harness is given; this is an exact zero, not a floor.'
+    );
+  }
+  if (scan.canaries !== 1) {
+    return (
+      `${rule}: ${scan.canaries} of its tree-wide entries were named ` +
+      `${TREE_WIDE_VIEW_CANARY_REL} AND still contained ${TREE_WIDE_VIEW_CANARY_TEXT}, ` +
+      'expected exactly 1. The blank-view arm above is satisfied by any constant view, so ' +
+      'one entry has its CONTENT pinned. If the sanitizer moved or its export was renamed, ' +
+      'update TREE_WIDE_VIEW_CANARY_REL/_TEXT in the same commit and say so in the message.'
+    );
+  }
   if (scan.visited !== EXPECTED_SOURCE_FILES) {
     return (
       `${rule}: its tree-wide loop visited ${scan.visited} entr(ies), not ` +
