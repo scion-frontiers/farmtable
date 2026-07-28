@@ -313,6 +313,53 @@ func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertT
 			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].description: %v", i, err)
 		}
 
+		// LIFECYCLE-STAGE LABELS ARE REJECTED HERE (#194 round 7, M-2).
+		//
+		// This is the only task-CREATING RPC that took caller-supplied labels
+		// without the gate its neighbour CreateTask has. Today that is harmless
+		// by accident and not by design: MultiStore routes by collection, and
+		// for a GitHub collection the pass-through store answers
+		// ErrNotImplemented, so the ungated labels only ever reached EntStore,
+		// where the stage is a column and no label can forge it.
+		//
+		// A reachability accident is not a control. The day someone implements
+		// GitHubPassThroughStore.InsertTasksAfter, the round-6 hole reopens
+		// here, silently, with no test failing — which is precisely the shape of
+		// the defect #194 keeps rediscovering.
+		//
+		// REJECTING RATHER THAN PRICING is deliberate. Pricing would mean
+		// charging the triage -> stage transition the label names, as CreateTask
+		// does. But CreateTask has a req.Stage the caller can be authorized for
+		// and this RPC does not: every step is created in triage, so a label
+		// naming a terminal stage does not express an intent this endpoint can
+		// carry out. There is no legitimate request being refused, and refusing
+		// is a control a future implementer trips over rather than one they have
+		// to remember to reuse.
+		//
+		// The detection reuses LabelDeltaLifecycleStages so that it follows the
+		// operator's configured push_prefix automatically — hardcoding "ft:" here
+		// would rebuild M-1 in a new place. It is inert for native collections
+		// by construction: EntStore does not implement the stager, the helper
+		// reports before == after, and an ordinary label costs nothing anywhere.
+		if len(step.GetLabels()) > 0 {
+			before, after, err := store.LabelDeltaLifecycleStages(
+				ctx, s.store,
+				&ent.Task{Stage: task.StageTriage, CollectionID: collID},
+				step.GetLabels(), nil)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal,
+					"steps[%d]: resolving label lifecycle delta: %v", i, err)
+			}
+			if !store.SameStageSet(before, after) {
+				return nil, status.Errorf(codes.InvalidArgument,
+					"steps[%d].labels: %v names a lifecycle stage (%v). InsertTasksAfter "+
+						"creates every step in triage and has no authorization gate for a "+
+						"stage transition, so it will not accept a label that sets one. "+
+						"Create the task and move it with UpdateTask, which prices the "+
+						"transition", i, step.GetLabels(), after)
+			}
+		}
+
 		params := store.CreateTaskParams{
 			Title:        step.GetName(),
 			Description:  step.GetDescription(),
@@ -766,11 +813,37 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		}
 	}
 
-	if len(req.GetAddLabels()) > 0 {
-		p.AddLabels = req.GetAddLabels()
+	// BIND THE WRITE TO THE SNAPSHOT THAT WAS PRICED (#194 round 7, audit A-4).
+	//
+	// The gate above prices the transition the edit induces AGAINST `existing`.
+	// The parts of the request that induce nothing against `existing` are
+	// therefore priced at nothing — and until this line they were still sent to
+	// the store, which resolved them against the remote's state at write time
+	// rather than against the snapshot. That gap was a free, blind, unbounded
+	// retryable primitive for a token holding only task:write:
+	//
+	//	remove_labels[ft:stage/wont_fix], in a loop, on an issue that does not
+	//	carry it -> free every time, and the first iteration that lands after a
+	//	maintainer applies that label destroys it.
+	//
+	// The mirror image is add_labels re-applying a terminal label another actor
+	// has since removed, at the same price of nothing.
+	//
+	// Narrowing costs no legitimate behaviour: a removal of an absent label and
+	// an addition of a present one are no-ops by definition against the state
+	// the caller was authorized against, which is the very reason
+	// SameStageSet reported no transition and the gate charged nothing.
+	//
+	// Inert for native Ent-backed tasks: their stage is a column, no label can
+	// forge it, EntStore does not implement the interface, and the helper hands
+	// the request straight back.
+	addLabels, removeLabels := store.RestrictLabelWriteToSnapshot(
+		ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
+	if len(addLabels) > 0 {
+		p.AddLabels = addLabels
 	}
-	if len(req.GetRemoveLabels()) > 0 {
-		p.RemoveLabels = req.GetRemoveLabels()
+	if len(removeLabels) > 0 {
+		p.RemoveLabels = removeLabels
 	}
 
 	for _, idStr := range req.GetAddBlocks() {

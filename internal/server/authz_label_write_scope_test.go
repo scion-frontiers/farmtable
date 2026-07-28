@@ -124,6 +124,28 @@ type labelWriteIssueMock struct {
 	// Recording the create separately is what makes "the caller's label was
 	// attached AT CREATION" an answerable question. See B1 / audit A-1.
 	creates [][]string
+
+	// interleave, if set, runs exactly ONCE when the updateIssue mutation
+	// arrives, and models a SECOND ACTOR editing the issue's labels
+	// concurrently with the request under test (#194 round 7, audit A-4).
+	//
+	// updateIssue is the trigger because it is the one point that is provably
+	// after the authorization decision and provably before the label writes:
+	// the server's gate runs entirely on the snapshot it read before calling
+	// the store, and GitHubPassThroughStore.UpdateTask issues updateIssue
+	// before it touches any label mutation. Triggering on a read instead would
+	// leave the ordering dependent on how many reads each layer happens to
+	// make, which is exactly the kind of incidental coupling that makes a
+	// concurrency test pass for the wrong reason.
+	//
+	// It is called with m.mu already held, so it must use m.add / m.remove
+	// directly and must not re-enter the locking accessors.
+	interleave func(m *labelWriteIssueMock)
+
+	// interleaveRuns counts the interleaves that actually fired. A test whose
+	// second actor never ran would observe the label in exactly the state the
+	// fix produces, and would pass without measuring anything.
+	interleaveRuns int
 }
 
 func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []string) (*httptest.Server, *labelWriteIssueMock) {
@@ -204,15 +226,20 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 					m.add(name)
 				}
 			}
-			_, _ = w.Write([]byte(`{"data":{"addLabelsToLabelable":{"clientMutationId":null}}}`))
+			_, _ = w.Write([]byte(`{"data":{"addLabelsToLabelable":{"labelable":{"labels":{"nodes":[]}}}}}`))
 		case strings.Contains(b, "removeLabelsFromLabelable"):
 			for id, name := range m.idToName {
 				if strings.Contains(b, `"`+id+`"`) {
 					m.remove(name)
 				}
 			}
-			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"clientMutationId":null}}}`))
+			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"labelable":{"labels":{"nodes":[]}}}}}`))
 		case strings.Contains(b, "updateIssue"):
+			if m.interleave != nil {
+				m.interleave(m)
+				m.interleave = nil
+				m.interleaveRuns++
+			}
 			_, _ = w.Write([]byte(`{"data":{"updateIssue":{"issue":` + m.issueJSON() + `}}}`))
 		case strings.Contains(b, "issues("):
 			// Before the label-index case: the issue query nests its own
@@ -266,6 +293,21 @@ func (m *labelWriteIssueMock) remove(name string) {
 		}
 	}
 	m.labels = out
+}
+
+// interleaveAtUpdateIssue arms a one-shot second-actor edit. See the
+// interleave field for why updateIssue is the trigger.
+func (m *labelWriteIssueMock) interleaveAtUpdateIssue(f func(m *labelWriteIssueMock)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.interleave = f
+}
+
+// interleaves reports how many armed second-actor edits actually ran.
+func (m *labelWriteIssueMock) interleaves() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.interleaveRuns
 }
 
 func (m *labelWriteIssueMock) currentLabels() []string {
@@ -2267,4 +2309,302 @@ func protoStage(t *testing.T, s task.Stage) pb.TaskStage {
 		t.Fatalf("no proto stage for %q", s)
 	}
 	return p
+}
+
+// ── #194 round 7 / audit A-4: the free retryable label-destruction primitive ──
+//
+// Round 6 charged the label write for the transition it INDUCES, computed
+// against the snapshot the server read. That is the right rule and it closes
+// the common case. What it does not close is the case where the edit induces
+// NOTHING against that snapshot.
+//
+// Three facts compose:
+//
+//  1. The gate compares lifecycle stage SETS derived from the snapshot
+//     `existing`. Removing a label ABSENT from that snapshot leaves
+//     before == after, SameStageSet is true, and no scope is charged at all.
+//  2. The write was unconditional and blind. labelNamesToIDs resolves against
+//     the REPO-WIDE label index, not against the labels this issue carries, so
+//     the removal mutation went out whether or not the label was ever there.
+//  3. p.Version is not consulted on this path, so nothing detects that the
+//     issue changed between the decision and the write.
+//
+// Composed, a token holding nothing but task:write gets a primitive it can
+// retry indefinitely at zero cost: fire remove_labels[ft:stage/wont_fix] in a
+// loop, and the first iteration that lands after some other actor applies that
+// label destroys it. The gate never charged for the destruction because at
+// every decision point there was nothing there to destroy.
+//
+// WHAT THE FIX IS. The write is narrowed to the part of the request that was
+// meaningful against the very snapshot authorization evaluated: a removal of a
+// label that was already absent, and an addition of a label that was already
+// present, are no-ops BY DEFINITION at decision time, so they are dropped
+// rather than sent. Anything the gate actually reasoned about is untouched.
+//
+// WHAT THIS IS NOT. It is not a general cure for the TOCTOU window between the
+// snapshot and the write — an edit the gate DID authorize can still land on an
+// issue that has moved underneath it. It removes the free, unbounded,
+// retryable primitive, which is the part that turns a race into an exploit.
+// The general cure is #203, moving the authoritative stage off labels.
+
+// TestUpdateTask_FreeRemovalCannotDestroyALabelTheGateNeverSaw is the
+// composed-bypass reproduction. It is RED before the fix.
+//
+// It exercises the REAL gate and the REAL write path — FarmTableService.
+// UpdateTask over MultiStore over GitHubPassThroughStore over the GraphQL
+// mock — rather than restating either half, because the whole defect lives in
+// the seam between them and neither half is wrong on its own.
+func TestUpdateTask_FreeRemovalCannotDestroyALabelTheGateNeverSaw(t *testing.T) {
+	label := stageLabel(task.StageWontFix)
+
+	// The issue starts WITHOUT the label, which is what makes the request free
+	// at the gate.
+	f := openIssue(t)
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("BASELINE BROKEN: the issue already carries %q; labels %v", label, got)
+	}
+
+	// A maintainer declines the task concurrently: after the gate has decided,
+	// before the label write goes out.
+	f.issue.interleaveAtUpdateIssue(func(m *labelWriteIssueMock) { m.add(label) })
+
+	// The attacker holds task:write and nothing else. This call is EXPECTED to
+	// succeed — against the snapshot it is a no-op, and denying no-ops would
+	// make ordinary label hygiene cost task:accept. Succeeding cheaply is the
+	// premise of the attack, not the defect. The defect is what the write then
+	// does.
+	if err := f.removeLabels(agentScopes(), label); err != nil {
+		t.Fatalf("remove_labels[%s] on an issue that does not carry it was rejected (%v); "+
+			"a no-op removal must stay a plain task:write", label, err)
+	}
+
+	// HARNESS SELF-CHECK, before any conclusion is drawn. If the second actor
+	// never ran, the label would be absent for a reason that has nothing to do
+	// with the control, and this test would pass while measuring nothing.
+	if got := f.issue.interleaves(); got != 1 {
+		t.Fatalf("HARNESS BROKEN: the concurrent maintainer edit ran %d times, want 1", got)
+	}
+
+	// THE MEASUREMENT. The maintainer's decline must still be there.
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("a task:write-only caller destroyed %q, which the gate never authorized "+
+			"and never charged for; labels now %v", label, got)
+	}
+	if got := f.lifecycleStages(t); !containsStage(got, task.StageWontFix) {
+		t.Fatalf("the lifecycle stage set is %v, want it to still name wont_fix", got)
+	}
+
+	// DIFFERENTIAL. The fix must narrow the write, not disable it. Now that the
+	// label IS in the snapshot the gate reads, the same removal must go through
+	// — at the price the gate names, which the caller now pays.
+	if err := f.removeLabels(withScope(server.ScopeTaskAccept), label); err != nil {
+		t.Fatalf("remove_labels[%s] with task:accept, on an issue that really carries it, "+
+			"was rejected (%v); the fix has disabled legitimate removals", label, err)
+	}
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("the authorized removal did nothing; labels now %v", got)
+	}
+}
+
+// TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw is A-4 in the
+// other direction, and it is the same defect rather than a second one.
+//
+// Re-adding a label the issue already carries is free at the gate for the same
+// reason removing an absent one is: before == after. The blind write then
+// re-applies it regardless. So a task:write-only caller can revert another
+// actor's authorized REMOVAL of a terminal label — re-marking a task terminal,
+// out of `ft ready` and unclaimable — as cheaply as it could destroy an
+// addition. Both halves are closed by the same narrowing, and pinning only the
+// removal half would leave a fix that could be half-reverted silently.
+func TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw(t *testing.T) {
+	label := stageLabel(task.StageCompleted)
+
+	// The issue starts WITH the label, which is what makes re-adding it free.
+	f := openIssue(t, label)
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("BASELINE BROKEN: the issue does not carry %q; labels %v", label, got)
+	}
+
+	// Another actor reopens the task concurrently, after the gate has decided.
+	f.issue.interleaveAtUpdateIssue(func(m *labelWriteIssueMock) { m.remove(label) })
+
+	if err := f.addLabels(agentScopes(), label); err != nil {
+		t.Fatalf("add_labels[%s] on an issue that already carries it was rejected (%v); "+
+			"a no-op restamp must stay a plain task:write", label, err)
+	}
+
+	if got := f.issue.interleaves(); got != 1 {
+		t.Fatalf("HARNESS BROKEN: the concurrent reopen ran %d times, want 1", got)
+	}
+
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("a task:write-only caller restored %q after another actor removed it, "+
+			"forging a terminal stage the gate never charged for; labels now %v", label, got)
+	}
+	if got := f.lifecycleStages(t); containsStage(got, task.StageCompleted) {
+		t.Fatalf("the lifecycle stage set is %v, want it to no longer name completed", got)
+	}
+
+	// DIFFERENTIAL. Adding the label when it is genuinely absent from the
+	// snapshot is a real transition and must still work at the gate's price.
+	if err := f.addLabels(withScope(server.ScopeTaskClose), label); err != nil {
+		t.Fatalf("add_labels[%s] with task:close, on an issue that does not carry it, "+
+			"was rejected (%v); the fix has disabled legitimate additions", label, err)
+	}
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("the authorized addition did nothing; labels now %v", got)
+	}
+}
+
+// containsStage reports whether a lifecycle stage set names a stage.
+func containsStage(stages []task.Stage, want task.Stage) bool {
+	for _, s := range stages {
+		if s == want {
+			return true
+		}
+	}
+	return false
+}
+
+// newNativeTaskFixture builds a NATIVE Ent-backed collection holding one task,
+// and returns the service, the store, the task's ID and the collection's.
+//
+// It is the same object graph the native rows above assemble inline, minus the
+// GitHub resolver — no pass-through store, so the task's stage really is a
+// column. Extracted because M-2 needs an ANCHOR task rather than a target, and
+// an inline third copy of this would be the point at which the three drift.
+func newNativeTaskFixture(t *testing.T) (*server.FarmTableService, *store.MultiStore, string, uuid.UUID) {
+	t.Helper()
+	ctx := context.Background()
+
+	entStore, cleanup := testutil.NewTestStore(t)
+	t.Cleanup(cleanup)
+	ms := store.NewMultiStore(entStore)
+	t.Cleanup(func() { _ = ms.Close() })
+
+	coll, err := ms.CreateCollection(ctx, store.CreateCollectionParams{Name: "native"})
+	if err != nil {
+		t.Fatalf("CreateCollection: %v", err)
+	}
+	created, err := ms.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "native anchor task",
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageAccepted,
+		Labels:       []string{"bug"},
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+	return server.NewFarmTableService(ms, "test"), ms, created.ID.String(), coll.ID
+}
+
+// ── #194 round 7 / M-2: InsertTasksAfter is not a second door ──
+
+// TestInsertTasksAfter_RejectsLifecycleStageLabels pins the M-2 decision so a
+// future implementer trips over it.
+//
+// InsertTasksAfter was the only task-creating RPC that took caller-supplied
+// labels with no lifecycle gate, while its neighbour CreateTask has one. It was
+// harmless only because MultiStore routes by collection and the GitHub
+// pass-through answers ErrNotImplemented, so the labels never reached a store
+// where a label IS the stage. That is a reachability accident, not a control,
+// and the accident ends the moment somebody implements the method.
+//
+// The rows below run against a GITHUB collection precisely because that is the
+// configuration where the accident is load-bearing, and they distinguish the
+// two reasons a request can fail there:
+//
+//	terminal label -> InvalidArgument   (this control, before the store)
+//	ordinary label -> Unimplemented     (the store, i.e. it got PAST this
+//	                                     control — which is what makes the row
+//	                                     above a specific rejection rather than
+//	                                     a blanket one)
+//
+// The Unimplemented row is therefore both the differential AND the executable
+// record of the reachability status. If someone implements pass-through
+// InsertTasksAfter, that row changes answer and they are forced to come here.
+func TestInsertTasksAfter_RejectsLifecycleStageLabels(t *testing.T) {
+	terminal := stageLabel(task.StageCompleted)
+
+	insert := func(t *testing.T, f *labelWriteFixture, labels []string) error {
+		t.Helper()
+		_, err := f.svc.InsertTasksAfter(scopedCtx(agentScopes()), &pb.InsertTasksAfterRequest{
+			AnchorTaskId: f.taskID,
+			CollectionId: f.collID.String(),
+			Steps:        []*pb.NewTaskSpec{{Name: "a follow-up step", Labels: labels}},
+		})
+		return err
+	}
+
+	t.Run("terminal_label_is_rejected_before_the_store", func(t *testing.T) {
+		f := openIssue(t)
+
+		err := insert(t, f, []string{terminal})
+		if err == nil {
+			t.Fatalf("InsertTasksAfter accepted a step labelled %q; that is an ungated "+
+				"lifecycle-stage write on a collection where the label IS the stage", terminal)
+		}
+		st, _ := status.FromError(err)
+		if st.Code() != codes.InvalidArgument {
+			t.Fatalf("got %v (%s), want InvalidArgument. Unimplemented here would mean the "+
+				"request reached the store and this control did not run",
+				st.Code(), st.Message())
+		}
+		if !strings.Contains(st.Message(), terminal) {
+			t.Fatalf("the rejection %q does not name the offending label %q; a diagnostic "+
+				"that does not say which label it objected to is not actionable",
+				st.Message(), terminal)
+		}
+	})
+
+	t.Run("ordinary_label_reaches_the_store", func(t *testing.T) {
+		f := openIssue(t)
+
+		// DIFFERENTIAL, and the reachability record. "bug" is not a lifecycle
+		// statement, so this control must let it through — and what it then
+		// meets is the ErrNotImplemented that has been the only thing standing
+		// between M-2 and a live bypass.
+		err := insert(t, f, []string{"bug"})
+		if err == nil {
+			t.Fatalf("InsertTasksAfter SUCCEEDED against a GitHub collection. The " +
+				"pass-through store used to answer ErrNotImplemented, which is the sole " +
+				"reason M-2 was not exploitable. If it is implemented now, the labels a " +
+				"step carries are a real write to the value authorization reads, and this " +
+				"endpoint must price them the way CreateTask does rather than merely " +
+				"rejecting terminal ones")
+		}
+		st, _ := status.FromError(err)
+		if st.Code() == codes.InvalidArgument {
+			t.Fatalf("an ordinary label was rejected with %q; this control must reject "+
+				"lifecycle-stage labels only, or routine metadata becomes unusable",
+				st.Message())
+		}
+		if st.Code() != codes.Unimplemented {
+			t.Fatalf("got %v (%s), want Unimplemented from the pass-through store",
+				st.Code(), st.Message())
+		}
+	})
+
+	t.Run("native_collection_is_unaffected", func(t *testing.T) {
+		// Inert for native tasks by construction: EntStore does not implement
+		// the stager, so the helper reports before == after for any label and
+		// nothing is rejected. Pinned because "inert by construction" is a claim
+		// about a fallback two packages away, and this file's whole subject is
+		// controls that turned out to behave differently than their comments said.
+		svc, _, anchorID, collID := newNativeTaskFixture(t)
+
+		_, err := svc.InsertTasksAfter(scopedCtx(agentScopes()), &pb.InsertTasksAfterRequest{
+			AnchorTaskId: anchorID,
+			CollectionId: collID.String(),
+			Steps: []*pb.NewTaskSpec{{
+				Name: "a follow-up step", Labels: []string{terminal, "bug"},
+			}},
+		})
+		if err != nil {
+			t.Fatalf("InsertTasksAfter on a NATIVE collection was rejected (%v); a native "+
+				"task's stage is a column that no label can forge, so there is nothing "+
+				"here to protect and nothing to refuse", err)
+		}
+	})
 }

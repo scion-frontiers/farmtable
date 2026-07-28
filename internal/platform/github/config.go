@@ -44,6 +44,17 @@ type LabelConfig struct {
 	AutoCreateLabels bool `yaml:"auto_create_labels"`
 }
 
+// DefaultConfigPath is where Farm Table looks for the GitHub configuration
+// when no explicit path is given.
+//
+// It is a constant rather than a literal at each call site because since B6
+// this file decides which labels may feed an authorization answer, so "where
+// the config lives" is itself a security parameter. Two call sites that
+// disagreed about the path would put the CLI and the server on different
+// configurations, and M-1 is the bug that arises when the server is reading a
+// configuration the operator did not write.
+const DefaultConfigPath = ".farmtable/github.yaml"
+
 // LoadConfig reads a GitHubConfig from the given YAML file path.
 // If the file does not exist, it returns DefaultConfig with no error.
 // The FARMTABLE_GITHUB_CONFIG env var overrides the path argument.
