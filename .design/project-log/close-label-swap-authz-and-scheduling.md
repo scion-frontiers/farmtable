@@ -75,8 +75,13 @@ The demoted stage also reached `ComputeAvailability`, so an OPEN issue carrying
 a terminal label reported `available=true`. Fixed server-side rather than in the
 web client: `taskToProto` type-asserts `availabilityComputer` on the store and
 puts the result on the proto, and `web/src/utils/task-ready.ts` defers to that
-field when it is present. One fix, and the web dashboard, `ft ready` and the MCP
-`task_ready` tool all inherit it. `task-ready.ts` needs no change.
+field when it is present. `task-ready.ts` needs no change.
+
+**Correction (round 4):** the sentence originally here claimed the web dashboard,
+`ft ready` and the MCP `task_ready` tool "all inherit it" — that is false, and
+only the web dashboard does. `ft ready` filters server-side via `GetReadyTasks`
+and never reads the availability field, and MCP `task_ready` calls that same RPC
+and drops it; unifying them is #202.
 
 `issueUnavailableForClaim` moved with it. Its own doc comment says it and
 `ComputeAvailability` must not disagree about what unavailable means, and the
