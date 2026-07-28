@@ -124,6 +124,28 @@ type labelWriteIssueMock struct {
 	// Recording the create separately is what makes "the caller's label was
 	// attached AT CREATION" an answerable question. See B1 / audit A-1.
 	creates [][]string
+
+	// interleave, if set, runs exactly ONCE when the updateIssue mutation
+	// arrives, and models a SECOND ACTOR editing the issue's labels
+	// concurrently with the request under test (#194 round 7, audit A-4).
+	//
+	// updateIssue is the trigger because it is the one point that is provably
+	// after the authorization decision and provably before the label writes:
+	// the server's gate runs entirely on the snapshot it read before calling
+	// the store, and GitHubPassThroughStore.UpdateTask issues updateIssue
+	// before it touches any label mutation. Triggering on a read instead would
+	// leave the ordering dependent on how many reads each layer happens to
+	// make, which is exactly the kind of incidental coupling that makes a
+	// concurrency test pass for the wrong reason.
+	//
+	// It is called with m.mu already held, so it must use m.add / m.remove
+	// directly and must not re-enter the locking accessors.
+	interleave func(m *labelWriteIssueMock)
+
+	// interleaveRuns counts the interleaves that actually fired. A test whose
+	// second actor never ran would observe the label in exactly the state the
+	// fix produces, and would pass without measuring anything.
+	interleaveRuns int
 }
 
 func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []string) (*httptest.Server, *labelWriteIssueMock) {
@@ -213,6 +235,11 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 			}
 			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"clientMutationId":null}}}`))
 		case strings.Contains(b, "updateIssue"):
+			if m.interleave != nil {
+				m.interleave(m)
+				m.interleave = nil
+				m.interleaveRuns++
+			}
 			_, _ = w.Write([]byte(`{"data":{"updateIssue":{"issue":` + m.issueJSON() + `}}}`))
 		case strings.Contains(b, "issues("):
 			// Before the label-index case: the issue query nests its own
@@ -266,6 +293,21 @@ func (m *labelWriteIssueMock) remove(name string) {
 		}
 	}
 	m.labels = out
+}
+
+// interleaveAtUpdateIssue arms a one-shot second-actor edit. See the
+// interleave field for why updateIssue is the trigger.
+func (m *labelWriteIssueMock) interleaveAtUpdateIssue(f func(m *labelWriteIssueMock)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.interleave = f
+}
+
+// interleaves reports how many armed second-actor edits actually ran.
+func (m *labelWriteIssueMock) interleaves() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.interleaveRuns
 }
 
 func (m *labelWriteIssueMock) currentLabels() []string {
@@ -2267,4 +2309,159 @@ func protoStage(t *testing.T, s task.Stage) pb.TaskStage {
 		t.Fatalf("no proto stage for %q", s)
 	}
 	return p
+}
+
+// ── #194 round 7 / audit A-4: the free retryable label-destruction primitive ──
+//
+// Round 6 charged the label write for the transition it INDUCES, computed
+// against the snapshot the server read. That is the right rule and it closes
+// the common case. What it does not close is the case where the edit induces
+// NOTHING against that snapshot.
+//
+// Three facts compose:
+//
+//  1. The gate compares lifecycle stage SETS derived from the snapshot
+//     `existing`. Removing a label ABSENT from that snapshot leaves
+//     before == after, SameStageSet is true, and no scope is charged at all.
+//  2. The write was unconditional and blind. labelNamesToIDs resolves against
+//     the REPO-WIDE label index, not against the labels this issue carries, so
+//     the removal mutation went out whether or not the label was ever there.
+//  3. p.Version is not consulted on this path, so nothing detects that the
+//     issue changed between the decision and the write.
+//
+// Composed, a token holding nothing but task:write gets a primitive it can
+// retry indefinitely at zero cost: fire remove_labels[ft:stage/wont_fix] in a
+// loop, and the first iteration that lands after some other actor applies that
+// label destroys it. The gate never charged for the destruction because at
+// every decision point there was nothing there to destroy.
+//
+// WHAT THE FIX IS. The write is narrowed to the part of the request that was
+// meaningful against the very snapshot authorization evaluated: a removal of a
+// label that was already absent, and an addition of a label that was already
+// present, are no-ops BY DEFINITION at decision time, so they are dropped
+// rather than sent. Anything the gate actually reasoned about is untouched.
+//
+// WHAT THIS IS NOT. It is not a general cure for the TOCTOU window between the
+// snapshot and the write — an edit the gate DID authorize can still land on an
+// issue that has moved underneath it. It removes the free, unbounded,
+// retryable primitive, which is the part that turns a race into an exploit.
+// The general cure is #203, moving the authoritative stage off labels.
+
+// TestUpdateTask_FreeRemovalCannotDestroyALabelTheGateNeverSaw is the
+// composed-bypass reproduction. It is RED before the fix.
+//
+// It exercises the REAL gate and the REAL write path — FarmTableService.
+// UpdateTask over MultiStore over GitHubPassThroughStore over the GraphQL
+// mock — rather than restating either half, because the whole defect lives in
+// the seam between them and neither half is wrong on its own.
+func TestUpdateTask_FreeRemovalCannotDestroyALabelTheGateNeverSaw(t *testing.T) {
+	label := stageLabel(task.StageWontFix)
+
+	// The issue starts WITHOUT the label, which is what makes the request free
+	// at the gate.
+	f := openIssue(t)
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("BASELINE BROKEN: the issue already carries %q; labels %v", label, got)
+	}
+
+	// A maintainer declines the task concurrently: after the gate has decided,
+	// before the label write goes out.
+	f.issue.interleaveAtUpdateIssue(func(m *labelWriteIssueMock) { m.add(label) })
+
+	// The attacker holds task:write and nothing else. This call is EXPECTED to
+	// succeed — against the snapshot it is a no-op, and denying no-ops would
+	// make ordinary label hygiene cost task:accept. Succeeding cheaply is the
+	// premise of the attack, not the defect. The defect is what the write then
+	// does.
+	if err := f.removeLabels(agentScopes(), label); err != nil {
+		t.Fatalf("remove_labels[%s] on an issue that does not carry it was rejected (%v); "+
+			"a no-op removal must stay a plain task:write", label, err)
+	}
+
+	// HARNESS SELF-CHECK, before any conclusion is drawn. If the second actor
+	// never ran, the label would be absent for a reason that has nothing to do
+	// with the control, and this test would pass while measuring nothing.
+	if got := f.issue.interleaves(); got != 1 {
+		t.Fatalf("HARNESS BROKEN: the concurrent maintainer edit ran %d times, want 1", got)
+	}
+
+	// THE MEASUREMENT. The maintainer's decline must still be there.
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("a task:write-only caller destroyed %q, which the gate never authorized "+
+			"and never charged for; labels now %v", label, got)
+	}
+	if got := f.lifecycleStages(t); !containsStage(got, task.StageWontFix) {
+		t.Fatalf("the lifecycle stage set is %v, want it to still name wont_fix", got)
+	}
+
+	// DIFFERENTIAL. The fix must narrow the write, not disable it. Now that the
+	// label IS in the snapshot the gate reads, the same removal must go through
+	// — at the price the gate names, which the caller now pays.
+	if err := f.removeLabels(withScope(server.ScopeTaskAccept), label); err != nil {
+		t.Fatalf("remove_labels[%s] with task:accept, on an issue that really carries it, "+
+			"was rejected (%v); the fix has disabled legitimate removals", label, err)
+	}
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("the authorized removal did nothing; labels now %v", got)
+	}
+}
+
+// TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw is A-4 in the
+// other direction, and it is the same defect rather than a second one.
+//
+// Re-adding a label the issue already carries is free at the gate for the same
+// reason removing an absent one is: before == after. The blind write then
+// re-applies it regardless. So a task:write-only caller can revert another
+// actor's authorized REMOVAL of a terminal label — re-marking a task terminal,
+// out of `ft ready` and unclaimable — as cheaply as it could destroy an
+// addition. Both halves are closed by the same narrowing, and pinning only the
+// removal half would leave a fix that could be half-reverted silently.
+func TestUpdateTask_FreeAdditionCannotRestoreALabelTheGateNeverSaw(t *testing.T) {
+	label := stageLabel(task.StageCompleted)
+
+	// The issue starts WITH the label, which is what makes re-adding it free.
+	f := openIssue(t, label)
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("BASELINE BROKEN: the issue does not carry %q; labels %v", label, got)
+	}
+
+	// Another actor reopens the task concurrently, after the gate has decided.
+	f.issue.interleaveAtUpdateIssue(func(m *labelWriteIssueMock) { m.remove(label) })
+
+	if err := f.addLabels(agentScopes(), label); err != nil {
+		t.Fatalf("add_labels[%s] on an issue that already carries it was rejected (%v); "+
+			"a no-op restamp must stay a plain task:write", label, err)
+	}
+
+	if got := f.issue.interleaves(); got != 1 {
+		t.Fatalf("HARNESS BROKEN: the concurrent reopen ran %d times, want 1", got)
+	}
+
+	if got := f.issue.currentLabels(); containsLabel(got, label) {
+		t.Fatalf("a task:write-only caller restored %q after another actor removed it, "+
+			"forging a terminal stage the gate never charged for; labels now %v", label, got)
+	}
+	if got := f.lifecycleStages(t); containsStage(got, task.StageCompleted) {
+		t.Fatalf("the lifecycle stage set is %v, want it to no longer name completed", got)
+	}
+
+	// DIFFERENTIAL. Adding the label when it is genuinely absent from the
+	// snapshot is a real transition and must still work at the gate's price.
+	if err := f.addLabels(withScope(server.ScopeTaskClose), label); err != nil {
+		t.Fatalf("add_labels[%s] with task:close, on an issue that does not carry it, "+
+			"was rejected (%v); the fix has disabled legitimate additions", label, err)
+	}
+	if got := f.issue.currentLabels(); !containsLabel(got, label) {
+		t.Fatalf("the authorized addition did nothing; labels now %v", got)
+	}
+}
+
+// containsStage reports whether a lifecycle stage set names a stage.
+func containsStage(stages []task.Stage, want task.Stage) bool {
+	for _, s := range stages {
+		if s == want {
+			return true
+		}
+	}
+	return false
 }
