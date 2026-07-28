@@ -2,12 +2,17 @@ package server
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // urlSchemeCase is one row of testdata/url-scheme-cases.json.
@@ -144,68 +149,427 @@ func TestSharedFixturesRecordRealDivergences(t *testing.T) {
 	t.Logf("shared fixtures: %d cases, %d agree, %d diverge", len(cases), agreeing, divergent)
 }
 
-// TestURLBearingRemoteDataKeysCoversConvertReads is audit finding F3.
+// TestRemoteDataKeysWrittenByAdaptersAreClassified replaces
+// TestURLBearingRemoteDataKeysCoversConvertReads, which asked an unanswerable
+// question.
 //
-// urlBearingRemoteDataKeys is a hand-maintained list whose comment says "keep
-// this in sync with the RemoteData reads in convert.go". Nothing enforced that.
-// If convert.go starts surfacing another RemoteData key as a URL-typed proto
-// field, the import path silently stops validating it.
+// The old test read convert.go and required every RemoteData key convert.go
+// READS to be classified. That invariant is not satisfiable, because
+// convert.go's last act is `structpb.NewStruct(RemoteData)` -- a read of every
+// key that will ever exist. The list it checked against was already wrong:
+// "html_url" carries the same GitHub issue URL as "remote_url" and appeared in
+// neither the list nor this test's failure surface.
 //
-// This reads convert.go's source and requires every RemoteData key it reads to
-// be either in the allow-list of keys we have inspected and judged non-URL, or
-// in urlBearingRemoteDataKeys. A new key is a hard failure until someone
-// classifies it.
-func TestURLBearingRemoteDataKeysCoversConvertReads(t *testing.T) {
-	// Keys convert.go reads out of RemoteData that do NOT reach an href, each
-	// with the reason. Adding to this list is a deliberate, reviewable act.
+// Turn it around. The set of keys the tree's platform adapters WRITE is finite
+// and enumerable, so that is the set to classify. Every key written into a
+// remote_data map by any adapter must be either URL-bearing by
+// urlBearingRemoteDataKey -- and therefore validated on both the write and the
+// read boundary -- or listed below as non-URL with a reason.
+//
+// A key that carries a URL but is not NAMED like one (say "permalink_target")
+// is the gap this cannot close by itself; that is what the explicit reason on
+// each nonURLKeys entry is for.
+func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
+	// Keys the adapters write that do NOT hold a URL, each with the reason.
+	// Adding to this list is a deliberate, reviewable act.
 	nonURLKeys := map[string]string{
-		"remote_id": "convert.go:318 -> Task.remote_id, an opaque platform identifier rendered as text",
-		"platform": "convert.go:259 -> platformStringToProto, which maps the string onto a closed " +
-			"pb.Platform enum. An unrecognised value becomes PLATFORM_UNSPECIFIED, so the " +
-			"caller's string never reaches the client verbatim, let alone an href.",
+		"platform": "a closed platform discriminator; convert.go maps it onto the pb.Platform " +
+			"enum, so an unrecognised value becomes PLATFORM_UNSPECIFIED",
+		"remote_id":          "opaque platform identifier (\"owner/repo#1\"), rendered as text",
+		"node_id":            "opaque GitHub GraphQL node identifier, rendered as text",
+		"number":             "an int issue number",
+		"created_at":         "an RFC3339 timestamp string",
+		"updated_at":         "an RFC3339 timestamp string",
+		"closed_at":          "an RFC3339 timestamp string",
+		"due_at":             "an RFC3339 timestamp string",
+		"defer_until":        "an RFC3339 timestamp string",
+		"started_at":         "an RFC3339 timestamp string",
+		"labels":             "a slice of label names",
+		"milestone":          "a milestone title, free text",
+		"state_reason":       "a GitHub state-reason enum string",
+		"parent":             "a nested map of the parent issue's node_id and number; its own keys are checked separately below",
+		"sub_issues":         "a slice of nested maps (number/title/state); their keys are checked separately below",
+		"sub_issues_summary": "a nested map of three int counters; its keys are checked separately below",
+		"dependencies":       "a slice of nested beads dependency maps; their keys are checked separately below",
+		"priority":           "a beads priority value",
+		"status":             "a beads status string",
+		"issue_type":         "a beads issue-type string",
+		"design":             "beads free text",
+		"notes":              "beads free text",
+		"owner":              "a beads owner name, rendered as text",
+		"created_by":         "a beads actor name, rendered as text",
+		"source_system":      "a beads source-system discriminator, rendered as text",
+		"external_ref": "a beads cross-system reference. NOT a URL by construction -- beads " +
+			"writes an opaque \"system:id\" token -- but this is the closest call in the " +
+			"list, and if a beads deployment ever puts a URL there the name will not say so",
+		"metadata": "an opaque json.RawMessage blob of platform payload. Not walked by " +
+			"sanitizeRemoteData: structpb.NewStruct cannot represent json.RawMessage " +
+			"either, so it never reaches the wire at all (same mechanism as " +
+			"TestGitHubPassthroughRemoteDataNeverSerialises)",
 	}
 
-	path := filepath.Join(repoRoot(t), "internal", "server", "convert.go")
-	src, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading convert.go: %v", err)
+	// Nested keys are held to a stricter rule than top-level ones: they may not
+	// be URL-bearing AT ALL, because sanitizeRemoteData walks only the top level.
+	// There is no reasons-map here on purpose -- a nested URL carrier is a gap,
+	// not something to document away.
+
+	// The adapters that synthesise remote_data. These are the writers; the
+	// serialisation in convert.go is the reader and it reads everything.
+	adapters := []string{
+		filepath.Join("internal", "platform", "github", "graphql_queries.go"),
+		filepath.Join("internal", "platform", "github", "github.go"),
+		filepath.Join("internal", "platform", "beads", "beads.go"),
 	}
 
-	found := remoteDataKeysIn(string(src))
+	var found, nested []string
+	for _, rel := range adapters {
+		path := filepath.Join(repoRoot(t), rel)
+		src, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("reading %s: %v", rel, err)
+		}
+		fileTop, fileNested := remoteDataLiteralKeysIn(string(src))
+		for _, key := range fileTop {
+			if !slices.Contains(found, key) {
+				found = append(found, key)
+			}
+		}
+		for _, key := range fileNested {
+			if !slices.Contains(nested, key) {
+				nested = append(nested, key)
+			}
+		}
+	}
+	slices.Sort(found)
+	slices.Sort(nested)
 
-	// Positive control. If the extractor stops matching anything -- because
-	// convert.go was reformatted, or the map access was refactored behind a
-	// helper -- every assertion below passes vacuously. Pin the one key we know
-	// is there and is URL-bearing.
-	if !slices.Contains(found, "remote_url") {
-		t.Fatalf("positive control: the extractor found no RemoteData[\"remote_url\"] read in %s. "+
-			"It found %v. This test can no longer see convert.go's RemoteData reads, so it is "+
-			"not checking anything -- fix the extractor before trusting a green run.", path, found)
+	// Positive control. If the extractor stops matching -- because an adapter
+	// was reformatted, or the map literal moved behind a builder -- every
+	// assertion below passes vacuously. Pin the two keys we know are there and
+	// are URL-bearing. "html_url" specifically: it is the key the previous
+	// mechanism could not see, so if this test can no longer see it either, the
+	// test has regressed to the state it was written to fix.
+	for _, want := range []string{"remote_url", "html_url"} {
+		if !slices.Contains(found, want) {
+			t.Fatalf("positive control: the extractor found no top-level %q key in any "+
+				"adapter. It found %v. This test can no longer see the adapters' "+
+				"remote_data writes, so it is not checking anything -- fix the extractor "+
+				"before trusting a green run.", want, found)
+		}
+	}
+	// Second positive control, for the nesting split specifically. If the stack
+	// in remoteDataLiteralKeysIn collapses, every nested key lands in `found`
+	// instead and the nested rule below goes vacuous. "percent_completed" is
+	// only ever written inside sub_issues_summary.
+	if !slices.Contains(nested, "percent_completed") {
+		t.Fatalf("positive control: %q should have been found as a NESTED key "+
+			"(issueBuildRemoteData writes it inside sub_issues_summary). Nested keys "+
+			"found: %v; top-level: %v. The nesting split has stopped working.",
+			"percent_completed", nested, found)
+	}
+	if slices.Contains(found, "percent_completed") {
+		t.Errorf("%q was classified as a TOP-LEVEL remote_data key; it is written inside "+
+			"sub_issues_summary. The nesting split is misattributing keys.", "percent_completed")
 	}
 
 	for _, key := range found {
+		if urlBearingRemoteDataKey(key) {
+			t.Logf("remote_data[%q]: URL-bearing, validated on both boundaries", key)
+			continue
+		}
 		if reason, ok := nonURLKeys[key]; ok {
-			t.Logf("RemoteData[%q]: not URL-bearing (%s)", key, reason)
+			t.Logf("remote_data[%q]: not URL-bearing (%s)", key, reason)
 			continue
 		}
-		if slices.Contains(urlBearingRemoteDataKeys, key) {
-			continue
-		}
-		t.Errorf("convert.go reads RemoteData[%q] but it is in neither urlBearingRemoteDataKeys "+
-			"nor this test's nonURLKeys list. If that value reaches an href in the dashboard, "+
-			"collection import is currently writing it unvalidated: add it to "+
-			"urlBearingRemoteDataKeys in urlvalidate.go. If it does not, add it to nonURLKeys "+
-			"here with the reason.", key)
+		t.Errorf("an adapter writes remote_data[%q], but urlBearingRemoteDataKey says it is "+
+			"not URL-bearing and this test has no reason on file for that. If the value can "+
+			"reach an href in the dashboard, teach urlBearingRemoteDataKey about it in "+
+			"urlvalidate.go -- it is currently unvalidated on both the import boundary and "+
+			"the read path. If it cannot, add it to nonURLKeys here with the reason.", key)
 	}
 
-	// The reverse direction: a key we validate but nobody reads is dead weight
-	// and, worse, suggests coverage that is not there.
-	for _, key := range urlBearingRemoteDataKeys {
-		if !slices.Contains(found, key) {
-			t.Errorf("urlBearingRemoteDataKeys contains %q but convert.go no longer reads it. "+
-				"Either the read moved (point this test at its new home) or the entry is stale.", key)
+	// Nested keys: none may be URL-bearing, because sanitizeRemoteData only walks
+	// the top level. This is a real invariant, not bookkeeping -- a URL under
+	// remote_data["parent"]["html_url"] would reach the wire unvalidated.
+	for _, key := range nested {
+		if urlBearingRemoteDataKey(key) {
+			t.Errorf("an adapter writes a NESTED remote_data key %q that is URL-bearing. "+
+				"sanitizeRemoteData walks only the top level of the map, so this value "+
+				"is serialised into pb.Task.remote_data without ever being validated. "+
+				"Either flatten it to a top-level key or teach sanitizeRemoteData to "+
+				"recurse.", key)
 		}
 	}
+	t.Logf("nested remote_data keys checked: %v", nested)
+
+	// The reverse direction: a key classified as URL-bearing that no adapter
+	// writes is not an error (the predicate is a naming rule, not a list), but a
+	// nonURLKeys entry for a key nobody writes is stale documentation.
+	for key := range nonURLKeys {
+		if !slices.Contains(found, key) {
+			t.Errorf("nonURLKeys documents %q as a non-URL adapter key, but no adapter writes "+
+				"it any more. Remove the entry rather than leaving it to suggest coverage "+
+				"that is not there.", key)
+		}
+	}
+}
+
+// TestSanitizeRemoteDataScrubsEveryURLCarrier pins the map-level scrub directly,
+// at the unit level, so the property does not depend on the GraphQL mock in
+// passthrough_url_test.go continuing to emit both carriers.
+func TestSanitizeRemoteDataScrubsEveryURLCarrier(t *testing.T) {
+	const bad = "javascript:alert(1)"
+	const good = "https://github.com/acme/widgets/issues/1"
+
+	in := map[string]any{
+		"remote_url": bad,
+		"html_url":   bad,
+		"remote_id":  "acme/widgets#1",
+		"number":     1,
+	}
+	out := sanitizeRemoteData(in)
+
+	for _, key := range []string{"remote_url", "html_url"} {
+		if v, ok := out[key]; ok {
+			t.Errorf("sanitizeRemoteData kept %q = %v; every URL-bearing carrier must be "+
+				"dropped, not just the one the typed field reads", key, v)
+		}
+	}
+
+	// Anti-vacuity, by identity rather than by count: the non-URL keys must
+	// survive with their values intact. A sanitizer that returned an empty map,
+	// or that dropped the wrong keys, would satisfy the assertions above.
+	if got := out["remote_id"]; got != "acme/widgets#1" {
+		t.Errorf("non-URL key remote_id should survive unchanged, got %v", got)
+	}
+	if got := out["number"]; got != 1 {
+		t.Errorf("non-URL key number should survive unchanged, got %v", got)
+	}
+
+	// Positive control: a legitimate URL must survive on both carriers,
+	// otherwise the drops above prove nothing.
+	okOut := sanitizeRemoteData(map[string]any{"remote_url": good, "html_url": good})
+	for _, key := range []string{"remote_url", "html_url"} {
+		if okOut[key] != good {
+			t.Errorf("positive control: %q = %v should have survived sanitizing; "+
+				"if it did not, the drop assertions above are vacuous", key, okOut[key])
+		}
+	}
+
+	// The input map belongs to the ent entity and must not be touched.
+	if in["remote_url"] != bad {
+		t.Errorf("sanitizeRemoteData mutated its input: remote_url is now %v", in["remote_url"])
+	}
+}
+
+// TestTaskToProtoScrubsRemoteDataURLCarriers pins that sanitizeRemoteData is
+// actually WIRED IN, not merely correct in isolation.
+//
+// It uses a RemoteData map whose values are all structpb-representable, which
+// is the shape an ent-stored or collection-imported task has (a JSON round-trip
+// yields []any, not []string). That matters: the GitHub passthrough path cannot
+// exercise this at all -- see
+// TestGitHubPassthroughRemoteDataNeverSerialises.
+func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
+	const bad = "javascript:alert(1)"
+	id := uuid.New()
+
+	pt := taskToProto(&ent.Task{
+		ID:    id,
+		Title: "poisoned",
+		RemoteData: map[string]any{
+			"platform":   "github",
+			"remote_id":  "acme/widgets#1",
+			"remote_url": bad,
+			"html_url":   bad,
+			"labels":     []any{"bug"}, // []any, as a JSON round-trip produces
+		},
+	})
+
+	if got := pt.GetRemoteUrl(); got != "" {
+		t.Errorf("typed remote_url = %q, want it dropped", got)
+	}
+	fields := pt.GetRemoteData().GetFields()
+	for _, key := range []string{"remote_url", "html_url"} {
+		if v, present := fields[key]; present {
+			t.Errorf("remote_data[%q] = %q reached the wire; taskToProto must run "+
+				"RemoteData through sanitizeRemoteData, not serialise it raw",
+				key, v.GetStringValue())
+		}
+	}
+
+	// Anti-vacuity by identity: the map must have serialised and kept its
+	// non-URL keys. Without this the absence checks pass on a nil struct --
+	// which is exactly the trap the passthrough path falls into.
+	if got := fields["remote_id"].GetStringValue(); got != "acme/widgets#1" {
+		t.Errorf("remote_data[remote_id] = %q, want it preserved. If this is empty the "+
+			"struct did not serialise and the assertions above are vacuous. "+
+			"Present keys: %v", got, slices.Sorted(maps.Keys(fields)))
+	}
+}
+
+// TestGitHubPassthroughRemoteDataNeverSerialises pins a silent behaviour that
+// nothing recorded before, and that materially changes how the remote_data
+// finding should be read.
+//
+// convert.go writes `pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)` and
+// discards the error. structpb.NewStruct rejects []string outright, and
+// platform/github/graphql_queries.go::issueBuildRemoteData always sets
+// "labels" to a []string. So for every task from the live GitHub passthrough
+// store, remote_data is silently nil on the wire -- not because anything chose
+// to drop it, but because the whole struct failed to build and nobody looked.
+//
+// Consequences worth stating, since a reader will otherwise draw the wrong one:
+//   - The remote_data re-emission gap is REAL, but on the ent-stored and
+//     collection-imported paths, not on this one.
+//   - Any test asserting "remote_url is absent from remote_data" on the
+//     passthrough path is vacuous, and would stay green against a taskToProto
+//     with no sanitizing at all.
+//
+// Left as-is rather than fixed: making remote_data serialise here would be a
+// visible behaviour change (a field that is empty today starts being populated)
+// and belongs in its own change, not in a security round.
+func TestGitHubPassthroughRemoteDataNeverSerialises(t *testing.T) {
+	labels := []string{"bug"}
+
+	if _, err := structpb.NewStruct(map[string]any{"labels": labels}); err == nil {
+		t.Fatal("structpb.NewStruct now accepts []string. The passthrough path can " +
+			"therefore ship remote_data, and TestPassthroughReadDropsUnsafeRemoteURL " +
+			"must be upgraded to assert absence of remote_url and html_url there.")
+	}
+
+	// Positive control: the identical map with a structpb-representable slice
+	// builds fine, so the failure above is about the value type and not about
+	// NewStruct being broken.
+	if _, err := structpb.NewStruct(map[string]any{"labels": []any{"bug"}}); err != nil {
+		t.Fatalf("positive control: []any should serialise, got %v", err)
+	}
+}
+
+// TestURLBearingRemoteDataKeyClassification pins the predicate itself. Without
+// it, the classification test above could go green on a predicate that returned
+// true for everything (every key "URL-bearing", nothing ever checked against
+// nonURLKeys) or false for everything (caught only by the two-key control).
+func TestURLBearingRemoteDataKeyClassification(t *testing.T) {
+	urlBearing := []string{"url", "remote_url", "html_url", "URL", "Html_URL",
+		"avatar_url", "uri", "canonical_uri", "href", "permalink", "issue-url"}
+	notURLBearing := []string{"remote_id", "node_id", "number", "created_at",
+		"labels", "milestone", "platform", "urlish", "curl", "state_reason"}
+
+	for _, k := range urlBearing {
+		if !urlBearingRemoteDataKey(k) {
+			t.Errorf("urlBearingRemoteDataKey(%q) = false, want true", k)
+		}
+	}
+	for _, k := range notURLBearing {
+		if urlBearingRemoteDataKey(k) {
+			t.Errorf("urlBearingRemoteDataKey(%q) = true, want false", k)
+		}
+	}
+}
+
+// remoteDataBuilderFuncs are the functions that construct a task's RemoteData
+// map. Scanning whole adapter files instead would sweep up the GraphQL variable
+// maps that live beside them ("repo", "states", "title", ...), which are not
+// remote_data at all.
+var remoteDataBuilderFuncs = []string{
+	"func issueBuildRemoteData(",
+	"func buildRemoteData(",
+}
+
+// remoteDataLiteralKeysIn extracts the keys written into a remote_data map by
+// any of remoteDataBuilderFuncs, split by nesting.
+//
+// TOP is the set of keys at the top level of the map that becomes
+// Task.RemoteData. NESTED is every key of a map literal underneath one of those
+// (issueBuildRemoteData's "parent" and "sub_issues_summary",
+// beads' "dependencies", ...). The split is load-bearing rather than cosmetic:
+// sanitizeRemoteData walks only the top level, so a URL under a nested key would
+// be shipped unvalidated. Merging the two sets would let a nested key inherit a
+// top-level key's "validated on both boundaries" verdict, which is exactly the
+// kind of true-measurement-false-sentence this round exists to remove.
+//
+// Within a builder body it matches two shapes:
+//
+//	"key": value          inside a map literal
+//	rd["key"] = value     conditional additions after it
+//
+// Nesting is tracked by a stack rather than by counting braces, because `if`
+// blocks and `append(deps, map[string]any{...})` both open braces that have
+// nothing to do with map depth. Only the map literal assigned to `rd :=` is
+// top-level; every other literal pushes a nested frame.
+//
+// Deliberately dumb, like remoteDataKeysIn: a false positive costs one line in
+// nonURLKeys, a false negative costs coverage, and the positive control in the
+// caller is what catches a scan that has stopped working entirely.
+func remoteDataLiteralKeysIn(src string) (top, nested []string) {
+	add := func(dst *[]string, k string) {
+		if k != "" && !slices.Contains(*dst, k) {
+			*dst = append(*dst, k)
+		}
+	}
+
+	for _, marker := range remoteDataBuilderFuncs {
+		start := strings.Index(src, marker)
+		if start < 0 {
+			continue
+		}
+		body := src[start:]
+		// The function body ends at the first line that is a closing brace at
+		// column 0, which gofmt guarantees for a top-level declaration.
+		if end := strings.Index(body, "\n}\n"); end >= 0 {
+			body = body[:end]
+		}
+
+		// stack[i] reports whether the i'th enclosing map literal is the
+		// top-level remote_data map.
+		var stack []bool
+		for _, line := range strings.Split(body, "\n") {
+			line = strings.TrimSpace(line)
+
+			if len(stack) > 0 && strings.HasPrefix(line, "}") {
+				stack = stack[:len(stack)-1]
+				continue
+			}
+
+			// Shape 1: "key": value, attributed to the innermost open literal.
+			if len(stack) > 0 && strings.HasPrefix(line, `"`) {
+				if end := strings.Index(line[1:], `"`); end >= 0 &&
+					strings.HasPrefix(strings.TrimSpace(line[end+2:]), ":") {
+					if stack[len(stack)-1] {
+						add(&top, line[1:1+end])
+					} else {
+						add(&nested, line[1:1+end])
+					}
+				}
+			}
+
+			// Shape 2: rd["key"] = value, only meaningful outside any literal.
+			if len(stack) == 0 {
+				for _, recv := range []string{`rd["`, `remoteData["`} {
+					if !strings.HasPrefix(line, recv) {
+						continue
+					}
+					tail := line[len(recv):]
+					end := strings.IndexByte(tail, '"')
+					if end < 0 {
+						continue
+					}
+					if strings.HasPrefix(strings.TrimSpace(tail[end+2:]), "=") {
+						add(&top, tail[:end])
+					}
+				}
+			}
+
+			if strings.HasSuffix(line, "map[string]any{") {
+				isTop := strings.HasPrefix(line, "rd := ") ||
+					strings.HasPrefix(line, "remoteData := ")
+				stack = append(stack, isTop)
+			}
+		}
+	}
+
+	return top, nested
 }
 
 // remoteDataKeysIn extracts the string literal K from every `RemoteData["K"]`

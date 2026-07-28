@@ -1,8 +1,6 @@
 package github
 
 import (
-	"testing"
-
 	githubv4 "github.com/shurcooL/githubv4"
 )
 
@@ -21,16 +19,31 @@ import (
 //	vet: internal/server/passthrough_e2e_test.go:111:13:
 //	     undefined: ghplatform.SetTestGraphQLClient
 //
-// The unused testing.TB parameter is the next best thing: it makes the
-// test-only contract explicit in the signature, and a production caller would
-// have to manufacture a testing.TB to compile. Doing this properly means
-// relocating both callers into package github, which is a larger change than
-// the one it belongs to.
+// The unused test-handle parameter is the next best thing: it makes the
+// test-only contract explicit in the signature. It is a SPEED BUMP, NOT A
+// BARRIER, and the docblock used to overstate it -- review measured that a
+// production caller can write `var tb testing.TB = &testing.T{}` and call
+// Helper() on it without panicking, so the parameter stops nobody who means it.
+// Doing this properly means relocating both callers into package github, which
+// is a larger change than the one it belongs to.
 //
-// This is no longer load-bearing for the URL property in any case: since
-// convert.go::taskToProto validates remote_url on the way out, a repointed
-// endpoint cannot get a non-http(s) URL to the client.
-func SetTestGraphQLClient(tb testing.TB, s *GitHubPassThroughStore, client *githubv4.Client) {
+// The parameter is typed as a local interface rather than testing.TB so that
+// this non-test file does not drag package `testing` into the shipped binary
+// (`go list -deps ./cmd/ft` used to list it). *testing.T and *testing.B satisfy
+// it; essentially nothing a production caller already holds does.
+//
+// HOW MUCH THIS MATTERS FOR THE URL PROPERTY. An earlier version of this
+// paragraph claimed it no longer mattered at all, "since convert.go::taskToProto
+// validates remote_url on the way out, a repointed endpoint cannot get a
+// non-http(s) URL to the client". That was false when written: taskToProto
+// dropped the typed field and then serialised the whole RemoteData map, bad
+// remote_url and never-validated html_url included. It is true as of the
+// sanitizeRemoteData change in internal/server/urlvalidate.go, which covers both
+// carriers -- but it is a claim about a different package's behaviour, so treat
+// it as defence in depth rather than as the reason this function is acceptable.
+type testHandle interface{ Helper() }
+
+func SetTestGraphQLClient(tb testHandle, s *GitHubPassThroughStore, client *githubv4.Client) {
 	tb.Helper()
 	s.gql.v4 = client
 }

@@ -332,13 +332,30 @@ func taskToProto(t *ent.Task) *pb.Task {
 			// unvalidated source.
 			//
 			// Drop rather than error: a bad URL from upstream must not fail the
-			// whole read. The field is simply omitted, and the dashboard renders
-			// nothing for it, which is the same degradation safeHref produces.
+			// whole read.
+			//
+			// Note what the degradation actually is, because an earlier version
+			// of this comment got it wrong. Omitting the field is NOT the same
+			// as safeHref's degradation. ft-inspector-meta.ts:628 guards the
+			// whole row on `t.remoteUrl`, so an omitted field makes the External
+			// Source row VANISH, whereas safeHref rejecting a value renders a
+			// visible inert <span class="external-source-unsafe">. Vanish is the
+			// harsher of the two; it is accepted here because the alternative on
+			// a read path is failing the whole list.
 			if err := validateURLField("remote_url", remoteURL); err == nil {
 				pt.RemoteUrl = &remoteURL
 			}
 		}
-		pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)
+		// Sanitize the map too, not just the typed field above.
+		//
+		// This line serialises the WHOLE of RemoteData, so before it was
+		// sanitized the rejected remote_url rode out to the client anyway --
+		// dropped from pb.Task.remote_url and re-emitted, byte for byte, inside
+		// pb.Task.remote_data one line later. The same GitHub adapters also
+		// write the identical URL under "html_url", which no validator had ever
+		// looked at and which is the more natural key for a "view on GitHub"
+		// link. See sanitizeRemoteData in urlvalidate.go.
+		pt.RemoteData, _ = structpb.NewStruct(sanitizeRemoteData(t.RemoteData))
 	}
 	if len(t.Labels) > 0 {
 		pt.Labels = t.Labels

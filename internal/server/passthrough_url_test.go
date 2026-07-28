@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // issueNodeJSON renders one issue node for the canned GraphQL list response,
@@ -75,7 +77,15 @@ func mockGitHubGraphQLWithURLs(t *testing.T, nodes string) *httptest.Server {
 // also ignores RemoteData entirely, so a value validated there is discarded.)
 // The design doc previously justified excluding this path on the grounds that
 // "values originate from the upstream GitHub API" -- true, but that describes
-// platform/github/github.go::buildRemoteData, which has no production caller.
+// platform/github/github.go::buildRemoteData, which is unreachable in
+// production. An earlier version of this comment said it "has no production
+// caller"; review measured that it has two, at github.go:169 and github.go:200.
+// The conclusion survives, but by a different route: those two callers sit on
+// GitHubAdapter, and github.New / github.NewWithConfig have no non-test callers
+// anywhere in the tree, so GitHubAdapter is never constructed outside tests and
+// SyncCollection is unreachable. Nothing keeps that true -- wiring github.New()
+// anywhere makes it false with no test going red -- which is a further reason
+// for the read-path check this test pins.
 //
 // taskToProto in convert.go is the single convergence point for every read, so
 // the check lives there and degrades (drops the field) rather than erroring: a
@@ -178,12 +188,39 @@ func TestPassthroughReadDropsUnsafeRemoteURL(t *testing.T) {
 					len(resp.GetItems()), keysOf(tasks))
 			}
 
-			// The whole point: the field is dropped, not surfaced, and the read
-			// still succeeds.
+			// The whole point: the value does not reach the client, on ANY
+			// carrier, and the read still succeeds.
 			if poisoned.GetRemoteUrl() != "" {
 				t.Errorf("remote_url %q from the passthrough read reached the client; "+
 					"convert.go must drop non-http(s) values (scheme is not http/https, "+
 					"or the URL has no host)", poisoned.GetRemoteUrl())
+			}
+
+			// NOTE ON THE UNTYPED CARRIER, because it is easy to add a vacuous
+			// assertion here and this round is about not doing that.
+			//
+			// The typed field is not the only way the value can leave: taskToProto
+			// also serialises the whole RemoteData map into pb.Task.remote_data,
+			// and both GitHub adapters write the same issue URL a second time
+			// under "html_url". That is a real gap and sanitizeRemoteData now
+			// closes it -- but it CANNOT be pinned end-to-end on this particular
+			// path, because remote_data is always empty here for an unrelated
+			// reason: issueBuildRemoteData sets "labels" to a []string,
+			// structpb.NewStruct rejects that type outright, and convert.go
+			// discards the error. Measured; pinned by
+			// TestGitHubPassthroughRemoteDataNeverSerialises.
+			//
+			// So asserting "remote_url is absent from remote_data" here would pass
+			// against a completely unsanitized taskToProto. The non-vacuous pins
+			// for the scrub are TestSanitizeRemoteDataScrubsEveryURLCarrier (the
+			// function) and TestTaskToProtoScrubsRemoteDataURLCarriers (the
+			// wiring), both of which use a map that actually serialises.
+			if n := len(poisoned.GetRemoteData().GetFields()); n != 0 {
+				t.Errorf("remote_data unexpectedly carries %d field(s) on the passthrough "+
+					"path: %v. If the []string serialisation issue has been fixed, this "+
+					"path can now ship remote_data and the assertions here must be "+
+					"upgraded from this guard to real absence checks on remote_url and "+
+					"html_url.", n, remoteDataKeysOf(poisoned.GetRemoteData().GetFields()))
 			}
 
 			// Degrade, do not fail: the rest of the task must still be intact.
@@ -204,6 +241,15 @@ func TestPassthroughReadDropsUnsafeRemoteURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func remoteDataKeysOf(m map[string]*structpb.Value) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func keysOf(m map[string]*pb.Task) []string {
