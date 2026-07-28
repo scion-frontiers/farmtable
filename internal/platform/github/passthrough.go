@@ -1103,38 +1103,98 @@ func (s *GitHubPassThroughStore) LifecycleStages(ctx context.Context, t *ent.Tas
 //	BEFORE  currentLifecycleStages — today's config, the task's RAW labels.
 //	        Byte-for-byte the computation base 06f01d7 performed. The state the
 //	        deployment actually believes the task is in.
-//	AFTER   writeView.claimedStages — the fully-enabled view, over the raw
-//	        labels with the CALLER'S ADDITIONS canonicalised.
+//	AFTER   the UNION of two answers over the label set the store would really
+//	        produce: currentLifecycleStages (what this deployment will believe
+//	        the task is in once the write lands) and writeView.claimedStages
+//	        (what any deployment could believe), the latter with the CALLER'S
+//	        ADDITIONS canonicalised.
 //
-// WHY THAT IS MONOTONE BY CONSTRUCTION, which is the property round 10 lacked:
-// the BEFORE arm IS the base behaviour, unchanged, so it cannot move. The AFTER
-// arm only ever recognises MORE than base did, because canonicalisation
-// rewrites a claimed foreign spelling into the local one and lifecycleStageClaim
-// agrees with the read side wherever the read side answers at all. A price is
-// max-over-pairs of a set difference whose left side is fixed and whose right
-// side can only gain elements, so postPrice >= prePrice pointwise. The base
-// behaviour is literally one of the arms — that is what makes the argument a
-// construction rather than a hope.
-// TestLabelWritePrice_IsMonotoneInThePredicate asserts it pointwise over a
-// vocabulary rather than over example cells, because every fixture in
-// configBlindAxes starts from an EMPTY label set and so structurally cannot
-// observe a change in the BEFORE endpoint — which is exactly why the suite
-// missed this.
+// THE UNION IS THE WHOLE MONOTONICITY ARGUMENT AND IT IS NOT DECORATION. The
+// first draft of this round used the claim answer ALONE for AFTER and asserted
+// monotonicity in this comment on the grounds that "the claim recognises more
+// than the read does". That premise is true and the conclusion is still false,
+// which is the same shape of error round 10 made one level down.
 //
-// ONLY THE ADDITIONS ARE CANONICALISED. Removals stay raw because applyLabelDelta
-// matches removals against the task's own raw labels; canonicalising a removal
-// would delete a DIFFERENT label from the modelled after-set than the one the
-// caller named. And the task's existing labels stay raw because canonicalising
-// them is precisely the round-10 defect (see canonicalLifecycleLabels).
+// A wider AFTER predicate is fail-CLOSED for ENTERING a stage and fail-OPEN for
+// LEAVING one, because the price is a difference and over-claiming AFTER can
+// make a departure look like a no-op. MEASURED by the property test on the
+// draft, push_prefix " ", OPEN issue carrying ft:stage/completed:
+//
+//	add_labels=[stage/completed]  remove_labels=[ft:stage/completed]
+//	  read predicate   completed -> accepted    task:accept
+//	  claim-only AFTER completed -> completed   FREE          <-- fail-open
+//
+// The write really does reopen the task — afterwards this deployment renders it
+// as accepted — and the claim answer priced the reopen at nothing because it
+// still recognised a stage label the deployment does not honour.
+//
+// With the union the property is a theorem rather than an observation. BEFORE
+// is the base computation byte for byte, so it is fixed. AFTER contains the
+// base AFTER as a subset by construction, because the base AFTER is literally
+// one of the two things being unioned. The price is the set of scopes over the
+// cross product BEFORE x AFTER, so a fixed left factor and a right factor that
+// only gains elements give a scope set that only gains elements:
+//
+//	writePrice ⊇ readPrice, pointwise, for every input.
+//
+// SameStageSet follows too: if base found the endpoints equal and the union
+// adds anything, they are no longer equal and the edit is priced rather than
+// waved through. Nothing here can be cheaper than what shipped.
+// TestLabelWritePrice_IsMonotoneInThePredicate asserts this over a vocabulary
+// rather than over example cells, because every fixture in configBlindAxes
+// starts from an EMPTY label set and so structurally cannot observe a change in
+// the BEFORE endpoint — which is exactly why the suite missed round 10.
+//
+// THE DELTA IS APPLIED TO THE LABELS THE CALLER NAMED, AND CANONICALISATION
+// HAPPENS AFTER IT. Order matters here and getting it wrong reopens the hole
+// from the other side: canonicalising the additions FIRST hands applyLabelDelta
+// a spelling the caller never sent, and a remove_labels entry then cancels an
+// addition that the real write will still perform. That priced a task:close at
+// nothing on a closed issue carrying stock "duplicate" —
+// TestLabelWritePrice_IsMonotoneInThePredicate found it, and canonicalAdditions
+// carries the measurement. Removals stay raw for the same reason: the store
+// matches them against the issue's own labels. And the task's existing labels
+// stay raw because canonicalising them is precisely the round-10 defect (see
+// canonicalLifecycleLabels).
 func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
 	if s.mapper == nil {
 		return []task.Stage{t.Stage}, []task.Stage{t.Stage}
 	}
 	before = s.currentLifecycleStages(t, t.Labels)
-	after = s.mapper.writeViewMapper().claimedStages(
-		taskIssueState(t), taskStateReason(t),
-		applyLabelDelta(t.Labels, s.mapper.canonicalLifecycleLabels(addLabels), removeLabels))
+
+	rawAfter := applyLabelDelta(t.Labels, addLabels, removeLabels)
+	after = unionStages(
+		// What this deployment will believe once the write lands. Base
+		// 06f01d7's AFTER arm, unchanged, and the subset that makes the
+		// monotonicity argument above a construction.
+		s.currentLifecycleStages(t, rawAfter),
+		// What any deployment could believe.
+		s.mapper.writeViewMapper().claimedStages(
+			taskIssueState(t), taskStateReason(t),
+			s.mapper.canonicalAdditions(rawAfter, t.Labels, addLabels)),
+	)
 	return before, after
+}
+
+// unionStages merges two lifecycle stage sets, preserving the order of the
+// first and appending anything only the second names.
+//
+// Order is preserved rather than sorted because these sets are rendered into
+// authorization error messages, and a set whose order depends on map iteration
+// produces a different message on every run.
+func unionStages(primary, extra []task.Stage) []task.Stage {
+	seen := make(map[task.Stage]bool, len(primary)+len(extra))
+	out := make([]task.Stage, 0, len(primary)+len(extra))
+	for _, group := range [][]task.Stage{primary, extra} {
+		for _, stage := range group {
+			if seen[stage] {
+				continue
+			}
+			seen[stage] = true
+			out = append(out, stage)
+		}
+	}
+	return out
 }
 
 // lifecycleStagesForLabels is LifecycleStage generalised twice over: to an
