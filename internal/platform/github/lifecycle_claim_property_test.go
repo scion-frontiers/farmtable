@@ -25,6 +25,20 @@ import (
 // only. Restating the transition table here would mean the pin agrees with a
 // copy of the policy rather than with the policy. internal/server does not
 // import this package outside its own tests, so there is no cycle.
+//
+// ── THIS PACKAGE'S GATE SET INCLUDES -race (#194 round 11, B5) ──────────────
+//
+// go test -race ./internal/platform/github/ ./internal/server/ -count=1
+//
+// Not a style preference. LabelMapper acquired its first mutable field in round
+// 10 and MultiStore.lazyResolve caches one mapper per collection and hands the
+// same pointer to every request goroutine, so an unsynchronised field here is
+// reachable by ordinary traffic. Round 11 removed the mutability rather than
+// locking it (see the writeView field in labels.go), which means a future edit
+// that reintroduces lazy state has nothing left to trip over except the
+// detector — and TestPassThroughCloseTask_ConcurrentClosesDoNotRaceLabelIndex,
+// which only reports under -race. Every race found in this package so far
+// biased toward pricing a lifecycle write as FREE.
 
 // priceOf is the scope set the UpdateTask label arm would demand for a
 // (before, after) endpoint pair. It mirrors server.go's loop rather than

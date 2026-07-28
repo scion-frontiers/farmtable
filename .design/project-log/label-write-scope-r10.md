@@ -20,7 +20,7 @@ snapshot and `git status --porcelain` asserted empty after each group.
 **Prediction recorded before measuring** (from reading only): (b) is right that
 `AllTerminalLabelStages`'s own guard short-circuits first, and wrong that it is *the*
 cause, because `lifecycleStagesForLabels` falls through to `IssueToPhaseStage` →
-`MapLabelsToStage`, which is separately guarded at `labels.go:393`. Predicted that
+`MapLabelsToStage`, which is separately guarded at `labels.go:249`. Predicted that
 unguarding `:198` alone would change nothing and that non-terminal shapes would stay
 collapsed even with both `terminal_label_stages.go` guards removed.
 
@@ -33,11 +33,21 @@ collapsed even with both `terminal_label_stages.go` guards removed.
 | B | unguard `AllTerminalLabelStages` (`:198`) only | no change — 8/8 still collapsed |
 | C | unguard `authorizationStage` (`:70`) only — **the r9 remedy** | no change — 8/8 still collapsed |
 | D | unguard both | terminal shapes priced; the two non-terminal shapes still collapsed |
-| E | D + unguard `MapLabelsToStage` (`:393`) | full parity with `enabled=true` |
+| E | D + unguard `MapLabelsToStage` (`labels.go:249`) | full parity with `enabled=true` |
 
 **Positive control**: at `enabled=true` the same harness discriminates 7 of the 8 shapes
 (`PRICED=true`), and correctly reports the eighth — adding an unrelated label — as free.
 So a `PRICED=false` reading is a measurement, not a dead harness.
+
+> **Round-11 correction and re-measurement.** Three narrative citations above originally
+> read `labels.go:393` for `MapLabelsToStage`; that line is `StageLabelSwap`, which is not
+> on the price path at all, and the guard table in D2 row 1 of this same log had it right
+> at `labels.go:249`. Corrected in place. The arm table itself was re-run from scratch at
+> base `06f01d7` in a throwaway worktree, same eight shapes, and every row reproduced:
+> A 0/8 priced, B 0/8, C 0/8, D 5/8 (all five terminal shapes; both non-terminal shapes
+> still collapsed), E 7/8 — identical to the `enabled=true` positive control, so "full
+> parity" is exact. No row disagreed. Note that parity is 7/8 and not 8/8 because
+> `add_unrelated` is correctly free in every arm including the control.
 
 In arm C, `authorizationStage("ft:stage/completed")` returns `("completed", true)` at
 `enabled=false` — the r9 remedy is demonstrably in place and working — and every shape is
@@ -266,7 +276,7 @@ inert.
 splitting `authorizationStage` alone would not fix it?" The two clauses are not equivalent
 and the true answers differ: the second clause is **true** (measured, arm C), the first is
 **false as stated** (there are three necessary contributors — `:198`, `:70` and
-`labels.go:393` — and no proper subset is sufficient, measured, arms B/C/D/E). A yes/no answer
+`labels.go:249` — and no proper subset is sufficient, measured, arms B/C/D/E). A yes/no answer
 to the question as posed is wrong either way. This is the leading-question defect the EM
 asked me to watch for, and it is the same single-gate reasoning the brief itself flags at
 line 139 ("the *second* time in this workstream I have pointed at one gate as if it were the
