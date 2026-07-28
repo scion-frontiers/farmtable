@@ -12,12 +12,14 @@ import (
 	"testing"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	ghplatform "github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"github.com/google/uuid"
+	"github.com/shurcooL/githubv4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -126,6 +128,15 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 	for _, extra := range []string{"bug", "needs-info", "duplicate"} {
 		m.idToName["L_extra_"+extra] = extra
 	}
+	// Every label the fixture starts with, so a repository whose labels are
+	// spelled with a non-default prefix is expressible. Same reason as above:
+	// an unregistered name is silently dropped by labelNamesToIDs, and a B6 row
+	// that could not write its own label would pass without measuring anything.
+	for _, l := range initial {
+		if !mockKnowsLabel(m.idToName, l) {
+			m.idToName["L_initial_"+l] = l
+		}
+	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -205,6 +216,15 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 	return srv, m
 }
 
+func mockKnowsLabel(idToName map[string]string, name string) bool {
+	for _, known := range idToName {
+		if strings.EqualFold(known, name) {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *labelWriteIssueMock) add(name string) {
 	for _, l := range m.labels {
 		if strings.EqualFold(l, name) {
@@ -277,6 +297,35 @@ type labelWriteFixture struct {
 // the given state carrying the given labels.
 func newLabelWriteFixture(t *testing.T, state, stateReason string, labels ...string) *labelWriteFixture {
 	t.Helper()
+	return newLabelWriteFixtureWithPrefix(t, defaultPushPrefix, state, stateReason, labels...)
+}
+
+// defaultPushPrefix is the shipped push_prefix. It is named rather than
+// inlined because since B6 this string decides which labels may feed an
+// authorization answer, so "the default" and "no prefix configured" are two
+// different statements and the tests below need to make both.
+const defaultPushPrefix = "ft:"
+
+// prefixedStageLabel spells a stage label under an arbitrary configured prefix,
+// the way StageToLabel would.
+func prefixedStageLabel(prefix string, s task.Stage) string {
+	if prefix == "" {
+		prefix = defaultPushPrefix
+	}
+	return prefix + "stage/" + s.String()
+}
+
+// newLabelWriteFixtureWithPrefix is newLabelWriteFixture with the repository's
+// configured push_prefix as an input.
+//
+// No test anywhere in the repository varied the label mapper's configuration
+// before this: push_prefix was a constant every fixture inherited from
+// DefaultConfig, so it was a dimension nobody treated as an input. B6 makes it
+// load-bearing for SECURITY — it decides which labels may feed an authorization
+// answer — and a security parameter that only ever takes one value in the tests
+// is an untested one.
+func newLabelWriteFixtureWithPrefix(t *testing.T, pushPrefix, state, stateReason string, labels ...string) *labelWriteFixture {
+	t.Helper()
 	ctx := context.Background()
 
 	entStore, storeCleanup := testutil.NewTestStore(t)
@@ -313,7 +362,7 @@ func newLabelWriteFixture(t *testing.T, state, stateReason string, labels ...str
 		if !ok {
 			return nil, nil
 		}
-		return newPassThroughStoreWithMock(t, mockGH, owner, repo, cid), nil
+		return newPassThroughStoreWithPrefix(t, mockGH, owner, repo, cid, pushPrefix), nil
 	})
 
 	svc := server.NewFarmTableService(ms, "test")
@@ -333,6 +382,19 @@ func newLabelWriteFixture(t *testing.T, state, stateReason string, labels ...str
 		collID: coll.ID,
 		issue:  issue,
 	}
+}
+
+// newPassThroughStoreWithPrefix is newPassThroughStoreWithMock with the
+// repository's configured push_prefix as an input. It is spelled out here
+// rather than added as a parameter to the shared helper so that the dozens of
+// existing call sites keep asserting against the shipped default.
+func newPassThroughStoreWithPrefix(t *testing.T, mockServer *httptest.Server, owner, repo string, collectionID uuid.UUID, pushPrefix string) store.Store {
+	t.Helper()
+	cfg := ghplatform.DefaultConfig()
+	cfg.GitHub.Labels.PushPrefix = pushPrefix
+	s := ghplatform.NewPassThroughStore("mock-token", owner, repo, cfg, &collectionID)
+	ghplatform.SetTestGraphQLClient(s, githubv4.NewEnterpriseClient(mockServer.URL, mockServer.Client()))
+	return s
 }
 
 // openIssue is the fixture the two attack directions run against.
@@ -1542,4 +1604,420 @@ func TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase(t *testing.T) {
 			}
 		}
 	})
+}
+
+// ── B5: the authorization source is a SET, not a tiebreak winner ──
+
+// TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose is
+// the conversion class that needs NO LABEL WRITE AT ALL.
+//
+// Every other probe in this file attacks through add_labels or remove_labels.
+// This one does not touch a label: it calls UpdateTask(stage=X) on a task that
+// already names X, which the transition table waves through as a no-op because
+// from == to. The trick is that the task also names a SECOND terminal stage,
+// and the write really does erase it — the pass-through store's stage change
+// runs StageLabelSwap, which removes every other stage label. So:
+//
+//	before: [ft:stage/wont_fix, ft:stage/completed]
+//	call:   UpdateTask(stage=completed)     with task:write only
+//	after:  [ft:stage/completed]            — the maintainer's decline is gone
+//
+// Measured against round 4: 12 ordered pairs, 6 converted, 6 denied, and the
+// converting six were exactly those where the destination outranked the source
+// in terminalStagePrecedence — wont_fix/duplicate/cancelled -> completed,
+// duplicate/cancelled -> wont_fix, cancelled -> duplicate. The tiebreak handed
+// the gate the destination as the source, so from == to held and the check
+// short-circuited to task:write.
+//
+// Reordering the precedence list cannot fix this. A conversion exists exactly
+// when rank(dest) < rank(start), the rank-0 element is therefore reachable from
+// every other terminal stage, and every total order has a rank-0 element — so
+// a reorder only changes WHICH stage is free. The fix is to stop selecting:
+// with the whole set in hand, from == to can hold for at most one member, and
+// the other member falls to "any -> terminal costs task:close".
+//
+// All 12 pairs are now gated. Both halves are asserted — denied with
+// task:write, allowed with task:close — because a control that denied
+// everything would satisfy the first half alone.
+func TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose(t *testing.T) {
+	stages := []task.Stage{
+		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
+	}
+
+	executed, gated := 0, 0
+	for _, start := range stages {
+		for _, dest := range stages {
+			if start == dest {
+				continue
+			}
+			executed++
+			t.Run(string(start)+"_plus_"+string(dest)+"_ask_"+string(dest), func(t *testing.T) {
+				f := openIssue(t, stageLabel(start), stageLabel(dest))
+
+				// BASELINE. Both labels must actually be on the issue, or the
+				// row is measuring a single-terminal task and proves nothing.
+				before := f.issue.currentLabels()
+				if !containsLabel(before, stageLabel(start)) || !containsLabel(before, stageLabel(dest)) {
+					t.Fatalf("BASELINE BROKEN: fixture labels %v do not carry both %s and %s",
+						before, stageLabel(start), stageLabel(dest))
+				}
+				// And the tiebreak must genuinely report ONE of them, which is
+				// the condition that made this reachable in the first place.
+				if got := f.lifecycleStage(t); !store.IsTerminalStage(got) {
+					t.Fatalf("BASELINE BROKEN: lifecycle stage %q is not terminal", got)
+				}
+
+				destProto := protoStage(t, dest)
+				_, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+					Id: f.taskID, Stage: &destProto,
+				})
+				if err == nil {
+					t.Fatalf("UpdateTask(stage=%s) on a task naming both %s and %s was allowed "+
+						"with task:write. Labels now %v — re-asserting a stage the task already "+
+						"names must not be free when it erases another terminal stage",
+						dest, start, dest, f.issue.currentLabels())
+				}
+				gated++
+				requireDeniedFor(t, err, server.ScopeTaskClose,
+					fmt.Sprintf("UpdateTask(stage=%s) on a [%s %s] task", dest, start, dest))
+
+				// The label state AFTER the refusal, not just the error. A
+				// denial that had already swapped the labels would leave the
+				// finding open while reporting it closed.
+				if after := f.issue.currentLabels(); !sameLabels(before, after) {
+					t.Fatalf("denied but the labels changed %v -> %v; the maintainer's %s "+
+						"was erased anyway", before, after, stageLabel(start))
+				}
+
+				// DIFFERENTIAL: task:close permits it, and the swap then does
+				// exactly what the attack wanted — which is fine, because the
+				// caller holds the scope that says so.
+				if _, err := f.svc.UpdateTask(scopedCtx(withScope(server.ScopeTaskClose)),
+					&pb.UpdateTaskRequest{Id: f.taskID, Stage: &destProto}); err != nil {
+					t.Fatalf("UpdateTask(stage=%s) with task:close was rejected (%v)", dest, err)
+				}
+				if got := f.lifecycleStage(t); got != dest {
+					t.Fatalf("allowed with task:close but the lifecycle stage is %q, want %q; "+
+						"labels %v", got, dest, f.issue.currentLabels())
+				}
+			})
+		}
+	}
+
+	if executed != 12 {
+		t.Fatalf("executed %d cells, want 12 (4 terminal stages, ordered pairs)", executed)
+	}
+	// SCHEMA — what these rows can and cannot express.
+	//
+	//	CAN express: exactly two terminal stage labels, both prefixed, on an
+	//	  OPEN issue, with the request naming one of them as the destination.
+	//	CANNOT express: three or more terminal labels; a terminal label the
+	//	  mapper does not recognise; the same conversion reached through
+	//	  add_labels (that is the swap test above); or any non-terminal
+	//	  destination (a terminal source with a non-terminal destination is the
+	//	  reopen matrix in authz_terminal_reopen_test.go).
+	if gated != 12 {
+		t.Fatalf("%d of 12 ordered pairs were gated, want 12. Six is the signature of a "+
+			"control that reads the tiebreak winner as the transition source", gated)
+	}
+}
+
+// TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite is the positive
+// control for the test above, and it is the reason that test cannot be
+// satisfied by refusing everything.
+//
+// A task naming ONE terminal stage, re-asserted, is a genuine no-op: the label
+// set does not change, no other maintainer statement is erased, and the
+// transition table's from == to row is correct about it. Charging task:close
+// here would break every legitimate restamp — and
+// TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite in
+// authz_terminal_reopen_test.go pins the same property from round 4 and is
+// deliberately left untouched.
+func TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite(t *testing.T) {
+	for _, stage := range []task.Stage{
+		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
+	} {
+		t.Run(string(stage), func(t *testing.T) {
+			f := openIssue(t, stageLabel(stage))
+			if got := f.lifecycleStage(t); got != stage {
+				t.Fatalf("BASELINE BROKEN: lifecycle stage %q, want %q", got, stage)
+			}
+			before := f.issue.currentLabels()
+
+			destProto := protoStage(t, stage)
+			if _, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+				Id: f.taskID, Stage: &destProto,
+			}); err != nil {
+				t.Fatalf("UpdateTask(stage=%s) on a task already at %s was refused (%v). "+
+					"Re-asserting the one stage a task names changes nothing and must stay "+
+					"a plain write", stage, stage, err)
+			}
+			if after := f.issue.currentLabels(); !sameLabels(before, after) {
+				t.Fatalf("a no-op restamp changed the labels %v -> %v", before, after)
+			}
+		})
+	}
+}
+
+// TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5 is the
+// no-write conversion cell reported with GitHub's own stock label as the second
+// terminal signal: [ft:stage/cancelled, duplicate], asking for duplicate.
+//
+// It is DENIED, and the honest reason is not the one the report predicted.
+// B6 removed the bare "duplicate" from the authorization input entirely, so the
+// task names one terminal stage (cancelled), the set has a single member, and
+// TransitionScope(cancelled, duplicate) charges task:close by the ordinary
+// "any -> terminal" row. B5 never sees a second member. Reporting this as "B5
+// closed it" would be a claim about a code path that did not run.
+//
+// Both prefixed cells from the same report ARE closed by B5 and live in the
+// 12-pair test above; they are re-stated here so the three reported cells sit
+// in one place with their true causes attached.
+func TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5(t *testing.T) {
+	cases := []struct {
+		name     string
+		labels   []string
+		ask      task.Stage
+		closedBy string
+	}{
+		{
+			name:   "cancelled_plus_stock_duplicate_ask_duplicate",
+			labels: []string{stageLabel(task.StageCancelled), "duplicate"},
+			ask:    task.StageDuplicate,
+			// Not B5: since B6 the stock label is not an authorization input,
+			// so the source set is {cancelled} and this is an ordinary
+			// any -> terminal charge.
+			closedBy: "B6 + the pre-existing any->terminal rule",
+		},
+		{
+			name:     "cancelled_plus_completed_ask_completed",
+			labels:   []string{stageLabel(task.StageCancelled), stageLabel(task.StageCompleted)},
+			ask:      task.StageCompleted,
+			closedBy: "B5",
+		},
+		{
+			name:     "duplicate_plus_wont_fix_ask_wont_fix",
+			labels:   []string{stageLabel(task.StageDuplicate), stageLabel(task.StageWontFix)},
+			ask:      task.StageWontFix,
+			closedBy: "B5",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := openIssue(t, tc.labels...)
+			before := f.issue.currentLabels()
+
+			askProto := protoStage(t, tc.ask)
+			_, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+				Id: f.taskID, Stage: &askProto,
+			})
+			requireDeniedFor(t, err, server.ScopeTaskClose,
+				fmt.Sprintf("UpdateTask(stage=%s) on %v [%s]", tc.ask, tc.labels, tc.closedBy))
+			if after := f.issue.currentLabels(); !sameLabels(before, after) {
+				t.Fatalf("denied but the labels changed %v -> %v", before, after)
+			}
+			t.Logf("DENIED by %s", tc.closedBy)
+		})
+	}
+
+	// CONTROL for the first row's stated reason. If the stock label were still
+	// an authorization input, a task carrying ONLY it would read as terminal
+	// and reopening it would cost task:accept. It must now be free.
+	f := openIssue(t, "duplicate")
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	if _, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+		Id: f.taskID, Stage: &accepted,
+	}); err != nil {
+		t.Fatalf("CONTROL BROKEN: a task carrying only the stock \"duplicate\" label still "+
+			"costs more than task:write to move (%v), so the first row above may be denied "+
+			"for the reason B5 would give rather than the one it claims", err)
+	}
+}
+
+// ── B6: only a prefixed label may feed an authorization answer ──
+
+// TestTerminalStageInput_RequiresTheConfiguredPrefix is the test that makes
+// push_prefix an input rather than a constant.
+//
+// THE INVARIANT: a label may contribute to an authorization or terminal-stage
+// determination only if it carries the configured push prefix. Prefix-tolerant
+// matching is a display affordance and must not reach a security decision.
+//
+// Round 4 introduced the exposure by fixing something else. Its whole-set
+// terminal scan is correct, and it promoted every bare stage-named label —
+// notably GitHub's stock "duplicate", present in every new repository and
+// appliable with triage rights — from "hidden behind any other stage label" to
+// "authoritative". 12 combinations changed answer.
+//
+// The four cells below are the ones that distinguish a real read of the
+// configuration from a hardcoded second string:
+//
+//	default prefix, ft:stage/completed   -> terminal    (positive control)
+//	default prefix, bare completed       -> NOT terminal
+//	acme: prefix,   acme:stage/completed -> terminal
+//	acme: prefix,   ft:stage/completed   -> NOT terminal
+//
+// The last one is the important one: under a custom prefix OUR OWN default
+// spelling stops being authoritative, because it is no longer what this
+// repository's Farm Table writes.
+func TestTerminalStageInput_RequiresTheConfiguredPrefix(t *testing.T) {
+	cases := []struct {
+		name         string
+		pushPrefix   string
+		label        string
+		wantTerminal bool
+		why          string
+	}{
+		{
+			name: "default_prefix_prefixed_label", pushPrefix: "ft:",
+			label: "ft:stage/completed", wantTerminal: true,
+			why: "the positive control: without it, B6 passing would only prove the scan is dead",
+		},
+		{
+			name: "default_prefix_bare_stock_label", pushPrefix: "ft:",
+			label: "duplicate", wantTerminal: false,
+			why: "GitHub ships this label in every repository; triage rights must not decide privilege",
+		},
+		{
+			name: "default_prefix_bare_stage_name", pushPrefix: "ft:",
+			label: "completed", wantTerminal: false,
+			why: "an independently created label with a stage-shaped name is not a Farm Table assertion",
+		},
+		{
+			name: "custom_prefix_custom_label", pushPrefix: "acme:",
+			label: "acme:stage/completed", wantTerminal: true,
+			why: "the configured prefix is read from configuration, not hardcoded",
+		},
+		{
+			name: "custom_prefix_default_label", pushPrefix: "acme:",
+			label: "ft:stage/completed", wantTerminal: false,
+			why: "under a custom prefix our own default spelling is somebody else's label",
+		},
+		{
+			name: "empty_prefix_default_label", pushPrefix: "",
+			label: "ft:stage/completed", wantTerminal: true,
+			why: "an empty push_prefix means the default ft:, matching what StageToLabel writes",
+		},
+		{
+			name: "empty_prefix_bare_label", pushPrefix: "",
+			label: "completed", wantTerminal: false,
+			why: "empty configuration means the default prefix, NOT 'no prefix required'",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newLabelWriteFixtureWithPrefix(t, tc.pushPrefix, "OPEN", "", tc.label)
+
+			// BASELINE. The label must be on the issue, or "not terminal" is
+			// just a fixture that lost it.
+			if !containsLabel(f.issue.currentLabels(), tc.label) {
+				t.Fatalf("BASELINE BROKEN: fixture labels %v do not carry %q",
+					f.issue.currentLabels(), tc.label)
+			}
+
+			gotStage := f.lifecycleStage(t)
+			gotTerminal := store.IsTerminalStage(gotStage)
+			if gotTerminal != tc.wantTerminal {
+				t.Fatalf("push_prefix=%q label=%q: lifecycle stage %q (terminal=%v), want "+
+					"terminal=%v. %s", tc.pushPrefix, tc.label, gotStage, gotTerminal,
+					tc.wantTerminal, tc.why)
+			}
+
+			// The reading must be consistent across the sinks that share it,
+			// not merely at the seam. Availability is the one a scheduler
+			// reads and the claim gate enforces.
+			avail := f.availability(t)
+			if gotTerminal && avail.Available {
+				t.Fatalf("push_prefix=%q label=%q reads terminal but the task is available",
+					tc.pushPrefix, tc.label)
+			}
+			if !gotTerminal && avail.HasReason(store.AvailabilityReasonTerminal) {
+				t.Fatalf("push_prefix=%q label=%q does not read terminal but availability "+
+					"says %v", tc.pushPrefix, tc.label, avail.Reasons)
+			}
+
+			// And the authorization sink: reopening must cost task:accept if
+			// and only if the label counted.
+			accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+			_, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+				Id: f.taskID, Stage: &accepted,
+			})
+			if tc.wantTerminal {
+				requireDeniedFor(t, err, server.ScopeTaskAccept,
+					fmt.Sprintf("reopen with push_prefix=%q label=%q", tc.pushPrefix, tc.label))
+			} else if err != nil {
+				t.Fatalf("push_prefix=%q label=%q: reopen cost more than task:write (%v), "+
+					"but the label is not an authorization input. %s",
+					tc.pushPrefix, tc.label, err, tc.why)
+			}
+		})
+	}
+}
+
+// TestLabelWriteScope_StockLabelBesideAnAcceptedTaskStaysReadyWork is the cell
+// the audit measured as CHANGED by round 4 and reverted by B6:
+// [duplicate, ft:stage/accepted]. Round 3 read it as accepted, round 4 as
+// duplicate/TERMINAL, and B6 puts it back — deliberately this time, with the
+// reason recorded rather than as a side effect of a precedence collapse.
+//
+// This asserts the full consequence, not just the stage: the task is available,
+// it is claimable, and reopening it is free. A task wrongly unavailable is the
+// safe direction of this bug, but it is still a bug — it silently removes work
+// from every agent's queue.
+func TestLabelWriteScope_StockLabelBesideAnAcceptedTaskStaysReadyWork(t *testing.T) {
+	f := openIssue(t, "duplicate", stageLabel(task.StageAccepted))
+
+	if got := f.lifecycleStage(t); store.IsTerminalStage(got) {
+		t.Fatalf("lifecycle stage %q is terminal; a stock GitHub label beside an accepted "+
+			"task must not mark it finished", got)
+	}
+	if avail := f.availability(t); !avail.Available {
+		t.Fatalf("task is unavailable (%v); the stock label removed real work from the queue",
+			avail.Reasons)
+	}
+
+	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{CollectionID: &f.collID})
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("ListTasks: err=%v n=%d", err, len(tasks))
+	}
+	if _, err := f.ms.ClaimTask(context.Background(), tasks[0].ID, uuid.New(), ""); err != nil {
+		t.Fatalf("ClaimTask was refused (%v); the enforcement gate still reads the stock label",
+			err)
+	}
+
+	// CONTROL: the prefixed spelling in the same position must still withhold
+	// the task, so this test cannot pass because the terminal rule is gone.
+	g := openIssue(t, stageLabel(task.StageDuplicate), stageLabel(task.StageAccepted))
+	if got := g.lifecycleStage(t); got != task.StageDuplicate {
+		t.Fatalf("CONTROL BROKEN: [%s %s] reads as %q, want duplicate; the masked-terminal "+
+			"rule from round 4 has been lost", stageLabel(task.StageDuplicate),
+			stageLabel(task.StageAccepted), got)
+	}
+}
+
+// protoStage converts a stage to its proto enum for a request, failing the test
+// on an unmapped value rather than sending TASK_STAGE_UNSPECIFIED — which
+// UpdateTask rejects as InvalidArgument and which a denial assertion could
+// mistake for a refusal.
+func protoStage(t *testing.T, s task.Stage) pb.TaskStage {
+	t.Helper()
+	byStage := map[task.Stage]pb.TaskStage{
+		task.StageTriage:    pb.TaskStage_TASK_STAGE_TRIAGE,
+		task.StageAccepted:  pb.TaskStage_TASK_STAGE_ACCEPTED,
+		task.StageWorking:   pb.TaskStage_TASK_STAGE_WORKING,
+		task.StageInReview:  pb.TaskStage_TASK_STAGE_IN_REVIEW,
+		task.StageInQa:      pb.TaskStage_TASK_STAGE_IN_QA,
+		task.StageDeploying: pb.TaskStage_TASK_STAGE_DEPLOYING,
+		task.StageCompleted: pb.TaskStage_TASK_STAGE_COMPLETED,
+		task.StageWontFix:   pb.TaskStage_TASK_STAGE_WONT_FIX,
+		task.StageDuplicate: pb.TaskStage_TASK_STAGE_DUPLICATE,
+		task.StageCancelled: pb.TaskStage_TASK_STAGE_CANCELLED,
+	}
+	p, ok := byStage[s]
+	if !ok {
+		t.Fatalf("no proto stage for %q", s)
+	}
+	return p
 }
