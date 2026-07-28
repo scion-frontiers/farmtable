@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -76,11 +77,17 @@ func TestPassThroughCloseTask_ConcurrentClosesDoNotRaceLabelIndex(t *testing.T) 
 	// The cache must also end up populated exactly once and intact: a
 	// last-writer-wins double populate is benign only because every writer
 	// builds the same map, and that is worth pinning.
-	if len(s.labelIndex) == 0 {
-		t.Fatal("label index empty after 8 concurrent closes")
-	}
-	if _, ok := s.labelNameToID("ft:stage/completed"); !ok {
-		t.Errorf("label index missing ft:stage/completed after concurrent closes; got %v", s.labelIndex)
+	//
+	// Read it through labelNameToID rather than touching s.labelIndex. The
+	// direct read is safe here — wg.Wait() orders it after every writer — but
+	// it is the precise access pattern this test exists to forbid, and a test
+	// that reaches past the accessor stops exercising the accessor's lock. If
+	// the barrier is ever weakened, the assertion should race with the store,
+	// not silently keep passing.
+	for _, name := range []string{"ft:stage/working", "ft:stage/completed"} {
+		if _, ok := s.labelNameToID(name); !ok {
+			t.Errorf("label index missing %s after %d concurrent closes", name, issues)
+		}
 	}
 }
 
@@ -111,8 +118,10 @@ func TestPassThroughEnsureRepoID_ConcurrentUseDoesNotRace(t *testing.T) {
 	close(start)
 	wg.Wait()
 
-	if s.repoID != "REPO" {
-		t.Errorf("repoID = %v, want REPO", s.repoID)
+	// Via the accessor, for the same reason as the label index above: the
+	// point of the fix is that the cache is only read under the lock.
+	if got := s.cachedRepoID(); got != "REPO" {
+		t.Errorf("cachedRepoID() = %v, want REPO", got)
 	}
 }
 
@@ -146,7 +155,18 @@ func statelessIssueHandler(t *testing.T, n int) http.HandlerFunc {
 		`],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}`
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := mustReadBody(t, r.Body)
+		// Not mustReadBody: that reports with t.Fatalf, and this runs on an
+		// http.Server goroutine, where Fatalf calls runtime.Goexit on the wrong
+		// goroutine — the test does not stop, it just loses the handler and
+		// then hangs or fails somewhere unrelated. t.Errorf is safe from any
+		// goroutine, so failures here are reported where they happen.
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		body := string(raw)
 		w.Header().Set("Content-Type", "application/json")
 
 		number := 1
