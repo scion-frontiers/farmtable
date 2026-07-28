@@ -4,11 +4,20 @@
  * MOTIVATION. Fixing the two `href=${...}` bindings that an audit happened to
  * trace is a checklist. A checklist does not stop the next binding someone adds.
  * When the hazard is open-set, the fix has to be a chokepoint: this scanner
- * fails the build for ANY dynamic `href`/`src` binding, or any `.href`/`.src`
- * property assignment, that is not explicitly allow-listed here with a reason.
+ * fails the build for any dynamic binding of a URL-bearing attribute (see
+ * URL_ATTRS), any assignment to a URL-bearing property (URL_PROPS), any
+ * setAttribute whose name it cannot read, any imperative navigation with a
+ * non-literal URL, and any URL property set through `Object.assign` -- unless
+ * the line is explicitly allow-listed here with a reason.
  *
  * To add a new URL-bearing binding you must either route it through
  * `safeHref()` or add an entry below justifying why it is safe by construction.
+ *
+ * WHAT IT STILL DOES NOT SEE, so that the boundary is on the record rather than
+ * implied by the rules: CSS `url()` in a styles block, lit's `unsafeStatic`
+ * and `unsafeHTML`, a URL reaching an attribute through a spread
+ * (`html\`<a ...${props}>\``), and `el.data = url` on an <object> (see the note
+ * on URL_PROPS). Those are tracked separately, not closed here.
  *
  * SCOPE NOTE. The addendum to this task asked for this rule to be added to
  * `web/src/util/markdown.test.ts`, which has a tree-wide `BANNED_SINKS`
@@ -37,27 +46,164 @@ interface Rule {
   readonly pattern: RegExp;
 }
 
+/**
+ * URL-bearing HTML ATTRIBUTES. Each of these navigates, fetches, or executes
+ * from a string the markup supplies, so each is a place a `javascript:` or
+ * `data:` value reaches a sink:
+ *
+ *   href, src, xlink:href  the original two, plus the SVG form
+ *   srcdoc                 <iframe srcdoc> is a full HTML document, inline
+ *   formaction             overrides a form's action from the submit button
+ *   action                 <form action="javascript:...">
+ *   ping                   fires a POST to an arbitrary URL on click
+ *   srcset                 a list of URLs; the browser picks one
+ *   poster                 <video poster>
+ *   data                   <object data="..."> loads and can execute
+ *
+ * Attribute names are matched case-insensitively because HTML is
+ * case-insensitive and Lit passes the name through.
+ */
+const URL_ATTRS = [
+  'href',
+  'src',
+  'xlink:href',
+  'srcdoc',
+  'formaction',
+  'action',
+  'ping',
+  'srcset',
+  'poster',
+  'data',
+] as const;
+
+/**
+ * The subset safe to match as JS PROPERTY names.
+ *
+ * `action`, `ping` and `data` are omitted deliberately: as identifiers they are
+ * overwhelmingly ordinary application state (`this.data =`, `{ action: 'save' }`)
+ * and including them would produce an allow-list of dozens of unrelated lines,
+ * which is how a scanner stops being read. As ATTRIBUTES they stay in
+ * URL_ATTRS above, where they are unambiguous.
+ *
+ * This is a precision/recall trade made explicitly rather than by omission:
+ * `el.data = url` on an <object> is a real sink and this will not catch it.
+ */
+const URL_PROPS = ['href', 'src', 'srcdoc', 'formAction', 'srcset', 'poster'] as const;
+
+const ATTR_ALT = URL_ATTRS.join('|').replace(/:/g, '\\:');
+const PROP_ALT = URL_PROPS.join('|');
+
 const RULES: readonly Rule[] = [
   // Lit template binding, unquoted: <a href=${expr}> / <img src=${expr}>
-  { name: 'dynamic href/src attribute binding', pattern: /\b(?:href|src|xlink:href)\s*=\s*\$\{/ },
+  {
+    name: 'dynamic URL attribute binding',
+    pattern: new RegExp(`\\b(?:${ATTR_ALT})\\s*=\\s*\\$\\{`, 'i'),
+  },
   // The same binding with quotes around it: href="${expr}". Lit accepts this
   // form and it is what most people write from muscle memory, but the unquoted
   // pattern above does not match it, so the scanner had a recall hole wide
   // enough to drive the original defect straight back through.
   {
-    name: 'dynamic href/src attribute binding (quoted)',
-    pattern: /\b(?:href|src|xlink:href)\s*=\s*["'`][^"'`]*\$\{/,
+    name: 'dynamic URL attribute binding (quoted)',
+    pattern: new RegExp(`\\b(?:${ATTR_ALT})\\s*=\\s*["'\`][^"'\`]*\\$\\{`, 'i'),
   },
   // Imperative DOM assignment: el.href = expr
-  { name: 'dynamic href/src property assignment', pattern: /\.(?:href|src)\s*=\s*(?!=)/ },
+  {
+    name: 'dynamic URL property assignment',
+    pattern: new RegExp(`\\.(?:${PROP_ALT})\\s*=\\s*(?!=)`),
+  },
+  // SVG's SVGAnimatedString: use.href.baseVal = expr. The rule above does not
+  // match it, because `.href` is followed by `.baseVal` rather than `=`. This
+  // is the property-side counterpart of the xlink:href attribute support, which
+  // review noted was present on the attribute rules and absent here.
+  { name: 'dynamic SVG href.baseVal assignment', pattern: /\.(?:href|src)\.baseVal\s*=\s*(?!=)/ },
   // Imperative attribute write: el.setAttribute('href', expr). This bypasses
   // both patterns above entirely and is the standard way to set an attribute
   // outside a template.
   {
-    name: 'href/src written via setAttribute',
-    pattern: /\.setAttribute(?:NS)?\s*\([^)]*["'](?:href|src|xlink:href)["']/i,
+    name: 'URL attribute written via setAttribute',
+    pattern: new RegExp(`\\.setAttribute(?:NS)?\\s*\\([^)]*["'\`](?:${ATTR_ALT})["'\`]`, 'i'),
+  },
+  // setAttribute with a COMPUTED name. Whatever the name turns out to be, this
+  // scanner cannot read it, so the rule above is blind to the call -- and
+  // `el.setAttribute(name, value)` with name from a loop over a props object is
+  // an ordinary way to write code. Banned outright: use a literal name, or
+  // allow-list the line with a reason.
+  //
+  // A static template literal (`'href'` written with backticks) counts as a
+  // literal; one with a `${` in it does not, because its value is computed.
+  {
+    name: 'setAttribute with a computed attribute name',
+    pattern: /\.setAttribute\s*\(\s*(?!['"]|`[^`$]*`)/,
+  },
+  {
+    name: 'setAttributeNS with a computed attribute name',
+    pattern: /\.setAttributeNS\s*\([^,]*,\s*(?!['"]|`[^`$]*`)/,
+  },
+  // Imperative navigation. These take a URL as an argument rather than
+  // assigning one to a property, so none of the patterns above sees them, and
+  // `window.open('javascript:...')` executes in the opener's origin.
+  {
+    name: 'imperative navigation with a non-literal URL',
+    pattern: /\b(?:window\.open|location\.assign|location\.replace|open)\s*\(\s*(?!['"`)])/,
   },
 ];
+
+/**
+ * `Object.assign(el, { href: expr })` is a MULTI-LINE shape, so no line regex
+ * can see it -- and it is already the house style in this tree for building a
+ * detached element (ft-app.ts:766, ft-toolbar.ts:701,
+ * dependency/ft-dependency-view.ts:1378, all of them building <sl-alert>). A
+ * scanner that fails the build for `el.href = url` and waves through
+ * `Object.assign(el, { href: url })` is enforcing a coding style, not a
+ * property.
+ *
+ * Handled as a whole-text scan: find each `Object.assign(`, balance its
+ * argument list, and report any URL-bearing property key inside it whose value
+ * is not a string literal. Reported at the line of the KEY, so the allow-list
+ * entry is the line a reviewer would look at.
+ */
+function scanObjectAssign(file: string, text: string): Finding[] {
+  const findings: Finding[] = [];
+  const code = blankNonCode(text);
+  const propRe = new RegExp(`(?:^|[{,\\s])(${PROP_ALT})\\s*:\\s*(.*)$`);
+  const marker = 'Object.assign(';
+
+  for (let at = code.indexOf(marker); at >= 0; at = code.indexOf(marker, at + 1)) {
+    // Balance from the opening paren to find the extent of the call.
+    let depth = 0;
+    let end = code.length;
+    for (let i = at + marker.length - 1; i < code.length; i++) {
+      if (code[i] === '(') depth++;
+      else if (code[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+
+    const lineOfOffset = (o: number) => code.slice(0, o).split('\n').length;
+    const firstLine = lineOfOffset(at);
+    const lines = text.split('\n');
+    const lastLine = lineOfOffset(end);
+
+    for (let ln = firstLine; ln <= lastLine && ln <= lines.length; ln++) {
+      const m = propRe.exec(blankNonCode(lines[ln - 1]!));
+      if (!m) continue;
+      // A blanked string literal is `''`/`""` with spaces inside: static, safe.
+      if (/^(['"`])\s*\1\s*,?\s*$/.test(m[2]!.trim())) continue;
+      findings.push({
+        file,
+        lineNo: ln,
+        line: lines[ln - 1]!.trim(),
+        rule: `URL property set via Object.assign (${m[1]})`,
+      });
+    }
+  }
+  return findings;
+}
 
 // ── the allow-list ───────────────────────────────────────────────────────────
 
@@ -160,6 +306,7 @@ function scanText(file: string, text: string): Finding[] {
       }
     }
   });
+  findings.push(...scanObjectAssign(file, text));
   return findings;
 }
 
@@ -362,6 +509,40 @@ function testPositiveFixtures(): void {
     ['setAttribute src double quoted', 'img.setAttribute("src", attackerControlled);'],
     ['setAttributeNS xlink href', "use.setAttributeNS(XLINK, 'xlink:href', raw);"],
     ['svg xlink href binding', 'svg`<use xlink:href=${raw} />`'],
+    // Recall gaps found by audit F-2 / brief B4. Every one of these shipped
+    // past the scanner while `el.href = url` failed the build.
+    ['iframe srcdoc', 'html`<iframe srcdoc=${raw}></iframe>`'],
+    ['form action', 'html`<form action=${raw}></form>`'],
+    ['button formaction', 'html`<button formaction=${raw}>go</button>`'],
+    ['anchor ping', 'html`<a href="/x" ping=${raw}>x</a>`'],
+    ['img srcset', 'html`<img srcset="${raw} 2x">`'],
+    ['video poster', 'html`<video poster=${raw}></video>`'],
+    ['object data', 'html`<object data=${raw}></object>`'],
+    ['uppercase attribute', 'html`<a HREF=${raw}>x</a>`'],
+    ['svg href.baseVal', 'use.href.baseVal = raw;'],
+    ['srcdoc property', 'frame.srcdoc = raw;'],
+    ['setAttribute with a computed name', 'el.setAttribute(name, value);'],
+    ['setAttribute with a template name', 'el.setAttribute(`data-${k}`, value);'],
+    ['setAttributeNS with a computed name', 'el.setAttributeNS(NS, name, value);'],
+    ['window.open', 'window.open(raw, "_blank");'],
+    ['location.assign', 'location.assign(raw);'],
+    ['location.replace', 'window.location.replace(raw);'],
+    ['bare open()', 'open(raw);'],
+    // The house-style shape. Multi-line on purpose: a line regex cannot see it,
+    // which is why scanObjectAssign exists.
+    [
+      'Object.assign href',
+      ['const a = Object.assign(document.createElement("a"), {', '  href: raw,', '});'].join('\n'),
+    ],
+    [
+      'Object.assign src, several properties',
+      [
+        'const el = Object.assign(document.createElement("img"), {',
+        '  alt: "x",',
+        '  src: task.avatarUrl,',
+        '});',
+      ].join('\n'),
+    ],
   ];
   for (const [name, fixture] of shouldFire) {
     const findings = scanText('fixture.ts', fixture);
@@ -380,6 +561,33 @@ function testPositiveFixtures(): void {
     ['quoted static href', 'html`<a href="/docs/index">x</a>`'],
     ['getAttribute href', "const h = el.getAttribute('href');"],
     ['removeAttribute href', "el.removeAttribute('href');"],
+    // Precision guards for the B4 rules. These decide whether the scanner is
+    // readable enough to be read; a scanner nobody reads approves everything.
+    ['setAttribute with a literal unrelated name', "el.setAttribute('aria-label', label);"],
+    ['ordinary data property', 'this.data = response.items;'],
+    ['ordinary action property', "dispatch({ action: 'save' });"],
+    ['static window.open', "window.open('https://example.com/docs', '_blank');"],
+    ['window.open with no arguments', 'window.open();'],
+    ['opening a dialog, not a URL', 'dialog.open = true;'],
+    ['static poster', 'html`<video poster="/static/poster.png"></video>`'],
+    ['reading href.baseVal', 'const h = use.href.baseVal;'],
+    // The three real Object.assign sites in this tree, in shape: none of their
+    // properties is URL-bearing, and the scanner must not fire on them or the
+    // house style becomes unusable.
+    [
+      'Object.assign with no URL properties',
+      [
+        "const alert = Object.assign(document.createElement('sl-alert'), {",
+        "  variant: 'danger',",
+        '  closable: true,',
+        '  duration: 8000,',
+        '});',
+      ].join('\n'),
+    ],
+    [
+      'Object.assign with a static href',
+      ['const a = Object.assign(el, {', "  href: '/docs',", '});'].join('\n'),
+    ],
   ];
   for (const [name, fixture] of shouldNotFire) {
     const findings = scanText('fixture.ts', fixture);
@@ -485,13 +693,45 @@ function testNoUnapprovedBindings(): void {
     findings.push(...scanText(relative(SRC, file), readFileSync(file, 'utf8')));
   }
 
-  // The scan must see the bindings we know exist; otherwise a silently broken
-  // walk would report a clean tree.
+  // ANTI-VACUITY, ON THE WALK.
+  //
+  // This used to be `findings.length >= ALLOWED.length`, justified as "the scan
+  // must see the bindings we know exist; otherwise a silently broken walk would
+  // report a clean tree". Both halves of that were wrong at once. It does not
+  // detect a broken walk -- ALLOWED has four entries and the tree has four
+  // matching lines, so any walk that happens to reach ft-toolbar.ts and the two
+  // inspector files satisfies it while missing every other directory. And the
+  // inequality is not even the right shape: it is satisfied trivially the
+  // moment findings exceed the allow-list, which is the situation the NEXT
+  // assertion exists to fail on.
+  //
+  // What actually detects a broken walk is a count of FILES READ, since that is
+  // the thing that silently goes to zero. Measured at this commit: 52 files, of
+  // which 2 are directly under src/ and 15 under src/components/. The floor sits
+  // between "a walk that stopped descending" and "the real tree", with room for
+  // ordinary churn underneath it.
+  const MIN_FILES = 40;
   assert(
-    findings.length >= ALLOWED.length,
-    `scanner found ${findings.length} bindings but ${ALLOWED.length} are allow-listed; ` +
-      'the walk or the patterns are broken',
+    files.length >= MIN_FILES,
+    `the scanner walked ${files.length} source files, expected at least ${MIN_FILES}. ` +
+      'Either sourceFiles() is broken -- in which case every assertion below is ' +
+      'vacuous and the tree only looks clean -- or web/src really has shrunk that ' +
+      'far, in which case lower this floor deliberately.',
   );
+
+  // Identity, not just count: the walk must reach the deep directories, not
+  // just the top level. A recursion that stopped descending would still clear
+  // the floor above on a tree this size.
+  for (const witness of [
+    'components/inspector/ft-inspector-meta.ts',
+    'components/dependency/ft-dependency-view.ts',
+    'util/safe-url.ts',
+  ]) {
+    assert(
+      files.some((f) => relative(SRC, f) === witness),
+      `the scanner's walk never reached ${witness}, so it is not covering the tree`,
+    );
+  }
 
   const unapproved = findings.filter(
     (f) => !ALLOWED.some((a) => a.file === f.file && a.line === f.line),
