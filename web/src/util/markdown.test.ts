@@ -676,11 +676,32 @@ function collectSourceFiles(dir: string, out: string[]): void {
  * interpolations with a stack so that quotes inside template text (`title="…"`,
  * an apostrophe in prose) are not mistaken for string delimiters.
  *
- * Known imprecision, recorded rather than hidden: an unparenthesised regex
- * literal containing `//` would be read as the start of a line comment. That
- * fails toward blanking real code, i.e. toward a missed detection rather than a
- * false positive, and no file in this tree contains one. It is one more reason
- * the tree-wide half is documented as a tripwire.
+ * REGEX LITERALS ARE TRACKED, and that is not a nicety. The first version of
+ * this function did not track them, on the reasoning that misreading one would
+ * "fail toward blanking real code, i.e. toward a missed detection rather than a
+ * false positive". That reasoning was wrong, and mutation testing proved it: a
+ * missed detection was exactly the goal, and blanking real code was the exploit.
+ * Both of these rendered attacker markup raw at the live sink with the suite
+ * green at 59/59, because everything after the `//` — including the alias
+ * itself — vanished from the guard's view:
+ *
+ *   const proto = /^https:\/\//.source; const rawHtml = unsafeHTML;
+ *   const sep = /[\/\/]/.source;        const rawHtml = unsafeHTML;
+ *
+ * A `/` is therefore resolved in order: `//` and `/*` are always comments (no
+ * regex may begin with either), then a regex literal if the previous
+ * significant token cannot end an expression, then division. Character classes
+ * and backslash escapes are honoured while skipping the literal, and the body
+ * is blanked — a regex can never be a directive alias, and `/innerHTML\s*=/` in
+ * production code should not trip a sink pattern.
+ *
+ * REMAINING RESIDUE, recorded rather than hidden: because quoted strings are
+ * blanked for the per-file view, a reference assembled at runtime —
+ * `(0, eval)('unsafeHTML')`, `globalThis[k]`, `new Function(...)` — is invisible
+ * to these rules. That is not a refactor anyone performs by accident, it is not
+ * reachable without the reviewer seeing `eval` in a component, and closing it
+ * needs the compiler rather than a scanner. It is the strongest argument in this
+ * file for the type-aware-lint follow-up.
  */
 function stripInertText(src: string, opts: { strings: boolean }): string {
   const out = src.split('');
@@ -691,6 +712,41 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
   };
   const modes: ('code' | 'template')[] = ['code'];
   const braces: number[] = [0];
+
+  // Enough token context to tell a regex literal from a division operator: a
+  // regex may only begin where an expression may begin.
+  let prevSig = '';
+  let prevWord = '';
+  const noteToken = (ch: string): void => {
+    if (/\s/.test(ch)) return;
+    prevWord = /[A-Za-z0-9_$]/.test(ch) ? prevWord + ch : '';
+    prevSig = ch;
+  };
+  const EXPR_START_CHARS = '(,=:[!&|?{};+-*%^~<>';
+  const EXPR_START_WORDS = new Set([
+    'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void',
+    'case', 'do', 'else', 'yield', 'await', 'throw',
+  ]);
+  const regexMayStart = (): boolean =>
+    prevSig === '' || EXPR_START_CHARS.includes(prevSig) || EXPR_START_WORDS.has(prevWord);
+
+  // Returns the index just past the closing `/`, or -1 if this is not a regex
+  // literal after all (unterminated before end of line).
+  const endOfRegexLiteral = (start: number): number => {
+    let j = start + 1;
+    let inClass = false;
+    while (j < src.length) {
+      const ch = src[j];
+      if (ch === '\\') { j += 2; continue; }
+      if (ch === '\n') return -1;
+      if (inClass) { if (ch === ']') inClass = false; j += 1; continue; }
+      if (ch === '[') { inClass = true; j += 1; continue; }
+      if (ch === '/') return j + 1;
+      j += 1;
+    }
+    return -1;
+  };
+
   let i = 0;
   while (i < src.length) {
     const c = src[i];
@@ -723,17 +779,27 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
       i = to;
       continue;
     }
+    if (c === '/' && regexMayStart()) {
+      const end = endOfRegexLiteral(i);
+      if (end !== -1) {
+        blank(i + 1, end - 1);
+        noteToken(')'); // a completed regex literal ends an expression
+        i = end;
+        continue;
+      }
+    }
     if (c === "'" || c === '"') {
       let j = i + 1;
       while (j < src.length && src[j] !== c && src[j] !== '\n') {
         j += src[j] === '\\' ? 2 : 1;
       }
       if (opts.strings) blank(i + 1, j);
+      noteToken(c);
       i = Math.min(j + 1, src.length);
       continue;
     }
-    if (c === '`') { modes.push('template'); i += 1; continue; }
-    if (c === '{') { braces[braces.length - 1] += 1; i += 1; continue; }
+    if (c === '`') { modes.push('template'); noteToken(c); i += 1; continue; }
+    if (c === '{') { braces[braces.length - 1] += 1; noteToken(c); i += 1; continue; }
     if (c === '}') {
       if (braces[braces.length - 1] === 0 && modes.length > 1) {
         modes.pop();
@@ -741,9 +807,11 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
       } else if (braces[braces.length - 1] > 0) {
         braces[braces.length - 1] -= 1;
       }
+      noteToken(c);
       i += 1;
       continue;
     }
+    noteToken(c);
     i += 1;
   }
   return out.join('');
@@ -1212,6 +1280,9 @@ function sinkBinding(): void {
     "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
     'const t = html`${unsafeHTML(renderMarkdown(this.body))}`;',
     'const parsed = value as unknown as string;',
+    'const proto = /^https:\\/\\//.test(url);',
+    'const rx = /innerHTML\\s*=/;',
+    'const sep = /[//]/.source;',
     'const node = document.createElement("div");',
     'el.textContent = body;',
     'if (el.innerHTML === previous) return;',
@@ -1368,6 +1439,20 @@ function sinkBinding(): void {
       label: 'V3e unsafeHTML re-exported out of the sink file',
       find: 'export class C extends LitElement {',
       replace: 'export { unsafeHTML };\nexport class C extends LitElement {',
+    },
+    {
+      label: 'V7 value alias hidden behind a regex literal containing an escaped //',
+      find: 'export class C extends LitElement {',
+      replace:
+        'const proto = /^https:\\/\\//.source; const rawHtml = unsafeHTML;\n' +
+        'export class C extends LitElement {',
+    },
+    {
+      label: 'V7b value alias hidden behind a regex character class',
+      find: 'export class C extends LitElement {',
+      replace:
+        'const sep = /[//]/.source; const rawHtml = unsafeHTML;\n' +
+        'export class C extends LitElement {',
     },
     {
       label: 'V4 sanitizer wrapper dropped at the sink',
