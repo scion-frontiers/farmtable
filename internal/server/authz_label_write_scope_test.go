@@ -454,6 +454,27 @@ func (f *labelWriteFixture) lifecycleStage(t *testing.T) task.Stage {
 	return store.LifecycleStage(context.Background(), f.ms, tasks[0])
 }
 
+// lifecycleStages reads the whole authoritative stage SET, not the tiebreak
+// winner. A swap is the case where the winner and the set disagree about
+// whether anything happened: replacing one terminal label with another can
+// leave the winner in place while the set changes, and it can equally move the
+// winner while the set stays the same size. Asserting on lifecycleStage alone
+// would reintroduce the tiebreak dependency that round 5 removed.
+func (f *labelWriteFixture) lifecycleStages(t *testing.T) []task.Stage {
+	t.Helper()
+	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{CollectionID: &f.collID})
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("ListTasks: err=%v n=%d", err, len(tasks))
+	}
+	stages, err := store.LifecycleStages(context.Background(), f.ms, tasks[0])
+	if err != nil {
+		t.Fatalf("LifecycleStages: %v", err)
+	}
+	sorted := append([]task.Stage(nil), stages...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+	return sorted
+}
+
 func (f *labelWriteFixture) availability(t *testing.T) store.TaskAvailability {
 	t.Helper()
 	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{CollectionID: &f.collID})
@@ -480,6 +501,27 @@ func (f *labelWriteFixture) addLabels(scopes []string, labels ...string) error {
 func (f *labelWriteFixture) removeLabels(scopes []string, labels ...string) error {
 	_, err := f.svc.UpdateTask(scopedCtx(scopes), &pb.UpdateTaskRequest{
 		Id: f.taskID, RemoveLabels: labels,
+	})
+	return err
+}
+
+// swapLabels issues ONE UpdateTask that both adds and removes labels.
+//
+// This is the input the round-5 suite could not construct. Its swap test was
+// named for a swap and every cell called addLabels alone, so what it actually
+// measured was an issue ACQUIRING a second terminal label — after which the
+// label set is {start, dest}, not {dest}. A real swap produces a different
+// "after" set and therefore a different set of (from, to) pairs at the gate,
+// and no test anywhere in the suite exercised it (test review T-3).
+//
+// The distinction is not cosmetic: with add-only, before={start} and
+// after={start,dest}, so the pair (start,start) is present and free and the
+// charge rests entirely on (start,dest). With a real swap, after={dest} and
+// (start,start) is gone. A gate that only ever saw the add-only shape could
+// depend on the from==to pair being present without anyone noticing.
+func (f *labelWriteFixture) swapLabels(scopes []string, add, remove []string) error {
+	_, err := f.svc.UpdateTask(scopedCtx(scopes), &pb.UpdateTaskRequest{
+		Id: f.taskID, AddLabels: add, RemoveLabels: remove,
 	})
 	return err
 }
@@ -846,8 +888,20 @@ func TestUpdateTask_AddingATerminalLabelRequiresClose(t *testing.T) {
 	}
 }
 
-// TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose covers the
+// TestUpdateTask_AddingASecondTerminalLabelRequiresClose covers the
 // terminal-start cells of the same matrix.
+//
+// RENAMED. Through round 5 this was called
+// ...SwappingOneTerminalLabelForAnotherRequiresClose, and it never swapped:
+// every cell called addLabels alone, so the issue ended up carrying BOTH
+// terminal labels and the "for another" in the name described an input the
+// fixture could not construct (test review T-3). The name is now what the test
+// measures. The swap it was named for is measured in
+// TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose, which is new.
+//
+// This test is kept rather than replaced. Acquiring a second terminal label is
+// a distinct and reachable input, and it is the one where the tiebreak and the
+// set disagree most sharply.
 //
 // A bypass occurs iff rank(dest) < rank(start) in terminalStagePrecedence, so
 // completed sits at rank 0 and was reachable from every other terminal stage:
@@ -870,7 +924,7 @@ func TestUpdateTask_AddingATerminalLabelRequiresClose(t *testing.T) {
 // Comparing stage SETS removes the dependency (#194 round 5, B5), so every pair
 // that changes the label set is now charged. The pin is kept as a count so that
 // a regression to winner-comparison shows up as 6, not as a silent pass.
-func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T) {
+func TestUpdateTask_AddingASecondTerminalLabelRequiresClose(t *testing.T) {
 	stages := []task.Stage{
 		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
 	}
@@ -931,6 +985,191 @@ func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T
 		t.Fatalf("%d of 12 terminal->terminal pairs were gated, want 12. Six is the "+
 			"signature of a control that compares tiebreak winners instead of stage sets",
 			gated)
+	}
+}
+
+// ── the swap the suite could not previously express (#194 round 6, B6) ──
+
+// TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose measures a genuine
+// swap: ONE UpdateTask carrying both add_labels=[dest] and
+// remove_labels=[start].
+//
+// Until now no test anywhere in this package issued a request that both added
+// and removed, so the swap arm of the gate had never been executed by anything.
+// That is not the same shape as the add-only approximation it replaced:
+//
+//	add-only:   before={start}  after={start,dest}   pairs (start,start), (start,dest)
+//	real swap:  before={start}  after={dest}         pair  (start,dest)
+//
+// MEASURED RESULT: the real swap behaves exactly like the add-only
+// approximation. All twelve ordered pairs are denied on task:write, all twelve
+// are permitted by task:close, and the denial scope matches the add-only cell
+// of the same pair. That was the round-5 gate's intent, but it was a prediction
+// until this test ran, because the input did not exist to run.
+//
+// AND THIS CONTROL IS WEAKER THAN ITS SIZE SUGGESTS. Read the mutation results
+// before trusting it. Three mutations were applied to the UpdateTask label gate
+// in server.go and the whole package was run against each:
+//
+//	M1  gate removed entirely           add-only RED   swap RED   reopen RED
+//	M2  gate ignores remove_labels      add-only green swap GREEN reopen RED
+//	M4  gate always charges task:close  add-only green swap GREEN reopen RED
+//
+// The only mutation these twelve cells detect is M1, and the add-only test
+// detects M1 too. So as a detector this matrix adds NOTHING the test it was
+// named after did not already provide. Its value is narrower and worth stating
+// plainly rather than dressing up: the named input is now executable, its
+// behaviour is measured instead of assumed, and the post-success assertions
+// below can check that the remove side actually removed — the add-only shape
+// leaves both labels on by construction and structurally cannot observe a
+// remove that silently no-ops.
+//
+// M2 and M4 are caught by TestUpdateTask_SingleRequestReopenSwapCostsAccept and
+// by three or four pre-existing remove-side tests. If this matrix is ever the
+// only thing standing between a change and review, that is not enough.
+func TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose(t *testing.T) {
+	stages := []task.Stage{
+		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
+	}
+
+	executed, gated := 0, 0
+	for _, start := range stages {
+		for _, dest := range stages {
+			if start == dest {
+				continue
+			}
+			executed++
+			t.Run(string(start)+"_to_"+string(dest), func(t *testing.T) {
+				f := openIssue(t, stageLabel(start))
+				if got := f.lifecycleStages(t); len(got) != 1 || got[0] != start {
+					t.Fatalf("BASELINE BROKEN: fixture stage set is %v, want [%s]", got, start)
+				}
+				before := f.issue.currentLabels()
+
+				err := f.swapLabels(agentScopes(),
+					[]string{stageLabel(dest)}, []string{stageLabel(start)})
+				if err == nil {
+					t.Fatalf("SWAP %s -> %s in one request was allowed with task:write. "+
+						"The add-only approximation of this case IS gated, so the swap arm "+
+						"is a hole the previous test could not see", start, dest)
+				}
+				gated++
+				requireDeniedFor(t, err, server.ScopeTaskClose,
+					fmt.Sprintf("swap %s -> %s", start, dest))
+
+				if after := f.issue.currentLabels(); !sameLabels(before, after) {
+					t.Fatalf("denied but the labels changed %v -> %v. A swap has two write "+
+						"sides and a partially-applied denial is worse than an allowed one",
+						before, after)
+				}
+				if after := f.lifecycleStages(t); len(after) != 1 || after[0] != start {
+					t.Fatalf("denied but the stage set moved to %v", after)
+				}
+
+				// DIFFERENTIAL against the add-only cell of the same pair: the
+				// two shapes must charge the SAME scope. If the swap were
+				// cheaper, the add-only test would be reporting a control that
+				// a caller can sidestep by phrasing the same change as a swap.
+				addOnly := openIssue(t, stageLabel(start))
+				addErr := addOnly.addLabels(agentScopes(), stageLabel(dest))
+				if addErr == nil {
+					t.Fatalf("BASELINE BROKEN: add-only %s -> %s was not gated", start, dest)
+				}
+				if swapScope, addScope := deniedScope(t, err, "swap"),
+					deniedScope(t, addErr, "add-only"); swapScope != addScope {
+					t.Fatalf("SHAPE-DEPENDENT PRICE: swapping %s -> %s costs %q but adding "+
+						"%s costs %q. The same label-set change must cost the same however "+
+						"it is phrased", start, dest, swapScope, dest, addScope)
+				}
+
+				// task:close, and nothing weaker, permits it.
+				if err := f.swapLabels(withScope(server.ScopeTaskClose),
+					[]string{stageLabel(dest)}, []string{stageLabel(start)}); err != nil {
+					t.Fatalf("swap %s -> %s with task:close was rejected (%v)", start, dest, err)
+				}
+
+				// The remove side actually removed. Only a real swap can check
+				// this; the add-only test leaves both labels on by construction.
+				labels := f.issue.currentLabels()
+				if !containsLabel(labels, stageLabel(dest)) {
+					t.Fatalf("swap permitted but %s is not on the issue; labels %v",
+						stageLabel(dest), labels)
+				}
+				if containsLabel(labels, stageLabel(start)) {
+					t.Fatalf("swap permitted but %s is STILL on the issue; labels %v. "+
+						"The remove side no-oped and this was an add in disguise",
+						stageLabel(start), labels)
+				}
+				if got := f.lifecycleStages(t); len(got) != 1 || got[0] != dest {
+					t.Fatalf("swap permitted but the stage set is %v, want the singleton [%s]",
+						got, dest)
+				}
+			})
+		}
+	}
+
+	if executed != 12 {
+		t.Fatalf("executed %d cells, want 12 (4 terminal stages, ordered pairs)", executed)
+	}
+	if gated != 12 {
+		t.Fatalf("%d of 12 single-request terminal swaps were gated, want 12", gated)
+	}
+}
+
+// TestUpdateTask_SingleRequestReopenSwapCostsAccept is the direction the
+// terminal-to-terminal matrix cannot reach, and it only becomes expressible
+// once the fixture can swap.
+//
+// Reopening is removing the terminal label and adding a live one. As two
+// requests it is already covered, but as two requests the intermediate state is
+// observable and each half is priced on its own. In ONE request there is no
+// intermediate state: before={terminal}, after={accepted}, and the gate sees a
+// single pair it must price correctly in one shot.
+//
+// It must cost task:accept and NOT task:close. Charging close here would be the
+// wrong answer arrived at safely — the caller is not closing anything, and a
+// gate that charges the strongest scope it can find for any label write would
+// pass every denial-side assertion in the terminal-to-terminal matrix while
+// being useless.
+//
+// This is the sensitive one. It is the only NEW test in B6 that detects any
+// mutation the round-5 suite did not already detect in some other shape: it
+// goes red both when the gate ignores remove_labels and when the gate charges
+// task:close unconditionally, and both of those leave all twelve
+// terminal-to-terminal swap cells green. It is not the sole detector of either
+// — pre-existing remove-only tests catch them as well — so the honest claim is
+// that it covers the single-request shape of a hole that was already covered in
+// its two-request shape, not that it found something new.
+func TestUpdateTask_SingleRequestReopenSwapCostsAccept(t *testing.T) {
+	for _, start := range []task.Stage{
+		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
+	} {
+		t.Run(string(start)+"_to_accepted", func(t *testing.T) {
+			f := openIssue(t, stageLabel(start))
+			if got := f.lifecycleStages(t); len(got) != 1 || got[0] != start {
+				t.Fatalf("BASELINE BROKEN: fixture stage set is %v, want [%s]", got, start)
+			}
+
+			err := f.swapLabels(agentScopes(),
+				[]string{stageLabel(task.StageAccepted)}, []string{stageLabel(start)})
+			if err == nil {
+				t.Fatalf("reopening a %s issue in one request was free on task:write", start)
+			}
+			if got := deniedScope(t, err, "reopen swap"); got != server.ScopeTaskAccept {
+				t.Fatalf("reopening a %s issue was denied for %q, want %q. Undoing a "+
+					"terminal decision is an accept, not a close; charging close would be "+
+					"a correct-looking refusal to the wrong question",
+					start, got, server.ScopeTaskAccept)
+			}
+
+			if err := f.swapLabels(withScope(server.ScopeTaskAccept),
+				[]string{stageLabel(task.StageAccepted)}, []string{stageLabel(start)}); err != nil {
+				t.Fatalf("reopening a %s issue with task:accept was rejected (%v)", start, err)
+			}
+			if got := f.lifecycleStages(t); len(got) != 1 || got[0] != task.StageAccepted {
+				t.Fatalf("reopen permitted but the stage set is %v, want [accepted]", got)
+			}
+		})
 	}
 }
 
