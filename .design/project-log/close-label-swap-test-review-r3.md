@@ -106,3 +106,79 @@ Also not examined: audit F7, the disclosed `labelNameToID` RLock mutant's domina
 `pattern all:web/dist: no matching files found`, **zero test failures**. Pre-existing, touches
 nothing in this diff. The difference between the gate's quoted rc=0 and my rc=1 is only whether
 `make web` has been run. All package-scoped runs green; `make race` rc=0.
+
+---
+
+## ADDENDUM — I was wrong about "the fix is sound"
+
+**Verdict changes to REQUEST CHANGES with a Critical.** The audit leg broke the fix with a
+vector I never tried. Confirmed independently, five ways.
+
+### Retraction
+
+"I tried to break it and could not" is false, and V3's unqualified **"it holds"** is the more
+serious error of the two — it holds on the one axis I tested (config desync) and I wrote it
+without the qualifier, which is the kind of sentence that stops the next reviewer looking.
+
+### F7 (Critical) — multi-label bypass, `internal/platform/github/labels.go`
+
+`TerminalLabelStage` delegates to `MapLabelsToStage`, which returns the **single** highest-
+precedence stage; `stagePrecedence` ranks every non-terminal above every terminal. So any
+non-terminal label masks the terminal one, and the seam reports "not terminal".
+
+Confirmed by execution:
+
+- **Production resolver** (same graph as V2, so reachability is not in doubt): **16 of 20**
+  combinations lose the terminal stage; all 4 single-label controls honour it.
+- Audit PoC1 reproduces exactly at my hands: 12/16 bypass. PoC2 likewise.
+- **NEW — the CLAIM gate falls too**, not just advisory availability: `[wont_fix, accepted]`
+  claims successfully and stamps `ft:stage/working=true`.
+- **NEW — the 4 "triage PASS" rows are not a mitigation.** Triage also defeats the seam; those
+  rows survive on an unrelated gate. Attacker picks the label; 3 of 5 work.
+- **NEW — incomplete fix, not a new regression.** Reverting the round-3 fix collapses the PoC's
+  own baseline: pre-round-3 *both* halves were open. Round 3 closed one. Net improvement that
+  stops short — the remedy is a narrowing of `TerminalLabelStage`, not a revert.
+- **NEW — it is self-service, which is what makes it Critical.** `add_labels` is guarded only by
+  the blanket `task:write`; the transition gate fires only when `Stage` is set. Executed against
+  a stateful mock: step 0 reopen DENIED (`missing required scope "task:accept"`), step 1
+  `AddLabels[ft:stage/accepted]` ALLOWED, step 2 reopen succeeds. **One token, two ordinary API
+  calls, no second actor, no GitHub access.**
+
+Fix at the root: `TerminalLabelStage` must ask *"is any terminal label present in the set?"*,
+not *"is the precedence winner terminal?"*. One change closes authz, availability and claim
+together. Also pin `stagePrecedence` (new F8, High) — nothing asserts its order today.
+
+### Why I missed it
+
+I varied the code seven ways and **never varied the shape of the input**. Mutation testing asks
+"is this line load-bearing for the tests you already have?" — it is structurally blind to a
+defect whose trigger is an input no fixture supplies. High kill count and a wide-open bypass are
+perfectly consistent; I treated the former as coverage.
+
+Worse specifically: I *read* `MapLabelsToStage` during V3, saw `candidates` (a **set**) and
+`stagePrecedence`, got the answer to the question I was asking about the `enabled` flag, and
+never asked what it returns when two labels match.
+
+**The same blind spot is in the suite.** Every authz row is single-label; no test anywhere gives
+one issue two stage labels; nothing pins `stagePrecedence`. Not a self-built oracle — a
+**self-shaped fixture**. Test and production inherited the same model of the input domain.
+
+*Mutation testing proves your tests are bound to your code; only input-domain variation proves
+they are bound to reality.* For predicates over collections the axis that matters is
+**cardinality**: zero, one, **two**, conflicting. I tested zero and one.
+
+### F1's remedy does not close it — and would have made it worse
+
+Pinning the table to 20 is a cardinality assertion over a table whose *schema* is single-label.
+Zero multi-label coverage added. Had it landed as I specified, the table would have carried a
+rigorous-looking pin over rows that cannot express the live Critical bypass — laundering the
+assumption as a verification. Revised F1: pin **and** extend the schema to multi-label (36 cells).
+
+Proposed standing bar: **a count pin must state what the table's rows can and cannot express.**
+
+### Tree
+
+Self-service probe written, run, deleted. `git status --porcelain` empty; tree byte-identical to
+`651da26` apart from this log entry. Probe preserved at
+`/tmp/ft194bak/zz_probe_selfservice_test.go.keep` — adopt it as a regression test with the
+assertion inverted once F7 lands.
