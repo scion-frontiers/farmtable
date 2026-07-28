@@ -808,13 +808,16 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
 	// The stage arm reads LifecycleStage, not t.Stage. t.Stage is the display
 	// stage, and for an OPEN issue carrying a terminal label it has been
 	// demoted to "accepted" — so reading it here would report an issue a
-	// maintainer marked wont_fix / duplicate / cancelled as available work to
-	// every consumer of this field: `ft ready`, MCP task_ready, and the web
-	// dashboard, which defers to availability when the server supplies it
-	// (web/src/utils/task-ready.ts). Availability is where the terminal label
-	// has to be honoured, because it is the one answer every client inherits
-	// instead of re-deriving. Widens the arm only: LifecycleStage returns
-	// t.Stage whenever no terminal label is present.
+	// maintainer marked wont_fix / duplicate / cancelled as available work.
+	//
+	// Only the web dashboard actually inherits this field: it defers to
+	// availability when the server supplies it (web/src/utils/task-ready.ts).
+	// `ft ready` does not — it goes through GetReadyTasks, which filters
+	// server-side before this value would ever reach a client — and the MCP
+	// task_ready tool calls that same RPC and drops the field. So this arm is
+	// necessary but not sufficient; making the other two consumers honour one
+	// answer is #202, not this fix. Widens the arm only: LifecycleStage
+	// returns t.Stage whenever no terminal label is present.
 	if store.IsTerminalStage(s.LifecycleStage(ctx, t)) || t.ClosedAt != nil {
 		reasons = append(reasons, store.AvailabilityReasonTerminal)
 	}

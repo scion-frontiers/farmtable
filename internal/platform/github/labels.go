@@ -10,6 +10,23 @@ import (
 // stagePrecedence defines conflict resolution order: earlier index wins.
 // When multiple label-mapped stages appear on a single issue, the stage
 // with the lowest index in this slice is selected.
+//
+// THIS ORDERING IS A DISPLAY RULE. AUTHORIZATION MUST NOT DEPEND ON IT.
+//
+// It answers "which single stage should this issue show in a queue?", and it
+// answers it by ranking every non-terminal stage above every terminal one so
+// that live work is never rendered as finished. That bias is correct for a
+// display and catastrophic for a privilege check: any function that asks
+// MapLabelsToStage "is this issue terminal?" is told "no" the moment one
+// ordinary non-terminal label is present, because the collapse hid the
+// terminal label before the question was asked (#194 round 3, audit F1 —
+// 12 of 16 label combinations bypassed the accept gate that way).
+//
+// A check that derives from a projection built to answer a different question
+// inherits that question's bias. TerminalLabelStage below therefore scans the
+// label set directly and resolves ties with terminalStagePrecedence, which is
+// declared separately for exactly this reason.
+// TestStagePrecedence_IsADisplayRuleTerminalStagesRankLast pins the ordering.
 var stagePrecedence = []task.Stage{
 	task.StageWorking,
 	task.StageInReview,
@@ -17,6 +34,27 @@ var stagePrecedence = []task.Stage{
 	task.StageDeploying,
 	task.StageAccepted,
 	task.StageTriage,
+	task.StageCompleted,
+	task.StageWontFix,
+	task.StageDuplicate,
+	task.StageCancelled,
+}
+
+// terminalStagePrecedence resolves which terminal stage TerminalLabelStage
+// reports when one issue names more than one of them. Earlier index wins.
+//
+// It is declared separately from stagePrecedence rather than derived by
+// filtering it, and that is deliberate. Filtering would leave the privilege
+// decision coupled to the display rule: reordering stagePrecedence's terminal
+// tail would silently change which stage the authorization gate sees as the
+// transition source, and the guard test for stagePrecedence only forbids
+// moving a terminal stage above a non-terminal one — it says nothing about the
+// order *among* the terminals. Two orderings that answer two different
+// questions must be two declarations, or the next reorder re-couples them.
+//
+// Every terminal stage must appear here or a label naming it becomes invisible
+// to the gate; TestTerminalStagePrecedence_CoversEveryTerminalStage pins that.
+var terminalStagePrecedence = []task.Stage{
 	task.StageCompleted,
 	task.StageWontFix,
 	task.StageDuplicate,
@@ -438,18 +476,53 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 // GitHubPassThroughStore.LifecycleStage, which is built on this. Deliberately
 // returns only TERMINAL stages: a non-terminal label is never demoted, so for
 // every other stage the task's own Stage field is already the right answer.
+//
+// It scans the label set directly and MUST NOT be reimplemented on top of
+// MapLabelsToStage. That is how round 3 got this wrong: MapLabelsToStage
+// collapses the set to a single highest-precedence winner, and stagePrecedence
+// ranks every non-terminal stage above every terminal one, so one extra
+// ordinary label made the terminal label invisible here and returned ("",
+// false) — the exact value the seam exists to avoid. 12 of 16 label
+// combinations bypassed the accept gate, and the same root cause reopened the
+// availability and claim gates (#194 round 3, audit F1/F2, test F7). The
+// attacker did not even need a second actor: add_labels is guarded only by the
+// blanket task:write, so one token could add the masking label and then walk
+// through the gate it had just opened.
+//
+// Terminal-ness is a property of the SET, not of the precedence winner. The
+// question here is "does this label set name a terminal stage at all?", and
+// the answer must not depend on what else the issue happens to be labelled.
+//
+// !m.enabled returns false rather than scanning: with label mapping off,
+// IssueToPhaseStage also declines to map labels, so no demotion happens and
+// the task's own Stage is already authoritative. Scanning anyway would make a
+// disabled mapper start honouring labels it is configured to ignore. Note this
+// cannot be delegated to MapLabelsToStage's own !m.enabled check any more —
+// the scan below reads m.labelToStage, which is populated regardless.
 // A nil receiver means no label mapping is configured, so no label can name a
 // stage. Guarded because callers reach this from ComputeAvailability, which is
 // total on a zero-value store and must stay that way.
 func (m *LabelMapper) TerminalLabelStage(labels []string) (task.Stage, bool) {
-	if m == nil {
+	if m == nil || !m.enabled {
 		return "", false
 	}
-	stage, ok := m.MapLabelsToStage(labels)
-	if !ok || !store.IsTerminalStage(stage) {
-		return "", false
+
+	present := make(map[task.Stage]bool, len(labels))
+	for _, raw := range labels {
+		if stage, ok := m.labelToStage[m.stripForMatch(raw)]; ok && store.IsTerminalStage(stage) {
+			present[stage] = true
+		}
 	}
-	return stage, true
+
+	// Resolve deterministically when an issue names several terminal stages.
+	// Map iteration order is randomised, so returning "any of them" would make
+	// an authorization answer differ run to run for one unchanged issue.
+	for _, s := range terminalStagePrecedence {
+		if present[s] {
+			return s, true
+		}
+	}
+	return "", false
 }
 
 // stripForMatch normalises a label for lookup: lowercase, strip push prefix,
