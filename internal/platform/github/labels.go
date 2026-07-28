@@ -106,6 +106,12 @@ type LabelMapper struct {
 	labelToStage    map[string]task.Stage
 	labelToPriority map[string]task.Priority
 	labelToType     map[string]string
+
+	// writeView is this same config as if Enabled were true, built on demand
+	// by writeViewMapper and used only by the WRITE-side stage computation in
+	// lifecycle_claim.go. Nil when m.enabled is already true, because then
+	// this mapper IS its own write view.
+	writeView *LabelMapper
 }
 
 // NewLabelMapper builds a LabelMapper from the given LabelConfig.

@@ -293,12 +293,20 @@ var (
 // assertStageWriteAllowed refuses any label the mapper claims as a lifecycle
 // stage assertion when the caller is not entitled to move the stage.
 //
-// The predicate is authorizationStage, the SAME one StageLabelSwap uses to
-// decide what is ours to remove and the same one the readers use to decide what
-// a label asserts. Using anything else here — stripForMatch, a prefix test, a
-// hardcoded "ft:" — would add a FIFTH answer to "which labels are lifecycle
-// labels" to the four this codebase already disagrees between, and every round
-// of #194 has found a fresh disagreement among those four.
+// THE PREDICATE IS lifecycleStageClaim, NOT authorizationStage (#194 round 10,
+// Ruling 2). It used to be authorizationStage, on the argument that the gate
+// should ask the same question the readers ask. That argument is right about
+// avoiding a fifth answer and wrong about which of the two existing answers to
+// pick: authorizationStage is the READ answer, "is this label authoritative
+// under today's config", and a backstop built on it disarms exactly when the
+// config stops recognising a label — which is the case it exists to cover.
+//
+// lifecycleStageClaim is a strict superset of authorizationStage (it can only
+// claim more labels, never fewer), so this substitution can only ever refuse
+// more, never allow more. It is still ONE predicate for the whole write side:
+// this gate and lifecycleStagesForLabels both route through it, so the label a
+// gate refuses and the label a price is charged for are the same set by
+// construction.
 func (s *GitHubPassThroughStore) assertStageWriteAllowed(add, remove []string, policy stageWritePolicy) error {
 	if policy == stageWriteAllowed {
 		return nil
@@ -308,7 +316,7 @@ func (s *GitHubPassThroughStore) assertStageWriteAllowed(add, remove []string, p
 		labels []string
 	}{{"add", add}, {"remove", remove}} {
 		for _, raw := range group.labels {
-			stage, ours := s.mapper.authorizationStage(raw)
+			stage, ours := s.mapper.lifecycleStageClaim(raw)
 			if !ours {
 				continue
 			}
@@ -1057,11 +1065,46 @@ func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, 
 // rather than re-fetching also matters for correctness, not just cost: a second
 // round trip could observe a different issue than the one the caller
 // authorized against.
+// IT IS THE WRITE SIDE, SO IT IS CONFIG-BLIND (#194 round 10). Both endpoints
+// of a price are computed here, so this function decides what a label WRITE
+// costs — and a write must be priced against what the label could ever mean,
+// not against what today's config says it means. See lifecycle_claim.go for
+// the ruling and its limits.
+//
+// The mechanism is two lines: translate the label set into this deployment's
+// own spelling (canonicalLifecycleLabels), then ask the fully-enabled view of
+// this same mapper (writeViewMapper). Everything below that is the SAME
+// AllTerminalLabelStages and the SAME IssueToPhaseStage as before, with their
+// guards intact — the demotion rule, the closed-issue state_reason rule and
+// the terminal-first ordering are inherited rather than restated, so they
+// cannot drift from the read side's copy of them.
+//
+// The read side is deliberately NOT changed to match. LifecycleStage and
+// LifecycleStages keep their guards and keep answering "per today's config",
+// because that is the right answer for display and availability: a deployment
+// with label mapping off must not start showing tasks as completed on the
+// strength of labels it is configured to ignore. Read and write answering
+// differently at enabled=false is the intended end state of this round, not an
+// inconsistency.
+//
+// THE AGREEMENT PIN STILL HOLDS, AND ONLY WHERE IT SHOULD.
+// TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels
+// demands that this function's before-endpoint match LifecycleStages. That
+// demand is correct at enabled=true and would be WRONG at enabled=false, where
+// the divergence above is the whole point. MEASURED: the test passes unchanged
+// after this change, because every one of its fixtures comes from
+// newLabelWriteFixture on DefaultConfig, which has Enabled=true — it never
+// reached the diverging case and still does not. It is left alone rather than
+// "scoped to enabled=true", because giving it a scope it already has would
+// imply it once covered enabled=false. It did not.
 func (s *GitHubPassThroughStore) lifecycleStagesForLabels(t *ent.Task, labels []string) []task.Stage {
-	if stages := s.mapper.AllTerminalLabelStages(labels); len(stages) > 0 {
+	view := s.mapper.writeViewMapper()
+	canonical := s.mapper.canonicalLifecycleLabels(labels)
+
+	if stages := view.AllTerminalLabelStages(canonical); len(stages) > 0 {
 		return stages
 	}
-	_, stage := s.mapper.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), labels)
+	_, stage := view.IssueToPhaseStage(taskIssueState(t), taskStateReason(t), canonical)
 	return []task.Stage{stage}
 }
 
