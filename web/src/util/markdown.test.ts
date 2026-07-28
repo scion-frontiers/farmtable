@@ -1756,6 +1756,19 @@ function sinkArgumentIsSanitized(arg: string): boolean {
 }
 
 /** 1-based line numbers at which `re` matches, for actionable failure messages. */
+// Line number for a match INDEX, for rules whose pattern can span lines and so
+// cannot use matchLines (an import clause may be wrapped across several).
+// Review O2: three of the four branches in directiveIndirectionOffenders
+// reported a file and no position, which on a 400-line component means reading
+// the whole file to find what fired.
+function lineOf(code: string, index: number): number {
+  let line = 1;
+  for (let i = 0; i < index && i < code.length; i += 1) {
+    if (code[i] === '\n') line += 1;
+  }
+  return line;
+}
+
 function matchLines(code: string, re: RegExp): number[] {
   const lines: number[] = [];
   code.split('\n').forEach((line, idx) => {
@@ -2080,12 +2093,23 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
     // also fired on `const d = unsafeHTML as unknown as F` (which R4/the
     // non-call rule below now reports properly) and on any comment containing
     // the words "unsafeHTML as".
-    if (new RegExp(`(?:import|export)\\s*(?:type\\s+)?\\{[^}]*\\b${name}\\s+as\\s+`).test(code)) {
-      offenders.push(`${rel}: ${name} renamed with 'as' in an import/export clause`);
+    const renamed = new RegExp(
+      `(?:import|export)\\s*(?:type\\s+)?\\{[^}]*\\b${name}\\s+as\\s+`,
+    ).exec(code);
+    if (renamed) {
+      offenders.push(
+        `${rel}:${lineOf(code, renamed.index)}: ${name} renamed with 'as' in an ` +
+          'import/export clause',
+      );
     }
 
-    if (new RegExp(`import\\s*\\*\\s*as\\s+\\w+\\s+from\\s*['"][^'"]*${mod}['"]`).test(code)) {
-      offenders.push(`${rel}: ${module} imported as a namespace`);
+    const namespaced = new RegExp(
+      `import\\s*\\*\\s*as\\s+\\w+\\s+from\\s*['"][^'"]*${mod}['"]`,
+    ).exec(code);
+    if (namespaced) {
+      offenders.push(
+        `${rel}:${lineOf(code, namespaced.index)}: ${module} imported as a namespace`,
+      );
     }
 
     // Re-export: flag only when the banned NAME crosses the boundary, or when
@@ -2097,7 +2121,7 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
     const reexport = new RegExp(`export\\s*(\\*|\\{[^}\\n]*\\})[^;\\n]*from\\s*['"][^'"]*${mod}['"]`);
     const m = reexport.exec(code);
     if (m && (m[1] === '*' || new RegExp(`\\b${name}\\b`).test(m[1]))) {
-      offenders.push(`${rel}: ${module} re-exports ${name}`);
+      offenders.push(`${rel}:${lineOf(code, m.index)}: ${module} re-exports ${name}`);
     }
 
     // Value aliasing needs no keyword at all, so it cannot be caught by adding
@@ -2449,9 +2473,22 @@ function sinkBinding(): void {
     }
     if (offenders.length > 0) {
       throw new Error(
-        'raw-HTML directive obscured by indirection: ' +
-          offenders.join(', ') +
-          ' [tripwire: catches the listed indirection forms only, not all of them]',
+        'raw-HTML directive obscured by indirection:\n      ' +
+          offenders.join('\n      ') +
+          '\n      ---\n      ' +
+          // Review O2: the previous message named the defect and stopped, which
+          // leaves a reader who believes their code is fine with no move except
+          // to weaken the rule. Say what the accepted shapes are.
+          'A raw-HTML directive must be imported under its own name and only ever ' +
+          'appear immediately called: `unsafeHTML(renderMarkdown(x))`. Renaming it, ' +
+          'importing its module as a namespace, re-exporting it, or mentioning it in ' +
+          'any non-called position defeats every name-based rule in this file.\n      ' +
+          'If the sink is legitimate, add the FILE to REQUIRED_SINKS and the call will ' +
+          'be checked properly by mechanism (a) instead of tripped over here.\n      ' +
+          'If you are only naming the identifier in prose, put it in a comment or a ' +
+          'string — both are blanked before this rule runs.\n      ' +
+          'TRIPWIRE, NOT PROOF: this catches the listed indirection forms only. Do not ' +
+          'read a pass as "no indirection exists"; see the mechanism (b) note above.',
       );
     }
   });
@@ -2676,7 +2713,18 @@ function sinkBinding(): void {
     ].filter((v): v is string => v !== null);
     for (const fixture of INDIRECTION_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
-      if (directiveIndirectionOffenders('<fixture>', code).length === 0) missed.push(fixture);
+      const found = directiveIndirectionOffenders('<fixture>', code);
+      if (found.length === 0) missed.push(fixture);
+      // Review O2, pinned rather than merely fixed. Three of the four branches
+      // in this rule reported a file and no position. Requiring `rel:line:` of
+      // EVERY offender means a branch added later cannot quietly omit it, and a
+      // fix that regresses is caught here instead of by the next reader of a
+      // 400-line component.
+      for (const offender of found) {
+        if (!/^<fixture>:\d+: /.test(offender)) {
+          missed.push(`offender has no line number: ${offender}`);
+        }
+      }
     }
     for (const fixture of ESCAPE_EVASIONS) {
       const codeNoStrings = stripInertText(fixture, { strings: true });
@@ -3174,7 +3222,7 @@ function sinkBinding(): void {
 // the two sink files), the fixture for the arity pin, the shared-marked-singleton
 // pin, and the DOM-clobbering pin. The scope pin added in the same round is
 // deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
-const EXPECTED_CHECK_CALL_SITES = 72;
+const EXPECTED_CHECK_CALL_SITES = 74;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
@@ -3197,6 +3245,79 @@ const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 // with the rest of this file, and the message says what to do.
 const EXPECTED_ASSERTIONS = 122;
 
+/**
+ * Two claims this file makes about `web/package.json` that nothing evaluated.
+ *
+ * Both are narrow on purpose, and both read the DECLARED dependency ranges, not
+ * the installed artifacts. Say what that does and does not mean before reading
+ * a pass here as anything: `npm ci` against a lockfile is what decides which
+ * DOMPurify actually runs, and this cannot see the lockfile. It catches an edit
+ * to the declared range — which is how the range would realistically be
+ * loosened — and it does not catch a lockfile pinned below the range, nor a
+ * `node_modules` patched in place.
+ */
+function dependencyPolicy(): void {
+  const pkg = JSON.parse(
+    readFileSync(join(findWebRoot(), 'package.json'), 'utf8'),
+  ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+  const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+
+  // T-6. Round 6 logged the `^3.4.12` floor as EXPLICITLY UNCOVERED, on the
+  // reasoning that it has no red-on-revert and cannot get one in this suite.
+  // The first half is right and the second is not, quite: the suite cannot
+  // observe a downgrade BEHAVIOURALLY, because the behavioural checks pass
+  // against older DOMPurify too — but the declaration is a file this suite
+  // already reads files from.
+  //
+  // 3.4.12 is the floor because DOMPurify's advisories through 3.2.x are
+  // mXSS/namespace-confusion bypasses of exactly the sanitize() call this
+  // module's security rests on, so a caret range with a lower floor silently
+  // permits a vulnerable install on a fresh `npm i`.
+  check('dompurify declares a floor at or above the advisory line', () => {
+    const range = deps['dompurify'];
+    if (range !== '^3.4.12') {
+      throw new Error(
+        `dompurify is declared as ${JSON.stringify(range)}, expected "^3.4.12". ` +
+          'The floor is a security boundary, not a preference: releases below it carry ' +
+          'known mXSS bypasses of the sanitize() call this module depends on. Raising ' +
+          'the floor is fine — update this string in the same commit. Lowering or ' +
+          'widening it needs a reason on the record. ' +
+          'WHAT THIS DOES NOT COVER: the installed artifact. This reads package.json ' +
+          'only, so a lockfile or a patched node_modules below the floor passes here.',
+      );
+    }
+  });
+
+  // O3. The sunset clause in the mechanism (b) note above says to delete the
+  // tokenizer-dependent subset of this guard once #204 lands. As prose it fired
+  // on nothing, so the realistic outcome was #204 landing and both halves being
+  // maintained forever — which is the default the clause was written to prevent.
+  //
+  // Give it a trigger. The condition is observable: #204 is a typescript-eslint
+  // rule, and it cannot be enforcing without typescript-eslint being a declared
+  // dependency of this package. Deliberately the WEAKER direction — this fires
+  // on the tooling appearing, not on the rule being enforced, so a human still
+  // confirms the rule is on in CI before deleting anything.
+  check('sunset clause: #204 tooling absent, tokenizer subset still earns its place', () => {
+    const eslintDeps = Object.keys(deps).filter(
+      (d) => d === 'eslint' || d.startsWith('@typescript-eslint/') || d === 'typescript-eslint',
+    );
+    if (eslintDeps.length > 0) {
+      throw new Error(
+        `typescript-eslint tooling is now declared (${eslintDeps.join(', ')}), which is the ` +
+          'sunset condition in the mechanism (b) note above. THIS IS NOT A DEFECT — it is ' +
+          'the clause firing as designed, and it is the only thing that will ever fire it. ' +
+          'Confirm #204 is enforcing in CI, then DELETE the tokenizer-dependent subset: ' +
+          'stripInertText, stripImportStatements, R3, R4, R7, directiveIndirectionOffenders, ' +
+          'BANNED_SINKS and their fixture tables. Keep the behavioural half and R1/R2/R5/R6/' +
+          'R8/R9. Then delete this check. ' +
+          'If #204 is NOT what added this dependency, the clause has not been met: say so ' +
+          'here and narrow the condition, rather than deleting the check to get to green.',
+      );
+    }
+  });
+}
+
 function run(): void {
   formControls();
   spoofingAttributes();
@@ -3206,6 +3327,7 @@ function run(): void {
   inputContract();
   taskLists();
   sinkBinding();
+  dependencyPolicy();
 
   if (checks !== EXPECTED_CHECKS) {
     failures.push(
