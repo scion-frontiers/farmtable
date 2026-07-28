@@ -2,8 +2,11 @@ package server
 
 import (
 	"fmt"
+	"maps"
 	"net/url"
+	"slices"
 	"strings"
+	"unicode"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -81,14 +84,133 @@ func validateURLField(field, raw string) error {
 	return nil
 }
 
-// urlBearingRemoteDataKeys are the keys inside a task's untyped RemoteData map
-// that convert.go surfaces as URL-typed proto fields, and which therefore reach
-// an href in the dashboard. RemoteData is a documented escape hatch holding
-// arbitrary platform payload, so we validate the keys that actually reach a sink
-// rather than guessing at which other values happen to look like URLs.
+// urlBearingRemoteDataKey reports whether a key inside a task's untyped
+// RemoteData map names a value that could be rendered into an href.
 //
-// Keep this in sync with the RemoteData reads in convert.go.
-var urlBearingRemoteDataKeys = []string{"remote_url"}
+// WHY THIS IS A PREDICATE AND NOT A LIST. It used to be
+// `var urlBearingRemoteDataKeys = []string{"remote_url"}`, documented "keep this
+// in sync with the RemoteData reads in convert.go". That instruction is not
+// satisfiable: convert.go serialises the WHOLE map into pb.Task.remote_data, so
+// it "reads" every key there will ever be. A sync comment against an unbounded
+// set cannot be kept, and the list was already out of date -- both GitHub
+// adapters write the issue URL a second time under "html_url"
+// (platform/github/graphql_queries.go:482, platform/github/github.go:261), which
+// the list never mentioned and no validator ever looked at.
+//
+// So the classification is by NAME and it fails closed: anything whose key looks
+// like it holds a URL is treated as holding one. RemoteData is a documented
+// escape hatch for arbitrary platform payload, so we cannot enumerate its
+// contents -- but we can insist that a key which SOUNDS like a URL is validated
+// like one, and that any key which carries a URL without saying so in its name
+// is added here deliberately.
+//
+// The bounded, enforceable half of the invariant lives in
+// TestRemoteDataKeysWrittenByAdaptersAreClassified: the set of keys the in-tree
+// platform adapters write IS finite, and every one of them must be either
+// URL-bearing by this predicate or listed there as non-URL with a reason.
+// urlBearingKeyWords are the word-segments that mark a key as holding a URL.
+// Matching is on whole segments, not substrings: "curl" must not be classified
+// as URL-bearing just because it ends in "url".
+var urlBearingKeyWords = map[string]bool{
+	"url": true, "urls": true,
+	"uri": true, "uris": true,
+	"href": true, "hrefs": true,
+	"link": true, "links": true,
+	"permalink": true, "permalinks": true,
+}
+
+func urlBearingRemoteDataKey(key string) bool {
+	for _, seg := range keySegments(key) {
+		if urlBearingKeyWords[strings.ToLower(seg)] {
+			return true
+		}
+		// An all-caps segment carries no internal word boundary to split on, so
+		// fall back to a suffix test for it. "HTMLURL" classifies as URL-bearing;
+		// so does "CURL", which is a false positive in the fail-closed direction
+		// and costs one wasted validation.
+		if seg == strings.ToUpper(seg) && seg != strings.ToLower(seg) {
+			low := strings.ToLower(seg)
+			for word := range urlBearingKeyWords {
+				if strings.HasSuffix(low, word) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// keySegments splits a RemoteData key into word segments, handling both the
+// snake_case the current adapters emit and the camelCase a future one might, so
+// that "html_url", "html-url" and "htmlUrl" all decompose to ["html", "url"].
+//
+// The camel rules are the usual two: split before an uppercase letter that
+// follows a lowercase letter or a digit, and split before the last uppercase of
+// an uppercase run that is followed by a lowercase letter ("HTMLUrl" ->
+// ["HTML", "Url"]). Segments keep their original case so the caller can tell an
+// all-caps run apart from an ordinary word.
+func keySegments(key string) []string {
+	var segs []string
+	var cur strings.Builder
+	flush := func() {
+		if cur.Len() > 0 {
+			segs = append(segs, cur.String())
+			cur.Reset()
+		}
+	}
+	runes := []rune(key)
+	for i, r := range runes {
+		switch {
+		case r == '_' || r == '-' || r == '.' || r == '/' || r == ' ':
+			flush()
+		case unicode.IsUpper(r):
+			prevIsLowerOrDigit := i > 0 && (unicode.IsLower(runes[i-1]) || unicode.IsDigit(runes[i-1]))
+			nextIsLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+			prevIsUpper := i > 0 && unicode.IsUpper(runes[i-1])
+			if prevIsLowerOrDigit || (prevIsUpper && nextIsLower) {
+				flush()
+			}
+			cur.WriteRune(r)
+		default:
+			cur.WriteRune(r)
+		}
+	}
+	flush()
+	return segs
+}
+
+// sanitizeRemoteData returns a copy of a task's RemoteData with every
+// URL-bearing entry that fails validateURLField removed.
+//
+// This exists because dropping the bad value from the typed pb.Task.remote_url
+// field is not enough on its own: the same map is serialised wholesale into
+// pb.Task.remote_data one step later, so the rejected string used to ride out to
+// the client anyway, one field away from the field that had just been cleaned.
+//
+// Drop rather than error, matching the typed field: a bad URL from upstream must
+// not fail the whole read. A URL-bearing key whose value is not a string is also
+// dropped -- it cannot be validated, and nothing in this tree writes one.
+//
+// The input map is never mutated; it belongs to the ent entity.
+func sanitizeRemoteData(rd map[string]any) map[string]any {
+	if rd == nil {
+		return nil
+	}
+	clean := make(map[string]any, len(rd))
+	for k, v := range rd {
+		if urlBearingRemoteDataKey(k) {
+			s, ok := v.(string)
+			if !ok {
+				continue
+			}
+			if err := validateURLField(k, s); err != nil {
+				continue
+			}
+		}
+		clean[k] = v
+	}
+	return clean
+}
 
 // validateImportedTaskURLs applies the same scheme allow-list to a task arriving
 // through collection import.
@@ -96,6 +218,11 @@ var urlBearingRemoteDataKeys = []string{"remote_url"}
 // UpdateTask is not the only writer of these fields: ImportCollection copies
 // PullRequests and RemoteData verbatim out of a caller-uploaded JSON document,
 // so a check placed only in UpdateTask is bypassable by importing a collection.
+//
+// The RemoteData half uses the same urlBearingRemoteDataKey predicate as the
+// read path. The write and read boundaries classifying keys differently is how
+// "html_url" came to be validated by neither. Keys are visited in sorted order
+// so the reported failure is deterministic rather than map-iteration order.
 func validateImportedTaskURLs(t exportTask) error {
 	for i, pr := range t.PullRequests {
 		if err := validateURLField(
@@ -103,12 +230,11 @@ func validateImportedTaskURLs(t exportTask) error {
 			return err
 		}
 	}
-	for _, key := range urlBearingRemoteDataKeys {
-		raw, ok := t.RemoteData[key]
-		if !ok {
+	for _, key := range slices.Sorted(maps.Keys(t.RemoteData)) {
+		if !urlBearingRemoteDataKey(key) {
 			continue
 		}
-		s, ok := raw.(string)
+		s, ok := t.RemoteData[key].(string)
 		if !ok {
 			continue
 		}
