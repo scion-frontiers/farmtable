@@ -73,12 +73,20 @@ func main() {
 	// write is how a disarmed control looks like a working one. A MISSING file
 	// is not an error — LoadConfig returns the defaults for it, which is the
 	// documented way to say "I want the defaults".
-	ghCfg, err := github.LoadConfig(github.DefaultConfigPath)
+	//
+	// SAY WHICH CONFIGURATION WAS USED (#194 round 8, review R-1). Silence here
+	// was the remaining half of M-1: DefaultConfigPath is relative, so a server
+	// started from an unexpected working directory finds nothing, loads the
+	// defaults, logs nothing, and runs with the label-write gate disarmed
+	// exactly as it did before M-1 was fixed. Not fatal — a missing file is the
+	// documented way to ask for the defaults — but never again silent.
+	ghCfg, ghSrc, err := github.LoadConfigWithSource(github.DefaultConfigPath)
 	if err != nil {
 		log.Fatalf("Invalid GitHub configuration: %v — refusing to start with "+
 			"defaults when a configuration was intended, because push_prefix "+
 			"decides which labels may feed an authorization decision", err)
 	}
+	log.Println(ghSrc.Describe(ghCfg))
 	s.SetResolver(github.NewPlatformResolver(ghCfg))
 	defer s.Close()
 

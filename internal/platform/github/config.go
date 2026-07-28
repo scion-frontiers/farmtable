@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
@@ -56,34 +57,124 @@ type LabelConfig struct {
 // configuration the operator did not write.
 const DefaultConfigPath = ".farmtable/github.yaml"
 
+// ConfigSource records where a configuration actually came from.
+//
+// It exists because "the config loaded" and "the config the operator wrote
+// loaded" are different statements, and until #194 round 8 nothing told them
+// apart (review R-1). DefaultConfigPath is RELATIVE, so the answer depends on
+// the process's working directory; LoadConfig returns the defaults for a
+// missing file, deliberately, because that is how an operator says "I want the
+// defaults"; and the result is indistinguishable from a server started from
+// the wrong directory. Since B6 the push_prefix in that file decides which
+// labels may feed an authorization answer, so the silent case is a silently
+// disarmed control (M-1 disarmed again by CWD alone).
+//
+// The remedy is a diagnostic, not an error: making a missing file fatal would
+// break every default deployment. A caller that logs this at startup makes the
+// difference visible in one line.
+type ConfigSource struct {
+	// Path is the path as resolved, after any env-var override.
+	Path string
+
+	// AbsolutePath is Path made absolute against the process's working
+	// directory. This is the field that answers R-1: a relative Path plus an
+	// unexpected CWD is the whole failure mode, and only the absolute form
+	// shows it.
+	AbsolutePath string
+
+	// FromEnv reports that FARMTABLE_GITHUB_CONFIG overrode the caller's path.
+	FromEnv bool
+
+	// Found reports that a file was actually read. False means the returned
+	// config is DefaultConfig — which is a legitimate outcome and also exactly
+	// what a wrong working directory looks like.
+	Found bool
+}
+
+// EffectivePushPrefix is the prefix this configuration actually uses, after
+// defaulting. It is the configured value only when that value is usable; see
+// resolvePushPrefix. Worth logging alongside a ConfigSource, because the
+// configured and effective values differing is itself the A-2 failure.
+func (c *GitHubConfig) EffectivePushPrefix() string {
+	return resolvePushPrefix(c.GitHub.Labels.PushPrefix)
+}
+
 // LoadConfig reads a GitHubConfig from the given YAML file path.
 // If the file does not exist, it returns DefaultConfig with no error.
 // The FARMTABLE_GITHUB_CONFIG env var overrides the path argument.
 func LoadConfig(path string) (*GitHubConfig, error) {
+	cfg, _, err := LoadConfigWithSource(path)
+	return cfg, err
+}
+
+// LoadConfigWithSource is LoadConfig plus an account of where the result came
+// from, for callers that report their configuration at startup.
+func LoadConfigWithSource(path string) (*GitHubConfig, ConfigSource, error) {
+	src := ConfigSource{Path: path}
+
 	// Env var override.
 	if envPath := os.Getenv("FARMTABLE_GITHUB_CONFIG"); envPath != "" {
-		path = envPath
+		src.Path = envPath
+		src.FromEnv = true
 	}
 
-	data, err := os.ReadFile(path)
+	// Resolve for reporting only. A failure here must not stop the load: the
+	// path still works relative to the CWD, and refusing to start because the
+	// CWD could not be named would be a new failure mode in a diagnostic.
+	if abs, absErr := filepath.Abs(src.Path); absErr == nil {
+		src.AbsolutePath = abs
+	} else {
+		src.AbsolutePath = src.Path
+	}
+
+	data, err := os.ReadFile(src.Path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			cfg := DefaultConfig()
-			return cfg, nil
+			return DefaultConfig(), src, nil
 		}
-		return nil, fmt.Errorf("reading config %s: %w", path, err)
+		return nil, src, fmt.Errorf("reading config %s: %w", src.AbsolutePath, err)
 	}
+	src.Found = true
 
 	cfg := DefaultConfig()
 	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return nil, fmt.Errorf("parsing config %s: %w", path, err)
+		return nil, src, fmt.Errorf("parsing config %s: %w", src.AbsolutePath, err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config %s: %w", path, err)
+		return nil, src, fmt.Errorf("invalid config %s: %w", src.AbsolutePath, err)
 	}
 
-	return cfg, nil
+	return cfg, src, nil
+}
+
+// Describe renders a ConfigSource as a one-line startup diagnostic.
+//
+// The "not found" wording names the working directory explicitly rather than
+// saying "using defaults", because an operator who wrote a config file and does
+// not see it loaded needs to be told WHERE the server looked, not merely that
+// it gave up.
+func (s ConfigSource) Describe(cfg *GitHubConfig) string {
+	origin := "path"
+	if s.FromEnv {
+		origin = "FARMTABLE_GITHUB_CONFIG"
+	}
+
+	if !s.Found {
+		return fmt.Sprintf(
+			"GitHub config: no file at %s (%s), using built-in defaults; "+
+				"effective push_prefix %q. If you wrote a config file, the server is not "+
+				"running from the directory you expect — %s is relative",
+			s.AbsolutePath, origin, cfg.EffectivePushPrefix(), DefaultConfigPath)
+	}
+
+	msg := fmt.Sprintf("GitHub config: loaded %s (%s); effective push_prefix %q",
+		s.AbsolutePath, origin, cfg.EffectivePushPrefix())
+	if configured := cfg.GitHub.Labels.PushPrefix; configured != "" &&
+		configured != cfg.EffectivePushPrefix() {
+		msg += fmt.Sprintf(" (configured %q was not usable and was defaulted)", configured)
+	}
+	return msg
 }
 
 // Validate rejects configurations that would silently disarm a control.
