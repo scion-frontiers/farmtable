@@ -37,6 +37,9 @@ import (
 //	P2 (minimality)  No entry the restrictor RETURNS may be a no-op against the
 //	                 snapshot. Catches UNDER-narrowing.
 //
+//	P3 (spelling)    Every removal it RETURNS is VERBATIM an element of the
+//	                 snapshot. Catches a priced removal that cannot resolve.
+//
 // NEITHER IS SUFFICIENT ALONE, and the reason is structural rather than a
 // matter of missing test inputs. P1 quantifies over outcomes AGAINST THE
 // SNAPSHOT ONLY. A narrowing failure that is a no-op against the snapshot but
@@ -62,10 +65,37 @@ import (
 //	A-4 re-add-present    ok             P2 FAIL              ok
 //	legitimate edit       ok             ok                   ok
 //
-// DO NOT delete either property because "the other one covers it".
+// DO NOT delete any of the three because "the others cover it".
+//
+// AND P3 IS THE REASON THAT SENTENCE IS NOT BOILERPLATE (#194 round 9, MUST 3).
+//
+// Round 8 also changed removals to be emitted in the SNAPSHOT's spelling rather
+// than the caller's. Reverting that change to emit the caller's spelling left
+// the suite GREEN with zero failing tests, measured independently by two review
+// legs — even though the sweep below already varied case and padding across
+// 8192 triples.
+//
+// NO NUMBER OF ADDED INPUTS WOULD HAVE CAUGHT IT, and that is the instructive
+// part. Both P1 and P2 compare through labelMatchKey, which is
+// strings.ToLower(strings.TrimSpace(raw)). Caller spelling and snapshot
+// spelling differ ONLY in case and padding — exactly the two things that oracle
+// normalises away. The failure is outside the oracle's range BY CONSTRUCTION.
+// The sweep was scaling on an axis its oracle could not see.
+//
+//	ASK WHAT YOUR ORACLE CAN DISCRIMINATE BEFORE ASKING WHAT YOUR INPUTS VARY.
+//
+// P3 is the oracle that can see it, and it is deliberately the crudest thing in
+// this file: raw string membership, no normalisation at all. The harm it pins is
+// not theoretical. labelNameToID looks up s.labelIndex[strings.ToLower(name)]
+// and the index is built with ToLower and NO TrimSpace, so a padded caller
+// spelling resolves to nothing, labelNamesToIDs silently drops it,
+// writeLabelSwap sees an empty ID list and returns nil — and a PRICED removal
+// does not land while UpdateTask reports success. The end-to-end version of that
+// is pinned at the server layer too, in
+// TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling.
 
-// restrictProperties reports which of P1 and P2 the restrictor violates for one
-// (snapshot, add, remove) triple. It returns a human-readable reason per
+// restrictProperties reports which of P1, P2 and P3 the restrictor violates for
+// one (snapshot, add, remove) triple. It returns a human-readable reason per
 // violated property, or "" when the property holds.
 //
 // The oracle for P1 is applyLabelDelta ITSELF, never a reimplementation of it.
@@ -74,7 +104,7 @@ import (
 // here would be free to drift in the same direction the production code drifted
 // and would report agreement anyway. If applyLabelDelta is ever wrong, P1 goes
 // on holding and that is correct — P1 pins the SEAM, not the pricing rule.
-func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLabels []string) (p1Fail, p2Fail string) {
+func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLabels []string) (p1Fail, p2Fail, p3Fail string) {
 	tk := &ent.Task{Labels: snapshot}
 	gotAdd, gotRemove := s.RestrictLabelWriteToSnapshot(context.Background(), tk, addLabels, removeLabels)
 
@@ -103,7 +133,48 @@ func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLa
 				"  %s",
 			snapshot, addLabels, removeLabels, gotAdd, gotRemove, strings.Join(bad, "\n  "))
 	}
-	return p1Fail, p2Fail
+
+	// ── P3: removals are emitted in the SNAPSHOT's own spelling ──
+	//
+	// Raw string membership, no labelMatchKey anywhere. That is the point: P1
+	// and P2 both normalise through labelMatchKey and so are blind to the only
+	// dimension in which the two spellings can differ.
+	//
+	// It is stated over gotRemove only. There is no equivalent for gotAdd, and
+	// that asymmetry is real rather than an omission: an added label is by
+	// definition NOT on the issue, so the snapshot holds no spelling to prefer
+	// and the caller's is the only one there is. (labelNameToID resolves adds
+	// through the same padding-sensitive index, so a padded ADD also fails to
+	// resolve — but it fails by not applying a label, which is the safe
+	// direction, and rejecting it here would forbid the caller from naming a
+	// label at all.)
+	verbatim := make(map[string]bool, len(snapshot))
+	for _, l := range snapshot {
+		verbatim[l] = true
+	}
+	var wrongSpelling []string
+	for _, r := range gotRemove {
+		if !verbatim[r] {
+			wrongSpelling = append(wrongSpelling, fmt.Sprintf(
+				"remove %q is not verbatim an element of the snapshot: labelNameToID looks up "+
+					"labelIndex[strings.ToLower(name)] and that index is built with ToLower and "+
+					"NO TrimSpace, so this spelling resolves to no ID, labelNamesToIDs drops it, "+
+					"writeLabelSwap returns nil on an empty ID list, and a removal the gate "+
+					"PRICED silently does not land", r))
+		}
+	}
+	if len(wrongSpelling) > 0 {
+		p3Fail = fmt.Sprintf(
+			"P3 VIOLATED (a priced removal is spelled in a way the write cannot resolve)\n"+
+				"  snapshot        %v\n"+
+				"  requested  add  %v  remove %v\n"+
+				"  narrowed   add  %v  remove %v\n"+
+				"  %s",
+			snapshot, addLabels, removeLabels, gotAdd, gotRemove,
+			strings.Join(wrongSpelling, "\n  "))
+	}
+
+	return p1Fail, p2Fail, p3Fail
 }
 
 // p2Violations IS the definition of P2. It is not a description of P2 and there
@@ -297,6 +368,20 @@ func TestRestrictLabelWriteToSnapshot_NamedDefectShapes(t *testing.T) {
 			remove:   []string{strings.ToUpper(wontFix)},
 		},
 		{
+			name: "priced_removal_whose_caller_spelling_is_padded",
+			why: "MUST PASS and MUST BE EMITTED IN THE SNAPSHOT'S SPELLING (P3). The gate " +
+				"prices this removal, because labelMatchKey sees one label. The write then " +
+				"has to resolve it, and labelNameToID's index is keyed by ToLower with NO " +
+				"TrimSpace — so forwarding the caller's spelling makes labelNamesToIDs drop " +
+				"it, writeLabelSwap no-op, and a removal the caller PAID FOR silently not " +
+				"land while UpdateTask reports success. Padding and case together, because " +
+				"case alone is already covered by the row above and the index is only " +
+				"blind to the padding.",
+			snapshot: []string{wontFix},
+			add:      nil,
+			remove:   []string{"  FT:Stage/Wont_Fix "},
+		},
+		{
 			name:     "empty_and_whitespace_entries",
 			why:      "Entries naming no label must never be forwarded to the write.",
 			snapshot: []string{"bug"},
@@ -315,12 +400,11 @@ func TestRestrictLabelWriteToSnapshot_NamedDefectShapes(t *testing.T) {
 	s := propertyStore(t)
 	for _, row := range rows {
 		t.Run(row.name, func(t *testing.T) {
-			p1, p2 := restrictProperties(s, row.snapshot, row.add, row.remove)
-			if p1 != "" {
-				t.Errorf("%s\n\nwhy this row exists: %s", p1, row.why)
-			}
-			if p2 != "" {
-				t.Errorf("%s\n\nwhy this row exists: %s", p2, row.why)
+			p1, p2, p3 := restrictProperties(s, row.snapshot, row.add, row.remove)
+			for _, fail := range []string{p1, p2, p3} {
+				if fail != "" {
+					t.Errorf("%s\n\nwhy this row exists: %s", fail, row.why)
+				}
 			}
 		})
 	}
@@ -344,7 +428,20 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 	// names-nothing entry. Every pair of spellings of `completed` is a
 	// cross-list collision that string equality would miss.
 	vocab := []string{completed, strings.ToUpper(completed), " " + completed + " ", "bug", ""}
-	snapVocab := []string{completed, "bug", "ft:stage/accepted"}
+
+	// The SNAPSHOT vocabulary carries two spellings of `completed` for two
+	// separate reasons, both added in round 9.
+	//
+	//  1. P3 asks whether removals come back in the snapshot's spelling. A
+	//     snapshot that only ever spells labels the canonical way cannot tell
+	//     the snapshot's spelling from the canonical one, so P3 would be
+	//     quantifying over a dimension it had held constant.
+	//  2. It makes subsets carrying TWO entries that share a match key
+	//     reachable. Round 8 claimed the removeKeys clause in
+	//     RestrictLabelWriteToSnapshot was "covered by a named row"; it was
+	//     not, and no vocabulary in this file reached that shape either. See
+	//     that clause's comment for the invariant this sweep now exercises.
+	snapVocab := []string{completed, strings.ToUpper(completed), "bug", "ft:stage/accepted"}
 
 	s := propertyStore(t)
 
@@ -355,9 +452,16 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 			"different under ==, or the sweep cannot distinguish a labelMatchKey cross-list "+
 			"test from a == one", vocab[0], vocab[1])
 	}
+	// Self-check: and the SNAPSHOT vocabulary must contain a duplicate-key pair,
+	// or reason 2 above is a comment describing something that does not happen.
+	if labelMatchKey(snapVocab[0]) != labelMatchKey(snapVocab[1]) || snapVocab[0] == snapVocab[1] {
+		t.Fatalf("SWEEP BROKEN: snapshot entries %q and %q must share a match key and differ "+
+			"under ==, or no swept snapshot ever carries two entries naming one label",
+			snapVocab[0], snapVocab[1])
+	}
 
-	cases, p1Fails, p2Fails := 0, 0, 0
-	var firstP1, firstP2 string
+	cases, p1Fails, p2Fails, p3Fails := 0, 0, 0, 0
+	var firstP1, firstP2, firstP3 string
 
 	for snapMask := 0; snapMask < 1<<len(snapVocab); snapMask++ {
 		snapshot := subsetOf(snapVocab, snapMask)
@@ -366,7 +470,7 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 			for remMask := 0; remMask < 1<<len(vocab); remMask++ {
 				remove := subsetOf(vocab, remMask)
 				cases++
-				p1, p2 := restrictProperties(s, snapshot, add, remove)
+				p1, p2, p3 := restrictProperties(s, snapshot, add, remove)
 				if p1 != "" {
 					p1Fails++
 					if firstP1 == "" {
@@ -377,6 +481,12 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 					p2Fails++
 					if firstP2 == "" {
 						firstP2 = p2
+					}
+				}
+				if p3 != "" {
+					p3Fails++
+					if firstP3 == "" {
+						firstP3 = p3
 					}
 				}
 			}
@@ -395,6 +505,9 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 	}
 	if p2Fails > 0 {
 		t.Errorf("P2 failed on %d of %d triples. First:\n%s", p2Fails, cases, firstP2)
+	}
+	if p3Fails > 0 {
+		t.Errorf("P3 failed on %d of %d triples. First:\n%s", p3Fails, cases, firstP3)
 	}
 	t.Logf("swept %d (snapshot, add, remove) triples", cases)
 }

@@ -2629,6 +2629,90 @@ func TestUpdateTask_CrossListCancelCannotApplyATerminalLabelForFree(t *testing.T
 	})
 }
 
+// ── #194 round 8 / F-2 closure: the spelling a removal is emitted in ──
+
+// TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling pins the OTHER
+// half of round 8's restrictor rewrite, which shipped with no coverage at all:
+// removals are emitted in the SNAPSHOT's spelling, not the caller's.
+//
+// Revert that and the whole suite stays GREEN with zero failing tests, measured
+// independently by two review legs — including the 8192-triple property sweep
+// that varies case and padding on purpose. WHY NO NUMBER OF ADDED INPUTS WOULD
+// HAVE CAUGHT IT: both properties compare through labelMatchKey, which is
+// strings.ToLower(strings.TrimSpace(raw)), and caller spelling and snapshot
+// spelling can differ ONLY in case and padding. The failure was outside the
+// oracle's range by construction. Ask what your oracle can discriminate before
+// asking what your inputs vary.
+//
+// THE HARM. labelNameToID looks up s.labelIndex[strings.ToLower(name)] and that
+// index is built with ToLower and NO TrimSpace. A padded caller spelling
+// resolves to no ID, labelNamesToIDs silently drops it, writeLabelSwap sees an
+// empty ID list and returns nil — so a removal the gate PRICED does not land
+// while UpdateTask reports success. The caller is charged task:accept and the
+// terminal label stays on the issue.
+//
+// The first assertion below is what makes the second one mean something: the
+// gate must CHARGE for this request. A removal that was never priced and never
+// landed would be consistent; one that is priced and does not land is the bug.
+// (internal/platform/github's P3 states the same contract as a property. This
+// is the end-to-end version, and it is here rather than only there because a
+// property file can be edited in one commit — see C-1 above.)
+func TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling(t *testing.T) {
+	wontFix := stageLabel(task.StageWontFix)
+
+	spellings := []struct {
+		name   string
+		why    string
+		caller string
+	}{
+		{
+			name:   "padded_and_recased",
+			why:    "The shape the repo label index cannot resolve: ToLower normalises the case, nothing normalises the padding.",
+			caller: "  " + strings.ToUpper(wontFix) + "\t",
+		},
+		{
+			name:   "padded_only",
+			why:    "Padding alone is sufficient; the case is a red herring the index already handles.",
+			caller: " " + wontFix + " ",
+		},
+		{
+			name:   "recased_only",
+			why:    "MUST ALSO WORK, and it did before round 8: the index is keyed by ToLower, so case alone always resolved. Here as the control that separates the two normalisations.",
+			caller: strings.ToUpper(wontFix),
+		},
+	}
+
+	for _, sp := range spellings {
+		t.Run(sp.name, func(t *testing.T) {
+			f := openIssue(t, wontFix, "bug")
+			if got := f.issue.currentLabels(); !containsLabel(got, wontFix) {
+				t.Fatalf("BASELINE BROKEN: the issue does not carry %q; labels %v", wontFix, got)
+			}
+
+			// THE PRICE. If this stops being a denial the test below is
+			// measuring an unpriced write and proves nothing about charging.
+			requireDeniedFor(t, f.removeLabels(agentScopes(), sp.caller),
+				server.ScopeTaskAccept,
+				"remove_labels["+sp.caller+"] with task:write only")
+
+			// THE MEASUREMENT. Same request, scope paid.
+			if err := f.removeLabels(withScope(server.ScopeTaskAccept), sp.caller); err != nil {
+				t.Fatalf("remove_labels[%q] with task:accept was rejected (%v)", sp.caller, err)
+			}
+			if got := f.issue.currentLabels(); containsLabel(got, wontFix) {
+				t.Fatalf("UpdateTask reported success and the caller was charged task:accept, "+
+					"but %q is still on the issue; labels now %v. The removal was forwarded in "+
+					"the CALLER's spelling %q, which labelNameToID cannot resolve, so "+
+					"labelNamesToIDs dropped it and writeLabelSwap no-opped.\n\n"+
+					"why this row exists: %s", wontFix, got, sp.caller, sp.why)
+			}
+			if got := f.lifecycleStages(t); containsStage(got, task.StageWontFix) {
+				t.Fatalf("the lifecycle stage set is %v, want it to no longer name wont_fix", got)
+			}
+		})
+	}
+}
+
 // containsStage reports whether a lifecycle stage set names a stage.
 func containsStage(stages []task.Stage, want task.Stage) bool {
 	for _, s := range stages {
