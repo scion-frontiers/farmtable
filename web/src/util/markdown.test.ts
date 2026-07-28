@@ -740,10 +740,9 @@ function inputContract(): void {
   // together.
   check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
     const problems: string[] = [
-      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 17),
       fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 11),
     ].filter((v): v is string => v !== null);
-    for (const { label, replace } of ARITY_EVASIONS) {
+    for (const { label, replace } of consumeFixtureTable('ARITY_EVASIONS', ARITY_EVASIONS, 17)) {
       const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
       if (occurrences !== 1) {
         problems.push(`${label}: fixture anchor matched ${occurrences} times, expected 1`);
@@ -3325,6 +3324,89 @@ function fixtureTableViolation(
 }
 
 /**
+ * THE TABLE-SIZE PIN ABOVE PINS THE TABLE. IT DOES NOT PIN THE LOOP.
+ *
+ * Round 10, measured at this branch's head with every table pinned: leave
+ * `SINK_EVASIONS` fully intact — all 27 entries, size pin satisfied — and change
+ * its consumption loop to `for (… of SINK_EVASIONS.slice(0, 0))`. GREEN, 82
+ * checks / 131 assertions, `tsc --noEmit` 0. The size pin is computed from the
+ * DECLARED array and the loop reads a different expression, so nothing connects
+ * the two. Twenty-nine loops in this file had that shape.
+ *
+ * `consumeFixtureTable` closes the gap by moving the size pin ONTO the value the
+ * loop actually iterates: the count is checked at the point of consumption, and
+ * the generator only records itself as having run after it has yielded every
+ * entry. That makes three distinct mutations red instead of green —
+ *
+ *   a shortened or emptied TABLE      -> the length arm throws
+ *   a neutered LOOP over a live table -> the length arm throws (it sees 0)
+ *   an early `break` out of the loop  -> the name is never recorded
+ *
+ * — and a fourth, deleting the loop or the whole check, the same way. All the
+ * absences are caught by the census in `run()` against EXPECTED_FIXTURE_LOOPS, on
+ * the same argument as the tree-wide control census: a name that is expected and
+ * absent is a POSITIVE outcome that an empty run cannot satisfy.
+ *
+ * THE `break` CASE DOES NOT THROW, AND THE FIRST DRAFT OF THIS COMMENT SAID IT
+ * DID. Measured: `for (const row of consumeFixtureTable(…)) { break; }` runs the
+ * generator's `return()`, so execution never resumes after the `yield` and the
+ * trailing `yielded !== expected` arm is unreachable from a break. That arm is
+ * kept because it is reachable from a `throw` inside the loop body caught
+ * upstream — it is not what catches an abandoned loop, and the census is. The
+ * self-test asserts the real behaviour, including that the break does NOT throw.
+ *
+ * Where a loop is wrapped, the separate `fixtureTableViolation(name, table, n)`
+ * entry is REMOVED rather than kept alongside. It is strictly weaker than what
+ * replaces it and keeping both would put the same magic number in two places,
+ * which is the bookkeeping smell this file has already paid for twice.
+ *
+ * SCOPE, STATED PLAINLY RATHER THAN IMPLIED: this round wraps the six EVASION
+ * tables — the positive-detection halves, where a silently-skipped loop means a
+ * rule is no longer known to catch anything. The legitimate/false-positive
+ * mirrors and the tree-wide fixture loops are NOT wrapped yet and are still
+ * neuterable by the `.slice(0, 0)` mutation above. That is a filed remainder,
+ * not a claim of completeness; see the round-10 report.
+ */
+const fixtureLoopsRun = new Set<string>();
+
+const EXPECTED_FIXTURE_LOOPS = [
+  'ARITY_EVASIONS',
+  'INDIRECTION_EVASIONS',
+  'ESCAPE_EVASIONS',
+  'DYNAMIC_IMPORT_EVASIONS',
+  'SINK_EVASIONS',
+  'OWNERSHIP_EVASIONS',
+];
+
+function* consumeFixtureTable<T>(
+  name: string,
+  table: readonly T[],
+  expected: number,
+): Generator<T> {
+  if (table.length !== expected) {
+    throw new Error(
+      `the loop over ${name} was handed ${table.length} entries, expected ${expected}. ` +
+        'Either the table changed size — update the number here in the same commit — or the ' +
+        'loop is iterating something other than the whole table, which makes the check pass ' +
+        'vacuously with the check total unchanged. Never change this number merely to make a ' +
+        'red suite go green.',
+    );
+  }
+  let yielded = 0;
+  for (const row of table) {
+    yielded += 1;
+    yield row;
+  }
+  if (yielded !== expected) {
+    throw new Error(
+      `the loop over ${name} consumed ${yielded} of ${expected} entries and then stopped — ` +
+        'an early exit leaves the remaining fixtures unexercised while the check still passes.',
+    );
+  }
+  fixtureLoopsRun.add(name);
+}
+
+/**
  * R7, PROMOTED FROM THE TWO SINK FILES TO THE WHOLE SCANNED TREE.
  *
  * R7 bans a unicode or hex escape in code, because `unsafeHTML` is resolved
@@ -4088,11 +4170,8 @@ function sinkBinding(): void {
   ];
 
   check('fixture: every known indirection form is caught by the tripwire', () => {
-    const missed: string[] = [
-      fixtureTableViolation('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 17),
-      fixtureTableViolation('ESCAPE_EVASIONS', ESCAPE_EVASIONS, 4),
-    ].filter((v): v is string => v !== null);
-    for (const fixture of INDIRECTION_EVASIONS) {
+    const missed: string[] = [];
+    for (const fixture of consumeFixtureTable('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 17)) {
       const code = stripInertText(fixture, { strings: false });
       const found = directiveIndirectionOffenders('<fixture>', code);
       if (found.length === 0) missed.push(fixture);
@@ -4107,7 +4186,7 @@ function sinkBinding(): void {
         }
       }
     }
-    for (const fixture of ESCAPE_EVASIONS) {
+    for (const fixture of consumeFixtureTable('ESCAPE_EVASIONS', ESCAPE_EVASIONS, 4)) {
       const codeNoStrings = stripInertText(fixture, { strings: true });
       if (escapeInCodeOffenders('<fixture>', codeNoStrings).length === 0) {
         missed.push(`escape not caught: ${fixture}`);
@@ -4318,10 +4397,9 @@ function sinkBinding(): void {
 
   check('fixture: the dynamic-import specifier rule catches every unresolvable form', () => {
     const problems: string[] = [
-      fixtureTableViolation('DYNAMIC_IMPORT_EVASIONS', DYNAMIC_IMPORT_EVASIONS, 5),
       fixtureTableViolation('DYNAMIC_IMPORT_LEGITIMATE', DYNAMIC_IMPORT_LEGITIMATE, 5),
     ].filter((v): v is string => v !== null);
-    for (const fixture of DYNAMIC_IMPORT_EVASIONS) {
+    for (const fixture of consumeFixtureTable('DYNAMIC_IMPORT_EVASIONS', DYNAMIC_IMPORT_EVASIONS, 5)) {
       const code = stripInertText(fixture, { strings: false });
       const found = dynamicImportSpecifierOffenders('<fixture>', code);
       if (found.length === 0) {
@@ -4363,9 +4441,9 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All TWENTY-TWO fixture tables are protected from silent shrinkage by exactly
-  // one function, `fixtureTableViolation`, and until this check it was the only
-  // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
+  // All SEVENTEEN remaining fixture tables are protected from silent shrinkage by
+  // exactly one function, `fixtureTableViolation`, and until this check it was the
+  // only rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
   // called with a wrong input, because its only inputs were the real tables,
   // which by construction always carry the pinned value. That is the identical
@@ -4378,7 +4456,7 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Twenty-two is `grep -c "^      fixtureTableViolation('"`. THE SIX-SPACE
+  // Seventeen is `grep -c "^      fixtureTableViolation('"`. THE SIX-SPACE
   // ANCHOR IS LOAD-BEARING: it matches only the calls that sit inside a
   // violations array literal, which is every real table and nothing else, and —
   // the part that matters — it does not match this comment, so the recipe does
@@ -4396,15 +4474,21 @@ function sinkBinding(): void {
   // derived from the thing it checks.
   //
   // The unanchored form is therefore no longer written out here, and the residue
-  // is stated rather than hidden: one prose spelling is unavoidable, because the
-  // line above has to quote the anchored recipe. Unanchored is 27 on this tree
-  // and 27 - 4 = 23 against a true 22 — still off by one, which is why the
-  // unanchored recipe is not the one to use. The anchored form is exact because
-  // the six-space anchor excludes every comment line, including that one.
+  // is stated rather than hidden: prose spellings are unavoidable, because the
+  // line above has to quote the anchored recipe. Re-measured this round:
+  // unanchored is 24, of which 4 are the sentinel calls in this check's body, 1
+  // is the function declaration and 2 are prose — 24 - 7 = 17, which agrees only
+  // because all three subtrahends were counted by hand. The anchored form is
+  // exact with no subtraction at all, because the six-space anchor excludes every
+  // comment line and the declaration, including the ones on this screen.
   //
-  // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL, the
-  // unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS, COUNT_PIN_DELTAS and
-  // STRING_BLANKING_CONTROLS. Re-run the recipe, do not increment it.
+  // Was seventeen through round 9 and rose to twenty-three during round 10
+  // (REPORT_FROM_ORIGINAL, the unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS,
+  // COUNT_PIN_DELTAS, STRING_BLANKING_CONTROLS, HANDLER_BEARING). It is back to
+  // seventeen because the six EVASION tables moved their size pin onto the loop
+  // that consumes them — see `consumeFixtureTable`. Re-run the recipe, do not
+  // increment it, and do not read the round-9 and round-10 seventeens as the same
+  // set: they are not.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
@@ -4436,6 +4520,70 @@ function sinkBinding(): void {
     }
     if (missed.length > 0) {
       throw new Error(`the table-size pin no longer fires: ${missed.join(' | ')}`);
+    }
+  });
+
+  // The same treatment for the pin one level in. `consumeFixtureTable` is a
+  // control over the SIX evasion loops, so it gets a control of its own for the
+  // reason the whole round is about: without this, replacing its body with a
+  // plain `yield*` leaves every wrapped loop iterating correctly, every name
+  // recorded, and the three mutations it exists to catch green again.
+  check('fixture: the fixture-loop pin fires on a short, neutered or abandoned loop', () => {
+    const missed: string[] = [];
+    const drain = (name: string, table: readonly number[], expected: number): string | null => {
+      try {
+        for (const _row of consumeFixtureTable(name, table, expected)) {
+          // consume every row; the point is the generator's own bookkeeping
+        }
+        return null;
+      } catch (e) {
+        return (e as Error).message;
+      }
+    };
+
+    const SOUND_SENTINEL = 'Y (loop pin self-test, sound)';
+    if (drain(SOUND_SENTINEL, [1, 2, 3], 3) !== null) {
+      missed.push('the fixture-loop pin REJECTED a loop that consumed a table of the right size');
+    }
+    if (!fixtureLoopsRun.has(SOUND_SENTINEL)) {
+      missed.push('the fixture-loop pin did not record a completed loop in the census');
+    }
+    // A SHORTENED table, which is what a bad merge produces.
+    if (drain('Y (short)', [1, 2], 3) === null) {
+      missed.push('the fixture-loop pin is silent on a SHORTENED table');
+    }
+    // A NEUTERED loop: the table is intact at its declaration, the loop reads a
+    // sliced copy of it. This is the exact mutation that was GREEN at 82/131
+    // before this pin existed, and it is the reason the count moved onto the
+    // loop rather than staying beside the array.
+    const LIVE_TABLE = [1, 2, 3];
+    if (drain('Y (neutered)', LIVE_TABLE.slice(0, 0), LIVE_TABLE.length) === null) {
+      missed.push('the fixture-loop pin is silent on a NEUTERED loop over a live table');
+    }
+    // A LENGTHENED table, for the same reason the table-size pin checks upward.
+    if (drain('Y (long)', [1, 2, 3, 4], 3) === null) {
+      missed.push('the fixture-loop pin is silent on a LENGTHENED table');
+    }
+    // AN ABANDONED loop: full table, right count, consumer breaks out early. The
+    // length arm cannot see this one — only the yielded arm can.
+    const ABANDONED = 'Y (abandoned)';
+    let abandonedThrew = false;
+    try {
+      for (const _row of consumeFixtureTable(ABANDONED, [1, 2, 3], 3)) {
+        break;
+      }
+    } catch {
+      abandonedThrew = true;
+    }
+    if (abandonedThrew) {
+      missed.push('the fixture-loop pin threw at the break itself rather than on the census');
+    }
+    if (fixtureLoopsRun.has(ABANDONED)) {
+      missed.push('the fixture-loop pin recorded an ABANDONED loop as having run');
+    }
+
+    if (missed.length > 0) {
+      throw new Error(`the fixture-loop pin no longer fires: ${missed.join(' | ')}`);
     }
   });
 
@@ -4913,10 +5061,8 @@ function sinkBinding(): void {
   ];
 
   check('fixture: every known sink-binding evasion is caught', () => {
-    const survived: string[] = [
-      fixtureTableViolation('SINK_EVASIONS', SINK_EVASIONS, 27),
-    ].filter((v): v is string => v !== null);
-    for (const { label, find, replace } of SINK_EVASIONS) {
+    const survived: string[] = [];
+    for (const { label, find, replace } of consumeFixtureTable('SINK_EVASIONS', SINK_EVASIONS, 27)) {
       const occurrences = SOUND_SINK_FILE.split(find).length - 1;
       if (occurrences !== 1) {
         survived.push(`${label}: fixture anchor matched ${occurrences} times, expected 1`);
@@ -4989,12 +5135,11 @@ function sinkBinding(): void {
 
   check('fixture: sanitizer ownership holds against every route to the singleton', () => {
     const missed: string[] = [
-      fixtureTableViolation('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10),
       fixtureTableViolation('OWNERSHIP_LEGITIMATE', OWNERSHIP_LEGITIMATE, 4),
       fixtureTableViolation('OWNERSHIP_LAUNDERING', OWNERSHIP_LAUNDERING, 3),
       fixtureTableViolation('OWNERSHIP_INERT_ASSETS', OWNERSHIP_INERT_ASSETS, 2),
     ].filter((v): v is string => v !== null);
-    for (const fixture of OWNERSHIP_EVASIONS) {
+    for (const fixture of consumeFixtureTable('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10)) {
       const code = stripInertText(fixture, { strings: false });
       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
         missed.push(fixture);
@@ -5002,7 +5147,7 @@ function sinkBinding(): void {
     }
     // The owner is exempt, and only the owner: the same text under its path must
     // produce nothing, or the rule is not a rule about ownership at all.
-    for (const fixture of OWNERSHIP_EVASIONS) {
+    for (const fixture of consumeFixtureTable('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10)) {
       const code = stripInertText(fixture, { strings: false });
       if (sanitizerOwnershipViolations(SANITIZER_OWNER, code, scannedRel).length !== 0) {
         missed.push(`OWNER REJECTED: ${fixture}`);
@@ -5171,10 +5316,15 @@ function sinkBinding(): void {
 //      (`assertNoEventHandlers` is the only assert* helper with a scanning loop
 //      and had no positive control; both of its loops emptied were GREEN at
 //      79/127)
-// Round 10 also added the tree-wide control census, which is deliberately NOT a
+//   4. fixture: the fixture-loop pin fires on a short, neutered or abandoned loop
+//      (the table-size pins pin the TABLE and nothing pinned the LOOP: with
+//      SINK_EVASIONS fully intact and its consumption loop reading
+//      `SINK_EVASIONS.slice(0, 0)`, the suite was GREEN at 82 checks / 131
+//      assertions)
+// Round 10 also added the evasion-loop census and the tree-wide control census, which is deliberately NOT a
 // check() call site — it is stated in `run()` alongside the two totals, for the
 // reason given there.
-const EXPECTED_CHECK_CALL_SITES = 81;
+const EXPECTED_CHECK_CALL_SITES = 82;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
@@ -5369,6 +5519,24 @@ function run(): void {
         'detector proving those loops are not vacuous could be switched off everywhere ' +
         'without a single check noticing. If a tree-wide rule was legitimately removed, ' +
         'remove its name from EXPECTED_TREE_WIDE_CONTROLS in the same commit and say so.',
+    );
+  }
+
+  // THE EVASION-TABLE LOOPS ACTUALLY RAN. Same argument, one level in: the size
+  // pin proves the table is full, `consumeFixtureTable` proves the loop drank all
+  // of it, and this proves the loop exists at all. Deleting a wrapped loop, or
+  // the check around it, leaves the table pinned and the rule unexercised; the
+  // check total sees a deleted check() but not a deleted loop inside a surviving
+  // one. See the docblock on consumeFixtureTable, including what is NOT wrapped.
+  const missingLoops = EXPECTED_FIXTURE_LOOPS.filter((n) => !fixtureLoopsRun.has(n));
+  if (missingLoops.length > 0) {
+    failures.push(
+      `evasion-table loop(s) never ran to completion: ${missingLoops.join(', ')}. ` +
+        `Expected all ${EXPECTED_FIXTURE_LOOPS.length} of ${EXPECTED_FIXTURE_LOOPS.join(' / ')}; ` +
+        `saw ${[...fixtureLoopsRun].join(' / ') || '(none)'}. Each must be consumed through ` +
+        '`consumeFixtureTable(<name>, <table>, <count>)`, which is what records the name. ' +
+        'If an evasion table was legitimately retired, remove its name here in the same ' +
+        'commit and say why — a retired evasion table means a rule stopped being tested.',
     );
   }
 
