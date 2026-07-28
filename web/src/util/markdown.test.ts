@@ -561,16 +561,52 @@ function findWebRoot(): string {
   throw new Error('could not locate the web source tree from ' + import.meta.url);
 }
 
+// Every extension that could hold a raw-HTML sink, kept deliberately wider than
+// what the tree contains today (all `.ts`). A scan that only looks at `.ts`
+// would silently stop covering the project's first `.tsx` or hand-written `.js`
+// file — and "not scanned" is indistinguishable from "clean" in the results.
+const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs'];
+
+function isScannableSource(entry: string): boolean {
+  if (/\.test\.(ts|tsx|js|mjs|cjs)$/.test(entry)) return false;
+  return SCANNED_EXTENSIONS.some((ext) => entry.endsWith(ext));
+}
+
 function collectSourceFiles(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       collectSourceFiles(full, out);
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.test.ts')) {
+    } else if (isScannableSource(entry)) {
       out.push(full);
     }
   }
 }
+
+/**
+ * Raw-HTML injection APIs that must not appear outside renderMarkdown.
+ *
+ * This is an ALLOWLIST OF KNOWN SINKS, not a proof of absence. It can only
+ * catch the forms named here, and it must be revisited whenever this codebase
+ * adopts a new raw-injection API. Do not read a green result as "no raw sink
+ * exists" — read it as "none of these eight forms exists".
+ *
+ * The previous version of this list missed six real vectors, including
+ * `.innerHTML +=`, which is the very sink it was written to catch: `\.innerHTML
+ * \s*=` does not admit the `+`. `unsafeSVG` and `unsafeStatic` are Lit's other
+ * two raw directives and are the ones a developer in this codebase would most
+ * plausibly reach for next.
+ */
+const BANNED_SINKS: { name: string; pattern: RegExp }[] = [
+  { name: 'innerHTML/outerHTML assignment', pattern: /\.(inner|outer)HTML\s*\+?=/ },
+  { name: 'innerHTML/outerHTML indexed assignment', pattern: /\[['"](inner|outer)HTML['"]\]\s*\+?=/ },
+  { name: 'insertAdjacentHTML', pattern: /insertAdjacentHTML\(/ },
+  { name: 'document.write', pattern: /document\.write\(/ },
+  { name: 'setHTMLUnsafe', pattern: /setHTMLUnsafe\(/ },
+  { name: 'createContextualFragment', pattern: /createContextualFragment\(/ },
+  { name: 'lit unsafeSVG directive', pattern: /unsafeSVG\(/ },
+  { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\(/ },
+];
 
 function sinkBinding(): void {
   const root = findWebRoot();
@@ -655,12 +691,18 @@ function sinkBinding(): void {
   });
 
   // unsafeHTML is not the only way to reach the DOM with a raw string; a new
-  // innerHTML sink would bypass renderMarkdown without touching the check above.
+  // innerHTML sink would bypass renderMarkdown without touching the checks
+  // above. See BANNED_SINKS for the scope and the limits of this guard.
   check('no raw-HTML sink other than unsafeHTML exists', () => {
-    const banned = /\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML\(|document\.write\(/;
-    const offenders = files
-      .filter((f) => banned.test(readFileSync(f, 'utf8')))
-      .map((f) => relative(root, f));
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8');
+      for (const { name, pattern } of BANNED_SINKS) {
+        if (pattern.test(src)) {
+          offenders.push(`${relative(root, file)} (${name})`);
+        }
+      }
+    }
     if (offenders.length > 0) {
       throw new Error(`raw-HTML sink outside renderMarkdown in: ${offenders.join(', ')}`);
     }
