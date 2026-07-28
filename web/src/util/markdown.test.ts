@@ -2326,6 +2326,13 @@ function sinkCountViolation(found: number): string | null {
  *
  * Adding a fixture therefore costs one extra edit. That is deliberate. It is the
  * same bargain as EXPECTED_CHECK_CALL_SITES, and the message says what to do.
+ *
+ * AND THIS FUNCTION IS ITSELF NOW CONTROLLED, which it was not when the docblock
+ * above was written. It was the only rule in this file with no positive control:
+ * neutering it to always return null was GREEN 77/122, and stayed green with a
+ * fixture table emptied on top of that. The fix it introduced had acquired the
+ * exact shape it was written to diagnose, one level further out. See
+ * `fixture: the table-size pin fires on a changed table length`.
  */
 function fixtureTableViolation(
   name: string,
@@ -3018,6 +3025,51 @@ function sinkBinding(): void {
     }
   });
 
+  // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
+  //
+  // All eleven fixture tables are protected from silent shrinkage by exactly one
+  // function, `fixtureTableViolation`, and until this check it was the only rule
+  // here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
+  // because something asserts it directly at a wrong input; this one was never
+  // called with a wrong input, because its only inputs were the real tables,
+  // which by construction always carry the pinned value. That is the identical
+  // "a harness that cannot express an input cannot test it" defect as the arity
+  // blind spot and the two count pins — one level further out again, and note
+  // the docblock above the function opens by naming that very shape.
+  //
+  // Measured before this check existed: neutering `fixtureTableViolation` to
+  // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
+  // then emptied on top of it — all eleven arity bypasses unprotected, nothing
+  // fired. This is a COVERAGE HOLE, not a mis-attributed assertion: the table
+  // size pins are correctly worded and do fire on their own.
+  //
+  // Same treatment as `fixture: the tree-wide count pins fire on a changed
+  // count`, and the residue is the same: this catches a NEUTERED predicate, not
+  // a DELETED call site. Deleting a whole `check()` is what EXPECTED_CHECKS is
+  // for.
+  check('fixture: the table-size pin fires on a changed table length', () => {
+    const missed: string[] = [];
+    if (fixtureTableViolation('X', [1, 2], 2) !== null) {
+      missed.push('the table-size pin rejects a table of the expected length');
+    }
+    // Both directions. SHRINKAGE is the failure that matters — an emptied or
+    // merge-truncated table makes its check pass vacuously — but a pin that only
+    // fires downward is one someone "fixes" by adding an entry rather than by
+    // looking at what left.
+    if (fixtureTableViolation('X', [1], 2) === null) {
+      missed.push('the table-size pin is silent on a SHORTENED table');
+    }
+    if (fixtureTableViolation('X', [], 2) === null) {
+      missed.push('the table-size pin is silent on an EMPTIED table');
+    }
+    if (fixtureTableViolation('X', [1, 2, 3], 2) === null) {
+      missed.push('the table-size pin is silent on a LENGTHENED table');
+    }
+    if (missed.length > 0) {
+      throw new Error(`the table-size pin no longer fires: ${missed.join(' | ')}`);
+    }
+  });
+
   // The fixture is given a real path in the tree and checked against the real
   // scanned set, so R6 is exercised against the same data the production files
   // are, rather than against a hand-made stub that could drift.
@@ -3392,7 +3444,7 @@ function sinkBinding(): void {
 // the two sink files), the fixture for the arity pin, the shared-marked-singleton
 // pin, and the DOM-clobbering pin. The scope pin added in the same round is
 // deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
-const EXPECTED_CHECK_CALL_SITES = 76;
+const EXPECTED_CHECK_CALL_SITES = 77;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
