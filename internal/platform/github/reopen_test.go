@@ -268,11 +268,31 @@ func TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal(t *testing.T) {
 	}
 }
 
-// TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability is the
-// positive control for the test above, and the documented remedy for the
-// denial-of-work cost it imposes: once the stale terminal label is gone, a
-// reopened issue is ordinary claimable work again. Without this, a claim gate
-// that refused everything would satisfy the test above.
+// TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability pins the
+// documented remedy for the denial-of-work cost the terminal-label rows above
+// impose: once the stale terminal label is gone, a reopened issue is ordinary
+// claimable work again.
+//
+// CORRECTED IN ROUND 6 (test review T-5). This used to call itself "the
+// positive control for the test above", which was wrong in two ways, and wrong
+// in the direction that matters — it credited coverage nobody had.
+//
+//   - The test immediately above,
+//     TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal, ALREADY
+//     asserts a successful claim. A control exists to show the gate can say
+//     yes; that test says yes itself, so it needs no control and this one
+//     supplies none.
+//   - The controls that are load-bearing are the ones under the REFUSAL tests
+//     earlier in this file. This one does not share their fixture: they carry a
+//     terminal label, this one carries no labels at all, so it cannot show that
+//     clearing a label is what changed the answer. It shows the unlabelled
+//     baseline is claimable, which is worth pinning but is a weaker claim.
+//
+// The honest reading: this is a BASELINE, not a control. The real "removing
+// the label restores the answer" pairing lives in
+// TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl and in the
+// per-stage rows of close_label_swap_test.go, which do vary the label against
+// a fixed fixture.
 func TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability(t *testing.T) {
 	ctx := context.Background()
 

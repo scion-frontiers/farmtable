@@ -47,6 +47,26 @@ type GitHubPassThroughStore struct {
 
 var _ store.Store = (*GitHubPassThroughStore)(nil)
 
+// LifecycleStageSetStager is asserted at COMPILE TIME because nothing else
+// does, and the runtime alternative fails open silently (#194 round 6, review
+// F6).
+//
+// store.LifecycleStagesOf and store.LabelDeltaLifecycleStagesOf reach these
+// methods through `if stager, ok := s.(LifecycleStageSetStager); ok`, and fall
+// back to the SINGULAR reader when the assertion misses. So renaming a method,
+// reordering a return, or adding a parameter here does not break a build and
+// does not fail a test — it re-enables the exact single-answer collapse that
+// B5 exists to remove, everywhere at once, with no diagnostic. A dynamic
+// assertion whose miss is indistinguishable from "this store opted out" is not
+// a check.
+//
+// One line, and the failure becomes a compile error at the site that caused it.
+// NOTE FOR internal/store: multiStore satisfies the same interface by the same
+// runtime assertion (multistore.go:251, :264) and has no compile-time pin
+// either. That file is not this leg's to edit; it is called out in the round-6
+// leg-A log entry.
+var _ store.LifecycleStageSetStager = (*GitHubPassThroughStore)(nil)
+
 // NewPassThroughStore creates a store that proxies to GitHub Issues.
 // If collectionID is non-nil the provided value is used; otherwise a
 // deterministic UUID is derived from the owner/repo pair.
