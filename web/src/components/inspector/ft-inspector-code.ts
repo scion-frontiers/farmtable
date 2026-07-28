@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { CodeContext } from '../../gen/types.js';
 import { CIStatus, PullRequestStatus } from '../../gen/types.js';
+import { safeHref } from '../../util/safe-url.js';
 
 const PR_VARIANT: Record<number, string> = {
   [PullRequestStatus.OPEN]: 'primary',
@@ -14,6 +15,18 @@ const PR_LABEL: Record<number, string> = {
   [PullRequestStatus.MERGED]: 'Merged',
   [PullRequestStatus.CLOSED]: 'Closed',
 };
+
+// Renders a PR link only when the stored URL passes the scheme allow-list.
+// Rows written before the server-side check existed may still hold a
+// javascript:/data: URL, so the render path re-checks. A rejected URL degrades
+// to plain text rather than disappearing, so the user can still see the value.
+function renderPrLink(url: string, id: string) {
+  const href = safeHref(url);
+  if (href === undefined) {
+    return html`<span class="pr-link pr-link-unsafe" title=${`Unsupported URL: ${url}`}>${id}</span>`;
+  }
+  return html`<a class="pr-link" href=${href} target="_blank" rel="noopener">${id}</a>`;
+}
 
 const CI_VARIANT: Record<number, string> = {
   [CIStatus.PENDING]: 'neutral',
@@ -103,7 +116,7 @@ export class FtInspectorCode extends LitElement {
               ${ctx.pullRequests.map(
                 (pr) => html`
                   <span class="pr-item">
-                    <a class="pr-link" href=${pr.url} target="_blank" rel="noopener">${pr.id}</a>
+                    ${renderPrLink(pr.url, pr.id)}
                     <sl-badge variant=${PR_VARIANT[pr.status] ?? 'neutral'} pill>
                       ${PR_LABEL[pr.status] ?? 'Unknown'}
                     </sl-badge>

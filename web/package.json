@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js",
+    "test": "tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/safe-url.test.js && node .tmp-test/util/url-binding-scan.test.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
