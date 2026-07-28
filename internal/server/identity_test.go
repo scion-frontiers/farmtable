@@ -75,15 +75,21 @@ func TestClaimTask_PropagatesUserID(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "claim-agent",
 		Type:        "agent",
 		Status:      "active",
 	})
-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "claim-token",
 	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
@@ -147,26 +153,38 @@ func TestAddComment_PropagatesUserID(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "comment-agent",
 		Type:        "agent",
 		Status:      "active",
 	})
-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "comment-token",
 	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "comment-coll"})
-	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
+	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "comment-coll"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "comment-task",
 		CollectionId: coll.GetId(),
 	})
+	if err != nil {
+		t.Fatalf("creating task: %v", err)
+	}
 
 	comment, err := client.AddComment(authCtx, &pb.AddCommentRequest{
 		TaskId: task.GetId(),
@@ -186,13 +204,21 @@ func TestListUsers(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	uA, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
-	s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"})
+	uA, err := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
+	if err != nil {
+		t.Fatalf("creating user-a: %v", err)
+	}
+	if _, err := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"}); err != nil {
+		t.Fatalf("creating user-b: %v", err)
+	}
 
-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: uA.ID,
 		Name:   "list-users-token",
 	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
@@ -212,16 +238,22 @@ func TestGetUser(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "get-user",
 		Type:        "human",
 		Status:      "active",
 	})
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
 
-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "get-user-token",
 	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
@@ -241,29 +273,41 @@ func TestUpdateTask_PropagatesActorID(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
+	u, err := s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "updater-agent",
 		Type:        "agent",
 		Status:      "active",
 	})
-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+	if err != nil {
+		t.Fatalf("creating user: %v", err)
+	}
+	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "updater-token",
 	})
+	if err != nil {
+		t.Fatalf("creating token: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "update-coll"})
-	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
+	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "update-coll"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
+	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "update-task",
 		CollectionId: coll.GetId(),
 	})
+	if err != nil {
+		t.Fatalf("creating task: %v", err)
+	}
 
 	newName := "updated-task"
-	_, err := client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
+	_, err = client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
 		Id:   task.GetId(),
 		Name: &newName,
 	})
@@ -271,10 +315,13 @@ func TestUpdateTask_PropagatesActorID(t *testing.T) {
 		t.Fatalf("updating task: %v", err)
 	}
 
-	taskResp, _ := client.GetTask(authCtx, &pb.GetTaskRequest{
+	taskResp, err := client.GetTask(authCtx, &pb.GetTaskRequest{
 		Id:             task.GetId(),
 		IncludeChanges: true,
 	})
+	if err != nil {
+		t.Fatalf("getting task: %v", err)
+	}
 	for _, ch := range taskResp.GetChanges() {
 		if ch.GetField() == "title" {
 			if ch.GetChangedBy().GetId() != u.ID.String() {
