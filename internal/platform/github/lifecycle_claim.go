@@ -279,6 +279,16 @@ func lifecycleMarkerSuffix(s string) (string, bool) {
 // the SAME class GitHubConfig.Validate constrains push_prefix to. That is what
 // makes "every push_prefix a deployment can legally hold is recognised by the
 // claim" true by construction rather than by review.
+// lowerASCII lowercases one ASCII byte. GitHubConfig.Validate needs it because
+// it tests the operator's LITERAL prefix, which preserves case, against a class
+// defined over the lowercased form the matcher actually sees.
+func lowerASCII(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + ('a' - 'A')
+	}
+	return b
+}
+
 func isLabelSegmentDelimiter(b byte) bool {
 	switch {
 	case b >= 'a' && b <= 'z':

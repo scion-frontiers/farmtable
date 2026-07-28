@@ -70,8 +70,31 @@ import (
 // it would hand out work someone meant to keep back. Only the claim about it
 // was wrong.
 //
-// So the true scope of the toggle is narrower than round 9 stated: it governs
-// what a label MEANS to the read path, and it governs nothing else.
+// SO THE TRUE SCOPE OF THE TOGGLE IS THREE-WAY, and both previous statements of
+// it were wrong in opposite directions. Round 9 said it governs everything.
+// Round 10 said it governs "what a label MEANS to the read path, and nothing
+// else" — also false, and false in the direction that makes the write side look
+// already-covered. MEASURED:
+//
+//	READS, meaning          GOVERNED.    authorizationStage, MapLabelsToStage,
+//	                                     TerminalLabelStage and this function
+//	                                     all decline at enabled=false.
+//	WRITES, emission        GOVERNED.    StageToLabel(working) = "" at
+//	                                     enabled=false, and StageLabelSwap,
+//	                                     PriorityLabelSwap and TypeLabelSwap all
+//	                                     return (nil, nil). Six guards' worth;
+//	                                     the round-10 project log's own D2 table
+//	                                     rows 4-9 classify them as
+//	                                     WRITE-SUPPRESSION in the same commit
+//	                                     that claimed the toggle governs no
+//	                                     writes.
+//	WRITES, authorization   NOT GOVERNED. lifecycleStageClaim ignores the toggle
+//	                                     entirely, which is the whole point of
+//	                                     the write/read partition, and
+//	                                     hasExternalUnavailableLabel (treewalk.go)
+//	                                     carries no toggle guard either.
+//
+// It is the third row that this function must not be confused with.
 //
 // WHICH IS WHY THIS FUNCTION IS THE READ PREDICATE, AND ONLY THAT (round 10,
 // Rulings 1 and 2). It answers "is this label authoritative under the config

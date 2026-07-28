@@ -200,6 +200,47 @@ func (c *GitHubConfig) Validate() error {
 			raw, defaultPushPrefix)
 	}
 
+	// THE PREFIX MUST END IN THE DELIMITER CLASS THE WRITE CLAIM RECOGNISES
+	// (#194 round 11, B4).
+	//
+	// This is complementary hardening layered ON TOP OF the claim predicate, not
+	// instead of it. lifecycleStageClaim's prefix-VALUE-blind branch recognises a
+	// "stage/" marker at the start of a label or immediately after a byte that is
+	// not an ASCII letter or digit (isLabelSegmentDelimiter). StageToLabel emits
+	// pushPrefix + "stage/" + stage. Those two facts line up for every prefix
+	// ending in a delimiter and come APART for one that does not:
+	//
+	//	push_prefix "ft:"  ->  emits "ft:stage/completed"   marker after ':'  RECOGNISED
+	//	push_prefix "ft"   ->  emits "ftstage/completed"    marker after 't'  NOT RECOGNISED
+	//
+	// So a prefix with no trailing delimiter is exactly a prefix under which this
+	// deployment's OWN labels are invisible to the write-side claim, and a label
+	// planted under it would be priced at nothing forever. Rejecting the class at
+	// load time makes "every push_prefix a deployment can legally hold is
+	// recognised by the claim" true BY CONSTRUCTION rather than by review, which
+	// is the only version of that statement that survives the next edit.
+	// TestPushPrefixDelimiterClass_MatchesWhatTheClaimRecognises drives both
+	// directions of the correspondence.
+	//
+	// OPERATIONAL COST, scoped: the coordinator ruled this zero for THIS
+	// deployment, on the ground that nothing here can load a custom config at
+	// all, so there is no existing operator configuration it can break. That
+	// ruling is the coordinator's and it is not widened here — for a deployment
+	// that CAN load one, this is a breaking config change and the error below is
+	// written to say what to do about it.
+	if raw := strings.TrimSpace(c.GitHub.Labels.PushPrefix); raw != "" {
+		if last := raw[len(raw)-1]; !isLabelSegmentDelimiter(lowerASCII(last)) {
+			return fmt.Errorf(
+				"github.labels.push_prefix is %q: it must end with a separator character "+
+					"(not a letter or digit), for example %q or %q. This deployment writes "+
+					"stage labels as <push_prefix>stage/<stage>, and the write-scope control "+
+					"only recognises the \"stage/\" marker at a separator boundary — so with "+
+					"%q it would emit %q and then fail to recognise its own label, pricing a "+
+					"lifecycle write at nothing",
+				raw, defaultPushPrefix, raw+":", raw, raw+"stage/completed")
+		}
+	}
+
 	// Alias-key collisions. This check exists because of a cost the round-6 A3
 	// fix introduced, found by measuring rather than by review, and it is placed
 	// AFTER the push_prefix check because the normalisation below depends on the

@@ -302,11 +302,22 @@ var (
 // config stops recognising a label — which is the case it exists to cover.
 //
 // lifecycleStageClaim is a strict superset of authorizationStage (it can only
-// claim more labels, never fewer), so this substitution can only ever refuse
-// more, never allow more. It is still ONE predicate for the whole write side:
-// this gate and lifecycleStagesForLabels both route through it, so the label a
-// gate refuses and the label a price is charged for are the same set by
-// construction.
+// claim more labels, never fewer), so THIS substitution can only ever refuse
+// more, never allow more.
+//
+// THAT CONCLUSION IS VALID HERE AND WAS NOT VALID WHERE ROUND 10 ALSO WROTE IT.
+// It holds at this gate because this gate is a FILTER OVER LABELS: the
+// predicate appears exactly once, on one label at a time, and a wider filter
+// refuses a superset of what a narrower one refuses. The identical sentence was
+// also applied to the PRICING path, where the predicate appears on both sides
+// of a set difference, and there it is false — widening the BEFORE endpoint
+// made 29 measured cells CHEAPER. See LabelDeltaLifecycleStages. The property
+// that transfers is "refuses more labels"; the property that does not is
+// "charges more scope".
+//
+// It is still ONE predicate for the whole write side: this gate and the AFTER
+// endpoint of the price both route through it, so the label a gate refuses and
+// the label a price is charged for are the same set by construction.
 func (s *GitHubPassThroughStore) assertStageWriteAllowed(add, remove []string, policy stageWritePolicy) error {
 	if policy == stageWriteAllowed {
 		return nil
