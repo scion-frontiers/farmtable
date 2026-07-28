@@ -313,3 +313,139 @@ Everything stated in round 4 still stands, plus:
 - R9 makes the scanned set closed under relative imports, but non-relative
   specifiers are still unresolved (no `tsconfig` `paths`, no package `imports`
   field today).
+
+---
+
+# Addendum — closing round (C1/C2): what this guard claims
+
+Appended after the R8/R9 addendum. **No rule, count or production code changed
+in this round; it is documentation plus the vector table.** `EXPECTED_CHECKS`
+stays 61, the gate stays green, the diff against `bae4fd0` is still
+`web/src/util/markdown.test.ts` alone.
+
+## The exit criterion was wrong, and it was wrong in a specific way
+
+The bar this guard was built against read:
+
+> no edit to those two files can leave them rendering unsanitized while this
+> suite is green
+
+That sentence never names an adversary, and read literally nothing in a test
+file can satisfy it. It demands a guard that holds against someone who can land
+arbitrary code in the two sink files — and that person can also edit the guard.
+The EM identified this as his own underspecification rather than a gap in the
+implementation. The amended criterion, now quoted verbatim in the header
+docblock:
+
+> This guard defends against INNOCENT-LOOKING REGRESSION at the two enumerated
+> sinks: aliasing, shadowing, re-homing, rebinding, argument-shape drift,
+> laundering through an unscanned file, and capture of the sanitizer's own
+> configuration. It does NOT defend against a committer who can land arbitrary
+> code. That adversary is answered by code review, CSP, and Trusted Types, not
+> by a scan the same commit could edit.
+
+This matters beyond bookkeeping. A guard whose stated bar is unreachable trains
+reviewers to read a green result as a proof of something it never established.
+The docblock now stops short of the property it cannot support, in the same
+register as the round-4 tripwire relabelling.
+
+## The boundary of the technique: rules can own a NAME, not an EFFECT
+
+This is the generalisable finding of the whole issue, and it explains exactly
+why R8 worked and why V25 does not close.
+
+R8 killed V23 — the `DOMPurify.addHook` capture — because **the attack had to
+name `'dompurify'`**, and a rule can take a name away. Owning the import rather
+than the method was what made it closed-world instead of a spelling treadmill.
+
+V25 names nothing:
+
+```ts
+const origRemoveAttribute = Element.prototype.removeAttribute;
+Element.prototype.removeAttribute = function (name: string): void {
+  if (String(name).startsWith('on')) return;
+  origRemoveAttribute.call(this, name);
+};
+const origRemoveChild = Node.prototype.removeChild;
+Node.prototype.removeChild = function <T extends Node>(child: T): T {
+  if (child && child.nodeName === 'SCRIPT') return child;
+  return origRemoveChild.call(this, child) as T;
+};
+```
+
+DOMPurify strips attributes with `removeAttribute` and nodes with
+`removeChild`. Placed in a `REQUIRED_SINKS` file this leaves the suite green at
+**61/61, exit 0**, and is runtime-verified to defeat the sanitizer:
+
+```
+payload: <img src=x onerror="alert(1)"><script>alert(2)</script>
+before : <p><img src="x"></p>
+after  : <p><img src="x" onerror="alert(1)"><script>alert(2)</script></p>
+```
+
+The EM independently confirmed the survival and confirmed that the mutated file
+contains **zero occurrences of `dompurify` or `marked`** — there is genuinely
+nothing for R8 to match on. The mechanism has reached its limit, not made a
+mistake.
+
+## Why V25 is documented rather than closed
+
+Three closures were considered and all three rejected:
+
+1. **Ban `.prototype` assignment.** Rejected, and the EM's instruction was
+   explicit: *do not add prototype-assignment bans.* The equivalents are
+   unbounded — `Object.defineProperty`, `Object.assign`,
+   `Reflect.defineProperty`, `setPrototypeOf`, `__proto__`, and non-prototype
+   globals such as `document.implementation.createHTMLDocument`. A ban would
+   **fake coverage**: it would make the vector table look closed while the class
+   stayed open, which is worse than a disclosed gap.
+2. **A runtime canary in this suite.** Requires widening `tsconfig.test.json` to
+   compile the component graph. That *is* the Phase 2 component harness in
+   substance, and doing it here is real destabilisation risk in a round whose
+   whole point is that no production code changes.
+3. **Freezing globals inside `markdown.ts`.** Production code. Out of scope, and
+   it would move a test concern into the shipped bundle.
+
+**Ruling: routed, not dropped.** Observing the effect requires *loading* the
+sink modules and re-asserting the sanitizer afterwards. Phase 2 owns that seam,
+and **V23 and V25 are that harness's acceptance vectors** — the harness is not
+done until it kills both. The accidental-prototype-patcher variant is not live
+for the current dependency set (lit, shoelace, dagre, grpc-web, protobufjs,
+dompurify, marked), so nothing is exposed in the meantime.
+
+## C2 — the vector table is now the disclosure surface
+
+`reports/dev-195-vectors.json` (59 entries) is the durable artifact. V25 carries
+`status: KNOWN-ACCEPTED-DOCUMENTED SURVIVOR`, `expect: green`, its
+runtime-verified before/after, a `do_not_fix_by` field naming the prototype-ban
+trap, and `routed_to: Phase 2 harness`. The four residue items — indirect
+`(0,eval)`, computed `globalThis[k]`, `new Function`, and the unresolved
+non-relative specifier — are recorded the same way. The `_README` entry carries
+the amended criterion.
+
+The point of marking them `expect: green` is that the harness now *asserts* they
+survive. A future reviewer who rediscovers V25 and rates it High meets it as
+disclosed prior art with a decision attached; and if someone does close one of
+them, the harness goes red and forces the table to be updated rather than
+letting the disclosure silently rot.
+
+## A process note worth keeping
+
+The C1 docblock edits were written, verified green, and then **silently lost**:
+the mutation driver's `restore()` copies `markdown.test.ts` back from a backup
+taken at the last commit, so running the harness with uncommitted work in the
+tree reverts it. The restore checker then asserted `git status --porcelain`
+empty and passed — correctly, because the tree genuinely did match HEAD. The
+check was not wrong; my sequencing was. **Commit before running the driver, and
+refresh the backup immediately after every commit.** The failure is quiet
+because every signal involved reports success.
+
+## State at the end of this round
+
+| | |
+|---|---|
+| head | `3b5312b` (C1 docs), on `markdown-sanitize`, **not pushed** |
+| gate | `npm ci` = 0, `npm test` = 0, **61 checks passed** (exit read from the child, never through a pipe) |
+| diff vs `bae4fd0` | `web/src/util/markdown.test.ts` only — **zero production code** |
+| mutation | 54 vectors: 47 dead, 6 FP controls green, 1 disclosed survivor (V25) |
+| `tsconfig.test.json` | unchanged, deliberately not widened |
