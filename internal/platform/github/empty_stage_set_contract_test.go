@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
@@ -32,6 +31,18 @@ import (
 // early when !m.enabled, deliberately, so that a mapper configured to ignore
 // labels does not start honouring them. Every path below that nil has to
 // supply a fallback, and there are three of them.
+//
+// WHAT THESE 96 CELLS ARE, restated honestly (#194 round 7, T-F3). Read as a
+// SEARCH they are already finished: every return in LifecycleStages,
+// LabelDeltaLifecycleStages and lifecycleStagesForLabels is either a
+// `[]task.Stage{...}` literal of length one or a slice already guarded by
+// `len(...) > 0`, so no input can empty either side. VERIFIED by reading
+// passthrough.go at 6ced24e, not assumed. They are kept as a REGRESSION
+// TRIPWIRE on those guards, which is a claim that can be measured: deleting the
+// `len(stages) > 0` guard from LifecycleStages turns this test RED. Sweeping a
+// domain whose answer is currently constant is worth 96 cheap cells precisely
+// because the constant is maintained by three separate two-line guards and
+// nothing in the type system holds them there.
 func TestLifecycleStageSetStager_NeverReturnsAnEmptySide(t *testing.T) {
 	ctx := context.Background()
 
@@ -115,28 +126,75 @@ func TestLifecycleStageSetStager_NilMapperStillAnswers(t *testing.T) {
 }
 
 // TestLifecycleStageSetStager_EmptySideIsDetectable is the POSITIVE CONTROL for
-// the two tests above, and it is not optional: "no input produced an empty
-// set" is a claim about a search, and a search that cannot recognise its own
-// target has found nothing.
+// the two tests above: "no input produced an empty set" is a claim about a
+// search, and a search that cannot recognise its own target has found nothing.
 //
-// It does not mutate the store. It runs the same len() predicate leg B runs,
-// against a value that IS empty, and requires it to fire.
+// WHAT THIS TEST USED TO BE, and why it was rewritten (#194 round 7, T-F3). It
+// asserted `len(nil) != 0` and `len([]task.Stage{}) != len(nil)`. Those are Go
+// language guarantees. It exercised one line of package code — a
+// store.IsTerminalStage linkage check — and nothing at all from the sweep's
+// subject, so no defect in this package could turn it red and it licensed a
+// 96-cell sweep on the strength of a tautology.
+//
+// WHAT IT IS NOW. The empty value the sweep hunts is not hypothetical and it is
+// not a language fact: AllTerminalLabelStages returns nil for any label set
+// naming no terminal stage, which is most of the sweep's fixtures. Both
+// GitHubPassThroughStore.LifecycleStages and lifecycleStagesForLabels stand a
+// `len(...) > 0` guard between that nil and their return, and substitute a
+// one-element fallback. So the sweep's green is the GUARD WORKING, not the
+// empty value being unreachable in principle — and this control measures
+// exactly that difference:
+//
+//	part 1: the package really does produce an empty set, on the sweep's inputs
+//	part 2: on the SAME input, the store returns a non-empty answer
+//
+// MEASURED, so the two parts are not decoration. Making AllTerminalLabelStages
+// return a non-empty slice instead of nil turns part 1 RED; deleting the
+// `len(stages) > 0` guard from LifecycleStages turns part 2 RED. Both mutations
+// left the old version of this test GREEN.
+//
+// It still does not mutate the store, and it asserts nothing about
+// authorization.
 func TestLifecycleStageSetStager_EmptySideIsDetectable(t *testing.T) {
-	var empty []task.Stage
+	ctx := context.Background()
+	m := NewLabelMapper(DefaultConfig().GitHub.Labels)
 
-	if len(empty) != 0 {
-		t.Fatal("CONTROL BROKEN: a nil []task.Stage does not read as empty, so the " +
-			"exhaustive sweep above cannot recognise the thing it is looking for")
+	// PART 1. Real package code, real empty result, checked with the same len()
+	// predicate leg B's helpers use. These are label sets the sweep above
+	// actually drives, not invented ones.
+	emptyProducing := [][]string{
+		nil,
+		{},
+		{"bug", "help wanted"},    // no stage meaning at all
+		{"duplicate"},             // names a terminal stage, but bare: not ours (B6)
+		{"other:stage/completed"}, // prefixed, but not OUR prefix
+		{"ft:stage/accepted"},     // ours, but not terminal
 	}
-	// And leg B's helpers treat nil and empty identically, so a nil return from
-	// this store would error exactly as a zero-length one would. Asserted here
-	// because "we return nil, not empty" is the obvious wrong reassurance.
-	if len([]task.Stage{}) != len(empty) {
-		t.Fatal("CONTROL BROKEN: nil and empty differ under len, and the " +
-			"nil-versus-empty distinction the sweep assumes away is real")
+	for _, labels := range emptyProducing {
+		got := m.AllTerminalLabelStages(labels)
+		if len(got) != 0 {
+			t.Fatalf("CONTROL BROKEN: AllTerminalLabelStages(%v) = %v, want empty.\n\n"+
+				"The sweep above is a search for an empty lifecycle stage set. If this "+
+				"package no longer produces one anywhere, the sweep is searching for "+
+				"something that does not exist and its green says nothing", labels, got)
+		}
 	}
-	if !store.IsTerminalStage(task.StageWontFix) {
-		t.Fatal("CONTROL BROKEN: the store package this test reasons about is not " +
-			"the one linked here")
+
+	// PART 2. The same input through the store. A non-empty answer here is the
+	// guard doing its job on top of the nil measured above; if this ever
+	// returned empty, the sweep would be reporting a live contract violation
+	// rather than a suppressed one.
+	for _, labels := range emptyProducing {
+		s := &GitHubPassThroughStore{mapper: m}
+		tk := &ent.Task{Stage: task.StageAccepted, Labels: labels}
+
+		got := s.LifecycleStages(ctx, tk)
+		if len(got) != 1 || got[0] != task.StageAccepted {
+			t.Fatalf("CONTROL BROKEN: LifecycleStages(labels=%v) = %v, want [accepted].\n\n"+
+				"Part 1 showed AllTerminalLabelStages returns empty for this input, so "+
+				"the sweep's green depends entirely on the len(...) > 0 fallback in "+
+				"LifecycleStages substituting the task's own stage. That substitution is "+
+				"no longer happening", labels, got)
+		}
 	}
 }

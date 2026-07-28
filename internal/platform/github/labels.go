@@ -357,8 +357,23 @@ func (m *LabelMapper) PriorityToLabel(p task.Priority) string {
 // two answers, because it means we destroy precisely the labels we have decided
 // we are not entitled to trust. Ownership is one question and the reader and
 // the writer now ask it the same way, through authorizationStage.
-// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader enumerates both
-// spellings of every stage and fails if the two ever diverge again.
+//
+// WHAT PINS THAT, stated precisely because the version of this sentence written
+// in round 6 was a false guarantee (#194 round 7, T-F2). It said this test
+// "enumerates both spellings of every stage and fails if the two ever diverge
+// again". They cannot diverge: the ownership predicate below IS a call to
+// authorizationStage, so a test comparing the two compares a function to
+// itself. MEASURED: breaking authorizationStage to return ("", false) for every
+// label turned 27 top-level tests in this package RED and left that one GREEN.
+// A guarantee a maintainer budgets against, and which cannot fail, is worse
+// than none.
+//
+// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader now checks both the
+// reader and this writer against ownershipTruthTable — a hand-written literal
+// listing both spellings of every stage with the ownership answer each must
+// get. Divergence between reader and writer is still caught, because one of
+// them must then disagree with the literal; and a change moving both together
+// is caught as well, which the round-6 version could not see at all.
 //
 // THE COST, stated rather than buried: a bare human-applied stage label now
 // survives a stage change, so an issue can carry a stale display reading. That
