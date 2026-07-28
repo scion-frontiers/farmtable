@@ -370,10 +370,31 @@ func TestStageLabelSwap_UnderACustomPushPrefix(t *testing.T) {
 // would all still pass if UpdateTask stopped calling StageLabelSwap and did
 // something else. This drives the real path and inspects the fake repository's
 // resulting label set.
+//
+// THIS TEST WAS VACUOUS UNTIL #194 ROUND 8 (review instance #11). It started
+// the issue at ft:stage/wont_fix and then called UpdateTask(stage=wont_fix), so
+// StageLabelSwap computed an empty swap and the store issued ZERO label
+// mutations. "duplicate survived" was therefore true of any implementation
+// whatsoever, including one that deletes every label it is handed: nothing was
+// handed to it. The test could not fail.
+//
+// Its old control did not catch that, and the reason is worth keeping. It
+// checked that the FAKE could delete "duplicate" — by calling removeLabelByID
+// directly, after the fact. That establishes the harness is capable of a
+// removal, which was never in doubt; it says nothing about whether the code
+// under test was in a position to attempt one. A control has to sit on the path
+// it is vouching for.
+//
+// The fix is to make the update a real transition (accepted -> wont_fix), so
+// the swap has both an add and a remove and the removal machinery genuinely
+// runs, plus the assertion the old version was missing: that a removal was
+// ATTEMPTED. "The label is still there" and "a write happened and spared it"
+// are different claims, and only the second one is worth pinning.
 func TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel(t *testing.T) {
 	ctx := context.Background()
 
-	fake := newFakeIssueRepo(t, "ft:stage/wont_fix", "duplicate")
+	// A REAL transition. The old fixture started at the destination stage.
+	fake := newFakeIssueRepo(t, "ft:stage/accepted", "duplicate")
 	// Without this the stock label has no node ID, labelNamesToIDs silently
 	// drops it, and the test would "pass" for the wrong reason -- the same way
 	// the round-5 custom-prefix probe measured nothing.
@@ -389,6 +410,17 @@ func TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel(t *testing.T) {
 		t.Fatalf("UpdateTask: %v", err)
 	}
 
+	// THE CHECK THAT MAKES THE REST MEAN ANYTHING. The fake increments
+	// removeCalls before it applies anything, so this is "a removal was
+	// attempted", independent of what it removed. Without it, every assertion
+	// below is satisfied by a store that issued no writes at all -- which is
+	// precisely what this test did for two rounds.
+	if fake.removeCalls == 0 {
+		t.Fatalf("no label removal was attempted, so this test cannot distinguish "+
+			"\"declined to delete the third-party label\" from \"performed no write\". "+
+			"labels = %v", fake.labels)
+	}
+
 	if !fake.hasLabel("duplicate") {
 		t.Errorf("UpdateTask(stage=wont_fix) deleted the stock GitHub label "+
 			"\"duplicate\"; labels = %v.\n\nFarm Table declines to READ that label as "+
@@ -397,11 +429,22 @@ func TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel(t *testing.T) {
 			"direction (review F7).", fake.labels)
 	}
 	if !fake.hasLabel("ft:stage/wont_fix") {
-		t.Errorf("our own stage label went missing; labels = %v", fake.labels)
+		t.Errorf("our own stage label was not stamped; labels = %v", fake.labels)
+	}
+	// The removal that DID happen must be our own previous stage label. This is
+	// the positive control on a different axis from the one above: it shows the
+	// removal path reached a label and acted on it, so sparing "duplicate" was
+	// a decision rather than an absence of opportunity.
+	if fake.hasLabel("ft:stage/accepted") {
+		t.Errorf("the previous stage label survived the transition; labels = %v.\n\n"+
+			"An issue naming two stages at once is the input every terminal-tiebreak "+
+			"defect in this file starts from", fake.labels)
 	}
 
 	// CONTROL: the fake genuinely CAN delete this label, so its survival above
-	// is a decision by the code and not an inability of the harness.
+	// is a decision by the code and not an inability of the harness. Kept, but
+	// note it is no longer load-bearing: removeCalls above is the check that
+	// sits on the path under test.
 	if _, ok := fake.labelIDs["duplicate"]; !ok {
 		t.Fatal("CONTROL BROKEN: no node ID for \"duplicate\", so no removal was ever " +
 			"possible and the assertion above proves nothing")
