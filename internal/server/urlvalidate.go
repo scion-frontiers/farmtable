@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -77,5 +78,44 @@ func validateURLField(field, raw string) error {
 			"invalid %s: URL must include a host", field)
 	}
 
+	return nil
+}
+
+// urlBearingRemoteDataKeys are the keys inside a task's untyped RemoteData map
+// that convert.go surfaces as URL-typed proto fields, and which therefore reach
+// an href in the dashboard. RemoteData is a documented escape hatch holding
+// arbitrary platform payload, so we validate the keys that actually reach a sink
+// rather than guessing at which other values happen to look like URLs.
+//
+// Keep this in sync with the RemoteData reads in convert.go.
+var urlBearingRemoteDataKeys = []string{"remote_url"}
+
+// validateImportedTaskURLs applies the same scheme allow-list to a task arriving
+// through collection import.
+//
+// UpdateTask is not the only writer of these fields: ImportCollection copies
+// PullRequests and RemoteData verbatim out of a caller-uploaded JSON document,
+// so a check placed only in UpdateTask is bypassable by importing a collection.
+func validateImportedTaskURLs(t exportTask) error {
+	for i, pr := range t.PullRequests {
+		if err := validateURLField(
+			fmt.Sprintf("tasks[%s].pull_requests[%d].url", t.ID, i), pr["url"]); err != nil {
+			return err
+		}
+	}
+	for _, key := range urlBearingRemoteDataKeys {
+		raw, ok := t.RemoteData[key]
+		if !ok {
+			continue
+		}
+		s, ok := raw.(string)
+		if !ok {
+			continue
+		}
+		if err := validateURLField(
+			fmt.Sprintf("tasks[%s].remote_data.%s", t.ID, key), s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
