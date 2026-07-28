@@ -3445,6 +3445,56 @@ function treeWideScanViolation(rule: string, scan: TreeWideScan): string | null 
   return null;
 }
 
+/**
+ * THE FIVE PLACES THAT MUST ACTUALLY CONSULT THE CONTROL ABOVE.
+ *
+ * Round 9 shipped `treeWideScanViolation` and five hand-written call sites of
+ * the form `const vacuous = …; if (vacuous !== null) throw new Error(vacuous);`.
+ * Round 10 measured what those five were worth: disarm ONE of them (R7) and the
+ * suite is GREEN at 79 checks / 127 assertions; disarm ALL FIVE and it is still
+ * GREEN at 79/127, `tsc --noEmit` 0. The detector that proves the loops are not
+ * vacuous could itself be switched off at every site without a single check
+ * noticing — the thing that checks the checks was unchecked.
+ *
+ * The obvious fix, and the one recommended to this round, is a module-level
+ * counter of detector INVOCATIONS. IT DOES NOT WORK, and the reason is the shape
+ * of the mutation: disarming the throw leaves the detector being called, so the
+ * counter still reaches five. What has to be recorded is that the site both
+ * consulted the control AND accepted its verdict, which is why this is a wrapper
+ * that owns the throw rather than a probe bolted next to it.
+ *
+ * Attribution is by RULE NAME, matching how `TREE_WIDE_PROBE_REL` attributes the
+ * planted offender: "five controls ran" and "these five controls ran" are
+ * different claims and only the second is worth asserting. `run()` requires
+ * every name in `EXPECTED_TREE_WIDE_CONTROLS` to be present, which is a POSITIVE
+ * outcome and therefore fails when the set is emptied, when a site is deleted,
+ * when a site is replaced by a no-op, and when a site is renamed.
+ *
+ * Extra names are deliberately permitted, so that the self-test below can call
+ * `treeWideScanViolation` directly under a sentinel rule without either half
+ * having to know about the other. It is a Set, not a count, for the same reason.
+ *
+ * THE REGRESS ENDS HERE, and say so plainly: nothing pins the `run()` census
+ * itself. That is the same terminal position the check total and the assertion
+ * total occupy, and it is the reason both of those are stated in `run()` rather
+ * than inside a check that could be hollowed out.
+ */
+const EXPECTED_TREE_WIDE_CONTROLS = [
+  'mechanism (c), sanitizer ownership',
+  'mechanism (b), directive indirection',
+  'R7 promoted, the escape ban',
+  'R6b promoted, the dynamic-import specifier rule',
+  'the BANNED_SINKS tripwire',
+];
+
+const treeWideControlsRun = new Set<string>();
+
+function assertTreeWideScanSound(rule: string, scan: TreeWideScan): void {
+  const vacuous = treeWideScanViolation(rule, scan);
+  if (vacuous !== null) throw new Error(vacuous);
+  treeWideControlsRun.add(rule);
+}
+
 function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
@@ -3509,8 +3559,7 @@ function sinkBinding(): void {
     if (scan.offenders.length > 0) {
       throw new Error(`sanitizer configuration is reachable from another file:\n      ${scan.offenders.join('\n      ')}`);
     }
-    const vacuous = treeWideScanViolation('mechanism (c), sanitizer ownership', scan);
-    if (vacuous !== null) throw new Error(vacuous);
+    assertTreeWideScanSound('mechanism (c), sanitizer ownership', scan);
   });
 
   // Comment-stripped view of every scanned file, computed once. `strings: false`
@@ -3573,8 +3622,7 @@ function sinkBinding(): void {
           'read a pass as "no indirection exists"; see the mechanism (b) note above.',
       );
     }
-    const vacuous = treeWideScanViolation('mechanism (b), directive indirection', scan);
-    if (vacuous !== null) throw new Error(vacuous);
+    assertTreeWideScanSound('mechanism (b), directive indirection', scan);
   });
 
   // R7, tree-wide. Every name-based rule above — here and in the per-file half —
@@ -3590,8 +3638,7 @@ function sinkBinding(): void {
     if (scan.offenders.length > 0) {
       throw new Error(`escaped identifier in code:\n      ${scan.offenders.join('\n      ')}`);
     }
-    const vacuous = treeWideScanViolation('R7 promoted, the escape ban', scan);
-    if (vacuous !== null) throw new Error(vacuous);
+    assertTreeWideScanSound('R7 promoted, the escape ban', scan);
   });
 
   // R6b, tree-wide. Every resolution-based rule in this file — R6, R8 and R9 —
@@ -3608,8 +3655,7 @@ function sinkBinding(): void {
     if (scan.offenders.length > 0) {
       throw new Error(`unresolvable dynamic import specifier:\n      ${scan.offenders.join('\n      ')}`);
     }
-    const vacuous = treeWideScanViolation('R6b promoted, the dynamic-import specifier rule', scan);
-    if (vacuous !== null) throw new Error(vacuous);
+    assertTreeWideScanSound('R6b promoted, the dynamic-import specifier rule', scan);
   });
 
   // The argument must be a bare renderMarkdown(…) call, not merely start with
@@ -3644,8 +3690,7 @@ function sinkBinding(): void {
           '[tripwire: an enumeration of known sinks, not a proof of absence]',
       );
     }
-    const vacuous = treeWideScanViolation('the BANNED_SINKS tripwire', scan);
-    if (vacuous !== null) throw new Error(vacuous);
+    assertTreeWideScanSound('the BANNED_SINKS tripwire', scan);
   });
 
   // ---------------------------------------------------------------------------
@@ -4049,7 +4094,7 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All SEVENTEEN fixture tables are protected from silent shrinkage by exactly
+  // All NINETEEN fixture tables are protected from silent shrinkage by exactly
   // one function, `fixtureTableViolation`, and until this check it was the only
   // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
@@ -4064,14 +4109,17 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Seventeen is `grep -c "^      fixtureTableViolation('"`. The indentation is
+  // Nineteen is `grep -c "^      fixtureTableViolation('"`. The indentation is
   // load-bearing and this is the second version of the recipe: the first said
   // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
   // check's own body, which is off by one because THIS COMMENT contains the
   // string it greps for. A count recipe that counts itself is the same defect as
   // a rule derived from the thing it checks, three lines from where this file
-  // says so. The anchored form matches only the seventeen calls that sit inside
+  // says so. The anchored form matches only the nineteen calls that sit inside
   // a `missed` array literal, which is every real table and nothing else.
+  //
+  // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL and the
+  // unsound-scan table. Re-run the recipe, do not increment it.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
@@ -4103,6 +4151,78 @@ function sinkBinding(): void {
     }
     if (missed.length > 0) {
       throw new Error(`the table-size pin no longer fires: ${missed.join(' | ')}`);
+    }
+  });
+
+  // THE SAME LEVEL-OUT, ONE RULE FURTHER OUT AGAIN.
+  //
+  // `treeWideScanViolation` is the control that proves the five tree-wide loops
+  // are not vacuous, and it had no positive control of its own for exactly the
+  // reason `fixtureTableViolation` did not: its only inputs were real scans,
+  // which by construction always carry the sound values. Measured at round-9
+  // head — replace its entire body with `return null` and the suite is GREEN at
+  // 79 checks / 127 assertions, `tsc --noEmit` 0. Every one of the five loops
+  // could then be emptied with the detector reporting nothing.
+  //
+  // A hand-built scan is the wrong input the harness could not previously
+  // express, and the four arms are perturbed one at a time from a sound base so
+  // that a partially neutered detector cannot hide behind a differently-arm'd
+  // failure. The `'X'` rule name is a sentinel: `assertTreeWideScanSound` is not
+  // used here, so nothing this check does can satisfy the `run()` census.
+  //
+  // Same residue as the two controls above: this catches a NEUTERED predicate,
+  // not a DELETED call site. Deleting a call site is what the `run()` census and
+  // EXPECTED_CHECKS are for, respectively.
+  check('fixture: the tree-wide vacuity control fires on every unsound scan', () => {
+    const sound = (over: Partial<TreeWideScan> = {}): TreeWideScan => ({
+      offenders: [],
+      probed: [`${TREE_WIDE_PROBE_REL}: a planted offender`],
+      visited: EXPECTED_SOURCE_FILES,
+      blankViews: [],
+      canaries: 1,
+      ...over,
+    });
+
+    const missed: string[] = [];
+    // The false-positive mirror, first: without it every assertion below is
+    // satisfied by a detector that rejects everything, which would be the
+    // `return 'broken'` twin of the `return null` mutation this check exists for.
+    if (treeWideScanViolation('X', sound()) !== null) {
+      missed.push('the vacuity control REJECTS a sound scan');
+    }
+
+    const unsound: { label: string; scan: TreeWideScan }[] = [
+      { label: 'a BLANK view', scan: sound({ blankViews: ['src/util/markdown.ts'] }) },
+      { label: 'the canary file MISSING', scan: sound({ canaries: 0 }) },
+      { label: 'the canary file DUPLICATED', scan: sound({ canaries: 2 }) },
+      { label: 'ZERO entries visited', scan: sound({ visited: 0 }) },
+      { label: 'ONE TOO FEW entries visited', scan: sound({ visited: EXPECTED_SOURCE_FILES - 1 }) },
+      { label: 'ONE TOO MANY entries visited', scan: sound({ visited: EXPECTED_SOURCE_FILES + 1 }) },
+      { label: 'NO planted offender', scan: sound({ probed: [] }) },
+      {
+        label: 'the planted offender attributed to SOMETHING ELSE',
+        scan: sound({ probed: ['src/util/markdown.ts: an offender'] }),
+      },
+      {
+        label: 'the planted offender reported TWICE',
+        scan: sound({
+          probed: [`${TREE_WIDE_PROBE_REL}: one`, `${TREE_WIDE_PROBE_REL}: two`],
+        }),
+      },
+    ];
+
+    const problems: string[] = [
+      fixtureTableViolation('the unsound tree-wide scans', unsound, 9),
+    ].filter((v): v is string => v !== null);
+
+    for (const { label, scan } of unsound) {
+      if (treeWideScanViolation('X', scan) === null) {
+        missed.push(`the vacuity control is SILENT on ${label}`);
+      }
+    }
+    if (missed.length > 0) problems.push(missed.join(' | '));
+    if (problems.length > 0) {
+      throw new Error(`the tree-wide vacuity control no longer fires: ${problems.join(' | ')}`);
     }
   });
 
@@ -4686,7 +4806,13 @@ function sinkBinding(): void {
 //      blinded view
 //      (the round-9 decide-blinded/report-raw split, unpinned at all five of its
 //      sites; every one of the five one-word edits was GREEN at 79/127)
-const EXPECTED_CHECK_CALL_SITES = 79;
+//   2. fixture: the tree-wide vacuity control fires on every unsound scan
+//      (the positive control `treeWideScanViolation` never had; its body
+//      replaced by `return null` was GREEN at 79/127)
+// Round 10 also added the tree-wide control census, which is deliberately NOT a
+// check() call site — it is stated in `run()` alongside the two totals, for the
+// reason given there.
+const EXPECTED_CHECK_CALL_SITES = 80;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
@@ -4853,6 +4979,27 @@ function run(): void {
   // renderer AND a poisoned DOMPurify config; put it above them.
   sharedMarkedSingleton();
   privateDOMPurifyInstance();
+
+  // THE TREE-WIDE VACUITY CONTROLS ACTUALLY RAN AND WERE ACTUALLY OBEYED.
+  // Stated here rather than in a check() for the same reason the two totals
+  // below are: a check body can be hollowed out and still count. See
+  // `assertTreeWideScanSound` for why a call counter would not have caught the
+  // mutation this closes, and for where the regress terminates.
+  const missingControls = EXPECTED_TREE_WIDE_CONTROLS.filter((r) => !treeWideControlsRun.has(r));
+  if (missingControls.length > 0) {
+    failures.push(
+      `tree-wide vacuity control(s) never ran or never threw: ${missingControls.join(', ')}. ` +
+        `Expected all ${EXPECTED_TREE_WIDE_CONTROLS.length} of ` +
+        `${EXPECTED_TREE_WIDE_CONTROLS.join(' / ')}; saw ` +
+        `${[...treeWideControlsRun].join(' / ') || '(none)'}. Each tree-wide check must end in ` +
+        'an `assertTreeWideScanSound(<rule>, scan)` call, which is what records the name. ' +
+        'Measured before this pin existed: disarming one of the five throws was GREEN at ' +
+        '79 checks / 127 assertions, and disarming all five was GREEN at 79/127 — the ' +
+        'detector proving those loops are not vacuous could be switched off everywhere ' +
+        'without a single check noticing. If a tree-wide rule was legitimately removed, ' +
+        'remove its name from EXPECTED_TREE_WIDE_CONTROLS in the same commit and say so.',
+    );
+  }
 
   if (checks !== EXPECTED_CHECKS) {
     failures.push(
