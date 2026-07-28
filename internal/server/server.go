@@ -126,6 +126,62 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
 		phase = phaseForStage(stage)
 	}
 
+	// CREATION-TIME LABELS ARE A WRITE TO THE VALUE AUTHORIZATION READS (#194
+	// round 6, audit A-1).
+	//
+	// Round 5's invariant 1 is: if authorization reads a value, every write path
+	// to that value must be guarded by the same authorization. Round 5 applied
+	// that to add_labels / remove_labels on UpdateTask and did not apply it
+	// here, so the same end state the req.Stage arm above is gated to prevent
+	// was reachable by spelling it as a label. Measured on a bare task:write
+	// token before this block existed:
+	//
+	//	CreateTask(stage=completed)             -> DENIED, names task:close
+	//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED, stage = completed
+	//	remove_labels to undo it                -> DENIED, names task:accept
+	//
+	// One-way: creating the terminal state cost task:write, reversing it cost a
+	// scope the caller does not hold. That asymmetry is what #194 was filed for.
+	//
+	// The "from" is the creation stage, not the label baseline. The caller has
+	// already been authorized for triage -> stage by the arm above, so what is
+	// left to charge is stage -> whatever the labels additionally name.
+	//
+	// The SameStageSet guard is what keeps ordinary labels free: it compares the
+	// stages a label-less task would name against the stages it names with these
+	// labels, both from the SAME function, so a label that is not a lifecycle
+	// statement produces no difference and costs nothing. Deriving the two
+	// endpoints from different sources would invent transitions here, and a
+	// spurious transition is a denial of legitimate work.
+	//
+	// Inert for native Ent collections by construction: their stage is a column,
+	// EntStore does not implement LifecycleStageSetStager, and the helper
+	// reports before == after for them.
+	//
+	// THIS DOES NOT CLOSE THE TOCTOU WINDOW between this decision and the label
+	// write inside the store, and it is not intended to. Nothing here observes
+	// the labels that actually land. See the project log for round 6.
+	if len(req.GetLabels()) > 0 {
+		before, after, err := store.LabelDeltaLifecycleStages(
+			ctx, s.store,
+			&ent.Task{Stage: stage, CollectionID: collID},
+			req.GetLabels(), nil)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving label lifecycle delta: %v", err)
+		}
+		if !store.SameStageSet(before, after) {
+			for _, to := range after {
+				labelScope := TransitionScope(string(stage), string(to))
+				if labelScope == ScopeTaskWrite {
+					continue
+				}
+				if err := RequireScope(ctx, labelScope); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	p := store.CreateTaskParams{
 		Title:        req.GetName(),
 		Description:  req.GetDescription(),
