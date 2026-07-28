@@ -37,7 +37,16 @@ const FORBID_TAGS = [
 //   attacker.
 // formaction/action: redirect a submit to an attacker origin.
 // download: lets a link rename attacker-hosted content to a trusted filename.
-const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];
+// slot: not exploitable today — slot assignment considers only the DIRECT
+//   children of the shadow host, and both sinks render the markdown two levels
+//   deeper (inside <sl-details>), so an attacker-chosen slot name currently
+//   matches nothing. It is forbidden anyway because that is an invariant of the
+//   surrounding template's nesting, not of this sanitizer: flatten the markup by
+//   one level in either component and `slot="…"` becomes a way to project
+//   attacker content into a named slot of the host's own UI. Forbidding it
+//   converts a nesting-dependent property into an unconditional one at zero
+//   cost — markdown never emits slot. Same argument as class above.
+const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];
 
 // Task-list checkboxes are the only legitimate <input> in mirrored markdown, and
 // FORBID_TAGS would strip them, leaving "- [x] done" indistinguishable from
@@ -63,7 +72,25 @@ const parser = new Marked({
   },
 });
 
+// THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY,
+// not a style preference. A second parameter is a configuration channel into the
+// sanitizer opened from the call site: `renderMarkdown(body, { inline: true })`
+// reads as an ordinary feature and can reopen the whole bug class from a sink
+// file without renaming anything. The sink guard in markdown.test.ts pins the
+// arity from both ends — behaviourally via `renderMarkdown.length` and by
+// reading this declaration — so adding a parameter here turns the suite red.
+// If a variant renderer is genuinely needed, export a second named function
+// that also ends in a DOMPurify.sanitize call and add it to the guard, rather
+// than making this one configurable.
+//
+// Non-string input returns '' instead of throwing. Both call sites pass values
+// that arrive over gRPC (a comment body, a task description), and marked throws
+// on undefined, null or a number. A throw inside a Lit `render()` takes down the
+// whole component, not the one field — so an absent description would blank the
+// inspector rather than render as nothing. Availability, not XSS: '' cannot
+// carry a payload, and every non-empty string still goes through the sanitizer.
 export function renderMarkdown(md: string): string {
+  if (typeof md !== 'string') return '';
   return DOMPurify.sanitize(parser.parse(md) as string, {
     FORBID_TAGS,
     FORBID_ATTR,

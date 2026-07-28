@@ -124,14 +124,46 @@ function formControls(): void {
   // Read this check's name literally: it asserts the TAG rule, not the attribute
   // rule. `formaction` is only valid on <button>/<input> and `action` only on
   // <form>, and all three tags are in FORBID_TAGS, so the host tag is stripped
-  // before either attribute rule is ever consulted. Both FORBID_ATTR entries can
-  // therefore be deleted with this suite fully green — they are deliberate
-  // defence in depth and are not testable in isolation through renderMarkdown.
-  // Keep them; do not infer from this check that they are covered.
+  // before either attribute rule is ever consulted.
+  //
+  // This disclosure used to say that BOTH FORBID_ATTR entries were untestable in
+  // isolation. Measured, that was half wrong, and the wrong half mattered:
+  // DOMPurify applies ALLOWED_ATTR per ATTRIBUTE, not per tag-and-attribute, and
+  // `action` is in its default allowlist — so `<div action="…">` survives
+  // DOMPurify's defaults and is stripped only by our FORBID_ATTR. `action` is
+  // therefore testable through renderMarkdown and is pinned in the next check.
+  // `formaction` is NOT in the default allowlist, so it is dropped on any host
+  // tag with or without our rule; that half of the disclosure was exactly right
+  // and this check remains a tag-rule assertion only.
   check('formaction cannot survive because its host tag is stripped', () => {
     const out = renderMarkdown('<button formaction="https://evil.example">go</button>');
     assertNotContains(out, 'formaction', 'formaction survived');
     assertNotContains(out, 'evil.example', 'attacker origin survived');
+  });
+
+  // The attribute-side pin for FORBID_ATTR. Its stated design property — "both
+  // the tag and the attribute are forbidden so that neither rule is load-bearing
+  // on its own" — had no test on the attribute side at all until this check.
+  // Verified against a DOMPurify-defaults control: without FORBID_ATTR the
+  // attribute survives here, so this check is not a no-op.
+  check('action attribute stripped from a tag that survives', () => {
+    const out = renderMarkdown('<div action="https://evil.example">x</div>');
+    assertNotContains(out, 'action', 'action attribute survived on a permitted tag');
+    assertNotContains(out, 'evil.example', 'attacker origin survived');
+    assertContains(out, 'x', 'element content should be preserved');
+  });
+
+  // slot is not exploitable through either sink today: slot assignment considers
+  // only the DIRECT children of the shadow host and the markdown lands two levels
+  // deeper, inside <sl-details>. That is a property of the surrounding template's
+  // nesting, not of the sanitizer, and it stops holding the moment anyone
+  // flattens the markup by one level. Forbidding the attribute makes the
+  // invariant unconditional. Also verified against the defaults control: `slot`
+  // is in DOMPurify's default allowlist and survives without our rule.
+  check('slot attribute stripped (no projection into the host UI)', () => {
+    const out = renderMarkdown('<div slot="footer">x</div>');
+    assertNotContains(out, 'slot', 'slot attribute survived');
+    assertContains(out, 'x', 'element content should be preserved');
   });
 }
 
@@ -207,6 +239,23 @@ function scriptExecution(): void {
   check('data: html href stripped', () => {
     const out = renderMarkdown('[click](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)');
     assertNotContains(out, 'data:text/html', 'data: HTML URL survived');
+  });
+
+  // Pins the URI POLICY itself, not one scheme. The three checks above each name
+  // a scheme DOMPurify blocks by default; none of them notices
+  // `ALLOW_UNKNOWN_PROTOCOLS: true`, which leaves javascript:, vbscript: and
+  // data: blocked — so every scheme-specific check stays green — while letting
+  // every other scheme through. Verified: with that flag set,
+  // `<a href="evilproto:payload">` survives intact. Not XSS on its own; the
+  // exposure is whatever exotic scheme handlers the user's OS has registered,
+  // and the point is that a one-word configuration change should not be able to
+  // widen the URL allowlist silently.
+  check('unknown URL schemes are dropped', () => {
+    assertNotContains(
+      renderMarkdown('<a href="evilproto:payload">x</a>'),
+      'evilproto:',
+      'unknown protocol survived — has ALLOW_UNKNOWN_PROTOCOLS been enabled?',
+    );
   });
 
   check('iframe srcdoc stripped', () => {
@@ -477,6 +526,81 @@ function ordinaryMarkdown(): void {
 }
 
 // ---------------------------------------------------------------------------
+// 4b. The INPUT CONTRACT: how many arguments renderMarkdown takes, and what it
+//     does with a value that is not a string.
+//
+//     Both of these are cardinality questions about a collection the rest of
+//     this file never varies, and that is exactly why they were missed for five
+//     rounds. Every mutation vector V1-V25 changes a BINDING, a CALL-SITE
+//     SPELLING or a MODULE SPECIFIER; not one changes an ARITY, and every
+//     behavioural check above calls renderMarkdown with exactly one string. A
+//     harness that cannot express an input cannot test it, so the useful
+//     question is not "what mutation survives" but "what inputs can these tests
+//     not express". For renderMarkdown the answer was the argument list at
+//     cardinality two and the input domain at cardinality zero.
+// ---------------------------------------------------------------------------
+
+function inputContract(): void {
+  // ARITY. `renderMarkdown(body, { inline: true })` renames nothing, introduces
+  // no binding and adds no file, so R1-R7 are blind to it by construction: they
+  // all match on names and call shape, and a second argument changes neither.
+  // It is nonetheless a configuration channel into the sanitizer opened from a
+  // sink file, which is the thing R8 exists to deny — R8 just took away the
+  // MODULE SPECIFIER, and an options parameter reconfigures the sanitizer
+  // through the front door with no specifier to match.
+  //
+  // Pinned from BOTH ends, because neither is sufficient alone. `Function.length`
+  // stops counting at the first defaulted or rest parameter, so
+  // `renderMarkdown(md, opts = {})` still reports 1 and would slip past a
+  // `.length` check on its own; reading the declaration catches that. Conversely
+  // the declaration scan reads source, so `.length` is what covers the compiled
+  // artifact this suite actually calls. The sink-side half of the same fix is in
+  // `sinkArgumentIsSanitized`, which now rejects a top-level comma.
+  check('renderMarkdown accepts exactly one parameter', () => {
+    assertEqual(
+      String(renderMarkdown.length),
+      '1',
+      'renderMarkdown no longer takes exactly one argument — a second parameter is a ' +
+        'configuration channel into the sanitizer that no rule in the sink guard can see',
+    );
+    const src = readFileSync(join(findWebRoot(), 'src', 'util', 'markdown.ts'), 'utf8');
+    const decl = /export function renderMarkdown\s*\(([^)]*)\)/.exec(src);
+    if (decl === null) {
+      throw new Error('could not find the renderMarkdown declaration in src/util/markdown.ts');
+    }
+    if (/[,=]/.test(decl[1])) {
+      throw new Error(
+        `renderMarkdown declares more than one parameter: (${decl[1].trim()}) — a defaulted ` +
+          'second parameter keeps Function.length at 1, so the declaration is checked too',
+      );
+    }
+  });
+
+  // INPUT DOMAIN. marked throws on undefined, null and non-strings, and both
+  // sinks pass values that arrive over gRPC (`c.body`, `this.description`). A
+  // throw inside a Lit `render()` takes down the whole component, not the one
+  // field, so an absent description would blank the inspector. Availability
+  // rather than XSS — but the suite tested `''` and never tested absent, which
+  // is cardinality zero on the input domain, the same blind axis as the arity
+  // above.
+  check('renderMarkdown does not throw on non-string input', () => {
+    for (const bad of [undefined, null, 42, {}, []]) {
+      const label = bad === undefined ? 'undefined' : JSON.stringify(bad);
+      let out: string;
+      try {
+        out = renderMarkdown(bad as unknown as string);
+      } catch (err) {
+        throw new Error(
+          `renderMarkdown threw on ${label} input (${(err as Error).message}) — a throw inside ` +
+            'render() takes down the whole Lit component, not one field',
+        );
+      }
+      assertEqual(out, '', `non-string input ${label} should render empty`);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 5. Task lists. FORBID_TAGS strips marked's <input type=checkbox>, so
 //    renderMarkdown substitutes an inert glyph. Pin that the checked and
 //    unchecked states stay distinguishable, that the state is still exposed to
@@ -575,6 +699,28 @@ function taskLists(): void {
 //    question (b) is failing to ask. Extending (b) with more patterns is not a
 //    route to (a).
 //
+//    SUNSET CLAUSE — CONDITIONAL ON #204 (the typescript-eslint AST rule).
+//    A guard this size with no scheduled removal becomes permanent by default,
+//    and half of it is a hand-rolled stand-in for something #204 does properly.
+//    When #204 lands and is enforcing in CI, DELETE the tokenizer-dependent
+//    subset rather than maintaining both:
+//
+//      `stripInertText`, `stripImportStatements`, and everything that depends on
+//      them — R3, R4, R7, `directiveIndirectionOffenders`, `BANNED_SINKS`, and
+//      their fixture tables.
+//
+//    Each of those exists only because a regex over source text cannot see the
+//    module graph. A rule over resolved symbols can, so keeping both is paying
+//    twice for the weaker answer, and every defect this file has recorded — V7,
+//    V8, V14, F1, T2 — is a tokenizer defect, not a policy defect.
+//
+//    KEEP UNCONDITIONALLY: the behavioural half (sections 1-5 above, everything
+//    that calls renderMarkdown). It pins the actual XSS boundary, it is the
+//    highest value per line in this file, and #204 does not replace any of it.
+//    Also keep R1, R2, R5, R6, R8 and R9 until the Phase 2 harness observes the
+//    sanitizer's EFFECT, since those are about ownership and call shape rather
+//    than about tokenizing.
+//
 //    WHAT THIS GUARD CLAIMS, AND WHAT IT DOES NOT
 //    --------------------------------------------
 //    The criterion this guard was originally built against — "no mutation of
@@ -584,18 +730,53 @@ function taskLists(): void {
 //    against someone who can land arbitrary code in those files, and that
 //    person can also edit this guard. The amended claim:
 //
-//      This guard defends against INNOCENT-LOOKING REGRESSION at the two
-//      enumerated sinks: aliasing, shadowing, re-homing, rebinding,
-//      argument-shape drift, laundering through an unscanned file, and capture
-//      of the sanitizer's own configuration. It does NOT defend against a
-//      committer who can land arbitrary code. That adversary is answered by
-//      code review, CSP and Trusted Types, not by a scan the same commit
-//      could edit.
+//      For the two enumerated sink files, any change that leaves a raw-HTML
+//      directive reachable UNDER A DIFFERENT NAME OR THROUGH A DIFFERENT CALL
+//      SHAPE, where that change is VISIBLE IN THE SCANNED SOURCE VIEW (comments
+//      and string literals blanked, templates and regex literals resolved),
+//      must turn the suite red. Changes that preserve every name and call shape
+//      while altering runtime EFFECT — prototype patching, global
+//      reconfiguration, runtime-assembled references — are out of scope and are
+//      routed to the Phase 2 harness.
+//
+//    An earlier wording of this said the guard defends against "innocent-looking
+//    regression". That was withdrawn, and the reason is worth keeping:
+//    innocent-looking is a property of the AUTHOR'S INTENT, not of the artifact.
+//    It is not decidable from a diff, so it cannot adjudicate a future dispute,
+//    which is the only job an exit criterion has. Is `const raw = unsafeHTML`
+//    innocent-looking? Nobody writes that by accident either. Under the intent
+//    wording, V10 below — a real bypass — could have been argued away as
+//    "adversarial, it omits semicolons". Under the wording above it is
+//    unambiguously a violation: the alias is a different name and it is visible
+//    in the scanned view. The clause that does the work is NAME-AND-SHAPE
+//    versus EFFECT, and it is operative rather than a footnote.
+//
+//    The list this replaces — aliasing, shadowing, re-homing, rebinding,
+//    argument-shape drift, laundering through an unscanned file, and capture of
+//    the sanitizer's own configuration — is still a fair summary of the axes,
+//    with ONE QUALIFICATION that the old wording overclaimed. R8 defends capture
+//    of the sanitizer's configuration only BY NAMING A MODULE SPECIFIER THE
+//    SCANNER CAN SEE. It does not defend a bare specifier that no rule resolves,
+//    it does not defend capture by effect (V25), and — found in round 6 — it did
+//    not defend a SECOND PARAMETER on renderMarkdown, which is a configuration
+//    channel into the sanitizer opened through the front door with no specifier
+//    to match. That third gap is closed by the arity pin in `inputContract` and
+//    by `sinkArgumentIsSanitized` rejecting a top-level comma; the first two
+//    remain open and are recorded as such.
 //
 //    THE BOUNDARY OF THE TECHNIQUE: rules of this kind can own a NAME. They
 //    cannot own an EFFECT. R8 could kill the `addHook` attack because the
-//    attack had to NAME 'dompurify' and a rule can take that name away. The
-//    known survivor below names nothing:
+//    attack had to NAME 'dompurify' and a rule can take that name away.
+//
+//    DO NOT LET THAT BOUNDARY ABSORB MORE THAN IT SHOULD. The arity gap was
+//    INSIDE the technique's reach, not beyond it: R5 did not fail to own an
+//    effect there, it failed to own a SHAPE it explicitly claimed to own, since
+//    `sinkArgumentIsSanitized`'s own docstring said "the argument has to be the
+//    call and only the call" and an argument list is part of a call. "We can
+//    only own names" is a real limit and also the most convenient excuse
+//    available in this file; check which one you are using. The known survivor
+//    below is on the far side of the boundary for real, because it names
+//    nothing:
 //
 //      const origRemoveAttribute = Element.prototype.removeAttribute;
 //      Element.prototype.removeAttribute = function (name: string): void {
@@ -826,9 +1007,26 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
       if (c === '$' && d === '{') { modes.push('code'); braces.push(0); i += 2; continue; }
       if (c === '<' && src.startsWith('<!--', i)) {
         const end = src.indexOf('-->', i + 4);
-        const to = end === -1 ? src.length : end + 3;
-        blank(i, to);
-        i = to;
+        // An UNTERMINATED `<!--` blanks NOTHING, deliberately. This used to blank
+        // to end of file, which handed any scanned component a four-character
+        // way to hide the whole rest of itself from every tree-wide rule at
+        // once: R8, R9, the indirection tripwire and BANNED_SINKS all saw
+        // spaces. It is worse than the unterminated block comment recorded as
+        // V14, because an unterminated `/*` is a TypeScript syntax error and
+        // `tsc` is a second gate on it, whereas an unterminated `<!--` inside a
+        // template literal is valid TypeScript that compiles clean. There is no
+        // second gate.
+        //
+        // Failing toward "scan it" costs at most a false positive on prose
+        // inside a comment somebody forgot to close — visible, local, and
+        // fixable by closing the comment. Failing toward "blank it" costs the
+        // file. Same choice `endOfRegexLiteral` already makes when it returns -1.
+        if (end === -1) {
+          i += 4;
+          continue;
+        }
+        blank(i, end + 3);
+        i = end + 3;
         continue;
       }
       i += 1;
@@ -887,38 +1085,72 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
 }
 
 /**
- * The greppable opt-out for the TREE-WIDE tripwire only.
+ * THERE IS NO PER-LINE OPT-OUT, AND THAT IS A DELIBERATE REMOVAL.
  *
- * Comment stripping handles prose; this handles the remaining case, a string
- * literal that legitimately names a banned form. It is deliberately NOT honoured
- * by the per-file rules in `sinkBindingViolations`: disarming the sound half
- * must require editing this test file, where a reviewer will see it, not adding
- * a comment to a component.
+ * A `// raw-sink-scan: ignore-line` marker used to blank its own line for the
+ * tree-wide scans, on the argument that comment stripping already handles prose
+ * and only a string literal legitimately naming a banned form needs an escape
+ * hatch. The marker was defended as contained because "it is deliberately NOT
+ * honoured by the per-file rules in `sinkBindingViolations`".
+ *
+ * That containment argument was scoped wrongly, in this workstream's signature
+ * way: a property that holds for one consumer, stated as if it held for all. The
+ * per-file rules run on the two REQUIRED_SINKS files ONLY. For the other 48
+ * scanned files the tree-wide tripwire IS the whole guard — and it honoured the
+ * marker. Two marker comments in a non-sink component (`inspector-shared-styles`)
+ * were enough to re-export the raw directive under another name and import it
+ * into a sink file with R1-R9 all green and `tsc` clean. R6 and R9 do not fire,
+ * because the laundering file does resolve into the scanned set: it is scanned,
+ * it is simply not sounded.
+ *
+ * The cost of removal is real and is accepted: a production string literal that
+ * must name a banned form (an error message, a lint fixture) now turns the suite
+ * red with no in-file escape. That is the same bargain mechanism (a) and R8
+ * already make — disarming a rule that pins the security boundary must require
+ * editing THIS file, where a reviewer sees it, not adding a comment to a
+ * component. No file under `src/` needs such a string today, and a line still
+ * carrying the old marker is pinned as a POSITIVE in BANNED_SINK_POSITIVES so
+ * the marker cannot be quietly re-honoured.
  */
-const IGNORE_MARKER = 'raw-sink-scan: ignore-line';
-
-function stripIgnoredLines(src: string): string {
-  if (!src.includes(IGNORE_MARKER)) return src;
-  return src
-    .split('\n')
-    .map((line) => (line.includes(IGNORE_MARKER) ? '' : line))
-    .join('\n');
-}
 
 /**
- * Blanks whole `import … from '…';` statements (and side-effect imports).
+ * Blanks whole `import … from '…'` statements (and side-effect imports), with or
+ * without the terminating semicolon.
  *
- * `[^;]` cannot cross a statement boundary, so a value alias sharing a line with
- * an import — `import { html } from 'lit'; const raw = unsafeHTML;` — is still
- * scanned. `await import('…')` has no `from`, so a destructuring rename off a
- * dynamic import is not blanked either; its `unsafeHTML` sits before the
- * `import` keyword and survives regardless.
+ * THE PROPERTY IS "ONE IMPORT STATEMENT CANNOT SWALLOW THE NEXT", which is what
+ * `[^;'"]` buys: the character class cannot cross a quote, so a match starting at
+ * one `import` keyword can never run past that statement's own specifier to
+ * reach a later `from '…'`. The previous wording — "`[^;]` cannot cross a
+ * statement boundary" — was simply false, because `[^;]` matches newlines. An
+ * import that merely omitted its semicolon extended forward to the next
+ * `from '…';` and blanked everything in between, INCLUDING A VALUE ALIAS:
+ *
+ *   import { unsafeHTML } from 'lit/directives/unsafe-html.js'   <- no semicolon
+ *   const rawHtml = unsafeHTML                                   <- swept away
+ *   import { renderMarkdown } from '../../util/markdown.js';     <- swept to here
+ *
+ * That is V3, "the rule that generalises", defeated by deleting two semicolons,
+ * and it defeated the per-file rules and the tree-wide tripwire at the same
+ * time. It is pinned as V10 below. The mirror case is worse for this guard's
+ * survival: a CORRECT semicolon-less file was REJECTED, with a message accusing
+ * it of aliasing, and a guard that rejects correct code gets deleted.
+ *
+ * This defect was already diagnosed and fixed once, for the re-export regex in
+ * `directiveIndirectionOffenders` ("`[^;]` matches newlines, so an adjacent
+ * semicolon-less line used to be swept in"). It was never carried back here,
+ * where it feeds R3, R4 and the tree-wide non-called-position rule.
+ *
+ * `;?` makes the terminator optional so an ASI-style import is blanked properly
+ * rather than not at all. `await import('…')` still has no `from` and its
+ * specifier is quoted, so a destructuring rename off a dynamic import is not
+ * blanked; its `unsafeHTML` sits before the `import` keyword and survives
+ * regardless.
  */
 function stripImportStatements(code: string): string {
   const wipe = (m: string): string => m.replace(/[^\n]/g, ' ');
   return code
-    .replace(/\bimport\b[^;]*?\bfrom\b\s*['"][^'"]*['"]\s*;/g, wipe)
-    .replace(/\bimport\s*['"][^'"]*['"]\s*;/g, wipe);
+    .replace(/\bimport\b[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
+    .replace(/\bimport\s*(['"])[^'"]*\1\s*;?/g, wipe);
 }
 
 /**
@@ -961,19 +1193,40 @@ function callArguments(code: string, name: string): string[] {
  * it; the second sanitizes a value nobody displays. Anything appended to,
  * short-circuited with, or substituted for the sanitizer's output is raw at the
  * sink, so the argument has to be the call and only the call.
+ *
+ * "The call and only the call" INCLUDES ITS ARGUMENT LIST. The first version of
+ * this function only balanced parentheses, so it placed no constraint whatever
+ * on what sat between them: `renderMarkdown(this.description)` and
+ * `renderMarkdown(this.description, { inline: true })` were indistinguishable to
+ * it. An argument list is part of a call shape, so that was this function
+ * failing to own a shape it claims — not the NAME/EFFECT boundary. A top-level
+ * comma is therefore rejected. Commas nested inside `(`, `[` or `{` are fine, so
+ * `renderMarkdown(fmt(a, b))` still passes; only the sanitizer's OWN argument
+ * list is constrained, which is where a configuration channel would be opened.
  */
 function sinkArgumentIsSanitized(arg: string): boolean {
   const t = arg.trim();
   const head = /^renderMarkdown\s*\(/.exec(t);
   if (!head) return false;
-  let depth = 1;
+  let nesting = 0;
+  let extraArgument = false;
+  let closed = false;
   let i = head[0].length;
-  while (i < t.length && depth > 0) {
-    if (t[i] === '(') depth += 1;
-    else if (t[i] === ')') depth -= 1;
-    i += 1;
+  for (; i < t.length; i += 1) {
+    const c = t[i];
+    if (c === '(' || c === '[' || c === '{') nesting += 1;
+    else if (c === ']' || c === '}') nesting -= 1;
+    else if (c === ',' && nesting === 0) extraArgument = true;
+    else if (c === ')') {
+      if (nesting === 0) {
+        closed = true;
+        i += 1;
+        break;
+      }
+      nesting -= 1;
+    }
   }
-  return depth === 0 && t.slice(i).trim() === '';
+  return closed && !extraArgument && t.slice(i).trim() === '';
 }
 
 /** 1-based line numbers at which `re` matches, for actionable failure messages. */
@@ -1026,11 +1279,21 @@ const RAW_DIRECTIVES = [
  * x` — a comparison, not a write — out of the results.
  *
  * FALSE POSITIVES: these patterns run over a comment-stripped view of the file,
- * so prose naming a banned form is safe. A string literal that must name one
- * (an error message, a lint fixture) can opt out with a trailing
- * `// raw-sink-scan: ignore-line`, which blanks that line for the tree-wide
- * scans only. Grep for the marker in review; it is not honoured by the per-file
- * rules in `sinkBindingViolations`.
+ * so prose naming a banned form is safe. String literals are NOT blanked for
+ * this view — the indexed-assignment pattern matches `el['innerHTML'] = x` and
+ * needs the quoted key — so a string literal that must name a banned form does
+ * turn the suite red, and there is no per-line opt-out any more. See the note
+ * above `stripImportStatements` for why the opt-out was removed and what it
+ * cost. The fix for such a string is to change this file, in review.
+ *
+ * VACUITY: every pattern here is exercised directly by BANNED_SINK_POSITIVES.
+ * Before that table existed the only fixtures touching this list were two
+ * NEGATIVE controls, so all eight patterns were untested detection logic —
+ * measured, the whole list could be emptied with the suite green at 61 checks.
+ * That is the same defect this file had already diagnosed and fixed three times
+ * elsewhere; `directiveIndirectionOffenders` got INDIRECTION_EVASIONS, the sink
+ * rules got SINK_EVASIONS, R8/R9 got OWNERSHIP_EVASIONS, and BANNED_SINKS got
+ * nothing.
  */
 const BANNED_SINKS: { name: string; pattern: RegExp }[] = [
   { name: 'innerHTML/outerHTML assignment', pattern: /\.(inner|outer)HTML\s*(?:\+|\|\||&&|\?\?)?=(?!=)/ },
@@ -1275,9 +1538,10 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
 /**
  * MECHANISM (b): the tree-wide indirection tripwire.
  *
- * Input must be `stripInertText(stripIgnoredLines(src), { strings: false })` —
- * string contents are KEPT because the module specifier being matched is itself
- * a string literal.
+ * Input must be `stripInertText(src, { strings: false })` — string contents are
+ * KEPT because the module specifier being matched is itself a string literal.
+ * There is no `stripIgnoredLines` step any more; see the note above
+ * `stripImportStatements` for why the per-line opt-out was removed.
  */
 function directiveIndirectionOffenders(rel: string, code: string): string[] {
   const offenders: string[] = [];
@@ -1370,16 +1634,19 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
  * rather than six. Subpaths count: `dompurify/dist/purify.es.mjs` is the same
  * singleton.
  *
- * Read from a view with NO `raw-sink-scan: ignore-line` opt-out, for the same
- * reason the closed-world rules have none: disarming a rule that pins the
- * security boundary must require editing THIS file, where a reviewer sees it,
- * not adding a comment to a component.
+ * Read from a view with no per-line opt-out — which, since the marker was
+ * removed, is now true of every scan in this file rather than only of the
+ * closed-world ones. Disarming a rule that pins the security boundary must
+ * require editing THIS file, where a reviewer sees it, not adding a comment to a
+ * component.
  *
  * KNOWN SURVIVOR — READ BEFORE EXTENDING THIS RULE. R8 works because the
  * `addHook` attack had to NAME 'dompurify', and a rule can take a name away.
  * Patching `Element.prototype.removeAttribute` and `Node.prototype.removeChild`
  * defeats the sanitizer just as completely and names nothing: R8 has no
- * specifier to match, and the suite stays green at 61/61. That is recorded as
+ * specifier to match, and the suite stays green. (No count here on purpose —
+ * the check total moves every round and a load-bearing literal in prose goes
+ * stale silently. It lives next to EXPECTED_CHECKS, once.) That is recorded as
  * V25 in reports/dev-195-vectors.json with its runtime-verified before/after,
  * and it is ACCEPTED, not missed. Rules of this kind can own a name; they
  * cannot own an effect. Do NOT respond by banning `.prototype` assignment — the
@@ -1432,23 +1699,46 @@ function sanitizerOwnershipViolations(
   return out;
 }
 
+/**
+ * The two tree-wide COUNT PINS, written as predicates rather than as inline
+ * `if`s inside their checks, so that the fixture table can exercise them
+ * directly.
+ *
+ * Both were live but unfixtured: neutering either left the suite green, because
+ * their only input was the real tree, which by construction always has the
+ * pinned value. Nothing in the suite could express a wrong count. That is the
+ * same "a harness that cannot express an input cannot test it" failure as the
+ * arity blind spot, one level down.
+ */
+function sourceFileCountViolation(found: number): string | null {
+  if (found === EXPECTED_SOURCE_FILES) return null;
+  return (
+    `expected to scan exactly ${EXPECTED_SOURCE_FILES} source files, found ${found} — ` +
+    'before changing this number, open the added or removed file(s) and confirm none of ' +
+    'them introduces a raw-HTML sink or a raw Lit directive under another name. ' +
+    'Adding a file is normally fine and updating the count is normally the right ' +
+    'action — but that confirmation is the decision this pin exists to force, and it is ' +
+    'the only thing standing between the tree and a raw sink in a brand-new file. ' +
+    'Never change it merely to make a red suite go green.'
+  );
+}
+
+function sinkCountViolation(found: number): string | null {
+  if (found === REQUIRED_SINKS.length) return null;
+  return (
+    `expected exactly ${REQUIRED_SINKS.length} unsafeHTML call sites, found ${found} — ` +
+    'update REQUIRED_SINKS deliberately if a sink was added or removed'
+  );
+}
+
 function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
   collectSourceFiles(join(root, 'src'), files);
 
   check('sink scan actually reads the source tree', () => {
-    if (files.length !== EXPECTED_SOURCE_FILES) {
-      throw new Error(
-        `expected to scan exactly ${EXPECTED_SOURCE_FILES} source files, found ${files.length} — ` +
-          'before changing this number, open the added or removed file(s) and confirm none of ' +
-          'them introduces a raw-HTML sink or a raw Lit directive under another name. ' +
-          'Adding a file is normally fine and updating the count is normally the right ' +
-          'action — but that confirmation is the decision this pin exists to force, and it is ' +
-          'the only thing standing between the tree and a raw sink in a brand-new file. ' +
-          'Never change it merely to make a red suite go green.',
-      );
-    }
+    const violation = sourceFileCountViolation(files.length);
+    if (violation !== null) throw new Error(violation);
   });
 
   // Web-root-relative paths of every file this guard reads. R6 requires each
@@ -1490,7 +1780,7 @@ function sinkBinding(): void {
   // patterns that need them.
   const scanned = files.map((file) => ({
     rel: relative(root, file),
-    code: stripInertText(stripIgnoredLines(readFileSync(file, 'utf8')), { strings: false }),
+    code: stripInertText(readFileSync(file, 'utf8'), { strings: false }),
   }));
 
   const sinks: { file: string; arg: string }[] = [];
@@ -1505,12 +1795,8 @@ function sinkBinding(): void {
   // count with a duplicate elsewhere and the same regression goes green again.
   // Update alongside REQUIRED_SINKS when a legitimate sink is added or removed.
   check('unsafeHTML call sites are still found', () => {
-    if (sinks.length !== REQUIRED_SINKS.length) {
-      throw new Error(
-        `expected exactly ${REQUIRED_SINKS.length} unsafeHTML call sites, found ${sinks.length} — ` +
-          'update REQUIRED_SINKS deliberately if a sink was added or removed',
-      );
-    }
+    const violation = sinkCountViolation(sinks.length);
+    if (violation !== null) throw new Error(violation);
   });
 
   // MECHANISM (b), tripwire. Indirection defeats every name-based scan in this
@@ -1574,8 +1860,25 @@ function sinkBinding(): void {
   // under the same EXPECTED_CHECKS pin as everything else.
   //
   // The positive tables are the regression test for this round specifically:
-  // every evasion found by review rounds 1-3 is listed, so a future
-  // simplification of the rules cannot quietly reopen one.
+  // every evasion found by the review rounds is listed.
+  //
+  // READ THE COVERAGE CLAIM NARROWLY. This used to say "a future simplification
+  // of the rules cannot quietly reopen one", full stop. Measured by ablation,
+  // that is TRUE FOR THE NINE CLOSED-WORLD RULES and was FALSE for the tree-wide
+  // ones: deleting R1, deleting R3, or deleting the tree-wide argument check left
+  // the suite green — those three are subsumed by other rules, so the redundancy
+  // is real and they are kept as defence in depth rather than deleted — but the
+  // file-count pin, the sink-count pin, the BANNED_SINKS tripwire and the
+  // `opts.strings` blanking were each LIVE AND UNFIXTURED, protective in
+  // principle and deletable in practice. Those four now have positive fixtures
+  // of their own below, which is what makes the claim true rather than what
+  // makes it comfortable.
+  //
+  // The residue, stated so nobody has to re-measure it: a fixture asserts a
+  // PREDICATE, so it catches a neutered predicate and not a deleted call site.
+  // Deleting a whole `check()` is caught by EXPECTED_CHECKS instead. Nothing
+  // here catches deleting a rule that is genuinely subsumed by another, and
+  // nothing should — that is a refactor, not a regression.
   // ---------------------------------------------------------------------------
 
   const LEGITIMATE_SOURCE = [
@@ -1596,7 +1899,7 @@ function sinkBinding(): void {
   check('fixture: legitimate source does not trip the raw-directive tripwire', () => {
     const offenders: string[] = [];
     for (const fixture of LEGITIMATE_SOURCE) {
-      const code = stripInertText(stripIgnoredLines(fixture), { strings: false });
+      const code = stripInertText(fixture, { strings: false });
       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
       for (const { name, pattern } of BANNED_SINKS) {
         if (pattern.test(code)) offenders.push(`${name} :: ${fixture}`);
@@ -1607,18 +1910,20 @@ function sinkBinding(): void {
     }
   });
 
+  // Prose only. The string-literal entry that used to live here relied on the
+  // `raw-sink-scan: ignore-line` opt-out; that opt-out is gone, and the same
+  // line is now a POSITIVE in BANNED_SINK_POSITIVES below.
   const INERT_PROSE = [
     '// SECURITY: never import unsafeHTML as something else - it defeats the scan.',
     '// Do not use document.write( here; use lit templating.',
     '/* renderMarkdown must wrap every unsafeHTML call. */',
     'const t = html`<!-- renderMarkdown, not unsafeHTML, is the boundary. -->${x}`;',
-    "const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line",
   ];
 
-  check('fixture: comments and marked lines cannot turn the suite red', () => {
+  check('fixture: comments cannot turn the suite red', () => {
     const offenders: string[] = [];
     for (const fixture of INERT_PROSE) {
-      const code = stripInertText(stripIgnoredLines(fixture), { strings: false });
+      const code = stripInertText(fixture, { strings: false });
       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
       for (const { name, pattern } of BANNED_SINKS) {
         if (pattern.test(code)) offenders.push(`${name} :: ${fixture}`);
@@ -1643,16 +1948,90 @@ function sinkBinding(): void {
     'const d = unsafeHTML as unknown as (s: string) => unknown;',
     'const raw = unsafeHTML\n;',
     'callIt(unsafeHTML);',
+    // The V10 shape, tree-wide: one import statement must not be able to swallow
+    // the next and take a value alias with it.
+    "import { unsafeHTML } from 'lit/directives/unsafe-html.js'\n" +
+      'const rawHtml = unsafeHTML\n' +
+      "import { renderMarkdown } from '../../util/markdown.js';",
+    // T2: an unterminated `<!--` inside a lit template must not blank the rest of
+    // the file. This compiles clean, so `tsc` is not a second gate on it.
+    'const t = html`<!-- forgot to close this\n${x}`;\nconst raw = unsafeHTML;',
   ];
 
   check('fixture: every known indirection form is caught by the tripwire', () => {
     const missed: string[] = [];
     for (const fixture of INDIRECTION_EVASIONS) {
-      const code = stripInertText(stripIgnoredLines(fixture), { strings: false });
+      const code = stripInertText(fixture, { strings: false });
       if (directiveIndirectionOffenders('<fixture>', code).length === 0) missed.push(fixture);
     }
     if (missed.length > 0) {
       throw new Error(`indirection form no longer detected: ${missed.join(' | ')}`);
+    }
+  });
+
+  // One entry per BANNED_SINKS pattern, plus the operator variants the pattern's
+  // own comment claims to cover. Until this table existed the only fixtures
+  // touching BANNED_SINKS were the two NEGATIVE controls above, so the entire
+  // list was untested detection logic: measured, neutering one pattern, deleting
+  // one entry, or emptying the whole array each left the suite green at 61.
+  // A negative control cannot fail an over-permissive rule — that is the point
+  // of the pairing, and this is the last of the four rule groups in this file to
+  // get its positive half.
+  const BANNED_SINK_POSITIVES = [
+    'el.innerHTML = body;',
+    'el.outerHTML = body;',
+    'el.innerHTML += body;',
+    'el.innerHTML ||= body;',
+    'el.innerHTML &&= body;',
+    'el.innerHTML ??= body;',
+    "el['innerHTML'] = body;",
+    'el["outerHTML"] = body;',
+    'el.insertAdjacentHTML("beforeend", body);',
+    'document.write(body);',
+    'el.setHTMLUnsafe(body);',
+    'range.createContextualFragment(body);',
+    'return unsafeSVG(body);',
+    'return unsafeStatic(body);',
+    // T3: a line still carrying the removed opt-out marker is ordinary source.
+    // If someone re-honours the marker, this entry goes red.
+    "const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line",
+  ];
+
+  check('fixture: every banned raw-HTML sink form is actually detected', () => {
+    const missed = BANNED_SINK_POSITIVES.filter((fixture) => {
+      const code = stripInertText(fixture, { strings: false });
+      return !BANNED_SINKS.some(({ pattern }) => pattern.test(code));
+    });
+    if (missed.length > 0) {
+      throw new Error(`banned sink no longer detected: ${missed.join(' | ')}`);
+    }
+  });
+
+  // T4b. The two count pins are the other tree-wide checks that were live but
+  // unfixtured: their only input is the real tree, which by construction always
+  // carries the pinned value, so neither could ever have been exercised against
+  // a wrong count. Asserting the predicates directly is the same treatment R8
+  // got. Note the residual limit honestly: this catches a NEUTERED predicate,
+  // not a DELETED call site. Deleting a whole `check()` is what EXPECTED_CHECKS
+  // is for.
+  check('fixture: the tree-wide count pins fire on a changed count', () => {
+    const missed: string[] = [];
+    if (sourceFileCountViolation(EXPECTED_SOURCE_FILES) !== null) {
+      missed.push('the source-file pin rejects the true count');
+    }
+    if (sinkCountViolation(REQUIRED_SINKS.length) !== null) {
+      missed.push('the sink-count pin rejects the true count');
+    }
+    for (const delta of [-1, 1]) {
+      if (sourceFileCountViolation(EXPECTED_SOURCE_FILES + delta) === null) {
+        missed.push(`the source-file pin is silent at ${EXPECTED_SOURCE_FILES + delta}`);
+      }
+      if (sinkCountViolation(REQUIRED_SINKS.length + delta) === null) {
+        missed.push(`the sink-count pin is silent at ${REQUIRED_SINKS.length + delta}`);
+      }
+    }
+    if (missed.length > 0) {
+      throw new Error(`count pin no longer fires: ${missed.join(' | ')}`);
     }
   });
 
@@ -1683,6 +2062,28 @@ function sinkBinding(): void {
     const violations = sinkBindingViolations(FIXTURE_REL, SOUND_SINK_FILE, scannedRel);
     if (violations.length > 0) {
       throw new Error(`the sound fixture was rejected: ${violations.join(' | ')}`);
+    }
+  });
+
+  // T4b. The `opts.strings` blanking in stripInertText is genuinely protective —
+  // ablate it and a sink file containing an ordinary message that NAMES the two
+  // identifiers is reported as an R4 violation — but nothing in the suite
+  // exercised it, because neither production sink nor SOUND_SINK_FILE contains
+  // such a string. This is a FALSE-POSITIVE control, and the reason it matters
+  // is line-for-line the reason the ignore-marker was defensible in the first
+  // place: a guard that rejects correct code gets deleted.
+  check('fixture: a string literal naming the sink identifiers is not a violation', () => {
+    const withMessage = SOUND_SINK_FILE.replace(
+      'export class C extends LitElement {',
+      "export const MSG = 'always call renderMarkdown before unsafeHTML';\n" +
+        'export class C extends LitElement {',
+    );
+    const violations = sinkBindingViolations(FIXTURE_REL, withMessage, scannedRel);
+    if (violations.length > 0) {
+      throw new Error(
+        'string blanking regressed — the guard now rejects a correct sink file: ' +
+          violations.join(' | '),
+      );
     }
   });
 
@@ -1817,6 +2218,28 @@ function sinkBinding(): void {
       find: "import { renderMarkdown } from '../../util/markdown.js';",
       replace: "import type { renderMarkdown } from '../../util/markdown.js';",
     },
+    {
+      // V3 again, with two semicolons deleted. Under the old `[^;]` import regex
+      // the semicolon-less import swallowed forward to the NEXT `from '…';` and
+      // blanked the alias with it, so the value alias "the rule that generalises"
+      // was supposed to catch became invisible to R3, R4 and the tree-wide
+      // non-called-position rule simultaneously. Valid TypeScript, by ASI.
+      label: 'V10 value alias swept away by a semicolon-less import statement',
+      find: "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+      replace:
+        "import { unsafeHTML } from 'lit/directives/unsafe-html.js'\n" +
+        'const rawHtml = unsafeHTML',
+    },
+    {
+      // The arity half of T1 at the sink. Nothing is renamed, no binding is
+      // added, no file is added, and the required sink literal
+      // `unsafeHTML(renderMarkdown(` is still present byte-for-byte — so R1-R4,
+      // R6-R9 are all blind to it by construction. R5 is the only rule that can
+      // see it, and only since it started rejecting a top-level comma.
+      label: 'V11 second argument passed to the sanitizer (a configuration channel)',
+      find: '      ${unsafeHTML(renderMarkdown(this.body))}',
+      replace: '      ${unsafeHTML(renderMarkdown(this.body, { inline: true }))}',
+    },
   ];
 
   check('fixture: every known sink-binding evasion is caught', () => {
@@ -1921,12 +2344,13 @@ function sinkBinding(): void {
 // total, so the total is pinned. Update this deliberately when adding or
 // removing a check; never to make a red suite go green.
 //
-// Note for anyone cross-checking this by grep: static and runtime counts no
-// longer agree, and that is expected. There are 60 literal call sites
-// (`grep -cE '^\s+check\('`) but 61 checks at runtime, because the REQUIRED_SINKS
-// checks are emitted from a loop — one call site, one check per required sink.
-// The runtime count is the authoritative one and is what the pin below compares
-// against. Keep this arithmetic up to date: 60 + (REQUIRED_SINKS.length - 1) = 61.
+// Only ONE number below is maintained by hand: the literal count of `check(`
+// call sites, which `grep -cE '^\s+check\('` reproduces exactly. The runtime
+// total is derived from it in code, because the REQUIRED_SINKS checks are
+// emitted from a loop — one call site, one check per required sink — and that
+// arithmetic used to be a prose comment that had to be edited in lockstep with
+// two other places. Adding a third sink now costs one edit (REQUIRED_SINKS)
+// instead of three, and there is no sentence left to drift.
 //
 // Moved 54 -> 59 in the round-4 cleanup: five `check()` calls were added, all of
 // them the `fixture:` ones in sinkBinding(). They assert the guard's own rules
@@ -1940,7 +2364,13 @@ function sinkBinding(): void {
 // is satisfied vacuously by the tree today, so without a table the rule would
 // pass without ever being exercised, which is the same defect as the old
 // static-HTML control.
-const EXPECTED_CHECKS = 61;
+//
+// Moved 61 -> 69 in round 6: two behavioural attribute pins (`action`, `slot`),
+// one URI-policy pin, the two `inputContract` checks (arity and non-string
+// input), and three fixture checks that give the last of the unfixtured rules
+// their positive halves — BANNED_SINKS, the two count pins, and string blanking.
+const EXPECTED_CHECK_CALL_SITES = 68;
+const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 function run(): void {
   formControls();
@@ -1948,13 +2378,18 @@ function run(): void {
   scriptExecution();
   svgSurface();
   ordinaryMarkdown();
+  inputContract();
   taskLists();
   sinkBinding();
 
   if (checks !== EXPECTED_CHECKS) {
     failures.push(
-      `check total pinned: expected ${EXPECTED_CHECKS} checks to run, ${checks} did — ` +
-        'a check was added or silently removed',
+      `check total pinned: expected ${EXPECTED_CHECKS} checks to run ` +
+        `(${EXPECTED_CHECK_CALL_SITES} call sites + ${REQUIRED_SINKS.length - 1} extra from the ` +
+        `REQUIRED_SINKS loop), ${checks} did — either a check() call site was added or silently ` +
+        'removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed ' +
+        'length, in which case the total moves on its own and nothing here needs editing. ' +
+        'Never change either number merely to make a red suite go green.',
     );
   }
 
