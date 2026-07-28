@@ -156,11 +156,37 @@ const purifier = createDOMPurify(window);
 //   * `sinkArgumentIsSanitized` rejects a top-level comma in the sanitizer's own
 //     argument list, so a second argument at either enumerated sink is caught
 //     independently of anything in this file.
-//   * `renderMarkdown.length === 1` covers only SOURCE/ARTIFACT DIVERGENCE — a
-//     stale build, a bundler transform, a re-export from another module. There
-//     is no measured arity SPELLING for which it is the falsifier: a required
-//     second parameter is rejected by `tsc` before the suite runs, and every
-//     form that survives `tsc` leaves `.length` at 1 by definition.
+//   * `renderMarkdown.length === 1`. Its previous description here was measured
+//     FALSE IN BOTH DIRECTIONS and is corrected below; do not restore it.
+//
+//     It said "every form that survives `tsc` leaves `.length` at 1 by
+//     definition", so the assertion had no unique coverage against any spelling.
+//     The real rule is that `Function.length` STOPS COUNTING AT THE FIRST
+//     DEFAULTED-OR-REST PARAMETER — NOT at the first OPTIONAL one. Those pull in
+//     opposite directions, and both leave `.length` off 1:
+//
+//       (...md: string[])            -> 0   defaulted-or-rest, drives it DOWN
+//       (md: string = '')            -> 0   defaulted-or-rest, drives it DOWN
+//       (md, opts?: { … })           -> 2   TypeScript ERASES `?`, so this
+//                                           compiles to a plain two-parameter
+//                                           function and it counts. Drives it UP.
+//       (md, opts = {})              -> 1   the round-6 bypass; still invisible
+//       (md, ...rest: unknown[])     -> 1   likewise
+//
+//     Measured on this tree, all eleven ARITY_EVASIONS compiled and read back:
+//     three of them (C7-j, C7-k, C7-d) drive `.length` off 1. So the assertion is
+//     a falsifier for three of the measured spellings, not zero.
+//
+//     WHAT IT ACTUALLY BUYS, stated so the next reader does not delete it. In the
+//     check as written the declaration scan runs FIRST and throws, so for those
+//     three spellings the scan is what reports. `.length` is therefore reached
+//     only when the scan passed, and it covers two things: SOURCE/ARTIFACT
+//     DIVERGENCE — a stale build, a bundler transform, a re-export from another
+//     module — and, measured by ablation rather than assumed, a BACKSTOP if the
+//     scan is ever weakened. With the declaration scan blinded and both arity
+//     tables emptied, `opts?: T` is caught by `.length === 1` and by nothing
+//     else. The harm the old sentence did is that it told a maintainer the
+//     assertion had no unique coverage, which is an invitation to delete it.
 //
 // Non-string input returns '' instead of throwing. This is DEFENCE IN DEPTH FOR
 // A FUTURE THIRD CALLER, not a fix for a live outage — the previous wording here

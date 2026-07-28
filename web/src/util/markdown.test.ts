@@ -613,17 +613,37 @@ function inputContract(): void {
     );
     if (violation !== null) throw new Error(`src/util/markdown.ts: ${violation}`);
 
-    // SOURCE/ARTIFACT DIVERGENCE ONLY. Every arity spelling that survives `tsc`
-    // leaves this at 1 by definition, so this assertion has no unique coverage
-    // against any measured declaration form — it covers the case where the
-    // compiled function this suite imported is not the one the scan above read.
+    // The sentence that stood here — "every arity spelling that survives `tsc`
+    // leaves this at 1 by definition, so this assertion has no unique coverage"
+    // — was measured FALSE IN BOTH DIRECTIONS. Do not restore it; it is an
+    // invitation to delete the assertion below.
+    //
+    // `Function.length` stops counting at the first DEFAULTED-OR-REST parameter,
+    // not at the first OPTIONAL one, and those move it opposite ways:
+    //   (...md: string[])   -> 0  and  (md = '')       -> 0   (DOWN)
+    //   (md, opts?: { … })  -> 2                              (UP: `tsc` ERASES
+    //                                                          `?`, so the emitted
+    //                                                          function really has
+    //                                                          two parameters)
+    //   (md, opts = {})     -> 1  and  (md, ...r: T[]) -> 1   (invisible here)
+    // Measured over all eleven ARITY_EVASIONS compiled and read back, three
+    // (C7-j, C7-k, C7-d) drive it off 1.
+    //
+    // That does not make this assertion the reporter for those three: the
+    // declaration scan above runs first and throws. What it buys, measured by
+    // ablation rather than assumed — with `renderMarkdownArityViolation` blinded
+    // and both arity tables emptied, `opts?: T` is caught here and nowhere else,
+    // while `opts = {}` under the same ablation stays green. So it is a backstop
+    // for exactly the UP direction, plus source/artifact divergence.
     assertEqual(
       String(renderMarkdown.length),
       '1',
       'the compiled renderMarkdown does not take exactly one argument, even though the ' +
-        'declaration in src/util/markdown.ts does — the artifact this suite imported has ' +
-        'diverged from the source the scan above read (stale build, bundler transform, or a ' +
-        're-export from a different module)',
+        'declaration scan above passed. Either the declaration grew an OPTIONAL parameter ' +
+        '(`opts?: T` is erased by tsc and still counts, pushing .length UP to 2) or a ' +
+        'DEFAULTED-OR-REST one (`md = \'\'`, `...md: string[]` push it DOWN to 0) and the scan ' +
+        'above failed to see it; or the artifact this suite imported has diverged from the ' +
+        'source the scan read (stale build, bundler transform, re-export from another module)',
     );
   });
 
@@ -1591,7 +1611,11 @@ function splitTopLevelParameters(params: string): string[] {
  *
  *   1. `renderMarkdown.length === 1` alone. `Function.length` stops counting at
  *      the first defaulted or rest parameter, so `(md, opts = {})` reports 1.
- *      GREEN at 69 checks.
+ *      GREEN at 69 checks. Note the boundary precisely — it is DEFAULTED-OR-REST,
+ *      not OPTIONAL: `tsc` erases `?`, so `(md, opts?: T)` emits a genuine
+ *      two-parameter function and `.length` reads 2. `.length` is blind to the
+ *      spelling that defeated it and not to the neighbouring one, which is why
+ *      the assertion is kept alongside this scan rather than replaced by it.
  *   2. `/export function renderMarkdown\s*\(([^)]*)\)/.exec(src)` over RAW
  *      BYTES. `.exec` stops at the first match and nothing rejected a second,
  *      and raw bytes include comments and string literals. All three of these

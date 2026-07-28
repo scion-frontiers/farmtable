@@ -38,13 +38,30 @@ with one natural spelling, and the third never had the property claimed for it:
 
 So it was closed from *one* side, and that side was the weakest of the three.
 The correct statement of what pins it now is in `markdown.ts` above
-`renderMarkdown`, and it is narrower on purpose: `renderMarkdown.length === 1`
-covers **source/artifact divergence only** — a stale build, a bundler transform,
-a re-export. There is no measured arity *spelling* for which it is the
-falsifier, because a required second parameter is rejected by `tsc` before the
-suite runs and every form that survives `tsc` leaves `.length` at 1 by
-definition. Keeping it and saying so is worth more than keeping it and implying
-otherwise.
+`renderMarkdown`, and it is narrower on purpose.
+
+> **CORRECTED IN ROUND 8.** The paragraph that stood here said `.length === 1`
+> covers *source/artifact divergence only*, because "every form that survives
+> `tsc` leaves `.length` at 1 by definition". That was measured **false in both
+> directions** and is retained struck-through rather than deleted, because two
+> round-7 review legs falsified this same sentence in *opposite* ways and neither
+> found the other's case.
+>
+> `Function.length` stops at the first **defaulted-or-rest** parameter, not at
+> the first **optional** one. So `(...md: string[])` and `(md = '')` drive it
+> **down to 0**, while `(md, opts?: T)` drives it **up to 2** — `tsc` erases `?`,
+> emitting a real two-parameter function. Measured over all eleven
+> `ARITY_EVASIONS` compiled and read back, three (C7-j, C7-k, C7-d) put `.length`
+> off 1, so the assertion is a falsifier for three measured spellings, not zero.
+>
+> It is not the *reporter* for those three — the declaration scan runs first and
+> throws. Its unique coverage, established by ablation in round 8: with the scan
+> blinded and both arity tables emptied, `opts?: T` is caught by `.length === 1`
+> and by nothing else, while `opts = {}` under the same ablation stays green.
+> Source/artifact divergence plus a backstop for the UP direction.
+
+Keeping it and saying so is worth more than keeping it and implying otherwise —
+but the "saying so" has to be true, and in r7 it was not.
 
 **2. Round 6 landed THREE production changes, not four.** The entry lists four
 under its production heading. The fourth — "**URI policy pinned**" — is a
