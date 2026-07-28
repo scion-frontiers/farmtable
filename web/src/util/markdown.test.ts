@@ -663,8 +663,8 @@ function inputContract(): void {
   // together.
   check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
     const problems: string[] = [
-      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 13),
-      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 8),
+      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 17),
+      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 11),
     ].filter((v): v is string => v !== null);
     for (const { label, replace } of ARITY_EVASIONS) {
       const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
@@ -684,6 +684,30 @@ function inputContract(): void {
         problems.push(`FALSE POSITIVE: ${label} — ${violation}`);
       }
     }
+
+    // THE UNTERMINATED-LIST BRANCH, pinned directly because no table entry can
+    // reach it. Every ARITY_EVASIONS entry is valid TypeScript, and valid
+    // TypeScript always closes the list once the tokenizer is right — which is
+    // the point: this branch only fires when the tokenizer is WRONG, and that is
+    // the failure this pin has had three rounds running. Through round 8 it
+    // returned the file tail instead, and the docblock claimed that made the
+    // caller "report something rather than passing". It did the opposite: the
+    // tail carries the body's unbalanced `(`, so the parameter split never came
+    // back to depth 0, found no top-level comma, and reported ONE parameter.
+    // A source this scan cannot close must fail loudly, so the input here is
+    // deliberately malformed rather than merely unusual.
+    const unclosed = renderMarkdownArityViolation(
+      'export function renderMarkdown(md: string, opts = {}: string {\n  return md;\n}',
+    );
+    if (unclosed === null) {
+      problems.push(
+        'SURVIVED: an unterminated parameter list is not reported — the round-8 fallback ' +
+          'returned the file tail and passed silently',
+      );
+    } else if (!unclosed.includes('not closed')) {
+      problems.push(`unterminated parameter list reported the wrong reason: ${unclosed}`);
+    }
+
     if (problems.length > 0) {
       throw new Error(`the arity pin is broken: ${problems.join(' | ')}`);
     }
@@ -1186,10 +1210,17 @@ function collectSourceFiles(dir: string, out: string[]): void {
  * replacing each character with a space and preserving every newline, so line
  * numbers in failure messages still point at the real source line.
  *
- * Template literals are NOT treated as strings: `html`…`` bodies are live code
- * in this codebase and contain the real sinks. The scanner tracks `${…}`
- * interpolations with a stack so that quotes inside template text (`title="…"`,
- * an apostrophe in prose) are not mistaken for string delimiters.
+ * Template literals are NOT treated as strings BY DEFAULT: `html`…`` bodies are
+ * live code in this codebase and contain the real sinks. The scanner tracks
+ * `${…}` interpolations with a stack so that quotes inside template text
+ * (`title="…"`, an apostrophe in prose) are not mistaken for string delimiters.
+ *
+ * `templateText: true` BLANKS TEMPLATE TEXT AND ONLY TEMPLATE TEXT — the `${…}`
+ * interpolations stay visible, because that is where the sinks live
+ * (`html`<div>${unsafeHTML(renderMarkdown(x))}</div>``). It exists for the
+ * character-level counters; see `literalBlindView`, which is the only caller and
+ * states why. Do not pass it to the name-matching rules: a directive spelled
+ * inside template text is still a spelling those rules must see.
  *
  * REGEX LITERALS ARE TRACKED, and that is not a nicety. The first version of
  * this function did not track them, on the reasoning that misreading one would
@@ -1218,7 +1249,7 @@ function collectSourceFiles(dir: string, out: string[]): void {
  * needs the compiler rather than a scanner. It is the strongest argument in this
  * file for the type-aware-lint follow-up.
  */
-function stripInertText(src: string, opts: { strings: boolean }): string {
+function stripInertText(src: string, opts: { strings: boolean; templateText?: boolean }): string {
   const out = src.split('');
   const blank = (from: number, to: number): void => {
     for (let i = from; i < to && i < out.length; i += 1) {
@@ -1267,7 +1298,11 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
     const c = src[i];
     const d = src[i + 1];
     if (modes[modes.length - 1] === 'template') {
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') {
+        if (opts.templateText === true) blank(i, i + 2);
+        i += 2;
+        continue;
+      }
       if (c === '`') { modes.pop(); i += 1; continue; }
       if (c === '$' && d === '{') { modes.push('code'); braces.push(0); i += 2; continue; }
       if (c === '<' && src.startsWith('<!--', i)) {
@@ -1294,6 +1329,7 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
         i = end + 3;
         continue;
       }
+      if (opts.templateText === true) blank(i, i + 1);
       i += 1;
       continue;
     }
@@ -1347,6 +1383,64 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
     i += 1;
   }
   return out.join('');
+}
+
+/**
+ * THE VIEW EVERY CHARACTER-LEVEL COUNTER IN THIS FILE MUST RUN OVER, and the
+ * reason this is one shared helper rather than five local fixes.
+ *
+ * THE DEFECT, MEASURED THREE ROUNDS RUNNING. `stripInertText` blanks comments,
+ * string contents and regex bodies, and DELIBERATELY PRESERVES template literals
+ * — correctly, because `html`…`` bodies are the real sinks. Every paren/brace/
+ * angle counter in this file then ran over that view counting RAW characters, so
+ * the one construct the view keeps is the one construct that can carry a
+ * structural character the counter must not count. A TypeScript
+ * TEMPLATE-LITERAL TYPE is legal in a parameter position, so this is reachable
+ * from the declaration the arity pin exists to police. Measured on the r8 tree,
+ * against a `markdown.ts` taking a real, usable second parameter that turns
+ * FORBID_TAGS/FORBID_ATTR off:
+ *
+ *   export function renderMarkdown(md: string | `x)y`, opts: {…} = {}): string
+ *     -> GREEN, 78 checks / 123 assertions, `tsc --noEmit` 0, `npm run build` 0
+ *   export function renderMarkdown(md: string | `x(y`, opts: {…} = {}): string
+ *     -> GREEN, 78 checks / 123 assertions, `tsc --noEmit` 0
+ *
+ * and the one-token control — the same declaration with `'x)y'` instead of
+ * `` `x)y` `` — is RED, because string CONTENTS are blanked. The backtick is the
+ * whole exploit.
+ *
+ * THE FIX IS THE CLASS, NOT THE INSTANCE. Only `balancedDeclarationParameterLists`
+ * was exploited, but `splitTopLevelParameters`, `hasTopLevelDefault`,
+ * `callArguments` and `sinkArgumentIsSanitized` all count raw characters over the
+ * same view and all had the same blindness — measured, not assumed: each of the
+ * five has a fixture in this file that moves when its use of this helper is
+ * removed, and those fixtures are named in the mutation table in the round-9
+ * report. Repairing only the exploited counter is how this finding survived
+ * rounds 7 and 8: round 7 fixed `[,=]`, round 8 fixed `[^)]*`, and each fix was
+ * defeated one construct further in by the same reasoning error — A COUNTER THAT
+ * DOES NOT MODEL THE LEXER CANNOT SEE WHAT THE LEXER HIDES.
+ *
+ * WHAT IT DOES: `strings: true` blanks string and regex contents; `templateText:
+ * true` blanks template TEXT while KEEPING `${…}` interpolations, because the
+ * sinks live in interpolations and a counter that skipped them would go blind to
+ * `unsafeHTML(renderMarkdown(x))` — a false negative far worse than the one being
+ * fixed. Comments are blanked unconditionally by `stripInertText`.
+ *
+ * TWO PROPERTIES THE CALLERS RELY ON, stated because they are load-bearing:
+ *
+ *   1. LENGTH AND OFFSETS ARE PRESERVED. Every blanked character is replaced by a
+ *      space (newlines kept), so an index into this view is the same index into
+ *      the original. Callers therefore DECIDE over this view and SLICE from the
+ *      original, which is why failure messages and `dynamicImportSpecifierOffenders`
+ *      still see real literal text.
+ *   2. IT IS IDEMPOTENT. Most callers are handed a view that `stripInertText` has
+ *      already produced; re-running it blanks nothing new. Each counter applies it
+ *      itself anyway, and that redundancy is the point — a counter that is sound
+ *      only when its caller passed the right view is a counter that goes blind at
+ *      the next call site somebody adds.
+ */
+function literalBlindView(code: string): string {
+  return stripInertText(code, { strings: true, templateText: true });
 }
 
 /**
@@ -1584,6 +1678,73 @@ const ARITY_EVASIONS: { label: string; replace: string }[] = [
       'export function renderMarkdown(md: (x: string) => string, ' +
       'opts: { inline?: boolean } = {}): string {',
   },
+  // ── The four entries below are the round-9 class fixture. ──────────────────
+  //
+  // Round 7 closed `[^)]*`. Round 8 closed the parenthesised TYPE. Both times
+  // the repair was made at the one spelling that had been demonstrated, and
+  // both times the next round found another spelling of the same bug: the
+  // structural scanners counted raw characters over a view in which literals
+  // are still visible. C7-n and C7-o were LIVE at HEAD `3f6a695`: green at 78
+  // checks / 123 assertions with `tsc --noEmit` and `npm run build` both exit
+  // 0, against an implementation taking a real, usable second parameter.
+  //
+  // A TypeScript TEMPLATE-LITERAL TYPE is legal in parameter position and
+  // `stripInertText(src, { strings: true })` deliberately preserves template
+  // bodies, because the html`` sinks live in them. So the paren inside the
+  // template reached the counter as a structural character. Both
+  // declaration-side halves go blind at once, because the second parameter is
+  // defaulted and `Function.length` therefore still reports 1.
+  //
+  // The fix is `literalBlindView`, shared by all five structural scanners. The
+  // four entries here exist to make a per-spelling repair insufficient: n and o
+  // are the two directions of the same miscount, p re-spells n so that a fix
+  // keyed on the union syntax cannot pass, and q is the CROSS-AXIS control.
+  {
+    label: 'C7-n a template-literal type containing a close paren (truncate)',
+    replace:
+      'export function renderMarkdown(md: string | `)`, ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
+  {
+    // The other direction: an unbalanced `(` leaves the list unterminated, so
+    // the r8 scanner returned the whole file tail, never came back to depth 0,
+    // found no top-level comma and reported exactly one parameter. Truncate and
+    // swallow are separate entries because a repair can close one and not the
+    // other — clamping depth at 0 fixes n and leaves o wide open.
+    label: 'C7-o a template-literal type containing an open paren (swallow)',
+    replace:
+      'export function renderMarkdown(md: string | `(`, ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
+  {
+    // The same payload in a function-type position rather than a union. Kept
+    // separate for the reason C7-m is kept separate from C7-l: the shape of the
+    // surrounding type must not be what the rule keys on.
+    label: 'C7-p a function-type whose return type is a template containing a close paren',
+    replace:
+      'export function renderMarkdown(md: (x: string) => string | `)`, ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
+  {
+    // CROSS-AXIS CONTROL, and the only unique fixture coverage the
+    // string-blanking half of `literalBlindView` has.
+    //
+    // This is the same payload in a plain string-literal type. It must be
+    // rejected too, but for a DIFFERENT reason: string contents were already
+    // blanked before round 9, so this one never truncated and the rule caught
+    // it as a plain two-parameter declaration all along. Its value is what it
+    // does under mutation. Turn `strings` off in `literalBlindView` and this
+    // entry — and only this entry — survives; turn `templateText` off and n, o
+    // and p survive and this one does not. That is what separates the two
+    // halves of the helper, and it is why test-195-r8's T-3 (the string-
+    // blanking half had zero unique fixture coverage, being masked by the
+    // `decls.length !== 1` rule) is closed by this entry: it is a SINGLE
+    // declaration, so the count rule cannot reach it.
+    label: 'C7-q a string-literal type containing a close paren (cross-axis mirror)',
+    replace:
+      'export function renderMarkdown(md: string | ")", ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
 ];
 
 /**
@@ -1639,6 +1800,33 @@ const ARITY_LEGITIMATE: { label: string; replace: string }[] = [
     label: 'a generic function-typed sole parameter',
     replace: 'export function renderMarkdown(md: <T>(x: T) => T): string {',
   },
+  // THE FALSE-POSITIVE MIRRORS OF C7-n/o/p, one per structural scanner that
+  // `literalBlindView` feeds. A bypass fixture and its mirror have to move
+  // together or the next round closes one by breaking the other — the fix
+  // "blank template bodies" would pass C7-n while turning every one of these
+  // three legitimate declarations red. Each is a SINGLE parameter whose type
+  // happens to spell a structural character inside a template literal:
+  //
+  //   `a(b)`  balanced parens          -> balancedDeclarationParameterLists
+  //   `a,b`   a comma at depth 0       -> splitTopLevelParameters
+  //   `a=b`   an equals sign at depth 0 -> hasTopLevelDefault
+  //
+  // The last two were live FALSE POSITIVES at HEAD `3f6a695`; the first was
+  // not, because balanced parens do not move the boundary. It is here so the
+  // three scanners are covered symmetrically rather than only where a failure
+  // had already been demonstrated.
+  {
+    label: 'a template-literal type containing balanced parens',
+    replace: 'export function renderMarkdown(md: string | `a(b)`): string {',
+  },
+  {
+    label: 'a template-literal type containing a comma',
+    replace: 'export function renderMarkdown(md: string | `a,b`): string {',
+  },
+  {
+    label: 'a template-literal type containing an equals sign',
+    replace: 'export function renderMarkdown(md: string | `a=b`): string {',
+  },
 ];
 
 /**
@@ -1647,12 +1835,19 @@ const ARITY_LEGITIMATE: { label: string; replace: string }[] = [
  * a default value, not to a second parameter: `md: Record<string, string>` is
  * one parameter. A trailing empty segment is dropped, because prettier's default
  * `trailingComma: "all"` emits one for a multi-line list.
+ *
+ * Depth is counted over `literalBlindView`, so a bracket or a comma inside a
+ * string, regex or TEMPLATE-LITERAL type is not counted — `` md: `a,b` `` is one
+ * parameter, and before round 9 it was reported as two. The segments themselves
+ * are sliced from the ORIGINAL text, so the caller's message quotes real source.
  */
 function splitTopLevelParameters(params: string): string[] {
+  const scan = literalBlindView(params);
   const out: string[] = [];
   let depth = 0;
   let current = '';
-  for (const c of params) {
+  for (let i = 0; i < params.length; i += 1) {
+    const c = scan[i];
     if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
     else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
     if (c === ',' && depth === 0) {
@@ -1660,7 +1855,7 @@ function splitTopLevelParameters(params: string): string[] {
       current = '';
       continue;
     }
-    current += c;
+    current += params[i];
   }
   out.push(current);
   return out.map((p) => p.trim()).filter((p) => p !== '');
@@ -1693,29 +1888,54 @@ function splitTopLevelParameters(params: string): string[] {
  * Counting depth is the whole point, as in `callArguments`. Everything after the
  * matched name is scanned to the parenthesis that closes the list, so a `)`
  * inside a function type, a tuple or a parenthesised union no longer truncates
- * it. An UNTERMINATED list is not silently skipped — it is returned as-is, so
- * `splitTopLevelParameters` sees the whole tail and the caller reports something
- * rather than passing.
+ * it.
+ *
+ * DEPTH IS COUNTED OVER `literalBlindView`, NOT OVER RAW CHARACTERS. That is the
+ * round-9 repair, and it is the third round in a row this scan has been defeated:
+ * a `)` or a `(` inside a TEMPLATE-LITERAL TYPE — a construct `stripInertText`
+ * preserves on purpose — truncated or swallowed the list on the r8 tree with all
+ * three gates green. C7-n/C7-o/C7-p/C7-q pin it. See `literalBlindView`.
+ *
+ * AN UNTERMINATED LIST IS A VIOLATION, NOT A RETURNED TAIL. Through round 8 the
+ * tail was returned with the docblock claiming that made the caller "report
+ * something rather than passing". THAT SENTENCE WAS MEASURED FALSE and was the
+ * second half of the round-8 bypass: the tail contains the function body's
+ * unbalanced `(`, so `splitTopLevelParameters` never returned to depth 0, found
+ * no top-level comma, and reported exactly ONE parameter — a silent pass. The
+ * flag below is reported by `renderMarkdownArityViolation` before anything else,
+ * so a list this scan cannot close now fails safe. It is unreachable from valid
+ * TypeScript with a correct tokenizer, which is exactly why it must fail loudly:
+ * reaching it means the tokenizer is wrong, and that is the failure mode this
+ * scan has had three times.
  */
-function balancedDeclarationParameterLists(code: string): string[] {
+interface DeclarationParameterLists {
+  /** The parameter text of each declaration found, in source order. */
+  lists: string[];
+  /** True if a declaration's parameter list never closed in the scanned view. */
+  unterminated: boolean;
+}
+
+function balancedDeclarationParameterLists(code: string): DeclarationParameterLists {
+  const scan = literalBlindView(code);
   const out: string[] = [];
   const re = /export function renderMarkdown\s*\(/g;
-  let m: RegExpExecArray | null = re.exec(code);
+  let m: RegExpExecArray | null = re.exec(scan);
   while (m !== null) {
     let depth = 1;
     let i = m.index + m[0].length;
     const start = i;
-    while (i < code.length && depth > 0) {
-      const c = code[i];
+    while (i < scan.length && depth > 0) {
+      const c = scan[i];
       if (c === '(') depth += 1;
       else if (c === ')') depth -= 1;
       i += 1;
     }
-    out.push(code.slice(start, depth === 0 ? i - 1 : code.length));
+    if (depth !== 0) return { lists: out, unterminated: true };
+    out.push(code.slice(start, i - 1));
     re.lastIndex = i;
-    m = re.exec(code);
+    m = re.exec(scan);
   }
-  return out;
+  return { lists: out, unterminated: false };
 }
 
 /**
@@ -1760,9 +1980,11 @@ function balancedDeclarationParameterLists(code: string): string[] {
  * So the rule is stated in three parts, each of which is a separate way for the
  * previous versions to have been wrong:
  *
- *   A. run over `stripInertText(src, { strings: true })`, the same derived view
- *      every other source scan in this file uses (see "Source views" below).
- *      Comments and string literals cannot shadow the real declaration.
+ *   A. run over `literalBlindView(src)` — `stripInertText` with string contents
+ *      AND template TEXT blanked. Comments, string literals and template-literal
+ *      types cannot shadow the real declaration or hide a paren from the counter.
+ *      The plain `{ strings: true }` view was not enough, and that is round 9's
+ *      finding: see `literalBlindView`.
  *   B. `matchAll`, and EXACTLY ONE match is permitted. An overload signature is
  *      a second declaration, and an overload set whose implementation widens the
  *      arity is precisely the configuration channel this pin exists to deny.
@@ -1792,9 +2014,18 @@ function balancedDeclarationParameterLists(code: string): string[] {
  * correct code gets deleted.
  */
 function renderMarkdownArityViolation(src: string): string | null {
-  const code = stripInertText(src, { strings: true });
-  const decls = balancedDeclarationParameterLists(code);
+  const code = literalBlindView(src);
+  const { lists: decls, unterminated } = balancedDeclarationParameterLists(code);
 
+  if (unterminated) {
+    return (
+      "renderMarkdown's parameter list is not closed in the scanned view. Either the source " +
+      'is malformed, or the tokenizer this scan runs over has misread a literal — which is ' +
+      'the failure mode that defeated this pin in rounds 7, 8 and 9. It reports rather than ' +
+      'returning the file tail, because returning the tail made the parameter count read 1 ' +
+      'and pass silently'
+    );
+  }
   if (decls.length === 0) {
     return (
       'could not find an `export function renderMarkdown(…)` declaration. Either it was ' +
@@ -1849,6 +2080,12 @@ function renderMarkdownArityViolation(src: string): string | null {
  * `splitTopLevelParams` helper above, while returning a boolean. That is the
  * kind of mismatch that gets a call site written as a destructuring assignment.
  *
+ * Depth AND the `=` itself are read from `literalBlindView`, so an `=` inside a
+ * string, regex or TEMPLATE-LITERAL type is not a default: `` md: `a=b` `` was
+ * reported as defaulted before round 9, which is a FALSE POSITIVE on correct
+ * code, and a guard that rejects correct code gets deleted. It is pinned in
+ * ARITY_LEGITIMATE.
+ *
  * `=>` IS NOT A DEFAULT. Skipping it is not cosmetic: the arrow's `=` sits at
  * depth 0 once the parameter list closes, so through round 7 a function-typed
  * sole parameter was reported as having a default. Measured on the round-7
@@ -1868,17 +2105,18 @@ function renderMarkdownArityViolation(src: string): string | null {
  * appears, having been the one shape that table did not cover.
  */
 function hasTopLevelDefault(param: string): boolean {
+  const scan = literalBlindView(param);
   let depth = 0;
-  for (let i = 0; i < param.length; i += 1) {
-    const c = param[i];
+  for (let i = 0; i < scan.length; i += 1) {
+    const c = scan[i];
     if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
     else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
     else if (
       c === '=' &&
       depth === 0 &&
-      param[i + 1] !== '=' &&
-      param[i + 1] !== '>' &&
-      param[i - 1] !== '='
+      scan[i + 1] !== '=' &&
+      scan[i + 1] !== '>' &&
+      scan[i - 1] !== '='
     ) {
       return true;
     }
@@ -1892,8 +2130,23 @@ function hasTopLevelDefault(param: string): boolean {
  * A regex cannot do this: `unsafeHTML(renderMarkdown(c.body) + c.body)` and
  * `unsafeHTML(renderMarkdown(c.body))` share every prefix a regex would test.
  * Counting parens is the whole point — see `sinkArgumentIsSanitized`.
+ *
+ * Parens are counted over `literalBlindView` and the argument text is SLICED
+ * FROM THE ORIGINAL, so a paren inside a string or a template no longer moves
+ * the boundary while `dynamicImportSpecifierOffenders` still sees the real
+ * specifier characters it has to classify. Before round 9 a `)` inside a
+ * template in the sanitizer's own argument list truncated the captured argument;
+ * R5 then rejected it as "not a bare call", which is the right verdict for the
+ * wrong reason — see the note above `sinkArgumentIsSanitized` about the second
+ * layer, and V11f.
+ *
+ * THE NAME MATCH DELIBERATELY STAYS ON THE ORIGINAL `code`, not on the blinded
+ * view. Blinding is for COUNTING; a call spelled inside template text is still a
+ * call this scan must find, and matching over the blinded view would silently
+ * narrow what the tree-wide sink scan looks at. Only the boundary moved.
  */
 function callArguments(code: string, name: string): string[] {
+  const scan = literalBlindView(code);
   const args: string[] = [];
   const re = new RegExp(`\\b${name}\\s*\\(`, 'g');
   let m: RegExpExecArray | null;
@@ -1901,9 +2154,9 @@ function callArguments(code: string, name: string): string[] {
     const start = m.index + m[0].length;
     let depth = 1;
     let i = start;
-    while (i < code.length && depth > 0) {
-      if (code[i] === '(') depth += 1;
-      else if (code[i] === ')') depth -= 1;
+    while (i < scan.length && depth > 0) {
+      if (scan[i] === '(') depth += 1;
+      else if (scan[i] === ')') depth -= 1;
       i += 1;
     }
     args.push(depth === 0 ? code.slice(start, i - 1) : code.slice(start));
@@ -1936,9 +2189,35 @@ function callArguments(code: string, name: string): string[] {
  * comma is therefore rejected. Commas nested inside `(`, `[` or `{` are fine, so
  * `renderMarkdown(fmt(a, b))` still passes; only the sanitizer's OWN argument
  * list is constrained, which is where a configuration channel would be opened.
+ *
+ * ── THIS IS THE SECOND LAYER OF THE ARITY PIN. DO NOT RELAX IT. ──
+ *
+ * The round-9 finding — a template-literal type in `renderMarkdown`'s parameter
+ * list defeating BOTH declaration-side halves at once (the paren counter and
+ * `Function.length`, the latter because the added parameter is defaulted) — was
+ * rated HIGH rather than Critical for exactly one reason: this function still
+ * rejected the resulting call at the sink, so a configuration channel could be
+ * declared but not reached from either enumerated sink.
+ *
+ * THAT DEFENCE WAS INCIDENTAL. Nobody designed it, documented it or pinned it;
+ * it fell out of the trailing-text arm below rejecting the truncated capture as
+ * "not a bare call". An innocent refactor would have deleted it with every test
+ * green and turned that finding Critical in silence. It is pinned now, by V11f
+ * and V11g in SINK_EVASIONS, with SINK_CALL_LEGITIMATE as the false-positive
+ * mirror that stops the pin from being satisfied by rejecting everything.
+ *
+ * If you weaken this function, the round-9 severity has to be re-rated in the
+ * same commit. Say so in the message.
+ *
+ * Structural characters are read from `literalBlindView(t)` so that a bracket
+ * or comma spelled inside a literal cannot move the boundary. The TRAILING-TEXT
+ * arm deliberately reads the ORIGINAL `t`: blinding replaces literal text with
+ * spaces, so `t.slice(i).trim()` over the blinded view would treat a trailing
+ * template as empty and accept `renderMarkdown(x)` followed by junk.
  */
 function sinkArgumentIsSanitized(arg: string): boolean {
   const t = arg.trim();
+  const scan = literalBlindView(t);
   const head = /^renderMarkdown\s*\(/.exec(t);
   if (!head) return false;
   let nesting = 0;
@@ -1946,7 +2225,7 @@ function sinkArgumentIsSanitized(arg: string): boolean {
   let closed = false;
   let i = head[0].length;
   for (; i < t.length; i += 1) {
-    const c = t[i];
+    const c = scan[i];
     if (c === '(' || c === '[' || c === '{') nesting += 1;
     else if (c === ']' || c === '}') nesting -= 1;
     else if (c === ',' && nesting === 0) extraArgument = true;
