@@ -1176,11 +1176,38 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
  * specifier is quoted, so a destructuring rename off a dynamic import is not
  * blanked; its `unsafeHTML` sits before the `import` keyword and survives
  * regardless.
+ *
+ * `(?!\s*\.)` IS THE SAME DEFECT AGAIN, ONE KEYWORD FURTHER ALONG. Making the
+ * terminator optional fixed the case where an import swallowed the next
+ * statement, but `import` is not only a statement keyword: `import.meta` is an
+ * EXPRESSION, it is legal mid-file, it does not need a semicolon, and it has no
+ * specifier of its own for `[^;'"]` to stop against. So a match starting at the
+ * `import` of `import.meta` runs forward to the NEXT statement's `from '…'` and
+ * blanks everything in between — which is exactly the swallow this function
+ * claims to have closed, re-entered through a token the fix did not consider:
+ *
+ *   const dev = import.meta.env.DEV          <- no semicolon, no specifier
+ *   export const rawHtml = unsafeHTML        <- swept away
+ *   export { css as _css } from 'lit';       <- swept to here
+ *
+ * That was green at 69 checks with `tsc` clean, in a NON-SINK file that then
+ * re-exported the raw directive into a sink file. Measured both ways: deleting
+ * only the `import.meta` line from the identical laundering block turns it red,
+ * so `import.meta` is what does the work rather than the block's shape. The
+ * negative lookahead makes this function treat `import` as a statement keyword
+ * only, which is what its name claims. `import.meta` then survives into the
+ * scanned view, where it is inert — no rule here matches it.
+ *
+ * The general lesson, since this is the third instance: every token this
+ * function keys on must be checked against the OTHER grammatical productions
+ * that token appears in, not only against the one being parsed. `import` has
+ * three (statement, `import(…)` expression, `import.meta` expression) and this
+ * function now names all three.
  */
 function stripImportStatements(code: string): string {
   const wipe = (m: string): string => m.replace(/[^\n]/g, ' ');
   return code
-    .replace(/\bimport\b[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
+    .replace(/\bimport\b(?!\s*\.)[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
     .replace(/\bimport\s*(['"])[^'"]*\1\s*;?/g, wipe);
 }
 
@@ -2208,6 +2235,15 @@ function sinkBinding(): void {
     'const node = document.createElement("div");',
     'el.textContent = body;',
     'if (el.innerHTML === previous) return;',
+    // The mirror of the F1/R2 positive below: `import.meta` is ordinary Vite
+    // source and must stay accepted. The negative lookahead added to
+    // `stripImportStatements` makes the `import` of `import.meta` stop starting
+    // a statement match; this pins that it did not also stop the REAL import on
+    // the next line from being blanked, which is what would turn a correct file
+    // red by leaving `unsafeHTML` visible outside called position.
+    'const dev = import.meta.env.DEV\n' +
+      "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\n" +
+      'const t = html`${unsafeHTML(renderMarkdown(this.body))}`;',
   ];
 
   check('fixture: legitimate source does not trip the raw-directive tripwire', () => {
@@ -2270,6 +2306,17 @@ function sinkBinding(): void {
     // T2: an unterminated `<!--` inside a lit template must not blank the rest of
     // the file. This compiles clean, so `tsc` is not a second gate on it.
     'const t = html`<!-- forgot to close this\n${x}`;\nconst raw = unsafeHTML;',
+    // F1/R2: the V10 shape again, re-entered through `import.meta`. The alias is
+    // BETWEEN an `import.meta` expression and a later `from '…'` clause, so the
+    // pre-fix `stripImportStatements` blanked it as if it were part of an import
+    // statement. Compiles clean; was green at 69 checks in a non-sink file that
+    // then re-exported the directive into a sink. The missing semicolons are
+    // load-bearing, not sloppiness: `[^;'"]` stops at a semicolon, so the
+    // swallow only reaches the alias while the `import.meta` line and the alias
+    // line both end without one.
+    'const dev = import.meta.env.DEV\n' +
+      'const rawHtml = unsafeHTML\n' +
+      "export { css as _css } from 'lit';",
   ];
 
   check('fixture: every known indirection form is caught by the tripwire', () => {
