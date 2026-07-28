@@ -43,7 +43,33 @@ import (
 // an empty config, so treating empty as "accept anything" would make the
 // deployment that pushes our own labels the one deployment that also honours
 // everyone else's.
+// THE SECOND REQUIREMENT, added in #194 round 9 (MUST 5) on an explicit
+// product ruling: github.labels.enabled=false removes lifecycle-label AUTHORITY
+// entirely, not merely lifecycle-label WRITES. TerminalLabelStage and
+// AllTerminalLabelStages already say exactly that in their guards —
+// "scanning anyway would make a disabled mapper start honouring labels it is
+// configured to ignore" — and this function was the one out of step with them,
+// not the other way around.
+//
+// STATED HONESTLY: this guard is UNOBSERVABLE through any production path
+// today, and the round-9 report records that rather than claiming a kill. Every
+// caller that can reach a privilege decision already short-circuits on
+// !m.enabled before getting here — StageLabelSwap, PriorityLabelSwap,
+// TypeLabelSwap, TerminalLabelStage, AllTerminalLabelStages — and the one
+// caller that does not, assertStageWriteAllowed, is handed empty label lists by
+// those same short-circuits whenever the toggle is off. MEASURED: adding the
+// guard changed no existing test.
+//
+// It is here because "correct only because every caller remembers to check
+// first" is the state-dependent correctness this workstream exists to remove:
+// the next caller added to this function inherits the rule instead of having to
+// know it. TestAuthorizationStage_IsSilentWhenLabelMappingIsOff is what makes
+// the rule enforced rather than merely stated — deleting the guard turns that
+// test red and nothing else.
 func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
+	if !m.enabled {
+		return "", false
+	}
 	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), m.matchPrefix()) {
 		return "", false
 	}

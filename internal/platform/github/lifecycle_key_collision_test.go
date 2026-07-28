@@ -77,6 +77,41 @@ func TestValidate_RejectsAPrioritiesOrTypesKeyThatCapturesALifecycleLabel(t *tes
 			},
 			wantInText: "acme:stage/duplicate",
 		},
+		{
+			// #194 round 9, MUST 5 (review R4 / audit M-1). The capture does
+			// not need to be spelled as a stage NAME. An operator's own
+			// `stages` alias makes "shipped" an authoritative lifecycle
+			// spelling — authorizationStage honours ft:shipped — so a types
+			// key of "shipped" captures it exactly as "completed" would.
+			// Before this round `owned` was built from StageToLabel alone and
+			// this config loaded clean.
+			name: "types key is the operator's own stage alias",
+			mutate: func(c *LabelConfig) {
+				c.Stages = map[string]string{"shipped": "completed"}
+				c.Types = map[string]string{"shipped": "chore"}
+			},
+			wantInText: "shipped",
+		},
+		{
+			name: "priorities key is the operator's own stage alias",
+			mutate: func(c *LabelConfig) {
+				c.Stages = map[string]string{"shipped": "completed"}
+				c.Priorities = map[string]string{"shipped": "high"}
+			},
+			wantInText: "shipped",
+		},
+		{
+			// A stages entry that REMAPS one lifecycle spelling onto another
+			// stage is legitimate on its own (see the control below), but it
+			// does not stop the key being a lifecycle label — so pairing it
+			// with a types key of the same name is still a capture.
+			name: "types key matches a remapped stage spelling",
+			mutate: func(c *LabelConfig) {
+				c.Stages = map[string]string{"completed": "wont_fix"}
+				c.Types = map[string]string{"completed": "chore"}
+			},
+			wantInText: "completed",
+		},
 	}
 
 	for _, row := range rows {
@@ -164,6 +199,43 @@ func TestValidate_StillAcceptsLegitimateConfigs(t *testing.T) {
 			},
 		},
 		{
+			// #194 round 9, MUST 5 (test review F-4). An EMPTY key claims
+			// nothing. Before this round, at enabled=false StageToLabel
+			// returned "" for every stage, `owned` collapsed onto one empty
+			// key, and this config was rejected with a fabricated error naming
+			// stage "cancelled" — the last of the ten to win the collapsed key,
+			// and a stage the operator never mentioned.
+			"an empty types key",
+			func(c *LabelConfig) { c.Types = map[string]string{"": "chore"} },
+		},
+		{
+			// stripForMatch trims, so a whitespace-only key normalises to ""
+			// as well and must be treated the same way.
+			"a whitespace-only priorities key",
+			func(c *LabelConfig) { c.Priorities = map[string]string{"   ": "high"} },
+		},
+		{
+			// The same on both sides. Neither claims anything, so neither
+			// captures the other.
+			"empty keys in the stages and types tables at once",
+			func(c *LabelConfig) {
+				c.Stages = map[string]string{"": "completed"}
+				c.Types = map[string]string{"": "chore"}
+			},
+		},
+		{
+			// A stages alias is a capture only when a priorities or types key
+			// names the SAME thing. On its own it is the documented use of the
+			// table and must keep loading, or MUST 5's widening would have
+			// broken every deployment that uses stage aliases at all.
+			"a stage alias with unrelated priorities and types",
+			func(c *LabelConfig) {
+				c.Stages = map[string]string{"shipped": "completed"}
+				c.Types = map[string]string{"enhancement": "feature"}
+				c.Priorities = map[string]string{"p0": "urgent"}
+			},
+		},
+		{
 			// A type whose name merely CONTAINS a stage word is fine; only an
 			// exact normalised match captures the label.
 			"type names that resemble a stage without matching it",
@@ -185,6 +257,185 @@ func TestValidate_StillAcceptsLegitimateConfigs(t *testing.T) {
 				t.Fatalf("CONTROL BROKEN: Validate() rejected a legitimate config: %v", err)
 			}
 		})
+	}
+}
+
+// TestValidate_LifecycleKeyCollisionIgnoresTheEnabledToggle is the round-9
+// ruling stated as an assertion (#194 r9, MUST 5).
+//
+// The two halves of that ruling resolve in OPPOSITE directions and getting them
+// backwards is the main risk, so both are pinned, in different files. RUNTIME
+// AUTHORITY respects github.labels.enabled — TestAuthorizationStage_IsSilentWhen
+// LabelMappingIsOff. CONFIG VALIDATION does not, which is this test: config
+// correctness must not depend on a toggle that could flip later without anyone
+// re-validating. "It is fine because the feature happens to be off today" is
+// state-dependent correctness, and an operator who flips enabled to true does
+// not re-run Validate against the config they wrote a year ago.
+//
+// It compares the two toggle settings against EACH OTHER rather than against a
+// literal verdict per row. A row that hardcoded "want: rejected" would re-state
+// the rule it is checking; comparing the two settings has no such shared source,
+// and any future code that consults m.enabled from this path makes them differ.
+func TestValidate_LifecycleKeyCollisionIgnoresTheEnabledToggle(t *testing.T) {
+	rows := []struct {
+		name   string
+		mutate func(*LabelConfig)
+	}{
+		{"ordinary priorities and types", func(c *LabelConfig) {
+			c.Priorities = map[string]string{"p0": "urgent"}
+			c.Types = map[string]string{"enhancement": "feature"}
+		}},
+		{"a types key that is a bare stage name", func(c *LabelConfig) {
+			c.Types = map[string]string{"duplicate": "chore"}
+		}},
+		{"a priorities key that is a bare stage name", func(c *LabelConfig) {
+			c.Priorities = map[string]string{"completed": "high"}
+		}},
+		{"a types key that is the operator's stage alias", func(c *LabelConfig) {
+			c.Stages = map[string]string{"shipped": "completed"}
+			c.Types = map[string]string{"shipped": "chore"}
+		}},
+		{"an empty types key", func(c *LabelConfig) {
+			c.Types = map[string]string{"": "chore"}
+		}},
+		{"a stage alias with no colliding key", func(c *LabelConfig) {
+			c.Stages = map[string]string{"shipped": "completed"}
+			c.Types = map[string]string{"other": "chore"}
+		}},
+	}
+
+	// A row that agreed because BOTH settings accept everything would prove
+	// nothing, so at least one row has to be a rejection under both.
+	rejections := 0
+
+	for _, row := range rows {
+		t.Run(row.name, func(t *testing.T) {
+			verdict := func(enabled bool) error {
+				cfg := DefaultConfig()
+				cfg.GitHub.Labels.Enabled = enabled
+				row.mutate(&cfg.GitHub.Labels)
+				return cfg.Validate()
+			}
+			on, off := verdict(true), verdict(false)
+
+			switch {
+			case (on == nil) != (off == nil):
+				t.Fatalf("github.labels.enabled changed the verdict.\n"+
+					"  enabled=true  -> %v\n  enabled=false -> %v\n\n"+
+					"Config validation must not depend on the toggle. An operator who flips "+
+					"enabled to true later does not re-run Validate, so a config accepted "+
+					"while the feature was off becomes a live capture the moment it is "+
+					"switched on.", on, off)
+			case on != nil && on.Error() != off.Error():
+				t.Fatalf("both settings reject but with DIFFERENT diagnostics, so one of them "+
+					"is describing a config the operator did not write.\n"+
+					"  enabled=true  -> %v\n  enabled=false -> %v", on, off)
+			}
+			if on != nil {
+				rejections++
+			}
+		})
+	}
+
+	if rejections == 0 {
+		t.Fatal("VACUOUS: no row was rejected under either setting, so the rows agree only " +
+			"because nothing was checked")
+	}
+}
+
+// TestLifecycleKeyCollision_AStageAliasIsAlsoALifecycleLabel measures the HARM
+// behind the round-9 widening, for the same reason
+// TestLifecycleKeyCollision_IsTheHarmTheCheckClaims does below: a validation
+// rule justified only by its own error message is a rule nobody can check.
+//
+// The widened check refuses `stages: {shipped: completed}` next to
+// `types: {shipped: chore}`, and that config loaded clean before round 9. This
+// shows what it bought.
+func TestLifecycleKeyCollision_AStageAliasIsAlsoALifecycleLabel(t *testing.T) {
+	labels := DefaultConfig().GitHub.Labels
+	labels.Stages = map[string]string{"shipped": "completed"}
+	labels.Types = map[string]string{"shipped": "chore"}
+
+	rejected := DefaultConfig()
+	rejected.GitHub.Labels = labels
+	if err := rejected.Validate(); err == nil {
+		t.Fatal("PREREQUISITE BROKEN: this is supposed to be the rejected config")
+	}
+
+	m := NewLabelMapper(labels)
+
+	// The alias really is authoritative: this is what makes deleting it a
+	// privilege change rather than label hygiene.
+	if stage, ours := m.authorizationStage("ft:shipped"); !ours || stage != task.StageCompleted {
+		t.Fatalf("authorizationStage(ft:shipped) = (%q, %v), want (completed, true). "+
+			"If the alias is not authoritative then destroying it is not a lifecycle move "+
+			"and this whole row is misfiled", stage, ours)
+	}
+
+	// And a plain type change destroys it.
+	_, remove := m.TypeLabelSwap([]string{"ft:shipped", "bug"}, "chore")
+	if !containsString(remove, "ft:shipped") {
+		t.Fatalf("remove = %v: a type change was supposed to delete the aliased lifecycle "+
+			"label. If it no longer does, the widening needs re-justifying rather than "+
+			"just re-running", remove)
+	}
+}
+
+// TestLifecycleKeyCollision_DiagnosticNamesTheDeploymentsOwnStage pins what the
+// round-9 merge could have got wrong quietly.
+//
+// `owned` is now built from two sources and a key can be claimed by both.
+// `stages: {completed: wont_fix}` is such a key: the WRITE side calls it
+// completed (that is the label this deployment stamps) and the READ side calls
+// it wont_fix (that is what the operator's alias remaps it to). The merge
+// inserts the write side first and refuses to overwrite, so the operator is
+// told about the label their deployment actually writes.
+//
+// TWO CLAIMS, and only one of them is load-bearing today — said plainly because
+// reporting a green control as a kill is how this project has produced fourteen
+// confidently wrong harnesses:
+//
+//   - WHICH stage is named. This one bites: drop the "do not overwrite" rule
+//     and the diagnostic starts naming wont_fix, a stage that is not what
+//     ft:stage/completed means to this deployment.
+//   - THAT it is the same on every run. This one is a GREEN CONTROL. Map keys
+//     are unique within each source and the merge is order-independent either
+//     way, so no iteration order can change the answer. It is here because
+//     round 6 shipped exactly that defect once (500 mappers, one unchanged
+//     config, two different authorization answers at 60/440) and the second
+//     source added here is a map.
+func TestLifecycleKeyCollision_DiagnosticNamesTheDeploymentsOwnStage(t *testing.T) {
+	labels := DefaultConfig().GitHub.Labels
+	labels.Stages = map[string]string{"completed": "wont_fix"}
+	labels.Types = map[string]string{"completed": "chore"}
+
+	seen := make(map[string]int)
+	for i := 0; i < 200; i++ {
+		cfg := DefaultConfig()
+		cfg.GitHub.Labels = labels
+		err := cfg.Validate()
+		if err == nil {
+			t.Fatal("PREREQUISITE BROKEN: this config is supposed to be rejected")
+		}
+		seen[err.Error()]++
+	}
+	if len(seen) != 1 {
+		t.Fatalf("200 runs of one unchanged config produced %d distinct diagnostics: %v\n\n"+
+			"An operator re-running the command must not be told a different stage each "+
+			"time. Insert the StageToLabel-derived keys first and do not let the "+
+			"labelToStage pass overwrite them.", len(seen), seen)
+	}
+
+	var only string
+	for msg := range seen {
+		only = msg
+	}
+	if !strings.Contains(only, `lifecycle label "ft:stage/completed" (stage "completed")`) {
+		t.Fatalf("diagnostic names the wrong side of the collision:\n  %s\n\n"+
+			"The key ft:stage/completed is what THIS DEPLOYMENT writes for stage completed, "+
+			"and that is the label the operator's types key destroys. Naming wont_fix — what "+
+			"their stages alias remaps the spelling to — sends them to the wrong YAML line.",
+			only)
 	}
 }
 

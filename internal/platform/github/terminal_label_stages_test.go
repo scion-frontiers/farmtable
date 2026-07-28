@@ -148,3 +148,41 @@ func TestAllTerminalLabelStages_IsSilentWhenLabelMappingIsOff(t *testing.T) {
 			"which is total on a zero-value store", got)
 	}
 }
+
+// TestAuthorizationStage_IsSilentWhenLabelMappingIsOff pins the round-9 ruling
+// (MUST 5) at the level it is stated: github.labels.enabled=false removes
+// lifecycle-label AUTHORITY, not merely lifecycle-label writes.
+//
+// WHY THIS IS A UNIT TEST AND NOT AN END-TO-END ONE, stated because the
+// distinction is the honest part. There is no integration path that reaches
+// authorizationStage with a non-empty label while the toggle is off: every
+// caller that can reach a privilege decision already short-circuits on
+// !m.enabled, and the one that does not (assertStageWriteAllowed) is handed
+// empty lists by those same short-circuits. MEASURED (#194 r9): adding the
+// guard changed no test in the repository, and removing it changes none
+// either. So this test is the ONLY thing that makes the guard observable, and
+// deleting it returns the rule to being unenforced.
+//
+// The enabled=true half is not decoration: without it a mapper that answered
+// ("", false) for everything would pass, which is the degenerate oracle that
+// cost round 6 a whole test file.
+func TestAuthorizationStage_IsSilentWhenLabelMappingIsOff(t *testing.T) {
+	own := defaultPushPrefix + "stage/completed"
+
+	on := DefaultConfig().GitHub.Labels
+	on.Enabled = true
+	if stage, ok := NewLabelMapper(on).authorizationStage(own); !ok || stage != task.StageCompleted {
+		t.Fatalf("CONTROL BROKEN: enabled mapper reads %q as (%q, %v), want (completed, true). "+
+			"Without this the off-case below would pass for the wrong reason",
+			own, stage, ok)
+	}
+
+	off := DefaultConfig().GitHub.Labels
+	off.Enabled = false
+	if stage, ok := NewLabelMapper(off).authorizationStage(own); ok {
+		t.Fatalf("a disabled mapper read %q as an assertion of stage %q.\n\n"+
+			"With label mapping off this deployment neither writes nor honours lifecycle "+
+			"labels, so treating one as authoritative lets a label nothing in Farm Table "+
+			"wrote decide a Farm Table privilege question.", own, stage)
+	}
+}

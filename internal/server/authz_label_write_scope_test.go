@@ -406,6 +406,19 @@ func prefixedStageLabel(prefix string, s task.Stage) string {
 // is an untested one.
 func newLabelWriteFixtureWithPrefix(t *testing.T, pushPrefix, state, stateReason string, labels ...string) *labelWriteFixture {
 	t.Helper()
+	return newLabelWriteFixtureWithConfig(t, func(cfg *ghplatform.GitHubConfig) {
+		cfg.GitHub.Labels.PushPrefix = pushPrefix
+	}, state, stateReason, labels...)
+}
+
+// newLabelWriteFixtureWithConfig is the same graph with the repository's whole
+// github config as an input rather than just its push_prefix.
+//
+// It exists because github.labels.enabled is the second mapper setting this
+// suite has to treat as a security parameter (#194 round 9, MUST 5). The
+// push_prefix variant above stays as the narrow spelling its callers use.
+func newLabelWriteFixtureWithConfig(t *testing.T, mutate func(*ghplatform.GitHubConfig), state, stateReason string, labels ...string) *labelWriteFixture {
+	t.Helper()
 	ctx := context.Background()
 
 	entStore, storeCleanup := testutil.NewTestStore(t)
@@ -442,7 +455,7 @@ func newLabelWriteFixtureWithPrefix(t *testing.T, pushPrefix, state, stateReason
 		if !ok {
 			return nil, nil
 		}
-		return newPassThroughStoreWithPrefix(t, mockGH, owner, repo, cid, pushPrefix), nil
+		return newPassThroughStoreWithConfig(t, mockGH, owner, repo, cid, mutate), nil
 	})
 
 	svc := server.NewFarmTableService(ms, "test")
@@ -468,10 +481,10 @@ func newLabelWriteFixtureWithPrefix(t *testing.T, pushPrefix, state, stateReason
 // repository's configured push_prefix as an input. It is spelled out here
 // rather than added as a parameter to the shared helper so that the dozens of
 // existing call sites keep asserting against the shipped default.
-func newPassThroughStoreWithPrefix(t *testing.T, mockServer *httptest.Server, owner, repo string, collectionID uuid.UUID, pushPrefix string) store.Store {
+func newPassThroughStoreWithConfig(t *testing.T, mockServer *httptest.Server, owner, repo string, collectionID uuid.UUID, mutate func(*ghplatform.GitHubConfig)) store.Store {
 	t.Helper()
 	cfg := ghplatform.DefaultConfig()
-	cfg.GitHub.Labels.PushPrefix = pushPrefix
+	mutate(cfg)
 	s := ghplatform.NewPassThroughStore("mock-token", owner, repo, cfg, &collectionID)
 	ghplatform.SetTestGraphQLClient(s, githubv4.NewEnterpriseClient(mockServer.URL, mockServer.Client()))
 	return s

@@ -231,7 +231,7 @@ func (c *GitHubConfig) Validate() error {
 		}
 	}
 
-	if err := checkLifecycleKeyCollisions(m, labels); err != nil {
+	if err := checkLifecycleKeyCollisions(labels); err != nil {
 		return err
 	}
 	return nil
@@ -283,20 +283,80 @@ func (c *GitHubConfig) Validate() error {
 // structurally, at writeLabelSwap. Both ship: this one tells the operator at
 // startup which line of their YAML is wrong, and that one is the backstop for
 // every route into the writer that does not pass through Validate.
-func checkLifecycleKeyCollisions(m *LabelMapper, labels LabelConfig) error {
-	// The labels this deployment writes for its own stages, normalised the way
-	// the swap functions normalise them.
-	owned := make(map[string]task.Stage, len(allStages))
+//
+// ── #194 round 9, MUST 5: the enabled toggle ──
+//
+// CONFIG VALIDATION DOES NOT RESPECT github.labels.enabled, and the two halves
+// of the round-9 ruling resolve in OPPOSITE directions on purpose. Runtime
+// authority does respect the toggle (see authorizationStage). This check must
+// not, because config correctness must not depend on a flag that could flip
+// later without anyone re-validating: "it is fine because the feature happens
+// to be off today" is exactly the state-dependent correctness this workstream
+// has spent the night removing.
+//
+// So the oracle is the mapper this config WOULD produce with labels enabled,
+// built here rather than taken from the caller. That is still "the functions
+// themselves" and not a model of them — it is the same StageToLabel and the
+// same stripForMatch, asked under the configuration whose validity is in
+// question. Taking the caller's mapper was the bug: at enabled=false
+// StageToLabel returns "" for every stage, so `owned` collapsed onto a single
+// empty key, `types: {duplicate: chore}` validated clean, and
+// `types: {"": chore}` was REJECTED with a fabricated error naming stage
+// "cancelled" — a stage the operator never mentioned, and only the last of the
+// ten to win the collapsed key.
+func checkLifecycleKeyCollisions(labels LabelConfig) error {
+	asIfEnabled := labels
+	asIfEnabled.Enabled = true
+	m := NewLabelMapper(asIfEnabled)
+
+	// The labels this deployment claims as lifecycle assertions, normalised the
+	// way the swap functions normalise them.
+	//
+	// TWO SOURCES, because either one alone leaves a capture unrejected:
+	//
+	//   - StageToLabel over every stage is the WRITE side: what this deployment
+	//     stamps on an issue.
+	//   - m.labelToStage is the READ side: every key authorizationStage will
+	//     honour, which includes the operator's own `stages` aliases. Its keys
+	//     are already stripForMatch-normalised by NewLabelMapper. Without it,
+	//     `stages: {shipped: completed}` + `types: {shipped: chore}` loaded
+	//     clean and every type change deleted the issue's stage label — the
+	//     original finding, wearing a configured alias instead of a stage name
+	//     (review R4 / audit M-1).
+	//
+	// The write side is inserted first and is never overwritten, so a key both
+	// sources claim reports the deployment's own stage rather than whichever
+	// one Go's randomised map iteration reached last. `stages: {completed:
+	// wont_fix}` is such a key, and a diagnostic that names a different stage
+	// on each run is worse than no diagnostic.
+	owned := make(map[string]task.Stage, len(allStages)+len(m.labelToStage))
+	claim := func(key string, stage task.Stage) {
+		// An EMPTY key claims nothing. stripForMatch maps both a missing config
+		// key and a whitespace-only one to "", so without this an operator who
+		// wrote `types: {"": chore}` would be told they had captured a lifecycle
+		// label they never named. That is real (test review F-4) rather than
+		// theoretical: it is what the old code did at enabled=false.
+		if key == "" {
+			return
+		}
+		if _, taken := owned[key]; !taken {
+			owned[key] = stage
+		}
+	}
 	for _, stage := range allStages {
-		owned[m.stripForMatch(m.StageToLabel(stage))] = stage
+		claim(m.stripForMatch(m.StageToLabel(stage)), stage)
+	}
+	for key, stage := range m.labelToStage {
+		claim(key, stage)
 	}
 
 	for _, table := range []struct {
 		field   string
+		noun    string
 		entries map[string]string
 	}{
-		{"priorities", labels.Priorities},
-		{"types", labels.Types},
+		{"priorities", "priority", labels.Priorities},
+		{"types", "type", labels.Types},
 	} {
 		for _, key := range sortedKeys(table.entries) {
 			stage, collides := owned[m.stripForMatch(key)]
@@ -310,7 +370,7 @@ func checkLifecycleKeyCollisions(m *LabelMapper, labels LabelConfig) error {
 					"the same key. Every %s change would then delete the issue's stage label, "+
 					"moving the task's lifecycle stage at the price of task:write and with no "+
 					"transition scope charged. Rename the key",
-				table.field, key, m.StageToLabel(stage), stage, strings.TrimSuffix(table.field, "s"))
+				table.field, key, m.StageToLabel(stage), stage, table.noun)
 		}
 	}
 	return nil
