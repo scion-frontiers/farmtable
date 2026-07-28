@@ -141,6 +141,24 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
 		defer m.mu.Unlock()
 
 		switch {
+		case strings.Contains(b, "createIssue"):
+			// Matched before the label-index and issue cases: the create
+			// mutation selects a nested labels(first:) of its own, and without
+			// this arm it fell through to the repo label index and returned a
+			// payload the client could not unmarshal. That surfaced as a
+			// transport error, which the CreateTask disclosure row would have
+			// read as "the write was rejected" — a false negative of exactly
+			// the kind the harness self-check exists to prevent.
+			//
+			// The fixture stays single-issue: the requested labels are applied
+			// to the one issue it serves, so "did the caller's label land?"
+			// remains answerable.
+			for id, name := range m.idToName {
+				if strings.Contains(b, `"`+id+`"`) {
+					m.add(name)
+				}
+			}
+			_, _ = w.Write([]byte(`{"data":{"createIssue":{"issue":` + m.issueJSON() + `}}}`))
 		case strings.Contains(b, "closeIssue"):
 			m.closeCalls++
 			m.state = "CLOSED"
@@ -1251,6 +1269,77 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
 			}
 		})
 	}
+}
+
+// ── disclosed residual: CreateTask is a fifth verb with the same root ──
+
+// TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday pins a residual
+// this round's control does NOT close, found while building it.
+//
+// CreateTask passes req.labels straight through to the new GitHub issue
+// (server.go sets p.Labels; the pass-through store resolves each name and
+// attaches it), and nothing inspects them. So:
+//
+//	CreateTask(stage=completed)             -> DENIED, needs task:close
+//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED with task:write, and the
+//	                                           new task's lifecycle stage is
+//	                                           completed
+//
+// That is the same root as the finding this round fixes — a write path to the
+// field authorization reads, guarded only by task:write — reached through a
+// different verb. InsertTasksAfter takes labels the same way.
+//
+// IT IS NOT FIXED HERE, deliberately:
+//
+//   - The impact is materially lower. The attacker is fabricating a completion
+//     record on a task it is creating, not overriding a maintainer's existing
+//     decision and not making anyone else's work unclaimable. Nothing is
+//     revoked and nothing needs task:accept to undo.
+//   - It is a different verb, and verbs are being sequenced one at a time on
+//     this branch (the `ft ready` tree-walk sink is out for the same reason).
+//     Folding it in would collide.
+//   - Most importantly it is the third instance of the point that matters:
+//     every control here is a control over ONE VERB, and the verb set is
+//     open-ended — UpdateTask today, CreateTask and InsertTasksAfter now, bulk
+//     edit, sync, import or a webhook reconciler tomorrow. Enumerating verbs
+//     loses against a single mutable field. #203 is the fix; this test is
+//     evidence for it.
+//
+// Pinning CURRENT behaviour, like the unprefixed-label test in
+// authz_terminal_reopen_test.go does, so the residual is visible and closing it
+// is a deliberate act. If you are here because this test failed, you are
+// probably closing it — update the test rather than working around it.
+func TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday(t *testing.T) {
+	f := openIssue(t, stageLabel(task.StageAccepted))
+
+	// BASELINE: the straight route to a terminal stage at creation is closed
+	// for this token, so the label route is a bypass of a real gate.
+	completed := pb.TaskStage_TASK_STAGE_COMPLETED
+	_, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
+		CollectionId: f.collID.String(), Name: "direct", Stage: &completed,
+	})
+	requireDeniedFor(t, err, server.ScopeTaskClose, "BASELINE: CreateTask(stage=completed)")
+
+	// The label route.
+	if _, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
+		CollectionId: f.collID.String(), Name: "via labels",
+		Labels: []string{stageLabel(task.StageCompleted)},
+	}); err != nil {
+		t.Fatalf("CreateTask with a terminal stage label was rejected (%v). That may well be "+
+			"the intended change — see the doc comment — but it is a behaviour change at a "+
+			"security gate and must be made deliberately, not as a side effect", err)
+	}
+
+	// And it really lands: the label is attached, so the residual is real
+	// rather than a request the store quietly dropped.
+	if !containsLabel(f.issue.currentLabels(), stageLabel(task.StageCompleted)) {
+		t.Skipf("the terminal label did not reach the issue (labels %v), so CreateTask is not "+
+			"in fact a live write path and this disclosure should be corrected",
+			f.issue.currentLabels())
+	}
+	t.Log("DISCLOSED RESIDUAL: CreateTask attaches a caller-supplied terminal stage label with " +
+		"task:write, while CreateTask(stage=completed) requires task:close. Same root, " +
+		"different verb, not closed by round 5.")
 }
 
 // ── B3: can a native task hold a terminal stage with an open phase? ──
