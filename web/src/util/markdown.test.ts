@@ -865,6 +865,39 @@ const REQUIRED_SINKS = [
 ];
 
 /**
+ * How many files mechanism (a) — the sound half of this guard — is closed over.
+ *
+ * THIS IS NOT A DUPLICATE OF `REQUIRED_SINKS.length`, AND IT IS NOT A STYLE
+ * CHOICE. Every other consumer of that array derives from it, including the
+ * check-total pin:
+ *
+ *   EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1)
+ *
+ * The `REQUIRED_SINKS.length` term appears on both sides of that equation — the
+ * loop that runs the per-file checks and the expression that predicts how many
+ * ran — so deleting an entry moves both by one and cancels. Measured (C2-e):
+ * dropping `ft-inspector-desc.ts` from the array, aliasing the directive with a
+ * `u` escape, and rendering `this.description` raw was GREEN at 68 checks
+ * with tsc clean. The derivation was itself a round-5 fix, for the opposite
+ * defect of a hard-coded total needing an edit whenever a sink was added, and it
+ * is kept — the counterfactual with the literal restored (CF-1) is red, so the
+ * derivation is doing real work. What it cannot do is notice the array getting
+ * SHORTER, because that is the input it is derived from.
+ *
+ * The scope of a closed-world guard is exactly the thing that must not be
+ * derived from the guard, so it is pinned here as an independent literal and
+ * asserted where the tree is first read. Update it in the same commit as
+ * REQUIRED_SINKS, deliberately, when a component genuinely gains or loses a
+ * markdown sink — never to make a red suite go green.
+ *
+ * (The escape in C2-e matters: R7, the escape ban, is the only per-file rule the
+ * shrink removes that the tree-wide tripwire does not also carry. Without it the
+ * same mutation is red — CF-2. That narrowness is why R7 is now promoted to the
+ * tree-wide scan as well; see `escapeInCodeOffenders`.)
+ */
+const EXPECTED_REQUIRED_SINKS = 2;
+
+/**
  * Exact number of scannable source files under `src/`. Pinned, not a floor: the
  * previous floor of 10 sat under an actual count of 50, so forty files could
  * have stopped being scanned with no signal. This is the G7 check-total
@@ -2072,14 +2105,79 @@ function sinkCountViolation(found: number): string | null {
   );
 }
 
+/**
+ * R7, PROMOTED FROM THE TWO SINK FILES TO THE WHOLE SCANNED TREE.
+ *
+ * R7 bans a unicode or hex escape in code, because `unsafeHTML` is resolved
+ * by TypeScript to the imported binding while `\bunsafeHTML\b` cannot see it.
+ * Scoped to REQUIRED_SINKS it was sound for those two files and silent for the
+ * other 48, and that gap is measurable rather than theoretical: C2-e — shrink
+ * REQUIRED_SINKS by one, alias the directive with the escape, render the field
+ * raw — was green at 68 checks, and its counterfactual CF-2 (identical mutation,
+ * no escape) was red. R7 was the ONLY per-file rule the shrink removed that the
+ * tree-wide half did not also carry, which is exactly the shape of finding this
+ * file keeps recording: a property that holds for one consumer, relied on as if
+ * it held for all.
+ *
+ * Promoting it does not make mechanism (b) sound — nothing does, it is a
+ * tripwire — but it removes the one rule whose absence a scope shrink could
+ * convert directly into a working bypass.
+ *
+ * VIEW: `strings: true`. The tree-wide `scanned` view keeps string contents,
+ * and markdown.ts legitimately contains `'︎'` — written as an escape on
+ * purpose, because the literal character is invisible in source. A rule that
+ * red-lit that is a rule that gets deleted. Blanking strings is also the
+ * strictly correct view here: an escape inside a string literal is data, and an
+ * escape anywhere else is an identifier spelled to evade a name scan. The
+ * per-file R7 keeps its own narrower view (`code`, strings blanked, imports
+ * NOT stripped) for the reason documented at its call site — an escape inside an
+ * import statement is the whole attack, and this promoted copy does not replace
+ * it.
+ */
+function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {
+  const lines = matchLines(codeNoStrings, /\\[uxU]/);
+  if (lines.length === 0) return [];
+  return [
+    `${rel}:${lines.join(',')} — an escape outside a string literal lets an identifier be ` +
+      'spelled so that every name-based rule in this file misses it, while TypeScript still ' +
+      'resolves it to the real binding. Write the name literally.',
+  ];
+}
+
+/**
+ * The SCOPE pin for mechanism (a). See EXPECTED_REQUIRED_SINKS for why this is
+ * not a restatement of `REQUIRED_SINKS.length`: every other consumer, including
+ * the check-total, is derived from that array and therefore moves with it.
+ */
+function requiredSinkScopeViolation(found: number): string | null {
+  if (found === EXPECTED_REQUIRED_SINKS) return null;
+  return (
+    `mechanism (a) is closed over ${found} file(s), but this suite claims ${EXPECTED_REQUIRED_SINKS} — ` +
+    'REQUIRED_SINKS changed length. Shrinking it does not fail any derived check, because the ' +
+    'check total is derived from it too; a removed entry silently narrows the sound half of ' +
+    'the guard to the files that remain. If a component genuinely stopped rendering markdown, ' +
+    'update EXPECTED_REQUIRED_SINKS in the same commit and say so in the message. Never change ' +
+    'it merely to make a red suite go green.'
+  );
+}
+
 function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
   collectSourceFiles(join(root, 'src'), files);
 
+  // Two pins, one call site, deliberately. Both answer "is this guard still
+  // looking at what it claims to look at" — one for the open-world scan's input,
+  // one for the closed-world half's scope — and folding the second in here keeps
+  // it out of the EXPECTED_CHECKS arithmetic that the scope pin exists to
+  // backstop. A scope pin whose own presence is counted by a total derived from
+  // REQUIRED_SINKS would be one more thing that moves when the array moves.
   check('sink scan actually reads the source tree', () => {
-    const violation = sourceFileCountViolation(files.length);
-    if (violation !== null) throw new Error(violation);
+    const violations = [
+      sourceFileCountViolation(files.length),
+      requiredSinkScopeViolation(REQUIRED_SINKS.length),
+    ].filter((v): v is string => v !== null);
+    if (violations.length > 0) throw new Error(violations.join('\n      '));
   });
 
   // Web-root-relative paths of every file this guard reads. R6 requires each
@@ -2118,11 +2216,17 @@ function sinkBinding(): void {
 
   // Comment-stripped view of every scanned file, computed once. `strings: false`
   // keeps module specifiers and quoted property keys intact for the tree-wide
-  // patterns that need them.
-  const scanned = files.map((file) => ({
-    rel: relative(root, file),
-    code: stripInertText(readFileSync(file, 'utf8'), { strings: false }),
-  }));
+  // patterns that need them. `codeNoStrings` is the same file with string
+  // contents blanked too — only the promoted R7 uses it, and it needs that view
+  // rather than this one; see escapeInCodeOffenders.
+  const scanned = files.map((file) => {
+    const src = readFileSync(file, 'utf8');
+    return {
+      rel: relative(root, file),
+      code: stripInertText(src, { strings: false }),
+      codeNoStrings: stripInertText(src, { strings: true }),
+    };
+  });
 
   const sinks: { file: string; arg: string }[] = [];
   for (const { rel, code } of scanned) {
@@ -2154,6 +2258,20 @@ function sinkBinding(): void {
           offenders.join(', ') +
           ' [tripwire: catches the listed indirection forms only, not all of them]',
       );
+    }
+  });
+
+  // R7, tree-wide. Every name-based rule above — here and in the per-file half —
+  // assumes an identifier is spelled with the characters it is spelled with.
+  // See escapeInCodeOffenders for why this was worth promoting out of the two
+  // sink files, and for the measurement that says so.
+  check('tripwire: no file spells an identifier with a unicode or hex escape', () => {
+    const offenders: string[] = [];
+    for (const { rel, codeNoStrings } of scanned) {
+      offenders.push(...escapeInCodeOffenders(rel, codeNoStrings));
+    }
+    if (offenders.length > 0) {
+      throw new Error(`escaped identifier in code:\n      ${offenders.join('\n      ')}`);
     }
   });
 
@@ -2246,6 +2364,19 @@ function sinkBinding(): void {
       'const t = html`${unsafeHTML(renderMarkdown(this.body))}`;',
   ];
 
+  // The promoted R7's false-positive controls. Kept in their own table because
+  // that rule reads a DIFFERENT VIEW of the file (`strings: true`) from every
+  // other tree-wide rule, and the whole reason it needs that view is the first
+  // entry: markdown.ts writes U+FE0E as an escape on purpose, and a rule that
+  // red-lights production code as it stands is a rule that gets deleted rather
+  // than a rule that protects anything.
+  const ESCAPE_LEGITIMATE = [
+    "const glyph = '\\u2611\\uFE0E';",
+    'const re = /\\u00a0/g;',
+    'const path = "c:\\\\users\\\\x";',
+    '// \\u0075nsafeHTML in prose is inert',
+  ];
+
   check('fixture: legitimate source does not trip the raw-directive tripwire', () => {
     const offenders: string[] = [];
     for (const fixture of LEGITIMATE_SOURCE) {
@@ -2254,6 +2385,12 @@ function sinkBinding(): void {
       for (const { name, pattern } of BANNED_SINKS) {
         if (pattern.test(code)) offenders.push(`${name} :: ${fixture}`);
       }
+    }
+    for (const fixture of ESCAPE_LEGITIMATE) {
+      const codeNoStrings = stripInertText(fixture, { strings: true });
+      offenders.push(
+        ...escapeInCodeOffenders('<fixture>', codeNoStrings).map((o) => `${o} :: ${fixture}`),
+      );
     }
     if (offenders.length > 0) {
       throw new Error(`the guard rejects legitimate source: ${offenders.join(' | ')}`);
@@ -2319,11 +2456,30 @@ function sinkBinding(): void {
       "export { css as _css } from 'lit';",
   ];
 
+  // The promoted R7's positives. V8 and V8b were pinned as SINK_EVASIONS, which
+  // run against the two REQUIRED_SINKS files only; these are the same two forms
+  // asserted against the rule that now covers all 50. Attribution is kept
+  // explicit — this loop calls `escapeInCodeOffenders` by name rather than
+  // asking whether ANY tree-wide rule fired — because C2-e's whole lesson is
+  // that "something caught it" and "this rule caught it" are different claims.
+  const ESCAPE_EVASIONS = [
+    'const rawHtml = \\u0075nsafeHTML;',
+    "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';",
+    'const rawHtml = \\u{75}nsafeHTML;',
+    'el.inner\\u0048TML = body;',
+  ];
+
   check('fixture: every known indirection form is caught by the tripwire', () => {
     const missed: string[] = [];
     for (const fixture of INDIRECTION_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
       if (directiveIndirectionOffenders('<fixture>', code).length === 0) missed.push(fixture);
+    }
+    for (const fixture of ESCAPE_EVASIONS) {
+      const codeNoStrings = stripInertText(fixture, { strings: true });
+      if (escapeInCodeOffenders('<fixture>', codeNoStrings).length === 0) {
+        missed.push(`escape not caught: ${fixture}`);
+      }
     }
     if (missed.length > 0) {
       throw new Error(`indirection form no longer detected: ${missed.join(' | ')}`);
@@ -2383,12 +2539,22 @@ function sinkBinding(): void {
     if (sinkCountViolation(REQUIRED_SINKS.length) !== null) {
       missed.push('the sink-count pin rejects the true count');
     }
+    if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS) !== null) {
+      missed.push('the scope pin rejects the true scope');
+    }
     for (const delta of [-1, 1]) {
       if (sourceFileCountViolation(EXPECTED_SOURCE_FILES + delta) === null) {
         missed.push(`the source-file pin is silent at ${EXPECTED_SOURCE_FILES + delta}`);
       }
       if (sinkCountViolation(REQUIRED_SINKS.length + delta) === null) {
         missed.push(`the sink-count pin is silent at ${REQUIRED_SINKS.length + delta}`);
+      }
+      // The one that matters is delta === -1: a SHRINK is the mutation the
+      // derived total cannot see. Both directions are asserted anyway, because a
+      // pin that only fires downward is a pin someone will "fix" by adding an
+      // entry rather than by looking at what left.
+      if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS + delta) === null) {
+        missed.push(`the scope pin is silent at ${EXPECTED_REQUIRED_SINKS + delta}`);
       }
     }
     if (missed.length > 0) {
@@ -2732,6 +2898,18 @@ function sinkBinding(): void {
 // two other places. Adding a third sink now costs one edit (REQUIRED_SINKS)
 // instead of three, and there is no sentence left to drift.
 //
+// WHAT THAT DERIVATION COSTS, AND WHERE IT IS PAID. `REQUIRED_SINKS.length`
+// appears on both sides — in the loop that runs the checks and in the
+// expression that predicts how many ran — so it cancels, and a SHRINK of that
+// array passes here with a lower total that this pin computes as correct.
+// Measured: dropping a sink, escaping the directive's name and rendering the
+// field raw was green at 68. The derivation is kept, because the counterfactual
+// with a hard literal restored is red for the wrong reason (it fails on the
+// count, not on the missing sink, and would have been "fixed" by editing the
+// literal). The scope itself is pinned separately and undeirvably as
+// EXPECTED_REQUIRED_SINKS, asserted in `sink scan actually reads the source
+// tree`. That is the check to read if this one and the sink list disagree.
+//
 // Moved 54 -> 59 in the round-4 cleanup: five `check()` calls were added, all of
 // them the `fixture:` ones in sinkBinding(). They assert the guard's own rules
 // against string tables rather than against the tree, so the false-positive
@@ -2749,7 +2927,7 @@ function sinkBinding(): void {
 // one URI-policy pin, the two `inputContract` checks (arity and non-string
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
-const EXPECTED_CHECK_CALL_SITES = 69;
+const EXPECTED_CHECK_CALL_SITES = 70;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 function run(): void {
@@ -2766,9 +2944,14 @@ function run(): void {
     failures.push(
       `check total pinned: expected ${EXPECTED_CHECKS} checks to run ` +
         `(${EXPECTED_CHECK_CALL_SITES} call sites + ${REQUIRED_SINKS.length - 1} extra from the ` +
-        `REQUIRED_SINKS loop), ${checks} did — either a check() call site was added or silently ` +
-        'removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed ' +
-        'length, in which case the total moves on its own and nothing here needs editing. ' +
+        `REQUIRED_SINKS loop), ${checks} did — a check() call site was added or silently ` +
+        'removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. ' +
+        'NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of ' +
+        'the derivation and cannot reach this message at all — the sink list is pinned by ' +
+        'EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. ' +
+        'The previous wording here said a REQUIRED_SINKS change meant "the total moves on ' +
+        'its own and nothing here needs editing", which is true and was read as reassurance; ' +
+        'it is the reason a scope shrink was invisible. ' +
         'Never change either number merely to make a red suite go green.',
     );
   }
