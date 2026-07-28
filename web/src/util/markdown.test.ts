@@ -583,7 +583,10 @@ function inputContract(): void {
   // are asserted in the same check for the usual reason: they have to move
   // together.
   check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
-    const problems: string[] = [];
+    const problems: string[] = [
+      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 11),
+      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 6),
+    ].filter((v): v is string => v !== null);
     for (const { label, replace } of ARITY_EVASIONS) {
       const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
       if (occurrences !== 1) {
@@ -2106,6 +2109,42 @@ function sinkCountViolation(found: number): string | null {
 }
 
 /**
+ * EVERY FIXTURE TABLE IN THIS FILE IS EMPTYABLE, AND THAT IS THE SAME DEFECT
+ * THE TABLES WERE ADDED TO FIX.
+ *
+ * The tables all read `for (const fixture of TABLE) { if (!rule(fixture)) fail }`.
+ * With TABLE empty the loop body never runs, the check passes, and the check
+ * total is unchanged because the `check()` call site is still there. Measured:
+ * emptying any one table leaves the suite green. So the fixtures prove a rule is
+ * live only while somebody keeps writing entries into them — which is exactly
+ * the "the check derives from the thing it is checking" shape this file has now
+ * recorded seven times, one level further out.
+ *
+ * The pin is an exact count, not `> 0`. A floor of one is satisfied by a table
+ * that lost fourteen of its fifteen entries in a bad merge, and the reason to
+ * prefer exactness here is the same reason EXPECTED_SOURCE_FILES is exact rather
+ * than a floor: the interesting failure is silent SHRINKAGE, and only an exact
+ * count sees it.
+ *
+ * Adding a fixture therefore costs one extra edit. That is deliberate. It is the
+ * same bargain as EXPECTED_CHECK_CALL_SITES, and the message says what to do.
+ */
+function fixtureTableViolation(
+  name: string,
+  table: readonly unknown[],
+  expected: number,
+): string | null {
+  if (table.length === expected) return null;
+  return (
+    `${name} has ${table.length} entries, expected ${expected}. If you ADDED a fixture, ` +
+    'update the number here in the same commit. If you did not, entries have been lost — ' +
+    'an emptied or shortened table makes its check pass vacuously, with the check total ' +
+    'unchanged, because the loop body simply stops running. Never change this number ' +
+    'merely to make a red suite go green.'
+  );
+}
+
+/**
  * R7, PROMOTED FROM THE TWO SINK FILES TO THE WHOLE SCANNED TREE.
  *
  * R7 bans a unicode or hex escape in code, because `unsafeHTML` is resolved
@@ -2378,7 +2417,10 @@ function sinkBinding(): void {
   ];
 
   check('fixture: legitimate source does not trip the raw-directive tripwire', () => {
-    const offenders: string[] = [];
+    const offenders: string[] = [
+      fixtureTableViolation('LEGITIMATE_SOURCE', LEGITIMATE_SOURCE, 13),
+      fixtureTableViolation('ESCAPE_LEGITIMATE', ESCAPE_LEGITIMATE, 4),
+    ].filter((v): v is string => v !== null);
     for (const fixture of LEGITIMATE_SOURCE) {
       const code = stripInertText(fixture, { strings: false });
       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
@@ -2408,7 +2450,9 @@ function sinkBinding(): void {
   ];
 
   check('fixture: comments cannot turn the suite red', () => {
-    const offenders: string[] = [];
+    const offenders: string[] = [
+      fixtureTableViolation('INERT_PROSE', INERT_PROSE, 4),
+    ].filter((v): v is string => v !== null);
     for (const fixture of INERT_PROSE) {
       const code = stripInertText(fixture, { strings: false });
       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
@@ -2470,7 +2514,10 @@ function sinkBinding(): void {
   ];
 
   check('fixture: every known indirection form is caught by the tripwire', () => {
-    const missed: string[] = [];
+    const missed: string[] = [
+      fixtureTableViolation('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 16),
+      fixtureTableViolation('ESCAPE_EVASIONS', ESCAPE_EVASIONS, 4),
+    ].filter((v): v is string => v !== null);
     for (const fixture of INDIRECTION_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
       if (directiveIndirectionOffenders('<fixture>', code).length === 0) missed.push(fixture);
@@ -2514,13 +2561,48 @@ function sinkBinding(): void {
     "const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line",
   ];
 
+  // BOTH QUANTIFIERS, AND THE SECOND IS THE ONE THAT WAS MISSING.
+  //
+  // "Every positive is matched by some pattern" is the direction this check has
+  // always run, and it is the weaker one: it ranges over the FIXTURES, so it
+  // says nothing about a pattern that no fixture exercises. Adding a ninth
+  // BANNED_SINKS entry with a typo in it, or a pattern that can never match,
+  // leaves this green — the table it ranges over does not know the pattern
+  // exists.
+  //
+  // "Every pattern is matched by some positive" ranges over the RULES instead,
+  // so a new pattern arrives uncovered and says so. Together they are a
+  // bijection-ish coverage claim over an enumerated rule list, which is the only
+  // rule group in this file that HAS an enumerated list to range over — the
+  // other rules are code paths, and the honest note there is that their fixture
+  // tables carry the same weakness with no equivalent fix available. Recorded
+  // rather than papered over.
   check('fixture: every banned raw-HTML sink form is actually detected', () => {
-    const missed = BANNED_SINK_POSITIVES.filter((fixture) => {
-      const code = stripInertText(fixture, { strings: false });
-      return !BANNED_SINKS.some(({ pattern }) => pattern.test(code));
-    });
-    if (missed.length > 0) {
-      throw new Error(`banned sink no longer detected: ${missed.join(' | ')}`);
+    const problems: string[] = [
+      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 15),
+      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 8),
+    ].filter((v): v is string => v !== null);
+
+    const views = BANNED_SINK_POSITIVES.map((fixture) => ({
+      fixture,
+      code: stripInertText(fixture, { strings: false }),
+    }));
+
+    for (const { fixture, code } of views) {
+      if (!BANNED_SINKS.some(({ pattern }) => pattern.test(code))) {
+        problems.push(`no pattern detects: ${fixture}`);
+      }
+    }
+    for (const { name, pattern } of BANNED_SINKS) {
+      if (!views.some(({ code }) => pattern.test(code))) {
+        problems.push(
+          `no positive exercises the '${name}' pattern — it is unfixtured detection logic, ` +
+            'which is what this table exists to prevent. Add a fixture for it.',
+        );
+      }
+    }
+    if (problems.length > 0) {
+      throw new Error(`banned sink no longer detected: ${problems.join(' | ')}`);
     }
   });
 
@@ -2789,7 +2871,9 @@ function sinkBinding(): void {
   ];
 
   check('fixture: every known sink-binding evasion is caught', () => {
-    const survived: string[] = [];
+    const survived: string[] = [
+      fixtureTableViolation('SINK_EVASIONS', SINK_EVASIONS, 24),
+    ].filter((v): v is string => v !== null);
     for (const { label, find, replace } of SINK_EVASIONS) {
       const occurrences = SOUND_SINK_FILE.split(find).length - 1;
       if (occurrences !== 1) {
@@ -2826,7 +2910,9 @@ function sinkBinding(): void {
   ];
 
   check('fixture: sanitizer ownership holds against every route to the singleton', () => {
-    const missed: string[] = [];
+    const missed: string[] = [
+      fixtureTableViolation('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10),
+    ].filter((v): v is string => v !== null);
     for (const fixture of OWNERSHIP_EVASIONS) {
       const code = stripInertText(fixture, { strings: false });
       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
