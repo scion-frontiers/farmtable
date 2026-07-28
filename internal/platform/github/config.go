@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"gopkg.in/yaml.v3"
 )
 
@@ -136,6 +137,76 @@ func (c *GitHubConfig) Validate() error {
 	} {
 		if err := checkAliasKeyCollisions(m, table.field, table.entries); err != nil {
 			return err
+		}
+	}
+
+	if err := checkLifecycleKeyCollisions(m, labels); err != nil {
+		return err
+	}
+	return nil
+}
+
+// checkLifecycleKeyCollisions rejects a priorities or types key that captures
+// one of this deployment's own lifecycle labels.
+//
+// The check above runs once per table and never compares ACROSS tables, so
+// nothing stopped a key in one table from claiming a label another table owns.
+// The one that matters is the lifecycle table, because in this store the stage
+// IS a label: `types: {duplicate: chore}` puts "duplicate" in labelToType, and
+// TypeLabelSwap's remove loop keys on stripForMatch, which maps this
+// deployment's own "ft:stage/duplicate" to "duplicate" — so any UpdateTask that
+// sets a type deletes the issue's lifecycle label. That is a stage change at
+// the price of task:write, which is the whole class #194 exists to close.
+//
+// THE ORACLE IS THE FUNCTIONS THEMSELVES, not a model of them. The label side
+// is StageToLabel — what this deployment actually writes for a stage. The
+// normalisation is stripForMatch, the identical expression PriorityLabelSwap
+// and TypeLabelSwap use to decide a label is theirs to remove. Reimplementing
+// either as "strip 'ft:stage/' and compare" is how the round-7 audit missed a
+// Critical: a check that mirrors F must BE F.
+//
+// Scope is deliberately narrow. Only priorities and types are checked, and only
+// against lifecycle labels:
+//
+//   - A priorities/types collision with EACH OTHER is a display ambiguity, not
+//     a privilege one, and rejecting it would break configs that work today.
+//   - The `stages` table is not checked against itself here, because an
+//     operator aliasing one stage spelling onto another stage is the documented
+//     purpose of that table. checkAliasKeyCollisions already catches the case
+//     where they contradict.
+//
+// Note that item 3 of this round (assertStageWriteAllowed) also closes this,
+// structurally, at writeLabelSwap. Both ship: this one tells the operator at
+// startup which line of their YAML is wrong, and that one is the backstop for
+// every route into the writer that does not pass through Validate.
+func checkLifecycleKeyCollisions(m *LabelMapper, labels LabelConfig) error {
+	// The labels this deployment writes for its own stages, normalised the way
+	// the swap functions normalise them.
+	owned := make(map[string]task.Stage, len(allStages))
+	for _, stage := range allStages {
+		owned[m.stripForMatch(m.StageToLabel(stage))] = stage
+	}
+
+	for _, table := range []struct {
+		field   string
+		entries map[string]string
+	}{
+		{"priorities", labels.Priorities},
+		{"types", labels.Types},
+	} {
+		for _, key := range sortedKeys(table.entries) {
+			stage, collides := owned[m.stripForMatch(key)]
+			if !collides {
+				continue
+			}
+			return fmt.Errorf(
+				"github.labels.%s: key %q captures this deployment's own lifecycle label %q "+
+					"(stage %q). In this store the stage IS a label, and label matching strips "+
+					"the push prefix and any stage/ segment before comparing, so those two are "+
+					"the same key. Every %s change would then delete the issue's stage label, "+
+					"moving the task's lifecycle stage at the price of task:write and with no "+
+					"transition scope charged. Rename the key",
+				table.field, key, m.StageToLabel(stage), stage, strings.TrimSuffix(table.field, "s"))
 		}
 	}
 	return nil
