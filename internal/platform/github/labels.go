@@ -1,6 +1,7 @@
 package github
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/farmtable-io/farmtable/internal/store"
@@ -162,8 +163,20 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 	// to reach a privilege decision — it is only the config key that is now
 	// spelling-insensitive. TestConfiguredStageAliases_KeySpellingIsNormalised
 	// pins both halves.
-	for label, stageStr := range cfg.Stages {
-		stage := task.Stage(stageStr)
+	//
+	// ITERATION IS SORTED, and that is not cosmetic. Normalising the key made
+	// the key space many-to-one, so two keys an operator wrote as distinct —
+	// "shipped" and "ft:shipped" — now address ONE map entry. If they name
+	// different stages, one is silently discarded, and with `range` over a map
+	// the survivor is chosen by Go's randomised iteration order. Measured before
+	// this line existed: 500 mappers built from one unchanged config resolved
+	// "ft:shipped" as completed 60 times and wont_fix 440 times, at an
+	// authorization gate (#194 round 6, M2). Sorting makes the winner
+	// reproducible. It does NOT make it right — the operator still did not
+	// choose it — which is why Validate rejects the config outright and this is
+	// only the backstop for mappers built without going through LoadConfig.
+	for _, label := range sortedKeys(cfg.Stages) {
+		stage := task.Stage(cfg.Stages[label])
 		if err := task.StageValidator(stage); err == nil {
 			m.labelToStage[m.stripForMatch(label)] = stage
 			// Custom mappings also set the push label for that stage.
@@ -186,8 +199,9 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 	// prefix requirement applies on the priority path), but the same operator
 	// trap, and leaving two of the three maps on the old rule would be the
 	// duplicated-rule defect this round is otherwise removing.
-	for label, prioStr := range cfg.Priorities {
-		p := task.Priority(prioStr)
+	// Sorted for the same reason as cfg.Stages above.
+	for _, label := range sortedKeys(cfg.Priorities) {
+		p := task.Priority(cfg.Priorities[label])
 		if err := task.PriorityValidator(p); err == nil {
 			m.labelToPriority[m.stripForMatch(label)] = p
 			m.priorityToLabel[p] = "priority:" + p.String()
@@ -205,12 +219,26 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 	// Custom config overrides. Pull key normalised as above; the PUSH label
 	// keeps the operator's literal spelling, because that is the label they
 	// want written on GitHub and nothing requires a prefix on it.
-	for label, typ := range cfg.Types {
+	// Sorted for the same reason as cfg.Stages above.
+	for _, label := range sortedKeys(cfg.Types) {
+		typ := cfg.Types[label]
 		m.labelToType[m.stripForMatch(label)] = typ
 		m.typeToLabel[typ] = strings.ToLower(label)
 	}
 
 	return m
+}
+
+// sortedKeys returns a map's keys in a fixed order, so that a
+// last-writer-wins table build produces the same table every time. See the
+// comment on the cfg.Stages loop for what randomised order cost.
+func sortedKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // MapLabelsToStage scans labels for stage mappings and returns the

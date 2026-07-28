@@ -96,6 +96,68 @@ func (c *GitHubConfig) Validate() error {
 				"Use a non-blank prefix such as %q, or omit the field to use the default",
 			raw, defaultPushPrefix)
 	}
+
+	// Alias-key collisions. This check exists because of a cost the round-6 A3
+	// fix introduced, found by measuring rather than by review, and it is placed
+	// AFTER the push_prefix check because the normalisation below depends on the
+	// prefix being usable.
+	//
+	// A3 normalises configured alias keys through stripForMatch so that a key
+	// works whether or not the operator spelled the prefix. stripForMatch is
+	// many-to-one, so that also merged the key space: "shipped", "ft:shipped"
+	// and "ft:stage/shipped" were three keys before A3 and are one afterwards.
+	// Where they name the same value that is a harmless dedup and is allowed.
+	// Where they name DIFFERENT values, one alias is silently discarded — and
+	// pre-A3 the outcome was at least deterministic, because only the unprefixed
+	// key was ever reachable. Trading a dead alias for a coin flip at an
+	// authorization gate is not an improvement, so the config is rejected
+	// instead. TestAliasKeyNormalisation_CollapsesDistinctKeys measures both
+	// halves.
+	labels := c.GitHub.Labels
+	m := NewLabelMapper(labels)
+	for _, table := range []struct {
+		field   string
+		entries map[string]string
+	}{
+		{"stages", labels.Stages},
+		{"priorities", labels.Priorities},
+		{"types", labels.Types},
+	} {
+		if err := checkAliasKeyCollisions(m, table.field, table.entries); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkAliasKeyCollisions reports configured keys that normalise to the same
+// lookup key while naming different values.
+//
+// Keys are visited in sorted order so that the pair named in the error is the
+// same pair on every run: a diagnostic that names a different key each time an
+// operator re-runs the command is worse than no diagnostic.
+func checkAliasKeyCollisions(m *LabelMapper, field string, entries map[string]string) error {
+	type origin struct{ key, value string }
+
+	seen := make(map[string]origin, len(entries))
+	for _, key := range sortedKeys(entries) {
+		normalised := m.stripForMatch(key)
+		value := entries[key]
+
+		if prev, ok := seen[normalised]; ok {
+			if prev.value == value {
+				continue
+			}
+			return fmt.Errorf(
+				"github.labels.%s: keys %q and %q both normalise to %q but name "+
+					"different values (%q and %q). Since #194 an alias key is matched "+
+					"with the push prefix and any stage/ or priority: segment removed, "+
+					"so those two keys are one entry and only one of the values can "+
+					"survive. Spell the intended alias once",
+				field, prev.key, key, normalised, prev.value, value)
+		}
+		seen[normalised] = origin{key: key, value: value}
+	}
 	return nil
 }
 
