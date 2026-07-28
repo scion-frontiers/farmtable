@@ -18,7 +18,7 @@
  *    client allows and the server rejects is unreachable, and a scheme the
  *    server accepts and the client blocks is a broken feature.
  */
-const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
+export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
 
 /**
  * Returns `raw` if it is a URL safe to place in an `href`, otherwise
@@ -63,7 +63,27 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   // string would not have seen that value as 'javascript:' at all.
   if (!SAFE_SCHEMES.has(parsed.protocol)) return undefined;
 
-  // Reject http(s) URLs with no host, e.g. 'http:/\/\evil.com'.
+  // Fail-closed backstop, and currently UNREACHABLE -- deliberately kept.
+  //
+  // Both entries in SAFE_SCHEMES are WHATWG "special" schemes, and the parser
+  // requires those to have a non-empty host: `new URL('https://')` throws
+  // rather than yielding an empty hostname, so nothing that gets past the
+  // allow-list above can arrive here with hostname === ''. Measured: of every
+  // empty-host shape tried, zero reach this line.
+  //
+  // It is NOT dead weight, because it is what makes widening SAFE_SCHEMES
+  // fail closed instead of fail open: every script-bearing scheme
+  // (javascript:, data:, vbscript:, blob:, mailto:) is NON-special and parses
+  // with hostname === '', so if one is ever added to the allow-list by mistake
+  // this line still refuses it. testHostGuardIsAFailClosedBackstop() in
+  // safe-url.test.ts goes red the moment a non-special scheme is allow-listed,
+  // i.e. the moment this branch stops being unreachable.
+  //
+  // Note the earlier comment here claimed this rejected 'http:/\/\evil.com'.
+  // That was wrong: the WHATWG parser reads the backslashes as slashes and
+  // yields hostname 'evil.com', so that input is ACCEPTED by this function.
+  // Go's net/url yields Host == "" for it and the server rejects it -- a real
+  // client/server divergence, pinned in testKnownServerClientDivergences().
   if (parsed.hostname === '') return undefined;
 
   return raw;

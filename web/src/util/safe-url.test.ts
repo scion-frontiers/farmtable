@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
-import { safeHref } from './safe-url.js';
+import { SAFE_SCHEMES, safeHref } from './safe-url.js';
 
 /**
  * Resolve web/src. These tests are compiled into .tmp-test/ before running, so
@@ -68,6 +68,24 @@ function testRejectsUnsafeSchemes(): void {
     ['bare word', 'not-a-url'],
     ['http without host', 'http://'],
     ['empty', ''],
+
+    // ── fixtures that isolate the scheme allow-list ─────────────────────────
+    //
+    // Everything above this line is rejected by BOTH guards, or throws before
+    // reaching either, so none of it can tell the allow-list apart from the
+    // host check. Measured: with only the rows above, deleting the allow-list
+    // outright, or widening it to include javascript:/data:/vbscript:, left
+    // the suite GREEN.
+    //
+    // These four are WHATWG "special" schemes: they parse successfully AND
+    // yield a non-empty hostname, so the host check cannot reject them. The
+    // allow-list is the only thing that does.
+    ['ftp', 'ftp://evil.com/x'],
+    ['ws', 'ws://evil.com/x'],
+    ['wss', 'wss://evil.com/x'],
+    // Also distinguishes membership from a prefix test: a scheme that starts
+    // with "http" but is not "http". Guards against `startsWith('http')`.
+    ['httpx prefix not membership', 'httpx://evil.com/x'],
   ];
 
   for (const [name, input] of rejected) {
@@ -96,6 +114,62 @@ function testAcceptsHTTPAndHTTPS(): void {
       `safeHref(${JSON.stringify(input)}) should return the input unchanged, got ${JSON.stringify(safeHref(input))}`,
     );
   }
+}
+
+/**
+ * Pins the reachability precondition of safeHref's `hostname === ''` guard.
+ *
+ * That guard cannot be pinned by a fixture, because no input reaches it: both
+ * allow-listed schemes are WHATWG "special" schemes, for which an empty host
+ * makes the parse THROW rather than yield an empty hostname. Deleting the
+ * guard therefore leaves every behavioural test green, and no fixture can
+ * change that -- unreachable code has no behaviour to assert on.
+ *
+ * What IS pinnable is the condition under which the guard becomes live. Every
+ * script-bearing scheme (javascript:, data:, vbscript:, blob:, mailto:) is
+ * NON-special and parses with hostname === '', so the guard is precisely what
+ * makes an accidental widening of SAFE_SCHEMES fail closed. This test fails
+ * the moment a non-special scheme is added to the allow-list -- i.e. the
+ * moment the guard stops being unreachable and starts carrying weight.
+ */
+function testHostGuardIsAFailClosedBackstop(): void {
+  assert(SAFE_SCHEMES.size > 0, 'SAFE_SCHEMES is empty; this test would be vacuous');
+
+  for (const scheme of SAFE_SCHEMES) {
+    let threw = false;
+    try {
+      new URL(`${scheme}//`);
+    } catch {
+      threw = true;
+    }
+    assert(
+      threw,
+      `${scheme} is a non-special scheme: "${scheme}//" parses with an empty host instead of ` +
+        'throwing. safeHref\'s hostname==="" guard is now REACHABLE and load-bearing, so it ' +
+        'needs a real rejection fixture -- and adding a non-special scheme to SAFE_SCHEMES is ' +
+        'itself almost certainly a mistake, since every script-bearing scheme is non-special.',
+    );
+  }
+
+  // Positive control: the detector must actually be able to see a non-special
+  // scheme. Without this, the loop above would pass if `new URL` threw for
+  // everything, or if the set were silently unreadable.
+  let nonSpecialThrew = false;
+  try {
+    new URL('javascript://');
+  } catch {
+    nonSpecialThrew = true;
+  }
+  assert(
+    !nonSpecialThrew,
+    'positive control: "javascript://" should parse (non-special schemes tolerate an empty ' +
+      'host); if it throws, this test can no longer tell special from non-special schemes',
+  );
+  assert(
+    new URL('javascript://').hostname === '',
+    'positive control: a non-special scheme should yield hostname === "", which is the ' +
+      'condition the guard under test exists to catch',
+  );
 }
 
 /**
@@ -186,6 +260,7 @@ function testExternalAnchorsKeepTargetBlank(): void {
 function run(): void {
   testRejectsUnsafeSchemes();
   testAcceptsHTTPAndHTTPS();
+  testHostGuardIsAFailClosedBackstop();
   testPayloadNeverReachesHrefAttribute();
   testExternalAnchorsKeepTargetBlank();
   console.log('safe-url: ok');
