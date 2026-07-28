@@ -121,7 +121,14 @@ function formControls(): void {
     const out = renderMarkdown('<textarea>x</textarea>');
     assertNoElement(out, 'textarea', 'textarea survived');
   });
-  check('formaction stripped', () => {
+  // Read this check's name literally: it asserts the TAG rule, not the attribute
+  // rule. `formaction` is only valid on <button>/<input> and `action` only on
+  // <form>, and all three tags are in FORBID_TAGS, so the host tag is stripped
+  // before either attribute rule is ever consulted. Both FORBID_ATTR entries can
+  // therefore be deleted with this suite fully green — they are deliberate
+  // defence in depth and are not testable in isolation through renderMarkdown.
+  // Keep them; do not infer from this check that they are covered.
+  check('formaction cannot survive because its host tag is stripped', () => {
     const out = renderMarkdown('<button formaction="https://evil.example">go</button>');
     assertNotContains(out, 'formaction', 'formaction survived');
     assertNotContains(out, 'evil.example', 'attacker origin survived');
