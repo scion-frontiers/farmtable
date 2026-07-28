@@ -3670,6 +3670,16 @@ function treeWideScanViolation(rule: string, scan: TreeWideScan): string | null 
  * itself. That is the same terminal position the check total and the assertion
  * total occupy, and it is the reason both of those are stated in `run()` rather
  * than inside a check that could be hollowed out.
+ *
+ * CALL IT BEFORE THE OFFENDER THROW, NOT AFTER. The first version of this ran
+ * last at all five sites, which produced a FALSE second failure whenever a rule
+ * legitimately fired: planting the audit's `parseFromString` shape reported both
+ * the real offender and "tree-wide vacuity control(s) never ran or never threw:
+ * the BANNED_SINKS tripwire", when in fact the control had not run because the
+ * check had already thrown. A control that lies about itself in exactly the
+ * situation it exists for is the defect this round is here to remove. Asserting
+ * soundness first is also the right order on the merits: an offender list from an
+ * unsound scan is not evidence of anything, in either direction.
  */
 const EXPECTED_TREE_WIDE_CONTROLS = [
   'mechanism (c), sanitizer ownership',
@@ -3748,10 +3758,10 @@ function sinkBinding(): void {
     const probe = `import X from '${SANITIZER_DEPENDENCIES[0]}';`;
     const scan = scanTreeWide(entries, probe, (rel, view) =>
       sanitizerOwnershipViolations(rel, view, scannedRel));
+    assertTreeWideScanSound('mechanism (c), sanitizer ownership', scan);
     if (scan.offenders.length > 0) {
       throw new Error(`sanitizer configuration is reachable from another file:\n      ${scan.offenders.join('\n      ')}`);
     }
-    assertTreeWideScanSound('mechanism (c), sanitizer ownership', scan);
   });
 
   // Comment-stripped view of every scanned file, computed once. `withStrings`
@@ -3802,6 +3812,7 @@ function sinkBinding(): void {
       'const rawHtml = unsafeHTML;',
       directiveIndirectionOffenders,
     );
+    assertTreeWideScanSound('mechanism (b), directive indirection', scan);
     const offenders = scan.offenders;
     if (offenders.length > 0) {
       throw new Error(
@@ -3823,7 +3834,6 @@ function sinkBinding(): void {
           'read a pass as "no indirection exists"; see the mechanism (b) note above.',
       );
     }
-    assertTreeWideScanSound('mechanism (b), directive indirection', scan);
   });
 
   // R7, tree-wide. Every name-based rule above — here and in the per-file half —
@@ -3836,10 +3846,10 @@ function sinkBinding(): void {
       'const rawHtml = \\u0075nsafeHTML;',
       escapeInCodeOffenders,
     );
+    assertTreeWideScanSound('R7 promoted, the escape ban', scan);
     if (scan.offenders.length > 0) {
       throw new Error(`escaped identifier in code:\n      ${scan.offenders.join('\n      ')}`);
     }
-    assertTreeWideScanSound('R7 promoted, the escape ban', scan);
   });
 
   // R6b, tree-wide. Every resolution-based rule in this file — R6, R8 and R9 —
@@ -3853,10 +3863,10 @@ function sinkBinding(): void {
       "const m = await import('dompur' + 'ify');",
       dynamicImportSpecifierOffenders,
     );
+    assertTreeWideScanSound('R6b promoted, the dynamic-import specifier rule', scan);
     if (scan.offenders.length > 0) {
       throw new Error(`unresolvable dynamic import specifier:\n      ${scan.offenders.join('\n      ')}`);
     }
-    assertTreeWideScanSound('R6b promoted, the dynamic-import specifier rule', scan);
   });
 
   // The argument must be a bare renderMarkdown(…) call, not merely start with
@@ -3884,6 +3894,7 @@ function sinkBinding(): void {
           ({ name }) => `${rel} (${name})`,
         ),
     );
+    assertTreeWideScanSound('the BANNED_SINKS tripwire', scan);
     const offenders = scan.offenders;
     if (offenders.length > 0) {
       throw new Error(
@@ -3891,7 +3902,6 @@ function sinkBinding(): void {
           '[tripwire: an enumeration of known sinks, not a proof of absence]',
       );
     }
-    assertTreeWideScanSound('the BANNED_SINKS tripwire', scan);
   });
 
   // ---------------------------------------------------------------------------
@@ -5350,8 +5360,10 @@ function run(): void {
       `tree-wide vacuity control(s) never ran or never threw: ${missingControls.join(', ')}. ` +
         `Expected all ${EXPECTED_TREE_WIDE_CONTROLS.length} of ` +
         `${EXPECTED_TREE_WIDE_CONTROLS.join(' / ')}; saw ` +
-        `${[...treeWideControlsRun].join(' / ') || '(none)'}. Each tree-wide check must end in ` +
-        'an `assertTreeWideScanSound(<rule>, scan)` call, which is what records the name. ' +
+        `${[...treeWideControlsRun].join(' / ') || '(none)'}. Each tree-wide check must call ` +
+        '`assertTreeWideScanSound(<rule>, scan)` BEFORE it throws on offenders — that call is ' +
+        'what records the name, and putting it after the throw makes this message fire ' +
+        'spuriously on every real finding. ' +
         'Measured before this pin existed: disarming one of the five throws was GREEN at ' +
         '79 checks / 127 assertions, and disarming all five was GREEN at 79/127 — the ' +
         'detector proving those loops are not vacuous could be switched off everywhere ' +
