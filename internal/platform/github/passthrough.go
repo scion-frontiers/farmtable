@@ -1143,11 +1143,19 @@ func applyLabelDelta(current, add, remove []string) []string {
 // A cross-list test would have closed that one input. This function instead
 // CALLS applyLabelDelta and emits the minimal edit that carries the snapshot to
 // the answer applyLabelDelta gave. Agreement is then a property of the
-// construction rather than of two implementations staying in step, and NO
-// FUTURE CHANGE TO applyLabelDelta CAN DESYNCHRONISE THEM. If somebody makes
-// remove stop winning, or teaches it a new normalisation, this follows
+// construction rather than of two implementations staying in step: if somebody
+// makes remove stop winning, or teaches it a new normalisation, this follows
 // automatically. Do not "simplify" this back into a pair of per-list filters:
 // that is the shape the Critical lived in, and it looks tidier.
+//
+// The round-8 version of this paragraph said "NO FUTURE CHANGE TO
+// applyLabelDelta CAN DESYNCHRONISE THEM", which is too strong and is exactly
+// the kind of unqualified claim this workstream keeps having to retract. What
+// follows automatically is the OUTCOME: the label set this write produces is
+// applyLabelDelta's answer, whatever that answer becomes. What does NOT follow
+// automatically is the MINIMALITY of the edit used to get there — that still
+// depends on one property of applyLabelDelta's body, and the removeKeys clause
+// further down exists because of it. See there.
 //
 // The pins are internal/platform/github/restrict_label_write_property_test.go:
 // P1 (this must land exactly the label set the gate priced) and P2 (nothing it
@@ -1203,11 +1211,55 @@ func (s *GitHubPassThroughStore) RestrictLabelWriteToSnapshot(ctx context.Contex
 	// strings.ToLower with no TrimSpace, so a padded spelling from the caller
 	// silently resolves to nothing and the priced removal never lands.
 	//
-	// The removeKeys test is a safety belt, not the rule. A label can only
-	// leave `after` by being named in removeLabels, so it is redundant for any
-	// real GitHub issue — but ent.Task.Labels is a plain slice and two entries
+	// P3 in restrict_label_write_property_test.go states that spelling rule as a
+	// property, and TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling
+	// pins the harm end to end.
+	//
+	// THE removeKeys CLAUSE BELOW IS UNREACHABLE TODAY (#194 round 9, MUST 4).
+	// Round 8 justified it with a situation that cannot arise — "two entries
 	// sharing a match key would make applyLabelDelta's dedup drop one, which
-	// without this test would emit a removal the caller never asked for.
+	// without this test would emit a removal the caller never asked for" — and
+	// its report claimed a named row covered it. Neither was true. The proof,
+	// read straight off applyLabelDelta's body:
+	//
+	//	applyLabelDelta walks current and then add, and keeps the FIRST
+	//	occurrence of each non-empty key that removeLabels does not name. So
+	//	for any non-empty key k of the snapshot,
+	//	    k not in keys(removeLabels)  =>  k in keys(after),
+	//	i.e.  keys(snapshot) \ keys(after)  is a subset of  keys(removeLabels).
+	//
+	// The loop below has already skipped key == "" and afterKeys[key], so
+	// !removeKeys[key] cannot be true when it is reached. Duplicate snapshot
+	// keys change nothing, which is precisely where round 8 went wrong: a
+	// duplicated key is either named in removeLabels (every copy leaves, and
+	// the key IS in removeKeys) or it is not (the first copy survives into
+	// after, so afterKeys already skipped it).
+	//
+	// IT STAYS, for a reason that is not the one round 8 gave. This function's
+	// whole design is that it DERIVES from applyLabelDelta rather than mirroring
+	// it, so it must not assume more about applyLabelDelta than the derivation
+	// needs. The subset relation above is a property of today's body, not of
+	// applyLabelDelta's contract. A future version that drops a label for any
+	// reason OTHER than the remove list — a stricter name validation, a
+	// different normalisation, a length cap — would make this loop emit a
+	// removal the caller never asked for, which is the A-4 class again. One map
+	// lookup buys failing closed against that.
+	//
+	// TestApplyLabelDelta_DropsOnlyWhatTheRemoveListNames asserts the subset
+	// relation directly, over snapshots that really do carry duplicate keys, so
+	// the day it stops holding somebody is told there instead of finding out
+	// here. That test failing does NOT mean this clause is wrong; it means this
+	// clause has become load-bearing and the paragraph above needs rewriting.
+	//
+	// Both halves of that are MEASURED, not argued. Deleting !removeKeys[key]
+	// against today's applyLabelDelta leaves the package green — that is the
+	// unreachability claim. Deleting it against an applyLabelDelta mutated to
+	// drop labels whose name is not already trimmed makes property P4 ("every
+	// removal returned was NAMED in removeLabels") fail on 128 of 16384 triples,
+	// where with the clause present P4 is silent — that is the protection
+	// claim. Before P4 existed the two mutants were byte-identical in their
+	// output, so this clause's rationale was unfalsifiable; if P4 is ever
+	// deleted it goes back to being unfalsifiable.
 	removeKeys := make(map[string]bool, len(removeLabels))
 	for _, l := range removeLabels {
 		if key := labelMatchKey(l); key != "" {

@@ -40,6 +40,9 @@ import (
 //	P3 (spelling)    Every removal it RETURNS is VERBATIM an element of the
 //	                 snapshot. Catches a priced removal that cannot resolve.
 //
+//	P4 (requested)   Every removal it RETURNS was NAMED in removeLabels.
+//	                 Catches a destructive write the caller never asked for.
+//
 // NEITHER IS SUFFICIENT ALONE, and the reason is structural rather than a
 // matter of missing test inputs. P1 quantifies over outcomes AGAINST THE
 // SNAPSHOT ONLY. A narrowing failure that is a no-op against the snapshot but
@@ -65,7 +68,7 @@ import (
 //	A-4 re-add-present    ok             P2 FAIL              ok
 //	legitimate edit       ok             ok                   ok
 //
-// DO NOT delete any of the three because "the others cover it".
+// DO NOT delete any of the four because "the others cover it".
 //
 // AND P3 IS THE REASON THAT SENTENCE IS NOT BOILERPLATE (#194 round 9, MUST 3).
 //
@@ -94,8 +97,8 @@ import (
 // is pinned at the server layer too, in
 // TestUpdateTask_APricedRemovalLandsWhateverTheCallerSpelling.
 
-// restrictProperties reports which of P1, P2 and P3 the restrictor violates for
-// one (snapshot, add, remove) triple. It returns a human-readable reason per
+// restrictProperties reports which of P1..P4 the restrictor violates for one
+// (snapshot, add, remove) triple. It returns a human-readable reason per
 // violated property, or "" when the property holds.
 //
 // The oracle for P1 is applyLabelDelta ITSELF, never a reimplementation of it.
@@ -104,7 +107,7 @@ import (
 // here would be free to drift in the same direction the production code drifted
 // and would report agreement anyway. If applyLabelDelta is ever wrong, P1 goes
 // on holding and that is correct — P1 pins the SEAM, not the pricing rule.
-func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLabels []string) (p1Fail, p2Fail, p3Fail string) {
+func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLabels []string) (p1Fail, p2Fail, p3Fail, p4Fail string) {
 	tk := &ent.Task{Labels: snapshot}
 	gotAdd, gotRemove := s.RestrictLabelWriteToSnapshot(context.Background(), tk, addLabels, removeLabels)
 
@@ -174,7 +177,53 @@ func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLa
 			strings.Join(wrongSpelling, "\n  "))
 	}
 
-	return p1Fail, p2Fail, p3Fail
+	// ── P4: every returned removal was actually asked for ──
+	//
+	// P4 exists because the removeKeys clause in RestrictLabelWriteToSnapshot is
+	// UNREACHABLE against today's applyLabelDelta (see the proof beside it) and
+	// is kept as a hedge against a future one. A hedge nothing can observe is
+	// indistinguishable from dead weight, and this file's whole subject is
+	// controls that turned out not to be doing what their comments said.
+	//
+	// MEASURED (#194 round 9, MUST 4): with a mutant applyLabelDelta that drops a
+	// snapshot label for a reason OTHER than the remove list, deleting the belt
+	// changed nothing that P1, P2 or P3 could see. P2's A-4 arm asks whether a
+	// returned removal is PRESENT on the snapshot, and an unrequested removal of
+	// a label the snapshot really carries passes that. So the belt's rationale
+	// was unfalsifiable until this property existed. With P4 in place the same
+	// pair of mutants separates: belt present, P4 silent; belt deleted, P4 fails
+	// on 128 of 16384 triples.
+	//
+	// It is not tautological against the current code even though the current
+	// code satisfies it by construction: it is a statement about the OUTPUT, and
+	// the output is what the write acts on.
+	requestedKeys := make(map[string]bool, len(removeLabels))
+	for _, l := range removeLabels {
+		if k := labelMatchKey(l); k != "" {
+			requestedKeys[k] = true
+		}
+	}
+	var unrequested []string
+	for _, r := range gotRemove {
+		if k := labelMatchKey(r); k != "" && !requestedKeys[k] {
+			unrequested = append(unrequested, fmt.Sprintf(
+				"remove %q was never named in remove_labels: the write would strip a label "+
+					"off the issue that the caller did not ask to strip, which is the A-4 class "+
+					"with the restrictor as the attacker", r))
+		}
+	}
+	if len(unrequested) > 0 {
+		p4Fail = fmt.Sprintf(
+			"P4 VIOLATED (the restrictor invented a removal)\n"+
+				"  snapshot        %v\n"+
+				"  requested  add  %v  remove %v\n"+
+				"  narrowed   add  %v  remove %v\n"+
+				"  %s",
+			snapshot, addLabels, removeLabels, gotAdd, gotRemove,
+			strings.Join(unrequested, "\n  "))
+	}
+
+	return p1Fail, p2Fail, p3Fail, p4Fail
 }
 
 // p2Violations IS the definition of P2. It is not a description of P2 and there
@@ -400,8 +449,8 @@ func TestRestrictLabelWriteToSnapshot_NamedDefectShapes(t *testing.T) {
 	s := propertyStore(t)
 	for _, row := range rows {
 		t.Run(row.name, func(t *testing.T) {
-			p1, p2, p3 := restrictProperties(s, row.snapshot, row.add, row.remove)
-			for _, fail := range []string{p1, p2, p3} {
+			p1, p2, p3, p4 := restrictProperties(s, row.snapshot, row.add, row.remove)
+			for _, fail := range []string{p1, p2, p3, p4} {
 				if fail != "" {
 					t.Errorf("%s\n\nwhy this row exists: %s", fail, row.why)
 				}
@@ -460,8 +509,8 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 			snapVocab[0], snapVocab[1])
 	}
 
-	cases, p1Fails, p2Fails, p3Fails := 0, 0, 0, 0
-	var firstP1, firstP2, firstP3 string
+	cases, p1Fails, p2Fails, p3Fails, p4Fails := 0, 0, 0, 0, 0
+	var firstP1, firstP2, firstP3, firstP4 string
 
 	for snapMask := 0; snapMask < 1<<len(snapVocab); snapMask++ {
 		snapshot := subsetOf(snapVocab, snapMask)
@@ -470,7 +519,7 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 			for remMask := 0; remMask < 1<<len(vocab); remMask++ {
 				remove := subsetOf(vocab, remMask)
 				cases++
-				p1, p2, p3 := restrictProperties(s, snapshot, add, remove)
+				p1, p2, p3, p4 := restrictProperties(s, snapshot, add, remove)
 				if p1 != "" {
 					p1Fails++
 					if firstP1 == "" {
@@ -487,6 +536,12 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 					p3Fails++
 					if firstP3 == "" {
 						firstP3 = p3
+					}
+				}
+				if p4 != "" {
+					p4Fails++
+					if firstP4 == "" {
+						firstP4 = p4
 					}
 				}
 			}
@@ -508,6 +563,9 @@ func TestRestrictLabelWriteToSnapshot_PropertiesHoldExhaustively(t *testing.T) {
 	}
 	if p3Fails > 0 {
 		t.Errorf("P3 failed on %d of %d triples. First:\n%s", p3Fails, cases, firstP3)
+	}
+	if p4Fails > 0 {
+		t.Errorf("P4 failed on %d of %d triples. First:\n%s", p4Fails, cases, firstP4)
 	}
 	t.Logf("swept %d (snapshot, add, remove) triples", cases)
 }
@@ -730,4 +788,157 @@ func TestRestrictLabelWriteToSnapshot_PropertiesRejectTheIdentityRestrictor(t *t
 			}
 		}
 	})
+}
+
+// ── #194 round 9 / MUST 4: the invariant that makes the removeKeys belt dead ──
+
+// snapshotKeysDroppedWithoutBeingNamed reports the snapshot keys that `after`
+// does not carry and that removeLabels never named.
+//
+// It is the executable form of the subset relation quoted in
+// RestrictLabelWriteToSnapshot's removeKeys paragraph:
+//
+//	keys(snapshot) \ keys(after)  is a subset of  keys(removeLabels)
+//
+// `after` is a parameter rather than something this function computes, so the
+// same checker can be pointed at applyLabelDelta and at a deliberately broken
+// model. A checker that only ever sees the correct answer cannot be shown to
+// work — that is the MUST 2 lesson from this same file.
+func snapshotKeysDroppedWithoutBeingNamed(snapshot, removeLabels, after []string) []string {
+	afterKeys := map[string]bool{}
+	for _, l := range after {
+		if k := labelMatchKey(l); k != "" {
+			afterKeys[k] = true
+		}
+	}
+	named := map[string]bool{}
+	for _, l := range removeLabels {
+		if k := labelMatchKey(l); k != "" {
+			named[k] = true
+		}
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, l := range snapshot {
+		k := labelMatchKey(l)
+		if k == "" || afterKeys[k] || named[k] || seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, k)
+	}
+	return out
+}
+
+// TestApplyLabelDelta_DropsOnlyWhatTheRemoveListNames is the tripwire under the
+// removeKeys "safety belt" in RestrictLabelWriteToSnapshot.
+//
+// Round 8 shipped that clause with a rationale that describes a situation which
+// cannot occur — "two entries sharing a match key would make applyLabelDelta's
+// dedup drop one" — and a report claiming a named row covered it. Neither was
+// true. applyLabelDelta keeps the FIRST occurrence of each non-empty key the
+// remove list does not name, so a duplicated snapshot key is always in `after`,
+// and the clause is unreachable.
+//
+// The clause is kept anyway, as a hedge against a FUTURE applyLabelDelta that
+// drops a label for some reason other than the remove list. This test is what
+// turns that hedge from a belief into a monitored assumption: while it passes,
+// the clause is dead and the paragraph beside it is accurate. If it ever fails,
+// the clause has become load-bearing and that paragraph needs rewriting — the
+// failure is not a reason to delete either.
+//
+// The snapshot vocabulary carries THREE spellings of one label because that is
+// the exact shape round 8 reasoned about and no vocabulary in the repository
+// reached.
+func TestApplyLabelDelta_DropsOnlyWhatTheRemoveListNames(t *testing.T) {
+	const completed = "ft:stage/completed"
+	const wontFix = "ft:stage/wont_fix"
+
+	snapVocab := []string{completed, strings.ToUpper(completed), " " + completed + " ", "bug", ""}
+	deltaVocab := []string{completed, "BUG", wontFix, ""}
+
+	cases, dupSnapshots, realDrops := 0, 0, 0
+	var violations []string
+
+	for snapMask := 0; snapMask < 1<<len(snapVocab); snapMask++ {
+		snapshot := subsetOf(snapVocab, snapMask)
+		for addMask := 0; addMask < 1<<len(deltaVocab); addMask++ {
+			add := subsetOf(deltaVocab, addMask)
+			for remMask := 0; remMask < 1<<len(deltaVocab); remMask++ {
+				remove := subsetOf(deltaVocab, remMask)
+				cases++
+
+				if countDuplicateKeys(snapshot) > 0 {
+					dupSnapshots++
+				}
+				after := applyLabelDelta(snapshot, add, remove)
+				if len(labelKeySet(snapshot)) > len(labelKeySet(after)) {
+					realDrops++
+				}
+				if bad := snapshotKeysDroppedWithoutBeingNamed(snapshot, remove, after); len(bad) > 0 && len(violations) < 3 {
+					violations = append(violations, fmt.Sprintf(
+						"snapshot %v, add %v, remove %v -> after %v: dropped %v, which remove never named",
+						snapshot, add, remove, after, bad))
+				}
+			}
+		}
+	}
+
+	wantCases := (1 << len(snapVocab)) * (1 << len(deltaVocab)) * (1 << len(deltaVocab))
+	if cases != wantCases {
+		t.Fatalf("SWEEP BROKEN: executed %d triples, want %d", cases, wantCases)
+	}
+	// Two vacuity guards. Without the first, "duplicate keys change nothing" is
+	// a claim about inputs the sweep never produced — round 8's actual mistake.
+	// Without the second, the subset relation holds because nothing was ever
+	// dropped at all.
+	if dupSnapshots == 0 {
+		t.Fatalf("SWEEP BROKEN: no swept snapshot carried two entries sharing a match key, so " +
+			"this test says nothing about the case its subject is")
+	}
+	if realDrops == 0 {
+		t.Fatalf("SWEEP BROKEN: no swept triple dropped any snapshot key, so the subset " +
+			"relation held vacuously")
+	}
+	if len(violations) > 0 {
+		t.Fatalf("applyLabelDelta dropped a snapshot label the remove list did not name.\n  %s\n\n"+
+			"The removeKeys clause in RestrictLabelWriteToSnapshot is now LOAD-BEARING rather "+
+			"than dead. Do not delete it, and rewrite the paragraph beside it: it currently "+
+			"tells the reader this cannot happen.",
+			strings.Join(violations, "\n  "))
+	}
+	t.Logf("swept %d triples; %d carried duplicate snapshot keys; %d really dropped a key",
+		cases, dupSnapshots, realDrops)
+
+	// CAPABILITY CONTROL. A checker that never objects would satisfy everything
+	// above. Point it at a model that drops a snapshot label nobody asked to
+	// remove, and it must say so.
+	t.Run("the_checker_can_see_an_unrequested_drop", func(t *testing.T) {
+		snapshot := []string{completed, "bug"}
+		brokenAfter := []string{"bug"} // completed vanished; remove named nothing
+		bad := snapshotKeysDroppedWithoutBeingNamed(snapshot, nil, brokenAfter)
+		if len(bad) != 1 || bad[0] != completed {
+			t.Fatalf("the checker reported %v for a model that silently dropped %q; it cannot "+
+				"see the failure the sweep above claims not to have found", bad, completed)
+		}
+	})
+}
+
+// countDuplicateKeys reports how many snapshot entries share a match key with an
+// earlier entry. Used only as a vacuity guard.
+func countDuplicateKeys(labels []string) int {
+	seen := map[string]bool{}
+	n := 0
+	for _, l := range labels {
+		k := labelMatchKey(l)
+		if k == "" {
+			continue
+		}
+		if seen[k] {
+			n++
+			continue
+		}
+		seen[k] = true
+	}
+	return n
 }
