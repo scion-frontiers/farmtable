@@ -36,6 +36,17 @@ const { marked } = await import('marked');
 const failures: string[] = [];
 let checks = 0;
 
+// T-4. `checks += 1` happens BEFORE `fn()`, and it has to: a check whose body
+// throws must still be counted, or a failure would look like a deletion. The
+// consequence is that EXPECTED_CHECKS pins the DELETION of a check and not its
+// EVISCERATION. Measured: reverting `slot` from FORBID_ATTR and replacing that
+// check's body with an early return was green at 69 — the call site is still
+// there, the count is unchanged, and the protection is gone.
+//
+// So the assertions are counted too. Every assert* helper below bumps this, and
+// run() pins the total the same way it pins the check total.
+let assertions = 0;
+
 function check(name: string, fn: () => void): void {
   checks += 1;
   try {
@@ -52,30 +63,35 @@ function parse(html: string): HTMLElement {
 }
 
 function assertNoElement(html: string, selector: string, message: string): void {
+  assertions += 1;
   if (parse(html).querySelector(selector) !== null) {
     throw new Error(`${message}: found <${selector}> in ${JSON.stringify(html)}`);
   }
 }
 
 function assertElement(html: string, selector: string, message: string): void {
+  assertions += 1;
   if (parse(html).querySelector(selector) === null) {
     throw new Error(`${message}: no <${selector}> in ${JSON.stringify(html)}`);
   }
 }
 
 function assertNotContains(html: string, needle: string, message: string): void {
+  assertions += 1;
   if (html.toLowerCase().includes(needle.toLowerCase())) {
     throw new Error(`${message}: found ${JSON.stringify(needle)} in ${JSON.stringify(html)}`);
   }
 }
 
 function assertContains(html: string, needle: string, message: string): void {
+  assertions += 1;
   if (!html.includes(needle)) {
     throw new Error(`${message}: missing ${JSON.stringify(needle)} in ${JSON.stringify(html)}`);
   }
 }
 
 function assertEqual(actual: string, expected: string, message: string): void {
+  assertions += 1;
   if (actual !== expected) {
     throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
   }
@@ -83,6 +99,7 @@ function assertEqual(actual: string, expected: string, message: string): void {
 
 /** Fails if any element in the output carries an inline event handler. */
 function assertNoEventHandlers(html: string, message: string): void {
+  assertions += 1;
   for (const el of parse(html).querySelectorAll('*')) {
     for (const attr of el.attributes) {
       if (attr.name.toLowerCase().startsWith('on')) {
@@ -3102,8 +3119,33 @@ function sinkBinding(): void {
 // one URI-policy pin, the two `inputContract` checks (arity and non-string
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
+//
+// Moved 69 -> 73 in round 7: the tree-wide escape tripwire (R7 promoted out of
+// the two sink files), the fixture for the arity pin, the shared-marked-singleton
+// pin, and the DOM-clobbering pin. The scope pin added in the same round is
+// deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
 const EXPECTED_CHECK_CALL_SITES = 72;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
+
+// T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
+// before the body, which it must, so a body replaced by an early return keeps
+// the count. Measured: revert `slot` from FORBID_ATTR and hollow out the check
+// that pins it — green at 69.
+//
+// Counting assertions closes the specific hole, because a hollowed body stops
+// running its assert* calls. The residue is stated rather than implied: this
+// covers the BEHAVIOURAL checks, which are the ones built out of assert*
+// helpers. The rule fixtures throw directly and are covered instead by the table
+// size pins added alongside this — different mechanism, same defect.
+//
+// EXACT, NOT A FLOOR, and the choice was close. A floor (`>= 113`) needs no edit
+// when assertions are added, which is most of the friction. But a floor is
+// satisfied by adding two assertions somewhere new and deleting two somewhere
+// load-bearing, and "silent shrinkage masked by unrelated growth" is exactly the
+// failure EXPECTED_SOURCE_FILES was changed from a floor to an exact count to
+// catch. Paying the same edit cost as EXPECTED_CHECK_CALL_SITES is consistent
+// with the rest of this file, and the message says what to do.
+const EXPECTED_ASSERTIONS = 122;
 
 function run(): void {
   formControls();
@@ -3131,13 +3173,28 @@ function run(): void {
     );
   }
 
+  // Reported ONLY when nothing else failed. A failing assert* throws, so the
+  // rest of its check's assertions never run and the count is legitimately low —
+  // reporting it alongside a real failure would add a second, misleading line to
+  // every red run.
+  if (failures.length === 0 && assertions !== EXPECTED_ASSERTIONS) {
+    failures.push(
+      `assertion total pinned: expected ${EXPECTED_ASSERTIONS} assertions to run, ${assertions} ` +
+        'did. Every check() call site is still present — that is what the check total above ' +
+        'measures — so this is a change INSIDE one or more check bodies. If you added or ' +
+        'removed assertions deliberately, update EXPECTED_ASSERTIONS in the same commit. If ' +
+        'you did not, a check body has been hollowed out: it still runs, still counts, and no ' +
+        'longer asserts anything. Never change this number merely to make a red suite go green.',
+    );
+  }
+
   if (failures.length > 0) {
     throw new Error(
       `${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
         failures.map((f) => `  - ${f}`).join('\n'),
     );
   }
-  console.log(`markdown sanitizer: ${checks} checks passed`);
+  console.log(`markdown sanitizer: ${checks} checks passed (${assertions} assertions)`);
 }
 
 run();
