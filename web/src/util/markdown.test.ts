@@ -2619,6 +2619,37 @@ function callArguments(code: string, name: string): string[] {
  * pinned as such by 'fixture: every structural scanner reports from the original,
  * not the blinded view'. It is kept because that rule is worth keeping, not
  * because a template would slip past it.
+ *
+ * ── KNOWN OPEN GAP IN *THIS* FUNCTION, DEFERRED ON PURPOSE (r10 S9) ──
+ *
+ * The top-level-comma rule above does not see a comma inside braces, so a
+ * PROPERTY BAG passes here. MEASURED in this tree, round 10:
+ *
+ *   sinkArgumentIsSanitized('renderMarkdown({ md: this.body, inline: true })')
+ *     -> true
+ *
+ * That is the same gap the arity scanner's docblock records from the other side,
+ * and it was previously written down ONLY there — at `renderMarkdownArityViolation`
+ * — while the round-9 report said it was documented "at the function". It is
+ * repeated here so that anyone reading the comma rule sees what it does not cover
+ * without having to find the other docblock first.
+ *
+ * WHY IT IS NOT CLOSED HERE, and why that is the right call rather than an
+ * omission: the other layer already rejects the declaration that would make the
+ * property bag mean anything. MEASURED, same tree:
+ *
+ *   renderMarkdownArityViolation('export function renderMarkdown({ md, inline }: …')
+ *     -> "renderMarkdown's sole parameter is a destructuring pattern: …"
+ *
+ * pinned by fixture C7-i. So a property-bag configuration channel has to defeat
+ * BOTH layers, and the two do not share a failure mode: this one is a bracket
+ * counter over a call site, that one is a parameter-shape rule over the
+ * declaration. Closing it HERE would mean deciding whether an object literal
+ * argument is a configuration channel or an ordinary value, which needs a real
+ * expression parser — a scanner this file has repeatedly and correctly refused to
+ * grow. DO NOT ATTEMPT IT as a side effect of some other change; if the
+ * declaration-side rule is ever relaxed, this gap becomes load-bearing and must be
+ * re-rated in the same commit.
  */
 function sinkArgumentIsSanitized(arg: string): boolean {
   const t = arg.trim();
