@@ -1007,13 +1007,14 @@ const REQUIRED_SINKS = [
 const EXPECTED_REQUIRED_SINKS = 2;
 
 /**
- * Exact number of scannable source files under `src/`. Pinned, not a floor: the
- * previous floor of 10 sat under an actual count of 50, so forty files could
- * have stopped being scanned with no signal. This is the G7 check-total
+ * Exact number of files this guard scans: everything scannable under `src/`,
+ * plus EXTRA_SCANNED_FILES. Pinned, not a floor: the previous floor of 10 sat
+ * under an actual count of 50, so forty files could have stopped being scanned
+ * with no signal. This is the G7 check-total
  * rationale applied one level down — update it deliberately when a source file
  * is added or removed, never to make a red suite go green.
  */
-const EXPECTED_SOURCE_FILES = 50;
+const EXPECTED_SOURCE_FILES = 51;
 
 /** Walks up from this module to the directory containing `src/util/markdown.ts`. */
 function findWebRoot(): string {
@@ -1044,10 +1045,52 @@ function findWebRoot(): string {
 // comment always claimed but could not deliver. "Not scanned" is
 // indistinguishable from "clean" in the results, so the set of unscanned things
 // must be the set we can argue about, not the set we happened to list.
+//
+// `.html` IS NO LONGER ON THIS LIST (audit LOW-2). It was, on the reading that
+// HTML is markup rather than code — but an HTML file that ships to the browser
+// can carry an inline `<script>`, and `web/index.html` does.
+//
+// WHAT THIS HALF OF THE FIX IS ACTUALLY FOR, corrected after measuring it. The
+// first version of this comment said index.html was invisible "twice over" and
+// that "fixing either alone leaves it unscanned". That was wrong, and the
+// mutation that was supposed to confirm it refuted it instead:
+// EXTRA_SCANNED_FILES reads index.html BY EXPLICIT PATH, so it never passes
+// through this filter at all. Putting `.html` back here leaves index.html fully
+// scanned. The two halves are independent, not conjunctive.
+//
+// This half covers a DIFFERENT file: a `.html` under `src/`, of which there are
+// none today. Measured, with one created for the purpose — an inline
+// `innerHTML` sink in `src/legacy-widget.html` is red via the sink tripwire with
+// `.html` off this list, and GREEN with it on. Green with no count signal
+// either, because the filter runs before `files` is built: the "no signal of any
+// kind" case described above, reproduced. index.html is covered by
+// EXTRA_SCANNED_FILES alone.
 const INERT_EXTENSIONS = [
-  '.css', '.scss', '.json', '.svg', '.md', '.txt', '.html',
+  '.css', '.scss', '.json', '.svg', '.md', '.txt',
   '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.woff', '.woff2',
 ];
+
+/**
+ * Files that SHIP TO THE BROWSER but do not live under `src/`.
+ *
+ * Audit LOW-2. The tree-wide scan walks `src/`, which is a reasonable default
+ * and is also not the same set as "code that reaches the user". `index.html` is
+ * the application's entry document: it is served, it carries an inline
+ * `<script>` today, and an `innerHTML` assignment or a `document.write` added to
+ * that block would have been invisible to all three mechanisms here.
+ *
+ * Paths are web-root-relative and are read by explicit path, so deleting or
+ * renaming one is a `readFileSync` throw rather than a silently shorter list —
+ * the same reason REQUIRED_SINKS is a list of paths rather than a glob.
+ *
+ * WHAT THIS DOES NOT CLAIM. It does not make the tree-wide scan sound; nothing
+ * does. It removes one specific blind spot that was reported, and the honest
+ * generalisation is on the record instead of being quietly closed: the scanned
+ * set is still "src/ plus a hand-maintained list", so anything shipped from
+ * `public/`, from a Vite plugin, or from a second HTML entry point added later
+ * is outside it until someone adds it here.
+ */
+const EXTRA_SCANNED_FILES = ['index.html'];
 
 function isScannableSource(entry: string): boolean {
   // Test files are excluded so that this file may name the banned identifiers in
@@ -1268,7 +1311,7 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
  *
  * That containment argument was scoped wrongly, in this workstream's signature
  * way: a property that holds for one consumer, stated as if it held for all. The
- * per-file rules run on the two REQUIRED_SINKS files ONLY. For the other 48
+ * per-file rules run on the two REQUIRED_SINKS files ONLY. For the other 49
  * scanned files the tree-wide tripwire IS the whole guard — and it honoured the
  * marker. Two marker comments in a non-sink component (`inspector-shared-styles`)
  * were enough to re-export the raw directive under another name and import it
@@ -2256,7 +2299,7 @@ function fixtureTableViolation(
  * R7 bans a unicode or hex escape in code, because `unsafeHTML` is resolved
  * by TypeScript to the imported binding while `\bunsafeHTML\b` cannot see it.
  * Scoped to REQUIRED_SINKS it was sound for those two files and silent for the
- * other 48, and that gap is measurable rather than theoretical: C2-e — shrink
+ * other 49, and that gap is measurable rather than theoretical: C2-e — shrink
  * REQUIRED_SINKS by one, alias the directive with the escape, render the field
  * raw — was green at 68 checks, and its counterfactual CF-2 (identical mutation,
  * no escape) was red. R7 was the ONLY per-file rule the shrink removed that the
@@ -2310,6 +2353,13 @@ function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
   collectSourceFiles(join(root, 'src'), files);
+  // Read by explicit path, not discovered: a missing entry throws here rather
+  // than shortening the list. See EXTRA_SCANNED_FILES.
+  for (const rel of EXTRA_SCANNED_FILES) {
+    const full = join(root, rel);
+    statSync(full);
+    files.push(full);
+  }
 
   // Two pins, one call site, deliberately. Both answer "is this guard still
   // looking at what it claims to look at" — one for the open-world scan's input,
@@ -2608,7 +2658,7 @@ function sinkBinding(): void {
 
   // The promoted R7's positives. V8 and V8b were pinned as SINK_EVASIONS, which
   // run against the two REQUIRED_SINKS files only; these are the same two forms
-  // asserted against the rule that now covers all 50. Attribution is kept
+  // asserted against the rule that now covers all 51. Attribution is kept
   // explicit — this loop calls `escapeInCodeOffenders` by name rather than
   // asking whether ANY tree-wide rule fired — because C2-e's whole lesson is
   // that "something caught it" and "this rule caught it" are different claims.
