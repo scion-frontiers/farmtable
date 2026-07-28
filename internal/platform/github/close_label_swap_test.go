@@ -65,6 +65,7 @@ type fakeIssueRepo struct {
 	closeCalls  int
 	addCalls    int
 	removeCalls int
+	updateCalls int
 }
 
 func newFakeIssueRepo(t *testing.T, labels ...string) *fakeIssueRepo {
@@ -195,6 +196,17 @@ func (f *fakeIssueRepo) handler() http.HandlerFunc {
 				f.stateReason = "COMPLETED"
 			}
 			_, _ = fmt.Fprintf(w, `{"data":{"closeIssue":{"issue":%s}}}`, f.issueJSON())
+
+		// updateIssue must be matched BEFORE the repository arms: UpdateTask
+		// always calls it, and the mutation's selection set contains
+		// labels(first: 20) like every other issue selection. It mutates
+		// nothing here on purpose — UpdateTask passes nil title and body in the
+		// label-only path — but it has to answer, or the label swap it guards
+		// never runs and a test of that swap fails for a harness reason while
+		// looking like a finding.
+		case strings.Contains(body, "updateIssue"):
+			f.updateCalls++
+			_, _ = fmt.Fprintf(w, `{"data":{"updateIssue":{"issue":%s}}}`, f.issueJSON())
 
 		case strings.Contains(body, "addLabelsToLabelable"):
 			f.addCalls++

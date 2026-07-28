@@ -6,58 +6,61 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
-// TestStageLabelSwap_StillDeletesAHumansStockLabel is a MEASUREMENT requested
-// alongside B6, not an assertion of desired behaviour.
+// TestStageLabelSwap_DoesNotDeleteAHumansStockLabel is the INVERSION of a
+// round-5 measurement, performed in round 6 exactly as that measurement asked
+// for. Kept under a renamed function rather than deleted, because the history
+// is the useful part.
 //
-// The audit claimed, from unit-level evidence it declined to extend, that
-// requiring the configured prefix for authorization inputs would also fix its
-// F7: StageLabelSwap treats a human's stock GitHub label as one of ours and
-// DELETES it during an ordinary stage change.
+// WHAT IT SAID IN ROUND 5, as
+// TestStageLabelSwap_StillDeletesAHumansStockLabel: the audit claimed, from
+// unit-level evidence it declined to extend, that requiring the configured
+// prefix for authorization inputs would also fix its F7. Measured answer: it
+// did not. B6 changed the two READERS, where authorization answers come from.
+// StageLabelSwap is a WRITER and went on deciding "is this one of ours?" with
+// the prefix-tolerant stripForMatch, so a stock "duplicate" was still deleted
+// when the task moved to working. That test pinned the open bug so the audit's
+// claim could not be carried forward unverified, and instructed whoever fixed
+// F7 to invert it.
 //
-// MEASURED ANSWER: it does not. B6 changed the two terminal-stage READERS
-// (TerminalLabelStage and AllTerminalLabelStages), which is where an
-// authorization answer comes from. StageLabelSwap is a WRITER and still decides
-// "is this one of ours?" with the prefix-tolerant stripForMatch, so a stock
-// "duplicate" is still removed when the task moves to working. That is a data
-// loss bug and it is untouched by this round; it is recorded here so the claim
-// is not carried forward unverified.
+// WHAT ROUND 6 DID: StageLabelSwap now asks authorizationStage, the same
+// predicate the readers ask. The measurement stands as a REGRESSION GUARD in
+// the opposite direction. Nothing about the round-5 finding was wrong; the
+// behaviour it recorded has changed, which is the outcome a pinned measurement
+// is for.
 //
-// This test pins CURRENT behaviour. If you are here because it failed, you are
-// probably fixing F7 — invert it and say so.
-func TestStageLabelSwap_StillDeletesAHumansStockLabel(t *testing.T) {
+// The round-5 log entry is amended accordingly — see
+// .design/project-log/close-label-swap-r5-label-write-scope.md and the round-6
+// leg-A entry.
+func TestStageLabelSwap_DoesNotDeleteAHumansStockLabel(t *testing.T) {
 	m := NewLabelMapper(DefaultConfig().GitHub.Labels)
 
 	add, remove := m.StageLabelSwap([]string{"duplicate", "bug"}, task.StageWorking)
 
+	// BASELINE, unchanged from round 5: the swap must still be DOING something,
+	// or "removed nothing" is a disabled function rather than a scoped one.
 	if len(add) != 1 || add[0] != "ft:stage/working" {
 		t.Fatalf("BASELINE BROKEN: add = %v, want [ft:stage/working]; the swap is not doing "+
 			"the thing whose side effect is being measured", add)
 	}
 
-	deletesStock := false
 	for _, l := range remove {
 		if l == "duplicate" {
-			deletesStock = true
+			t.Errorf("F7 HAS REGRESSED: StageLabelSwap removed the stock GitHub label "+
+				"\"duplicate\" (remove = %v). Farm Table does not read that label as a "+
+				"terminal assertion because it is not ours; deleting it is the same "+
+				"ownership question answered the opposite way, destructively.", remove)
 		}
 		if l == "bug" {
-			t.Fatalf("StageLabelSwap removed the non-stage label \"bug\" (remove = %v); that "+
-				"is a different and larger bug than the one being measured", remove)
+			t.Errorf("StageLabelSwap removed the non-stage label \"bug\" (remove = %v); "+
+				"that is a larger bug than F7 ever was", remove)
 		}
 	}
-	if !deletesStock {
-		t.Fatalf("F7 IS FIXED: StageLabelSwap([duplicate bug], working) no longer removes "+
-			"\"duplicate\" (remove = %v). This test recorded that B6 did NOT fix it; if that "+
-			"has changed, invert this test and update the round-5 log entry", remove)
-	}
-	t.Logf("F7 MEASURED STILL OPEN: StageLabelSwap([duplicate bug], working) "+
-		"add=%v remove=%v", add, remove)
 
-	// The contrast that localises it: the READERS B6 changed do not honour the
-	// stock label, while this WRITER still claims ownership of it. One label,
-	// two answers, in the same mapper.
+	// The contrast that localises it, kept from round 5 and now pointing the
+	// same way in both halves: one label, one answer, in one mapper.
 	if _, ok := m.TerminalLabelStage([]string{"duplicate"}); ok {
-		t.Fatalf("TerminalLabelStage still reads the stock \"duplicate\" as terminal; B6 did " +
-			"not land")
+		t.Fatalf("TerminalLabelStage reads the stock \"duplicate\" as terminal; B6 did " +
+			"not land, and the writer-side assertion above is meaningless without it")
 	}
 }
 

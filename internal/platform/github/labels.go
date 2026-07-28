@@ -310,9 +310,42 @@ func (m *LabelMapper) PriorityToLabel(p task.Priority) string {
 	return "priority:" + p.String()
 }
 
-// StageLabelSwap computes the label add/remove sets needed to transition
-// an issue from its current labels to a new stage. It removes any existing
+// StageLabelSwap computes the label add/remove sets needed to transition an
+// issue from its current labels to a new stage. It removes the deployment's OWN
 // stage labels and adds the label for newStage.
+//
+// "OWN" IS THE WHOLE POINT, and it was wrong until #194 round 6 (review F7).
+// This used stripForMatch — the prefix-TOLERANT, display-side lookup — to
+// decide what to DELETE. Round 5 established that prefix-tolerant matching is a
+// display affordance that must not reach a security decision, and applied it to
+// every reader; the writer was left behind. The result, measured end to end:
+//
+//	labels = [ft:stage/wont_fix, duplicate], UpdateTask(stage=wont_fix)
+//	-> allowed, and afterwards labels = [ft:stage/wont_fix]
+//
+// A no-op stage update silently destroyed a human's stock GitHub label. Farm
+// Table was refusing to BELIEVE "duplicate" on the grounds that it is not ours,
+// while claiming the right to DELETE it — the worst available pairing of those
+// two answers, because it means we destroy precisely the labels we have decided
+// we are not entitled to trust. Ownership is one question and the reader and
+// the writer now ask it the same way, through authorizationStage.
+// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader enumerates both
+// spellings of every stage and fails if the two ever diverge again.
+//
+// THE COST, stated rather than buried: a bare human-applied stage label now
+// survives a stage change, so an issue can carry a stale display reading. That
+// is the same trade round 4 accepted on the read side — wrongly displayed, not
+// wrongly privileged — and it is now consistent in both directions instead of
+// split down the middle. It is also strictly the safe direction for a WRITE:
+// this change can only ever delete fewer labels than before, so no data an
+// operator kept can be lost by adopting it.
+//
+// NOT FIXED HERE, and not this function's job: whether the transition is
+// PERMITTED. wont_fix -> wont_fix still reads as from == to at the scope gate,
+// which charges task:write rather than task:close. That gate is
+// store.LabelDeltaLifecycleStages. This function only computes the edit; making
+// the edit non-destructive removes the harm from that particular case but does
+// not close the gate, and the two must not be confused for one another.
 func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage) (add []string, remove []string) {
 	if !m.enabled {
 		return nil, nil
@@ -321,8 +354,9 @@ func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage
 	newLabel := m.StageToLabel(newStage)
 
 	for _, raw := range currentLabels {
-		key := m.stripForMatch(raw)
-		if _, isStage := m.labelToStage[key]; isStage {
+		// authorizationStage, not stripForMatch: only a label carrying the
+		// configured push prefix is ours to remove.
+		if _, ours := m.authorizationStage(raw); ours {
 			if raw != newLabel {
 				remove = append(remove, raw)
 			}
