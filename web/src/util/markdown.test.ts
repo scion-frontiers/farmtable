@@ -28,10 +28,18 @@ globals.document = dom.window.document;
 
 const { renderMarkdown } = await import('./markdown.js');
 
-// The SHARED marked singleton, imported here on purpose. markdown.ts must not
-// be using it — see the last check in taskLists(), which poisons this object
-// and asserts renderMarkdown is unaffected.
+// The two PROCESS-GLOBAL singletons markdown.ts must not be using, imported
+// here on purpose so the property can be observed by effect rather than by
+// name. `sharedMarkedSingleton()` and `privateDOMPurifyInstance()` poison these
+// objects and assert renderMarkdown is unaffected; both run LAST in run(),
+// because neither `marked.use` nor `DOMPurify.setConfig` has an undo.
+//
+// (Review nit, round 8: this comment said "see the last check in taskLists()".
+// That check was moved out of taskLists() into its own function in round 7 and
+// the pointer was not updated — the same stale-cross-reference defect this file
+// keeps finding in its own guards.)
 const { marked } = await import('marked');
+const { default: DOMPurify } = await import('dompurify');
 
 const failures: string[] = [];
 let checks = 0;
@@ -850,6 +858,78 @@ function sharedMarkedSingleton(): void {
       'a renderer installed on the shared marked singleton reached renderMarkdown',
     );
     assertContains(out, '☑\uFE0E', "renderMarkdown's own checkbox renderer stopped being used");
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 5c. The process-global DOMPurify singleton. ITS OWN SECTION, AND IT RUNS LAST.
+//
+//     B3a — swapping `import DOMPurify from 'dompurify'` for a private
+//     `createDOMPurify(window)` — was the headline production change of round 8,
+//     and it shipped WITH NO REGRESSION PIN AT ALL. Two review legs found that
+//     independently. Measured on the r8 tree: reverting markdown.ts to the r7
+//     process-global import was GREEN at 78 checks / 123 assertions with `tsc
+//     --noEmit` exit 0 and `npm run build` exit 0, and the reverted tree
+//     reproduces the exploit output quoted in markdown.ts's own comments.
+//
+//     WHY NOTHING CAUGHT IT, and why no pattern rule can: R8/R9 exempt
+//     SANITIZER_OWNER by construction. The one file that must own its sanitizer
+//     is the one file the ownership guard cannot police. So this is observed BY
+//     EFFECT, exactly like the marked singleton above — poison the global, ask
+//     renderMarkdown to sanitize, and see whether the poisoning reaches it.
+//
+//     ORDER-DEPENDENCE, and it is worse than `marked.use`: `setConfig` is STICKY
+//     and has no clean undo, and `addHook` has none either. A poisoner that runs
+//     early contaminates every rendering check after it. This is therefore the
+//     last call in run(), after `sharedMarkedSingleton()`.
+//
+//     The two poisoners are order-INDEPENDENT with respect to each other —
+//     `marked.use` touches the marked singleton and `setConfig` touches the
+//     DOMPurify singleton, and neither check reads the other's global. That was
+//     MEASURED, both orders, rather than assumed. The order between them is
+//     fixed anyway, so that a future third poisoner has an obvious place to go.
+// ---------------------------------------------------------------------------
+
+function privateDOMPurifyInstance(): void {
+  check('renderMarkdown does not use the process-global DOMPurify singleton', () => {
+    // The exact configuration quoted in markdown.ts:99-103, and the reason the
+    // round-7 justification for deferring this fix was wrong: `ADD_TAGS` is not
+    // a weakening of our FORBID list, it is an addition to DOMPurify's own
+    // allowlist, and the per-call FORBID_TAGS/FORBID_ATTR do not override it.
+    DOMPurify.setConfig({ ADD_TAGS: ['script'], ADD_ATTR: ['onerror'] });
+    const payload = '<img src=x onerror=alert(1)><script>alert(2)</script>';
+
+    // POSITIVE CONTROL FIRST, for the same reason as the marked check: if
+    // `setConfig` silently failed to take effect, every assertion below would
+    // hold vacuously and this pin would be worth nothing.
+    const poisoned = DOMPurify.sanitize(payload);
+    assertContains(
+      poisoned,
+      'onerror',
+      'setConfig never took effect on the DOMPurify singleton, so the rest of this check is vacuous',
+    );
+    assertContains(
+      poisoned,
+      '<script',
+      'setConfig never took effect on the DOMPurify singleton, so the rest of this check is vacuous',
+    );
+
+    const out = renderMarkdown(payload);
+    assertNotContains(
+      out,
+      'onerror',
+      'a configuration set on the process-global DOMPurify singleton reached renderMarkdown — ' +
+        'markdown.ts is sharing the singleton instead of owning a private ' +
+        'createDOMPurify(window) instance. The singleton config is sticky and reachable from ' +
+        'any module that can spell the specifier in any way at all, which is why no pattern ' +
+        'rule can replace this check',
+    );
+    assertNotContains(
+      out,
+      '<script',
+      'a configuration set on the process-global DOMPurify singleton reached renderMarkdown — ' +
+        'this is the exact capture quoted in markdown.ts:99-103',
+    );
   });
 }
 
@@ -4053,7 +4133,16 @@ function sinkBinding(): void {
 //   2. fixture: the dynamic-import specifier rule catches every unresolvable form
 //   3. fixture: the table-size pin fires on a changed table length
 //      (the positive control `fixtureTableViolation` never had)
-const EXPECTED_CHECK_CALL_SITES = 77;
+//
+// Moved 77 -> 78 (check() call sites) in round 9, measured the same way against
+// round-8 head `3f6a695`:
+//   1. renderMarkdown does not use the process-global DOMPurify singleton
+//      (B3a, the round-8 production change that shipped with no pin at all)
+// Round 9 also added fixtures to EXISTING checks rather than new call sites —
+// the arity tables, SINK_CALL_LEGITIMATE and the unterminated-list assertion all
+// went into checks that already existed, which is why the call-site total moves
+// by one while the assertion total below moves by four.
+const EXPECTED_CHECK_CALL_SITES = 78;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 // T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
@@ -4095,7 +4184,11 @@ const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 // and pretending otherwise is what the old paragraph did. It is closed, where it
 // is closed at all, by the per-rule fixtures and the table-size pins, which
 // assert against named tables rather than against a sum.
-const EXPECTED_ASSERTIONS = 123;
+//
+// Moved 123 -> 127 in round 9: the four assertions of `renderMarkdown does not
+// use the process-global DOMPurify singleton` — two positive controls proving
+// the singleton really is poisoned, then the two that matter.
+const EXPECTED_ASSERTIONS = 127;
 
 /**
  * Two claims this file makes about `web/package.json` that nothing evaluated.
@@ -4190,9 +4283,15 @@ function run(): void {
   taskLists();
   sinkBinding();
   dependencyPolicy();
-  // LAST, and it must stay last: it poisons the global `marked` singleton with no
-  // undo. See the section header above `sharedMarkedSingleton`.
+  // THE TWO GLOBAL POISONERS, LAST, AND THEY MUST STAY LAST. Neither
+  // `marked.use` nor `DOMPurify.setConfig` has an undo, and `setConfig` is
+  // sticky, so either one running earlier would contaminate every rendering
+  // check after it. Anything appended below these two lines is running against
+  // a poisoned marked renderer AND a poisoned DOMPurify config; put it above
+  // them. See the section headers above `sharedMarkedSingleton` and
+  // `privateDOMPurifyInstance`.
   sharedMarkedSingleton();
+  privateDOMPurifyInstance();
 
   if (checks !== EXPECTED_CHECKS) {
     failures.push(
