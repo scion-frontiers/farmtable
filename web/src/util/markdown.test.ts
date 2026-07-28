@@ -2063,6 +2063,25 @@ function sinkBinding(): void {
     if (violations.length > 0) {
       throw new Error(`the sound fixture was rejected: ${violations.join(' | ')}`);
     }
+
+    // The MIRROR of V10, and the half of that defect that would have got this
+    // guard deleted rather than bypassed. Under the old `[^;]` import regex a
+    // CORRECT sink file whose imports simply omitted their semicolons was
+    // REJECTED, with a message accusing it of aliasing a directive it never
+    // touched. Asserted in the same check as the sound fixture because it is the
+    // same claim — the rules accept correct code — and because a bypass fixture
+    // and a false-positive fixture have to move together or the next round
+    // closes one by breaking the other.
+    const semicolonFree = SOUND_SINK_FILE.split('\n')
+      .map((line) => (line.startsWith('import ') ? line.replace(/;$/, '') : line))
+      .join('\n');
+    const asiViolations = sinkBindingViolations(FIXTURE_REL, semicolonFree, scannedRel);
+    if (asiViolations.length > 0) {
+      throw new Error(
+        'a correct sink file with ASI-style imports was rejected — a guard that rejects ' +
+          `correct code gets deleted: ${asiViolations.join(' | ')}`,
+      );
+    }
   });
 
   // T4b. The `opts.strings` blanking in stripInertText is genuinely protective —
