@@ -62,7 +62,12 @@ const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot
 // in source and would be trivially deleted by accident. No class is set:
 // FORBID_ATTR strips class, and nothing styles these glyphs.
 //
-// A private Marked instance keeps this off the shared `marked` singleton.
+// A private Marked instance keeps this off the shared `marked` singleton. That
+// is a security property and it now has a pin that observes it BY EFFECT rather
+// than by name: `sanitizerIndependence` in markdown.test.ts calls `marked.use`
+// with a malicious checkbox renderer on the shared singleton and asserts this
+// function's output is unaffected. Swapping `new Marked({…})` for
+// `marked.use({…})` was green at 69 checks before that pin existed.
 const parser = new Marked({
   renderer: {
     checkbox: ({ checked }: Tokens.Checkbox): string =>
@@ -76,19 +81,48 @@ const parser = new Marked({
 // not a style preference. A second parameter is a configuration channel into the
 // sanitizer opened from the call site: `renderMarkdown(body, { inline: true })`
 // reads as an ordinary feature and can reopen the whole bug class from a sink
-// file without renaming anything. The sink guard in markdown.test.ts pins the
-// arity from both ends — behaviourally via `renderMarkdown.length` and by
-// reading this declaration — so adding a parameter here turns the suite red.
-// If a variant renderer is genuinely needed, export a second named function
-// that also ends in a DOMPurify.sanitize call and add it to the guard, rather
-// than making this one configurable.
+// file without renaming anything. If a variant renderer is genuinely needed,
+// export a second named function that also ends in a DOMPurify.sanitize call and
+// add it to the guard, rather than making this one configurable.
 //
-// Non-string input returns '' instead of throwing. Both call sites pass values
-// that arrive over gRPC (a comment body, a task description), and marked throws
-// on undefined, null or a number. A throw inside a Lit `render()` takes down the
-// whole component, not the one field — so an absent description would blank the
-// inspector rather than render as nothing. Availability, not XSS: '' cannot
-// carry a payload, and every non-empty string still goes through the sanitizer.
+// WHAT ACTUALLY PINS IT, stated narrowly because the previous wording here was
+// measured and found false. It said the arity was pinned "from both ends —
+// behaviourally via `renderMarkdown.length` and by reading this declaration",
+// and round 6's review and test legs independently defeated both ends with one
+// natural spelling. `Function.length` stops counting at the first defaulted
+// parameter, so `(md, opts = {})` still reports 1; the declaration scan used
+// `.exec`, which stops at the first match, so an overload signature — or merely
+// a COMMENT above this line quoting the old signature — satisfied it while the
+// implementation took a second parameter. Both were green at 69/69.
+//
+// The pin is now:
+//   * `renderMarkdownArityViolation` in markdown.test.ts reads THIS FILE over a
+//     comment-and-string-blanked view, requires exactly ONE declaration to
+//     match, and counts TOP-LEVEL parameters. That is the load-bearing half, and
+//     it is fixtured against every spelling above.
+//   * `sinkArgumentIsSanitized` rejects a top-level comma in the sanitizer's own
+//     argument list, so a second argument at either enumerated sink is caught
+//     independently of anything in this file.
+//   * `renderMarkdown.length === 1` covers only SOURCE/ARTIFACT DIVERGENCE — a
+//     stale build, a bundler transform, a re-export from another module. There
+//     is no measured arity SPELLING for which it is the falsifier: a required
+//     second parameter is rejected by `tsc` before the suite runs, and every
+//     form that survives `tsc` leaves `.length` at 1 by definition.
+//
+// Non-string input returns '' instead of throwing. This is DEFENCE IN DEPTH FOR
+// A FUTURE THIRD CALLER, not a fix for a live outage — the previous wording here
+// claimed the latter and neither call site can reach it:
+//   * ft-inspector-comments.ts passes `c.body`, which `stringField()` at
+//     gen/grpc-client.ts:660-662 has already coerced to a string at the wire
+//     boundary;
+//   * ft-inspector-desc.ts passes `this.description` below an
+//     `if (!this.description)` early return at ft-inspector-desc.ts:209.
+// It is kept anyway because it is one line at a security boundary, TS types are
+// erased at runtime, the data is wire-sourced, and a throw inside a Lit
+// `render()` takes down the whole component rather than the one field. The
+// trade-off, on the record: a future caller passing `42` or `{}` now gets a
+// blank field instead of a throw, which is harder to diagnose. '' cannot carry a
+// payload, and every non-empty string still goes through the sanitizer.
 export function renderMarkdown(md: string): string {
   if (typeof md !== 'string') return '';
   return DOMPurify.sanitize(parser.parse(md) as string, {

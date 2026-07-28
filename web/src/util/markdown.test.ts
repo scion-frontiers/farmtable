@@ -549,30 +549,61 @@ function inputContract(): void {
   // MODULE SPECIFIER, and an options parameter reconfigures the sanitizer
   // through the front door with no specifier to match.
   //
-  // Pinned from BOTH ends, because neither is sufficient alone. `Function.length`
-  // stops counting at the first defaulted or rest parameter, so
-  // `renderMarkdown(md, opts = {})` still reports 1 and would slip past a
-  // `.length` check on its own; reading the declaration catches that. Conversely
-  // the declaration scan reads source, so `.length` is what covers the compiled
-  // artifact this suite actually calls. The sink-side half of the same fix is in
-  // `sinkArgumentIsSanitized`, which now rejects a top-level comma.
+  // THE DECLARATION SCAN IS THE LOAD-BEARING HALF. `renderMarkdown.length` is
+  // kept, but its claim is narrower than the previous wording here asserted —
+  // see the docblock above `renderMarkdownArityViolation` for what each half
+  // measures and for the three spellings that defeated the round-6 version of
+  // this check. The sink-side half of the same fix is in
+  // `sinkArgumentIsSanitized`, which rejects a top-level comma.
   check('renderMarkdown accepts exactly one parameter', () => {
+    const violation = renderMarkdownArityViolation(
+      readFileSync(join(findWebRoot(), 'src', 'util', 'markdown.ts'), 'utf8'),
+    );
+    if (violation !== null) throw new Error(`src/util/markdown.ts: ${violation}`);
+
+    // SOURCE/ARTIFACT DIVERGENCE ONLY. Every arity spelling that survives `tsc`
+    // leaves this at 1 by definition, so this assertion has no unique coverage
+    // against any measured declaration form — it covers the case where the
+    // compiled function this suite imported is not the one the scan above read.
     assertEqual(
       String(renderMarkdown.length),
       '1',
-      'renderMarkdown no longer takes exactly one argument — a second parameter is a ' +
-        'configuration channel into the sanitizer that no rule in the sink guard can see',
+      'the compiled renderMarkdown does not take exactly one argument, even though the ' +
+        'declaration in src/util/markdown.ts does — the artifact this suite imported has ' +
+        'diverged from the source the scan above read (stale build, bundler transform, or a ' +
+        're-export from a different module)',
     );
-    const src = readFileSync(join(findWebRoot(), 'src', 'util', 'markdown.ts'), 'utf8');
-    const decl = /export function renderMarkdown\s*\(([^)]*)\)/.exec(src);
-    if (decl === null) {
-      throw new Error('could not find the renderMarkdown declaration in src/util/markdown.ts');
+  });
+
+  // The rule above is the only source scan in this file that used to be
+  // unfixturable, because it read a fixed path and no fixture could express a
+  // different declaration. Parameterising it on its input text fixes that, which
+  // is what makes the three round-6 bypasses expressible here rather than only
+  // in an out-of-repo mutation harness. Positives and false-positive controls
+  // are asserted in the same check for the usual reason: they have to move
+  // together.
+  check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
+    const problems: string[] = [];
+    for (const { label, replace } of ARITY_EVASIONS) {
+      const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
+      if (occurrences !== 1) {
+        problems.push(`${label}: fixture anchor matched ${occurrences} times, expected 1`);
+        continue;
+      }
+      if (renderMarkdownArityViolation(ARITY_SOUND_SOURCE.replace(ARITY_DECL, replace)) === null) {
+        problems.push(`SURVIVED: ${label}`);
+      }
     }
-    if (/[,=]/.test(decl[1])) {
-      throw new Error(
-        `renderMarkdown declares more than one parameter: (${decl[1].trim()}) — a defaulted ` +
-          'second parameter keeps Function.length at 1, so the declaration is checked too',
+    for (const { label, replace } of ARITY_LEGITIMATE) {
+      const violation = renderMarkdownArityViolation(
+        ARITY_SOUND_SOURCE.replace(ARITY_DECL, replace),
       );
+      if (violation !== null) {
+        problems.push(`FALSE POSITIVE: ${label} — ${violation}`);
+      }
+    }
+    if (problems.length > 0) {
+      throw new Error(`the arity pin is broken: ${problems.join(' | ')}`);
     }
   });
 
@@ -1151,6 +1182,289 @@ function stripImportStatements(code: string): string {
   return code
     .replace(/\bimport\b[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
     .replace(/\bimport\s*(['"])[^'"]*\1\s*;?/g, wipe);
+}
+
+/**
+ * Fixture base for the arity pin: a minimal `markdown.ts` the rule must accept.
+ * The mutation tables below are anchored on its declaration line.
+ */
+const ARITY_SOUND_SOURCE = [
+  "import DOMPurify from 'dompurify';",
+  '// THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY.',
+  'export function renderMarkdown(md: string): string {',
+  '  return DOMPurify.sanitize(md);',
+  '}',
+].join('\n');
+
+const ARITY_DECL = 'export function renderMarkdown(md: string): string {';
+
+/**
+ * Every arity spelling that must be REJECTED. C7-e2, C7-g and C7-h are the three
+ * that were measured GREEN at 69 checks with `tsc` clean against the round-6
+ * version of this rule; the rest are forms the round-6 version did catch and
+ * that must not regress while the rule is rewritten.
+ */
+const ARITY_EVASIONS: { label: string; replace: string }[] = [
+  {
+    label: 'C7-a defaulted second parameter',
+    replace: 'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
+  },
+  {
+    label: 'C7-b rest second parameter',
+    replace: 'export function renderMarkdown(md: string, ...rest: unknown[]): string {',
+  },
+  {
+    label: 'C7-c destructured defaulted second parameter',
+    replace:
+      'export function renderMarkdown(md: string, { inline }: { inline?: boolean } = {}): string {',
+  },
+  {
+    label: 'C7-d optional second parameter',
+    replace: 'export function renderMarkdown(md: string, opts?: { inline?: boolean }): string {',
+  },
+  {
+    // Defeated the round-6 rule: `.exec` returned the first OVERLOAD SIGNATURE,
+    // which is clean, and never examined the implementation.
+    label: 'C7-e2 two overload signatures above a defaulted implementation',
+    replace:
+      'export function renderMarkdown(md: string): string;\n' +
+      'export function renderMarkdown(md: string, opts: { inline?: boolean }): string;\n' +
+      'export function renderMarkdown(md: string, opts: { inline?: boolean } = {}): string {',
+  },
+  {
+    // Defeated the round-6 rule with no overloads at all: the scan read raw
+    // bytes, so a comment quoting the old signature matched first.
+    label: 'C7-g a comment quoting the old signature above a two-parameter implementation',
+    replace:
+      '// Historical signature, kept for the changelog:\n' +
+      '//   export function renderMarkdown(md: string): string\n' +
+      'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
+  },
+  {
+    label: 'C7-h a string literal quoting the old signature',
+    replace:
+      "export const HISTORICAL_SIGNATURE = 'export function renderMarkdown(md: string): string';\n" +
+      'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
+  },
+  {
+    // One top-level parameter, and still a configuration channel — and its call
+    // shape hides the comma from sinkArgumentIsSanitized.
+    label: 'C7-i a destructured sole parameter',
+    replace:
+      'export function renderMarkdown({ md, inline }: { md: string; inline?: boolean }): string {',
+  },
+  {
+    label: 'C7-j a rest sole parameter',
+    replace: 'export function renderMarkdown(...md: string[]): string {',
+  },
+  {
+    // The declaration disappears rather than widening. A scan that returns
+    // "nothing to check" must not pass.
+    label: 'C7-f rewritten as an arrow function assigned to a const',
+    replace: 'export const renderMarkdown = (md: string, opts = {}): string => {',
+  },
+  {
+    // The documented FALSE POSITIVE, pinned so that relaxing it is a deliberate
+    // edit here rather than a silent one. See renderMarkdownArityViolation.
+    label: 'C7-k a default on the sole parameter (deliberate false positive)',
+    replace: "export function renderMarkdown(md: string = ''): string {",
+  },
+];
+
+/**
+ * Correct one-parameter spellings that must be ACCEPTED. The first four were all
+ * red-lighted by the `[,=]` test this rule replaces, in a repository whose first
+ * formatter would emit the trailing-comma form by default.
+ *
+ * The last two are the MIRRORS of C7-g and C7-h, and they are the reason the fix
+ * is comment-and-string blanking rather than a ban on the words: prose or an
+ * error message that names a two-parameter form must not turn the suite red. A
+ * bypass fixture and its false-positive mirror have to move together, or the
+ * next round closes one by breaking the other.
+ */
+const ARITY_LEGITIMATE: { label: string; replace: string }[] = [
+  { label: 'the sound declaration itself', replace: ARITY_DECL },
+  {
+    label: "prettier's default multi-line trailing comma",
+    replace: 'export function renderMarkdown(\n  md: string,\n): string {',
+  },
+  {
+    label: 'a comma inside a type argument',
+    replace: 'export function renderMarkdown(md: Record<string, string>): string {',
+  },
+  {
+    label: 'a comment inside the parameter list',
+    replace: 'export function renderMarkdown(md: string /* body, raw */): string {',
+  },
+  {
+    label: 'prose above the declaration naming a two-parameter form',
+    replace:
+      '// Do not add an options parameter: renderMarkdown(md, opts) is a configuration\n' +
+      '// channel into the sanitizer. See the guard in markdown.test.ts.\n' +
+      ARITY_DECL,
+  },
+  {
+    label: 'a string literal naming a two-parameter form',
+    replace:
+      "export const REJECTED = 'renderMarkdown(md, opts) is not a supported signature';\n" +
+      ARITY_DECL,
+  },
+];
+
+/**
+ * The parameter list of `export function renderMarkdown`, split on TOP-LEVEL
+ * commas. Commas nested inside `(`, `[`, `{` or `<` belong to a type argument or
+ * a default value, not to a second parameter: `md: Record<string, string>` is
+ * one parameter. A trailing empty segment is dropped, because prettier's default
+ * `trailingComma: "all"` emits one for a multi-line list.
+ */
+function splitTopLevelParameters(params: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const c of params) {
+    if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
+    else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
+    if (c === ',' && depth === 0) {
+      out.push(current);
+      current = '';
+      continue;
+    }
+    current += c;
+  }
+  out.push(current);
+  return out.map((p) => p.trim()).filter((p) => p !== '');
+}
+
+/**
+ * The arity pin for the sanitizer, as a predicate over SOURCE TEXT rather than
+ * over a fixed path, so that it is fixturable like every other rule in this file.
+ * Returns a violation message, or null.
+ *
+ * WHY THIS IS NOT A ONE-LINER, MEASURED RATHER THAN ASSERTED. Two previous
+ * versions of this pin were defeated, and both failures are the same shape —
+ * A CHECK THAT STOPS AT THE FIRST THING IT FINDS CANNOT SEE THE SECOND.
+ *
+ *   1. `renderMarkdown.length === 1` alone. `Function.length` stops counting at
+ *      the first defaulted or rest parameter, so `(md, opts = {})` reports 1.
+ *      GREEN at 69 checks.
+ *   2. `/export function renderMarkdown\s*\(([^)]*)\)/.exec(src)` over RAW
+ *      BYTES. `.exec` stops at the first match and nothing rejected a second,
+ *      and raw bytes include comments and string literals. All three of these
+ *      were GREEN at 69 checks with `tsc` clean, against an implementation
+ *      taking a real, usable second parameter:
+ *
+ *        // two overload signatures above a defaulted implementation
+ *        export function renderMarkdown(md: string): string;
+ *        export function renderMarkdown(md: string, opts: {inline?: boolean}): string;
+ *        export function renderMarkdown(md: string, opts: {inline?: boolean} = {}): string {
+ *
+ *        // a COMMENT quoting the old signature — no overloads needed
+ *        //   export function renderMarkdown(md: string): string
+ *        export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {
+ *
+ *        // the same thing in an exported string constant
+ *        export const HISTORICAL_SIGNATURE = 'export function renderMarkdown(md: string): string';
+ *
+ *      The comment case is the one that matters: markdown.ts carries a long
+ *      docblock ABOUT THIS SIGNATURE immediately above the declaration, so a
+ *      future line of prose quoting the old form is the normal way people
+ *      annotate a signature change, not an adversarial contrivance.
+ *
+ * So the rule is stated in three parts, each of which is a separate way for the
+ * previous versions to have been wrong:
+ *
+ *   A. run over `stripInertText(src, { strings: true })`, the same derived view
+ *      every other source scan in this file uses (see "Source views" below).
+ *      Comments and string literals cannot shadow the real declaration.
+ *   B. `matchAll`, and EXACTLY ONE match is permitted. An overload signature is
+ *      a second declaration, and an overload set whose implementation widens the
+ *      arity is precisely the configuration channel this pin exists to deny.
+ *   C. exactly one TOP-LEVEL parameter, which must be a plain identifier binding
+ *      with no default and no rest.
+ *
+ * C is deliberately stricter than "no second parameter", in two directions:
+ *
+ *   * A DESTRUCTURED sole parameter — `({ md, inline }: { md: string; inline?:
+ *     boolean })` — has one top-level parameter and is still a configuration
+ *     channel, and worse, its call-site form `renderMarkdown({ md: x, inline:
+ *     true })` puts the comma inside braces where `sinkArgumentIsSanitized` does
+ *     not reject it. Counting parameters alone would have opened a hole the
+ *     `[,=]` test it replaces did not have.
+ *   * A DEFAULT ON THE SOLE PARAMETER — `(md: string = '')` — is harmless, and
+ *     rejecting it is a KNOWN FALSE POSITIVE recorded here rather than hidden.
+ *     It is rejected because it takes `Function.length` to 0, and this suite
+ *     cannot distinguish that from the artifact divergence the `.length`
+ *     assertion exists to catch. If someone genuinely needs that spelling, allow
+ *     it here AND relax the `.length` assertion to `<= 1` in the same commit;
+ *     do not do one without the other.
+ *
+ * Three correct one-parameter spellings that the `[,=]` test this replaces
+ * rejected are now accepted, and are pinned as false-positive controls in
+ * ARITY_LEGITIMATE: prettier's default multi-line trailing comma, a comma inside
+ * a type argument, and a comment inside the parameter list. A guard that rejects
+ * correct code gets deleted.
+ */
+function renderMarkdownArityViolation(src: string): string | null {
+  const code = stripInertText(src, { strings: true });
+  const decls = [...code.matchAll(/export function renderMarkdown\s*\(([^)]*)\)/g)];
+
+  if (decls.length === 0) {
+    return (
+      'could not find an `export function renderMarkdown(…)` declaration. Either it was ' +
+      'renamed, or it was rewritten into a form this scan cannot read (an arrow function ' +
+      'assigned to a const, a re-export). Both leave the arity unpinned, so neither is a ' +
+      'silent pass'
+    );
+  }
+  if (decls.length !== 1) {
+    return (
+      `expected exactly one renderMarkdown declaration, found ${decls.length} — an overload ` +
+      'signature satisfies a first-match scan while the implementation takes a second ' +
+      'parameter, which is a configuration channel into the sanitizer'
+    );
+  }
+
+  const params = splitTopLevelParameters(decls[0][1]);
+  if (params.length !== 1) {
+    return (
+      `renderMarkdown declares ${params.length} parameters: (${decls[0][1].trim()}) — a second ` +
+      'parameter is a configuration channel into the sanitizer opened from the call site, and ' +
+      'a defaulted or optional one keeps Function.length at 1'
+    );
+  }
+  const [only] = params;
+  if (only.startsWith('{') || only.startsWith('[')) {
+    return (
+      `renderMarkdown's sole parameter is a destructuring pattern: (${only}) — that is a ` +
+      'configuration channel with one top-level parameter, and at the call site its comma ' +
+      'sits inside braces where sinkArgumentIsSanitized does not reject it'
+    );
+  }
+  if (only.startsWith('...')) {
+    return `renderMarkdown's sole parameter is a rest parameter: (${only}) — it accepts any arity`;
+  }
+  if (splitTopLevelDefault(only)) {
+    return (
+      `renderMarkdown's sole parameter has a default: (${only}) — harmless in itself, but it ` +
+      'takes Function.length to 0, which this suite cannot tell apart from the source/artifact ' +
+      'divergence that assertion exists to catch. To allow it, relax the .length assertion to ' +
+      '<= 1 in the same commit'
+    );
+  }
+  return null;
+}
+
+/** True if `param` carries an `=` default at the top level of its own text. */
+function splitTopLevelDefault(param: string): boolean {
+  let depth = 0;
+  for (let i = 0; i < param.length; i += 1) {
+    const c = param[i];
+    if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
+    else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
+    else if (c === '=' && depth === 0 && param[i + 1] !== '=' && param[i - 1] !== '=') return true;
+  }
+  return false;
 }
 
 /**
@@ -2388,7 +2702,7 @@ function sinkBinding(): void {
 // one URI-policy pin, the two `inputContract` checks (arity and non-string
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
-const EXPECTED_CHECK_CALL_SITES = 68;
+const EXPECTED_CHECK_CALL_SITES = 69;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 function run(): void {
