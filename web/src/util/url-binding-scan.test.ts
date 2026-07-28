@@ -22,6 +22,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assert } from './assertions.js';
 
 // ── the rules ────────────────────────────────────────────────────────────────
 
@@ -151,10 +152,6 @@ function scanText(file: string, text: string): Finding[] {
 }
 
 // ── assertions ───────────────────────────────────────────────────────────────
-
-function assert(condition: boolean, message: string): void {
-  if (!condition) throw new Error(message);
-}
 
 /**
  * The nearest enclosing top-level construct around a 1-based line number:

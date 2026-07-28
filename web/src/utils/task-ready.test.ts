@@ -9,12 +9,8 @@ import {
   type User,
 } from '../gen/types.js';
 import { isReady } from './task-ready.js';
+import { assertEqual } from '../util/assertions.js';
 
-function assertEqual(actual: boolean, expected: boolean, message: string): void {
-  if (actual !== expected) {
-    throw new Error(`${message}: expected ${expected}, got ${actual}`);
-  }
-}
 
 const now = new Date('2026-07-27T00:00:00.000Z').toISOString();
 
