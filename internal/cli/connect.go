@@ -285,7 +285,7 @@ func startGitHubPassThrough(repo string) (pb.FarmTableServiceClient, io.Closer, 
 	}
 
 	var cfg *github.GitHubConfig
-	cfgPath := ".farmtable/github.yaml"
+	cfgPath := github.DefaultConfigPath
 	if envCfg := os.Getenv("FARMTABLE_GITHUB_CONFIG"); envCfg != "" {
 		cfgPath = envCfg
 	}

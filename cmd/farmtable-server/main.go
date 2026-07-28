@@ -58,7 +58,28 @@ func main() {
 	// platform stores registered the MultiStore passes all operations
 	// through to the primary EntStore.
 	s := store.NewMultiStore(entStore)
-	s.SetResolver(github.NewPlatformResolver())
+
+	// The GitHub configuration must be READ here, not defaulted (#194 M-1).
+	//
+	// NewPlatformResolver took no config and passed nil, so every store this
+	// binary built ran DefaultConfig(); github.LoadConfig was reached from the
+	// CLI only. Since B6 the configured push_prefix decides which labels may
+	// feed an authorization answer, so an operator with a custom prefix had the
+	// label-write gate silently disarmed on their deployment.
+	//
+	// Fatal rather than falling back, for the reason GitHubConfig.Validate
+	// gives and on the same principle as the encryption-key check above: a
+	// security parameter that quietly reverts to a value the operator did not
+	// write is how a disarmed control looks like a working one. A MISSING file
+	// is not an error — LoadConfig returns the defaults for it, which is the
+	// documented way to say "I want the defaults".
+	ghCfg, err := github.LoadConfig(github.DefaultConfigPath)
+	if err != nil {
+		log.Fatalf("Invalid GitHub configuration: %v — refusing to start with "+
+			"defaults when a configuration was intended, because push_prefix "+
+			"decides which labels may feed an authorization decision", err)
+	}
+	s.SetResolver(github.NewPlatformResolver(ghCfg))
 	defer s.Close()
 
 	var lookup server.TokenLookup
