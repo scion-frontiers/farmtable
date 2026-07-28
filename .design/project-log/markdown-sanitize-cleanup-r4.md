@@ -148,3 +148,168 @@ results:
 - Template literals are deliberately not stripped (the sinks live inside `html`
   templates), so a rule cannot rely on their contents being inert.
 - The tree-wide half remains a tripwire and is labelled as one.
+
+---
+
+# Addendum — R8/R9: the sanitizer's exclusive ownership of its own configuration
+
+**Appended after EM review of `0c60d15`. Head is now `716bb8f`.** Still
+test-file-only, still zero production code. Gate: `npm ci && npm test` → exit 0,
+**61 checks passed**; `tsc --noEmit` = 0; `npm run build` = 0.
+
+The EM accepted round 4, verified the gate independently at `0c60d15`, re-killed
+the three vectors originally measured at `bae4fd0` — and then hunted a fifth
+against the shipped implementation and found a survivor.
+
+## V23: a new axis
+
+```ts
+// ft-inspector-comments.ts, alongside the COMPLETELY UNTOUCHED real sink
+import { renderMarkdown } from '../../util/markdown.js';
+import DOMPurify from 'dompurify';
+DOMPurify.addHook('uponSanitizeElement',   (_n, d) => { d.allowedTags[d.tagName] = true; });
+DOMPurify.addHook('uponSanitizeAttribute', (_n, d) => { d.forceKeepAttr = true; });
+```
+
+`59 checks passed`, exit 0. Every one of R1–R7 satisfied: `renderMarkdown`
+imported unaliased from the one permitted module, appearing nowhere but
+immediately called, the sole argument to `unsafeHTML`. Nothing about the
+*binding* is wrong. Measured runtime effect:
+
+```
+payload:      <img src=x onerror="alert(1)"><script>alert(2)</script>
+BEFORE HOOKS: "<p><img src=\"x\"></p><p></p>\n"
+AFTER  HOOKS: "<p><img src=\"x\" onerror=\"alert(1)\"><script>alert(2)</script></p><p></p>\n"
+```
+
+It is a module-level side effect in a component the app imports, so it runs on
+load. The behavioural checks never see it: they import `util/markdown.js`
+directly and never load the component.
+
+**Why this is an axis and not a seventh spelling.** R1–R7 are all rules about
+identifiers and call shape. V23 touches neither. It corrupts the shared mutable
+configuration of the sanitizer that the binding correctly points at. The guard
+proves the sink *calls* the sanitizer; it does not prove the sanitizer still
+*sanitizes*. Same defect class as everything else on this issue, in a new dress:
+**a check derived from the thing it is checking cannot falsify it.** The guard
+reads the call graph, and the call graph is exactly what the attack leaves
+intact.
+
+The codebase already understood the sibling hazard — `util/markdown.ts` says "A
+private `Marked` instance keeps this off the shared `marked` singleton" — and
+simply had no equivalent for DOMPurify, whose default export *is* the singleton.
+
+## R8 and R9
+
+| | rule |
+|---|---|
+| R8 | across the scanned set, `dompurify` and `marked` may be imported by exactly one file, `src/util/markdown.ts` |
+| R9 | no scanned file may import from outside the scanned set |
+
+R8 matches on the **specifier**, not on import syntax, so static, side-effect,
+namespace, re-export, `require` and dynamic forms — including the
+template-literal specifier that defeated R6's first draft — are one rule rather
+than six, and subpaths count (`dompurify/dist/purify.es.mjs` is the same
+singleton). It is deliberately **not** written as a ban on `addHook`:
+`setConfig`, `removeHook`, `removeAllHooks` and direct property assignment are
+equivalent spellings. A file that cannot name the module cannot reach its
+configuration by any method name, present or future. Read from a view with no
+`raw-sink-scan: ignore-line` opt-out.
+
+R9 came from hunting R8 (my V24b). R8 matches the specifier, so an unscanned
+file is a laundering point for it: `export { default as P } from 'dompurify'` in
+a `*.test.ts` file, imported by any scanned component, reaches the singleton
+without any scanned file naming either dependency. Round 4 had already written
+the correct sentence — *an unscanned file is only safe while nothing scanned
+imports it* — and then scoped it to the two `REQUIRED_SINKS` files, which is
+exactly the gap V24b routed through. **The statement was right and the scope was
+wrong.** R8 is not sound without R9.
+
+Inert assets are accepted without resolving: a `.css` or `.json` cannot hold
+code, which is the same argument that keeps them out of the scan. The tree has
+exactly two, both pinned as false-positive fixture cases.
+
+`EXPECTED_CHECKS` 59 → 61: one tree-wide check plus one `fixture:` check. The
+fixture is not optional — exactly one file imports each dependency today, so R8
+is satisfied *vacuously* by the tree, and without a table the rule would pass
+without ever being exercised. That is the same defect as the old static-HTML
+control this branch already removed once. R9 is folded into both, because R8's
+specifier matching is not a meaningful property without it.
+
+## V25 — the axis has a sibling, and it is not closable this way
+
+The EM asked for one more hunt on the new axis and said plainly that he did not
+know whether V23 had siblings. It does.
+
+```ts
+// ft-inspector-comments.ts — NO import of dompurify or marked, nothing for R8 to match
+const origRemoveAttribute = Element.prototype.removeAttribute;
+Element.prototype.removeAttribute = function (name: string): void {
+  if (String(name).startsWith('on')) return;
+  origRemoveAttribute.call(this, name);
+};
+const origRemoveChild = Node.prototype.removeChild;
+Node.prototype.removeChild = function <T extends Node>(child: T): T {
+  if (child && child.nodeName === 'SCRIPT') return child;
+  return origRemoveChild.call(this, child) as T;
+};
+```
+
+`61 checks passed`, exit 0. Verified at runtime against the compiled
+`.tmp-test/util/markdown.js` under the same jsdom bootstrap the suite uses:
+
+```
+before: "<p><img src=\"x\"></p>\n"
+after : "<p><img src=\"x\" onerror=\"alert(1)\"><script>alert(2)</script></p>\n"
+```
+
+DOMPurify strips attributes with `removeAttribute` and nodes with
+`removeChild`. Neutralise those two on the global prototypes and the sanitizer
+runs to completion and returns the payload intact.
+
+**This survives deliberately, and the reason is recorded here rather than
+patched over.** Three closures were considered:
+
+1. *Ban `.prototype` assignment in the scanned set.* This is a spelling, and the
+   equivalents are unbounded: `Object.defineProperty`, `Object.assign`,
+   `Reflect.defineProperty`, `Object.setPrototypeOf`, `__proto__`, plus
+   non-prototype globals like `document.implementation.createHTMLDocument`. It is
+   the exact treadmill this whole round exists to get off, and it would give a
+   false impression of coverage.
+2. *A runtime canary — import the two sink modules, then re-assert the sanitizer
+   on a payload.* This is the right shape: it observes the **effect**, so it
+   kills V23, V25 and every unforeseen sibling regardless of spelling. It needs
+   `tsconfig.test.json` widened to compile the components, which is shared build
+   infrastructure and is in substance the deferred Phase-2 harness. Not taken
+   without an explicit assignment.
+3. *Freeze the globals in `markdown.ts`.* Production code. Out of scope by the
+   standing constraint.
+
+So the honest statement is: **the exit criterion — "no mutation of the two
+`REQUIRED_SINKS` files can leave them rendering unsanitized while the suite is
+green" — is met for every binding-shaped and specifier-shaped mutation, and is
+NOT met for global-state mutation, which no static scan of these files can
+reach.** V23 was closable because the attack had to *name* something. V25 does
+not name anything the guard could own.
+
+## Mutation results for the addendum
+
+54 vectors: **47 dead, 6 false-positive controls correctly green, 1 deliberate
+survivor (V25, above).** V23 → DEAD. V24 (laundering via a sink file) → DEAD via
+R6. V24b (laundering via a non-sink scanned component) → DEAD via R9.
+
+The `cp`-backup restore checker fired once more, correctly: V24b was the first
+vector to touch `inspector-shared-styles.ts`, which was not in the backup set,
+and the run aborted with `DIRTY AFTER RESTORE` rather than continuing against a
+polluted tree.
+
+## Residue after the addendum
+
+Everything stated in round 4 still stands, plus:
+
+- **Global mutable state reachable from a scanned file** — V25's class. DOM
+  prototypes, `Object.prototype`, and the built-ins DOMPurify uses internally.
+  Only an effect-observing check closes this.
+- R9 makes the scanned set closed under relative imports, but non-relative
+  specifiers are still unresolved (no `tsconfig` `paths`, no package `imports`
+  field today).
