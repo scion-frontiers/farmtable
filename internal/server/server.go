@@ -638,6 +638,9 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		p.Branch = req.Branch
 	}
 	for _, pr := range req.GetAddPullRequests() {
+		if err := validateURLField("add_pull_requests.url", pr.GetUrl()); err != nil {
+			return nil, err
+		}
 		p.AddPullRequests = append(p.AddPullRequests, store.PullRequestParam{
 			ID:     pr.GetId(),
 			URL:    pr.GetUrl(),
@@ -657,6 +660,9 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 			p.RemoteData["remote_id"] = req.GetRemoteId()
 		}
 		if req.RemoteUrl != nil {
+			if err := validateURLField("remote_url", req.GetRemoteUrl()); err != nil {
+				return nil, err
+			}
 			p.RemoteData["remote_url"] = req.GetRemoteUrl()
 		}
 	}
