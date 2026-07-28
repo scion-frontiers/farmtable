@@ -878,16 +878,32 @@ function sharedMarkedSingleton(): void {
 //     EFFECT, exactly like the marked singleton above — poison the global, ask
 //     renderMarkdown to sanitize, and see whether the poisoning reaches it.
 //
-//     ORDER-DEPENDENCE, and it is worse than `marked.use`: `setConfig` is STICKY
-//     and has no clean undo, and `addHook` has none either. A poisoner that runs
-//     early contaminates every rendering check after it. This is therefore the
-//     last call in run(), after `sharedMarkedSingleton()`.
+//     ORDERING, AND WHAT WAS ACTUALLY MEASURED — because the obvious rationale
+//     for it is false on this tree and writing it down unmeasured is how four
+//     false sentences got into this file already.
 //
-//     The two poisoners are order-INDEPENDENT with respect to each other —
-//     `marked.use` touches the marked singleton and `setConfig` touches the
-//     DOMPurify singleton, and neither check reads the other's global. That was
-//     MEASURED, both orders, rather than assumed. The order between them is
-//     fixed anyway, so that a future third poisoner has an obvious place to go.
+//     THE CLAIM THAT FAILED. "`setConfig` is sticky and has no undo, so a
+//     poisoner that runs early contaminates every rendering check after it."
+//     Measured: move this call to the TOP of run() and the suite is GREEN at
+//     79/127. It cannot contaminate anything, for precisely the reason this
+//     check exists — every behavioural check reaches DOMPurify through
+//     `renderMarkdown`, which owns a PRIVATE instance, and the private
+//     instance's config is not reachable from the singleton. The contamination
+//     argument is circular: it is only true on a tree where this check is
+//     already failing.
+//
+//     WHAT IS TRUE, and why it still runs last. The stickiness is real — there
+//     is no undo — so the guarantee is CONDITIONAL on nothing later reading the
+//     singleton. Nothing does today. That is a property of the current file, not
+//     of the mechanism, and it changes the moment someone adds a check that
+//     touches `DOMPurify` directly, or grows this one an `addHook`, or reverts
+//     markdown.ts to the singleton. Running last makes the conditional
+//     unnecessary rather than merely satisfied.
+//
+//     The two poisoners are order-INDEPENDENT with respect to each other:
+//     `marked.use` touches the marked singleton, `setConfig` touches the
+//     DOMPurify singleton, and neither check reads the other's global. MEASURED
+//     in both orders, green both ways, rather than asserted.
 // ---------------------------------------------------------------------------
 
 function privateDOMPurifyInstance(): void {
