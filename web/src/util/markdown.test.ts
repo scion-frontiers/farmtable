@@ -510,7 +510,40 @@ function taskLists(): void {
 //    weakness is the classic one for source scanning — passing vacuously because
 //    it matched no files — so the file count and the sink count are both pinned
 //    below, and locating the tree throws rather than returning empty.
+//
+//    Read the guarantees here narrowly. A regex over source text is a hand-rolled
+//    stand-in for the TypeScript module graph, and it disagrees with the real
+//    language semantics on aliasing, re-export and indirection: `unsafeHTML as
+//    raw` followed by `raw(x)` is the same sink written in a form no `unsafeHTML(`
+//    pattern can see. That gap is the reason the two real sinks are additionally
+//    asserted BY PATH below, and the reason aliasing the directive is banned
+//    outright rather than merely scanned for.
 // ---------------------------------------------------------------------------
+
+/**
+ * The two components that mirror attacker-controlled markdown into a shadow
+ * root. These are named explicitly because the tree-wide assertions further
+ * down cannot distinguish "this file still routes through renderMarkdown" from
+ * "this file no longer matches my regex" — a sink rewritten into an unmatched
+ * form leaves the case list rather than failing a check. Reading each file by
+ * path converts that silence into a `readFileSync` throw.
+ *
+ * Update deliberately: adding a sink here without a corresponding component, or
+ * removing one that still exists, is a change to what this suite guarantees.
+ */
+const REQUIRED_SINKS = [
+  'src/components/inspector/ft-inspector-comments.ts',
+  'src/components/inspector/ft-inspector-desc.ts',
+];
+
+/**
+ * Exact number of scannable source files under `src/`. Pinned, not a floor: the
+ * previous floor of 10 sat under an actual count of 50, so forty files could
+ * have stopped being scanned with no signal. This is the G7 check-total
+ * rationale applied one level down — update it deliberately when a source file
+ * is added or removed, never to make a red suite go green.
+ */
+const EXPECTED_SOURCE_FILES = 50;
 
 /** Walks up from this module to the directory containing `src/util/markdown.ts`. */
 function findWebRoot(): string {
@@ -545,10 +578,28 @@ function sinkBinding(): void {
   collectSourceFiles(join(root, 'src'), files);
 
   check('sink scan actually reads the source tree', () => {
-    if (files.length < 10) {
-      throw new Error(`expected to scan the src tree, found only ${files.length} .ts files`);
+    if (files.length !== EXPECTED_SOURCE_FILES) {
+      throw new Error(
+        `expected to scan exactly ${EXPECTED_SOURCE_FILES} source files, found ${files.length} — ` +
+          'update EXPECTED_SOURCE_FILES deliberately if a source file was added or removed',
+      );
     }
   });
+
+  // The per-file half of the guard. Each required sink is read by explicit path,
+  // so a file that is renamed, deleted, or rewritten into a form the tree-wide
+  // regexes no longer match fails here instead of quietly leaving their results.
+  for (const rel of REQUIRED_SINKS) {
+    check(`${rel} routes its markdown through renderMarkdown`, () => {
+      const src = readFileSync(join(root, rel), 'utf8');
+      if (!/unsafeHTML\(\s*renderMarkdown\(/.test(src)) {
+        throw new Error(`${rel} no longer contains unsafeHTML(renderMarkdown(`);
+      }
+      if (!/import \{ unsafeHTML \} from/.test(src)) {
+        throw new Error(`${rel} aliases or re-exports its unsafeHTML import`);
+      }
+    });
+  }
 
   const sinks: { file: string; arg: string }[] = [];
   for (const file of files) {
@@ -558,11 +609,38 @@ function sinkBinding(): void {
     }
   }
 
-  // If this drops to 0 the check above would still pass, so pin it separately:
-  // no sinks found must mean the regex broke, not that the code is safe.
+  // Pinned exactly, not as a floor. The old `>= 2` floor sat exactly on the true
+  // count, so it caught a disappearing sink only by coincidence — restore the
+  // count with a duplicate elsewhere and the same regression goes green again.
+  // Update alongside REQUIRED_SINKS when a legitimate sink is added or removed.
   check('unsafeHTML call sites are still found', () => {
-    if (sinks.length < 2) {
-      throw new Error(`expected at least 2 unsafeHTML call sites, found ${sinks.length}`);
+    if (sinks.length !== REQUIRED_SINKS.length) {
+      throw new Error(
+        `expected exactly ${REQUIRED_SINKS.length} unsafeHTML call sites, found ${sinks.length} — ` +
+          'update REQUIRED_SINKS deliberately if a sink was added or removed',
+      );
+    }
+  });
+
+  // An alias defeats every other scan in this function: `import { unsafeHTML as
+  // raw }` followed by `raw(x)` matches neither `unsafeHTML(` nor the banned
+  // list below, so the sink simply disappears from both case lists. Requiring
+  // the directive to be imported under its own name is what makes those two
+  // scans meaningful.
+  check('no file aliases or re-exports the unsafeHTML directive', () => {
+    const offenders = files
+      .filter((f) => {
+        const src = readFileSync(f, 'utf8');
+        return (
+          /from ['"]lit\/directives\/unsafe-html\.js['"]/.test(src) &&
+          !/import \{ unsafeHTML \} from ['"]lit\/directives\/unsafe-html\.js['"]/.test(src)
+        );
+      })
+      .map((f) => relative(root, f));
+    if (offenders.length > 0) {
+      throw new Error(
+        `unsafeHTML imported under an alias or re-exported in: ${offenders.join(', ')}`,
+      );
     }
   });
 
@@ -595,7 +673,12 @@ function sinkBinding(): void {
 // before. Every mutation count this suite reports is only as trustworthy as its
 // total, so the total is pinned. Update this deliberately when adding or
 // removing a check; never to make a red suite go green.
-const EXPECTED_CHECKS = 49;
+//
+// Note for anyone cross-checking this by grep: the checks generated from
+// REQUIRED_SINKS are emitted in a loop, so `grep -c "  check("` no longer equals
+// this number. The runtime count is the authoritative one, and it is what the
+// pin below compares against.
+const EXPECTED_CHECKS = 52;
 
 function run(): void {
   formControls();
