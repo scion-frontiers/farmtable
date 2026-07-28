@@ -719,6 +719,9 @@ func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping ma
 	if err := validateImportedTaskState(stage, holdReason, t.StartDate); err != nil {
 		return store.ImportTask{}, nil, err
 	}
+	if err := validateImportedTaskURLs(t); err != nil {
+		return store.ImportTask{}, nil, err
+	}
 	imported := store.ImportTask{
 		ID:                 newID,
 		Title:              t.Title,

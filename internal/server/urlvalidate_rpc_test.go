@@ -2,10 +2,12 @@ package server_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/testutil"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -99,6 +101,78 @@ func TestRPC_UpdateTask_RejectsScriptURLInRemoteURL(t *testing.T) {
 	}
 	if got.GetTask().GetRemoteUrl() == payload {
 		t.Errorf("payload was persisted despite rejection: %q", got.GetTask().GetRemoteUrl())
+	}
+}
+
+// TestRPC_ImportCollection_RejectsScriptURLs pins the THIRD ingress path.
+// ImportCollection copies PullRequests and RemoteData verbatim out of a
+// caller-uploaded JSON document, so a scheme check placed only in UpdateTask is
+// bypassable by importing a collection.
+func TestRPC_ImportCollection_RejectsScriptURLs(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	baseTask := func() map[string]interface{} {
+		return map[string]interface{}{
+			"id": uuid.New().String(), "title": "imported", "description": "",
+			"phase": "open", "stage": "accepted", "native_label": "accepted",
+			"type": "", "labels": []string{}, "repo": "", "branch": "",
+			"pull_requests": []map[string]string{}, "remote_data": map[string]interface{}{},
+		}
+	}
+
+	tests := []struct {
+		name  string
+		mutar func(map[string]interface{})
+	}{
+		{"pull request url", func(d map[string]interface{}) {
+			d["pull_requests"] = []map[string]string{{"id": "1", "url": xssPayload, "status": "open"}}
+		}},
+		{"remote_data remote_url", func(d map[string]interface{}) {
+			d["remote_data"] = map[string]interface{}{"remote_url": xssPayload}
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskDoc := baseTask()
+			tt.mutar(taskDoc)
+			doc := minimalImportDoc("import xss "+tt.name, nil,
+				[]map[string]interface{}{taskDoc}, nil, nil, nil)
+			doc["format_version"] = 2
+			data, _ := json.Marshal(doc)
+
+			_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("ImportCollection err = %v, want InvalidArgument", err)
+			}
+		})
+	}
+}
+
+// TestRPC_ImportCollection_AcceptsHTTPURLs is the control for the import path:
+// a legitimate collection must still import.
+func TestRPC_ImportCollection_AcceptsHTTPURLs(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	taskDoc := map[string]interface{}{
+		"id": uuid.New().String(), "title": "imported", "description": "",
+		"phase": "open", "stage": "accepted", "native_label": "accepted",
+		"type": "", "labels": []string{}, "repo": "", "branch": "",
+		"pull_requests": []map[string]string{
+			{"id": "1", "url": "https://github.com/o/r/pull/1", "status": "open"},
+		},
+		"remote_data": map[string]interface{}{"remote_url": "https://github.com/o/r/issues/1"},
+	}
+	doc := minimalImportDoc("import ok", nil, []map[string]interface{}{taskDoc}, nil, nil, nil)
+	doc["format_version"] = 2
+	data, _ := json.Marshal(doc)
+
+	if _, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data}); err != nil {
+		t.Fatalf("ImportCollection rejected legitimate URLs: %v", err)
 	}
 }
 
