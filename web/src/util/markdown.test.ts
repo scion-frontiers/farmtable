@@ -3994,7 +3994,31 @@ function sinkBinding(): void {
   // not a DELETED call site. Deleting a whole `check()` is what EXPECTED_CHECKS
   // is for.
   check('fixture: the tree-wide count pins fire on a changed count', () => {
-    const missed: string[] = [];
+    // T4b-b, round 10. THE PERTURBATION LOOP BELOW WAS VACUOUS UNDER EMPTYING.
+    // Replace `[-1, 1]` with `[]` and the suite is GREEN at 79 checks / 127
+    // assertions, `tsc --noEmit` 0: every assertion in the body only ever
+    // PERMITS a result, so an empty delta list IS the expected answer, no count
+    // pin is perturbed, and the three rejects-the-true-count assertions above
+    // keep the check green while it tests nothing that matters.
+    //
+    // Closed here rather than filed with the round's other vacuous fixture loops
+    // because this is a CONTROL: it is the only thing in the suite that proves
+    // the three count pins fire at all. A fixture loop that empties loses
+    // coverage of the shapes it lists; this one loses the pins themselves.
+    //
+    // Two positive requirements close it. The table size is pinned by the
+    // self-tested helper, and the number of (pin, delta) pairs actually
+    // evaluated is pinned to a HAND-WRITTEN literal. Deliberately not
+    // `COUNT_PIN_DELTAS.length * 3` — that is 0 for an emptied table, so it
+    // would restate the hole it is supposed to close, which is the derived-pin
+    // mistake this file has now made twice.
+    const COUNT_PIN_DELTAS = [-1, 1];
+    const EXPECTED_COUNT_PIN_PERTURBATIONS = 6;
+    let perturbations = 0;
+
+    const missed: string[] = [
+      fixtureTableViolation('COUNT_PIN_DELTAS', COUNT_PIN_DELTAS, 2),
+    ].filter((v): v is string => v !== null);
     if (sourceFileCountViolation(EXPECTED_SOURCE_FILES) !== null) {
       missed.push('the source-file pin rejects the true count');
     }
@@ -4004,10 +4028,12 @@ function sinkBinding(): void {
     if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS) !== null) {
       missed.push('the scope pin rejects the true scope');
     }
-    for (const delta of [-1, 1]) {
+    for (const delta of COUNT_PIN_DELTAS) {
+      perturbations += 1;
       if (sourceFileCountViolation(EXPECTED_SOURCE_FILES + delta) === null) {
         missed.push(`the source-file pin is silent at ${EXPECTED_SOURCE_FILES + delta}`);
       }
+      perturbations += 1;
       if (sinkCountViolation(REQUIRED_SINKS.length + delta) === null) {
         missed.push(`the sink-count pin is silent at ${REQUIRED_SINKS.length + delta}`);
       }
@@ -4015,9 +4041,19 @@ function sinkBinding(): void {
       // derived total cannot see. Both directions are asserted anyway, because a
       // pin that only fires downward is a pin someone will "fix" by adding an
       // entry rather than by looking at what left.
+      perturbations += 1;
       if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS + delta) === null) {
         missed.push(`the scope pin is silent at ${EXPECTED_REQUIRED_SINKS + delta}`);
       }
+    }
+    if (perturbations !== EXPECTED_COUNT_PIN_PERTURBATIONS) {
+      missed.push(
+        `only ${perturbations} of ${EXPECTED_COUNT_PIN_PERTURBATIONS} (pin, delta) perturbations ` +
+          'ran. The loop above was emptied, truncated, or short-circuited, and every assertion ' +
+          'inside it only ever PERMITS a result — so an unperturbed run is indistinguishable ' +
+          'from a passing one. Measured GREEN at 79/127 with the delta list emptied, before ' +
+          'this arm existed.',
+      );
     }
     if (missed.length > 0) {
       throw new Error(`count pin no longer fires: ${missed.join(' | ')}`);
@@ -4100,7 +4136,7 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All TWENTY fixture tables are protected from silent shrinkage by exactly
+  // All TWENTY-ONE fixture tables are protected from silent shrinkage by exactly
   // one function, `fixtureTableViolation`, and until this check it was the only
   // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
@@ -4115,18 +4151,18 @@ function sinkBinding(): void {
   // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
   //
-  // Twenty is `grep -c "^      fixtureTableViolation('"`. The indentation is
+  // Twenty-one is `grep -c "^      fixtureTableViolation('"`. The indentation is
   // load-bearing and this is the second version of the recipe: the first said
   // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
   // check's own body, which is off by one because THIS COMMENT contains the
   // string it greps for. A count recipe that counts itself is the same defect as
   // a rule derived from the thing it checks, three lines from where this file
-  // says so. The anchored form matches only the twenty calls that sit inside
-  // a `missed` array literal, which is every real table and nothing else.
+  // says so. The anchored form matches only the twenty-one calls that sit
+  // inside a `missed` array literal, which is every real table and nothing else.
   //
   // Was seventeen through round 9; round 10 added REPORT_FROM_ORIGINAL, the
-  // unsound-scan table and EXPECTED_TREE_WIDE_CONTROLS. Re-run the recipe, do
-  // not increment it.
+  // unsound-scan table, EXPECTED_TREE_WIDE_CONTROLS and COUNT_PIN_DELTAS.
+  // Re-run the recipe, do not increment it.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
