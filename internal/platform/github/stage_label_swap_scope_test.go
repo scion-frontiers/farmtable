@@ -146,50 +146,201 @@ func TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn(t *testing.T) {
 	}
 }
 
-// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader is the property
-// behind the table above, asserted directly rather than sampled.
+// ownershipTruthTable is the EXPECTED side of
+// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader, and it is
+// hand-written rather than generated. That is the entire point of it.
 //
-// The defect was not "duplicate was in the wrong list". It was that the writer
-// and the reader used DIFFERENT predicates for the same ownership question, and
-// a table of examples cannot rule that out — it can only fail to find a case
-// where they diverge. This enumerates every stage name in both spellings and
-// requires the two answers to agree by construction.
+// WHAT THE PREVIOUS VERSION DID, and why it was deleted (#194 round 7, T-F2).
+// It computed EXPECTED as `m.authorizationStage(label)` and ACTUAL as
+// `m.StageLabelSwap(...)`. But StageLabelSwap's ownership predicate IS
+// authorizationStage — one call, one function. The test asked a function to
+// agree with itself, which it does unconditionally. MEASURED: breaking
+// authorizationStage to return ("", false) for every label turned 27 top-level
+// tests in this package RED and left that one GREEN, exit 0. It was the ninth
+// instance on this workstream of a check deriving from the thing it checks.
+//
+// So both spellings of every stage are written out as literals below, with the
+// ownership answer each one is supposed to get. Nothing in this table is
+// computed from the mapper, from stagePrecedence, or from StageToLabel. If the
+// mapper's answer moves, the table does not move with it, and the test fails —
+// which is what "fails if the two ever diverge" was supposed to mean.
+//
+// THE RULE THE `ours` COLUMN ENCODES is B6: a label may contribute to an
+// authorization or terminal-stage determination only if it carries the
+// configured push prefix. Prefixed spelling -> ours. Bare spelling -> not ours,
+// because "duplicate" and "completed" are labels GitHub ships or any triager
+// can apply, and they carry no assertion by Farm Table.
+//
+// MAINTAINING IT IS DELIBERATE WORK, ON PURPOSE. Add a stage to the data model
+// and this table does not know about it; the completeness check in
+// requireOwnershipTableIsTotal then fails and names the missing stage. A
+// generated table would have absorbed the new stage silently and gone on
+// reporting that it had checked everything.
+var ownershipTruthTable = []struct {
+	stage    task.Stage
+	prefixed string // what this deployment writes, spelled out
+	bare     string // what a human or another tool might write
+}{
+	{task.StageTriage, "ft:stage/triage", "triage"},
+	{task.StageAccepted, "ft:stage/accepted", "accepted"},
+	{task.StageWorking, "ft:stage/working", "working"},
+	{task.StageInReview, "ft:stage/in_review", "in_review"},
+	{task.StageInQa, "ft:stage/in_qa", "in_qa"},
+	{task.StageDeploying, "ft:stage/deploying", "deploying"},
+	{task.StageCompleted, "ft:stage/completed", "completed"},
+	{task.StageWontFix, "ft:stage/wont_fix", "wont_fix"},
+	{task.StageDuplicate, "ft:stage/duplicate", "duplicate"},
+	{task.StageCancelled, "ft:stage/cancelled", "cancelled"},
+}
+
+// wantOwnershipRows pins the table's size against silent deletion. The
+// completeness check below catches a stage ADDED to the model and not to the
+// table; this catches a row removed from the table and not from the model, in
+// the case where allStages was edited to match.
+const wantOwnershipRows = 10
+
+// requireOwnershipTableIsTotal aborts unless the hand-written table names
+// exactly the stages the mapper is built over, each exactly once, with two
+// distinct spellings. Everything below it is worthless if this does not hold,
+// so it is a Fatal and it runs first.
+//
+// This checks the table's DOMAIN against allStages. It does not — and must not
+// — take the ownership ANSWER from anywhere but the literals above.
+func requireOwnershipTableIsTotal(t *testing.T) {
+	t.Helper()
+
+	if len(ownershipTruthTable) != wantOwnershipRows {
+		t.Fatalf("ownershipTruthTable has %d rows, want %d: a row was added or removed "+
+			"without updating the pin", len(ownershipTruthTable), wantOwnershipRows)
+	}
+
+	inTable := make(map[task.Stage]int, len(ownershipTruthTable))
+	for _, row := range ownershipTruthTable {
+		if err := task.StageValidator(row.stage); err != nil {
+			t.Fatalf("ownershipTruthTable names %q, which is not a stage: %v", row.stage, err)
+		}
+		if row.prefixed == row.bare {
+			t.Fatalf("row %q spells both labels %q; the two spellings must differ or the "+
+				"row cannot distinguish ours from not-ours", row.stage, row.prefixed)
+		}
+		if row.bare != row.stage.String() {
+			t.Fatalf("row %q spells its bare label %q; it must be the stage's own name, "+
+				"which is what a human or another tool would actually apply",
+				row.stage, row.bare)
+		}
+		inTable[row.stage]++
+	}
+
+	for stage, n := range inTable {
+		if n != 1 {
+			t.Fatalf("stage %q appears %d times in ownershipTruthTable, want once", stage, n)
+		}
+	}
+	for _, stage := range allStages {
+		if inTable[stage] == 0 {
+			t.Fatalf("stage %q is in allStages but has no row in ownershipTruthTable.\n\n"+
+				"A stage was added to the data model and the hand-written ownership table "+
+				"was not updated, so both of its label spellings are unchecked. Add a row "+
+				"— deliberately, deciding what the answer should be — and bump "+
+				"wantOwnershipRows.", stage)
+		}
+		delete(inTable, stage)
+	}
+	for stage := range inTable {
+		t.Fatalf("ownershipTruthTable has a row for %q, which is not in allStages; the "+
+			"mapper never builds a lookup for it and the row measures nothing", stage)
+	}
+}
+
+// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader pins that the
+// WRITER and the READER give the ownership answer a hand-written table says
+// they should — separately, each against the literal.
+//
+// The defect this exists for was not "duplicate was in the wrong list". It was
+// that the writer and the reader used DIFFERENT predicates for the same
+// ownership question. The obvious way to test that is to compare the two, and
+// that is exactly what must not be done here: since round 6 the writer's
+// predicate is a call to the reader, so comparing them is comparing a function
+// to itself and passes under every possible defect (see ownershipTruthTable).
+//
+// Comparing each to a third, independent source restores the property AND
+// strengthens it. If the reader and the writer ever diverge, at least one of
+// them must disagree with the literal, so divergence is still caught; and a
+// change that moves BOTH of them together — which the old test could not see at
+// all, because they move together by construction — is now caught too.
 func TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader(t *testing.T) {
+	requireOwnershipTableIsTotal(t)
+
 	m := NewLabelMapper(DefaultConfig().GitHub.Labels)
 
-	// Move to a stage nothing below is already at, so "not removed" is never an
-	// artefact of raw == newLabel.
-	const target = task.StageTriage
-
 	var checked int
-	for _, stage := range allStages {
-		if stage == target {
-			continue
-		}
-		for _, label := range []string{
-			"ft:stage/" + stage.String(), // ours
-			stage.String(),               // a human's, or another tool's
-		} {
-			checked++
-			_, ours := m.authorizationStage(label)
-			_, removed := m.StageLabelSwap([]string{label}, target)
-			// removed is a []string; presence is what matters.
-			gotRemoved := len(removed) > 0
+	for i, row := range ownershipTruthTable {
+		// Swap TO some other stage, so "not removed" is never an artefact of
+		// raw == newLabel. Taken from the table so the target label is a literal
+		// too; the next row, wrapping, is always a different stage because
+		// requireOwnershipTableIsTotal proved the rows are distinct.
+		target := ownershipTruthTable[(i+1)%len(ownershipTruthTable)]
 
-			if gotRemoved != ours {
-				t.Errorf("label %q: authorizationStage says ours=%v but StageLabelSwap "+
-					"removes=%v.\n\nThe reader and the writer disagree about who owns "+
-					"this label. Whichever way that disagreement points it is a bug: "+
-					"remove-but-not-trust destroys third-party data (review F7), "+
+		// BASELINE: the literal really is the label this deployment writes for
+		// the target stage. Without this the table could drift into fiction —
+		// every row would swap to a label nothing recognises and every
+		// "removed" answer would be right for the wrong reason. This reads the
+		// WRITER's spelling (StageToLabel), which is not the predicate under
+		// test.
+		if got := m.StageToLabel(target.stage); got != target.prefixed {
+			t.Fatalf("BASELINE BROKEN: StageToLabel(%q) = %q, but ownershipTruthTable "+
+				"spells it %q. The table describes a deployment that does not exist",
+				target.stage, got, target.prefixed)
+		}
+
+		for _, sp := range []struct {
+			label    string
+			wantOurs bool
+			why      string
+		}{
+			{row.prefixed, true, "carries the configured push prefix, so Farm Table " +
+				"wrote it (or someone deliberately impersonated it) and it is ours to " +
+				"read and ours to remove"},
+			{row.bare, false, "a bare stage name is a human's triage note or another " +
+				"tool's label. B6: it must not authorize, and F7: it must not be " +
+				"deleted either. One ownership question, one answer, both directions"},
+		} {
+			if sp.label == target.prefixed {
+				t.Fatalf("BASELINE BROKEN: row %q spelling %q is the target label itself; "+
+					"StageLabelSwap short-circuits on raw == newLabel and this cell would "+
+					"measure that short-circuit instead of ownership", row.stage, sp.label)
+			}
+
+			checked++
+
+			// The READER, against the literal.
+			_, readerSaysOurs := m.authorizationStage(sp.label)
+			if readerSaysOurs != sp.wantOurs {
+				t.Errorf("READER: authorizationStage(%q) ours = %v, want %v.\n\nwhy: %s",
+					sp.label, readerSaysOurs, sp.wantOurs, sp.why)
+			}
+
+			// The WRITER, against the same literal, independently.
+			_, remove := m.StageLabelSwap([]string{sp.label}, target.stage)
+			writerRemoves := len(remove) > 0
+			if writerRemoves != sp.wantOurs {
+				t.Errorf("WRITER: StageLabelSwap([%q] -> %q) removes = %v, want %v.\n\nwhy: %s\n\n"+
+					"remove-but-not-trust destroys third-party data (review F7); "+
 					"trust-but-not-remove leaves a label that authorizes and can never "+
-					"be cleared.", label, ours, gotRemoved)
+					"be cleared.", sp.label, target.stage, writerRemoves, sp.wantOurs, sp.why)
 			}
 		}
 	}
-	if checked == 0 {
-		t.Fatal("enumerated nothing; allStages is empty and this test is vacuous")
+
+	// The old version of this guard was `if checked == 0`, which could not fire:
+	// the loop is over a non-empty package-level slice, so zero was unreachable
+	// and the guard was decoration. This pins the exact cell count instead, so a
+	// `continue` added to the loop, or a row that silently stops being
+	// enumerated, is a failure rather than a smaller number nobody reads.
+	if want := 2 * len(ownershipTruthTable); checked != want {
+		t.Fatalf("checked %d label spellings, want %d (%d stages x 2 spellings); the "+
+			"enumeration is no longer total", checked, want, len(ownershipTruthTable))
 	}
-	t.Logf("checked %d label spellings across %d stages", checked, len(allStages))
 }
 
 // TestStageLabelSwap_UnderACustomPushPrefix pins that ownership follows the

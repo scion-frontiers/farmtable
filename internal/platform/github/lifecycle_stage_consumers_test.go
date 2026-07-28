@@ -42,6 +42,13 @@ import (
 //     terminal labels, so nothing was looking. It means something now only
 //     because MUT 3 shows the same tests go red when the answer really moves.
 //
+//     What this table did NOT record, and should have (#194 round 7, T-F4):
+//     MUT 5 is caught OUTSIDE this file, by TestTerminalLabelStage_Cardinality,
+//     which spells the expected winner of each terminal pair as a literal. A
+//     green row here therefore means "these gates are order-blind", not "no
+//     test sees this mutation". Round 6 left the first reading available and
+//     the winnersSeen comment then asserted the second.
+//
 //   - F3 was FIRST WRITTEN with three hand-picked label pairs and caught MUT 1
 //     but NOT MUT 2: with terminalStagePrecedence = [completed wont_fix
 //     duplicate cancelled], none of the three picked pairs had wont_fix as the
@@ -206,8 +213,17 @@ func TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer(t *te
 // ordered pairs produce completed, wont_fix and duplicate as tiebreak winners.
 // cancelled is last in the order and therefore never wins a pair — it is
 // covered as a lone terminal label elsewhere, and by the per-stage tripwire
-// above. The winnersSeen assertion at the end fails if that ever stops holding,
-// so this comment cannot quietly go stale.
+// above.
+//
+// THAT SPECIFIC ORDER IS NOT PINNED HERE, and the round-6 version of this
+// paragraph claimed it was ("the winnersSeen assertion at the end fails if that
+// ever stops holding"). It does not. MEASURED (#194 round 7, T-F4): reversing
+// terminalStagePrecedence to [cancelled duplicate wont_fix completed] leaves
+// this whole test GREEN, exit 0. The winnersSeen block is invariant under every
+// permutation of the order — see the comment on it for what it does pin. The
+// order itself is pinned by TestTerminalLabelStage_Cardinality, which the same
+// reversal turns RED. This is a mis-attribution being corrected, not a coverage
+// hole: the condition is caught, just not here.
 func TestSingularSinksAreBlindToTheTerminalTiebreak(t *testing.T) {
 	ctx := context.Background()
 
@@ -283,12 +299,25 @@ func TestSingularSinksAreBlindToTheTerminalTiebreak(t *testing.T) {
 		})
 	}
 
-	// COVERAGE PIN. "Both gates refused every pair" says nothing about which
-	// stages the tiebreak actually selected; if it returned the same winner for
-	// all 12 pairs, this test would be one cell wearing twelve names. Every
-	// terminal stage except the LAST in terminalStagePrecedence must win at
-	// least one pair — the last one cannot, by definition of a total order, and
-	// saying so here is what stops that exemption from being silent.
+	// ENUMERATION PIN — and NOT a precedence pin. Read the assertion before
+	// trusting the name it used to have.
+	//
+	// What it pins: that the 12 pairs really did exercise 3 distinct tiebreak
+	// winners rather than one winner wearing twelve names, that every terminal
+	// stage reachable as a winner was reached, and that the tiebreak behaves
+	// like a TOTAL ORDER — exactly one stage, the last, can never win a pair.
+	// A terminal stage missing from terminalStagePrecedence never wins and is
+	// caught here; a pair enumeration that stopped being total is caught here.
+	//
+	// What it does NOT pin, stated because the round-6 comment claimed it did:
+	// WHICH order. Everything below is written in terms of
+	// terminalStagePrecedence's own last element, so it holds under every
+	// permutation of that slice. MEASURED (#194 round 7, T-F4): reversing the
+	// order leaves this block GREEN. The order is pinned by
+	// TestTerminalLabelStage_Cardinality, whose literal expectations the same
+	// reversal turns RED. Do not add a precedence assertion here to "fix" that —
+	// it would be redundant coverage, and the two tests would then have to be
+	// kept in step for no gain.
 	last := terminalStagePrecedence[len(terminalStagePrecedence)-1]
 	for _, stage := range terminals {
 		if stage == last {
