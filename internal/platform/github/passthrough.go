@@ -780,6 +780,42 @@ func (s *GitHubPassThroughStore) DeleteTask(ctx context.Context, id uuid.UUID) e
 // The labels are read from the task rather than re-fetched: issueToTask copies
 // the issue's labels onto t.Labels verbatim, so this is the same input
 // IssueToPhaseStage saw, not a second round trip that could disagree with it.
+//
+// ── THE INVARIANCE THIS FUNCTION DEPENDS ON, AND WHO OWES IT ──
+//
+// This returns ONE terminal stage where the issue may name several.
+// TerminalLabelStage resolves that with terminalStagePrecedence, a tiebreak —
+// so which stage comes back here is a choice, not a fact about the issue. B5
+// exists precisely because letting a tiebreak decide an authorization question
+// is how a task:write holder converted a maintainer's wont_fix into completed.
+//
+// B5's set-valued reader (LifecycleStages) is NOT what this function's two
+// consumers use. They use this one:
+//
+//	issueUnavailableForClaim (:  the claim gate)  lifecycleStage != StageAccepted
+//	ComputeAvailability      (:  the availability gate)  IsTerminalStage(...)
+//
+// That is safe because BOTH COLLAPSE EVERY TERMINAL STAGE TO ONE BOOLEAN. No
+// terminal stage is accepted, and every terminal stage is terminal, so
+// whichever stage the tiebreak selects, both answers are unchanged. Verified
+// by execution under a reversed terminalStagePrecedence: the winner moved,
+// both answers held.
+//
+// THIS IS A PRECONDITION ON THE CONSUMERS, NOT A PROPERTY OF THIS FUNCTION.
+// It is the kind of assumption that has an expiration date nobody set, so the
+// date is enforced instead of trusted:
+//
+//	TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer
+//	    - drives both consumers with each terminal stage, from the enum, and
+//	      fails if any two answers differ
+//	TestSingularSinksAreBlindToTheTerminalTiebreak
+//	    - drives ClaimTask and ComputeAvailability end to end with TWO terminal
+//	      labels, the input that makes the tiebreak observable at all
+//
+// If you are adding a consumer that needs to know WHICH terminal stage — a
+// distinct denial reason for wont_fix vs duplicate is the obvious one — do not
+// read it from here. Use LifecycleStages and decide against the whole set,
+// or you reopen B5 at a gate (#194 round 6).
 func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage {
 	if stage, ok := s.mapper.TerminalLabelStage(t.Labels); ok {
 		return stage

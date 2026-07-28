@@ -530,11 +530,38 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
 // ours; prefix-tolerant matching is a display affordance. See
 // authorizationStage for why, and for the twelve cells that changed answer.
 //
-// This function still picks ONE stage and its callers still need that, but an
-// authorization decision must not depend on which of several equally present
-// values a tiebreak selects. Callers on a privilege path use
-// AllTerminalLabelStages instead; the remaining single-answer sinks are
-// sequenced separately (#194 round 5).
+// THIS FUNCTION PICKS ONE STAGE, AND TWO PRIVILEGE PATHS STILL CONSUME THAT
+// SINGLE ANSWER. Stated exactly, because round 5 stated it wrongly and the
+// wrong version read as reassurance:
+//
+// There is exactly ONE production caller —
+// GitHubPassThroughStore.LifecycleStage — and its result reaches exactly two
+// consumers, BOTH of which are privilege paths:
+//
+//   - issueUnavailableForClaim, the claim gate
+//   - ComputeAvailability, the availability gate
+//
+// So it is NOT true that "callers on a privilege path use
+// AllTerminalLabelStages instead", which is what the round-5 comment here
+// claimed. Both actual privilege-path callers use this function.
+//
+// That is safe, and it is safe for a reason that has to be written down
+// because nothing in the type system holds it up: NEITHER CONSUMER BRANCHES ON
+// WHICH TERMINAL STAGE IT IS. Each reduces every terminal stage to one
+// boolean, so the tiebreak cannot change either answer. The ordering below is
+// therefore unobservable — but only for exactly as long as that stays true.
+//
+// Add one consumer that discriminates between terminal stages — entirely
+// natural, e.g. a different denial reason for wont_fix than for duplicate —
+// and an authorization answer starts depending on terminalStagePrecedence's
+// order, at a privilege gate, with nothing failing. A consumer that needs to
+// know WHICH terminal stage must use AllTerminalLabelStages.
+//
+// The precondition is enforced, not merely documented:
+// TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer drives
+// both consumers with each terminal stage in turn and fails if any two answers
+// differ. See GitHubPassThroughStore.LifecycleStage for the same argument
+// stated where the consumers are (#194 round 6).
 //
 // !m.enabled returns false rather than scanning: with label mapping off,
 // IssueToPhaseStage also declines to map labels, so no demotion happens and
