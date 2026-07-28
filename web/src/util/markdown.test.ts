@@ -368,17 +368,32 @@ function svgSurface(): void {
   });
 
   // The sinks wrap markdown in block containers, so a payload does not need a
-  // top-level raw-HTML block to reach the sanitizer.
-  check('svg style stripped inside markdown containers', () => {
-    for (const md of [
-      '- <svg><style>*{display:none}</style></svg>',
-      '> <svg><style>*{display:none}</style></svg>',
-      '| a |\n| - |\n| <svg><style>*{display:none}</style></svg> |',
-    ]) {
-      const out = renderMarkdown(md);
-      assertNoElement(out, 'style', `style survived in ${JSON.stringify(md)}`);
-      assertNotContains(out, 'display:none', `style rules survived in ${JSON.stringify(md)}`);
-    }
+  // top-level raw-HTML block to reach the sanitizer. These three are the cases
+  // proving the <svg><style> fix is reachable through ordinary markdown, so they
+  // are the most load-bearing of the round-2 security work.
+  //
+  // One check() per container, deliberately. These were previously three
+  // payloads looped inside a single check(), which made them invisible to the
+  // EXPECTED_CHECKS pin: emptying the list left the suite green at the same
+  // total. Splitting them puts each payload under the check-total pin that
+  // already exists and is already proven to fire, rather than introducing a
+  // second, parallel length assertion that would itself need guarding.
+  const assertSvgStyleStripped = (md: string): void => {
+    const out = renderMarkdown(md);
+    assertNoElement(out, 'style', `style survived in ${JSON.stringify(md)}`);
+    assertNotContains(out, 'display:none', `style rules survived in ${JSON.stringify(md)}`);
+  };
+
+  check('svg style stripped inside a markdown list', () => {
+    assertSvgStyleStripped('- <svg><style>*{display:none}</style></svg>');
+  });
+
+  check('svg style stripped inside a blockquote', () => {
+    assertSvgStyleStripped('> <svg><style>*{display:none}</style></svg>');
+  });
+
+  check('svg style stripped inside a table cell', () => {
+    assertSvgStyleStripped('| a |\n| - |\n| <svg><style>*{display:none}</style></svg> |');
   });
 }
 
@@ -720,7 +735,7 @@ function sinkBinding(): void {
 // REQUIRED_SINKS are emitted in a loop, so `grep -c "  check("` no longer equals
 // this number. The runtime count is the authoritative one, and it is what the
 // pin below compares against.
-const EXPECTED_CHECKS = 52;
+const EXPECTED_CHECKS = 54;
 
 function run(): void {
   formControls();
