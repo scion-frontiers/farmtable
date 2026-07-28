@@ -215,11 +215,12 @@ interface Allowed {
   /** Why this binding cannot carry an attacker-controlled scheme. */
   readonly reason: string;
   /**
-   * If set, the interpolated identifier on THIS line must be initialised from
-   * `safeHref(...)` and from nothing else, inside the innermost block enclosing
-   * this line.
+   * If set, TWO things must hold for the interpolated identifier on THIS line:
+   * some assignment in the innermost enclosing block initialises it from
+   * `safeHref(...)` and nothing else, and NO assignment anywhere in the file
+   * assigns it from anything else.
    *
-   * Three successively tighter versions, each fixing a measured fail-open:
+   * Four successively tighter versions, each fixing a measured fail-open:
    *
    *   1. "the file imports safeHref somewhere" -- satisfied by a file that
    *      guards one binding and leaves the next one bare.
@@ -227,7 +228,14 @@ interface Allowed {
    *      the block was the whole class, so a guarded method laundered a bare
    *      sibling, and where the match was a prefix, so
    *      `safeHref(url) || url` passed.
-   *   3. what is checked now. See enclosingBlock and assignsFromSafeHref.
+   *   3. the same check with the block narrowed to the innermost one and the
+   *      whole initialiser matched instead of its prefix. Still EXISTENTIAL:
+   *      it asks whether the guard appears, never whether it survives, so
+   *      `let href = safeHref(url); href = url;` passed with exit 0.
+   *   4. what is checked now -- (3) as the positive arm, plus a UNIVERSAL
+   *      negative arm over the whole file. Note that the two arms want
+   *      opposite scopes and that this is not an inconsistency; see the
+   *      direction note on enclosingBlock.
    */
   readonly viaSafeHref?: boolean;
 }
@@ -278,16 +286,68 @@ function sourceRoot(): string {
 
 const SRC = sourceRoot();
 
+/**
+ * Files this scanner is responsible for.
+ *
+ * NOT just `.ts`. The previous filter was `entry.endsWith('.ts')`, which makes
+ * the scanner blind to `.tsx`, `.mts`, `.cts` and any `.js` that lands in src/ --
+ * a `.tsx` component with `href=${raw}` in it is simply not looked at, and no
+ * directory binding fixes that, because the directory would still be reached.
+ * The project already anticipates the wider family: web/scripts/run-tests.mjs
+ * strips `\.[cm]?[jt]sx?$` when it canonicalises test names. Matching that here
+ * means the scanner's notion of "a source file" and the runner's agree.
+ *
+ * MEASURED on this tree: widening changes nothing (52 files either way). It is
+ * a future-proofing change, and it is recorded as one rather than as a fix.
+ */
+const SOURCE_EXT = /\.[cm]?[jt]sx?$/;
+const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
+
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       sourceFiles(full, out);
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.test.ts')) {
+    } else if (SOURCE_EXT.test(entry) && !TEST_FILE.test(entry)) {
       out.push(full);
     }
   }
   return out;
+}
+
+/**
+ * An INDEPENDENT enumeration of every directory under `root`, used to bind the
+ * scanner's walk to the shape of the tree.
+ *
+ * WHY IT EXISTS, AND WHY IT IS NOT sourceFiles(). The walk's anti-vacuity floor
+ * used to be `files.length >= 40` plus three named witness files. That is a
+ * COUNT, and a count does not constrain identity: a mutant that skipped
+ * store/, gen/ and kanban/ -- 11 of 52 files -- left 41 files, cleared the
+ * floor of 40, still reached all three witnesses, and was measured GREEN with a
+ * real unguarded `href=${raw}` planted in the skipped store/. The floor admits
+ * directory loss by construction, because 52 is comfortably above 40.
+ *
+ * So the binding is on DIRECTORIES REACHED and on the per-directory file count,
+ * not on a total. And the expectation is computed by a deliberately different
+ * traversal -- an explicit stack here, recursion there -- so that a recursion
+ * bug in one is not silently reproduced in the other. Two walks can still be
+ * wrong in the same way; the floor on this walk's own output is the backstop
+ * for that, and it is a backstop, not the check.
+ */
+function directoryCensus(root: string): Map<string, number> {
+  const census = new Map<string, number>();
+  const stack: string[] = [root];
+  while (stack.length > 0) {
+    const dir = stack.pop()!;
+    const rel = relative(root, dir) || '.';
+    let count = 0;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) stack.push(join(dir, entry.name));
+      else if (SOURCE_EXT.test(entry.name) && !TEST_FILE.test(entry.name)) count++;
+    }
+    census.set(rel, count);
+  }
+  return census;
 }
 
 interface Finding {
@@ -318,47 +378,167 @@ function scanText(file: string, text: string): Finding[] {
  *
  * Characters are replaced with spaces rather than deleted, so every line keeps
  * its length and every line keeps its index -- callers index back into the
- * original text by line number.
+ * original text by line number. **Call it on whole file text, not line by
+ * line**: a per-line call cannot see that a line is inside a `/* *\/` docblock,
+ * which used to make the "a commented-out guard must not count" assertions pass
+ * for the wrong reason. See testGuardTracing.
  *
- * Template literals are deliberately left intact: their `${...}` braces balance,
- * and the guarded bindings live inside them. The residual risk is a lone `{` or
- * `}` in template HTML text, which would skew the depth count. Nothing in this
- * tree has one; a future one would widen or narrow a block rather than silently
- * approve a binding, and the anchored initialiser check below is what actually
- * decides approval.
+ * TEMPLATE LITERALS ARE TRACKED, and this is a fix rather than a refinement.
+ * The previous version left them entirely alone, documenting the residual risk
+ * as "a lone `{` or `}` in template HTML text. Nothing in this tree has one."
+ * The likelier trigger was not a brace, it was an APOSTROPHE: `don't` in
+ * template HTML text opened a single-quote blanking run, and if a multi-line
+ * `${` interpolation followed on that line the opening brace was blanked while
+ * its closing brace on a later line was not. Review measured depth -1 against a
+ * raw depth of 0 for exactly that shape -- which makes enclosingBlock select the
+ * wrong opening brace and WIDEN the block, the precise fail-open direction that
+ * 42d62a4 exists to close.
+ *
+ * So the state machine distinguishes template TEXT (where `'`, `"` and `/` are
+ * ordinary characters and only `\`, `` ` `` and `${` mean anything) from the
+ * code inside `${...}` (where the normal rules resume, recursively).
+ *
+ * STILL NOT HANDLED, named rather than implied: regular-expression literals.
+ * `/[a-z'"]/` opens a string run at the quote, because telling a regex literal
+ * from a division needs a real lexer. Measured across web/src: one file is
+ * brace-unbalanced under this function for that reason and it is this file,
+ * which sourceFiles() excludes and enclosingBlock is never called on. The
+ * backstop for the general case is assertBraceBalanced below -- an unbalanced
+ * region is now a loud error, not a silent mis-parse.
  */
-function blankNonCode(text: string): string {
+function blankNonCode(text: string, blankTemplateText = false): string {
   const out = text.split('');
+  const n = out.length;
+
+  // Context stack. `template` = inside a template literal's text; `interp` =
+  // inside a `${...}` within one, recording the brace depth at its opening so
+  // the matching `}` can be recognised.
+  type Ctx = { readonly kind: 'template' } | { readonly kind: 'interp'; readonly depth: number };
+  const stack: Ctx[] = [];
+  let depth = 0;
   let i = 0;
-  while (i < out.length) {
+
+  while (i < n) {
     const c = text[i]!;
     const next = text[i + 1];
+    const top = stack[stack.length - 1];
+
+    // ── template literal TEXT ──────────────────────────────────────────────
+    if (top?.kind === 'template') {
+      if (c === '\\') {
+        i += 2;
+      } else if (c === '`') {
+        stack.pop();
+        i++;
+      } else if (c === '$' && next === '{') {
+        stack.push({ kind: 'interp', depth });
+        depth++;
+        i += 2;
+      } else {
+        if (blankTemplateText && c !== '\n') out[i] = ' ';
+        i++;
+      }
+      continue;
+    }
+
+    // ── code ───────────────────────────────────────────────────────────────
     if (c === '/' && next === '/') {
-      while (i < out.length && text[i] !== '\n') out[i++] = ' ';
+      while (i < n && text[i] !== '\n') out[i++] = ' ';
     } else if (c === '/' && next === '*') {
       out[i++] = ' ';
       out[i++] = ' ';
-      while (i < out.length && !(text[i] === '*' && text[i + 1] === '/')) {
+      while (i < n && !(text[i] === '*' && text[i + 1] === '/')) {
         if (text[i] !== '\n') out[i] = ' ';
         i++;
       }
-      if (i < out.length) {
+      if (i < n) {
         out[i++] = ' ';
         out[i++] = ' ';
       }
     } else if (c === '"' || c === "'") {
       i++;
-      while (i < out.length && text[i] !== c && text[i] !== '\n') {
+      while (i < n && text[i] !== c && text[i] !== '\n') {
         if (text[i] === '\\') out[i++] = ' ';
         out[i] = ' ';
         i++;
       }
+      i++;
+    } else if (c === '`') {
+      stack.push({ kind: 'template' });
+      i++;
+    } else if (c === '{') {
+      depth++;
+      i++;
+    } else if (c === '}') {
+      depth--;
+      if (top?.kind === 'interp' && top.depth === depth) stack.pop();
       i++;
     } else {
       i++;
     }
   }
   return out.join('');
+}
+
+/**
+ * blankNonCode, plus the TEXT of template literals -- everything outside a
+ * `${...}` -- so that what is left is only executable code.
+ *
+ * The guard-tracing arms need this and the tree scan must not have it. RULES
+ * matches `href=${...}` inside template HTML, so blanking that text would blind
+ * the scanner completely. But for deciding whether an identifier is ASSIGNED,
+ * template text is pure noise, and worse than noise: `<a href=${href}>` matches
+ * an `href = ...` assignment regex exactly, so the universal arm read every
+ * guarded binding in the tree as its own defeat. Measured: the "guard only"
+ * fixture came back `defeated`.
+ *
+ * `${` and its matching `}` are left in place so brace depth still balances.
+ */
+function blankToCode(text: string): string {
+  return blankNonCode(text, true);
+}
+
+/**
+ * Hard-fails if blanked code is not brace-balanced.
+ *
+ * A pre-pass that silently mis-parses makes every assertion downstream of it
+ * meaningless, and it does so quietly: enclosingBlock would pick the wrong
+ * opening brace and hand back a region that is not the block it names. There is
+ * no safe direction for that error -- a widened region lets a guarded sibling
+ * launder a bare binding, and a narrowed one fails a binding that is fine -- so
+ * it is refused rather than approximated.
+ */
+function assertBraceBalanced(code: string, what: string): void {
+  let depth = 0;
+  let line = 1;
+  for (let i = 0; i < code.length; i++) {
+    const c = code[i];
+    if (c === '\n') line++;
+    else if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth < 0) {
+        throw new Error(
+          `blankNonCode produced unbalanced braces for ${what}: a closing brace at line ` +
+            `${line} has no opener. The blanker has mis-identified a region, so any block ` +
+            'scope computed from it is not the block it claims to be. Refusing to proceed ' +
+            'rather than approving a binding on a mis-parsed scope.',
+        );
+      }
+    }
+  }
+  if (depth !== 0) {
+    throw new Error(
+      `blankNonCode produced unbalanced braces for ${what}: ${depth} unclosed brace(s). ` +
+        'See the note on regular-expression literals in blankNonCode. Refusing to compute ' +
+        'a block scope from a mis-parsed file.',
+    );
+  }
+}
+
+/** Escapes a JS identifier for embedding in a RegExp. `$` is legal in both. */
+function reEscape(id: string): string {
+  return id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -383,10 +563,19 @@ function blankNonCode(text: string): string {
  * So: walk back from the binding accumulating brace depth and stop at depth -1,
  * which is the brace that opens the innermost enclosing block; then walk forward
  * to its match. For a method in a class that is the method, not the class.
+ *
+ * NOTE ON DIRECTION, because the reasoning above is only half the picture and
+ * reversing it silently would be the next fail-open. Narrow scope is the strict
+ * direction for the POSITIVE arm ("some line here guards it"), which is what the
+ * paragraph above is about. It is the PERMISSIVE direction for the negative arm
+ * ("no line assigns it unguarded"), because a defeating reassignment outside the
+ * innermost block is then simply not looked at. The negative arm in
+ * testNoUnapprovedBindings therefore runs at FILE scope, not here.
  */
-function enclosingBlock(lines: readonly string[], lineNo: number): readonly string[] {
+function enclosingBlock(lines: readonly string[], lineNo: number, what = 'input'): readonly string[] {
   const text = lines.join('\n');
-  const code = blankNonCode(text);
+  const code = blankToCode(text);
+  assertBraceBalanced(code, what);
 
   // Character offsets of the binding line within `text`.
   let lineStart = 0;
@@ -447,9 +636,7 @@ function enclosingBlock(lines: readonly string[], lineNo: number): readonly stri
  * reintroduce the unvalidated value -- fails.
  */
 function assignsFromSafeHref(line: string, id: string): boolean {
-  // Not `.href =` (a property write), not `==`/`===`/`=>`.
-  const lhs = new RegExp(`(?:^|[^\\w$.])${id}\\s*=(?![=>])\\s*`);
-  const m = lhs.exec(line);
+  const m = assignmentLhs(line, id);
   if (!m) return false;
 
   const rhs = line.slice(m.index + m[0].length);
@@ -473,6 +660,51 @@ function assignsFromSafeHref(line: string, id: string): boolean {
 
   // Nothing may follow but statement terminators.
   return /^[\s;,)]*$/.test(rhs.slice(end + 1));
+}
+
+/**
+ * Matches an assignment to `id` on `line`, whatever it assigns.
+ *
+ * Not `.href =` (a property write on some other object), not `==`/`===`/`=>`.
+ * `id` is escaped because a legal JS identifier may contain `$`, which is an
+ * anchor in a RegExp -- unescaped, `$el` matched nothing and the check passed
+ * vacuously.
+ */
+function assignmentLhs(line: string, id: string): RegExpExecArray | null {
+  return new RegExp(`(?:^|[^\\w$.])${reEscape(id)}\\s*=(?![=>])\\s*`).exec(line);
+}
+
+/** Whether `line` assigns to `id` at all -- the universal arm's trigger. */
+function isAssignmentTo(line: string, id: string): boolean {
+  return assignmentLhs(line, id) !== null;
+}
+
+/**
+ * Every line in `blankedLines` that assigns `id` from something other than
+ * safeHref(). Empty means the guard is not defeated anywhere in the region.
+ *
+ * This is the universal half of the viaSafeHref check and it is the half that
+ * was missing. The old check was `block.some(assignsFromSafeHref)`: EXISTENTIAL.
+ * It asked whether the guard appears, never whether it survives. Round 3 closed
+ * the single-line spelling of the defeat (`safeHref(url) || url`) inside
+ * assignsFromSafeHref and left every multi-statement spelling open --
+ *
+ *     let href = safeHref(url);   // satisfies the existential
+ *     href = url;                 // and then throws it away
+ *
+ * -- which was measured green, exit 0, on a probe file (deliverable 0).
+ */
+function defeatingAssignments(
+  blankedLines: readonly string[],
+  id: string,
+): readonly { readonly lineNo: number; readonly text: string }[] {
+  const out: { lineNo: number; text: string }[] = [];
+  blankedLines.forEach((line, i) => {
+    if (isAssignmentTo(line, id) && !assignsFromSafeHref(line, id)) {
+      out.push({ lineNo: i + 1, text: line.trim() });
+    }
+  });
+  return out;
 }
 
 /**
@@ -639,19 +871,59 @@ function testGuardTracing(): void {
   }
 
   // A commented-out guard must not count. blankNonCode is what makes this true,
-  // and it is applied to the block before matching.
+  // and it is applied to the whole file text before matching.
   assert(
     !assignsFromSafeHref(blankNonCode('// const href = safeHref(url);'), 'href'),
     'a commented-out assignment was accepted as a guard',
   );
+  // The docblock case, WHICH USED TO PASS FOR THE WRONG REASON. The old spelling
+  // was blankNonCode(' * e.g. `const href = safeHref(url);`') on that line alone.
+  // A single line of a docblock has no `/*` on it, so nothing was blanked; the
+  // fixture was rejected only because the stray trailing backtick failed the
+  // "nothing may follow but terminators" tail check. Move the backticks and it
+  // passed. Blanking the whole comment, as a whole-text call does, is what makes
+  // this a real assertion.
+  const docblock = [
+    '/**',
+    ' * Example: const href = safeHref(url);',
+    ' */',
+    'const href = raw;',
+  ].join('\n');
+  const docblockBlanked = blankNonCode(docblock).split('\n');
   assert(
-    !assignsFromSafeHref(blankNonCode(' * e.g. `const href = safeHref(url);`'), 'href'),
-    'a docblock example was accepted as a guard',
+    !assignsFromSafeHref(docblockBlanked[1]!, 'href'),
+    'a docblock example was accepted as a guard; blankNonCode is not seeing the comment: ' +
+      JSON.stringify(docblockBlanked[1]),
+  );
+  // ...and the positive control for that same call: the live line below the
+  // docblock must survive, or the rejection above is vacuous.
+  assert(
+    isAssignmentTo(docblockBlanked[3]!, 'href'),
+    'blankNonCode blanked live code following a docblock: ' + JSON.stringify(docblockBlanked[3]),
   );
   // Positive control for blankNonCode: it must not blank live code.
   assert(
     assignsFromSafeHref(blankNonCode('const href = safeHref(url); // guarded'), 'href'),
     'blankNonCode destroyed a real assignment; every rejection above would then be vacuous',
+  );
+
+  // blankNonCode must not lose braces to an apostrophe in template TEXT. This is
+  // the review's depth -1 finding: `don't` opened a quote run that swallowed the
+  // `${` on the same line while its `}` on a later line survived.
+  const apostrophe = ['function f() {', "  return html`<p>don't ${", '    x', '  }</p>`;', '}'].join(
+    '\n',
+  );
+  const apostropheBlanked = blankNonCode(apostrophe);
+  let depth = 0;
+  for (const c of apostropheBlanked) {
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+  }
+  assert(
+    depth === 0,
+    `an apostrophe in template text skewed brace depth to ${depth}; enclosingBlock would ` +
+      'then select the wrong opening brace and WIDEN the block, which is the fail-open ' +
+      `direction:\n${apostropheBlanked}`,
   );
 
   // The D1(b) finding: block scope must be the method, not the whole class.
@@ -682,6 +954,381 @@ function testGuardTracing(): void {
     guardedBlock.some((l) => assignsFromSafeHref(l, 'href')),
     'the enclosing block of a guarded binding lost its own guard:\n' + guardedBlock.join('\n'),
   );
+
+  testMultiStatementGuards();
+  testStructuralHelpers();
+}
+
+/**
+ * Fixtures for three pieces that are VACUOUS ON THIS TREE and would otherwise be
+ * pins in name only. Each is a backstop against an input web/src does not
+ * currently contain, so the tree scan cannot exercise any of them; without these
+ * they could all be deleted with the suite staying green.
+ */
+function testStructuralHelpers(): void {
+  // (a) assertBraceBalanced. No file under web/src is unbalanced after
+  // blankToCode -- measured -- so nothing in the scan ever reaches the throw.
+  let threw = false;
+  try {
+    assertBraceBalanced('function f() {\n  g();\n', 'fixture');
+  } catch {
+    threw = true;
+  }
+  assert(threw, 'assertBraceBalanced accepted an unclosed brace');
+  threw = false;
+  try {
+    // The running total must be checked, not just the final one. This input
+    // ENDS at depth 0 and dips to -1 in the middle, which is exactly what a
+    // mis-parse that swallows one `{` and later restores balance looks like.
+    // With only the final check, mutant M5cn survived on `'}\n'` because that
+    // input also ends non-zero; this one does not let it.
+    assertBraceBalanced('}\nfunction f() {\n', 'fixture');
+  } catch {
+    threw = true;
+  }
+  assert(threw, 'assertBraceBalanced accepted a closing brace with no opener');
+  // Positive control, or the two rejections above prove only that it always
+  // throws -- which would fail the whole scan, not pass it, but the pin should
+  // still say which way it discriminates.
+  assertBraceBalanced('function f() {\n  if (a) { g(); }\n}\n', 'fixture');
+
+  // (b) The source-file extension filter. web/src is 100% `.ts` today, so
+  // widening it changed nothing measurable (52 files before and after) and a
+  // revert would be invisible.
+  for (const name of ['a.ts', 'a.tsx', 'a.mts', 'a.cts', 'a.js', 'a.jsx', 'a.mjs', 'a.cjs']) {
+    assert(SOURCE_EXT.test(name), `${name} is not recognised as a source file`);
+  }
+  for (const name of ['a.test.ts', 'a.test.tsx', 'a.test.mjs']) {
+    assert(TEST_FILE.test(name), `${name} is not recognised as a test file`);
+  }
+  for (const name of ['a.css', 'a.json', 'a.d.ts.map', 'README.md']) {
+    assert(!SOURCE_EXT.test(name), `${name} was wrongly recognised as a source file`);
+  }
+  assert(!TEST_FILE.test('latest.ts'), 'TEST_FILE matched a name merely ending in "test.ts"');
+
+  // (c) Identifier escaping. `$` is legal in a JS identifier and is an anchor in
+  // a RegExp; unescaped, the assignment regex for `$el` matched nothing and
+  // every check on it passed vacuously. No identifier in web/src contains one.
+  assert(isAssignmentTo('  $href = url;', '$href'), 'an assignment to a $-identifier was missed');
+  assert(
+    assignsFromSafeHref('  $href = safeHref(url);', '$href'),
+    'a guarded assignment to a $-identifier was missed',
+  );
+  assert(!isAssignmentTo('  xhref = url;', '$href'), '$-identifier matching is too loose');
+
+  // (d) compareWalk's three arms, each fired in isolation. On the real tree all
+  // three are silent by construction, so nothing there distinguishes a working
+  // arm from a deleted one -- and the per-directory arm, which is the whole
+  // count-neutrality argument for the anti-vacuity check, was measured surviving
+  // deletion (M6cn) before these existed.
+  const base = new Map([
+    ['.', 2],
+    ['util', 6],
+    ['store', 4],
+  ]);
+  const clean = compareWalk(base, new Map(base));
+  assert(
+    clean.missed.length === 0 && clean.extra.length === 0 && clean.skewed.length === 0,
+    'compareWalk reported a difference between a census and itself: ' + JSON.stringify(clean),
+  );
+
+  const dropped = compareWalk(base, new Map([...base].filter(([d]) => d !== 'store')));
+  assert(
+    dropped.missed.join() === 'store' && dropped.skewed.join() === 'store: census 4, walk 0',
+    'compareWalk did not report a skipped directory: ' + JSON.stringify(dropped),
+  );
+
+  const unknown = compareWalk(base, new Map([...base, ['ghost', 1]]));
+  assert(
+    unknown.extra.join() === 'ghost',
+    'compareWalk did not report a directory the census never saw: ' + JSON.stringify(unknown),
+  );
+
+  // The count-neutral one: same total (12), same directory set, files moved
+  // between directories. `missed` and `extra` are both empty; only the
+  // per-directory arm can see this.
+  const shuffled = compareWalk(
+    base,
+    new Map([
+      ['.', 2],
+      ['util', 4],
+      ['store', 6],
+    ]),
+  );
+  assert(
+    shuffled.missed.length === 0 && shuffled.extra.length === 0,
+    'the count-neutral fixture is not count-neutral; it fired the wrong arm: ' +
+      JSON.stringify(shuffled),
+  );
+  assert(
+    shuffled.skewed.length === 2,
+    'compareWalk missed a count-neutral redistribution -- the walk could lose a whole ' +
+      'directory of files and pad the total back from somewhere else: ' + JSON.stringify(shuffled),
+  );
+}
+
+/** What the two-arm viaSafeHref check concludes about a binding. */
+type Verdict = 'approved' | 'no-guard' | 'defeated';
+
+interface Trace {
+  readonly verdict: Verdict;
+  /** Non-empty only when the verdict is 'defeated'. */
+  readonly defeats: readonly { readonly lineNo: number; readonly text: string }[];
+  /** The innermost enclosing block, blanked, for the failure message. */
+  readonly block: readonly string[];
+}
+
+/**
+ * THE viaSafeHref DECISION. Both the tree scan and the fixture table below call
+ * this, and that is deliberate rather than tidiness: an earlier draft had the
+ * fixtures re-implement the two arms, which meant deleting an arm from the tree
+ * scan left every fixture green. Fixtures that paraphrase the thing they guard
+ * are not guarding it.
+ */
+function traceGuard(src: string, id: string, lineNo: number, what: string): Trace {
+  const blanked = blankToCode(src).split('\n');
+
+  // ARM 1, EXISTENTIAL, innermost block: the guard must exist, and it must be
+  // near this binding rather than in a sibling method. Block scope is the
+  // strict direction here; see enclosingBlock.
+  const block = enclosingBlock(blanked, lineNo, what);
+  if (!block.some((l) => assignsFromSafeHref(l, id))) {
+    return { verdict: 'no-guard', defeats: [], block };
+  }
+
+  // ARM 2, UNIVERSAL, WHOLE FILE: no assignment to this identifier anywhere in
+  // the file may be anything other than that guard.
+  //
+  // Arm 1 alone is what deliverable 0 measured green on this exact shape:
+  //
+  //     let href = safeHref(url);
+  //     href = url;
+  //     return html`<a href=${href} ...>`;
+  //
+  // -- exit 0, "url-binding-scan: ok". The existential is satisfied by line 1
+  // and line 2 is never looked at.
+  //
+  // FILE SCOPE, NOT BLOCK SCOPE, and this is the opposite of arm 1 on purpose.
+  // Once the predicate is universal the scope direction inverts: a narrow scope
+  // stops looking before it reaches the defeat, so narrow is now the FAIL-OPEN
+  // direction. Concretely, a defeating `href = url` in the enclosing function,
+  // with the guarded assignment inside a loop body, satisfies both a
+  // block-scoped positive and a block-scoped negative while the first iteration
+  // renders unguarded -- that is a row in the fixture table below. File scope
+  // has a cost: two legitimate, separately-guarded `href` locals in one file
+  // would collide. That cost is the correct one to pay -- it fails closed,
+  // loudly, and is fixed by renaming or by a second ALLOWED entry. Measured on
+  // this tree: ft-inspector-code.ts and ft-inspector-meta.ts each contain
+  // exactly one assignment to `href`, so nothing legitimate is caught today.
+  const defeats = defeatingAssignments(blanked, id);
+  if (defeats.length > 0) return { verdict: 'defeated', defeats, block };
+
+  return { verdict: 'approved', defeats: [], block };
+}
+
+/** Locates the `${id}` binding in fixture text and traces it. */
+function traceFixture(src: string, id: string): Verdict {
+  const lineNo =
+    src.split('\n').findIndex((l) => new RegExp(`=\\$\\{${reEscape(id)}\\}`).test(l)) + 1;
+  if (lineNo === 0) throw new Error(`fixture has no \`=\${${id}}\` binding:\n${src}`);
+  return traceGuard(src, id, lineNo, 'fixture').verdict;
+}
+
+/**
+ * MULTI-STATEMENT GUARD FIXTURES -- the shapes the existential check could not
+ * see. Round 3 closed the single-line defeat (`safeHref(url) || url`) inside
+ * assignsFromSafeHref and left every multi-statement spelling wide open; the
+ * table above is entirely single lines, so it could not have caught that.
+ *
+ * These are as blocking as the predicate. A future edit that quietly restores
+ * the `.some()` turns the 'defeated' rows red.
+ */
+function testMultiStatementGuards(): void {
+  const cases: ReadonlyArray<readonly [string, Verdict, string]> = [
+    [
+      'guard only',
+      'approved',
+      ['function f(url) {', '  const href = safeHref(url);', '  return html`<a href=${href}>x</a>`;', '}'].join(
+        '\n',
+      ),
+    ],
+    [
+      'guard, then reassignment from the raw value (deliverable 0)',
+      'defeated',
+      [
+        'function f(url) {',
+        '  let href = safeHref(url);',
+        '  href = url;',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      'guard, then conditional reassignment',
+      'defeated',
+      [
+        'function f(url, fallback) {',
+        '  let href = safeHref(url);',
+        '  if (!href) href = fallback;',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      'guard, then reassignment inside a nested block',
+      'defeated',
+      [
+        'function f(urls) {',
+        '  let href = safeHref(urls[0]);',
+        '  for (const u of urls) {',
+        '    href = u;',
+        '  }',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      'let guarded on one branch and bare on the other',
+      'defeated',
+      [
+        'function f(url, cond) {',
+        '  let href;',
+        '  if (cond) {',
+        '    href = safeHref(url);',
+        '  } else {',
+        '    href = url;',
+        '  }',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      // The shape that motivates FILE scope for arm 2. Under block scope both
+      // arms are satisfied: the loop body holds the guard, and the defeating
+      // assignment sits outside the innermost block the binding is in.
+      'defeat in the enclosing function, guard in the loop body',
+      'defeated',
+      [
+        'function f(urls, raw) {',
+        '  let href = raw;',
+        '  return urls.map((u) => {',
+        '    href = safeHref(u);',
+        '    return html`<a href=${href}>x</a>`;',
+        '  });',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      // Arm 1's scope, driven through the real decision function. The direct
+      // enclosingBlock fixture above does not reach traceGuard, so widening
+      // arm 1 INSIDE traceGuard survived it -- measured GREEN as mutant M3.
+      // Bare method first, so this is the binding traceFixture picks up.
+      'bare binding, guard in a sibling method',
+      'no-guard',
+      [
+        'class Probe extends LitElement {',
+        '  renderBare() {',
+        '    const href = this.b;',
+        '    return html`<a href=${href}>b</a>`;',
+        '  }',
+        '',
+        '  renderGuarded() {',
+        '    const href = safeHref(this.a);',
+        '    return html`<a href=${href}>a</a>`;',
+        '  }',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      'no guard at all',
+      'no-guard',
+      ['function f(url) {', '  const href = url;', '  return html`<a href=${href}>x</a>`;', '}'].join(
+        '\n',
+      ),
+    ],
+    [
+      // Precision control: reassignment FROM THE GUARD is still a guard. Without
+      // this row the universal arm could be implemented as "at most one
+      // assignment" and every row above would still pass.
+      'guarded twice',
+      'approved',
+      [
+        'function f(a, b, cond) {',
+        '  let href = safeHref(a);',
+        '  if (cond) href = safeHref(b);',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+    [
+      // Precision control: an unrelated PROPERTY write must not read as a defeat,
+      // or the arm would be unusable on any real component.
+      'property write on another object',
+      'approved',
+      [
+        'function f(url, el) {',
+        '  const href = safeHref(url);',
+        '  el.href = url;',
+        '  return html`<a href=${href}>x</a>`;',
+        '}',
+      ].join('\n'),
+    ],
+  ];
+
+  for (const [name, want, src] of cases) {
+    const got = traceFixture(src, 'href');
+    assert(
+      got === want,
+      `multi-statement fixture "${name}": expected ${want}, got ${got}.\n${src}`,
+    );
+  }
+
+  // ANTI-VACUITY ON THIS TABLE. Each verdict must actually occur, or a bug that
+  // collapsed traceGuard to a constant would pass some rows by luck.
+  for (const want of ['approved', 'no-guard', 'defeated'] as const) {
+    assert(
+      cases.some(([, v]) => v === want),
+      `the multi-statement table has no "${want}" row, so that outcome is never proven`,
+    );
+  }
+}
+
+/** Files per directory, relative to `root`, for a list of absolute paths. */
+function tally(root: string, files: readonly string[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const f of files) {
+    const dir = relative(root, dirname(f)) || '.';
+    out.set(dir, (out.get(dir) ?? 0) + 1);
+  }
+  return out;
+}
+
+interface WalkDiff {
+  /** Directories the census found source files in that the walk never reached. */
+  readonly missed: readonly string[];
+  /** Directories the walk produced files in that the census does not know about. */
+  readonly extra: readonly string[];
+  /** Directories where the two disagree on how many files there are. */
+  readonly skewed: readonly string[];
+}
+
+/**
+ * Compares the scanner's walk against the independent census.
+ *
+ * Extracted from the assertions that consume it so it can be driven by
+ * fixtures. Inline, the per-directory arm was VACUOUS: no mutant produced a
+ * count skew without also producing a missing directory, so disabling that arm
+ * survived (measured GREEN as mutant M6cn) -- the arm most of the anti-vacuity
+ * argument rests on was the one nothing exercised.
+ */
+function compareWalk(census: Map<string, number>, reached: Map<string, number>): WalkDiff {
+  return {
+    missed: [...census.keys()].filter((d) => !reached.has(d) && census.get(d)! > 0),
+    extra: [...reached.keys()].filter((d) => !census.has(d)),
+    skewed: [...census.entries()]
+      .filter(([dir, n]) => (reached.get(dir) ?? 0) !== n)
+      .map(([dir, n]) => `${dir}: census ${n}, walk ${reached.get(dir) ?? 0}`),
+  };
 }
 
 function testNoUnapprovedBindings(): void {
@@ -705,33 +1352,56 @@ function testNoUnapprovedBindings(): void {
   // moment findings exceed the allow-list, which is the situation the NEXT
   // assertion exists to fail on.
   //
-  // What actually detects a broken walk is a count of FILES READ, since that is
-  // the thing that silently goes to zero. Measured at this commit: 52 files, of
-  // which 2 are directly under src/ and 15 under src/components/. The floor sits
-  // between "a walk that stopped descending" and "the real tree", with room for
-  // ordinary churn underneath it.
+  // The replacement was `files.length >= 40` plus three named witness files.
+  // That is still a COUNT, and a count cannot constrain identity. Measured:
+  // making sourceFiles() skip store/, gen/ and kanban/ drops 11 of 52 files,
+  // leaves 41, clears the floor of 40, still reaches all three witnesses, and
+  // stays GREEN with a real unguarded `href=${raw}` planted in the skipped
+  // store/. Three witnesses also cover 3 of the 12 directories that hold source
+  // files -- the other 9 could vanish silently.
+  //
+  // So the binding is now on the TREE, computed by an independent traversal
+  // (see directoryCensus): every directory must be reached, and each must
+  // contribute exactly the number of files that are actually on disk. A mutant
+  // that skips a directory now fails by name. A mutant that redistributes files
+  // to hold the total fixed fails too, because the comparison is per directory.
+  const census = directoryCensus(SRC);
+
+  // Backstop, and the only remaining magic number: if BOTH walks were broken in
+  // the same way the comparison below would be vacuously satisfied. This floors
+  // the independent walk's own output. Measured at this commit: 13 directories
+  // (src/ itself plus 12), 52 files.
+  const MIN_DIRS = 10;
   const MIN_FILES = 40;
+  const censusFiles = [...census.values()].reduce((a, b) => a + b, 0);
   assert(
-    files.length >= MIN_FILES,
-    `the scanner walked ${files.length} source files, expected at least ${MIN_FILES}. ` +
-      'Either sourceFiles() is broken -- in which case every assertion below is ' +
-      'vacuous and the tree only looks clean -- or web/src really has shrunk that ' +
-      'far, in which case lower this floor deliberately.',
+    census.size >= MIN_DIRS && censusFiles >= MIN_FILES,
+    `the independent directory census found ${census.size} directories and ${censusFiles} ` +
+      `source files, expected at least ${MIN_DIRS} and ${MIN_FILES}. Both walks would have ` +
+      'to be broken for this to fire, so treat it as "the tree really shrank" only after ' +
+      'checking readdirSync -- otherwise every assertion below is vacuous.',
   );
 
-  // Identity, not just count: the walk must reach the deep directories, not
-  // just the top level. A recursion that stopped descending would still clear
-  // the floor above on a tree this size.
-  for (const witness of [
-    'components/inspector/ft-inspector-meta.ts',
-    'components/dependency/ft-dependency-view.ts',
-    'util/safe-url.ts',
-  ]) {
-    assert(
-      files.some((f) => relative(SRC, f) === witness),
-      `the scanner's walk never reached ${witness}, so it is not covering the tree`,
-    );
-  }
+  // Directories reached, by name. Not a count.
+  const cmp = compareWalk(census, tally(SRC, files));
+  assert(
+    cmp.missed.length === 0,
+    `the scanner's walk never reached ${cmp.missed.length} of the ${census.size} directories ` +
+      `under web/src that contain source files: ${cmp.missed.join(', ')}. Everything in them ` +
+      'is unscanned, and the tree only looks clean.',
+  );
+  assert(
+    cmp.extra.length === 0,
+    `the scanner's walk produced files in ${cmp.extra.join(', ')}, which the independent ` +
+      'census did not find. The two walks disagree about the shape of the tree; fix that ' +
+      'before trusting either.',
+  );
+  assert(
+    cmp.skewed.length === 0,
+    "the scanner's walk and the independent census disagree on how many source files " +
+      `each directory holds:\n  ${cmp.skewed.join('\n  ')}\n` +
+      'A file that one walk sees and the other does not is a file that may be unscanned.',
+  );
 
   const unapproved = findings.filter(
     (f) => !ALLOWED.some((a) => a.file === f.file && a.line === f.line),
@@ -772,40 +1442,152 @@ function testNoUnapprovedBindings(): void {
   // An allow-list entry claiming to go through safeHref must actually route THIS
   // binding through it, not merely import it somewhere in the file.
   for (const a of ALLOWED.filter((x) => x.viaSafeHref)) {
-    const text = readFileSync(join(SRC, a.file), 'utf8');
-    assert(
-      text.includes("from '../../util/safe-url.js'") || text.includes("from '../util/safe-url.js'"),
-      `${a.file} is allow-listed as using safeHref but does not import it`,
-    );
-
-    const lines = text.split('\n');
-    const finding = findings.find((f) => f.file === a.file && f.line === a.line)!;
-    const id = interpolatedIdentifier(a.line);
-    assert(
-      id !== undefined,
-      `${a.file}:${finding.lineNo} is marked viaSafeHref but does not interpolate a bare ` +
-        `identifier, so the guard cannot be traced: ${a.line}`,
-    );
-
-    // Comments are blanked before matching, so a commented-out assignment --
-    // or the worked example in a docblock -- cannot stand in for a real guard.
-    const block = enclosingBlock(lines, finding.lineNo).map((l) => blankNonCode(l));
-    assert(
-      block.some((l) => assignsFromSafeHref(l, id!)),
-      `${a.file}:${finding.lineNo} is allow-listed as "href comes from safeHref()", but ` +
-        `nothing in the enclosing block assigns ${id} from safeHref() AND NOTHING ELSE. ` +
-        'The file importing safeHref is not enough -- a file can guard one binding and ' +
-        'leave the next one bare. Neither is an initialiser that merely starts with a ' +
-        `safeHref call: \`${id} = safeHref(x) || x\` reinstates the unvalidated value and ` +
-        `used to pass here.\n  binding: ${a.line}`,
+    checkViaSafeHref(a, findings.find((f) => f.file === a.file && f.line === a.line)!.lineNo, () =>
+      readFileSync(join(SRC, a.file), 'utf8'),
     );
   }
+}
+
+/**
+ * The per-entry viaSafeHref check, as a function a fixture can drive.
+ *
+ * WHY IT IS A FUNCTION. Inline in the loop above, the two consuming assertions
+ * were UNKILLABLE. Replacing either condition with `true` -- or with a
+ * differently-spelled tautology like `trace.defeats.length >= 0`, which the type
+ * checker has no opinion about -- left the suite green at exactly 358
+ * assertions, because on a clean tree neither assertion ever has anything to
+ * report and no fixture reached them. The fixture table drives traceGuard, which
+ * decides; nothing drove the code that ACTS on the decision. That is the same
+ * shape as the defect this whole round exists to remove: an instrument that
+ * cannot be shown to be plugged in.
+ *
+ * Taking `read` as a parameter rather than calling readFileSync is what makes it
+ * drivable: testViaSafeHrefConsumption below hands it a synthetic file whose
+ * guard is defeated and requires this to throw.
+ */
+function checkViaSafeHref(a: Allowed, lineNo: number, read: () => string): void {
+  const text = read();
+  assert(
+    text.includes("from '../../util/safe-url.js'") || text.includes("from '../util/safe-url.js'"),
+    `${a.file} is allow-listed as using safeHref but does not import it`,
+  );
+
+  const id = interpolatedIdentifier(a.line);
+  assert(
+    id !== undefined,
+    `${a.file}:${lineNo} is marked viaSafeHref but does not interpolate a bare ` +
+      `identifier, so the guard cannot be traced: ${a.line}`,
+  );
+
+  // Both arms live in traceGuard, which the fixture table in
+  // testMultiStatementGuards drives too -- so a future edit that weakens either
+  // arm turns those fixtures red as well as this scan.
+  const trace = traceGuard(text, id!, lineNo, a.file);
+
+  assert(
+    trace.verdict !== 'no-guard',
+    `${a.file}:${lineNo} is allow-listed as "href comes from safeHref()", but ` +
+      `nothing in the enclosing block assigns ${id} from safeHref() AND NOTHING ELSE. ` +
+      'The file importing safeHref is not enough -- a file can guard one binding and ' +
+      'leave the next one bare. Neither is an initialiser that merely starts with a ' +
+      `safeHref call: \`${id} = safeHref(x) || x\` reinstates the unvalidated value and ` +
+      `used to pass here.\n  binding: ${a.line}\n  block:\n${trace.block.join('\n')}`,
+  );
+
+  assert(
+    trace.verdict !== 'defeated',
+    `${a.file}:${lineNo} is allow-listed as "href comes from safeHref()", and a ` +
+      `guarded assignment does exist -- but ${id} is also assigned from something else ` +
+      'elsewhere in the file, which throws the guard away:\n' +
+      trace.defeats.map((d) => `  ${a.file}:${d.lineNo} ${d.text}`).join('\n') +
+      `\nEvery assignment to ${id} in this file must be \`${id} = safeHref(...)\` and ` +
+      'nothing more. Rename the unrelated local if this is a false positive.',
+  );
+}
+
+/**
+ * Drives checkViaSafeHref with inputs that must be REJECTED, so that the
+ * assertions inside it are exercised by something other than a clean tree.
+ *
+ * Each case is the exact source shape of a mutant that previously survived, or
+ * of a defect the round was convened to close. `deliverable 0` is the file the
+ * fix leg planted at 6805daa and measured green.
+ */
+function testViaSafeHrefConsumption(): void {
+  const entry = (line: string): Allowed => ({
+    file: 'fixture.ts',
+    line,
+    reason: 'fixture',
+    viaSafeHref: true,
+  });
+  const BINDING = 'return html`<a href=${href}>probe</a>`;';
+  const IMPORT = "import { safeHref } from '../util/safe-url.js';";
+
+  const cases: ReadonlyArray<readonly [string, Allowed, string, string]> = [
+    [
+      'deliverable 0: guard, then reassignment from the raw value',
+      entry(BINDING),
+      [IMPORT, 'export function f(url) {', '  let href = safeHref(url);', '  href = url;', `  ${BINDING}`, '}'].join('\n'),
+      'throws the guard away',
+    ],
+    [
+      'no guard at all',
+      entry(BINDING),
+      [IMPORT, 'export function f(url) {', '  const href = url;', `  ${BINDING}`, '}'].join('\n'),
+      'nothing in the enclosing block assigns',
+    ],
+    [
+      'allow-listed as viaSafeHref but the file does not import it',
+      entry(BINDING),
+      ['export function f(url) {', '  const href = safeHref(url);', `  ${BINDING}`, '}'].join('\n'),
+      'does not import it',
+    ],
+    [
+      'binding does not interpolate a bare identifier, so nothing can be traced',
+      entry('return html`<a href=${safeHref(this.url)}>probe</a>`;'),
+      [IMPORT, 'export function f() {', '  return html`<a href=${safeHref(this.url)}>probe</a>`;', '}'].join('\n'),
+      'does not interpolate a bare',
+    ],
+  ];
+
+  for (const [name, a, src, expect] of cases) {
+    let message: string | undefined;
+    const lineNo = src.split('\n').findIndex((l) => l.trim() === a.line.trim()) + 1;
+    try {
+      checkViaSafeHref(a, lineNo || src.split('\n').length, () => src);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    assert(
+      message !== undefined,
+      `checkViaSafeHref ACCEPTED a binding it must reject -- "${name}". The tree scan ` +
+        `would approve this file:\n${src}`,
+    );
+    assert(
+      message!.includes(expect),
+      `checkViaSafeHref rejected "${name}" for the wrong reason: expected a message ` +
+        `containing ${JSON.stringify(expect)}, got:\n${message}`,
+    );
+  }
+
+  // Positive control. Without it, `checkViaSafeHref` could be a function that
+  // always throws and every assertion above would still pass -- while the tree
+  // scan failed, admittedly, but the fixtures would not be the reason.
+  const good = [
+    IMPORT,
+    'export function f(url) {',
+    '  const href = safeHref(url);',
+    `  ${BINDING}`,
+    '}',
+  ].join('\n');
+  checkViaSafeHref(entry(BINDING), 4, () => good);
 }
 
 function run(): void {
   testPositiveFixtures();
   testGuardTracing();
   testNoUnapprovedBindings();
+  testViaSafeHrefConsumption();
   console.log('url-binding-scan: ok');
 }
 

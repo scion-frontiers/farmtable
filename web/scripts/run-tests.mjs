@@ -261,4 +261,62 @@ if (totalAssertions === 0) {
   process.exit(1);
 }
 
+// ── the absolute pin ─────────────────────────────────────────────────────────
+//
+// `> 0` is a floor, and a floor cannot see a DELETION. Every gate above this
+// line is relative: per-file receipts catch a file that checked nothing, and the
+// suite floor catches a harness that was stubbed out, but removing one assertion
+// from a file that still evaluates two hundred is invisible to both.
+//
+// That is not hypothetical. Mutation testing of the URL-binding scanner found
+// three assertions that could be replaced with `true` -- the arm-2 guard-defeat
+// check, arm 1's block scope, and the directory-reached check -- with the suite
+// staying green and exit 0, because each of them is silent on a clean tree by
+// construction. An assertion that only speaks when something is wrong cannot be
+// proven present by a suite run over code that is right. Its COUNT can.
+//
+// WHAT THIS KILLS AND WHAT IT DOES NOT, stated plainly, because a pin whose
+// reach is overstated is worse than no pin:
+//
+//   KILLS   deleting an assertion; deleting a fixture row; deleting a whole
+//           test function; short-circuiting a loop that asserts per item.
+//
+//   MISSES  every count-neutral corruption -- and those are the majority of
+//           interesting mutants. Weakening a predicate in place
+//           (`x === 0` -> `x >= 0`), inverting a comparison, widening a regex,
+//           replacing an assertion's condition with `true`: all of these
+//           execute exactly one assertion, as before, and this check sees
+//           nothing. Measured on this suite: of the five mutants that survived
+//           the suite's own fixtures, this pin kills the two outright deletions and is
+//           blind to the two that hold the count fixed.
+//
+// So it is a coarse net under a fine one, not a replacement for it. Add
+// fixtures; this only stops them being quietly removed again.
+//
+// This is the OUTERMOST level. There is no gate above it that checks this
+// number is maintained, and there cannot be one inside the same suite -- the
+// regress has to stop somewhere, and it stops here because this is the last
+// level that exists, not because the level is complete. Above it there is only
+// review of the diff to this file.
+//
+// UPDATING IT IS EXPECTED. Adding tests changes this number; that is the point.
+// Raise it in the same commit that adds them and the diff shows what you added.
+// If you are LOWERING it, say in the commit message which assertions went away
+// and why.
+const EXPECTED_ASSERTIONS = 380;
+if (totalAssertions !== EXPECTED_ASSERTIONS) {
+  const delta = totalAssertions - EXPECTED_ASSERTIONS;
+  console.error(
+    `FAIL: the suite evaluated ${totalAssertions} assertions, expected exactly ` +
+      `${EXPECTED_ASSERTIONS} (${delta > 0 ? '+' : ''}${delta}).\n` +
+      (delta < 0
+        ? '  Assertions have DISAPPEARED. Something that used to be checked is not being\n' +
+          '  checked any more. Find out what before touching this number.\n'
+        : '  You added assertions. Update EXPECTED_ASSERTIONS in web/scripts/run-tests.mjs\n' +
+          '  in the same commit, so the diff records the change.\n') +
+      '  Per-file counts are in the "#assertions" receipts above.',
+  );
+  process.exit(1);
+}
+
 console.log(`PASS: ${sources.length} test file(s), ${totalAssertions} assertions.`);
