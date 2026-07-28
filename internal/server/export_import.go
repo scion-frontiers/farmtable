@@ -136,7 +136,7 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 			Name:        coll.Name,
 			Description: coll.Description,
 			Platform:    string(coll.Platform),
-			RemoteData:  coll.RemoteData,
+			RemoteData:  sanitizeRemoteData(coll.RemoteData),
 			CreatedAt:   coll.CreatedAt,
 			UpdatedAt:   coll.UpdatedAt,
 		},
@@ -329,7 +329,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 			Name:        doc.Collection.Name,
 			Description: doc.Collection.Description,
 			Platform:    collection.PlatformFarmtable,
-			RemoteData:  doc.Collection.RemoteData,
+			RemoteData:  sanitizeRemoteData(doc.Collection.RemoteData),
 			CreatedAt:   doc.Collection.CreatedAt,
 			UpdatedAt:   doc.Collection.UpdatedAt,
 		},
@@ -435,7 +435,7 @@ func taskExport(t *ent.Task) exportTask {
 		Repo:               t.Repo,
 		Branch:             t.Branch,
 		PullRequests:       t.PullRequests,
-		RemoteData:         t.RemoteData,
+		RemoteData:         sanitizeRemoteData(t.RemoteData),
 	}
 	if t.Priority != nil {
 		p := string(*t.Priority)
@@ -740,7 +740,7 @@ func importedTask(t exportTask, taskMapping map[string]uuid.UUID, userMapping ma
 		Repo:               t.Repo,
 		Branch:             t.Branch,
 		PullRequests:       t.PullRequests,
-		RemoteData:         t.RemoteData,
+		RemoteData:         sanitizeRemoteData(t.RemoteData),
 		Version:            "1",
 	}
 	if holdReason != nil {
