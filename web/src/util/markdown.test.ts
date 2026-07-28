@@ -641,15 +641,30 @@ function inputContract(): void {
     //                                                          function really has
     //                                                          two parameters)
     //   (md, opts = {})     -> 1  and  (md, ...r: T[]) -> 1   (invisible here)
-    // Measured over all eleven ARITY_EVASIONS compiled and read back, three
-    // (C7-j, C7-k, C7-d) drive it off 1.
+    // Re-measured in round 9 by compiling all SEVENTEEN ARITY_EVASIONS entries
+    // with `tsc` and reading `.length` back off the emitted functions: seventeen
+    // parsed, seventeen compiled, and exactly three drive it off 1 — C7-d to 2,
+    // C7-j and C7-k to 0. The four entries added in round 9 all leave it at 1,
+    // because their second parameter is defaulted. (The number in this sentence
+    // said "eleven" while the table held thirteen; it is re-counted here rather
+    // than incremented, because inheriting a number instead of recomputing it is
+    // how every false sentence in this file got written.)
     //
     // That does not make this assertion the reporter for those three: the
     // declaration scan above runs first and throws. What it buys, measured by
-    // ablation rather than assumed — with `renderMarkdownArityViolation` blinded
-    // and both arity tables emptied, `opts?: T` is caught here and nowhere else,
-    // while `opts = {}` under the same ablation stays green. So it is a backstop
-    // for exactly the UP direction, plus source/artifact divergence.
+    // ablation rather than assumed — disarm the `throw` above and mutate
+    // markdown.ts directly, with `tsc` clean in every case:
+    //
+    //   (md, opts?: { inline?: boolean })  -> RED here, .length 2   (UP)
+    //   (md: string = '')                  -> RED here, .length 0   (DOWN)
+    //   (md, opts: { inline?: boolean } = {}) -> GREEN, .length 1   (invisible)
+    //
+    // So it is a backstop for BOTH directions, plus source/artifact divergence.
+    // The round-8 wording said "exactly the UP direction", which UNDER-claims:
+    // it was derived from an ablation that also emptied the arity tables, and
+    // that ablation is now self-defeating because the table-size pin fires on an
+    // emptied table. An under-claim is as much an invitation to delete an
+    // assertion as an over-claim is a reason to trust one.
     assertEqual(
       String(renderMarkdown.length),
       '1',
@@ -3605,9 +3620,9 @@ function sinkBinding(): void {
 
   // THE LEVEL-OUT CONTROL, and the last rule in this file to get one.
   //
-  // All eleven fixture tables are protected from silent shrinkage by exactly one
-  // function, `fixtureTableViolation`, and until this check it was the only rule
-  // here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
+  // All SEVENTEEN fixture tables are protected from silent shrinkage by exactly
+  // one function, `fixtureTableViolation`, and until this check it was the only
+  // rule here with NO POSITIVE CONTROL. Every other predicate reddens when neutered,
   // because something asserts it directly at a wrong input; this one was never
   // called with a wrong input, because its only inputs were the real tables,
   // which by construction always carry the pinned value. That is the identical
@@ -3615,11 +3630,18 @@ function sinkBinding(): void {
   // blind spot and the two count pins — one level further out again, and note
   // the docblock above the function opens by naming that very shape.
   //
+  // The count in the two sentences here said "eleven" while the tree held
+  // thirteen; both are re-counted, not incremented. Seventeen is
+  // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
+  // check's own body, measured at round-9 head. Round 9 added four: the three
+  // ownership arrays hoisted out of inline literals (T-4) and
+  // SINK_CALL_LEGITIMATE.
+  //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
-  // then emptied on top of it — all eleven arity bypasses unprotected, nothing
-  // fired. This is a COVERAGE HOLE, not a mis-attributed assertion: the table
-  // size pins are correctly worded and do fire on their own.
+  // then emptied on top of it — every arity bypass in the table unprotected,
+  // nothing fired. This is a COVERAGE HOLE, not a mis-attributed assertion: the
+  // table size pins are correctly worded and do fire on their own.
   //
   // Same treatment as `fixture: the tree-wide count pins fire on a changed
   // count`, and the residue is the same: this catches a NEUTERED predicate, not

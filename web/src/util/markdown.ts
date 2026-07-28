@@ -173,9 +173,11 @@ const purifier = createDOMPurify(window);
 //       (md, opts = {})              -> 1   the round-6 bypass; still invisible
 //       (md, ...rest: unknown[])     -> 1   likewise
 //
-//     Measured on this tree, all eleven ARITY_EVASIONS compiled and read back:
-//     three of them (C7-j, C7-k, C7-d) drive `.length` off 1. So the assertion is
-//     a falsifier for three of the measured spellings, not zero.
+//     Re-measured in round 9, all SEVENTEEN ARITY_EVASIONS compiled and read
+//     back: seventeen parsed, seventeen compiled, and three of them (C7-j, C7-k,
+//     C7-d) drive `.length` off 1. So the assertion is a falsifier for three of
+//     the measured spellings, not zero. This sentence said "eleven" while the
+//     table held thirteen; the count is recomputed here, not incremented.
 //
 //     WHAT IT ACTUALLY BUYS, stated so the next reader does not delete it. In the
 //     check as written the declaration scan runs FIRST and throws, so for those
@@ -183,10 +185,21 @@ const purifier = createDOMPurify(window);
 //     only when the scan passed, and it covers two things: SOURCE/ARTIFACT
 //     DIVERGENCE — a stale build, a bundler transform, a re-export from another
 //     module — and, measured by ablation rather than assumed, a BACKSTOP if the
-//     scan is ever weakened. With the declaration scan blinded and both arity
-//     tables emptied, `opts?: T` is caught by `.length === 1` and by nothing
-//     else. The harm the old sentence did is that it told a maintainer the
-//     assertion had no unique coverage, which is an invitation to delete it.
+//     scan is ever weakened. The harm the old sentence did is that it told a
+//     maintainer the assertion had no unique coverage, which is an invitation to
+//     delete it.
+//
+//     ROUND 9 REDID THAT ABLATION, because the round-8 one is no longer runnable
+//     as written: emptying the arity tables now reddens the table-size pin, so it
+//     would report for the wrong reason. Redone by disarming the declaration
+//     scan's `throw` and mutating this signature directly, `tsc` clean each time:
+//
+//       (md, opts?: { inline?: boolean })     -> RED here, .length 2   (UP)
+//       (md: string = '')                     -> RED here, .length 0   (DOWN)
+//       (md, opts: { inline?: boolean } = {}) -> GREEN,    .length 1   (invisible)
+//
+//     So it backstops BOTH directions. Round 8 said "exactly the UP direction",
+//     which under-claims; an under-claim invites deletion just as much.
 //
 // Non-string input returns '' instead of throwing. This is DEFENCE IN DEPTH FOR
 // A FUTURE THIRD CALLER, not a fix for a live outage — the previous wording here
