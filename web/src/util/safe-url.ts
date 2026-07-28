@@ -2,21 +2,44 @@
  * Scheme allow-list for URLs that came from the server and are about to be
  * rendered into an `href`.
  *
- * This is defence in depth. The write boundary in Go
- * (internal/server/urlvalidate.go) rejects non-http(s) schemes, but rows
- * written before that check existed are still in the database and are returned
- * verbatim, so the render path cannot assume its input is clean.
+ * HOW MUCH WEIGHT THIS CARRIES, per binding. It is not uniformly "defence in
+ * depth", and an earlier version of this comment said it was:
  *
- * The scheme set is deliberately identical to the server's allow-list:
+ *  - PullRequest.url: this is the ONLY control for rows written before
+ *    internal/server/urlvalidate.go existed. New writes are guarded at the
+ *    write boundary (server.go UpdateTask, export_import.go ImportCollection),
+ *    but legacy rows are returned verbatim by convert.go and are not migrated.
+ *    Removing safeHref here re-opens those rows.
+ *  - Task.remote_url: guarded at the write boundary AND re-checked on the way
+ *    out in convert.go::taskToProto, so here it genuinely is a second layer.
+ *    That read-path check exists because the GitHub passthrough store
+ *    synthesises remote_url from the GraphQL response on every read and never
+ *    persists it, so no write-boundary check can reach it.
+ *
+ * Either way: do not remove this on the grounds that "the server validates".
+ *
+ * SCHEME SET vs DECISION SET. The scheme set is deliberately identical to the
+ * server's allow-list in internal/server/urlvalidate.go:
  *
  *  - `mailto:` is NOT included, even though it is harmless to render. The two
  *    fields that reach these bindings are a pull-request URL and an external
  *    source URL; both are http(s) by nature, and the GitHub adapter only ever
  *    writes https. Since the server rejects `mailto:` at ingress, a client that
  *    rendered it would be dead code for a value that can no longer be stored.
- *  - Any divergence between the two lists is a bug in one of them: a scheme the
- *    client allows and the server rejects is unreachable, and a scheme the
- *    server accepts and the client blocks is a broken feature.
+ *
+ * The scheme SETS match. The DECISIONS do not, and a previous version of this
+ * comment claimed they did ("a scheme the client allows and the server rejects
+ * is unreachable"). That is false twice over: the server applies three further
+ * rules this function does not replicate (a control-character pre-check, Go's
+ * stricter url.Parse, and a non-empty Host requirement), and the server is not
+ * the only writer, so "unreachable" does not follow even where it rejects.
+ * Measured: 9 of 42 shared fixtures are decided differently. They are pinned in
+ * testdata/url-scheme-cases.json, which is read by BOTH
+ * testSharedFixturesMatchClientColumn() in safe-url.test.ts and
+ * TestValidateURLFieldMatchesSharedFixtures in
+ * internal/server/urlvalidate_differential_test.go, so neither side can drift
+ * without going red. All 9 are http(s)-resolving, so none is a scheme
+ * escalation; they are broken-link and inconsistency bugs, not XSS.
  */
 export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
 
@@ -83,7 +106,8 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   // That was wrong: the WHATWG parser reads the backslashes as slashes and
   // yields hostname 'evil.com', so that input is ACCEPTED by this function.
   // Go's net/url yields Host == "" for it and the server rejects it -- a real
-  // client/server divergence, pinned in testKnownServerClientDivergences().
+  // client/server divergence, pinned as "backslash host confusion" in
+  // testdata/url-scheme-cases.json.
   if (parsed.hostname === '') return undefined;
 
   return raw;

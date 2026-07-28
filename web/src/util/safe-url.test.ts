@@ -27,6 +27,17 @@ function sourceRoot(): string {
   return join(dir, 'src');
 }
 
+/** Repository root: the directory above web/, identified by go.mod. */
+function repoRoot(): string {
+  let dir = dirname(sourceRoot());
+  while (!existsSync(join(dir, 'go.mod'))) {
+    const parent = dirname(dir);
+    if (parent === dir) throw new Error('could not locate go.mod above ' + sourceRoot());
+    dir = parent;
+  }
+  return dir;
+}
+
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
 }
@@ -169,6 +180,71 @@ function testHostGuardIsAFailClosedBackstop(): void {
     new URL('javascript://').hostname === '',
     'positive control: a non-special scheme should yield hostname === "", which is the ' +
       'condition the guard under test exists to catch',
+  );
+}
+
+interface URLSchemeCase {
+  readonly name: string;
+  readonly input: string;
+  readonly server: 'accept' | 'reject';
+  readonly client: 'accept' | 'reject';
+  readonly note?: string;
+}
+
+/**
+ * The CLIENT half of the server/client differential pin.
+ *
+ * The other half is TestValidateURLFieldMatchesSharedFixtures in
+ * internal/server/urlvalidate_differential_test.go. Both read the same
+ * testdata/url-scheme-cases.json; that one asserts the "server" column against
+ * validateURLField, this one asserts the "client" column against safeHref.
+ *
+ * Why the file is shared rather than each side keeping its own table: two
+ * independent tables can both be green while disagreeing with each other, which
+ * is exactly the state this branch shipped in. safe-url.ts asserted the two
+ * guards agreed and concluded that "a scheme the client allows and the server
+ * rejects is unreachable". The scheme SETS agree. The DECISIONS do not: 9 of
+ * these 42 inputs are decided differently. Now neither side can move without
+ * turning its own half red, and reconciling them on paper turns
+ * TestSharedFixturesRecordRealDivergences red.
+ *
+ * This also subsumes the low-severity gaps in the rejection table: control
+ * characters, case folding, and a bare space are all fixtures here, decided
+ * against a recorded expectation rather than lumped into a single "must be
+ * rejected" loop that cannot say WHY something was rejected.
+ */
+function testSharedFixturesMatchClientColumn(): void {
+  const path = join(repoRoot(), 'testdata', 'url-scheme-cases.json');
+  const doc = JSON.parse(readFileSync(path, 'utf8')) as { cases?: readonly URLSchemeCase[] };
+  const cases = doc.cases ?? [];
+
+  assert(cases.length > 0, `${path} contains no cases; this test would be vacuous`);
+
+  let divergent = 0;
+  for (const c of cases) {
+    assert(
+      c.client === 'accept' || c.client === 'reject',
+      `fixture ${JSON.stringify(c.name)} has an invalid "client" value ${JSON.stringify(c.client)}`,
+    );
+    const got = safeHref(c.input) === undefined ? 'reject' : 'accept';
+    assert(
+      got === c.client,
+      `safeHref(${JSON.stringify(c.input)}) = ${got}, but testdata/url-scheme-cases.json ` +
+        `records ${c.client} for "${c.name}". Either safeHref's policy changed (update the ` +
+        'fixture and say why), or this is a regression.',
+    );
+    if (c.server !== c.client) divergent++;
+  }
+
+  // Anti-vacuity, and the same control the Go half applies from the other side:
+  // if the divergences were quietly edited away, this loop would still pass
+  // while the claim it defends in safe-url.ts became untrue in the other
+  // direction.
+  assert(
+    divergent > 0,
+    `${path} records no server/client divergences. safe-url.ts's comment says the two guards ` +
+      'disagree and points here for the evidence; if that is no longer true, update the comment ' +
+      'deliberately rather than letting this test pass over an empty set.',
   );
 }
 
@@ -318,6 +394,7 @@ async function run(): Promise<void> {
   testRejectsUnsafeSchemes();
   testAcceptsHTTPAndHTTPS();
   testHostGuardIsAFailClosedBackstop();
+  testSharedFixturesMatchClientColumn();
   await testPayloadNeverReachesHrefAttribute();
   testExternalAnchorsKeepTargetBlank();
   console.log('safe-url: ok');
