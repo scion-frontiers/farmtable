@@ -93,6 +93,42 @@ func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLa
 	}
 
 	// ── P2: minimality — nothing returned may be a no-op against the snapshot ──
+	bad := p2Violations(snapshot, addLabels, removeLabels, gotAdd, gotRemove)
+	if len(bad) > 0 {
+		p2Fail = fmt.Sprintf(
+			"P2 VIOLATED (a returned entry is a no-op against the snapshot, so it was never priced)\n"+
+				"  snapshot        %v\n"+
+				"  requested  add  %v  remove %v\n"+
+				"  narrowed   add  %v  remove %v\n"+
+				"  %s",
+			snapshot, addLabels, removeLabels, gotAdd, gotRemove, strings.Join(bad, "\n  "))
+	}
+	return p1Fail, p2Fail
+}
+
+// p2Violations IS the definition of P2. It is not a description of P2 and there
+// is no second copy of it anywhere in the repository.
+//
+// (#194 round 9, MUST 2.) The capability probe below used to hand-reimplement
+// this predicate and then check the copy against itself, which made its promised
+// contrapositive — "if this test fails, P2 has stopped discriminating and the
+// A-4 class is unpinned again" — false in both directions. Measured at round 8:
+// disable P2 in restrictProperties and the suite stays GREEN with the probe
+// silent; delete either arm of P2's definition, or gut P2 altogether, and
+// `go test ./...` is still exit 0. P2 could have been deleted outright and
+// nothing in the repository would have noticed.
+//
+// That is the same mistake this file argues against 300 lines above, committed
+// by the control that exists to enforce the argument. WHEN A CONTROL'S CONTRACT
+// IS "MIRRORS F", THE ORACLE MUST BE F AND NEVER A REIMPLEMENTATION OF F. So the
+// predicate lives here once: restrictProperties calls it with the production
+// restrictor's output, and the probe calls it with the output of a deliberately
+// broken restrictor. One definition, two callers, no drift available.
+//
+// It returns a slice rather than a bool because the probe asserts WHICH arm
+// fired. A bare "some violation occurred" cannot pin the arms individually —
+// see the probe for the measurement that forced that.
+func p2Violations(snapshot, addLabels, removeLabels, gotAdd, gotRemove []string) []string {
 	present := map[string]bool{}
 	for _, l := range snapshot {
 		if k := labelMatchKey(l); k != "" {
@@ -129,16 +165,7 @@ func restrictProperties(s *GitHubPassThroughStore, snapshot, addLabels, removeLa
 				"nothing for it, and sending it destroys a label the gate never saw (this is A-4)", r))
 		}
 	}
-	if len(bad) > 0 {
-		p2Fail = fmt.Sprintf(
-			"P2 VIOLATED (a returned entry is a no-op against the snapshot, so it was never priced)\n"+
-				"  snapshot        %v\n"+
-				"  requested  add  %v  remove %v\n"+
-				"  narrowed   add  %v  remove %v\n"+
-				"  %s",
-			snapshot, addLabels, removeLabels, gotAdd, gotRemove, strings.Join(bad, "\n  "))
-	}
-	return p1Fail, p2Fail
+	return bad
 }
 
 func sameLabelSet(a, b []string) bool {
@@ -385,71 +412,209 @@ func subsetOf(vocab []string, mask int) []string {
 // TestRestrictLabelWriteToSnapshot_PropertiesRejectTheIdentityRestrictor is the
 // capability probe for P2, and it is the reason P2 is in the tree at all.
 //
-// "Restrict = identity" is not a hypothetical mutant: it is literally the
-// pre-A-4 production code, in which both lists were forwarded verbatim. P1
-// accepts it on every input — substituting identity makes both sides of P1 the
-// same expression — so a suite carrying P1 alone would have gone green on the
-// exact defect #194 exists to close.
+// P2 exists to catch UNDER-narrowing, and nothing that runs against the SHIPPED
+// restrictor can tell whether it still can: the shipped restrictor is correct,
+// so P2 is silent on every input, and a P2 that had been gutted would be equally
+// silent. The only way to measure a control's capability is to feed it something
+// broken and require it to object. That is what this does.
 //
-// If this test ever fails, P2 has stopped discriminating and the A-4 class is
-// unpinned again.
+// WHY IT IS SHAPED AS A TABLE OF BROKEN RESTRICTORS RATHER THAN JUST IDENTITY
+// (#194 round 9, MUST 2).
+//
+// The round-8 version drove one broken restrictor — identity, which is literally
+// the pre-A-4 production code — and, worse, checked it against a hand-rolled
+// copy of P2 rather than against P2. The copy is gone; every row below calls
+// p2Violations, the single definition.
+//
+// Identity alone is still not enough, and this was MEASURED rather than reasoned
+// about. After the copy was replaced by a real call to p2Violations, deleting
+// P2's C-1 arm outright left `go test ./internal/platform/github/` at exit 0.
+// The reason is that identity's output for the C-1 triple trips TWO arms at
+// once: the add is cancelled by the remove list (C-1) and the remove names a
+// label the snapshot lacks (A-4), so the A-4 arm alone keeps the row failing and
+// the C-1 arm is unpinned. Under a probe that only asks "did SOMETHING object?",
+// overlapping arms mask each other.
+//
+// So each row here supplies an output that trips EXACTLY ONE arm, and asserts on
+// the text of the violation rather than on its existence. Each row is a
+// restrictor somebody could plausibly ship, and three of them are restrictors
+// somebody actually did:
+//
+//	add_cancelled_by_the_remove_list  the round-7 restrictor's real output for
+//	                                  the C-1 Critical: add kept, remove dropped
+//	remove_absent_from_the_snapshot   identity's output, i.e. the pre-A-4 code
+//	add_already_on_the_snapshot       identity's output, A-4's mirror image
+//
+// The two negative rows at the end are not decoration: without them a
+// p2Violations that objected to everything would satisfy every positive row.
 func TestRestrictLabelWriteToSnapshot_PropertiesRejectTheIdentityRestrictor(t *testing.T) {
+	const completed = "ft:stage/completed"
+	const wontFix = "ft:stage/wont_fix"
+
 	rows := []struct {
-		name     string
-		snapshot []string
-		add      []string
-		remove   []string
+		name string
+		arm  string // the one arm of P2 this row exists to pin
+		why  string
+
+		snapshot, add, remove []string
+
+		// The broken restrictor's output. Named gotAdd/gotRemove to match
+		// p2Violations' parameters exactly: these stand where the production
+		// restrictor's return values stand in restrictProperties.
+		gotAdd, gotRemove []string
+
+		// wantViolation is a substring the reported violation must contain, or
+		// "" when P2 must report nothing at all.
+		wantViolation string
 	}{
-		{"A4_remove_absent", []string{"bug"}, nil, []string{"ft:stage/wont_fix"}},
-		{"A4_re_add_present", []string{"ft:stage/wont_fix"}, []string{"ft:stage/wont_fix"}, nil},
-		{"C1_cross_list", []string{"ft:stage/accepted"}, []string{"ft:stage/completed"}, []string{"ft:stage/completed"}},
+		{
+			name: "add_cancelled_by_the_remove_list",
+			arm:  "gotAdd / removeKeys (C-1)",
+			why: "THE CRITICAL, as the round-7 restrictor really returned it: two independent " +
+				"per-list filters keep the add (absent from the snapshot) and drop the remove " +
+				"(also absent). gotRemove is empty here precisely so the A-4 arm cannot fire " +
+				"and mask this one.",
+			snapshot:      []string{"ft:stage/accepted"},
+			add:           []string{completed},
+			remove:        []string{completed},
+			gotAdd:        []string{completed},
+			gotRemove:     nil,
+			wantViolation: "is cancelled by the remove list",
+		},
+		{
+			name: "remove_absent_from_the_snapshot",
+			arm:  "gotRemove / !present (A-4)",
+			why: "Identity, i.e. the pre-A-4 production code, on the original A-4 input. This " +
+				"is the row P1 is structurally unable to see: substituting identity makes both " +
+				"sides of P1 the same expression.",
+			snapshot:      []string{"bug"},
+			add:           nil,
+			remove:        []string{wontFix},
+			gotAdd:        nil,
+			gotRemove:     []string{wontFix},
+			wantViolation: "is not on the snapshot",
+		},
+		{
+			name: "add_already_on_the_snapshot",
+			arm:  "gotAdd / present (A-4 mirror)",
+			why: "Identity on A-4's mirror image: re-applying a terminal label another actor " +
+				"removed since the snapshot, at a price of nothing.",
+			snapshot:      []string{wontFix},
+			add:           []string{wontFix},
+			remove:        nil,
+			gotAdd:        []string{wontFix},
+			gotRemove:     nil,
+			wantViolation: "is already on the snapshot",
+		},
+		{
+			name:          "add_names_no_label",
+			arm:           `gotAdd / k == ""`,
+			why:           "An entry that survives to the write and resolves to nothing there.",
+			snapshot:      []string{"bug"},
+			add:           []string{"   "},
+			remove:        nil,
+			gotAdd:        []string{"   "},
+			gotRemove:     nil,
+			wantViolation: "has an empty match key",
+		},
+		{
+			name:          "remove_names_no_label",
+			arm:           `gotRemove / k == ""`,
+			why:           "The same on the remove side.",
+			snapshot:      []string{"bug"},
+			add:           nil,
+			remove:        []string{"\t"},
+			gotAdd:        nil,
+			gotRemove:     []string{"\t"},
+			wantViolation: "has an empty match key",
+		},
+
+		// ── negative controls: P2 must stay silent on correct output ──
+		{
+			name:          "correct_priced_removal_is_not_a_violation",
+			arm:           "none",
+			why:           "MUST BE SILENT. A p2Violations that objects to everything passes every row above.",
+			snapshot:      []string{wontFix, "bug"},
+			add:           nil,
+			remove:        []string{wontFix},
+			gotAdd:        nil,
+			gotRemove:     []string{wontFix},
+			wantViolation: "",
+		},
+		{
+			name:          "correct_priced_addition_is_not_a_violation",
+			arm:           "none",
+			why:           "MUST BE SILENT, on the other side.",
+			snapshot:      []string{"bug"},
+			add:           []string{completed},
+			remove:        nil,
+			gotAdd:        []string{completed},
+			gotRemove:     nil,
+			wantViolation: "",
+		},
 	}
 
 	for _, row := range rows {
 		t.Run(row.name, func(t *testing.T) {
-			// identity: exactly what the code did before A-4.
-			gotAdd, gotRemove := row.add, row.remove
+			// THE ORACLE IS P2 ITSELF. Not a copy of it — see p2Violations.
+			bad := p2Violations(row.snapshot, row.add, row.remove, row.gotAdd, row.gotRemove)
+			joined := strings.Join(bad, "\n  ")
 
-			present := map[string]bool{}
-			for _, l := range row.snapshot {
-				if k := labelMatchKey(l); k != "" {
-					present[k] = true
+			if row.wantViolation == "" {
+				if len(bad) > 0 {
+					t.Fatalf("P2 OBJECTED to a correct restrictor output on %s "+
+						"(snapshot=%v add=%v remove=%v -> gotAdd=%v gotRemove=%v):\n  %s\n\n"+
+						"why this row exists: %s",
+						row.name, row.snapshot, row.add, row.remove, row.gotAdd, row.gotRemove,
+						joined, row.why)
 				}
-			}
-			removeKeys := map[string]bool{}
-			for _, l := range row.remove {
-				if k := labelMatchKey(l); k != "" {
-					removeKeys[k] = true
-				}
-			}
-			p2Holds := true
-			for _, a := range gotAdd {
-				if k := labelMatchKey(a); k == "" || present[k] || removeKeys[k] {
-					p2Holds = false
-				}
-			}
-			for _, r := range gotRemove {
-				if k := labelMatchKey(r); k == "" || !present[k] {
-					p2Holds = false
-				}
-			}
-			if p2Holds {
-				t.Fatalf("P2 ACCEPTED the identity restrictor on %s (snapshot=%v add=%v remove=%v). "+
-					"Identity IS the pre-A-4 code. P2 has stopped being able to see under-narrowing, "+
-					"which means P1 is now the only pin and P1 cannot see the A-4 class at all",
-					row.name, row.snapshot, row.add, row.remove)
+				return
 			}
 
-			// And the other half of the argument: P1 accepts identity here, so
-			// P1 alone would have shipped this. Asserted rather than asserted
-			// in prose, because the temptation to drop P2 as "redundant" is
-			// exactly what this pair exists to resist.
-			want := applyLabelDelta(row.snapshot, row.add, row.remove)
-			got := applyLabelDelta(row.snapshot, gotAdd, gotRemove)
-			if !sameLabelSet(want, got) {
-				t.Logf("note: P1 also rejects identity on %s; the pairing argument is "+
-					"weaker than documented for this row, but P2 still fires", row.name)
+			if len(bad) == 0 {
+				t.Fatalf("P2 ACCEPTED a broken restrictor on %s "+
+					"(snapshot=%v add=%v remove=%v -> gotAdd=%v gotRemove=%v). "+
+					"The arm this row pins is %s, and it has stopped discriminating: P2 can no "+
+					"longer see this class of under-narrowing, which leaves P1 as the only pin "+
+					"and P1 cannot see it at all.\n\nwhy this row exists: %s",
+					row.name, row.snapshot, row.add, row.remove, row.gotAdd, row.gotRemove,
+					row.arm, row.why)
+			}
+			if !strings.Contains(joined, row.wantViolation) {
+				t.Fatalf("P2 objected to %s, but not for the reason this row pins. "+
+					"Want a violation containing %q (arm: %s), got:\n  %s\n\n"+
+					"A row whose arm is masked by a DIFFERENT arm firing is how the C-1 arm "+
+					"went unpinned; that is what this assertion exists to stop.\n\n"+
+					"why this row exists: %s",
+					row.name, row.wantViolation, row.arm, joined, row.why)
 			}
 		})
 	}
+
+	// And the other half of the pairing argument, kept from the round-8 probe:
+	// P1 ACCEPTS identity on the A-4 inputs, so a suite carrying P1 alone would
+	// have shipped the exact defect #194 exists to close. Asserted rather than
+	// left in prose, because the temptation to drop P2 as "redundant" is exactly
+	// what this pair exists to resist.
+	t.Run("P1_alone_would_have_accepted_the_pre_A4_code", func(t *testing.T) {
+		identityRows := []struct {
+			name                  string
+			snapshot, add, remove []string
+		}{
+			{"A4_remove_absent", []string{"bug"}, nil, []string{wontFix}},
+			{"A4_re_add_present", []string{wontFix}, []string{wontFix}, nil},
+		}
+		for _, row := range identityRows {
+			// identity: exactly what the code did before A-4.
+			gotAdd, gotRemove := row.add, row.remove
+			want := applyLabelDelta(row.snapshot, row.add, row.remove)
+			got := applyLabelDelta(row.snapshot, gotAdd, gotRemove)
+			if !sameLabelSet(want, got) {
+				t.Errorf("P1 rejects identity on %s (want %v, got %v). That is not a failure of "+
+					"the production code, but the documented argument for keeping P2 rests on "+
+					"P1 being blind here, and it is no longer blind — re-derive the argument "+
+					"before deleting anything", row.name, want, got)
+			}
+		}
+	})
 }
