@@ -250,13 +250,52 @@ func (f *fakeIssueRepo) handler() http.HandlerFunc {
 }
 
 func (f *fakeIssueRepo) store() *GitHubPassThroughStore {
+	return f.storeWithLabelConfig(DefaultConfig().GitHub.Labels)
+}
+
+// storeWithLabelConfig is store() with the mapper configuration as an INPUT
+// rather than a constant.
+//
+// Until #194 round 6 every fixture in the repository inherited
+// DefaultConfig().GitHub.Labels, so `grep -rn "Stages:" --include='*_test.go'
+// internal/` returned zero and no test could construct a deployment with a
+// configured terminal alias — the exact "fixture cannot express the input"
+// shape that makes a green suite worthless (test review T-1, round-4 F-3).
+// B6 made that configuration decide authorization, so it has to be a fixture
+// input.
+//
+// Pair this with registerLabel for any label the config makes meaningful:
+// labelNamesToIDs silently drops a label with no node ID, which is how an
+// earlier custom-prefix probe measured nothing while appearing to pass.
+func (f *fakeIssueRepo) storeWithLabelConfig(cfg LabelConfig) *GitHubPassThroughStore {
 	return &GitHubPassThroughStore{
 		gql:          testGraphQLClient(f.t, f.handler()),
-		mapper:       NewLabelMapper(DefaultConfig().GitHub.Labels),
+		mapper:       NewLabelMapper(cfg),
 		owner:        "acme",
 		repo:         "repo",
 		collectionID: uuid.New(),
 	}
+}
+
+// registerLabel makes a label writable by the fake repository, mirroring a
+// label that exists on the real repo. Without this, labelNamesToIDs drops the
+// name and the mutation is a silent no-op.
+func (f *fakeIssueRepo) registerLabel(name string) {
+	f.t.Helper()
+	if _, ok := f.labelIDs[name]; ok {
+		return
+	}
+	f.labelIDs[name] = "L_" + strings.ToUpper(strings.NewReplacer(":", "_", "/", "_", " ", "_").Replace(name))
+}
+
+// labelConfigWithStages builds a LabelConfig that differs from the default
+// ONLY in the fields given, so a test that varies Stages or PushPrefix varies
+// exactly that and inherits nothing silently.
+func labelConfigWithStages(pushPrefix string, stages map[string]string) LabelConfig {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.PushPrefix = pushPrefix
+	cfg.Stages = stages
+	return cfg
 }
 
 // TestPassThroughCloseTask_ClaimedThenClosedIsUnavailable is the reported

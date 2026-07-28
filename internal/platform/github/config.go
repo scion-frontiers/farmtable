@@ -3,6 +3,7 @@ package github
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -66,7 +67,36 @@ func LoadConfig(path string) (*GitHubConfig, error) {
 		return nil, fmt.Errorf("parsing config %s: %w", path, err)
 	}
 
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config %s: %w", path, err)
+	}
+
 	return cfg, nil
+}
+
+// Validate rejects configurations that would silently disarm a control.
+//
+// Since #194 B6, push_prefix is a security parameter: a label may feed an
+// authorization or terminal-stage determination only if it carries this
+// prefix. resolvePushPrefix already falls back to the default rather than
+// using an unusable prefix, so a whitespace-only value can no longer disarm
+// anything — but silently substituting a value the operator did not write is
+// still the wrong answer for a security parameter. Failing loud at startup
+// beats falling back quietly, which beats the round-5 behaviour of silently
+// disabling B1, B5 and B6 together (audit A-2).
+//
+// An EMPTY push_prefix is explicitly NOT an error: it is the documented
+// spelling of "use the default", and DefaultConfig itself relies on the field
+// being unset in a config file that omits it.
+func (c *GitHubConfig) Validate() error {
+	if raw := c.GitHub.Labels.PushPrefix; raw != "" && strings.TrimSpace(raw) == "" {
+		return fmt.Errorf(
+			"github.labels.push_prefix is %q: a whitespace-only prefix can never match a label, "+
+				"because label matching trims whitespace before comparing. "+
+				"Use a non-blank prefix such as %q, or omit the field to use the default",
+			raw, defaultPushPrefix)
+	}
+	return nil
 }
 
 // DefaultConfig returns a GitHubConfig with sensible defaults:

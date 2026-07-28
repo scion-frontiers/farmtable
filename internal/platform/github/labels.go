@@ -122,10 +122,10 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 		labelToType:     make(map[string]string),
 	}
 
-	prefix := cfg.PushPrefix
-	if prefix == "" {
-		prefix = "ft:"
-	}
+	// One resolution, shared with the reader (matchPrefix). See
+	// resolvePushPrefix for why the writer and the reader must not each carry
+	// their own defaulting rule.
+	prefix := m.pushPrefix()
 
 	// --- Stage mappings ---
 
@@ -259,11 +259,10 @@ func (m *LabelMapper) StageToLabel(s task.Stage) string {
 	if label, ok := m.stageToLabel[s]; ok {
 		return label
 	}
-	prefix := m.config.PushPrefix
-	if prefix == "" {
-		prefix = "ft:"
-	}
-	return prefix + "stage/" + s.String()
+	// Same resolution as NewLabelMapper's table build and as the reader's
+	// matchPrefix: this fallback fires for a stage absent from stageToLabel,
+	// and it must spell the prefix the readers will require of it.
+	return m.pushPrefix() + "stage/" + s.String()
 }
 
 // PriorityToLabel returns the GitHub label name for a given priority.

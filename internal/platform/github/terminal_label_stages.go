@@ -51,7 +51,66 @@ func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
 	return stage, ok
 }
 
-// matchPrefix is the configured push prefix, lowercased, defaulting to "ft:".
+// defaultPushPrefix is THE definition of the push-prefix default. Every reader
+// and every writer resolves through resolvePushPrefix below; this constant is
+// spelled once so that the security parameter has one definition rather than
+// three (#194 round 6, review F5).
+//
+// Before round 6 the literal "ft:" appeared in three places —
+// matchPrefix (the reader), NewLabelMapper and StageToLabel (the writers) —
+// each with its own defaulting rule. Drift between them fails closed, which is
+// why review F5 rated it Low, but A-2 below is what that duplication actually
+// cost: it made the reader and the writer disagree about which prefix the
+// deployment uses, and a disagreement there disarms every control built on the
+// prefix.
+const defaultPushPrefix = "ft:"
+
+// resolvePushPrefix turns a configured push_prefix into the prefix actually
+// used, defaulting on blank.
+//
+// "Blank" is strings.TrimSpace-empty, not ""-empty, and the choice of
+// TrimSpace is forced rather than stylistic: TrimSpace is exactly what
+// authorizationStage and stripForMatch apply to a LABEL before testing
+// HasPrefix. So a prefix that TrimSpace erases is precisely a prefix that can
+// never match anything, and defaulting on that class is defaulting on the
+// unusable ones — the two classes coincide by construction because they are
+// computed by the same function, not because someone enumerated them.
+//
+// Measured before the fix (audit A-2), push_prefix=" " / "  " / "\t" / U+00A0
+// silently disabled B1, B5 and B6 together: matchPrefix defaulted only on the
+// empty string, so the whitespace prefix was used verbatim and nothing could
+// carry it. TrimSpace is unicode-aware — verified, not assumed — so U+00A0,
+// U+1680 and U+3000 are all covered. U+200B (zero-width space) is NOT
+// whitespace to TrimSpace, and correctly is NOT defaulted: it survives the
+// label-side TrimSpace too, so a U+200B prefix is self-consistent and usable.
+//
+// WHY THE READER-ONLY FIX IS NOT ENOUGH, measured. Defaulting inside
+// matchPrefix alone leaves A-2 open: the reader starts demanding "ft:" while
+// the writers keep spelling the raw " ", so StageToLabel emits
+// " stage/completed" and authorizationStage rejects the deployment's OWN
+// label. Still disarmed, now for the opposite reason. Sharing this one
+// resolution between reader and writer is what closes it, which is why review
+// F5 and audit A-2 are one fix and not two.
+// TestPushPrefix_ResolutionIsSharedByReaderAndWriter pins that.
+func resolvePushPrefix(configured string) string {
+	if prefix := strings.TrimSpace(configured); prefix != "" {
+		return prefix
+	}
+	return defaultPushPrefix
+}
+
+// pushPrefix is the resolved push prefix in the case the operator configured.
+// This is the WRITER's spelling: StageToLabel and NewLabelMapper build labels
+// with it, and the configured case is preserved because it is the operator's
+// choice how their own labels are spelled on GitHub.
+func (m *LabelMapper) pushPrefix() string {
+	return resolvePushPrefix(m.config.PushPrefix)
+}
+
+// matchPrefix is the READER's spelling of the same prefix: lowercased, because
+// authorizationStage and stripForMatch lowercase the label before comparing.
+// That is what lets push_prefix: "FT:" write "FT:stage/completed" and still
+// read as terminal.
 //
 // It is shared with stripForMatch rather than duplicated because the two must
 // not drift: authorizationStage requires exactly the prefix stripForMatch
@@ -60,10 +119,7 @@ func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
 // everyone's. Since B6 this string is a security parameter, not a formatting
 // preference.
 func (m *LabelMapper) matchPrefix() string {
-	if prefix := strings.ToLower(m.config.PushPrefix); prefix != "" {
-		return prefix
-	}
-	return "ft:"
+	return strings.ToLower(m.pushPrefix())
 }
 
 // AllTerminalLabelStages reports EVERY terminal stage a label set names, not
