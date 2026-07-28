@@ -3797,11 +3797,18 @@ function sinkBinding(): void {
   // the docblock above the function opens by naming that very shape.
   //
   // The count in the two sentences here said "eleven" while the tree held
-  // thirteen; both are re-counted, not incremented. Seventeen is
-  // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
-  // check's own body, measured at round-9 head. Round 9 added four: the three
-  // ownership arrays hoisted out of inline literals (T-4) and
+  // thirteen; both are re-counted, not incremented. Round 9 added four: the
+  // three ownership arrays hoisted out of inline literals (T-4) and
   // SINK_CALL_LEGITIMATE.
+  //
+  // Seventeen is `grep -c "^      fixtureTableViolation('"`. The indentation is
+  // load-bearing and this is the second version of the recipe: the first said
+  // `grep -c "fixtureTableViolation('"` minus the four `'X'` calls in this
+  // check's own body, which is off by one because THIS COMMENT contains the
+  // string it greps for. A count recipe that counts itself is the same defect as
+  // a rule derived from the thing it checks, three lines from where this file
+  // says so. The anchored form matches only the seventeen calls that sit inside
+  // a `missed` array literal, which is every real table and nothing else.
   //
   // Measured before this check existed: neutering `fixtureTableViolation` to
   // always return null was GREEN 77/122, and it stayed GREEN with ARITY_EVASIONS
