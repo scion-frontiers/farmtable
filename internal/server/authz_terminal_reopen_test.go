@@ -115,14 +115,14 @@ func newTerminalLabelIssueMock(t *testing.T, initial []string) (*httptest.Server
 					m.add(name)
 				}
 			}
-			_, _ = w.Write([]byte(`{"data":{"addLabelsToLabelable":{"clientMutationId":null}}}`))
+			_, _ = w.Write([]byte(`{"data":{"addLabelsToLabelable":{"labelable":{"labels":{"nodes":[]}}}}}`))
 		case strings.Contains(b, "removeLabelsFromLabelable"):
 			for id, name := range m.idToName {
 				if strings.Contains(b, `"`+id+`"`) {
 					m.remove(name)
 				}
 			}
-			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"clientMutationId":null}}}`))
+			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"labelable":{"labels":{"nodes":[]}}}}}`))
 		case strings.Contains(b, "updateIssue"):
 			_, _ = w.Write([]byte(`{"data":{"updateIssue":{"issue":` + m.issueJSON() + `}}}`))
 		case strings.Contains(b, "issues("):

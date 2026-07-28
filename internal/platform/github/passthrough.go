@@ -212,6 +212,40 @@ func (s *GitHubPassThroughStore) labelNamesToIDs(names []string) []githubv4.ID {
 	return ids
 }
 
+// writeLabelSwap applies a label swap to an issue and REPORTS its failures.
+//
+// Every call site used to discard the mutation error into `_`. That is how the
+// A-4 bypass stayed invisible: the blind removal of a label the caller was
+// never authorized to touch could not be distinguished from a removal that
+// simply did nothing, because neither said anything. A silently-swallowed write
+// failure is also a correctness bug in its own right — UpdateTask returned the
+// issue as if the swap had landed, so a caller acting on that answer, and the
+// event this store's callers publish from it, both described a state GitHub was
+// never put into.
+//
+// Remove runs before add, matching what the stage / priority / type swaps have
+// always done: those swaps replace one label in a mutually exclusive family, so
+// clearing the old value first is what keeps the issue from momentarily
+// carrying two. Callers that need the opposite order pass one side at a time.
+//
+// Names that the repository has no label for are dropped by labelNamesToIDs and
+// are NOT an error here. That is pre-existing behaviour and deliberately left
+// alone: it fails closed for the gate, which models such a label as applied and
+// so over-charges rather than under-charges (see applyLabelDelta).
+func (s *GitHubPassThroughStore) writeLabelSwap(ctx context.Context, issueID githubv4.ID, add, remove []string) error {
+	if removeIDs := s.labelNamesToIDs(remove); len(removeIDs) > 0 {
+		if err := s.gql.removeLabels(ctx, issueID, removeIDs); err != nil {
+			return fmt.Errorf("removing labels %v: %w", remove, err)
+		}
+	}
+	if addIDs := s.labelNamesToIDs(add); len(addIDs) > 0 {
+		if err := s.gql.addLabels(ctx, issueID, addIDs); err != nil {
+			return fmt.Errorf("adding labels %v: %w", add, err)
+		}
+	}
+	return nil
+}
+
 // ── Convert issueNode → ent.Task ──
 
 func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task {
@@ -440,14 +474,8 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.StageLabelSwap(currentLabels, *p.Stage)
-
-		removeIDs := s.labelNamesToIDs(remove)
-		if len(removeIDs) > 0 {
-			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
-		}
-		addIDs := s.labelNamesToIDs(add)
-		if len(addIDs) > 0 {
-			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+			return nil, err
 		}
 	}
 
@@ -457,14 +485,8 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.PriorityLabelSwap(currentLabels, *p.Priority)
-
-		removeIDs := s.labelNamesToIDs(remove)
-		if len(removeIDs) > 0 {
-			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
-		}
-		addIDs := s.labelNamesToIDs(add)
-		if len(addIDs) > 0 {
-			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+			return nil, err
 		}
 	}
 
@@ -474,33 +496,30 @@ func (s *GitHubPassThroughStore) UpdateTask(ctx context.Context, id uuid.UUID, p
 		}
 		currentLabels := issueLabels(target)
 		add, remove := s.mapper.TypeLabelSwap(currentLabels, *p.Type)
-
-		removeIDs := s.labelNamesToIDs(remove)
-		if len(removeIDs) > 0 {
-			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
-		}
-		addIDs := s.labelNamesToIDs(add)
-		if len(addIDs) > 0 {
-			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+			return nil, err
 		}
 	}
 
+	// Adds and removes stay two calls rather than one swap, because the ORDER
+	// is documented behaviour that applyLabelDelta models: adds first, then
+	// removes, so a label named in both ends up removed. Collapsing them into a
+	// single writeLabelSwap would silently flip that, and the gate's prediction
+	// would then disagree with the write for the one input where it matters.
 	if len(p.AddLabels) > 0 {
 		if err := s.ensureLabelIndex(ctx); err != nil {
 			return nil, err
 		}
-		addIDs := s.labelNamesToIDs(p.AddLabels)
-		if len(addIDs) > 0 {
-			_ = s.gql.addLabels(ctx, issueID, addIDs)
+		if err := s.writeLabelSwap(ctx, issueID, p.AddLabels, nil); err != nil {
+			return nil, err
 		}
 	}
 	if len(p.RemoveLabels) > 0 {
 		if err := s.ensureLabelIndex(ctx); err != nil {
 			return nil, err
 		}
-		removeIDs := s.labelNamesToIDs(p.RemoveLabels)
-		if len(removeIDs) > 0 {
-			_ = s.gql.removeLabels(ctx, issueID, removeIDs)
+		if err := s.writeLabelSwap(ctx, issueID, nil, p.RemoveLabels); err != nil {
+			return nil, err
 		}
 	}
 
@@ -640,14 +659,8 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
 	}
 	currentLabels := issueLabels(target)
 	add, remove := s.mapper.StageLabelSwap(currentLabels, task.StageWorking)
-
-	removeIDs := s.labelNamesToIDs(remove)
-	if len(removeIDs) > 0 {
-		_ = s.gql.removeLabels(ctx, issueID, removeIDs)
-	}
-	addIDs := s.labelNamesToIDs(add)
-	if len(addIDs) > 0 {
-		_ = s.gql.addLabels(ctx, issueID, addIDs)
+	if err := s.writeLabelSwap(ctx, issueID, add, remove); err != nil {
+		return nil, err
 	}
 
 	refreshed, err := s.gql.getIssue(ctx, int(target.Number))
@@ -986,6 +999,59 @@ func applyLabelDelta(current, add, remove []string) []string {
 		out = append(out, l)
 	}
 	return out
+}
+
+// RestrictLabelWriteToSnapshot implements store.SnapshotLabelWriteRestrictor.
+//
+// In this store the authoritative lifecycle stage IS a label, so an unpriced
+// label write is an unpriced privilege change. The gate prices an edit against
+// a snapshot; this drops the entries of that edit which were no-ops against the
+// SAME snapshot, so the write can only carry out the thing that was priced.
+//
+// It is exactly the complement of applyLabelDelta and shares its matching
+// semantics deliberately. applyLabelDelta answers "what would this edit do to
+// this label set?" for the gate; this answers "which parts of that edit did the
+// gate's answer actually depend on?" for the write. The two must agree on when
+// two names are the same label, or the write would drop something the gate
+// priced, or keep something it did not — so both go through labelMatchKey, and
+// neither uses exact string equality. remove_labels=["FT:Stage/Wont_Fix"] does
+// strip "ft:stage/wont_fix" from the issue, because labelNamesToIDs resolves
+// through a lowercased index, and both sides of this control have to know that.
+//
+// WHY IT ONLY LOOKS AT THE SNAPSHOT. Consulting a fresh read here would be the
+// defect again with a shorter window: the free retryable primitive survives any
+// window at all, because the caller simply retries until one lands. The
+// snapshot is the only state a scope was ever charged against.
+//
+// WHAT IT DOES NOT DO. It does not close the TOCTOU window for edits the gate
+// DID price — one of those can still land on an issue that moved underneath it,
+// and the caller paid for that one. It removes the free, blind, unbounded
+// retry, not the race. Moving the stage off labels is #203.
+func (s *GitHubPassThroughStore) RestrictLabelWriteToSnapshot(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (add, remove []string) {
+	present := make(map[string]bool, len(t.Labels))
+	for _, l := range t.Labels {
+		if key := labelMatchKey(l); key != "" {
+			present[key] = true
+		}
+	}
+
+	// An addition of a label the snapshot already carried is a no-op against
+	// the snapshot, so the gate charged nothing for it. Sending it anyway lets
+	// a free request re-apply a label another actor has since removed.
+	for _, l := range addLabels {
+		if key := labelMatchKey(l); key != "" && !present[key] {
+			add = append(add, l)
+		}
+	}
+	// A removal of a label the snapshot did not carry is likewise a no-op the
+	// gate charged nothing for, and sending it is what destroyed a label the
+	// gate never saw.
+	for _, l := range removeLabels {
+		if key := labelMatchKey(l); key != "" && present[key] {
+			remove = append(remove, l)
+		}
+	}
+	return add, remove
 }
 
 // labelMatchKey normalises a label name for the identity comparison GitHub

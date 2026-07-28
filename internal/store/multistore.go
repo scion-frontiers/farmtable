@@ -290,6 +290,23 @@ func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task,
 	return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
 }
 
+// RestrictLabelWriteToSnapshot implements SnapshotLabelWriteRestrictor by
+// routing to the store that owns the task's collection, exactly as the two
+// methods above do. A store that keeps the lifecycle stage in labels narrows
+// for itself; for every other store a label write reaches no privileged value
+// and the request passes through unchanged.
+//
+// The inner store's answer is propagated verbatim. MultiStore does not re-check
+// that the result is a subset of the input: the one rule that says "this may
+// only narrow" belongs in one place, and a second copy here is how B2/B4 drifted.
+func (m *MultiStore) RestrictLabelWriteToSnapshot(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (add, remove []string) {
+	restrictor, ok := m.storeForCtx(ctx, t.CollectionID).(SnapshotLabelWriteRestrictor)
+	if !ok {
+		return addLabels, removeLabels
+	}
+	return restrictor.RestrictLabelWriteToSnapshot(ctx, t, addLabels, removeLabels)
+}
+
 func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
 	s := m.storeForCtx(ctx, t.CollectionID)
 	if computer, ok := s.(interface {

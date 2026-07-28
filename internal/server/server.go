@@ -766,11 +766,37 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 		}
 	}
 
-	if len(req.GetAddLabels()) > 0 {
-		p.AddLabels = req.GetAddLabels()
+	// BIND THE WRITE TO THE SNAPSHOT THAT WAS PRICED (#194 round 7, audit A-4).
+	//
+	// The gate above prices the transition the edit induces AGAINST `existing`.
+	// The parts of the request that induce nothing against `existing` are
+	// therefore priced at nothing — and until this line they were still sent to
+	// the store, which resolved them against the remote's state at write time
+	// rather than against the snapshot. That gap was a free, blind, unbounded
+	// retryable primitive for a token holding only task:write:
+	//
+	//	remove_labels[ft:stage/wont_fix], in a loop, on an issue that does not
+	//	carry it -> free every time, and the first iteration that lands after a
+	//	maintainer applies that label destroys it.
+	//
+	// The mirror image is add_labels re-applying a terminal label another actor
+	// has since removed, at the same price of nothing.
+	//
+	// Narrowing costs no legitimate behaviour: a removal of an absent label and
+	// an addition of a present one are no-ops by definition against the state
+	// the caller was authorized against, which is the very reason
+	// SameStageSet reported no transition and the gate charged nothing.
+	//
+	// Inert for native Ent-backed tasks: their stage is a column, no label can
+	// forge it, EntStore does not implement the interface, and the helper hands
+	// the request straight back.
+	addLabels, removeLabels := store.RestrictLabelWriteToSnapshot(
+		ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
+	if len(addLabels) > 0 {
+		p.AddLabels = addLabels
 	}
-	if len(req.GetRemoveLabels()) > 0 {
-		p.RemoveLabels = req.GetRemoveLabels()
+	if len(removeLabels) > 0 {
+		p.RemoveLabels = removeLabels
 	}
 
 	for _, idStr := range req.GetAddBlocks() {

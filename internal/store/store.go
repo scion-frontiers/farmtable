@@ -196,6 +196,56 @@ func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLab
 	return b, a, nil
 }
 
+// SnapshotLabelWriteRestrictor narrows a requested label edit to the part that
+// was still meaningful against the snapshot authorization evaluated.
+//
+// This is the second half of the round-5 invariant. LabelDeltaLifecycleStages
+// made the gate PRICE a label edit honestly; it left the write free to do more
+// than the thing that was priced. The gate reasons about one snapshot and the
+// store writes against whatever the remote holds at write time, and the pieces
+// of the request that fall outside the snapshot are exactly the pieces the gate
+// never reasoned about — so they are also the pieces it charged nothing for.
+//
+// Removing a label the snapshot did not carry, and adding one it already
+// carried, are no-ops BY DEFINITION at decision time: that is precisely why
+// LabelDeltaLifecycleStages reports before == after for them and why they cost
+// nothing. Dropping them therefore changes no authorized behaviour, and it
+// denies a task:write-only caller a write that is free, blind and retryable
+// without limit. See #194 round 7 / audit A-4.
+//
+// Stores whose labels cannot move the lifecycle stage need not implement this,
+// and the package-level helper leaves their requests untouched. For a native
+// Ent-backed task the stage is a column, no label can forge it, and there is
+// no privileged state for a stray label write to reach.
+type SnapshotLabelWriteRestrictor interface {
+	// RestrictLabelWriteToSnapshot returns the add and remove lists with the
+	// entries that were already no-ops against t removed.
+	//
+	// t is the snapshot authorization was evaluated against, NOT a fresh read.
+	// Passing a fresh read would reintroduce the whole defect: the point is to
+	// bind the write to the state that was actually authorized.
+	//
+	// It must only ever narrow. An implementation that added or rewrote an
+	// entry would be writing something no gate has priced.
+	RestrictLabelWriteToSnapshot(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (add, remove []string)
+}
+
+// RestrictLabelWriteToSnapshot narrows a label edit to the part that was
+// meaningful against the snapshot authorization evaluated. Callers pass the
+// SAME task they priced the edit against.
+//
+// A store that does not implement SnapshotLabelWriteRestrictor gets its request
+// back unchanged. That is the correct answer and not a stub: the narrowing only
+// matters where a label is itself a privileged value, and where it is not there
+// is nothing to protect and no reason to drop a caller's write.
+func RestrictLabelWriteToSnapshot(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (add, remove []string) {
+	restrictor, ok := s.(SnapshotLabelWriteRestrictor)
+	if !ok {
+		return addLabels, removeLabels
+	}
+	return restrictor.RestrictLabelWriteToSnapshot(ctx, t, addLabels, removeLabels)
+}
+
 // SameStageSet reports whether two lifecycle stage sets name the same stages.
 // Both are produced in a deterministic order by the same function, so this
 // compares them elementwise.
