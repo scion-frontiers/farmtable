@@ -1009,7 +1009,8 @@ const SINK_BINDINGS = [
  *       position other than immediately called — `name(`;
  *   R5  every `unsafeHTML(…)` argument is a `renderMarkdown(…)` call AND
  *       NOTHING ELSE — see sinkArgumentIsSanitized;
- *   R6  every relative import specifier resolves to a file this guard scans;
+ *   R6  every relative import specifier resolves to a file this guard scans, and
+ *       every dynamic import specifier is a plain quoted literal;
  *   R7  no unicode/hex escape appears in code — identifiers must be spelled
  *       literally.
  *
@@ -1142,8 +1143,27 @@ function sinkBindingViolations(rel: string, src: string, scanned: ReadonlySet<st
     }
   }
 
-  // R7
-  const escapeLines = matchLines(outside, /\\[uxU]/);
+  // R6b. A dynamic import whose specifier is not a plain quoted literal defeats
+  // R6 by construction: there is nothing to resolve. A template-literal
+  // specifier is enough, because stripInertText deliberately preserves
+  // templates and `['"]` does not match a backtick.
+  for (const arg of callArguments(withStrings, 'import')) {
+    if (!/^\s*['"][^'"]*['"]\s*$/.test(arg)) {
+      bad.push(
+        `${rel}: import(${arg.trim().slice(0, 60)}) — a dynamic import specifier must be a ` +
+          'plain quoted literal, or R6 has nothing to resolve and the module it loads is ' +
+          'outside every rule here',
+      );
+    }
+  }
+
+  // R7. Deliberately run over `code`, not `outside`: an escape inside an IMPORT
+  // statement is the whole attack. `import { \u0075nsafeHTML as rawHtml } from
+  // 'lit/directives/unsafe-html.js'` leaves the audited unaliased import in
+  // place, so R2 is satisfied, and stripImportStatements used to hide the
+  // escape from this rule. Module specifiers are string literals and are
+  // blanked in `code`, so paths cannot false-positive here.
+  const escapeLines = matchLines(code, /\\[uxU]/);
   if (escapeLines.length > 0) {
     bad.push(
       `${rel}:${escapeLines.join(',')}: contains a unicode or hex escape outside a string ` +
@@ -1537,6 +1557,20 @@ function sinkBinding(): void {
       replace:
         "import { renderMarkdown } from '../../util/markdown.js';\n" +
         "import { rawHtml } from './helper.test.js';",
+    },
+    {
+      label: 'V8b escape hidden inside a second import statement',
+      find: "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+      replace:
+        "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\n" +
+        "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';",
+    },
+    {
+      label: 'V9b unscanned module reached by a template-literal dynamic import',
+      find: 'export class C extends LitElement {',
+      replace:
+        'const mod = await import(`./helper.test.js`);\n' +
+        'export class C extends LitElement {',
     },
     {
       label: 'V4 sanitizer wrapper dropped at the sink',
