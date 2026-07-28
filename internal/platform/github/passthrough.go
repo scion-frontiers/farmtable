@@ -258,12 +258,24 @@ func (s *GitHubPassThroughStore) labelNamesToIDs(names []string) []githubv4.ID {
 // misconfiguration they must see; a developer who trips it while adding a
 // seventh call site has an authorization decision to make, and an error makes
 // them make it.
-type stageWritePolicy bool
+// IT IS A STRUCT AND NOT A BOOL (#194 round 9, review S3). As a named bool
+// type, `writeLabelSwap(ctx, id, add, remove, false)` compiled — Go converts
+// the untyped constant — so the one parameter in this file that decides whether
+// a lifecycle label may be written could be spelled at a call site without
+// naming either policy, and a reviewer scanning for `stageWriteForbidden` would
+// not find it. A struct with an unexported field has no untyped literal, so the
+// only spellings that compile are the two named below. MEASURED: passing
+// `false`, `true` or `0` is now a compile error, and it was not before.
+//
+// The zero value stays FORBIDDEN. A struct{} literal, a zero-valued field, or a
+// future call site that forgets the argument entirely all land on the refusing
+// policy rather than the permitting one.
+type stageWritePolicy struct{ allowed bool }
 
-const (
+var (
 	// stageWriteForbidden is for call sites that have no business moving the
 	// lifecycle stage. Passing it asserts that; it does not merely permit.
-	stageWriteForbidden stageWritePolicy = false
+	stageWriteForbidden = stageWritePolicy{}
 
 	// stageWriteAllowed is for the stage-moving paths: UpdateTask's stage arm
 	// (priced by TransitionScope at the server), UpdateTask's caller-supplied
@@ -275,7 +287,7 @@ const (
 	// writeLabelSwap at all — it kept its own inline best-effort swap, which
 	// must not fail an already-completed close. If it is ever converted, it is
 	// a stage-moving path and belongs here.
-	stageWriteAllowed stageWritePolicy = true
+	stageWriteAllowed = stageWritePolicy{allowed: true}
 )
 
 // assertStageWriteAllowed refuses any label the mapper claims as a lifecycle

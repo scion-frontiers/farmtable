@@ -30,7 +30,8 @@ import (
 // RestrictLabelWriteToSnapshot — destroyed a maintainer's decline for free.
 //
 // THESE TESTS DELIBERATELY BYPASS Validate. GitHubConfig.Validate also rejects
-// this config now (see TestValidate_RejectsATypesKeyThatNormalisesOntoAStage),
+// this config now (see
+// TestValidate_RejectsAPrioritiesOrTypesKeyThatCapturesALifecycleLabel),
 // and that is the layer an operator will actually hit. This layer is what
 // holds when the config arrives by a path nobody validated, or when a future
 // normalisation change makes some other key reach a stage. Two layers, and the

@@ -80,13 +80,13 @@ func main() {
 	// defaults, logs nothing, and runs with the label-write gate disarmed
 	// exactly as it did before M-1 was fixed. Not fatal — a missing file is the
 	// documented way to ask for the defaults — but never again silent.
-	ghCfg, ghSrc, err := github.LoadConfigWithSource(github.DefaultConfigPath)
+	ghCfg, banner, err := loadGitHubConfig(github.DefaultConfigPath)
 	if err != nil {
 		log.Fatalf("Invalid GitHub configuration: %v — refusing to start with "+
 			"defaults when a configuration was intended, because push_prefix "+
 			"decides which labels may feed an authorization decision", err)
 	}
-	log.Println(ghSrc.Describe(ghCfg))
+	log.Println(banner)
 	s.SetResolver(github.NewPlatformResolver(ghCfg))
 	defer s.Close()
 
@@ -189,6 +189,28 @@ func main() {
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP server error: %v", err)
 	}
+}
+
+// loadGitHubConfig loads the GitHub configuration and returns it alongside the
+// one-line startup banner naming where it came from.
+//
+// EXTRACTED FROM main (#194 round 9, review S2). The banner is the whole of
+// review R-1's remedy — a server started from an unexpected working directory
+// loads the defaults and runs with the label-write gate disarmed, and the only
+// thing that tells the operator so is this line — and until now it lived inside
+// main(), which nothing can call. ConfigSource.Describe was tested; the
+// decision to CALL it was not, and a diagnostic that is never emitted is
+// indistinguishable from the silence it replaced.
+//
+// The error is returned rather than logged so the caller keeps the choice
+// between fatal and tolerated. Whether a bad config should be fatal is a policy
+// decision for main; whether the banner is produced at all is not.
+func loadGitHubConfig(path string) (*github.GitHubConfig, string, error) {
+	cfg, src, err := github.LoadConfigWithSource(path)
+	if err != nil {
+		return nil, "", err
+	}
+	return cfg, src.Describe(cfg), nil
 }
 
 func serverPort() string {
