@@ -28,6 +28,11 @@ globals.document = dom.window.document;
 
 const { renderMarkdown } = await import('./markdown.js');
 
+// The SHARED marked singleton, imported here on purpose. markdown.ts must not
+// be using it — see the last check in taskLists(), which poisons this object
+// and asserts renderMarkdown is unaffected.
+const { marked } = await import('marked');
+
 const failures: string[] = [];
 let checks = 0;
 
@@ -209,6 +214,36 @@ function spoofingAttributes(): void {
     assertNotContains(out, 'class=', 'class attribute survived');
     assertNotContains(out, 'comment-header', 'component class name survived');
     assertContains(out, 'farmtable-admin', 'text content should be preserved');
+  });
+
+  // T-7 / audit LOW-1. The DOMPurify config is otherwise covered on every axis:
+  // emptying FORBID_TAGS, emptying FORBID_ATTR, adding `onerror` to ADD_ATTR,
+  // widening ALLOWED_URI_REGEXP, adding `iframe` to ADD_TAGS, dropping the
+  // config object and dropping the sanitize call are all red, most of them on
+  // several checks at once. `SANITIZE_DOM: false` was the single measured
+  // widening with NO signal — green at 69.
+  //
+  // SANITIZE_DOM (on by default) drops an `id`/`name` attribute whose value
+  // collides with a property of `document` or of a form, which is what DOM
+  // CLOBBERING needs: `<a name="body">` makes `document.body` resolve to the
+  // attacker's anchor, and any later code reading `document.body` — or
+  // `document.getElementById(...)`, or a form's `.action` — gets an
+  // attacker-chosen node instead of the real one.
+  //
+  // SCOPE OF THE CLAIM, narrowly. This is NOT a claim that clobbering is
+  // exploitable here today; the classic primitives want <form>/<input> and both
+  // are in FORBID_TAGS. It is a claim that a widening of the sanitizer's
+  // configuration has a red-on-revert, which before this check it did not. That
+  // is the property worth having: the next person to add a config key has one
+  // fewer axis where the suite will stay green while the boundary moves.
+  check('DOM-clobbering id/name attributes stripped', () => {
+    const out = renderMarkdown(
+      '<a name="body">a</a><a id="body">b</a><p id="children">c</p>' +
+        '<a name="getElementById">d</a>',
+    );
+    assertNotContains(out, 'name=', 'a clobbering name attribute survived');
+    assertNotContains(out, 'id=', 'a clobbering id attribute survived');
+    assertContains(out, 'a', 'text content should be preserved');
   });
 }
 
@@ -671,6 +706,60 @@ function taskLists(): void {
     assertNoElement(out, 'input', 'checkbox input survived');
     assertContains(out, '☑\uFE0E</span> outer', 'outer state lost');
     assertContains(out, '☐\uFE0E</span> inner', 'inner state lost');
+  });
+
+  // T-8. markdown.ts uses a PRIVATE `new Marked({…})` instance rather than
+  // configuring the shared `marked` singleton, and calls that a security
+  // property — correctly: the singleton is process-global, any module that
+  // imports `marked` can `use()` a renderer on it, and a renderer runs BEFORE
+  // DOMPurify sees the string, so it can emit markup from a code path the
+  // sanitizer's own configuration never had a say in.
+  //
+  // It had no pin. Measured: swapping `new Marked({…})` for `marked.use({…})`
+  // on the singleton was green at 69 checks — nothing in the suite ever touched
+  // the singleton, and with nobody else configuring it the output is identical.
+  //
+  // This observes the property BY EFFECT, not by name. A by-name scan
+  // ("markdown.ts must contain `new Marked`") is the shape this file has been
+  // defeated on repeatedly, and it would pass on `new Marked()` followed by a
+  // singleton `use()`. Here the singleton is actually poisoned and renderMarkdown
+  // is asked to render a task list: on its own instance the poisoning is
+  // invisible to it, on the singleton the payload comes back.
+  //
+  // ORDER-DEPENDENCE, stated because it is real and permanent: `marked.use` has
+  // no undo, so this check is deliberately LAST in taskLists() and re-asserts the
+  // ordinary glyph output after poisoning. Any future check that depends on the
+  // singleton and runs after this one will see the hostile renderer. That is a
+  // property of the singleton being global — which is the thing being pinned.
+  check('renderMarkdown does not use the shared marked singleton', () => {
+    marked.use({
+      renderer: {
+        checkbox: (): string => '<img src=x onerror=alert(1)>',
+      },
+    });
+
+    // POSITIVE CONTROL FIRST. Without it the assertions below hold vacuously
+    // whenever `use()` silently fails to take effect, and a vacuous pass is the
+    // exact failure mode this file exists to avoid.
+    const poisoned = marked.parse('- [x] done\n') as string;
+    assertContains(
+      poisoned,
+      'onerror',
+      'the hostile renderer never took effect on the singleton, so the rest of this check is vacuous',
+    );
+
+    const out = renderMarkdown('- [x] done\n');
+    assertNotContains(
+      out,
+      'onerror',
+      'a renderer installed on the shared marked singleton reached renderMarkdown',
+    );
+    assertNotContains(
+      out,
+      '<img',
+      'a renderer installed on the shared marked singleton reached renderMarkdown',
+    );
+    assertContains(out, '☑\uFE0E', "renderMarkdown's own checkbox renderer stopped being used");
   });
 }
 
@@ -3013,7 +3102,7 @@ function sinkBinding(): void {
 // one URI-policy pin, the two `inputContract` checks (arity and non-string
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
-const EXPECTED_CHECK_CALL_SITES = 70;
+const EXPECTED_CHECK_CALL_SITES = 72;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
 function run(): void {

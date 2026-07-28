@@ -63,11 +63,17 @@ const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot
 // FORBID_ATTR strips class, and nothing styles these glyphs.
 //
 // A private Marked instance keeps this off the shared `marked` singleton. That
-// is a security property and it now has a pin that observes it BY EFFECT rather
-// than by name: `sanitizerIndependence` in markdown.test.ts calls `marked.use`
-// with a malicious checkbox renderer on the shared singleton and asserts this
-// function's output is unaffected. Swapping `new Marked({…})` for
-// `marked.use({…})` was green at 69 checks before that pin existed.
+// is a security property: the singleton is process-global, any module that
+// imports `marked` can install a renderer on it, and a renderer runs BEFORE
+// DOMPurify sees the string — so it emits markup from a code path this file's
+// sanitizer configuration never had a say in.
+//
+// It now has a pin that observes the property BY EFFECT rather than by name:
+// `renderMarkdown does not use the shared marked singleton` in markdown.test.ts
+// installs a hostile checkbox renderer on the singleton, proves the poisoning
+// took (positive control, inline) and asserts this function's output is
+// unaffected. Swapping `new Marked({…})` for `marked.use({…})` was green at 69
+// checks before that pin existed; it is now red, and red only there.
 const parser = new Marked({
   renderer: {
     checkbox: ({ checked }: Tokens.Checkbox): string =>
