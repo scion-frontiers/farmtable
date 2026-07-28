@@ -3052,6 +3052,119 @@ function requiredSinkScopeViolation(found: number): string | null {
   );
 }
 
+/**
+ * THE TREE-WIDE LOOP HARNESS, and the reason it exists is a measurement.
+ *
+ * Every tree-wide rule in `sinkBinding` used to be written out as its own
+ * hand-rolled `for (… of scanned) offenders.push(...predicate(…))`. The
+ * PREDICATES are all fixtured; the LOOPS were not, and a loop that iterates
+ * nothing reports nothing. Measured at round-9 head by replacing `scanned` with
+ * `scanned.slice(0, 0)` one loop at a time, `npm test` exit code from the child:
+ *
+ *   mechanism (c), sanitizer ownership       GREEN 79/127   vacuous
+ *   mechanism (b), directive indirection     GREEN 79/127   vacuous
+ *   R7 promoted, escape ban                  GREEN 79/127   vacuous
+ *   R6b promoted, dynamic import specifier   GREEN 79/127   vacuous
+ *   BANNED_SINKS tripwire                    GREEN 79/127   vacuous
+ *   the `sinks` collection loop              RED            NOT vacuous
+ *
+ * test-195-r8 filed two of those (H1/H2, the two promoted tripwires). It is
+ * five. The sixth line is the positive control and it is also the design: that
+ * loop is the only one whose OUTPUT is asserted against a known number
+ * (`sinkCountViolation`), so emptying it is observable. Nothing else about it is
+ * special. A loop is non-vacuous exactly when something asserts its result for
+ * an input whose answer is known in advance.
+ *
+ * So this harness gives every tree-wide loop such an input. It runs the SAME
+ * loop twice — once over the real tree, once over the real tree with ONE
+ * poisoned entry appended — and reports both, plus how many entries the real run
+ * actually visited. `treeWideScanViolation` then requires the visit count to be
+ * `EXPECTED_SOURCE_FILES` and the poisoned entry to produce exactly one offender
+ * naming it. Emptying the loop, truncating it, passing it an empty list, or
+ * neutering the predicate to return `[]` all fail one of those two arms.
+ *
+ * The probe is appended LAST on purpose: a loop mutated to visit only
+ * `entries[0]` must not see it.
+ *
+ * This is the same repair as T-4 one level up. There the fix was to hoist inline
+ * arrays so the size pin could reach them; here it is to hoist the loop so a
+ * wrong input can be handed to it. Both are instances of "a harness that cannot
+ * express an input cannot test it", which is now the fourth time that sentence
+ * has been the finding in this file.
+ */
+const TREE_WIDE_PROBE_REL = '<tree-wide-probe>';
+
+interface TreeWideEntry {
+  rel: string;
+  view: string;
+}
+
+interface TreeWideScan {
+  /** Offenders found in the real tree. */
+  offenders: string[];
+  /** Offenders found over the same list with one poisoned entry appended. */
+  probed: string[];
+  /** Entries the REAL run actually visited. */
+  visited: number;
+}
+
+function runTreeWide(
+  entries: readonly TreeWideEntry[],
+  predicate: (rel: string, view: string) => string[],
+): { offenders: string[]; visited: number } {
+  const offenders: string[] = [];
+  let visited = 0;
+  for (const entry of entries) {
+    visited += 1;
+    offenders.push(...predicate(entry.rel, entry.view));
+  }
+  return { offenders, visited };
+}
+
+function scanTreeWide(
+  entries: readonly TreeWideEntry[],
+  probe: string,
+  predicate: (rel: string, view: string) => string[],
+): TreeWideScan {
+  const real = runTreeWide(entries, predicate);
+  const control = runTreeWide(
+    [...entries, { rel: TREE_WIDE_PROBE_REL, view: probe }],
+    predicate,
+  );
+  return { offenders: real.offenders, probed: control.offenders, visited: real.visited };
+}
+
+/**
+ * The positive control for one tree-wide loop. Returns null when the loop
+ * demonstrably ran over the whole tree AND demonstrably reports a planted
+ * offender.
+ *
+ * Attribution is by the probe's own `rel`, not by a bare count, for the reason
+ * C2-e taught this file: "something was reported" and "this rule reported it"
+ * are different claims, and only the second one is worth asserting.
+ */
+function treeWideScanViolation(rule: string, scan: TreeWideScan): string | null {
+  if (scan.visited !== EXPECTED_SOURCE_FILES) {
+    return (
+      `${rule}: its tree-wide loop visited ${scan.visited} entr(ies), not ` +
+      `${EXPECTED_SOURCE_FILES}. A loop that iterates nothing reports nothing, and every ` +
+      'tree-wide rule in this file was measured GREEN under exactly that mutation before ' +
+      'this control existed. Do not relax this to a floor.'
+    );
+  }
+  const planted = scan.probed.filter((o) => o.startsWith(TREE_WIDE_PROBE_REL));
+  if (planted.length !== 1) {
+    return (
+      `${rule}: the planted ${TREE_WIDE_PROBE_REL} offender produced ${planted.length} ` +
+      'report(s), expected exactly 1. Either the predicate no longer detects the form this ' +
+      'rule exists to detect, or the loop is not passing every entry to it. If the probe ' +
+      'source is genuinely no longer a violation, change the probe and say why in the ' +
+      'commit message — never delete the control.'
+    );
+  }
+  return null;
+}
+
 function sinkBinding(): void {
   const root = findWebRoot();
   const files: string[] = [];
@@ -3101,15 +3214,23 @@ function sinkBinding(): void {
   // honours the ignore-line marker, and R8 must not be disarmable from outside
   // this file. See sanitizerOwnershipViolations.
   check('the sanitizer exclusively owns its own dependencies', () => {
-    const offenders: string[] = [];
-    for (const file of files) {
-      const rel = relative(root, file);
-      const code = stripInertText(readFileSync(file, 'utf8'), { strings: false });
-      offenders.push(...sanitizerOwnershipViolations(rel, code, scannedRel));
+    const entries = files.map((file) => ({
+      rel: relative(root, file),
+      view: stripInertText(readFileSync(file, 'utf8'), { strings: false }),
+    }));
+    // The probe names a sanitizer dependency from a file that is not the owner,
+    // which is R8 exactly. It is READ OUT OF SANITIZER_DEPENDENCIES rather than
+    // spelled here, so emptying that array makes the probe `'undefined'`, which
+    // R8 does not match — the control then goes red instead of quietly passing
+    // over a rule with nothing left to enforce.
+    const probe = `import X from '${SANITIZER_DEPENDENCIES[0]}';`;
+    const scan = scanTreeWide(entries, probe, (rel, view) =>
+      sanitizerOwnershipViolations(rel, view, scannedRel));
+    if (scan.offenders.length > 0) {
+      throw new Error(`sanitizer configuration is reachable from another file:\n      ${scan.offenders.join('\n      ')}`);
     }
-    if (offenders.length > 0) {
-      throw new Error(`sanitizer configuration is reachable from another file:\n      ${offenders.join('\n      ')}`);
-    }
+    const vacuous = treeWideScanViolation('mechanism (c), sanitizer ownership', scan);
+    if (vacuous !== null) throw new Error(vacuous);
   });
 
   // Comment-stripped view of every scanned file, computed once. `strings: false`
@@ -3146,10 +3267,12 @@ function sinkBinding(): void {
   // function: rename the directive and the sink disappears from the case lists
   // rather than failing either. See directiveIndirectionOffenders.
   check('tripwire: no file reaches a raw-HTML directive under another name', () => {
-    const offenders: string[] = [];
-    for (const { rel, code } of scanned) {
-      offenders.push(...directiveIndirectionOffenders(rel, code));
-    }
+    const scan = scanTreeWide(
+      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      'const rawHtml = unsafeHTML;',
+      directiveIndirectionOffenders,
+    );
+    const offenders = scan.offenders;
     if (offenders.length > 0) {
       throw new Error(
         'raw-HTML directive obscured by indirection:\n      ' +
@@ -3170,6 +3293,8 @@ function sinkBinding(): void {
           'read a pass as "no indirection exists"; see the mechanism (b) note above.',
       );
     }
+    const vacuous = treeWideScanViolation('mechanism (b), directive indirection', scan);
+    if (vacuous !== null) throw new Error(vacuous);
   });
 
   // R7, tree-wide. Every name-based rule above — here and in the per-file half —
@@ -3177,13 +3302,16 @@ function sinkBinding(): void {
   // See escapeInCodeOffenders for why this was worth promoting out of the two
   // sink files, and for the measurement that says so.
   check('tripwire: no file spells an identifier with a unicode or hex escape', () => {
-    const offenders: string[] = [];
-    for (const { rel, codeNoStrings } of scanned) {
-      offenders.push(...escapeInCodeOffenders(rel, codeNoStrings));
+    const scan = scanTreeWide(
+      scanned.map(({ rel, codeNoStrings }) => ({ rel, view: codeNoStrings })),
+      'const rawHtml = \\u0075nsafeHTML;',
+      escapeInCodeOffenders,
+    );
+    if (scan.offenders.length > 0) {
+      throw new Error(`escaped identifier in code:\n      ${scan.offenders.join('\n      ')}`);
     }
-    if (offenders.length > 0) {
-      throw new Error(`escaped identifier in code:\n      ${offenders.join('\n      ')}`);
-    }
+    const vacuous = treeWideScanViolation('R7 promoted, the escape ban', scan);
+    if (vacuous !== null) throw new Error(vacuous);
   });
 
   // R6b, tree-wide. Every resolution-based rule in this file — R6, R8 and R9 —
@@ -3192,13 +3320,16 @@ function sinkBinding(): void {
   // is how the sanitizer's own singleton was reachable from a non-sink component
   // until this round. See dynamicImportSpecifierOffenders.
   check('tripwire: every dynamic import specifier is a plain quoted literal', () => {
-    const offenders: string[] = [];
-    for (const { rel, code } of scanned) {
-      offenders.push(...dynamicImportSpecifierOffenders(rel, code));
+    const scan = scanTreeWide(
+      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      "const m = await import('dompur' + 'ify');",
+      dynamicImportSpecifierOffenders,
+    );
+    if (scan.offenders.length > 0) {
+      throw new Error(`unresolvable dynamic import specifier:\n      ${scan.offenders.join('\n      ')}`);
     }
-    if (offenders.length > 0) {
-      throw new Error(`unresolvable dynamic import specifier:\n      ${offenders.join('\n      ')}`);
-    }
+    const vacuous = treeWideScanViolation('R6b promoted, the dynamic-import specifier rule', scan);
+    if (vacuous !== null) throw new Error(vacuous);
   });
 
   // The argument must be a bare renderMarkdown(…) call, not merely start with
@@ -3218,20 +3349,23 @@ function sinkBinding(): void {
   // innerHTML sink would bypass renderMarkdown without touching the checks
   // above. See BANNED_SINKS for the scope and — importantly — the limits.
   check('tripwire: no listed raw-HTML sink other than unsafeHTML is present', () => {
-    const offenders: string[] = [];
-    for (const { rel, code } of scanned) {
-      for (const { name, pattern } of BANNED_SINKS) {
-        if (pattern.test(code)) {
-          offenders.push(`${rel} (${name})`);
-        }
-      }
-    }
+    const scan = scanTreeWide(
+      scanned.map(({ rel, code }) => ({ rel, view: code })),
+      'document.write(body);',
+      (rel, view) =>
+        BANNED_SINKS.filter(({ pattern }) => pattern.test(view)).map(
+          ({ name }) => `${rel} (${name})`,
+        ),
+    );
+    const offenders = scan.offenders;
     if (offenders.length > 0) {
       throw new Error(
         `raw-HTML sink outside renderMarkdown in: ${offenders.join(', ')} ` +
           '[tripwire: an enumeration of known sinks, not a proof of absence]',
       );
     }
+    const vacuous = treeWideScanViolation('the BANNED_SINKS tripwire', scan);
+    if (vacuous !== null) throw new Error(vacuous);
   });
 
   // ---------------------------------------------------------------------------
