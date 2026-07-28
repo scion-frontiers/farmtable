@@ -255,12 +255,19 @@ function spoofingAttributes(): void {
   // fewer axis where the suite will stay green while the boundary moves.
   check('DOM-clobbering id/name attributes stripped', () => {
     const out = renderMarkdown(
-      '<a name="body">a</a><a id="body">b</a><p id="children">c</p>' +
-        '<a name="getElementById">d</a>',
+      '<a name="body">alpha</a><a id="body">bravo</a><p id="children">charlie</p>' +
+        '<a name="getElementById">delta</a>',
     );
     assertNotContains(out, 'name=', 'a clobbering name attribute survived');
     assertNotContains(out, 'id=', 'a clobbering id attribute survived');
-    assertContains(out, 'a', 'text content should be preserved');
+    // The token here was `'a'` through round 7, which the surviving <a> TAG
+    // satisfies on its own — the assertion could not fail while any anchor was
+    // rendered, so it was not observing text preservation at all. Distinctive
+    // tokens, and the FIRST and LAST elements' text, so that a sanitizer change
+    // which truncates the document rather than stripping attributes is also
+    // caught here rather than only by the two negatives above.
+    assertContains(out, 'alpha', 'text content of the first element should be preserved');
+    assertContains(out, 'delta', 'text content of the last element should be preserved');
   });
 }
 
@@ -656,8 +663,8 @@ function inputContract(): void {
   // together.
   check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
     const problems: string[] = [
-      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 11),
-      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 6),
+      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 13),
+      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 8),
     ].filter((v): v is string => v !== null);
     for (const { label, replace } of ARITY_EVASIONS) {
       const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
@@ -745,6 +752,23 @@ function taskLists(): void {
     assertContains(out, '☐\uFE0E</span> inner', 'inner state lost');
   });
 
+}
+
+// ---------------------------------------------------------------------------
+// 5b. The shared `marked` singleton. ITS OWN SECTION, AND IT RUNS LAST.
+//
+//     This lived at the bottom of taskLists() through round 7, kept in place by
+//     a COMMENT saying "deliberately LAST in taskLists()". That is not a
+//     mechanism: appending one more check to taskLists() silently moves it, and
+//     the comment would still read as though it had not. Ordering that a
+//     comment enforces is ordering that a future edit breaks quietly, which is
+//     the same defect this file keeps finding in its own guards.
+//
+//     It is now a function of its own, invoked LAST in run(). Moving it is still
+//     possible, but it takes an edit to run() that says what it is doing.
+// ---------------------------------------------------------------------------
+
+function sharedMarkedSingleton(): void {
   // T-8. markdown.ts uses a PRIVATE `new Marked({…})` instance rather than
   // configuring the shared `marked` singleton, and calls that a security
   // property — correctly: the singleton is process-global, any module that
@@ -764,10 +788,15 @@ function taskLists(): void {
   // invisible to it, on the singleton the payload comes back.
   //
   // ORDER-DEPENDENCE, stated because it is real and permanent: `marked.use` has
-  // no undo, so this check is deliberately LAST in taskLists() and re-asserts the
-  // ordinary glyph output after poisoning. Any future check that depends on the
-  // singleton and runs after this one will see the hostile renderer. That is a
-  // property of the singleton being global — which is the thing being pinned.
+  // no undo. This check therefore poisons the singleton irreversibly, and it
+  // re-asserts the ordinary glyph output afterwards. Any check that depends on
+  // the singleton and runs after it will see the hostile renderer — a property
+  // of the singleton being global, which is the thing being pinned.
+  //
+  // That is why it is the LAST call in run() rather than the last line of a
+  // section. Through round 7 the ordering was asserted by a comment inside
+  // taskLists(); one more check appended there would have moved it with nothing
+  // to notice.
   check('renderMarkdown does not use the shared marked singleton', () => {
     marked.use({
       renderer: {
@@ -1533,6 +1562,28 @@ const ARITY_EVASIONS: { label: string; replace: string }[] = [
     label: 'C7-k a default on the sole parameter (deliberate false positive)',
     replace: "export function renderMarkdown(md: string = ''): string {",
   },
+  {
+    // FOUND IN ROUND 8, and it was LIVE: green at 78 checks / 122 assertions
+    // with `tsc --noEmit` clean, against an implementation taking a real,
+    // usable second parameter. The parameter TYPE contains a `)`, and the scan
+    // captured its parameter list with `[^)]*`, which stopped there — so
+    // `opts` was never in the text that got split. `.length` was blind too,
+    // because the second parameter is defaulted. See
+    // `balancedDeclarationParameterLists`.
+    label: 'C7-l a parenthesised parameter type hiding a defaulted second parameter',
+    replace:
+      'export function renderMarkdown(md: string | ((x: string) => string), ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
+  {
+    // The same truncation with the simplest possible type. Kept separate so a
+    // partial repair that handles the union but not the bare function type
+    // cannot pass on the entry above alone.
+    label: 'C7-m a function-typed first parameter hiding a defaulted second',
+    replace:
+      'export function renderMarkdown(md: (x: string) => string, ' +
+      'opts: { inline?: boolean } = {}): string {',
+  },
 ];
 
 /**
@@ -1573,6 +1624,21 @@ const ARITY_LEGITIMATE: { label: string; replace: string }[] = [
       "export const REJECTED = 'renderMarkdown(md, opts) is not a supported signature';\n" +
       ARITY_DECL,
   },
+  // A FUNCTION-TYPED SOLE PARAMETER. One top-level parameter, no default, no
+  // rest — legitimate by rule C. It is here because it was the one shape this
+  // table did not cover, and the round-7 default-detector reported it as
+  // DEFAULTED: the `=` of `=>` sits at depth 0 once the parameter list closes.
+  // See `hasTopLevelDefault`. The generic spelling is included separately
+  // because it also exercises the `<`/`>` depth counting, where a stray `>`
+  // decrement could re-open the same hole from the other side.
+  {
+    label: 'a function-typed sole parameter',
+    replace: 'export function renderMarkdown(md: (x: string) => string): string {',
+  },
+  {
+    label: 'a generic function-typed sole parameter',
+    replace: 'export function renderMarkdown(md: <T>(x: T) => T): string {',
+  },
 ];
 
 /**
@@ -1598,6 +1664,58 @@ function splitTopLevelParameters(params: string): string[] {
   }
   out.push(current);
   return out.map((p) => p.trim()).filter((p) => p !== '');
+}
+
+/**
+ * The BALANCED parameter-list text of every `export function renderMarkdown(…)`
+ * in `code`, in source order.
+ *
+ * This replaces `/export function renderMarkdown\s*\(([^)]*)\)/g`, which was the
+ * THIRD instance in this pin of the defect its own docblock names — A CHECK THAT
+ * STOPS AT THE FIRST THING IT FINDS CANNOT SEE THE SECOND. `[^)]*` stops at the
+ * first `)`, and a parameter TYPE is allowed to contain one. Measured, against
+ * the real `markdown.ts` and the real suite:
+ *
+ *   export function renderMarkdown(
+ *     md: string | ((x: string) => string),
+ *     opts: { inline?: boolean } = {},
+ *   ): string
+ *
+ *   captured by the old regex as `md: string | ((x: string`  -> ONE parameter,
+ *   no default, no rest  -> null. GREEN at 78 checks / 122 assertions with
+ *   `tsc --noEmit` clean, against an implementation taking a real, usable second
+ *   parameter — the exact configuration channel this pin exists to deny.
+ *
+ * `Function.length` does not cover it either: the second parameter is defaulted,
+ * so `.length` still reads 1. Both halves of the arity pin were blind to the
+ * same one declaration.
+ *
+ * Counting depth is the whole point, as in `callArguments`. Everything after the
+ * matched name is scanned to the parenthesis that closes the list, so a `)`
+ * inside a function type, a tuple or a parenthesised union no longer truncates
+ * it. An UNTERMINATED list is not silently skipped — it is returned as-is, so
+ * `splitTopLevelParameters` sees the whole tail and the caller reports something
+ * rather than passing.
+ */
+function balancedDeclarationParameterLists(code: string): string[] {
+  const out: string[] = [];
+  const re = /export function renderMarkdown\s*\(/g;
+  let m: RegExpExecArray | null = re.exec(code);
+  while (m !== null) {
+    let depth = 1;
+    let i = m.index + m[0].length;
+    const start = i;
+    while (i < code.length && depth > 0) {
+      const c = code[i];
+      if (c === '(') depth += 1;
+      else if (c === ')') depth -= 1;
+      i += 1;
+    }
+    out.push(code.slice(start, depth === 0 ? i - 1 : code.length));
+    re.lastIndex = i;
+    m = re.exec(code);
+  }
+  return out;
 }
 
 /**
@@ -1675,7 +1793,7 @@ function splitTopLevelParameters(params: string): string[] {
  */
 function renderMarkdownArityViolation(src: string): string | null {
   const code = stripInertText(src, { strings: true });
-  const decls = [...code.matchAll(/export function renderMarkdown\s*\(([^)]*)\)/g)];
+  const decls = balancedDeclarationParameterLists(code);
 
   if (decls.length === 0) {
     return (
@@ -1693,10 +1811,10 @@ function renderMarkdownArityViolation(src: string): string | null {
     );
   }
 
-  const params = splitTopLevelParameters(decls[0][1]);
+  const params = splitTopLevelParameters(decls[0]);
   if (params.length !== 1) {
     return (
-      `renderMarkdown declares ${params.length} parameters: (${decls[0][1].trim()}) — a second ` +
+      `renderMarkdown declares ${params.length} parameters: (${decls[0].trim()}) — a second ` +
       'parameter is a configuration channel into the sanitizer opened from the call site, and ' +
       'a defaulted or optional one keeps Function.length at 1'
     );
@@ -1712,7 +1830,7 @@ function renderMarkdownArityViolation(src: string): string | null {
   if (only.startsWith('...')) {
     return `renderMarkdown's sole parameter is a rest parameter: (${only}) — it accepts any arity`;
   }
-  if (splitTopLevelDefault(only)) {
+  if (hasTopLevelDefault(only)) {
     return (
       `renderMarkdown's sole parameter has a default: (${only}) — harmless in itself, but it ` +
       'takes Function.length to 0, which this suite cannot tell apart from the source/artifact ' +
@@ -1723,14 +1841,47 @@ function renderMarkdownArityViolation(src: string): string | null {
   return null;
 }
 
-/** True if `param` carries an `=` default at the top level of its own text. */
-function splitTopLevelDefault(param: string): boolean {
+/**
+ * True if `param` carries an `=` default at the top level of its own text.
+ *
+ * Named for what it returns. Through round 7 it was called
+ * `splitTopLevelDefault` — a name promising a split, borrowed from the
+ * `splitTopLevelParams` helper above, while returning a boolean. That is the
+ * kind of mismatch that gets a call site written as a destructuring assignment.
+ *
+ * `=>` IS NOT A DEFAULT. Skipping it is not cosmetic: the arrow's `=` sits at
+ * depth 0 once the parameter list closes, so through round 7 a function-typed
+ * sole parameter was reported as having a default. Measured on the round-7
+ * predicate:
+ *
+ *     md: (x: string) => string             -> true   (WRONG)
+ *     md: <T>(x: T) => T                    -> true   (WRONG)
+ *     md: string | (() => string)           -> false  (right, but only by luck:
+ *                                                      that arrow is inside parens)
+ *     md: (x: string) => string = defaultFn -> true   (right, and still true
+ *                                                      below — the second `=`)
+ *
+ * `renderMarkdown(md: (x: string) => string)` is not a plausible signature for
+ * this function, so no live tree tripped it. It is fixed anyway because a guard
+ * that rejects correct code gets deleted, which is the standing argument behind
+ * every entry in ARITY_LEGITIMATE — where a function-typed sole parameter now
+ * appears, having been the one shape that table did not cover.
+ */
+function hasTopLevelDefault(param: string): boolean {
   let depth = 0;
   for (let i = 0; i < param.length; i += 1) {
     const c = param[i];
     if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
     else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
-    else if (c === '=' && depth === 0 && param[i + 1] !== '=' && param[i - 1] !== '=') return true;
+    else if (
+      c === '=' &&
+      depth === 0 &&
+      param[i + 1] !== '=' &&
+      param[i + 1] !== '>' &&
+      param[i - 1] !== '='
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -3442,7 +3593,7 @@ function sinkBinding(): void {
 // field raw was green at 68. The derivation is kept, because the counterfactual
 // with a hard literal restored is red for the wrong reason (it fails on the
 // count, not on the missing sink, and would have been "fixed" by editing the
-// literal). The scope itself is pinned separately and undeirvably as
+// literal). The scope itself is pinned separately and underivably as
 // EXPECTED_REQUIRED_SINKS, asserted in `sink scan actually reads the source
 // tree`. That is the check to read if this one and the sink list disagree.
 //
@@ -3464,10 +3615,34 @@ function sinkBinding(): void {
 // input), and three fixture checks that give the last of the unfixtured rules
 // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
 //
-// Moved 69 -> 73 in round 7: the tree-wide escape tripwire (R7 promoted out of
-// the two sink files), the fixture for the arity pin, the shared-marked-singleton
-// pin, and the DOM-clobbering pin. The scope pin added in the same round is
-// deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
+// (The round-6 line above says 61 -> 69. Round-6 head `86f30bc` measures 68, so
+// one of those two endpoints is wrong. It is left as written and unreconciled:
+// the numbers below are re-measured from the tree at each revision and do not
+// depend on it. Flagged here so the next reader does not take it for verified.)
+//
+// Moved 68 -> 74 in round 7 — SIX checks, not the four this line used to name,
+// and against a base of 68, not 69. Both endpoints are measured with
+// `git show <rev>:web/src/util/markdown.test.ts | grep -cE '^\s+check\('` at
+// round-6 head `86f30bc` and round-7 head `7b4f6dd`, and the six are enumerated
+// by name-diff between the same two revisions:
+//   1. tripwire: no file spells an identifier with a unicode or hex escape
+//      (R7 promoted out of the two sink files)
+//   2. fixture: the arity pin catches every known widening ...
+//   3. renderMarkdown does not use the shared marked singleton
+//   4. DOM-clobbering id/name attributes stripped
+//   5. dompurify declares a floor equal to the advisory line   (T-6)
+//   6. sunset clause: #204 tooling absent, tokenizer subset still earns its place
+// 5 and 6 are the two `dependencyPolicy()` checks, which the previous wording
+// omitted entirely — which is how a line annotating 74 came to read "-> 73".
+// The scope pin added in the same round is deliberately NOT a call site of its
+// own; see EXPECTED_REQUIRED_SINKS.
+//
+// Moved 74 -> 77 in round 8, measured the same way against `7b4f6dd`:
+//   1. tripwire: every dynamic import specifier is a plain quoted literal
+//      (R6b promoted out of the two sink files, same move as R7 in round 7)
+//   2. fixture: the dynamic-import specifier rule catches every unresolvable form
+//   3. fixture: the table-size pin fires on a changed table length
+//      (the positive control `fixtureTableViolation` never had)
 const EXPECTED_CHECK_CALL_SITES = 77;
 const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 
@@ -3482,14 +3657,35 @@ const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
 // helpers. The rule fixtures throw directly and are covered instead by the table
 // size pins added alongside this — different mechanism, same defect.
 //
-// EXACT, NOT A FLOOR, and the choice was close. A floor (`>= 113`) needs no edit
-// when assertions are added, which is most of the friction. But a floor is
-// satisfied by adding two assertions somewhere new and deleting two somewhere
-// load-bearing, and "silent shrinkage masked by unrelated growth" is exactly the
-// failure EXPECTED_SOURCE_FILES was changed from a floor to an exact count to
-// catch. Paying the same edit cost as EXPECTED_CHECK_CALL_SITES is consistent
-// with the rest of this file, and the message says what to do.
-const EXPECTED_ASSERTIONS = 122;
+// EXACT, NOT A FLOOR — but NOT for the reason previously given here, which was
+// measured false. That wording said a floor "is satisfied by adding two
+// assertions somewhere new and deleting two somewhere load-bearing", implying an
+// exact count is not. An exact count is satisfied by precisely that manoeuvre,
+// for the arithmetic reason that 122 - 2 + 2 = 122.
+//
+// Measured, on this tree: revert `slot` from FORBID_ATTR in markdown.ts, hollow
+// the body of `slot attribute stripped` with an early return (-2 assertions),
+// and add two assertions to `style attribute stripped` (+2). GREEN at 78 checks
+// / 122 assertions, with `renderMarkdown('<div slot="footer">x</div>')` returning
+// the slot attribute intact. Neither this pin nor the check total fires. The
+// uncompensated half of the same mutation is red here at 120, which is the only
+// part the old sentence got right.
+//
+// WHAT EXACT ACTUALLY BUYS OVER A FLOOR, stated so nobody relaxes it on the
+// strength of the refutation above. Both are blind to same-size compensation.
+// The difference is that a floor's slack grows monotonically and an exact
+// count's does not: once the suite has grown to 140 assertions, a floor of 122
+// silently absorbs the deletion of eighteen load-bearing ones, whereas an exact
+// count has to be re-baselined by hand at every change, so the window in which
+// shrinkage is invisible is one commit wide and the number appears in that
+// commit's diff where a reviewer sees it. That is a review property, not a
+// detection property, and it is the honest reason to pay the edit cost.
+//
+// The real detection gap — compensated shrinkage — is not closed by any total,
+// and pretending otherwise is what the old paragraph did. It is closed, where it
+// is closed at all, by the per-rule fixtures and the table-size pins, which
+// assert against named tables rather than against a sum.
+const EXPECTED_ASSERTIONS = 123;
 
 /**
  * Two claims this file makes about `web/package.json` that nothing evaluated.
@@ -3519,7 +3715,7 @@ function dependencyPolicy(): void {
   // mXSS/namespace-confusion bypasses of exactly the sanitize() call this
   // module's security rests on, so a caret range with a lower floor silently
   // permits a vulnerable install on a fresh `npm i`.
-  check('dompurify declares a floor at or above the advisory line', () => {
+  check('dompurify declares a floor equal to the advisory line', () => {
     const range = deps['dompurify'];
     if (range !== '^3.4.12') {
       throw new Error(
@@ -3544,9 +3740,19 @@ function dependencyPolicy(): void {
   // dependency of this package. Deliberately the WEAKER direction — this fires
   // on the tooling appearing, not on the rule being enforced, so a human still
   // confirms the rule is on in CI before deleting anything.
+  //
+  // BARE `eslint` IS NOT IN THE PREDICATE, though it was until round 8. The
+  // sentence above states the condition as *typescript-eslint* being declared,
+  // and bare `eslint` is a style linter that cannot host a type-aware AST rule:
+  // adding it for formatting would have fired a clause instructing the reader to
+  // delete eight guards, and the check's own docblock would have said it does
+  // not do that. A false trigger on this check is expensive — it asks for
+  // deletions — so the predicate is kept narrower than the sunset condition
+  // rather than wider. `typescript-eslint` (the flat-config meta package) and
+  // any `@typescript-eslint/*` plugin both still fire it.
   check('sunset clause: #204 tooling absent, tokenizer subset still earns its place', () => {
     const eslintDeps = Object.keys(deps).filter(
-      (d) => d === 'eslint' || d.startsWith('@typescript-eslint/') || d === 'typescript-eslint',
+      (d) => d.startsWith('@typescript-eslint/') || d === 'typescript-eslint',
     );
     if (eslintDeps.length > 0) {
       throw new Error(
@@ -3574,6 +3780,9 @@ function run(): void {
   taskLists();
   sinkBinding();
   dependencyPolicy();
+  // LAST, and it must stay last: it poisons the global `marked` singleton with no
+  // undo. See the section header above `sharedMarkedSingleton`.
+  sharedMarkedSingleton();
 
   if (checks !== EXPECTED_CHECKS) {
     failures.push(
