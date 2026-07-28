@@ -138,10 +138,34 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 
 	// Custom config overrides: label->stage (pull direction).
 	// Also generates the push label using the same prefix convention.
+	//
+	// The key is normalised with stripForMatch — the SAME function every lookup
+	// goes through — rather than with a bare ToLower. Storing the key one way
+	// and looking it up another is why a configured alias could be dead
+	// (test review T-1, audit A-5):
+	//
+	//	Stages: {"ft:shipped": "completed"}   -- an operator following round 5's
+	//	                                         remediation literally
+	//	  label "ft:shipped"  -> stripForMatch -> "shipped" -> MISS (key is "ft:shipped")
+	//	  label "shipped"     -> stripForMatch -> "shipped" -> MISS
+	//	  label "ft:ft:shipped" -> stripForMatch -> "ft:shipped" -> hit (!)
+	//
+	// So the alias was reachable only as a DOUBLE prefix, and was dead for
+	// display as well as for authorization. Normalising the key on the way in
+	// means a key works whether or not the operator wrote the prefix, and A-5's
+	// double-prefix spelling stops resolving because "ft:ft:shipped" strips
+	// exactly once to "ft:shipped", which is no longer any key.
+	//
+	// This does NOT make a bare label authoritative: B6's prefix REQUIREMENT
+	// lives in authorizationStage and is applied to the label, not to the key.
+	// A configured alias still has to be spelled with the prefix ON THE LABEL
+	// to reach a privilege decision — it is only the config key that is now
+	// spelling-insensitive. TestConfiguredStageAliases_KeySpellingIsNormalised
+	// pins both halves.
 	for label, stageStr := range cfg.Stages {
 		stage := task.Stage(stageStr)
 		if err := task.StageValidator(stage); err == nil {
-			m.labelToStage[strings.ToLower(label)] = stage
+			m.labelToStage[m.stripForMatch(label)] = stage
 			// Custom mappings also set the push label for that stage.
 			m.stageToLabel[stage] = prefix + "stage/" + stage.String()
 		}
@@ -155,11 +179,17 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 		m.priorityToLabel[p] = "priority:" + p.String()
 	}
 
-	// Custom config overrides.
+	// Custom config overrides. Keys are normalised with stripForMatch for the
+	// same reason cfg.Stages' are: the lookup strips, so a key stored unstripped
+	// can never be hit. Measured in round 6 — a configured "ft:p0" was dead in
+	// both spellings, exactly as "ft:shipped" was. Not a security surface (no
+	// prefix requirement applies on the priority path), but the same operator
+	// trap, and leaving two of the three maps on the old rule would be the
+	// duplicated-rule defect this round is otherwise removing.
 	for label, prioStr := range cfg.Priorities {
 		p := task.Priority(prioStr)
 		if err := task.PriorityValidator(p); err == nil {
-			m.labelToPriority[strings.ToLower(label)] = p
+			m.labelToPriority[m.stripForMatch(label)] = p
 			m.priorityToLabel[p] = "priority:" + p.String()
 		}
 	}
@@ -172,9 +202,11 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
 		m.typeToLabel[typ] = label
 	}
 
-	// Custom config overrides.
+	// Custom config overrides. Pull key normalised as above; the PUSH label
+	// keeps the operator's literal spelling, because that is the label they
+	// want written on GitHub and nothing requires a prefix on it.
 	for label, typ := range cfg.Types {
-		m.labelToType[strings.ToLower(label)] = typ
+		m.labelToType[m.stripForMatch(label)] = typ
 		m.typeToLabel[typ] = strings.ToLower(label)
 	}
 
