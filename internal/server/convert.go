@@ -319,7 +319,24 @@ func taskToProto(t *ent.Task) *pb.Task {
 			pt.RemoteId = &remoteID
 		}
 		if remoteURL, ok := t.RemoteData["remote_url"].(string); ok && remoteURL != "" {
-			pt.RemoteUrl = &remoteURL
+			// Validate on the way OUT, not just at the write boundary.
+			//
+			// Not every value on this path is client-written and passed through
+			// validateURLField first. The live GitHub passthrough store
+			// synthesises remote_url from the GraphQL response on EVERY
+			// ListTasks/GetTask (platform/github/graphql_queries.go:480) and
+			// never persists it, so there is no write boundary to guard -- and
+			// GitHubPassThroughStore.UpdateTask ignores RemoteData entirely, so
+			// the value the server validated in UpdateTask is discarded anyway.
+			// Rows written before the write-boundary check existed are the other
+			// unvalidated source.
+			//
+			// Drop rather than error: a bad URL from upstream must not fail the
+			// whole read. The field is simply omitted, and the dashboard renders
+			// nothing for it, which is the same degradation safeHref produces.
+			if err := validateURLField("remote_url", remoteURL); err == nil {
+				pt.RemoteUrl = &remoteURL
+			}
 		}
 		pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)
 	}

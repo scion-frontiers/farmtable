@@ -60,9 +60,26 @@ Three client-controlled ingress paths, all covered:
 3. `export_import.go` `importedTask` — `PullRequests`/`RemoteData` copied verbatim
    out of caller-uploaded JSON, which bypassed a check placed only in `UpdateTask`
 
-Not covered, deliberately: platform-sync writes (values originate from the
-upstream GitHub API, not a client request) and `Collection.remote_data` (reaches
-no `href`).
+Not covered, deliberately: `Collection.remote_data` (reaches no `href`).
+
+**Correction (r2).** This section originally also excluded "platform-sync writes
+(values originate from the upstream GitHub API, not a client request)". That
+sentence describes `internal/platform/github/github.go::buildRemoteData`, which
+has **no production caller**. The live path is the passthrough *read*:
+`graphql_queries.go:476-487` → `passthrough.go:147` → `convert.go` →
+`ft-inspector-meta.ts`, wired at `main.go:61`. It synthesises `remote_url` from
+the GraphQL response on **every** `ListTasks`/`GetTask` and never persists it, so
+no write-boundary check can reach it — and `GitHubPassThroughStore.UpdateTask`
+ignores `RemoteData` entirely, so a value validated there is discarded. The
+exclusion was therefore justified against dead code. Fixed in r2 by validating on
+the way **out** in `convert.go::taskToProto`, the single convergence point for
+every read, degrading (dropping the field) rather than erroring so a bad upstream
+URL cannot fail the whole read. Pinned by
+`TestPassthroughReadDropsUnsafeRemoteURL`.
+
+This was **not attacker-reachable**: `issue.URL` is GitHub-generated, there is no
+webhook receiver and no configurable API base URL. It is a missing control, not
+an open hole.
 
 **Frontend.** One shared helper `web/src/util/safe-url.ts`, since a guard that is
 a copy of another guard is this project's most-repeated defect. The two previously
