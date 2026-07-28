@@ -106,9 +106,32 @@ no future reorder can change an authorization answer through it).
 
 ## Exactly which sinks, cardinalities and prefixes are covered
 
-**Sinks covered** — the two gates inside `UpdateTask` (`server.go`), and,
-through `store.LifecycleStage(s)`, the readers that already consumed round 4's
-seam: `ComputeAvailability` and `ClaimTask`.
+**Sinks covered.**
+
+> **CORRECTION (#194 round 6, leg A).** This paragraph originally read: *"the
+> two gates inside `UpdateTask` (`server.go`), and, through
+> `store.LifecycleStage(s)`, the readers that already consumed round 4's seam:
+> `ComputeAvailability` and `ClaimTask`."* The `(s)` made one token stand for
+> two different functions — `LifecycleStage` (singular) and `LifecycleStages`
+> (the set) — and thereby conflated B5 with B6. **B5 does not reach
+> `ComputeAvailability` or `ClaimTask`; B6 does.** Per-control ground truth:
+
+| Control | `UpdateTask` gates | `ComputeAvailability` | `ClaimTask` |
+| --- | --- | --- | --- |
+| B1 — label write gate | yes | n/a | n/a |
+| B5 — set-valued source | yes | **no** — singular `LifecycleStage` | **no** — singular `LifecycleStage` |
+| B6 — prefix required | yes | yes | yes |
+
+B6 reaches both readers because `TerminalLabelStage` now calls
+`authorizationStage`. B5 does not reach them: both go through
+`GitHubPassThroughStore.LifecycleStage`, which collapses to one terminal stage.
+That collapse is **deliberate and safe**, and round 6 records why where it can
+rot loudly (see A1 in the round-6 leg-A entry): each of those two consumers
+reduces every terminal stage to one boolean, so the tiebreak cannot change
+their answer. A consumer that branches on *which* terminal stage must use
+`LifecycleStages`, and
+`TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer` fails
+if one starts discriminating.
 
 **Sinks NOT covered:**
 
@@ -151,6 +174,32 @@ privileged — and the interim cost of closing a live authorization hole.
 **Not covered by B6**: a deployment that configures custom terminal aliases in
 `LabelConfig.Stages` (e.g. `shipped: completed`) must now spell them with the
 prefix for them to be authoritative. No such configuration exists in-tree.
+
+> **CORRECTION (#194 round 6, leg A).** The remediation sentence above was
+> ambiguous in the one way that matters, and the reading an operator is most
+> likely to take is the one that breaks the alias outright. "Spell them with the
+> prefix" means spell the prefix on the **GitHub label**, leaving the config
+> **key bare**. Putting the prefix in the config *key* produced a
+> **fully dead** alias as of round 5 — dead for display as well as for
+> authorization — because `buildLabelMapper` stored the key verbatim while
+> `stripForMatch` strips the prefix before the lookup, so the key could never be
+> hit. Measured at `ea8ac39` (test review T-1, reproduced in round 6 by
+> `TestConfiguredStageAliases_KeySpellingIsNormalised`):
+>
+> | config key | GitHub label | lifecycle | available | display |
+> | --- | --- | --- | --- | --- |
+> | `shipped` | `shipped` | `accepted` | true | `completed`, true |
+> | `shipped` | `ft:shipped` | `completed` | false | `completed`, true |
+> | `ft:shipped` | `ft:shipped` | `accepted` | true | `""`, false |
+> | `ft:shipped` | `shipped` | `accepted` | true | `""`, false |
+>
+> Round 5's only working spelling was row 2: **bare key, prefixed label.**
+> Round 6 removes the trap rather than documenting it — alias keys are now
+> normalised through the same `stripForMatch` path used for lookup, so a key
+> works whether or not the operator wrote the prefix, and rows 3 and 4 behave
+> like rows 1 and 2. Row 1 (bare key, bare label) remains deliberately
+> non-authoritative: that is B6 working as designed, not a defect. See
+> `.design/project-log/label-prefix-terminal-set-r6a.md`.
 
 ## Tests
 
