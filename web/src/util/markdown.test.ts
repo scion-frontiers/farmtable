@@ -4557,13 +4557,30 @@ function run(): void {
   taskLists();
   sinkBinding();
   dependencyPolicy();
-  // THE TWO GLOBAL POISONERS, LAST, AND THEY MUST STAY LAST. Neither
-  // `marked.use` nor `DOMPurify.setConfig` has an undo, and `setConfig` is
-  // sticky, so either one running earlier would contaminate every rendering
-  // check after it. Anything appended below these two lines is running against
-  // a poisoned marked renderer AND a poisoned DOMPurify config; put it above
-  // them. See the section headers above `sharedMarkedSingleton` and
-  // `privateDOMPurifyInstance`.
+  // THE TWO GLOBAL POISONERS, LAST — AS A PROPERTY THAT STAYS TRUE, NOT AS A
+  // CONTAMINATION CLAIM. The sentence that stood here said "either one running
+  // earlier would contaminate every rendering check after it". THAT IS FALSE FOR
+  // BOTH OF THEM, measured in round 10 on this tree: move `sharedMarkedSingleton()`
+  // to the top of `run()` and the suite is GREEN at 79 checks / 127 assertions,
+  // exit 0; move `privateDOMPurifyInstance()` to the top and it is GREEN at
+  // 79/127, exit 0. Neither poisoner reaches any rendering check, because every
+  // rendering check goes through `renderMarkdown`, which owns a private `marked`
+  // parser and a private DOMPurify instance — see markdown.ts:130, which is what
+  // makes that true and is the strongest thing round 9 shipped.
+  //
+  // `4341965` measured the DOMPurify half false and corrected it at the section
+  // header (`sharedMarkedSingleton`/`privateDOMPurifyInstance`) only; the claim
+  // survived here, in a comment added one commit earlier by `c331abf`, and the
+  // `marked` half had never been measured by anyone. Both halves are measured now.
+  //
+  // They still run last, and the reason is DEFENCE IN DEPTH rather than a
+  // property of today's tree: `marked.use` and `DOMPurify.setConfig` have no undo
+  // and `setConfig` is sticky, so a future check that reads `marked` or
+  // `DOMPurify` directly — rather than through `renderMarkdown` — would be
+  // contaminated by them. Keeping them last makes the ordering unconditional
+  // instead of contingent on every future check going through the sanitizer.
+  // Anything appended below these two lines runs against a poisoned marked
+  // renderer AND a poisoned DOMPurify config; put it above them.
   sharedMarkedSingleton();
   privateDOMPurifyInstance();
 
