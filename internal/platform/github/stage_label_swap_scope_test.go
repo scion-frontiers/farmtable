@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 )
 
@@ -257,6 +258,60 @@ func TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel(t *testing.T) {
 	fake.removeLabelByID(fake.labelIDs["duplicate"])
 	if fake.hasLabel("duplicate") {
 		t.Fatal("CONTROL BROKEN: the harness cannot remove \"duplicate\" at all")
+	}
+}
+
+// TestF7Cell_IsNonEmptyOnBothSidesSoTheEmptySetGuardCannotFire pins the SEAM
+// between this leg's A5 fix and leg B's B4 fix, because two fixes that each
+// look complete are how this branch keeps producing gaps.
+//
+// B4 makes store.LifecycleStages / store.LabelDeltaLifecycleStages return an
+// error when an implementer hands back an EMPTY side, replacing a fail-open
+// that charged nothing. A5 is the NON-EMPTY but EQUAL case. They are adjacent
+// and it is tempting to assume one covers the other, so this measures the one
+// fact that decides it: on the F7 input, is either side empty?
+//
+// MEASURED: no. [ft:stage/wont_fix, duplicate] names the set {wont_fix} —
+// one element, because B6 already denies the bare stock label any authority.
+// One is not zero, so B4's guard is unreachable on this input and cannot
+// subsume A5. Complementary, not overlapping.
+//
+// If this test starts failing with an empty set, the two fixes have begun
+// overlapping and the reasoning in both logs needs revisiting.
+func TestF7Cell_IsNonEmptyOnBothSidesSoTheEmptySetGuardCannotFire(t *testing.T) {
+	ctx := context.Background()
+
+	fake := newFakeIssueRepo(t, "ft:stage/wont_fix", "duplicate")
+	fake.registerLabel("duplicate")
+	s := fake.store()
+
+	tk := &ent.Task{Stage: task.StageAccepted, Labels: []string{"ft:stage/wont_fix", "duplicate"}}
+
+	stages := s.LifecycleStages(ctx, tk)
+	if len(stages) == 0 {
+		t.Fatalf("the F7 input now yields an EMPTY lifecycle stage set. That makes it " +
+			"leg B's empty-set guard's problem as well as this leg's, and the " +
+			"\"complementary, not overlapping\" conclusion recorded in both round-6 " +
+			"logs is no longer true")
+	}
+	if len(stages) != 1 || stages[0] != task.StageWontFix {
+		t.Errorf("LifecycleStages = %v, want exactly [wont_fix]: the bare stock "+
+			"\"duplicate\" must contribute nothing (B6), and ft:stage/wont_fix must "+
+			"contribute exactly itself", stages)
+	}
+
+	// The other half of the seam: the delta reader, on the delta this update
+	// actually performs. After A5 the swap is a no-op, so both endpoints are
+	// the same non-empty set -- allowed, and harmless, which is the point.
+	add, remove := s.mapper.StageLabelSwap(tk.Labels, task.StageWontFix)
+	before, after := s.LabelDeltaLifecycleStages(ctx, tk, add, remove)
+	if len(before) == 0 || len(after) == 0 {
+		t.Fatalf("LabelDeltaLifecycleStages returned an empty side (before=%v after=%v); "+
+			"same conclusion as above, revisit both logs", before, after)
+	}
+	if len(add) != 0 || len(remove) != 0 {
+		t.Errorf("after A5 this update should be a label no-op, got add=%v remove=%v",
+			add, remove)
 	}
 }
 
