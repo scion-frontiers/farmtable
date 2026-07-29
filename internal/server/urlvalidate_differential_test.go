@@ -522,10 +522,42 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 		"external_ref": "a beads cross-system reference. NOT a URL by construction -- beads " +
 			"writes an opaque \"system:id\" token -- but this is the closest call in the " +
 			"list, and if a beads deployment ever puts a URL there the name will not say so",
-		"metadata": "an opaque json.RawMessage blob of platform payload. Not walked by " +
-			"sanitizeRemoteData: structpb.NewStruct cannot represent json.RawMessage " +
-			"either, so it never reaches the wire at all (same mechanism as " +
-			"TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident)",
+		// THE REASON THIS ENTRY USED TO GIVE WAS TRUE ON ONE PATH AND FALSE ON THE
+		// OTHER, AND THE PATH IT WAS FALSE ON IS THE ONE THAT PERSISTS. It said:
+		// "an opaque json.RawMessage blob... Not walked by sanitizeRemoteData:
+		// structpb.NewStruct cannot represent json.RawMessage either, so it never
+		// reaches the wire at all." Both clauses hold only BEFORE a store round-trip.
+		//
+		// beads is a SYNC adapter, not a passthrough store: BeadsAdapter holds a
+		// store.Store (beads.go:77) and writes through it (beads.go:124, :130) with
+		// RemoteData: buildRemoteData(...) (:199, :238), which sets
+		// rd["metadata"] = json.RawMessage(issue.Metadata) (:421-422). remote_data is
+		// a field.TypeJSON column (ent/migrate/schema.go:87) read back into
+		// map[string]interface{} (ent/task.go:60). json.RawMessage implements
+		// json.Marshaler and emits its bytes verbatim, so it is stored as raw JSON
+		// and NOT as a base64 string; on read-back it therefore decodes to whatever
+		// generic type the payload describes -- map[string]any, []any, or a scalar.
+		// (That last step is reasoned from the stdlib contract, not measured here.)
+		//
+		// So on the beads path both clauses invert: the value IS walked, by the
+		// map[string]any case at urlvalidate.go:316, and it IS representable, so it
+		// DOES reach the wire. Only on an un-persisted, in-memory value is it still
+		// a json.RawMessage that falls to the default arm and blocks NewStruct.
+		//
+		// THE EXEMPTION ITSELF IS UNCHANGED AND STILL CORRECT, for a reason that is
+		// now the stated one rather than an accident: "metadata" is not a URL-bearing
+		// key by name, and on the path where the payload does reach the wire the
+		// sanitizer recurses into it and classifies ITS keys at depth, so a
+		// URL-bearing key nested inside metadata is validated on its own name rather
+		// than shielded by its parent's. Past maxRemoteDataDepth the walk drops the
+		// subtree (urlvalidate.go:270-272), which is the fail-closed direction.
+		"metadata": "an opaque platform payload blob, not URL-bearing by name. beads " +
+			"writes it as json.RawMessage (beads.go:421); that form is neither walked " +
+			"nor structpb-representable, but beads PERSISTS through the ent store, and " +
+			"after the field.TypeJSON round-trip the value decodes to plain " +
+			"map[string]any/[]any and both of those facts reverse. It is exempt " +
+			"because of its NAME, not because it cannot reach the wire -- on the " +
+			"persisted path it can, and the depth walk classifies its nested keys",
 	}
 
 	// Nested keys are held to a stricter rule than top-level ones: they may not
