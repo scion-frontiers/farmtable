@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -116,7 +115,7 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	}
 	bootstrapConn.Close()
 
-	subFS, err := fs.Sub(farmtable.WebAssets, "web/dist")
+	subFS, err := farmtable.WebUI()
 	if err != nil {
 		return fmt.Errorf("creating sub-filesystem: %w", err)
 	}
