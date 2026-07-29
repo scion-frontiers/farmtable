@@ -46,8 +46,11 @@ test: test-go test-web
 test-go:
 	go test ./...
 
+# CANARY ONLY - NEVER MERGE. Points test-web at a script that does not exist,
+# so `make test` fails at the second suite. Every earlier CI step invokes the
+# suites directly rather than through make, so this is invisible to all of them.
 test-web: web-deps
-	cd web && npm test
+	cd web && npm run test:canary-does-not-exist
 
 # Run only the tests affected by the current change. Works from a dirty tree.
 # scripts/test-changed.sh documents exactly what this does and does not cover;
