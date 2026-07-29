@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -44,6 +45,20 @@ func authCtx(token string) context.Context {
 	return metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token)
 }
 
+// defaultScopes resolves a recognised user type's default scopes, and fails the
+// test if the vocabulary ever stops containing that type. Fixtures route
+// through this helper so that a token minted for a known type always carries
+// the scopes that type is supposed to have, rather than relying on an empty
+// scope set being read as wildcard.
+func defaultScopes(t *testing.T, userType string) []string {
+	t.Helper()
+	scopes := server.DefaultScopesForUserType(userType)
+	if len(scopes) == 0 {
+		t.Fatalf("DefaultScopesForUserType(%q) yielded no scopes", userType)
+	}
+	return scopes
+}
+
 // ── RequireScope unit tests ──
 
 func TestRequireScope_WildcardAllows(t *testing.T) {
@@ -59,24 +74,34 @@ func TestRequireScope_WildcardAllows(t *testing.T) {
 	}
 }
 
-func TestRequireScope_NilScopesIsWildcard(t *testing.T) {
+// Until 2026-07-29 this test was named TestRequireScope_NilScopesIsWildcard and
+// asserted that a nil scope set ALLOWED everything. That assertion was the bug,
+// not a description of it: an absent scope set is a principal that holds no
+// scopes, and it must grant nothing.
+func TestRequireScope_NilScopesDenied(t *testing.T) {
 	ctx := context.Background()
 	ctx = server.ContextWithAuthEnforced(ctx)
-	// No scopes set = nil = wildcard behavior
+	// No scopes set at all: the principal holds nothing.
 
-	if err := server.RequireScope(ctx, server.ScopeTaskRead); err != nil {
-		t.Fatalf("nil scopes should be treated as wildcard, got: %v", err)
+	err := server.RequireScope(ctx, server.ScopeTaskRead)
+	if err == nil {
+		t.Fatal("nil scopes must grant nothing, got allow")
 	}
+	assertPermissionDenied(t, err, "nil scopes")
 }
 
-func TestRequireScope_EmptyScopesIsWildcard(t *testing.T) {
+// Until 2026-07-29 this test was named TestRequireScope_EmptyScopesIsWildcard
+// and asserted the opposite. See TestRequireScope_NilScopesDenied.
+func TestRequireScope_EmptyScopesDenied(t *testing.T) {
 	ctx := context.Background()
 	ctx = server.ContextWithAuthEnforced(ctx)
 	ctx = server.ContextWithScopes(ctx, []string{})
 
-	if err := server.RequireScope(ctx, server.ScopeTaskRead); err != nil {
-		t.Fatalf("empty scopes should be treated as wildcard, got: %v", err)
+	err := server.RequireScope(ctx, server.ScopeTaskRead)
+	if err == nil {
+		t.Fatal("empty scopes must grant nothing, got allow")
 	}
+	assertPermissionDenied(t, err, "empty scopes")
 }
 
 func TestRequireScope_SpecificScopeAllows(t *testing.T) {
@@ -177,7 +202,7 @@ func TestDefaultScopesForUserType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.userType, func(t *testing.T) {
-			got := server.DefaultScopesForUserType(tt.userType)
+			got := defaultScopes(t, tt.userType)
 			if len(got) != len(tt.expected) {
 				t.Fatalf("DefaultScopesForUserType(%q) = %v, want %v", tt.userType, got, tt.expected)
 			}
@@ -211,8 +236,11 @@ func TestScopedToken_WildcardAllowsEverything(t *testing.T) {
 	s, storeCleanup := testutil.NewTestStore(t)
 	defer storeCleanup()
 
-	// Create wildcard-scoped token (nil scopes = wildcard)
-	_, rawToken := createTestUserAndToken(t, s, "admin", nil, nil)
+	// Grant the wildcard explicitly. Until 2026-07-29 this passed nil here and
+	// relied on "nil scopes = wildcard", so despite its name it never exercised
+	// a wildcard token at all — it exercised the empty-set escalation, and would
+	// have kept passing if the wildcard match in RequireScope were deleted.
+	_, rawToken := createTestUserAndToken(t, s, "admin", []string{server.ScopeWildcard}, nil)
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
@@ -235,11 +263,18 @@ func TestScopedToken_WildcardAllowsEverything(t *testing.T) {
 	}
 }
 
-func TestScopedToken_ExistingTokenNilScopesIsWildcard(t *testing.T) {
+// Until 2026-07-29 this test was named
+// TestScopedToken_ExistingTokenNilScopesIsWildcard and asserted that a token
+// carrying no scopes was allowed through every scoped RPC. It passed, green, for
+// the whole life of the escalation — a named test certifying that the
+// vulnerability was intended behaviour. It is inverted rather than deleted so
+// that the invariant keeps a test carrying its name.
+func TestScopedToken_ExistingTokenNilScopesDenied(t *testing.T) {
 	s, storeCleanup := testutil.NewTestStore(t)
 	defer storeCleanup()
 
-	// Simulate existing token without scopes (pre-RBAC migration)
+	// A token predating the scope vocabulary, or minted for an unrecognised
+	// user type: the row simply has no scopes.
 	_, rawToken := createTestUserAndToken(t, s, "human", nil, nil)
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
@@ -247,12 +282,23 @@ func TestScopedToken_ExistingTokenNilScopesIsWildcard(t *testing.T) {
 
 	ctx := authCtx(rawToken)
 
-	// Existing tokens with nil scopes should work as wildcard
-	if _, err := client.ListCollections(ctx, &pb.ListCollectionsRequest{}); err != nil {
-		t.Fatalf("nil-scoped token should act as wildcard: %v", err)
+	_, err := client.ListCollections(ctx, &pb.ListCollectionsRequest{})
+	if err == nil {
+		t.Fatal("nil-scoped token must be denied ListCollections, got allow")
 	}
-	if _, err := client.ListUsers(ctx, &pb.ListUsersRequest{}); err != nil {
-		t.Fatalf("nil-scoped token should act as wildcard: %v", err)
+	assertPermissionDenied(t, err, "ListCollections")
+
+	_, err = client.ListUsers(ctx, &pb.ListUsersRequest{})
+	if err == nil {
+		t.Fatal("nil-scoped token must be denied ListUsers, got allow")
+	}
+	assertPermissionDenied(t, err, "ListUsers")
+
+	// The ruling requires the denial to be discoverable, so the message must
+	// name the scope that was refused rather than failing blank.
+	if !strings.Contains(err.Error(), server.ScopeUserRead) {
+		t.Errorf("denial must name the required scope %q, got: %v",
+			server.ScopeUserRead, err)
 	}
 }
 
@@ -530,6 +576,11 @@ func TestCreateAPIToken_NoScopes(t *testing.T) {
 		t.Fatalf("creating user: %v", err)
 	}
 
+	// Deliberately scope-less. This is a storage assertion, not an
+	// authorization one: the store still accepts a row with no scopes, and an
+	// omitted set still round-trips as empty rather than as something else.
+	// Enforcement happens at RequireScope, not here. A future sweep for
+	// scope-less mints will flag this line; leaving it is correct.
 	tok, _, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "legacy-token",
@@ -661,7 +712,7 @@ func assertFailedPrecondition(t *testing.T, err error, context string) {
 func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	triaged := createLifecycleTask(t, client, adminCtx, collID, "needs accepting", nil)
@@ -709,7 +760,7 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	triaged := createLifecycleTask(t, client, adminCtx, collID, "launder me", nil)
@@ -749,7 +800,7 @@ func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
 func TestScopedToken_AgentCannotCreateInAcceptedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 
 	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
 		Name:         "born accepted",
@@ -766,7 +817,7 @@ func TestScopedToken_AgentCannotCreateInAcceptedStage(t *testing.T) {
 func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 
 	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
 		Name:         "born closed",
@@ -783,7 +834,7 @@ func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
 func TestScopedToken_ReviewerCanCreateInAcceptedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 
 	created, err := client.CreateTask(authCtx(reviewerToken), &pb.CreateTaskRequest{
 		Name:         "reviewer created",
@@ -802,7 +853,7 @@ func TestScopedToken_ReviewerCanCreateInAcceptedStage(t *testing.T) {
 func TestScopedToken_AgentCannotClose(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	working := createClaimedLifecycleTask(t, client, adminCtx, collID, "agent work")
@@ -829,7 +880,7 @@ func TestScopedToken_AgentCannotClose(t *testing.T) {
 func TestScopedToken_AgentCanClaimAcceptedTask(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	accepted := createLifecycleTask(t, client, adminCtx, collID, "alaccepted accepted",
@@ -864,7 +915,7 @@ func TestRPC_ClaimTask_RejectsTriageStage(t *testing.T) {
 	assertFailedPrecondition(t, err, "ClaimTask from triage (admin)")
 
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 	reviewerCtx := authCtx(reviewerToken)
 
 	_, err = client.ClaimTask(reviewerCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
@@ -890,7 +941,7 @@ func TestScopedToken_ReviewerFullLifecycle(t *testing.T) {
 		t.Run(userType, func(t *testing.T) {
 			client, adminCtx, collID, s := lifecycleFixture(t)
 			_, token := createTestUserAndToken(t, s, userType,
-				server.DefaultScopesForUserType(userType), nil)
+				defaultScopes(t, userType), nil)
 			ctx := authCtx(token)
 
 			task := createLifecycleTask(t, client, adminCtx, collID, "full lifecycle", nil)
@@ -940,7 +991,7 @@ func TestScopedToken_ReviewerFullLifecycle(t *testing.T) {
 func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	closedTask := createClaimedLifecycleTask(t, client, adminCtx, collID, "closed work")
@@ -958,7 +1009,7 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	assertPermissionDenied(t, err, "UpdateTask completed → accepted")
 
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 	reopened, err := client.UpdateTask(authCtx(reviewerToken), &pb.UpdateTaskRequest{
 		Id:    closedTask.GetId(),
 		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
@@ -971,23 +1022,35 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	}
 }
 
-// Legacy nil-scoped tokens keep working against the new scopes.
-func TestScopedToken_LegacyNilScopesKeepLifecycleAccess(t *testing.T) {
+// Legacy nil-scoped tokens lose lifecycle access. This is sudden blocking and it
+// is intended: the ruling forbids a grace period or a grandfather list, so a
+// pre-vocabulary token is denied at its next call and the operator re-issues it.
+//
+// Until 2026-07-29 this test was named
+// TestScopedToken_LegacyNilScopesKeepLifecycleAccess and asserted that such
+// tokens kept full lifecycle rights. Its old name encoded the grandfather clause
+// the ruling forbids, so the name had to change with the behaviour.
+func TestScopedToken_LegacyNilScopesLoseLifecycleAccess(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, legacyToken := createTestUserAndToken(t, s, "human", nil, nil)
 	legacyCtx := authCtx(legacyToken)
 
 	task := createLifecycleTask(t, client, adminCtx, collID, "legacy lifecycle", nil)
 
-	if _, err := client.UpdateTask(legacyCtx, &pb.UpdateTaskRequest{
+	_, err := client.UpdateTask(legacyCtx, &pb.UpdateTaskRequest{
 		Id:    task.GetId(),
 		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
-	}); err != nil {
-		t.Fatalf("legacy token should be able to accept: %v", err)
+	})
+	if err == nil {
+		t.Fatal("legacy nil-scoped token must be denied accept, got allow")
 	}
-	if _, err := client.CloseTask(legacyCtx, &pb.CloseTaskRequest{Id: task.GetId()}); err != nil {
-		t.Fatalf("legacy token should be able to close: %v", err)
+	assertPermissionDenied(t, err, "legacy accept")
+
+	_, err = client.CloseTask(legacyCtx, &pb.CloseTaskRequest{Id: task.GetId()})
+	if err == nil {
+		t.Fatal("legacy nil-scoped token must be denied close, got allow")
 	}
+	assertPermissionDenied(t, err, "legacy close")
 }
 
 // ── Helpers ──

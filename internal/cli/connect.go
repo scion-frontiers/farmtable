@@ -212,9 +212,15 @@ func ensureLocalUser(ctx context.Context, s *store.EntStore, token string) error
 		return fmt.Errorf("creating local user: %w", err)
 	}
 
+	// The embedded server runs behind the enforcing auth interceptor
+	// (see startEmbedded), so this token must carry its grant explicitly.
+	// It previously stored no scopes and relied on empty being read as
+	// wildcard; that reading is gone. This is the local operator's own
+	// token on their own database — the grant is unchanged, only stated.
 	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "local-embedded",
+		Scopes: []string{server.ScopeWildcard},
 	})
 	if err != nil {
 		return fmt.Errorf("creating local token: %w", err)

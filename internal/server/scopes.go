@@ -48,8 +48,10 @@ func ContextWithScopes(ctx context.Context, scopes []string) context.Context {
 	return context.WithValue(ctx, scopesKey, scopes)
 }
 
-// ScopesFromContext retrieves the token scopes from the context.
-// Returns nil if no scopes are set (wildcard/legacy token).
+// ScopesFromContext retrieves the token scopes held by the authenticated
+// principal. An empty result means the principal HOLDS NO SCOPES, which grants
+// nothing. It has never meant "unrestricted" and must not be read that way; see
+// RequireScope for the sense analysis.
 func ScopesFromContext(ctx context.Context) []string {
 	scopes, _ := ctx.Value(scopesKey).([]string)
 	return scopes
@@ -67,10 +69,25 @@ func CollectionIDsFromContext(ctx context.Context) []uuid.UUID {
 	return ids
 }
 
-// RequireScope checks whether the authenticated token has the given scope.
-// Nil scopes (legacy tokens / no scopes set) are treated as wildcard and
-// pass all checks. The wildcard scope "*" also passes all checks.
-// Returns codes.PermissionDenied if the scope is missing.
+// RequireScope checks whether the authenticated token holds the given scope.
+// The wildcard scope "*" passes all checks. Returns codes.PermissionDenied if
+// the scope is missing.
+//
+// An empty scope set means the principal HOLDS NO SCOPES and is therefore
+// denied everything. It does NOT mean "this endpoint requires no scopes": that
+// sense is expressed by not calling RequireScope at all, and — for RPCs exempt
+// from authentication entirely — by isUnauthenticatedEndpoint in auth.go, a
+// switch over method names. The `scope` parameter here is a single non-empty
+// string, never a list, so the two senses share no representation and denying
+// on empty cannot affect an endpoint that legitimately requires nothing.
+//
+// This is the single point at which a held scope set is read for an
+// authorization decision. scopesKey is an unexported constant of the unexported
+// type contextKey, so no package outside internal/server can install a scope
+// set, and ScopesFromContext is the only reader of it. The invariant "an empty
+// or unrecognised permission set is never permission for everything" is
+// therefore established here for every caller, present and future, rather than
+// at each site that can produce an empty set.
 func RequireScope(ctx context.Context, scope string) error {
 	// If auth is not enforced (open-access mode), allow everything.
 	if ctx.Value(authEnforcedKey) == nil {
@@ -79,9 +96,17 @@ func RequireScope(ctx context.Context, scope string) error {
 
 	scopes := ScopesFromContext(ctx)
 
-	// nil/empty scopes = wildcard (backward compatible with existing tokens)
+	// An empty scope set grants nothing. A live token reaches this state when
+	// it was minted for a user type the scope table does not recognise, or
+	// before the scope vocabulary existed. Both are bugs in the account, so the
+	// denial is logged loudly: a silent denial would replace an invisible
+	// privilege escalation with an invisible outage.
 	if len(scopes) == 0 {
-		return nil
+		logEmptyScopeSetDenial(ctx, scope)
+		return status.Errorf(codes.PermissionDenied,
+			"token holds no scopes; %q denied. An empty scope set grants nothing. "+
+				"Check the account's user type and re-issue the token with explicit scopes",
+			scope)
 	}
 
 	for _, s := range scopes {
@@ -93,10 +118,32 @@ func RequireScope(ctx context.Context, scope string) error {
 	return status.Errorf(codes.PermissionDenied, "missing required scope %q", scope)
 }
 
+// logEmptyScopeSetDenial reports an empty-scope-set denial in a form an
+// operator can act on: the account that was blocked, and the scope it was
+// blocked on. The offending user type is not carried in the request context, so
+// the message names the command that reveals it.
+func logEmptyScopeSetDenial(ctx context.Context, scope string) {
+	userID := "<unknown>"
+	if id, ok := UserIDFromContext(ctx); ok {
+		userID = id.String()
+	}
+	log.Printf("SECURITY: empty scope set denied — user=%s required_scope=%q. "+
+		"This token grants nothing. Inspect the account's user type with "+
+		"`ft user get %s`, then re-issue the token with explicit scopes.",
+		userID, scope, userID)
+}
+
 // RequireCollectionAccess checks whether the token is authorized to access
 // the given collection. If the token has no collection restrictions (nil/empty
 // CollectionIDs), access is allowed to all collections. Otherwise the target
 // collection must appear in the allowed list.
+//
+// Deliberately NOT symmetric with RequireScope. CollectionIDs is a RESTRICTION
+// list, where empty correctly means "unrestricted"; scopes are a GRANT list,
+// where empty correctly means "nothing". The two look alike and mean opposite
+// things, so do not "fix" this one by analogy with the other. Nothing derives
+// CollectionIDs from the user type, so an unrecognised type cannot reach a
+// wildcard through this function.
 func RequireCollectionAccess(ctx context.Context, collectionID uuid.UUID) error {
 	// If auth is not enforced (open-access mode), allow everything.
 	if ctx.Value(authEnforcedKey) == nil {
