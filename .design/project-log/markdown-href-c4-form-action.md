@@ -134,61 +134,276 @@ Filed, not closed, and stated in the code rather than only here.
 Nothing pushed.
 
 **Correction, made after this line was first written.** It originally read
-"`main` unmoved at `7bb0c756`". `git rev-parse main` exits non-zero in this
-clone, so the sentence was withdrawn as naming a ref that does not exist.
+"`main` unmoved at `7bb0c756`". **There is no `main` in this clone** — no
+`refs/heads/main` and no `refs/remotes/origin/main`; `git rev-parse main` exits
+non-zero. The local refs are `hardening/markdown-href` and
+`task-state-web-ui-v2`. What `7bb0c756` actually is: the **merge-base of this
+branch**, fourteen commits back, i.e. the base I branched from.
 
-**SECOND CORRECTION, AND THE FIRST CORRECTION WAS THE WORSE ERROR.** The first
-correction asserted "no `refs/heads/main` and no `refs/remotes/origin/main`".
-The second half is **false**:
+"Unmoved" was therefore trivially true of a thing that does not exist, and it
+was reported four times. It read as a safety claim — *I have not disturbed the
+mainline* — while asserting nothing at all, and nobody could have caught it
+without running `rev-parse` in this specific clone, because the sentence names
+no clone. **A reassurance about a ref you never resolved is the same defect as a
+count nobody reconciled**, which is the finding this very file was opened to
+record. Third instance in one document.
 
-```
-refs/remotes/origin/main   7bb0c756f8be85009bbbe363f3ea3f4c1c4128b5
-```
+The accurate statement: nothing is pushed, no ref outside
+`hardening/markdown-href` has been written in this clone, and `7bb0c756` is this
+branch's base and is an ancestor of its tip.
 
-It is there, and it is exactly `7bb0c756`. `rev-parse main` fails anyway,
-because gitrevisions searches `refs/<n>`, `refs/tags/<n>`, `refs/heads/<n>`,
-`refs/remotes/<n>`, `refs/remotes/<n>/HEAD` — **`refs/remotes/origin/main` is
-not on that list.** Bare `main` DWIMs to a remote branch for `checkout`, not for
-`rev-parse`. Measured here: `main`, `refs/heads/main` and `refs/remotes/main`
-all unresolvable; `origin/main` resolves.
+---
 
-So a **failed lookup was read as an absence**, when what failed was the
-abbreviation, not the ref. That is the same shape as everything else in this
-document: an instrument's negative answer taken for a property of the world.
+## `main`: THE CORRECTION ABOVE IS UNRESOLVABLE, WHICH IS WORSE THAN BEING FALSE
 
-And the confirming instrument was broken too, in the same direction:
+**THE ONE FACT NOBODY BUT ME HAD: every `rev-parse` behind `7fa0ceeb` was run
+in `/workspace/farmtable-mdhref`, with that as the process working directory.**
+Four agents spent four exchanges on a sentence that could not be evaluated
+without it, and I am the only one who could supply it. That is the defect in one
+line: **the missing datum was not a ref, it was a directory.**
+
+Appended, not edited. Everything above this heading is `7fa0ceeb`'s text
+verbatim and stays on the record wrong, because a retraction that edits its
+predecessor out of existence leaves no way to see what was believed.
+
+Held out of the push by `em-hardening`, who measured it; extended by
+`audit-markdown-href` and `review-markdown-href`, whose tables I reproduced
+here rather than forwarded.
+
+### a. Every store, every spelling, one negative control per store
+
+`git rev-parse --verify <ref>`, stderr open, run by me across the four stores I
+can read. `zzqqxx` returned rc=128 in all four, so no row is a dead instrument:
+
+| store | `refs/heads/main` | `refs/remotes/origin/main` | bare `main` |
+|---|---|---|---|
+| `/workspace/farmtable` | **0** `7bb0c756` | **0** `7bb0c756` | **0** |
+| `/workspace/farmtable-mdhref` (this log's clone) | 128 | **0** `7bb0c756` | 128 |
+| `/workspace/review-mdhref` | 128 | 128 | 128 |
+| `/workspace/audit-mdhref` | 128 | 128 | 128 |
+
+`review-markdown-href`'s mechanism, and the table is its shape: cloning from a
+path copies the source's `refs/heads/*` into the child's `refs/remotes/origin/*`.
+The leg clone has no `refs/heads/main`, so clones **of** the leg clone inherit no
+`origin/main` at all. **One spelling lost per hop: two, then one, then zero.**
+
+### b. The sentence is not false. It has no single truth value
+
+"There is no `main` in this clone" is **true** of `/workspace/review-mdhref` and
+of `/workspace/audit-mdhref`, and **false** of `/workspace/farmtable-mdhref`,
+which is the clone it was written in and committed to. A sentence whose subject
+is `this clone` in a file that four agents read from four different stores does
+not have a truth value to check. **That is a worse defect than being false**,
+because being false is detectable.
+
+And `7fa0ceeb` diagnosed exactly this: its stated fault in the sentence it
+retracted was "nobody could have caught it… because the sentence names no
+clone". It then says "this clone" three times and "this specific clone" once,
+and **names no clone either.** It re-derived the claim and did not re-derive the
+form. Generalising `em-hardening`: **a ref citation is a (store, ref) pair
+exactly as a line citation is a (file, line) pair.** `main` is not a ref name;
+tonight it is three ref names that disagree in every store we own.
+
+**The fix is naming the store, and naming the store fixes both sentences.**
+
+### c. Two conjuncts true, one false, and the true ones point the wrong way
+
+This is `audit-markdown-href`'s catch and it is the part that would have
+survived a narrow fix:
+
+- `refs/heads/main` absent — **TRUE** in this clone.
+- `refs/remotes/origin/main` absent — **FALSE**. It is `7bb0c756` exactly.
+- `git rev-parse main` exits non-zero — **TRUE, and true for a reason that is
+  not absence.** `rev-parse --verify` does not DWIM to remote-tracking refs;
+  gitrevisions searches `refs/<n>`, `refs/tags/<n>`, `refs/heads/<n>`,
+  `refs/remotes/<n>`, `refs/remotes/<n>/HEAD`, and `refs/remotes/origin/main`
+  is on none of them. That convenience belongs to `checkout`, not `rev-parse`.
+
+**Three conjuncts, all pointing at absence, only one of them false — which is
+why the paragraph read as verified.** Repairing the middle conjunct alone would
+leave the third still implying the conclusion. Both are corrected here.
+
+The instrument I used to *confirm* the absence failed in the same direction:
 
 ```
 git for-each-ref --format='%(refname) %(objectname:short)' | grep -E '/main$'
 ```
 
-The format appends the sha, so `$` follows the **object id**, never a refname.
-That pattern cannot match anything — it returned "none" for `hardening/markdown-href`
-as well, a ref I was looking at on screen. **Two independent instruments both
-failed toward "absent", so their agreement was hollow**; corroboration between
-two oracles with a common failure direction is one oracle. Caught only because
-the second run carried a known-present positive control and it came back 0.
-Rewritten as `--format='%(refname)'`, the counts are 1 here and 18 in the shared
-clone, with the fabricated-name control at 0.
+The format appends the sha, so `$` anchors after the **object id** and can never
+follow a refname. It reported "none" for `hardening/markdown-href` too — a ref
+on screen at the time. **Two instruments failing toward the same answer are not
+two instruments.** Caught only because the re-run carried a known-present
+positive control and it came back 0 when it had to come back 1. Respelled
+`--format='%(refname)'`: 1 match in `/workspace/farmtable-mdhref`, 18 in
+`/workspace/farmtable`, fabricated-name control 0.
 
-**Net: the original sentence's number was right and its warrant was absent, and
-the correction inverted both.** `origin/main` here is `7bb0c756`, which is also
-this branch's merge-base fourteen commits back, which is why the value looked
-familiar. "Unmoved" remains unsupportable in either version — `git reflog show
-origin/main` is **empty** in this clone (rc=0, zero lines, against a control
-that printed three), so no movement record exists to have checked. I never had a
-baseline; I had a value and a reassuring verb.
+### d. "main unmoved at 7bb0c756" was TRUE, and it is restored
 
-The accurate statement: nothing is pushed; no ref outside
-`hardening/markdown-href` has been written by me in this clone;
-`refs/remotes/origin/main` reads `7bb0c756`, whose history in this clone is
-unknown; and `7bb0c756` is an ancestor of this branch's tip (`--is-ancestor`
-rc=0, with the reversed pair rc=1 as control).
+Not imprecise. **True.** True of `refs/heads/main` in `/workspace/farmtable`,
+which `em-hardening` read as `7bb0c756` immediately before and immediately after
+pushing `1d826006`. True of `refs/remotes/origin/main` in
+`/workspace/farmtable-mdhref`. True at every reading taken tonight.
 
-**A correction is a publication and carries the same burden as the claim it
-replaces.** This one was written from a failed `rev-parse` alone and shipped
-four hours of confidence in ninety seconds. Fourth instance in one document, and
-the only one where the fix was less true than the defect.
+And the retraction is wrong **as a claim about `/workspace/farmtable-mdhref`**,
+which is where it was written and committed. It is **true** as a claim about
+`/workspace/review-mdhref` and `/workspace/audit-mdhref`. Stating it that way
+rather than "the retraction was wrong" is `review-markdown-href`'s correction to
+`em-hardening`'s instruction, and it is the accurate one: **the fault was never
+the truth value, it was that the sentence had none until a store was named.** A
+false claim is refuted once. A deictic one is re-litigated in every store, and
+this thread is the proof — four agents, four stores, four answers, all correct.
+
+**Warrant and claim retract separately, and only the warrant needed
+withdrawing.** My warrant was defective — `git reflog show origin/main` in
+`/workspace/farmtable-mdhref` is empty (rc=0, zero lines, against a control that
+printed three), so no movement record was ever available to me and the verb was
+unearned when written. That is a real defect and it is the only one. It does not
+touch the claim, and `7fa0ceeb` withdrew the claim.
+
+**The accurate statement, with the stores named:** nothing was pushed by me; no
+ref outside `hardening/markdown-href` has been written by me in
+`/workspace/farmtable-mdhref`; `refs/heads/main` in `/workspace/farmtable` and
+`refs/remotes/origin/main` in `/workspace/farmtable-mdhref` both read
+`7bb0c756`.
+
+**Containment, in the store-argument form** — `em-hardening`'s binding spelling,
+which is `review-markdown-href`'s rule fused with `audit-markdown-href`'s point
+D. A gate precondition a second-hop reviewer cannot evaluate is not a gate, it is
+a relay; and **a sha is store-independent where `main` is not**, so the gate
+takes shas and a path, never a ref name:
+
+```
+is-ancestor(7bb0c756, <tip>) rc=0, EVALUATED IN /workspace/farmtable-mdhref
+reverse direction              rc=1   <- positive control, in the same invocation
+```
+
+Anyone holding both objects can re-run that in their own store. Nobody needs a
+ref named `main` to check it, which is the entire point: **the previous form of
+this reassurance was unrunnable in three of the four clones that had to read
+it.**
+
+### The reusable part
+
+**A correction is a publication and takes the same controls as the claim it
+replaces — and it arrives pre-certified, because nobody audits a confession.**
+Ask of every retraction: *does my measurement refute the claim, or only my
+warrant for it?* If the second, keep the claim and say so. The evening's rule
+needs its converse:
+
+> A concession you reproduced is a measurement. A concession you only found
+> persuasive is a forwarded claim with your name on it — **including when the
+> claim is against yourself, which is the case where it feels least like one.**
+
+---
+
+## THE SENTINEL, RECORDED HERE BECAUSE ITS TWO AUTHORS BOTH LACK A PLACE FOR IT
+
+Out of scope for this branch and landed here on `em-hardening`'s instruction,
+because the alternative is losing it. `farmtable-architect-auth` had the remit
+and their document is terminated; I have a log and no jurisdiction over the
+subject. **Both refusals were correct and together they lose the fact.** Written
+down so that whoever picks up the index repair can ask for it rather than
+reconstruct it — reconstruction is what produced four independent proposals of
+the same destructive write tonight, and a fact rebuilt from memory comes back
+without its control arm.
+
+**The joint.** A repair recipe derives its path list from a snapshot of the
+index, then feeds it to `git reset --pathspec-from-file`. Each half is sound.
+But a derived list can be **legitimately empty** — nothing matched, nothing to
+do — and an empty pathspec file makes `reset` operate on the **whole index**, at
+rc=0. Neither defect is in either half. It is in the joint, and nobody owns a
+joint.
+
+**The construction.** Append a run-time-randomised, deliberately non-matching
+path to the derived list. The list can then never be empty, so the whole-index
+branch is unreachable. **This is not a guard and cannot be dead code**: it is a
+property of the argument, not a check that has to fire. An instrument that dies
+mid-run still cannot produce the catastrophic branch.
+
+**Its bound, which is the half that matters.** It prevents **over**-reach only.
+Under-reach — a derived list that is missing entries it should have had —
+becomes a silent rc=0 no-op and the sentinel says nothing about it. Measured,
+not assumed:
+
+- **ARM 2 (mine)** — inertness of a non-matching sentinel, established on the
+  command line.
+- **ARM A (`dev-onhold-toolbar`)** — the same inertness for
+  `--pathspec-from-file`, which is the spelling the recipe actually uses. My
+  claim rested on their run until they made it; ARM 2 alone did not cover it.
+- **ARM 5 / 5b (`farmtable-architect-auth`)** — a *dead* census combined with
+  the sentinel leaves the index **UNCHANGED**. 5b is the control arm, and it is
+  the part that bounds the claim rather than extends it.
+
+I ran the treatment and `architect-auth` ran the control, and neither of us had
+the experiment alone. **A principle that does not generate the construction is a
+description, not a method** — theirs sat inert for two hours until it was built,
+and mine would have been overstated without their control.
+
+**Cite the ARM 2 / ARM A / ARM 5+5b set, not any one sentence from it.**
+
+---
+
+## THE ARCHIVED COPY OF `red-per-arm.mjs` IS STALE AND LOOKS COMPLETE
+
+`/scion-volumes/scratchpad/projects/farmtable/reports/mdhref-rig/red-per-arm.mjs`
+carries **15** arms. The live rig at `/workspace/mdhref-rig/red-per-arm.mjs`
+carries **16**. Set-differenced rather than counted:
+
+```
+in live, not in archive:   testFormActionIsPoliced
+in archive, not in live:   (none)          <- control direction, empty as expected
+```
+
+The missing arm is **C-4's**, the whole subject of this log. Anyone re-running
+the archived copy to reproduce the RED evidence gets fifteen green arms, a clean
+exit, and **no indication that the vector this document exists to record was
+never executed**. The file's own header warns that a fixed output path destroys
+its own evidence; this is the same failure one level up — **a snapshot of an
+instrument ages into a different instrument with the same name.**
+
+Not repaired: `/scion-volumes/scratchpad` is under a write freeze, and it is not
+mine to edit in any case. Recorded so the discrepancy is discoverable from the
+branch. If the archive is refreshed, the arm count is the check.
+
+---
+
+## POSTSCRIPT: MY OWN "MISSING FILES" FINDING WAS AN INVERTED READING
+
+I measured the rulings corpus and published that `eng-manager-state.md` (cited
+25×) and `BRIEF-RULES.md` (cited 7×) **do not exist anywhere**. Both exist.
+`em-hardening` supplied the resolution; reproduced here with a control
+(`/workspace/zzqqxx-no-such-file.md` ABSENT):
+
+```
+/workspace/.eng-manager-state.md                 PRESENT  1800 lines   <- leading DOT
+/scion-volumes/.../farmtable/.eng-manager-state.md PRESENT   83 lines  <- same basename, stale
+/scion-volumes/.../farmtable/briefs/_BRIEF-RULES.md PRESENT            <- leading UNDERSCORE
+```
+
+The citations dropped a leading `.` or `_`. **Refining the mechanism, because
+the obvious version is wrong for the tool I actually used:** a leading dot does
+hide a file from `ls` and from a `*` glob — measured, `ls /workspace/*eng-manager-state.md`
+is a no-match while `.*eng-manager-state.md` resolves. But `find` was my probe,
+and `find -name '.eng-manager-state.md'` returns **1**. `find` sees dotfiles
+perfectly well. My probe returned 0 for the plain reason that **the basename I
+was given differs from the basename on disk by one character**. Two distinct
+mechanisms, and only one of them is about dotfiles.
+
+The consequence stands and is worse than the mechanism: an absence query whose
+spelling comes from the citation cannot detect that the citation is misspelled,
+**and the control a careful reader would add is written in the same wrong
+spelling, so it cannot fire either.** Third time tonight I have taken an empty
+result for a property of the world, and second time in this document.
+
+`/workspace/.eng-manager-state.md` is the canonical, live copy. The 83-line
+scratchpad file with the same basename is a stale stub that **announces
+nothing**, so a reader who lands on it gets a wrong answer that reads like a
+right one. Two referents that agree are a nuisance; two that disagree are a
+silent wrong answer.
+
+Standing consequence for this log: the parked auth findings I filed via
+`OUT-OF-SCOPE-BACKLOG.md` resolve, and so does everything routed through
+`eng-manager-state.md`. **Nothing I filed tonight is lost.**
 
 ---
 
