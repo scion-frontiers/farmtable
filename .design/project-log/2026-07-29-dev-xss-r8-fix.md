@@ -52,14 +52,32 @@ prose to be relied on, so its accuracy is the control.
 
 ## Three things a later leg should know
 
-> **WHICH TREE EVERY FIGURE BELOW CAME FROM.** All of them were taken in
-> `/workspace/farmtable-xss-r8`, a leg tree cloned from the local path, **with no
-> built frontend** — `web/dist` absent at entry and exit, measured. There are
-> three tree states on this project (pristine, the main working copy which has
-> carried a built frontend since 27 July, and the CI runner which builds during
-> its own run) and **whole-project commands behave differently in each.** Nothing
-> here was measured in `/workspace/farmtable` or on CI. The web figures are
-> tree-state-independent; the Go ones are not.
+> **WHICH TREE EVERY FIGURE BELOW CAME FROM — AS COORDINATES, NOT AS A LABEL.**
+>
+> ```
+> ROOT          /workspace/farmtable-xss-r8   (clone from local path)
+> web/dist      ABSENT      node_modules  PRESENT      module cache  WARM
+> GOMODCACHE=/home/scion/go/pkg/mod   GOCACHE=/home/scion/.cache/go-build
+> ```
+>
+> **An earlier version of this block named a tree STATE instead ("no built
+> frontend") and thereby filed this tree under "pristine", which it is not.**
+> A tree state is not one variable. At minimum it is
+> `web/dist ∈ {absent, stub, real}` × `node_modules ∈ {absent, present}` ×
+> `module cache ∈ {cold, partial, warm}`, and a leg self-classifying against a
+> list of example states will pick the nearest name and then report figures that
+> name does not predict. **Declare the coordinates.**
+>
+> Two of those axes are invisible in the tree and bite anyway. **The module cache
+> lives in `/home/scion`, which is PER-AGENT: two legs holding byte-identical
+> trees at the same commit can report different package counts, and nothing
+> either prints about the tree explains the difference.** A partial cache under
+> `GOPROXY=off` fails every test-bearing package with a `setup failed` line
+> *identical* to the `web/dist` one. Mine was warm — corroborated by the count
+> being exactly 4, not ~31.
+>
+> Nothing here was measured in `/workspace/farmtable` (built frontend since
+> 27 July) or on CI. The web figures are tree-independent; the Go ones are not.
 
 **F1 IS VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**
 A build token was granted after the commits above landed. `npx tsc --noEmit` is
