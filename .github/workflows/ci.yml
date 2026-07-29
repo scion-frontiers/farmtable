@@ -347,9 +347,26 @@ jobs:
           # meaningless (no log, unparseable log, no manifest) exit early.
           status=0
 
+          # This step runs on `if: always()`, so it also runs when an EARLIER
+          # step already failed and the Go suite was therefore skipped. In that
+          # case this branch is a CONSEQUENCE of that earlier red, not an
+          # independent one -- but it still fails, because an absent log is not
+          # an empty result and a guard that excuses itself is not a guard.
+          # The message says which of the two it is so the reader does not have
+          # to guess, and so that a genuine missing-test red (which says
+          # "DID NOT RUN" below, and is the FIRST red in the run) is never
+          # dismissed as cascade noise.
           if [ ! -f go-test.log ]; then
             echo "::error::go-test.log absent: the Go suite produced no evidence."
             echo "An absent log is not an empty result. Failing closed."
+            echo
+            echo "THIS IS PROBABLY A CONSEQUENCE, NOT THE PRIMARY FAILURE."
+            echo "LOOK ABOVE: if an earlier step is red, the Go suite was"
+            echo "skipped and never wrote this log -- fix that step first and"
+            echo "this one goes with it. Only if NO earlier step is red is the"
+            echo "missing log itself the defect."
+            echo "A genuinely missing TEST reports differently: it says"
+            echo "'Go tests listed in the manifest DID NOT RUN' and names them."
             exit 1
           fi
 
