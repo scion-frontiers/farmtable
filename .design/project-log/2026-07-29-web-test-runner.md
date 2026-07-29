@@ -74,6 +74,21 @@ compared on every build and a divergence fails. Both sides carry all four
 patterns (`.test.ts`, `.test.tsx`, `.spec.ts`, `.spec.tsx`); the runner also
 derives its emitted suffixes from that one list rather than restating them.
 
+**A limit found while building the positive control, not fixed here.** The
+`.tsx` patterns are wired for *discovery*, but `web/tsconfig.json` sets no `jsx`
+option, so a `.tsx` file containing **actual JSX** does not compile:
+
+```
+error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+```
+
+Measured directly. So `.tsx` test files work today only without JSX syntax, and
+the `canary/runner-spec-executes` control is deliberately JSX-free — the
+extension is what is under test there, not JSX. The first person to write a real
+JSX test hits a compiler configuration question, which is a `tsconfig` decision
+and out of scope for this branch. Recorded so it is found by reading rather than
+by surprise.
+
 ### The double-count invariant
 
 `TEST_FILE_RE` matches `.js`/`.mjs`/`.cjs`, so compiled test output is a test
@@ -100,6 +115,38 @@ The predicate for one unit of `MIN_TEST_FILES` is now stated in the file.
 the harness, it breaks the **subject** and asks whether anything notices. The
 OLD-wiring arm is the positive control — without it a red only shows the suite
 *can* fail, not that this runner is why.
+
+### A control must have different outcomes under its two hypotheses
+
+This is the property that makes the whole table below mean anything, so it is
+written here rather than left to be re-derived.
+
+**A positive control that is red under both hypotheses is not a control.** If
+both branches of the question produce the same colour, the observation carries
+no information and ticking it off is worse than not running it, because it
+manufactures confidence. State both outcomes *before* running, and if they are
+the same colour, the experiment is wrong — not the subject.
+
+The mutation control, in one line:
+
+> **OLD wiring + sanitiser deleted = GREEN**, because the test file compiles and
+> never runs; **NEW wiring + sanitiser deleted = RED**. Two different colours,
+> so the red is attributable to the runner rather than merely to the suite being
+> capable of failing.
+
+The `.spec.tsx` control, in one line:
+
+> **Widening works = GREEN `2/2/0` with the file's own stdout marker in the log;
+> widening does not work = RED at membership, or green counts with no marker.**
+> The spec is written to **pass** on purpose: a *failing* spec would trip the
+> runner's source-vs-compiled count check and exit non-zero **before executing
+> anything**, going red under both hypotheses and proving nothing. That trap was
+> found by reading on another track, not by any check here.
+
+Note the second failure mode in each: *green counts with no marker*. Counting
+alone cannot separate compiling from executing, which is the exact confusion
+that made the union branch dangerous, so every execution claim in the table is
+backed by a marker in stdout rather than by a number.
 
 All rows below: this branch's content, node version named, tree **deliberately
 dirty** (a canary is a planted defect). Per the measure-the-commit rule these
@@ -153,6 +200,7 @@ rather than my tree:
 | `canary/runner-orphan` | RED at membership, `2/1/1` |
 | `canary/runner-zero-files` | RED at membership, on the floor |
 | `canary/runner-spec-divergence` | RED at membership, compiled-but-not-listed |
+| `canary/runner-spec-executes` | GREEN `2/2/0` **and the marker in the log** |
 
 **Canary v (`outDir`) cannot be confirmed on the runner** and is dev-only by
 construction: membership runs at `ci.yml:85`, `npm test` at `:245`, so no
