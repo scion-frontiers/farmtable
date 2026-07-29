@@ -719,8 +719,13 @@ func TestRPC_ImportCollection_RefusalDoesNotDependOnOpenAccessCause(t *testing.T
 // TestRPC_ImportCollection_RefusalMessageNamesTheCause pins the wording, which
 // is the entire user-facing surface of this change. An operator who hits this
 // refusal has no other signal to work from, so the message must say what was
-// refused, why, and which knob to turn — and must not imply that local tooling
-// is broken, because the embedded CLI is never open-access.
+// refused, why, and which knob to turn.
+//
+// This test pins that the message SAYS certain things. It cannot tell whether
+// what it says is TRUE — and it once faithfully defended a false claim that the
+// `ft` CLI was unaffected. Truth of the scope claim is asserted separately, by
+// TestRPC_ImportCollection_RefusalDoesNotDisclaimTheFtBinary. Adding a substring
+// to the invariant list below obliges you to check the other test still covers it.
 func TestRPC_ImportCollection_RefusalMessageNamesTheCause(t *testing.T) {
 	_, s, cleanup := newExportImportTestServer(t)
 	defer cleanup()
@@ -791,8 +796,12 @@ func TestRPC_ImportCollection_RefusalMessageNamesTheCause(t *testing.T) {
 				"cannot import",                // says what was refused
 				"cannot identify the caller",   // says why
 				"refused rather than recorded", // says it did not silently happen
+				// Bounds the blast radius. True of every configuration that
+				// can reach this function — unlike the per-caller exemption
+				// that used to sit on the next line, which was false for
+				// `ft dashboard`. Substrings added here are only pinned as
+				// PRESENT; something must also assert they are TRUE.
 				"Only collection import is affected",
-				"embedded `ft` CLI is unaffected", // does not scare local CLI users
 			} {
 				if !strings.Contains(msg, want) {
 					t.Fatalf("cause %q: refusal message is missing %q, so the operator cannot act on it.\nmessage: %s",
@@ -811,5 +820,70 @@ func TestRPC_ImportCollection_RefusalMessageNamesTheCause(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestRPC_ImportCollection_RefusalDoesNotDisclaimTheFtBinary asserts the
+// refusal message is TRUE in the configuration `ft dashboard` actually runs in,
+// not merely that it is well-formed.
+//
+// This test exists because a previous version of the message ended "the
+// embedded `ft` CLI is unaffected because it always authenticates locally."
+// That was precise in the vocabulary of my report, where "embedded `ft` CLI"
+// meant one specific construction site (internal/cli/connect.go:169, which
+// installs a token lookup unconditionally and genuinely cannot reach this
+// branch). But the REPORT'S VOCABULARY DOES NOT SHIP. The string ships alone,
+// and to an operator "the ft CLI" means the ft binary — and `ft dashboard` is a
+// subcommand of that same binary (cmd/ft/main.go is the only ft main) which
+// honours FARMTABLE_OPEN_ACCESS=1, leaves the lookup nil, and passes
+// OpenAccessCauseDeliberate at internal/cli/dashboard.go:97. Dockerfile's CMD is
+// ["/ft","dashboard"], so the operator most likely to read this message was
+// running the configuration it told them was fine.
+//
+// The sentence was WELL PINNED — mutation arm M9 deleted it and correctly
+// turned all three wording subcases red. No arm ever asked whether it was TRUE.
+// A pinned falsehood is worse than an unpinned one, because the test defends it.
+// So: assert absence of the disclaimer in the one cause where it would be false.
+func TestRPC_ImportCollection_RefusalDoesNotDisclaimTheFtBinary(t *testing.T) {
+	_, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+
+	doc := minimalImportDoc("cli disclaimer", nil,
+		[]map[string]interface{}{importTaskDoc(uuid.New().String())}, nil, nil, nil)
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal doc: %v", err)
+	}
+
+	// OpenAccessCauseDeliberate is exactly what `ft dashboard` passes when
+	// FARMTABLE_OPEN_ACCESS=1. In this configuration an ft-binary user IS hit.
+	svc := server.NewFarmTableService(s, "test", server.WithOpenAccessCause(server.OpenAccessCauseDeliberate))
+	_, err = svc.ImportCollection(context.Background(), &pb.ImportCollectionRequest{Data: data})
+	if err == nil {
+		t.Fatalf("import was accepted without an identity")
+	}
+	msg := status.Convert(err).Message()
+
+	// Any claim that the ft CLI / ft binary is unaffected is FALSE here.
+	for _, falsehood := range []string{
+		"`ft` CLI is unaffected",
+		"ft CLI is unaffected",
+		"CLI is unaffected",
+		"binary is unaffected",
+	} {
+		if strings.Contains(msg, falsehood) {
+			t.Fatalf("refusal message claims %q, but this IS the `ft dashboard` "+
+				"open-access configuration (dashboard.go:97 passes this very cause, "+
+				"Dockerfile CMD is [\"/ft\",\"dashboard\"]). The operator reading this "+
+				"is running the configuration the message calls unaffected.\nmessage: %s",
+				falsehood, msg)
+		}
+	}
+
+	// Control: the surviving scope clause must still be there. Without this the
+	// test would also pass on a message that said nothing about scope at all,
+	// which is a different defect and not an improvement.
+	if !strings.Contains(msg, "Only collection import is affected") {
+		t.Fatalf("message no longer scopes the refusal at all.\nmessage: %s", msg)
 	}
 }

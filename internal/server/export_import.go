@@ -156,8 +156,17 @@ func unattributableImportMessage(cause OpenAccessCause) string {
 	const problem = "cannot import: an import records who performed it, and this server " +
 		"cannot identify the caller, so the imported history would name nobody. " +
 		"Importing without attribution is refused rather than recorded as \"unknown\"."
-	const scope = " Only collection import is affected; other operations are unchanged, " +
-		"and the embedded `ft` CLI is unaffected because it always authenticates locally."
+	// Scope claims are load-bearing: an operator acts on them. This one says
+	// only what is unconditionally true of every configuration that can reach
+	// this function. An earlier version added "and the embedded `ft` CLI is
+	// unaffected because it always authenticates locally" — false, because
+	// `ft dashboard` honours FARMTABLE_OPEN_ACCESS=1 and reaches this refusal
+	// (internal/cli/dashboard.go:97), and Dockerfile's CMD is ["/ft","dashboard"].
+	// The clause was well pinned by tests and still wrong; see
+	// TestRPC_ImportCollection_RefusalDoesNotDisclaimTheFtBinary. Do not
+	// reintroduce a per-caller exemption here without a test that asserts it is
+	// TRUE in the configuration it exempts, not merely that it is present.
+	const scope = " Only collection import is affected; other operations are unchanged."
 
 	switch cause {
 	case OpenAccessCauseDeliberate:
