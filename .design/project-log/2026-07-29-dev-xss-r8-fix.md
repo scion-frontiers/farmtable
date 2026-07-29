@@ -102,8 +102,28 @@ What survives is weaker and rests on other grounds: 5.01s under load against
 0.013s isolated is a timeout signature, and `internal/server/watch_test.go` has
 no structural path to `remote_data`, capabilities or import. That is an argument,
 not the demonstration I claimed. **A later leg meeting this red should treat it
-as uncharacterised.** The rule now in force: fix N per arm in advance, interleave
-the arms, re-run both or neither, and report every run rather than a summary.
+as uncharacterised.** Re-characterisation is routed to `ts-diff-r8`, which is
+building clean clones of both `e4e3d13` and `901670e` for other reasons and so
+has both arms for free; `internal/server` is not one of the packages EM-100
+kills, so it runs there.
+
+The rule now in force: fix N per arm in advance, interleave the arms, re-run both
+or neither, and report every run rather than a summary. **BUT DO NOT STOP AT
+THAT SENTENCE — IT IS THE ONE I FOLLOWED AND IT WOULD NOT HAVE SAVED ME.** All
+four of its clauses presuppose that two arms exist and only govern how you run
+them. My failure was upstream of all of it:
+
+> **A DIFFERENTIAL REQUIRES TWO ARMS AT TWO DIFFERENT COMMITS. Before applying
+> any of the above, state what the base arm IS and confirm you ran it. "Not
+> caused by my change" is a branch-versus-base claim and cannot be supported by
+> any number of runs on the branch.**
+
+That is now clause (f) of the project rule. **It is the dangerous one because it
+fails silently:** a violation of the other clauses is auditable — someone can
+count your runs and catch you — whereas a one-arm procedure emits a table
+indistinguishable from a two-arm one. The paragraph above is the proof. It read
+as a completed comparison to everyone including me, and the missing half was
+invisible until I went looking for what the arms had been.
 
 ## Deliberately not done
 
