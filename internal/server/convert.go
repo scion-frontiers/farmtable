@@ -812,11 +812,18 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//
 		// ─────────────────────────────────────────────────────────────────────
 		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT "A FIELD GOES MISSING."
-		// THIS FIELD IS THE ONLY INPUT TO A WRITE-AUTHORIZATION GATE.
+		// THIS FIELD IS ONE OF THE TWO INPUTS TO A WRITE-AUTHORIZATION GATE.
 		// ─────────────────────────────────────────────────────────────────────
 		//
-		// web/src/capabilities.ts getCapabilities has exactly ONE branch that
-		// reads collection remote_data, and it is the GITHUB branch:
+		// THE INVARIANT, WHICH IS THE LOAD-BEARING SENTENCE IN THIS COMMENT:
+		//
+		//   The GitHub capability set is reachable only by a collection object that
+		//   carries platform GITHUB *and* a remote_data map containing writable=true,
+		//   TOGETHER, IN ONE OBJECT. No producer in this tree yields both. That
+		//   conjunction failing is the entire gate.
+		//
+		// web/src/capabilities.ts getCapabilities has exactly one branch that reads
+		// collection remote_data, and it is the GITHUB branch:
 		//
 		//     if (platform === FARMTABLE) return ALL_ENABLED;   // never reads it
 		//     if (platform === GITHUB) {
@@ -826,59 +833,85 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//     return ALL_DISABLED;
 		//
 		// GITHUB_CAPABILITIES enables nine write operations. ft-app.ts
-		// isCollectionWritable branches on the same key. So the reachable set of
-		// this gate is exactly: GitHub-platform collection objects whose
-		// remote_data survives the line below.
+		// isCollectionWritable branches on the same key.
 		//
-		// TWO THINGS PRODUCE A GITHUB-PLATFORM COLLECTION OBJECT. Both matter,
-		// and an earlier draft of this comment named only the first:
+		// AND NOTHING IN GO ENFORCES ANY OF IT. `writable` has no functional Go
+		// reader -- the identifier appears in Go only in comments. There is no
+		// server-side notion of a read-only collection, so the nine operations are
+		// gated in the browser and nowhere else. A caller with a token and curl is
+		// not subject to this gate at all. Whoever arms it is not enabling a feature
+		// behind an existing control; they are creating a control that only one
+		// client honours.
 		//
-		//   (a) syntheticCollection, above. Passthrough, never persisted.
-		//   (b) THE PUBLIC RPC. server.go:1035 CreateCollection takes
-		//       req.Platform from the caller, platformFromProto (:2144) maps
-		//       PLATFORM_GITHUB to collection.PlatformGithub, and entstore.go:1359
-		//       PERSISTS it. The only extra condition is server.go:1053, a
-		//       non-empty remote_id, which is not validated against GitHub -- any
-		//       string passes. Scope required: ScopeCollectionWrite. Nothing
-		//       narrower, no linked-account check, no adapter check.
+		// WHY THERE IS NO NUMBER IN THE PARAGRAPH ABOVE, AND PLEASE DO NOT ADD ONE.
+		// An earlier draft of this comment said "the two producers". A count is a
+		// population claim with nothing guarding it: the day someone adds another
+		// producer the sentence is false and no test goes red. The count is the part
+		// that rots. This whole round exists because instruments measured a result
+		// and assumed a population, so the invariant is stated as a conjunction and
+		// the producers are listed BELOW IT, under a SHA, as an observation rather
+		// than a law.
 		//
-		// THE GATE IS SHUT TODAY, AND NOT FOR THE REASON IT LOOKS LIKE. It is not
-		// held shut by syntheticCollection's nil. It is held shut by BOTH
-		// producers independently yielding nil RemoteData -- (a) by omission in a
-		// struct literal, (b) by argument (1) above, no caller populating the
-		// param structs. Two unrelated nils, neither one documented as load-
-		// bearing until now, and EITHER of them going non-nil opens the gate for
-		// its own producer.
+		// PRODUCERS OF A COLLECTION OBJECT, ENUMERATED AT c108acb. AS-OF-THIS-COMMIT,
+		// NOT AN INVARIANT. Each with the one-line reason it cannot yield both halves.
 		//
-		// WHICH MAKES THE LIKELIEST ARMING EDIT (b), NOT (a). entstore.go:1366 is
-		// already `if p.RemoteData != nil { create.SetRemoteData(p.RemoteData) }`
-		// -- the store layer is WIRED AND WAITING. The only missing link is the
-		// RPC layer copying a request field into CreateCollectionParams.RemoteData,
-		// which is the ordinary shape of plumbing a new proto field through
-		// CreateCollection: a change in server.go, nowhere near GitHub, by someone
-		// who has never heard of this gate. On that day any caller holding
-		// ScopeCollectionWrite can create a collection with platform GITHUB and
-		// remote_data {"writable": true} and grant themselves the nine
-		// operations. An edit to the syntheticCollection literal at least happens
-		// inside a GitHub file where a reviewer might think about GitHub
-		// authorization. This one does not.
+		//   - CreateCollection RPC, server.go:1035, platform via platformFromProto
+		//     (:2144), persisted by entstore.go:1359. PLATFORM IS CALLER-CONTROLLED
+		//     and the only extra condition is a non-empty remote_id (:1053), never
+		//     validated against GitHub. Cannot yield both because no caller populates
+		//     CreateCollectionParams.RemoteData -- argument (1) above.
 		//
-		// AND THE GATE IT ARMS EXISTS ONLY IN THE BROWSER. `writable` appears in
-		// Go in exactly two places at the time of writing, and both are comments
-		// in this file. NO FUNCTIONAL GO CODE READS IT. There is no server-side
-		// notion of a read-only collection: the nine operations GITHUB_CAPABILITIES
-		// unlocks are gated client-side and nowhere else. Whoever ships the edit
-		// above is not enabling a feature behind an existing control, they are
-		// creating an authorization control that a curl user is not subject to.
-		// If you are that person: the fix is a server-side check, and this comment
-		// is the notice that there is not one.
+		//   - EntStore.ImportCollection, entstore.go:2112. PLATFORM IS CALLER-
+		//     CONTROLLED, from the params struct. Cannot yield both only because the
+		//     layer above it, server/export_import.go, refuses a non-farmtable
+		//     document (:306) and then hardcodes farmtable into the params anyway
+		//     (:331).
+		//
+		//   - syntheticCollection, internal/platform/github/passthrough.go:645,
+		//     returned by :630, :638 and :642. Platform is GITHUB and it is the
+		//     collection object for every GitHub PASSTHROUGH view. Cannot yield both
+		//     because the struct literal sets no RemoteData field at all. In-memory
+		//     only; never persisted.
+		//
+		//   - Hardcoded farmtable, so out of scope by platform: export_import.go:331,
+		//     beads_import.go:393, graph_routing.go:85.
+		//
+		// ARMING EDITS, RANKED BY HOW ORDINARY THEY LOOK, WHICH IS THE ONLY RANKING
+		// THAT MATTERS FOR A COMMENT.
+		//
+		//   1. THE IMPORT PATH, AND IT IS NOT CLOSE. Look at entstore.go:2112-2118:
+		//      SetPlatform(p.Collection.Platform) and, three lines later,
+		//      SetRemoteData(p.Collection.RemoteData) -- BOTH INPUTS TO THE GATE,
+		//      WRITTEN FROM THE SAME CALLER-SUPPLIED STRUCT, IN ONE STATEMENT AND THE
+		//      BRANCH UNDER IT. Not two features that would have to meet. It is held
+		//      shut by two adjacent lines one layer up, export_import.go:306 and :331,
+		//      and BOTH ARE REMOVED BY THE SAME SINGLE FEATURE: "support importing a
+		//      GitHub collection export." The remote_data half is already wired from
+		//      the uploaded document (export_import.go:332) because sanitizeRemoteData
+		//      (urlvalidate.go:250) is a URL sanitizer, not a key allowlist -- it
+		//      keeps every key it does not recognise as URL-bearing, and `writable` is
+		//      not URL-bearing, so it passes through untouched. Nobody implementing
+		//      GitHub import is thinking about a browser capability gate.
+		//
+		//   2. The RPC path. One line ADDED that does not exist today: the RPC copying
+		//      a request field into CreateCollectionParams.RemoteData. Ordinary proto
+		//      plumbing in server.go, nowhere near GitHub. entstore.go:1366 is already
+		//      `if p.RemoteData != nil { create.SetRemoteData(...) }`, so the store
+		//      side is wired and waiting.
+		//
+		//   3. Adding RemoteData to the syntheticCollection literal. Requires editing
+		//      a GitHub file, where a reviewer at least has a chance of thinking about
+		//      GitHub authorization.
+		//
+		// If you are making any of these three: the fix is a server-side check, and
+		// this comment is the notice that there is not one.
 		//
 		// The nil-revokes direction still holds and is the benign one: a nil here
 		// makes the flag unreadable and the dashboard treats unreadable as
 		// not-writable, so THIS LINE SILENTLY REVOKES anything that ever sets it.
-		// Fail-closed, which is why it logs rather than staying quiet. Bounded to
-		// this tree on purpose -- out-of-tree writers are not a population these
-		// searches could bound.
+		// Fail-closed, which is why it logs rather than staying quiet. Bounded to this
+		// tree on purpose -- out-of-tree writers are not a population these searches
+		// could bound.
 		//
 		// Note what the old reason also got wrong. It is NOT "collections are read
 		// back out of the database": Ent's Create().Save() returns the entity
