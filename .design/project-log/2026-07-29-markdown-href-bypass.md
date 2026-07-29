@@ -210,3 +210,37 @@ control firing.
 | `a17dd2b1` | test: pin the markdown href policy; floor 6 → 7 |
 | `75da9b4e` | docs: replace two false justification clauses, keep both findings |
 | `d7926914` | docs: split the 13-row security reading by direction |
+
+---
+
+## 7. Follow-on pass — the struck clause had a third home
+
+Instructed after 6f2a8ec5 landed: the "both call sites render STATIC link text"
+sentence was killed at `safe-url.ts` but survived as a live ASSERTION at two
+further sites. The EM measured the POPULATION rather than the INSTANCE; the
+audit's F-2 named two sites and there are three. That is the same shape as the
+night's other failures — a correction inherits its predecessor's search scope —
+and it is worth its own line here because the fix was correct and incomplete at
+the same time.
+
+Fixed:
+
+- `web/src/util/safe-url.test.ts`, docblock above `testRejectsCredentials`.
+  The clause is replaced by the mechanism already landed at `safe-url.ts` —
+  the guard refuses the URL before any of this is rendered, so no credential
+  URL reaches an anchor at all — followed by the same verbatim NOT MEASURED
+  line. No new property, no new pin.
+- `.design/project-log/url-scheme-credential-clause.md`. A project log is not
+  silently rewritten: the sentence is struck through in place and a dated
+  correction appended immediately below it, naming `${id}` at
+  `ft-inspector-code.ts` as the counter-example and pointing at `safe-url.ts`
+  for the corrected reading. The finding is unaffected; only the justification
+  was wrong.
+
+Deliberately NOT touched, and this is the reason a grep-driven sweep would have
+got it wrong: `web/src/util/safe-url.ts:140-141` and section 4(a) of THIS log
+both contain the struck clause QUOTED INSIDE THE EXPLANATION OF ITS OWN
+REMOVAL. A string match cannot tell a quotation from an assertion; only reading
+the sentence it sits in can. Nothing was added to `url-binding-scan.test.ts`.
+
+Web suite re-run after the edits: 7 files, 7 pass, 0 fail.

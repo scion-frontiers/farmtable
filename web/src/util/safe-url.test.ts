@@ -144,8 +144,11 @@ function testAcceptsHTTPAndHTTPS(): void {
  * guard both wave it through -- the credential clause is the ONLY thing that
  * refuses them. `https://github.com@evil.example/` is the shape that matters:
  * the part a reader recognises is the USERINFO and the host is attacker-chosen,
- * and both call sites render STATIC link text, so nothing on screen contradicts
- * the misreading.
+ * and the guard refuses the URL before any of this is rendered, so no credential
+ * URL reaches an anchor at all.
+ *
+ * NOT MEASURED: whether any adjacent field rendered as the link's label can
+ * disagree with the destination.
  *
  * WHY THE SUMMARY ASSERTION COMES FIRST. A per-case loop alone reports the first
  * failure and stops, which cannot distinguish "one shape regressed" from "the

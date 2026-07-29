@@ -10,9 +10,16 @@ and the hostname is non-empty, so neither the `SAFE_SCHEMES` allow-list nor the
 and `evil.example` as the host, so the string READS as github.com and LOADS
 evil.example.
 
-Both call sites render STATIC link text, so nothing on screen contradicts the
-misreading. This is DESTINATION CONFUSION, not scheme escalation — no
-attacker-chosen scheme is reachable through it.
+~~Both call sites render STATIC link text, so nothing on screen contradicts the
+misreading.~~
+
+**Correction, 2026-07-29.** The sentence above was false when written.
+ft-inspector-code.ts renders `${id}` as the link text, which is
+caller-supplied. See safe-url.ts for the corrected reading. The finding in this
+log is unaffected; only its justification was wrong.
+
+This is DESTINATION CONFUSION, not scheme escalation — no attacker-chosen
+scheme is reachable through it.
 
 ## The fix
 
