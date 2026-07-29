@@ -111,6 +111,30 @@ read price.
 
 **Predicted: RED.**
 
+## ARM L3b — BREAK THE DEPARTURE VECTOR (ADDED LATE; SEE THE TIMING NOTE)
+
+**TIMING.** L1, L2, L2b and L3 have all been run when this section is written.
+Their results are NOT recorded here and did not inform this prediction. L3b has
+NOT been run. Committed results-free before it is.
+
+**Why it was missing.** L3 breaks the ENTRY vector. Entry is the half round 11
+already priced. The DEPARTURE vector is the entire round-12 addition — the free
+departure is the defect — and nothing so far shows the monotonicity pin guards
+it. A regression pin that covers only the half that was never broken is a pin
+with a hole exactly where the new code is.
+
+**Mutation.** Inside the REAL `store.PriceLabelWrite`, set `Departed` to nil.
+
+| outcome | meaning | what I do |
+|---|---|---|
+| **RED** | the pin guards the departure vector too; round 12's new mechanism has property-level regression cover | revert, report as its own line |
+| **GREEN** | the pin is blind to departures. NOT a failure of round 12 and NOT a reason to stop — but it means the ONLY guard on the departure vector is the direct oracle plus D1, and that fact must be reported rather than discovered later | revert, report the gap explicitly as a KNOWN LIMIT of the pin, do not overstate the cover |
+
+**Predicted: RED.** Reasoning, recorded so a wrong prediction is visible as one:
+the reference arm computes its own `Departed` from the read endpoints, so on any
+cell with a genuine departure the reference charges a departure pair and the
+mutated write arm charges none.
+
 ## STANDING, RECORDED BEFORE ANY RED EXISTS TO MAKE DELETION LOOK REASONABLE
 
 - `TestWatchTasks_NoInitial`: **WIDEN THE WINDOW, NEVER DELETE THE ASSERTION.**
