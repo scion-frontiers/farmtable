@@ -318,6 +318,7 @@ const executed = new Set();
 const unanalysable = [];
 let discoveryRunner = null;
 let compileConfig = null;
+const cleaned = new Set();
 
 for (const leaf of leafCommands('test')) {
   const t = leaf.text;
@@ -331,10 +332,16 @@ for (const leaf of leafCommands('test')) {
     continue;
   }
   // Pure compile/typecheck steps execute no tests -- but they decide what a
-  // later runner is ABLE to see, so remember which tsconfig was used.
+  // later runner is ABLE to see, so remember which tsconfig was used and which
+  // output directories were cleaned first.
   if (/^(tsc|rimraf|rm|mkdir|cpy|cp)\b/.test(t)) {
     const proj = t.match(/(?:^|\s)(?:-p|--project)\s+(\S+)/);
     if (proj) compileConfig = `web/${proj[1].replace(/^\.\//, '')}`;
+    if (/^(rm|rimraf)\b/.test(t)) {
+      for (const a of tokenise(t).slice(1)) {
+        if (!a.startsWith('-')) cleaned.add(a.replace(/^\.\//, '').replace(/\/+$/, ''));
+      }
+    }
     continue;
   }
 
@@ -360,6 +367,20 @@ for (const leaf of leafCommands('test')) {
       const pats = compiledPatterns(compileConfig);
       if (pats === null) {
         unanalysable.push(`${t} -> cannot read or parse ${compileConfig}`);
+        continue;
+      }
+      // A compiler does not delete. If nothing removes the output directory
+      // first, the compiled form of a DELETED test file stays there and keeps
+      // being discovered and keeps reporting pass -- so the suite runs a test
+      // whose source no longer exists, and this script, which reads sources,
+      // cannot see it. Measured: after removing one of two test files the
+      // manifest said 1 and `npm test` ran 2.
+      const outDir = args[0]?.replace(/^\.\//, '').replace(/\/+$/, '');
+      if (outDir && !cleaned.has(outDir)) {
+        unanalysable.push(
+          `${t} -> nothing removes '${outDir}' before the compile step, so ` +
+            'stale output from deleted test files is still discovered and run',
+        );
         continue;
       }
       discoveryRunner = `${t} (over output of ${compileConfig})`;
