@@ -1089,6 +1089,36 @@ func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 // Left as-is rather than fixed: making remote_data serialise here would be a
 // visible behaviour change (a field that is empty today starts being populated)
 // and belongs in its own change, not in a security round.
+// THE PROPERTY HAS TWO CARRIERS, NOT ONE, AND BOTH ARE PINNED BELOW.
+//
+// This matters more than a second assertion usually would. A one-carrier pin on
+// a two-carrier property is not merely incomplete -- it is a GREEN LIGHT FOR THE
+// WRONG CHANGE. If someone "fixes" labels to []any, this test would go green
+// while remote_data STILL never serialises, because sub_issues is independently
+// unrepresentable. The pin would then be issuing a clearance for a change that
+// leaves the defect in place, which is worse than having no pin at all: no pin
+// does not certify anything.
+//
+// Where the enumeration STOPPED, stated so a later reader need not guess. An
+// enumeration's interior omissions announce themselves and its trailing ones do
+// not, so "two carriers" is worthless without "and here is what we checked and
+// cleared". Every container-valued key issueBuildRemoteData can write
+// (graphql_queries.go:476-518) is accounted for:
+//
+//	labels             []string           CARRIER, unconditional (see below)
+//	sub_issues         []map[string]any   CARRIER, only when the issue has sub-issues
+//	parent             map[string]any     NOT a carrier -- measured representable below
+//	sub_issues_summary map[string]any     NOT a carrier -- measured representable below
+//
+// Every other key it writes is a string or an int.
+//
+// THE labels CARRIER IS UNCONDITIONAL, WHICH IS STRONGER THAN THIS TEST USED TO
+// CLAIM. issueBuildRemoteData sets "labels" in the map literal itself, not under
+// a conditional, and issueLabels (graphql_queries.go:468) returns
+// make([]string, len(...)) -- never nil, and []string of any length including
+// zero is rejected by NewStruct. So the unrepresentable carrier is present on
+// EVERY passthrough task, not only on labelled ones. We had been describing a
+// conditional hazard; it is unconditional.
 func TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident(t *testing.T) {
 	labels := []string{"bug"}
 
@@ -1098,11 +1128,56 @@ func TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident(t *testing.T) {
 			"must be upgraded to assert absence of remote_url and html_url there.")
 	}
 
+	// Carrier 1 is unconditional: labels is set even when the issue has none.
+	if _, err := structpb.NewStruct(map[string]any{"labels": []string{}}); err == nil {
+		t.Fatal("structpb.NewStruct now accepts an EMPTY []string. The labels carrier " +
+			"was unconditional precisely because issueLabels returns a non-nil " +
+			"make([]string, 0) for an unlabelled issue; if the empty case now " +
+			"serialises, the carrier is conditional on the issue having labels.")
+	}
+
+	// SECOND, INDEPENDENT CARRIER. Shape copied from graphql_queries.go:501-510,
+	// which builds `var subs []map[string]any` and assigns it to rd["sub_issues"].
+	// This must fail for its OWN reason, not because of labels -- so it is
+	// asserted on a map that contains no labels key at all.
+	subIssues := []map[string]any{{"number": 7, "title": "child", "state": "OPEN"}}
+	if _, err := structpb.NewStruct(map[string]any{"sub_issues": subIssues}); err == nil {
+		t.Fatal("structpb.NewStruct now accepts []map[string]any. sub_issues was the " +
+			"SECOND carrier keeping passthrough remote_data off the wire; with it " +
+			"gone, labels is the only one left and this property now rests on a " +
+			"single type rejection.")
+	}
+
 	// Positive control: the identical map with a structpb-representable slice
 	// builds fine, so the failure above is about the value type and not about
 	// NewStruct being broken.
 	if _, err := structpb.NewStruct(map[string]any{"labels": []any{"bug"}}); err != nil {
 		t.Fatalf("positive control: []any should serialise, got %v", err)
+	}
+
+	// THE NON-CARRIERS, ASSERTED RATHER THAN ASSUMED. These are the other two
+	// container-valued keys issueBuildRemoteData writes. They are plain
+	// map[string]any and they DO serialise, so they are not holding the property
+	// up and nobody should later "discover" them as a third and fourth carrier.
+	// They double as positive controls for the two assertions above: a bare map
+	// of the same nesting depth passes, so the failures are about []T and not
+	// about nesting.
+	for _, nonCarrier := range []struct {
+		key   string
+		value map[string]any
+	}{
+		// graphql_queries.go:494-497. node_id is githubv4.ID (an interface{})
+		// holding a string once the GraphQL response is decoded.
+		{"parent", map[string]any{"node_id": "MDU6SXNzdWU=", "number": 3}},
+		// graphql_queries.go:512-516.
+		{"sub_issues_summary", map[string]any{"total": 2, "completed": 1, "percent_completed": 50}},
+	} {
+		if _, err := structpb.NewStruct(map[string]any{nonCarrier.key: nonCarrier.value}); err != nil {
+			t.Errorf("non-carrier %q: plain map[string]any should serialise, got %v. "+
+				"If this now fails, the carrier enumeration in this test's doc "+
+				"comment is wrong and remote_data is being held off the wire by "+
+				"more keys than the two named there.", nonCarrier.key, err)
+		}
 	}
 }
 
