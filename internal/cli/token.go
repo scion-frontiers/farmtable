@@ -26,12 +26,13 @@ var (
 )
 
 // mergeScopes computes a new scope set from the token's current scopes and
-// the operator's add/remove/set instructions. It rejects operations that
-// would silently escalate or demote a token:
-//   - Removing all scopes would leave nil/empty, which is interpreted as
-//     wildcard (full access) — refuse rather than silently escalate.
-//   - Adding/removing on a nil/empty-scope (legacy wildcard) token would
-//     silently restrict it — require --set-scopes for an explicit intent.
+// the operator's add/remove/set instructions. It rejects operations whose
+// effect an operator would not predict from the flags they typed:
+//   - Removing all scopes would leave the token holding nothing, which now
+//     denies every request — refuse rather than silently disable the token.
+//   - Adding to or removing from a token that already stores no scopes is
+//     working from an unstated baseline — require --set-scopes so the
+//     resulting grant is written out in full.
 //   - Removing from a ["*"]-scoped token is a no-op that reports success
 //     but changes nothing — refuse rather than silently lie.
 func mergeScopes(current, add, remove, set []string) ([]string, error) {
@@ -42,11 +43,13 @@ func mergeScopes(current, add, remove, set []string) ([]string, error) {
 		return result, nil
 	}
 
-	// Detect legacy wildcard tokens (nil/empty scope list = full access).
+	// A token with no stored scopes holds nothing and is denied everywhere.
+	// Editing it incrementally hides that starting point from the operator.
 	if len(current) == 0 {
 		return nil, fmt.Errorf(
-			"%w: token has no stored scopes (legacy wildcard); --add-scope/--remove-scope "+
-				"would silently restrict it. Use --set-scopes to state the full intended scope set",
+			"%w: token has no stored scopes, so it currently grants nothing and is denied "+
+				"on every call. --add-scope/--remove-scope would build on that unstated "+
+				"baseline. Use --set-scopes to state the full intended scope set",
 			errUnscopedToken)
 	}
 
@@ -74,12 +77,13 @@ func mergeScopes(current, add, remove, set []string) ([]string, error) {
 		delete(scopeSet, s)
 	}
 
-	// Refuse to write an empty scope set — it would be interpreted as wildcard.
+	// Refuse to write an empty scope set — it grants nothing, so this would
+	// disable the token while reporting a successful scope update.
 	if len(scopeSet) == 0 {
 		return nil, fmt.Errorf(
-			"%w: an empty scope list is interpreted as wildcard (full access). "+
-				"Use --set-scopes to state the full intended scope set, or "+
-				"ft token revoke to disable the token",
+			"%w: an empty scope list grants nothing and would silently disable this "+
+				"token. Use --set-scopes to state the full intended scope set, or "+
+				"ft token revoke to disable the token deliberately",
 			errEmptyScopes)
 	}
 
@@ -155,10 +159,16 @@ func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 				if err != nil {
 					return exitError(ExitGeneral, "USER_LOOKUP_FAILED", fmt.Sprintf("looking up user for default scopes: %v", err))
 				}
-				defaults := server.DefaultScopesForUserType(u.Type)
-				if defaults != nil {
-					p.Scopes = defaults
+				// An unrecognised user type has no permission set, so there is
+				// no token to issue. Refuse rather than mint a scope-less token
+				// that would be denied at every call.
+				defaults, err := server.DefaultScopesForUserType(u.Type)
+				if err != nil {
+					return exitError(ExitValidation, "UNKNOWN_USER_TYPE", fmt.Sprintf(
+						"user %s: %v. Fix the user's type, or pass explicit --scope flags",
+						userID, err))
 				}
+				p.Scopes = defaults
 			}
 
 			// Handle collection restrictions.
