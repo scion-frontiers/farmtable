@@ -100,8 +100,24 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   // DESTINATION CONFUSION, not scheme escalation. `https://github.com@evil.example/`
   // parses as userinfo 'github.com' on host 'evil.example': it READS as github.com
   // and LOADS evil.example. The scheme is https and the host is non-empty, so
-  // neither the allow-list below nor the hostname guard refuses it, and both call
-  // sites render STATIC link text -- nothing on screen contradicts the misreading.
+  // neither the allow-list below nor the hostname guard refuses it.
+  //
+  // WHAT THIS CLAUSE CLOSES, AS A MECHANISM RATHER THAN AS A PROPERTY OF THE
+  // SCREEN: safeHref rejects a URL carrying userinfo, so the URL'S OWN TEXT
+  // cannot carry a false authority.
+  //
+  // NOT MEASURED: whether any adjacent field rendered as the link's label can
+  // disagree with the destination.
+  //
+  // That gap is deliberate and it is the deliverable. An earlier version of this
+  // comment finished the paragraph with "both call sites render STATIC link text
+  // -- nothing on screen contradicts the misreading". It was false at
+  // ft-inspector-code.ts, where the link text is ${id}. Four successive
+  // replacements for it were then proposed and every one of them was TRUE of a
+  // working spoof, because each constrained the visible text against THE URL
+  // while the harm only needs visible text != destination and the label can come
+  // from a different field. So what stands here is the mechanism plus the
+  // unmeasured question, not a fifth property.
   //
   // No legitimate value reaching these bindings carries credentials: a task
   // remoteUrl and a pull-request URL are both http(s) repository locations, and
