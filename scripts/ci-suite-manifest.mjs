@@ -53,8 +53,8 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // THE POPULATION IS A PATH SET, AND THE PATH SET IS THE AUDITABLE ARTEFACT --
 // the integer below is only its cardinality. A bare count cannot be diffed by
 // the next reader and cannot tell real growth from a leak (compiled output
-// wandering into `present`, say). So the set is written out. Derived at main
-// 439b309, and every figure in this comment is a figure AT 439b309:
+// wandering into `present`, say). So the set is written out. First derived at
+// main 439b309, where it was these six:
 //
 //   web/src/capabilities.test.ts
 //   web/src/components/inspector/render-sink-xss.test.ts
@@ -64,24 +64,41 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 //   web/src/utils/task-ready.test.ts
 //
 // Reconciled at 439b309 against the runner's own `--list`: both sets are those
-// six paths, `A - B` and `B - A` are both empty. So the floor is 6 at 439b309
-// because the population at 439b309 is those six files -- not because 6 felt
+// six paths, `A - B` and `B - A` are both empty. So the floor was 6 at 439b309
+// because the population at 439b309 was those six files -- not because 6 felt
 // safe, and not from any branch's population.
+//
+// RE-DERIVED ON hardening/markdown-href, WHICH ADDS ONE SUITE. The population
+// is now these seven, the sixth line being the new one:
+//
+//   web/src/capabilities.test.ts
+//   web/src/components/inspector/render-sink-xss.test.ts
+//   web/src/util/assertions.test.ts
+//   web/src/util/markdown-href.test.ts
+//   web/src/util/safe-url.test.ts
+//   web/src/util/url-binding-scan.test.ts
+//   web/src/utils/task-ready.test.ts
+//
+// Reconciled the same way -- this script's enumeration against the runner's own
+// `--list` -- and both sets are those seven paths with no residue in either
+// direction. The floor moves to 7 in the same commit as the file it counts,
+// because a floor that lags the population is a licence to delete the newest
+// suite in silence.
 //
 // TO RE-DERIVE THIS RATHER THAN TRUST IT, from a clean checkout:
 //   node scripts/ci-suite-manifest.mjs          # prints the set it enumerated
 //   (cd web && node scripts/run-node-tests.mjs --list)
 // If those two disagree, that is a defect report and not a new floor.
 //
-// This number is correct FOR 439b309 and is expected to move: it must be
-// re-derived, set-wise, at any commit that changes the population, and raised
-// in the commit that adds a suite.
+// This number is correct FOR the population above and is expected to move: it
+// must be re-derived, set-wise, at any commit that changes the population, and
+// raised in the commit that adds a suite.
 //
 // WHAT IT DETECTS DEPENDS ON WHERE IT IS SET, AND THAT IS EASY TO GET WRONG.
 // While the floor sat at 1 against a population of 6 it could only catch a
 // collapse toward zero, and losing one file out of six was invisible to it.
 // Set EQUAL to the population, as it now is, it catches any NET REDUCTION --
-// six becomes five and this fails.
+// seven becomes six and this fails.
 //
 // WHAT IT STILL CANNOT DETECT, AT ANY SETTING, IS A SUBSTITUTION: delete one
 // test file and add another in the same commit and the cardinality is
@@ -97,7 +114,7 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // a backlog item; not built here.
 //
 // Adding a suite is what raises this number.
-const MIN_TEST_FILES = 6;
+const MIN_TEST_FILES = 7;
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
 // set is always empty; locally it means a test file you just created is counted
