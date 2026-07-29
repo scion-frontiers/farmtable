@@ -84,6 +84,15 @@ jobs:
       - name: Which JS suites will actually run (fails if any is unwired)
         run: node scripts/ci-suite-manifest.mjs
 
+      # CANARY ONLY - NEVER MERGE.
+      # Reproduces the condition the next step exists to catch: build output
+      # present in web/dist before anything in this run built it (a restored
+      # cache, or a stale working copy). The gate itself is untouched.
+      - name: CANARY plant inherited build output in web/dist
+        run: |
+          mkdir -p web/dist/assets
+          echo 'inherited' > web/dist/assets/index-canary000.js
+
       # ---------------------------------------------------------------------
       # web/dist must be BUILT BY THIS RUN, not inherited.
       #
