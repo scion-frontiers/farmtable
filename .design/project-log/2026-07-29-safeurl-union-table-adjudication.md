@@ -228,3 +228,69 @@ restoring the bundle rather than by `git bundle verify`. Durability numbers are
 in the report; the operative predicate is **"is this object absent from every
 store outside my container"**, not "is it reachable from origin/main", which
 false-positives on every unmerged branch.
+
+## Reject UX ruled: neither side, and the merge base splits
+
+Owner ruled inline deactivated marker plus the original address in selectable,
+copyable form. Neither implementation does this; it is new code, not a merge
+pick. Flagged to the coordinator immediately per instruction.
+
+Refinement to the coordinator's read: MAIN's DOM test is **not** wholly retired.
+Of six assertion groups in c3e1b5c, **two die** (488–491 and 569–572, both title-
+attribute delivery, killed by constraint 4) and **four survive**, including both
+anti-vacuity controls (495–507, 576–582). The no-href assertions at 483–484 and
+560–563 are constraint 1 verbatim.
+
+**MAIN's canary could never have gone red on markup.** It asserts the payload
+appears in a `title` attribute. An attribute value cannot contain elements, so
+the assertion is structurally incapable of detecting an unsafeHTML render — inert
+by the parser's construction, not by the code's. The ruled design (text node or
+input value) is the first variant of this feature in which the mandated canary is
+expressible at all.
+
+**Merge base splits.** Rendering harness → 439b309 (only side with a lit+JSDOM
+harness; a9e49ff has zero DOM tests). Validator → 633f8f2 (C3 ruled its way; Arm
+B measures its return contract killing 3 of 5 accepts against MAIN's 0 of 16).
+The harness column favours the requester's own track and is the weaker claim —
+scaffolding ports cheaply, measured behaviour does not. Flagged, not decided.
+
+## C1 decided, precondition named
+
+**Reject `http://[::1]/x`; retire MAIN's fixture case "ipv6 host" rather than
+port it.** Rests on exactly one precondition: **P1 — loopback is a category
+controlled separately from plaintext http.** If P1 is false, C1 dissolves and
+rows 64–71 are BLOCKING-only artefacts. Nothing else to unwind.
+
+Grounds, measured under CARVEOUT: `LOCAL_HOSTNAMES` is over-inclusive
+(`0x7f000001`, `0177.0.0.1`, fullwidth all normalise in) **and** under-inclusive
+(`[::1]` is not in the set) simultaneously. It implements "block a two-element
+string list", not "block loopback". Replacement is a predicate over the parsed
+host; not written, because C2's ruled default is unimplemented on both sides.
+
+## Flag rename: two defects, and the rename fixes only one
+
+Polarity is wrong (ships `false`, ruled default is allow) **and scope is wrong** —
+`LOCAL_HTTP_LINKS_ENABLED` governs http to `LOCAL_HOSTNAMES` only (d85bb5b:66
+conjunction), while the ruled switch governs all plaintext http. Renaming alone
+would put a whole-scheme name over loopback-scoped logic: a right-shaped name
+over wrong-scoped code, the same defect class as the unit label and the phantom
+SHA. Both must change together. Not implemented.
+
+## Durability numbers
+
+Sweeps: fsck **0** unreachable/dangling commits; reflog **6** SHAs promoted to
+`refs/preserve/reflog/*`; refs 210 → 216. Bundles both kept:
+baseline `--all` **3,059,832 bytes / 211 refs**, corrected `--all HEAD`
+**3,060,450 / 217**. Delta +618 bytes, +6 refs — ref entries only, no object
+payload, because this leg had nothing unreachable to rescue. Verified **by
+restore**, not by `git bundle verify`: all five commits `cat-file -e` exit 0 in
+both restores, 10 of 10.
+
+Durability predicate — **absent from every store outside this container: 5 of 5**
+(exit 1 against /workspace/farmtable). Ancestry deliberately not reported as the
+finding. Canonical `main` resolved by name is 2982ffd; canonical HEAD sits on
+`task-state-web-ui-v2`, so `FETCH_HEAD` would have returned 633f8f2 and the
+ancestry test would have exited clean against the wrong branch.
+
+All five commits still exist in exactly one place. The bundles are shared storage,
+not a git store. **Do not retire this leg until the refs are fetched out.**
