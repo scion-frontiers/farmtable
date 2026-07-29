@@ -1,0 +1,119 @@
+name: CI
+
+# Runs on every pull request and on every push to the default branch.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege. Every step below authenticates as the workflow's own
+# short-lived GITHUB_TOKEN, which GitHub mints per run and expires when the run
+# ends. No personal access token is referenced anywhere in this workflow, and
+# none should ever be added to it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # go.mod declares `go 1.26.5`; keep these in step.
+  GO_VERSION: '1.26.5'
+  # No .nvmrc exists in this repo, so this is a deliberate choice, not a
+  # discovered value. Node 22 is the active LTS line and is the lowest LTS that
+  # satisfies the strictest engine constraint in web/package-lock.json
+  # (vite 6.4.3 requires ^18.0.0 || ^20.0.0 || >=22.0.0).
+  NODE_VERSION: '22'
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies from lockfile
+        working-directory: web
+        run: npm ci
+
+      # ---------------------------------------------------------------------
+      # Membership, not exit codes.
+      #
+      # The JS test wiring on this tree names the files it runs. A suite can
+      # therefore stop running without anything failing. This step compares the
+      # test files that exist against the test files `npm test` actually
+      # executes, and fails if they differ. It runs BEFORE the suites so that a
+      # missing suite is reported as a missing suite rather than as a pass.
+      # ---------------------------------------------------------------------
+      - name: Which JS suites will actually run (fails if any is unwired)
+        run: node scripts/ci-suite-manifest.mjs
+
+      - name: Build
+        run: make build
+
+      # ---------------------------------------------------------------------
+      # The two suites are invoked DIRECTLY below, not through `make test`.
+      #
+      # This is deliberate. If the gate reached the tests only via `make test`,
+      # then the gate would be load-bearing on the Makefile edit that shipped
+      # alongside it, and a mistake there would silently reduce coverage while
+      # the badge stayed green. `make test` is checked separately, afterwards,
+      # as a Makefile self-check -- not as the route to the tests.
+      # ---------------------------------------------------------------------
+      - name: Go tests (invoked directly)
+        run: go test ./... -v 2>&1 | tee go-test.log
+
+      - name: Web tests (invoked directly)
+        working-directory: web
+        run: npm test
+
+      - name: Executed Go test membership
+        if: always()
+        run: |
+          if [ ! -f go-test.log ]; then
+            echo "go-test.log absent: the Go step did not get far enough to run tests."
+            exit 0
+          fi
+          echo "### Executed Go tests" >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^=== RUN   Test[^/]*$' go-test.log \
+            | sed -E 's/^=== RUN   //' | sort -u > executed-go-tests.txt
+          echo "top-level Go tests executed: $(wc -l < executed-go-tests.txt)" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat executed-go-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "--- failures, if any ---"
+          grep -E '^(--- FAIL|FAIL|ok  ) ' go-test.log | grep -E '^(--- FAIL|FAIL)' || echo "none"
+
+      - name: Upload test membership evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-membership
+          path: |
+            go-test.log
+            executed-go-tests.txt
+          if-no-files-found: warn
+
+      # Verifies the Makefile change that shipped with this workflow really does
+      # reach both suites. If this fails while the direct steps above passed,
+      # the Makefile is wrong -- not the code.
+      - name: Makefile self-check (make test reaches both suites)
+        run: make test
