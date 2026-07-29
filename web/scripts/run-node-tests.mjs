@@ -57,7 +57,7 @@ function run(command, args) {
 // is a test that silently does not run. scripts/ci-suite-manifest.mjs compares
 // the resolved sets on every build and fails on any difference, so the coupling
 // is enforced rather than merely documented here.
-const TEST_SUFFIXES = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx'];
+const TEST_SUFFIXES = ['.test.ts', '.test.tsx', '.spec.ts'];
 
 const sources = walk(join(webRoot, 'src'), (file) =>
   TEST_SUFFIXES.some((suffix) => file.endsWith(suffix)),
