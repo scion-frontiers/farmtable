@@ -113,7 +113,15 @@ export function getCapabilities(collection: Collection): CollectionCapabilities 
   // into storage with no key validation, so a caller with admin scope can plant
   // writable: true on it. Conjunct A forces every imported collection to the
   // FARMTABLE platform; this early return means the FARMTABLE path never
-  // consults the planted key. Both are needed. Moving the writable read above
+  // consults the planted WRITABLE key -- that adjective is load-bearing and an
+  // earlier draft omitted it. Import validates no keys at all, so writable is
+  // merely the key THIS gate is about, and "the planted key" overstated it into
+  // a claim about every key. It is false as a universal: collection remote_data
+  // has a functional Go reader, collectionSupportsGraph in
+  // internal/server/graph_support.go, which consults a planted graph_queries and
+  // is held inert by a separate farmtable early return that neither conjunct
+  // here covers. See the WRITE-AUTHORIZATION GATE block in convert.go for that
+  // census. Both are needed. Moving the writable read above
   // the platform check arms them together and turns an unvalidated uploaded map
   // into a privilege grant.
   //

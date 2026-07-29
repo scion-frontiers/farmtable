@@ -212,6 +212,22 @@ var webRemoteDataConsumers = []declaredConsumer{
 			"declared one above. Declared rather than reworded, on the same reasoning " +
 			"as the entry above it.",
 	},
+	{
+		file:  "src/capabilities.ts",
+		text:  "// a claim about every key. It is false as a universal: collection remote_data",
+		count: 1,
+		reason: "Security annotation on getCapabilities, added in r8 for audit condition " +
+			"6. NARROWS an over-general claim: the r7 text said the FARMTABLE early " +
+			"return means that path \"never consults the planted key\", a claim about " +
+			"EVERY key, where the evidence supports one only about writable. This line " +
+			"names the counterexample -- collectionSupportsGraph in " +
+			"internal/server/graph_support.go reads a COLLECTION's remote_data for the " +
+			"graph_queries key -- so the mention is a CITATION OF A GO READER, not a " +
+			"web consumer; no TypeScript here reads the field. Declared rather than " +
+			"reworded, on the same reasoning as the two entries above. This is the " +
+			"SECOND time in r8 that annotating this guard's subject tripped this " +
+			"guard, which is the guard working and not a reason to loosen it.",
+	},
 
 	// ---- GENERATED TRANSPORT CODE. Listed line by line rather than excluded by
 	// directory, on purpose. These are not consumers -- they are the wire

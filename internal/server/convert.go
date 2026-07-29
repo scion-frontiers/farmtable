@@ -846,6 +846,38 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// behind an existing control; they are creating a control that only one
 		// client honours.
 		//
+		// THAT SENTENCE IS ABOUT `writable`. DO NOT PROMOTE IT TO "THE PLANTED KEY".
+		// Import copies an uploaded document's collection remote_data into storage
+		// with NO KEY VALIDATION, so `writable` is not the only thing that can be
+		// planted -- it is only the one this gate is about. A neighbouring comment
+		// once generalised this to "the FARMTABLE path never consults the planted
+		// key", which is a claim about EVERY key and is a different, larger claim
+		// than the one the evidence supports.
+		//
+		// COLLECTION-SCOPE remote_data READERS IN GO, ENUMERATED AT af9ea8c.
+		// AS-OF-THIS-COMMIT, NOT AN INVARIANT.
+		//
+		//   ENUMERATED 8 = FLAGGED 1 + EXCLUDED 7
+		//   instrument: grep -rn 'RemoteData\[' --include='*.go' internal/
+		//               | grep -v '_test.go'   (then resolve each receiver's type)
+		//
+		//   FLAGGED, i.e. actually reads a COLLECTION's map:
+		//     - collectionSupportsGraph, in internal/server/graph_support.go.
+		//       Key `graph_queries`, not `writable`.
+		//   EXCLUDED 7, all reading a TASK's map or WRITING a params struct:
+		//     taskToProto x3 (platform, remote_id, remote_url), BeadsAdapter and
+		//     GitHubAdapter buildRemoteIDIndex (remote_id each), UpdateTask x2
+		//     (writes remote_id and remote_url, never reads them).
+		//
+		// SO: `writable` has no functional Go reader, but collection remote_data
+		// DOES, and a planted `graph_queries` IS consulted in Go. It is inert today
+		// only because collectionSupportsGraph's single caller takes a farmtable
+		// early return before reaching it -- a THIRD farmtable early return, in a
+		// file this round never opened. It is not named here beyond this sentence:
+		// it is tracked separately as audit Finding 9 and is deliberately NOT part
+		// of this round. Do not treat its absence from the two-conjunct model as
+		// evidence that the model covers it. IT DOES NOT.
+		//
 		// WHY THERE IS NO NUMBER IN THE PARAGRAPH ABOVE, AND PLEASE DO NOT ADD ONE.
 		// An earlier draft of this comment said "the two producers". A count is a
 		// population claim with nothing guarding it: the day someone adds another
