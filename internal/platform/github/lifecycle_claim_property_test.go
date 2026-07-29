@@ -40,25 +40,93 @@ import (
 // which only reports under -race. Every race found in this package so far
 // biased toward pricing a lifecycle write as FREE.
 
-// priceOf is the scope set the UpdateTask label arm would demand for a
-// (before, after) endpoint pair. It mirrors server.go's loop rather than
-// re-deciding anything: same SameStageSet guard, same all-pairs walk, same
-// "task:write is not a lifecycle charge" filter.
-func priceOf(before, after []task.Stage) map[string]bool {
+// ── STRUCK, NOT DELETED ─────────────────────────────────────────────────────
+//
+// THE ORIGINAL priceOf, KEPT IN PLACE BECAUSE OF WHAT IT FOUND. Struck at
+// 0904a22; the finding below was measured at 037a626 plus a one-hunk mutation.
+//
+//	func priceOf(before, after []task.Stage) map[string]bool {
+//		out := map[string]bool{}
+//		if store.SameStageSet(before, after) {
+//			return out
+//		}
+//		for _, from := range before {
+//			for _, to := range after {
+//				scope := server.TransitionScope(string(from), string(to))
+//				if scope == server.ScopeTaskWrite {
+//					continue
+//				}
+//				out[scope] = true
+//			}
+//		}
+//		return out
+//	}
+//
+// WHAT IT FOUND, AND WHY IT WAS RIGHT TO. This body was a verbatim copy of the
+// pre-round-12 gate. When round 12 landed it went red on 48 cells, all one
+// vector — the masked removal of the canonically first stage — and the obvious
+// reading was that a stale replica was complaining about a gate that no longer
+// existed. That reading was WRONG IN A WAY THAT MATTERED, and the copy was
+// reporting something true:
+//
+//	the elementwise SameStageSet was catching masked removals BY ACCIDENT OF
+//	WHERE unionStages APPENDED THE RESTORED ELEMENT. Because "completed" sorts
+//	canonically first, the restored element landed BEHIND "wont_fix", the two
+//	orderings disagreed while the SETS did not, and the inequality that charged
+//	the edit was an ordering artefact rather than a pricing decision.
+//
+// Measured, at 037a626 with ONLY the set-semantic SameStageSet hunk applied and
+// no directional split: the edit is ALLOWED, and the read-back shows
+// [wont_fix completed] -> [wont_fix], i.e. it is EFFECTIVE, not merely
+// permitted. So making SameStageSet a real set comparison — which D2a demands,
+// on its own merits — REMOVES THE ONLY THING THAT WAS CHARGING THAT VECTOR.
+// That is why the two halves of round 12 are coupled and land together.
+//
+// An independent copy of the old gate rediscovered the under-pricing the moment
+// the accident was removed. That is confirmation of the diagnosis, and it is
+// exactly the sort of thing that gets deleted along with the test it lives in.
+// It stays here, struck, so the next reader inherits the finding rather than
+// the conclusion.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// scopesFor prices a transition list exactly as server.go's UpdateTask arm
+// does: same "task:write is not a lifecycle charge" filter, same TransitionScope
+// table. It decides nothing on its own.
+func scopesFor(transitions [][2]task.Stage) map[string]bool {
 	out := map[string]bool{}
-	if store.SameStageSet(before, after) {
-		return out
-	}
-	for _, from := range before {
-		for _, to := range after {
-			scope := server.TransitionScope(string(from), string(to))
-			if scope == server.ScopeTaskWrite {
-				continue
-			}
-			out[scope] = true
+	for _, tr := range transitions {
+		scope := server.TransitionScope(string(tr[0]), string(tr[1]))
+		if scope == server.ScopeTaskWrite {
+			continue
 		}
+		out[scope] = true
 	}
 	return out
+}
+
+// readPriceOf is the price of an endpoint pair under the REAL round-12 pricing
+// shape — two independent set differences, anchored the way
+// LabelWritePrice.Transitions anchors them.
+//
+// It calls the production Transitions method rather than restating it, so the
+// reference arm cannot drift from the gate it is the reference FOR. Only the
+// ENDPOINTS differ between the two arms; the pricing is one implementation.
+//
+// WHY BOTH ARMS HAD TO MOVE. The old comparison was all-pairs against all-pairs.
+// Round 12 charges a strict SUBSET of the round-11 cross product, so pointing
+// only the write arm at the real gate would have compared a directional price
+// against a cross-product price and reported "cheaper" for every cell where the
+// subset property is doing its job — a red for the intended effect, which is
+// the same trap the EM's corrected stop rule names. Moving both arms keeps the
+// question the one worth asking: with the pricing shape held fixed, does the
+// WRITE view ever charge less than the READ view?
+func readPriceOf(before, after []task.Stage) map[string]bool {
+	return scopesFor(store.LabelWritePrice{
+		Before:   before,
+		After:    after,
+		Departed: store.StageSetDifference(before, after),
+		Entered:  store.StageSetDifference(after, before),
+	}.Transitions())
 }
 
 func priceString(p map[string]bool) string {
@@ -183,10 +251,21 @@ func TestLabelWritePrice_IsMonotoneInThePredicate(t *testing.T) {
 							refBefore := s.currentLifecycleStages(tk, tk.Labels)
 							refAfter := s.currentLifecycleStages(tk,
 								applyLabelDelta(tk.Labels, d.add, d.remove))
-							ref := priceOf(refBefore, refAfter)
+							ref := readPriceOf(refBefore, refAfter)
 
-							before, after := s.LabelDeltaLifecycleStages(ctx, tk, d.add, d.remove)
-							got := priceOf(before, after)
+							// THE WRITE ARM NOW REACHES THE REAL GATE, not a
+							// copy of it. The copy this replaced is struck in
+							// place above, with what it found.
+							p, err := store.PriceLabelWrite(ctx, s, tk, d.add, d.remove)
+							if err != nil {
+								t.Fatalf("PriceLabelWrite failed for config=%s labels=%v "+
+									"add=%v remove=%v stage=%s closed=%v: %v\n"+
+									"An error here is not a price. A cell that cannot be "+
+									"priced is not a cell that is free.",
+									cfgName, tk.Labels, d.add, d.remove, stage, closed, err)
+							}
+							before, after := p.Before, p.After
+							got := scopesFor(p.Transitions())
 
 							for scope := range ref {
 								if got[scope] {
@@ -240,7 +319,7 @@ func TestLabelWritePrice_MonotonicityPinCanFail(t *testing.T) {
 
 	refBefore := s.currentLifecycleStages(tk, tk.Labels)
 	refAfter := s.currentLifecycleStages(tk, applyLabelDelta(tk.Labels, add, nil))
-	ref := priceOf(refBefore, refAfter)
+	ref := readPriceOf(refBefore, refAfter)
 	if len(ref) == 0 {
 		t.Fatalf("the read predicate charges nothing for %v + %v, so this control "+
 			"cannot demonstrate a drop", tk.Labels, add)
@@ -252,7 +331,7 @@ func TestLabelWritePrice_MonotonicityPinCanFail(t *testing.T) {
 		s.mapper.canonicalLifecycleLabels(tk.Labels))
 	round10After := view.claimedStages(taskIssueState(tk), taskStateReason(tk),
 		s.mapper.canonicalLifecycleLabels(applyLabelDelta(tk.Labels, add, nil)))
-	round10 := priceOf(round10Before, round10After)
+	round10 := readPriceOf(round10Before, round10After)
 
 	dropped := false
 	for scope := range ref {
