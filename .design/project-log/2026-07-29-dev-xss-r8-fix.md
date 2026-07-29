@@ -52,6 +52,15 @@ prose to be relied on, so its accuracy is the control.
 
 ## Three things a later leg should know
 
+> **WHICH TREE EVERY FIGURE BELOW CAME FROM.** All of them were taken in
+> `/workspace/farmtable-xss-r8`, a leg tree cloned from the local path, **with no
+> built frontend** — `web/dist` absent at entry and exit, measured. There are
+> three tree states on this project (pristine, the main working copy which has
+> carried a built frontend since 27 July, and the CI runner which builds during
+> its own run) and **whole-project commands behave differently in each.** Nothing
+> here was measured in `/workspace/farmtable` or on CI. The web figures are
+> tree-state-independent; the Go ones are not.
+
 **F1 IS VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**
 A build token was granted after the commits above landed. `npx tsc --noEmit` is
 green, `--listFiles` proves `ft-app.ts` was actually loaded, and a deliberate
@@ -105,7 +114,8 @@ not the demonstration I claimed. **A later leg meeting this red should treat it
 as uncharacterised.** Re-characterisation is routed to `ts-diff-r8`, which is
 building clean clones of both `e4e3d13` and `901670e` for other reasons and so
 has both arms for free; `internal/server` is not one of the packages EM-100
-kills, so it runs there.
+kills in a frontend-less tree, so a package-scoped run works there even though a
+whole-project one would not.
 
 The rule now in force: fix N per arm in advance, interleave the arms, re-run both
 or neither, and report every run rather than a summary. **BUT DO NOT STOP AT
