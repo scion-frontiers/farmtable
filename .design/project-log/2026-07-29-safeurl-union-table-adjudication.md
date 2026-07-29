@@ -374,3 +374,43 @@ appear in a name-based grep because it drives the component through `remoteUrl`
 and never names the helper. A name sweep misses a test that exercises the subject
 through its consumer — the same blindness one layer down. Enumerated by directory
 as well.
+
+## The 91-row table: arms re-run, config-correct
+
+MAIN **49** distinct inputs (one arm; 659ef58 has no switch). BRANCH **55**
+across two arms — BLOCKING 45 (a9e49ff, plain Node) and CARVEOUT 21 (ffe965d,
+Vitest with DEV true), 11 asserted under both. UNION **91** = 49 + 55 − 13
+shared, of which 12 are identical triples and the thirteenth is `http://[::1]/x`,
+kept undeduplicated.
+
+**Arm A controls all green: MAIN 49/49, BRANCH.blocking 45/45, BRANCH.carveout
+21/21.**
+
+**RETRACTED, measured:** "BRANCH.carveout fails 8 of its own rows" — it passes
+21/21. The old figure came entirely from scoring a9e49ff's BLOCKING rows against
+the CARVEOUT build, a configuration ffe965d's docblock explicitly excludes. The
+split is expressed in the *runner*, not the assertions, which is why it was
+invisible from a9e49ff alone.
+
+Cross-side: MAIN fails 23/45 of BLOCKING and 6/21 of CARVEOUT; BRANCH fails 10/49
+of MAIN's under either config. Still no winner. Four of MAIN's six CARVEOUT
+failures (88–91) are the return contract, so the extension sharpened the contract
+question rather than adding an axis.
+
+**The config labels dissolved an apparent contradiction.** Rows 64/65 reject
+loopback http; rows 84/85 accept it — same side. Not a contradiction: one policy,
+two configurations. Machine-checked, of the 11 inputs asserted under both arms, 0
+disagree. Unlabelled, this reads as a side contradicting itself, which is exactly
+the false finding I filed an hour ago.
+
+**Arm B:** MAIN.disarmed 31/49 KILL, 18/49 vacuous. BRANCH.disarmed 41/45 against
+BLOCKING, 15/21 against CARVEOUT, **47/55 across all BRANCH inputs**, 8 vacuous
+(30, 31, 77, 81, 82–85).
+
+**The 10 new rows are an out-of-sample test of the Arm B finding and it holds:
+6/10 kill, 4/10 vacuous.** The four normalisation rows (88–91) all kill; the four
+vacuous are accepts already in normal form. ffe965d's docblock states these rows
+exist precisely because returning `raw` survived their round-2 mutation run. Their
+intent is confirmed on their own rows.
+
+0 of 91 rows carry no configuration label.
