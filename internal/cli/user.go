@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/spf13/cobra"
 )
@@ -34,6 +36,14 @@ func newUserCreateCmd(globals *globalFlags) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			output := resolveOutput(globals.output)
+
+			// Reject an unrecognised type here rather than let it reach the
+			// database. The column is a free-form string with no enum
+			// constraint, so this is the only gate between a typo and an
+			// account that no token can ever be issued for.
+			if err := server.ValidateUserType(userType); err != nil {
+				return exitError(ExitValidation, "UNKNOWN_USER_TYPE", err.Error())
+			}
 
 			s, cleanup, err := openDirectStore()
 			if err != nil {
@@ -74,7 +84,7 @@ func newUserCreateCmd(globals *globalFlags) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&email, "email", "", "Email address")
-	cmd.Flags().StringVar(&userType, "type", "agent", "User type: human, agent, service_account")
+	cmd.Flags().StringVar(&userType, "type", "agent", "User type, one of: "+strings.Join(server.KnownUserTypes(), ", "))
 	return cmd
 }
 
