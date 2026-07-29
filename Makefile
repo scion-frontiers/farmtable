@@ -1,4 +1,4 @@
-.PHONY: generate build test test-go test-web test-changed suite-manifest lint web web-deps web-dev dashboard decomposer
+.PHONY: generate build test test-go test-web test-changed suite-manifest lint lint-go lint-proto web web-deps web-dev dashboard decomposer
 
 # Marker file that `npm ci` writes. Using it as a real make target keeps
 # dependency installation incremental: it re-runs only when the lockfile or the
@@ -16,10 +16,11 @@ generate:
 # versions are pinned nowhere in this repo (there is no tools.go and no go.mod
 # tool directive). Run `make generate` explicitly when the .proto files change.
 #
-# `build` DOES depend on `web`: assets.go embeds `all:web/dist`, and web/dist is
-# gitignored, so on a fresh clone that directory does not exist and the embed
-# fails to compile. Producing the assets first is what makes a fresh clone
-# buildable.
+# `build` DOES depend on `web`. A fresh clone now compiles without it, because
+# web/dist/.gitkeep is tracked and satisfies the `all:web/dist` embed, but that
+# placeholder is only a stub: a binary built from it would fail at run time with
+# ErrWebAssetsNotBuilt (see assets.go). Building the frontend first is what puts
+# real assets in the binary.
 build: web
 	go build ./...
 
@@ -62,9 +63,28 @@ test-changed:
 suite-manifest:
 	node scripts/ci-suite-manifest.mjs
 
-lint:
-	buf lint proto
+# `lint` must be runnable in a clean clone with nothing but the Go toolchain.
+# It previously ran `buf lint proto` first, so it could not pass without the
+# buf CLI installed, and it ran `go vet ./...`, which aborted at zero packages
+# before web/dist was tracked. Nothing in CI invoked it, so neither was noticed.
+#
+# Proto linting needs an external tool and therefore lives in its own target
+# rather than blocking the default lint.
+lint: lint-go
+
+lint-go:
 	go vet ./...
+
+# Requires the buf CLI: https://buf.build/docs/installation
+# Fails loudly when buf is absent rather than skipping, so a missing linter can
+# never be mistaken for a passing lint.
+lint-proto:
+	@command -v buf >/dev/null 2>&1 || { \
+		echo "make lint-proto: the buf CLI is required but was not found in PATH."; \
+		echo "Install it: https://buf.build/docs/installation"; \
+		exit 1; \
+	}
+	buf lint proto
 
 dashboard: web
 	go build -o bin/ft ./cmd/ft
