@@ -145,3 +145,12 @@ jobs:
       # the Makefile is wrong -- not the code.
       - name: Makefile self-check (make test reaches both suites)
         run: make test
+
+      # SCRATCH -- TO BE REVERTED. Second arm of the gate proof.
+      # This step deliberately contains NO `set -o pipefail`. It relies solely
+      # on defaults.run.shell, which is the defence every future step inherits
+      # and the only one a contributor adding a step next month will have. If
+      # this step passes, the workflow-level default is not in effect and the
+      # gate is one careless pipe away from lying again.
+      - name: SCRATCH default-only pipefail probe
+        run: false 2>&1 | tee default-arm-probe.log
