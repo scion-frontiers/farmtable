@@ -8,7 +8,7 @@ import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/servi
 import type { UpdateTaskFields } from '../gen/service.js';
 import { Platform, RelationshipType, TaskPhase, type Collection, type Task, type User } from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
-import { getCapabilities, type CollectionCapabilities } from '../capabilities.js';
+import { getCapabilities, isCollectionWritable, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import { isReady } from '../utils/task-ready.js';
 import './ft-filter-chips.js';
@@ -227,7 +227,7 @@ export class FtApp extends LitElement {
     if (!this.currentCollection) return false;
     if (this.currentCollection.platform === Platform.FARMTABLE) return false;
     // External collections: check per-collection writable setting
-    return !this.isCollectionWritable(this.currentCollection);
+    return !isCollectionWritable(this.currentCollection);
   }
 
   /**
@@ -237,7 +237,7 @@ export class FtApp extends LitElement {
   private get isExternalWritable(): boolean {
     if (!this.currentCollection) return false;
     if (this.currentCollection.platform === Platform.FARMTABLE) return false;
-    return this.isCollectionWritable(this.currentCollection);
+    return isCollectionWritable(this.currentCollection);
   }
 
   /**
@@ -251,41 +251,15 @@ export class FtApp extends LitElement {
     return getCapabilities(this.currentCollection);
   }
 
-  private isCollectionWritable(coll: Collection): boolean {
-    // CONJUNCT ONE OF TWO, AND IT WAS MISSING UNTIL r8.
-    //
-    // getCapabilities in capabilities.ts unlocks the GitHub write set only for
-    // platform GITHUB *and* the writable flag, TOGETHER. This method is the
-    // other reader of that same gate -- isReadOnly and isExternalWritable both
-    // route through it -- and it tested only the writable half, relying on its
-    // callers having already excluded FARMTABLE. Its effective predicate was
-    // therefore "not FARMTABLE and writable", which is strictly weaker than the
-    // invariant, across an enum that has six values other than FARMTABLE.
-    //
-    // WHY THE GAP WAS LIVE RATHER THAN THEORETICAL. Any non-farmtable platform
-    // armed isReadOnly, not only GITHUB. The Beads import path already exists,
-    // reaches the same import params struct, and does not pass through the
-    // farmtable platform guard at all -- that guard sits only in the farmtable
-    // arm of the format switch. It is inert today solely because the platform
-    // is hardcoded one layer up. Someone arming that path would have checked
-    // their work against prose promising that GITHUB was required, and the
-    // capability half would have stayed green while this half flipped.
-    //
-    // THIS IS A TIGHTENING AND NOTHING ELSE. GITHUB collections behave exactly
-    // as before. Every other external platform moves from "writable if the flag
-    // is present" to read-only, which is the documented default for external
-    // collections anyway.
-    if (coll.platform !== Platform.GITHUB) {
-      return false;
-    }
-    // Check remote_data for explicit writable flag
-    const rd = coll.remoteData;
-    if (rd && typeof rd === 'object' && 'writable' in rd) {
-      return rd.writable === true;
-    }
-    // Default: external collections are read-only unless explicitly enabled
-    return false;
-  }
+  // isCollectionWritable USED TO LIVE HERE AS A PRIVATE METHOD, AND THAT IS
+  // WHY IT HAD NO TEST. It is now an exported function in capabilities.ts,
+  // beside getCapabilities, which is the other reader of the same rule. Both
+  // getters above call it directly; there is deliberately no wrapper method
+  // here, so there is exactly one implementation and nothing to drift.
+  //
+  // DO NOT REINTRODUCE A LOCAL COPY. capabilities.test.ts asserts that this
+  // file imports the predicate and declares no `isCollectionWritable` of its
+  // own, because a second copy is the exact defect r8 spent its round fixing.
 
   connectedCallback() {
     super.connectedCallback();

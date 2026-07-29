@@ -87,6 +87,68 @@ export const CAPABILITY_TOOLTIPS: Partial<Record<keyof CollectionCapabilities, s
 };
 
 /**
+ * Whether a collection is a writable external collection.
+ *
+ * MOVED HERE FROM `FtApp` IN r9, AND THE MOVE IS THE POINT. This predicate and
+ * `getCapabilities` below are TWO READERS OF ONE RULE. They disagreed until r8,
+ * when the platform conjunct was added here by hand; they were in two different
+ * files, so nothing made the disagreement visible and nothing would have made
+ * the next one visible either. It was a private method on the `FtApp` element,
+ * which meant it could not be called from a test at all without dragging the
+ * whole component graph into the runner -- and a test that cannot reach its
+ * subject drifts to whatever is exported nearby, which in this case would have
+ * been `getCapabilities`, the one function that never had the defect.
+ *
+ * So it is exported, it sits beside the rule it has to agree with, and
+ * `capabilities.test.ts` pins the agreement across the whole platform enum.
+ * The seam is narrowed, not closed: the two implementations are still separate
+ * on purpose, because a version of this that just called `getCapabilities`
+ * would make the agreement test vacuous.
+ */
+export function isCollectionWritable(coll: Collection): boolean {
+  // CONJUNCT ONE OF TWO, AND IT WAS MISSING UNTIL r8.
+  //
+  // getCapabilities in this file unlocks the GitHub write set only for
+  // platform GITHUB *and* the writable flag, TOGETHER. This function is the
+  // other reader of that same gate -- FtApp.isReadOnly and
+  // FtApp.isExternalWritable both route through it -- and it tested only the
+  // writable half, relying on its callers having already excluded FARMTABLE.
+  // Its effective predicate was therefore "not FARMTABLE and writable", which
+  // is strictly weaker than the invariant, across an enum that has six values
+  // other than FARMTABLE.
+  //
+  // WHY THE GAP WAS LIVE RATHER THAN THEORETICAL. Any non-farmtable platform
+  // armed isReadOnly, not only GITHUB. The Beads import path already exists,
+  // reaches the same import params struct, and does not pass through the
+  // farmtable platform guard at all -- that guard sits only in the farmtable
+  // arm of the format switch. It is inert today solely because the platform
+  // is hardcoded one layer up. Someone arming that path would have checked
+  // their work against prose promising that GITHUB was required, and the
+  // capability half would have stayed green while this half flipped.
+  //
+  // THIS IS A TIGHTENING AND NOTHING ELSE. GITHUB collections behave exactly
+  // as before. Every other external platform moves from "writable if the flag
+  // is present" to read-only, which is the documented default for external
+  // collections anyway.
+  //
+  // THE THREE LINES BELOW ARE THE WHOLE OF af9ea8c. Deleting them is the
+  // mutation `capabilities.test.ts` exists to catch, and it was OBSERVED red on
+  // that mutation -- three interleaved reverted/fixed pairs in a throwaway
+  // clone, every run recorded in reports/dev-xss-r9-fix.md. A pin that has
+  // never been seen red is not evidence of anything.
+  if (coll.platform !== Platform.GITHUB) {
+    return false;
+  }
+  // Check remote_data for explicit writable flag
+  const rd = coll.remoteData;
+  if (rd && typeof rd === 'object' && 'writable' in rd) {
+    return rd.writable === true;
+  }
+  // Default: external collections are read-only unless explicitly enabled
+  return false;
+}
+
+/**
  * Derive per-operation capabilities for a collection based on its platform
  * and writable status.
  */

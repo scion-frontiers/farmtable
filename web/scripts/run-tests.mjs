@@ -303,7 +303,16 @@ if (totalAssertions === 0) {
 // Raise it in the same commit that adds them and the diff shows what you added.
 // If you are LOWERING it, say in the commit message which assertions went away
 // and why.
-const EXPECTED_ASSERTIONS = 380;
+// 380 -> 483 in r9: src/capabilities.test.ts adds 103, pinning the af9ea8c
+// platform guard and the agreement of the capability gate's two readers. No
+// assertion was removed. Measured from the receipts, not predicted.
+//
+// AND IT IS THE COARSE NET, NOT THE FINE ONE, FOR THIS ADDITION IN PARTICULAR.
+// The new file's own RED was demonstrated at the per-file level -- a named
+// assertion failing with the platform that escaped -- precisely so the evidence
+// did not rest on this number moving. A count that moves when a test is deleted
+// says nothing about whether the test could ever have failed.
+const EXPECTED_ASSERTIONS = 483;
 if (totalAssertions !== EXPECTED_ASSERTIONS) {
   const delta = totalAssertions - EXPECTED_ASSERTIONS;
   console.error(

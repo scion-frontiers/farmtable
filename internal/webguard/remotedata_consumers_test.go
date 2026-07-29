@@ -164,12 +164,20 @@ var webRemoteDataConsumers = []declaredConsumer{
 			"FARMTABLE collections return ALL_ENABLED before reaching this line.",
 	},
 	{
-		file:  "src/components/ft-app.ts",
+		file:  "src/capabilities.ts",
 		text:  "const rd = coll.remoteData;",
 		count: 1,
 		reason: "isCollectionWritable: reads the collection's remote_data and returns " +
 			"rd.writable === true, defaulting to false. The second write-authorization " +
-			"gate. Both of its callers return early on FARMTABLE before reaching it.",
+			"gate. Both of its callers return early on FARMTABLE before reaching it. " +
+			"MOVED IN r9 from src/components/ft-app.ts, where it was a PRIVATE METHOD " +
+			"and therefore untestable: a test could not reach it without instantiating " +
+			"the whole component, so the only test anyone could write would have tested " +
+			"getCapabilities -- the neighbour that never had the defect -- instead. It " +
+			"now sits beside the other reader of the same rule, and the line is " +
+			"byte-identical to the one that left ft-app.ts. The two consumers being in " +
+			"one file is NOT a loosening: they are still two declarations with two " +
+			"reasons, and src/capabilities.test.ts pins that they agree.",
 	},
 
 	// ---- COMMENTS. Allowed individually, not as a class. A comment mentioning
@@ -177,10 +185,11 @@ var webRemoteDataConsumers = []declaredConsumer{
 	// false reachability claims that this round spent most of its time undoing
 	// got into the tree in the first place.
 	{
-		file:   "src/components/ft-app.ts",
-		text:   "// Check remote_data for explicit writable flag",
-		count:  1,
-		reason: "Comment on the isCollectionWritable read directly below it.",
+		file:  "src/capabilities.ts",
+		text:  "// Check remote_data for explicit writable flag",
+		count: 1,
+		reason: "Comment on the isCollectionWritable read directly below it. Moved in r9 " +
+			"with the function it annotates; see that entry above for why.",
 	},
 	{
 		file:   "src/store/task-store.ts",
@@ -227,6 +236,38 @@ var webRemoteDataConsumers = []declaredConsumer{
 			"reworded, on the same reasoning as the two entries above. This is the " +
 			"SECOND time in r8 that annotating this guard's subject tripped this " +
 			"guard, which is the guard working and not a reason to loosen it.",
+	},
+
+	// ---- THE TEST FIXTURE. Added in r9, and it is the case the skipDirs comment
+	// above predicted: "a test for the two capability gates cannot be written
+	// without a fixture naming the field." The prediction held and this is the
+	// cost, paid in the intended currency -- two declared lines, not a directory
+	// exclusion and not a permitted category for test files. A fixture that
+	// builds attacker-shaped input is exactly the kind of site a human should
+	// have to look at, because a fixture is also where a real consumer can hide
+	// while looking like scaffolding.
+	//
+	// NOTE THE COMPILED COPY IS NOT HERE. `npm test` emits web/.tmp-test, which
+	// skipDirs prunes at the top level, so this file is declared once (source)
+	// and not twice (source + build output). Allowlisting the compiled path is
+	// the wrong fix and skipDirs already makes it unnecessary.
+	{
+		file:  "src/capabilities.test.ts",
+		text:  "const BASE: Omit<Collection, 'platform' | 'remoteData'> = {",
+		count: 1,
+		reason: "Type-level mention only, in the fixture base object: the two fields the " +
+			"table varies are excluded from BASE so that every case sets them explicitly. " +
+			"No value is read here.",
+	},
+	{
+		file:  "src/capabilities.test.ts",
+		text:  "return { ...BASE, platform, remoteData: rd };",
+		count: 1,
+		reason: "The fixture factory. WRITES the field on a synthetic Collection; it does " +
+			"not read one. This is the only line in the test that constructs the field, " +
+			"deliberately -- the shapes it is given (absent, empty, true, false, the " +
+			"string 'true', the number 1) are listed once in RD_VARIANTS so that the " +
+			"near-miss arms are visible in one place rather than scattered through cases.",
 	},
 
 	// ---- GENERATED TRANSPORT CODE. Listed line by line rather than excluded by
@@ -479,18 +520,24 @@ func TestWebRemoteDataCensusIsNonVacuous(t *testing.T) {
 	root := webRoot(t)
 	found, _ := censusRemoteDataMentions(t, root)
 
+	// KEYED ON THE TEXT, NOT ON THE FILE. It was file-keyed until r9, when
+	// isCollectionWritable moved out of ft-app.ts and next to getCapabilities --
+	// at which point both known consumers live in ONE file and a file-keyed map
+	// can only hold one of them. A map that silently drops half its own
+	// expectations is the failure mode this control exists to prevent, so the key
+	// is now the thing that is actually unique.
 	mustSee := map[string]string{
-		"src/capabilities.ts":      "const rd = collection.remoteData;",
-		"src/components/ft-app.ts": "const rd = coll.remoteData;",
+		"const rd = collection.remoteData;": "src/capabilities.ts",
+		"const rd = coll.remoteData;":       "src/capabilities.ts",
 	}
 	seen := map[string]bool{}
 	for _, m := range found {
-		if want, ok := mustSee[m.file]; ok && m.text == want {
-			seen[m.file] = true
+		if wantFile, ok := mustSee[m.text]; ok && m.file == wantFile {
+			seen[m.text] = true
 		}
 	}
-	for file, text := range mustSee {
-		if !seen[file] {
+	for text, file := range mustSee {
+		if !seen[text] {
 			t.Errorf("the census did NOT find the known capability consumer in %s (%q).\n"+
 				"This is a live consumer of attacker-authored data. If the census cannot see "+
 				"it, the guard is reporting a clean tree because it is looking at the wrong "+
