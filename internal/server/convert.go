@@ -698,17 +698,61 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// responsibly went and checked came back with false confidence.
 		//
 		// The real collection writers are CreateCollection (entstore.go:1366),
-		// UpdateCollection (:1399) and ImportCollection (:2117). The reason this
-		// line does not fire is that NO IN-TREE CALLER POPULATES
-		// CreateCollectionParams.RemoteData OR UpdateCollectionParams.RemoteData.
-		// server.go:1057, server.go:1085 and graph_routing.go:83 all omit the
-		// field. That is a CALLER property, not a type property, and it is a
-		// reachability precondition rather than a guarantee.
+		// UpdateCollection (:1399) and ImportCollection (:2117).
 		//
-		// THE INVALIDATING EVENT, NAMED: anyone setting RemoteData on either param
-		// struct arms this line. Not a rename, not a refactor -- one new field
-		// assignment at one call site, by someone who has no reason to read this
-		// comment. Expect it to fire eventually; that is the design, not a defect.
+		// TWO SEPARATE ARGUMENTS HOLD THIS LINE DOWN AND BOTH ARE LOAD-BEARING.
+		// An earlier version of this comment named all three writers and then
+		// discharged only two, which is this round's own defect class -- a
+		// conclusion written at a wider scope than its evidence -- committed in
+		// the very comment convened to remove it.
+		//
+		// (1) A CALLER argument, covering Create and Update. No in-tree caller
+		// populates CreateCollectionParams.RemoteData or
+		// UpdateCollectionParams.RemoteData: server.go:1057, server.go:1085 and
+		// graph_routing.go:83 all omit the field. A reachability precondition,
+		// not a guarantee.
+		//
+		// (2) A TYPE argument, covering Import -- which the caller argument does
+		// NOT cover, because ImportCollection IS populated by an in-tree caller on
+		// every call. export_import.go builds importParams.Collection.RemoteData
+		// from an attacker-uploaded document (:332) and reaches the store at
+		// :412. What stops it is that the payload arrives through encoding/json
+		// into a map[string]any, with no UseNumber on the decoder, so every value
+		// is nil, bool, float64, string, []any or map[string]any -- exactly
+		// structpb's representable set -- and sanitizeRemoteData preserves types,
+		// so it stays that way.
+		//
+		// YES, (2) IS A TYPE ARGUMENT, AND THIS COMMENT CALLS A TYPE ARGUMENT
+		// FALSIFIED A FEW LINES ABOVE. Both are right, and the difference is
+		// scope, not subject. What was falsified was a UNIVERSAL claim -- that NO
+		// input path could carry a hostile type -- and one counterexample killed
+		// it. What holds here is a BOUNDED claim about one writer whose decoder is
+		// known and named. Do not "simplify" this by deleting (2) as a discredited
+		// style of reasoning: deleting it leaves Import undischarged, which is
+		// exactly how this comment was wrong before.
+		//
+		// THE INVALIDATING EVENTS, NAMED. There are THREE, and the third is the
+		// likeliest:
+		//   - Setting RemoteData on either param struct arms Create or Update.
+		//     One new field assignment at one call site, by someone with no
+		//     reason to read this comment.
+		//   - Decoding the import document with UseNumber, or feeding
+		//     ImportCollectionParams from any source that is not encoding/json,
+		//     arms Import. It breaks argument (2) without touching argument (1),
+		//     so the caller argument will still look satisfied.
+		//   - Adding a RemoteData field to the ent.Collection STRUCT LITERAL in
+		//     syntheticCollection (internal/platform/github/passthrough.go:645)
+		//     arms this line while BYPASSING BOTH PARAM STRUCTS, so neither
+		//     argument above is even engaged. That literal is returned by
+		//     CreateCollection (:630), GetCollection (:638) and ListCollections
+		//     (:642), making it the collection object for EVERY GitHub
+		//     passthrough collection -- the exact object whose remoteData.writable
+		//     the dashboard capability gate reads. Someone enabling GitHub write
+		//     support by adding map[string]any{"writable": true} there is the
+		//     most probable arming edit in this repository. Today that literal
+		//     sets no RemoteData at all, so the != nil guard above skips this
+		//     line entirely for that path.
+		// Expect this to fire eventually; that is the design, not a defect.
 		//
 		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT ONLY "a field goes missing."
 		// The dashboard reads collection remote_data as a write-authorization
