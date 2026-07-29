@@ -222,20 +222,61 @@ function isPermitted(raw: string): boolean {
  * leaks ON RENDER rather than on click, with no interaction at all -- and it is
  * owner-ruled, not re-litigated here.
  *
- * BUT THE ACCEPTED RISK IS FOUR ATTRIBUTES WIDE, NOT ONE. An earlier version of
- * this paragraph named `src` alone, which sized the exposure at a quarter of
- * what it is. Measured on this pipeline, all four survive sanitising with the
- * credentials intact and all four fetch without a click:
+ * THE ACCEPTED RISK IS A CLASS, AND THIS PARAGRAPH DELIBERATELY DOES NOT COUNT
+ * IT. What is accepted is: ANY ATTRIBUTE DOMPURIFY PERMITS THAT CAUSES A FETCH
+ * ON RENDER is not routed through this hook. Not a list of attributes -- the
+ * property. Earlier drafts said "`src`", then "four attributes wide", and each
+ * time the number was the newest measurement mistaken for the boundary. THE
+ * SECOND VERSION WAS THE MORE DANGEROUS ONE, because "four" reads as the output
+ * of an audit while "src" reads as an example. A COUNT IN PROSE WOULD NEED
+ * EXACTLY THE RECONCILIATION THAT THE `LINK_ATTRS` DOCBLOCK ABOVE STATES IS NOT
+ * BUILT; writing one here would re-commit, in the disclosure, the error the
+ * disclosure exists to describe.
  *
- *   src         <img src>, markdown images, <svg><image>
- *   srcset      <img srcset="…evil.example/x.png 1x">
- *   poster      <video poster>
- *   background  <table background> and <td background>, both kept
+ * KNOWN MEMBERS, AS EXAMPLES AND EXPRESSLY NOT AS THE DEFINITION. Measured on
+ * this pipeline with `<a href>` and `<form action>` as negative controls in the
+ * same run, both refused, so these are results and not a dead harness:
+ * `src` (<img>, markdown images, <svg><image>), `srcset`, `poster`,
+ * `background` (<table> and <td>), `style` (background-image:url(...),
+ * background:url(...), list-style-image:url(...)), and the SVG functional IRIs
+ * `fill`/`filter`/`mask`/`clip-path` written as url(...). If you can count these
+ * and take the count for the boundary, this paragraph is written wrong.
  *
- * The RULING on `src` is unchanged and no guard is added for any of them. What
- * changes is only the count: a disclosure that understates its own scope is not
- * a disclosure, and whoever revisits the ruling should be revisiting four
- * attributes. Recorded in the project log, not closed here.
+ * WHY THE CLASS EXISTS, WHICH IS THE PART THAT GENERALISES. Two distinct
+ * mechanisms put members in it, and neither is a gap in this hook:
+ *   1. `style` IS IN DOMPurify's DEFAULT_URI_SAFE_ATTRIBUTES (purify.cjs.js:683,
+ *      consumed at :1801, where a URI-safe name is accepted in a branch that
+ *      SHORT-CIRCUITS BEFORE `IS_ALLOWED_URI` is ever evaluated). So DOMPurify
+ *      is not failing to police the URL inside a CSS declaration; IT IS
+ *      DECLINING TO POLICE THE ATTRIBUTE AT ALL, by configuration, by default.
+ *   2. The others are URI-valued attributes DOMPurify does check, whose values
+ *      pass its scheme test because they are ordinary https. Its default URI
+ *      policy has no rule about userinfo -- the same fact that made F-1
+ *      possible at `href`.
+ * The reusable half: A URL CAN SIT INSIDE AN ATTRIBUTE VALUE RATHER THAN BE ONE,
+ * AND AN ATTRIBUTE-NAME POLICY CANNOT SEE IT. That is a different failure from
+ * C-4, where the attribute WAS URL-typed and the list was merely short. This
+ * widening came from reading ALLOWED_ATTR and DEFAULT_URI_SAFE_ATTRIBUTES, not
+ * from fixtures, which is why it reached a class the fixtures had no case for.
+ *
+ * The RULING on the fetch-on-render class is unchanged and NO GUARD is added for
+ * any member. Only the sizing changed, and it changed from a number to a
+ * property so that the next member does not require this paragraph to be wrong
+ * first. Recorded in the project log, not closed here.
+ *
+ * NOT MEASURED: whether a browser TRANSMITS the userinfo on a SUBRESOURCE fetch.
+ * Browsers block embedded credentials there, so the FETCH is live and the
+ * CREDENTIAL half may already be mitigated by the platform. JSDOM cannot answer
+ * it and nothing here has tested it. This applies to the WHOLE class, including
+ * the members disclosed before this note existed. Do not read the examples as
+ * "credentials leak" and do not read this note as "safe": what is measured is
+ * that the value SURVIVES SANITISING with the userinfo intact.
+ *
+ * NOT MEASURED, SEPARATELY: whether any browser dereferences an EXTERNAL SVG
+ * functional IRI at all. Several restrict `fill`/`filter`/`mask`/`clip-path` to
+ * same-document references, in which case those members are survival without a
+ * fetch. Survival is measured; dereference is not. They are named because the
+ * value reaches the DOM, not because a request was observed.
  *
  * NOT MEASURED: whether a `title` attribute on a non-HTML element (the SVG
  * anchor above) surfaces as a tooltip in any browser. The refusal is effective
