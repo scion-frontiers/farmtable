@@ -294,3 +294,25 @@ ancestry test would have exited clean against the wrong branch.
 
 All five commits still exist in exactly one place. The bundles are shared storage,
 not a git store. **Do not retire this leg until the refs are fetched out.**
+
+## Defect 8: the prescribed preservation sweep is not idempotent
+
+Re-ran the 15:41Z sweep after a further commit. `git update-ref --stdin` is
+transactional, so one `create` for an already-existing ref aborts the whole
+batch: `fatal: cannot lock ref 'refs/preserve/reflog/1713ce8...': reference
+already exists`. The only new SHA in that batch, `70bab71`, was **not** promoted —
+refs/preserve count stayed at 6 and `rev-parse refs/preserve/reflog/70bab71`
+exited 1.
+
+A leg that sweeps, keeps working, and sweeps again before bundling gets nothing
+from the second sweep, and the ref it most needs is exactly the one it misses.
+Harmless here only because 70bab71 is the branch tip and was reachable anyway
+(verified present in the v2 restore).
+
+Fix: plain `git update-ref <ref> <sha>` per SHA, which is idempotent. Applied;
+count 6 → 7. Caught only because stderr was visible.
+
+Bundles: baseline 3,059,832/211; corrected 3,060,450/217; v2 3,063,164/**217**
+(ref count failed to rise — defect 8 in the byte record, left on disk as
+evidence); **v3 3,063,267/218**, current, restore-verified. Six of six commits
+still ABSENT from /workspace/farmtable.
