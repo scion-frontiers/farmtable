@@ -84,6 +84,27 @@ at all, which looks exactly like a clean result. And a `gofmt` cell I scoped to 
 whole directory falsified a prediction I had made about my own diff. Every one is
 the same shape: **the instrument answered a narrower question than the one asked.**
 
+**ONE OF THIS LEG'S RESULTS IS VOID, AND THE SHAPE OF THE MISTAKE IS REUSABLE.**
+After the commits landed I saw `TestWatchTasks_CreatedEvent` go red in a full
+suite run, re-ran **that test alone** three times, got green, ran the full suite
+once more, got green, and called it "confirmed flake, confirmed not mine."
+Every clause of that is procedurally void:
+
+- I chose "three runs" **after** seeing the red, not in advance.
+- I re-ran **only the arm that disagreed with me.** My stopping rule was "halt
+  when it agrees" — that converges on a pass and cannot tell a regression from a
+  flake.
+- "Not mine" is a branch-vs-base claim and **I never measured base.** There was
+  no base arm at all.
+- The full-suite arm split **1 red / 1 green. The split was the result.**
+
+What survives is weaker and rests on other grounds: 5.01s under load against
+0.013s isolated is a timeout signature, and `internal/server/watch_test.go` has
+no structural path to `remote_data`, capabilities or import. That is an argument,
+not the demonstration I claimed. **A later leg meeting this red should treat it
+as uncharacterised.** The rule now in force: fix N per arm in advance, interleave
+the arms, re-run both or neither, and report every run rather than a summary.
+
 ## Deliberately not done
 
 `canEditRelationships` (F2), `EntStore.UpdateCollection`'s census omission (F7),
@@ -99,5 +120,15 @@ them. Re-anchoring them is a round of its own.
 
 Full report, with every measurement and its command:
 `reports/r8/dev-xss-r8.md`. Run ledger: `reports/_run-queue-log.md`, cells
-R8-01 … R8-15, all pre-registered before execution. R8-11 … R8-15 are the
-build-token session and are the only cells in this leg that needed one.
+R8-01 … R8-19, all pre-registered before execution, plus a self-audit section
+listing five differentials that stand and the one struck above. R8-11 … R8-15
+are the build-token session and are the only cells in this leg that needed one.
+
+**Disclosure, recorded here because it belongs in the durable record and not
+only in a report:** cells R8-16 … R8-19 are Go builds and full `go test ./...`
+runs that I executed **inside this review tree** at 12:33–12:36Z, on a reading
+of "rationing lifted" that was later corrected — the contamination rationale for
+not building in a review tree was never withdrawn. Measured aftermath:
+`web/dist` absent, no tracked modifications, nothing in the tree modified after
+12:30Z, `GOCACHE` outside `/workspace`. Zero measurable contamination, which is
+luck and one earlier good decision rather than compliance.
