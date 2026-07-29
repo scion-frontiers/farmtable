@@ -33,6 +33,31 @@ are commits from real agent work: fixes, canaries, prereg notes, project-log
 entries. Some are superseded. Some are not. Nothing was rewritten, nothing was
 deleted, and no working tree was touched.
 
+## The second sweep, later the same day: 124 more
+
+The first sweep enumerated `refs/heads/*` only. A corrected enumerator — every ref
+`for-each-ref` reports, **plus detached `HEAD`, plus `reflog --all`** — was run over
+133 live trees and found **222** tips reachable from no ref on origin, reducing to
+**124 independent** tips. Origin salvage refs went 225 -> 352.
+
+What the first enumerator would have caught, out of those 222:
+
+| kind | count |
+|---|---|
+| `refs/heads/*` | **2** |
+| detached `HEAD` | 4 |
+| reflog-only | 88 |
+| `refs/preserve/*` (an agent's own local salvage namespace) | 128 |
+
+Two of two hundred and twenty-two. The `refs/preserve/*` rows are the sharp ones: an
+agent had already preserved its own unreachable objects, correctly — into a namespace
+the fleet sweep did not enumerate. **Diligent local preservation into a namespace
+nobody sweeps is indistinguishable from no preservation at all once the container
+dies.** If you write a sweep, publish its enumerator next to its count.
+
+Detached-`HEAD` tips are named `detached/<short-sha>` and reflog-only tips
+`reflog/<short-sha>` under the owning clone.
+
 ## Why `refs/salvage/*` and not `refs/heads/*`
 
 The CI workflow triggers on `push: branches: ['**']`, which matches
@@ -62,3 +87,8 @@ fix; it is tracked in the out-of-scope backlog, not here.
 
 Uncommitted files in a live working tree are outside the reach of any sweep.
 Only the owning agent can commit those.
+
+A ref preserved for an agent that is still working is **a handoff as of that SHA, not
+a handoff.** One agent reported a preserved tip, kept committing, and its salvage ref
+was three commits stale within the hour — invisible from the sweeper's side, because
+the ref still resolves and the check still passes. The answer was simply old.
