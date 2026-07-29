@@ -743,7 +743,18 @@ func TestRemoteDataAssignmentSeesEveryShape(t *testing.T) {
 //
 // File-keying already separates that particular pair. This test covers the case
 // file-keying CANNOT: Go permits two methods with the same name on different
-// receivers in the SAME file.
+// receivers in the SAME file. That is not hypothetical here, and the rows below
+// are copied from real declarations rather than invented:
+//
+//	internal/cli/connect.go        Close, :251 *embeddedCloser / :334
+//	                               *passThroughCloser -- hand-written
+//	api/farmtable/v1/farmtable.pb.go  GetRemoteData, :2034 *Task / :2212
+//	                               *Collection -- this field's own accessor
+//
+// Both at e6bda71. Neither is in the scanned directory, which is the point:
+// they establish that file:function is not unique IN THIS REPOSITORY, so the
+// receiver is load-bearing rather than defensive. It is still only an instance
+// fix -- see LIMIT 3 on the registry.
 func TestRemoteDataFuncIdentSeparatesMethodsFromFunctions(t *testing.T) {
 	cases := []struct {
 		decl string
@@ -754,8 +765,11 @@ func TestRemoteDataFuncIdentSeparatesMethodsFromFunctions(t *testing.T) {
 			"(*FarmTableService).taskToProto"},
 		{"func (s FarmTableService) taskToProto(t *ent.Task) *pb.Task {",
 			"(FarmTableService).taskToProto"},
-		{"func (a *Alpha) write() {", "(*Alpha).write"},
-		{"func (b *Beta) write() {", "(*Beta).write"},
+		// Real same-file, same-name, different-receiver pairs from this tree.
+		{"func (c *embeddedCloser) Close() error {", "(*embeddedCloser).Close"},
+		{"func (c *passThroughCloser) Close() error {", "(*passThroughCloser).Close"},
+		{"func (x *Task) GetRemoteData() *structpb.Struct {", "(*Task).GetRemoteData"},
+		{"func (x *Collection) GetRemoteData() *structpb.Struct {", "(*Collection).GetRemoteData"},
 		{"func write() {", "write"},
 	}
 
@@ -788,7 +802,8 @@ func TestRemoteDataFuncIdentSeparatesMethodsFromFunctions(t *testing.T) {
 	}
 	for _, pair := range [][2]string{
 		{"taskToProto", "(*FarmTableService).taskToProto"},
-		{"(*Alpha).write", "(*Beta).write"},
+		{"(*embeddedCloser).Close", "(*passThroughCloser).Close"},
+		{"(*Task).GetRemoteData", "(*Collection).GetRemoteData"},
 	} {
 		if _, ok := seen[pair[0]]; !ok {
 			t.Errorf("anti-vacuity: the table no longer contains %q, so the "+
@@ -871,7 +886,7 @@ func (e remoteDataWriteExpectation) wantFuncs() []string {
 // for which non-test files UNDER internal/server may assign a RemoteData field.
 //
 // ================== READ THE SCOPE BEFORE YOU TRUST THE RESULT ==================
-// TWO LIMITS, AND THE SECOND IS THE ONE THAT WILL SURPRISE YOU.
+// THREE LIMITS. THE SECOND WILL SURPRISE YOU; THE THIRD HAS NO FIX.
 //
 // LIMIT 1, LOCATION: THIS REGISTRY COVERS ONE DIRECTORY, internal/server. It is
 // not a tree-wide census. Other packages assign RemoteData too, and this scanner
@@ -909,6 +924,39 @@ func (e remoteDataWriteExpectation) wantFuncs() []string {
 // unsafe. Whether writes elsewhere need sanitizing is an open architectural
 // question owned outside this file; nothing here has adjudicated it, and a
 // reader must not infer that silence is a clearance.
+//
+// LIMIT 3, KEY: THE REGISTRY KEY IS TEXT, NOT AN IDENTITY. Entries key on
+// file + receiver + function (`export_import.go` ->
+// `(*FarmTableService).ImportCollection`). That is AN INSTANCE FIX, LABELLED AS
+// ONE. It closes the collisions that have actually been demonstrated and it
+// does not close the class. Both of these are real and were verified in this
+// tree at e6bda71 rather than taken on report:
+//
+//	bare `Close`         internal/cli/connect.go declares it TWICE, :251 on
+//	                     *embeddedCloser and :334 on *passThroughCloser. Hand
+//	                     -written, same file, both keying to "connect.go:Close".
+//	bare `GetRemoteData` api/farmtable/v1/farmtable.pb.go declares it TWICE,
+//	                     :2034 on *Task and :2212 on *Collection. THE COLLIDING
+//	                     NAME IS THIS FIELD'S OWN ACCESSOR.
+//
+// So file:function admits compensating substitution one scope narrower than the
+// version that killed the count map, and the receiver closes that one scope.
+// Now look at the shape of the repair history before you extend it. The regex
+// was widened to admit a form. The census was widened to admit a form. The key
+// was widened to admit a qualifier. Then the qualifier was widened again. EACH
+// FIX RESOLVED THE INSTANCE THAT HAD JUST BEEN DEMONSTRATED AND LEFT THE CLASS
+// INTACT -- and several were proposed by people who had, the same hour, ruled
+// that adding a form MOVES a blind spot rather than closing it.
+//
+// ** EVERY KEY SHORT OF A COMPILER-RESOLVED IDENTITY IS A HEURISTIC WITH AN
+// UNKNOWN MARGIN. THE ONLY SOUND BOUND IS AST- OR TYPE-RESOLVED, AND THIS
+// REGISTRY IS NOT THAT. **
+//
+// Unknown, note, is not zero and is not measured. A receiver rendered as text
+// is still text: a type alias, a generic instantiation, a dot-import, or the
+// same type name in two packages can each produce one key for two declarations,
+// and nothing here would notice. If your next move is to add a fourth
+// qualifier, this paragraph is the thing it has to answer first.
 //
 // This is spelled out because the guard got STRONGER in this commit, and a
 // stronger guard is trusted further. A membership set that enumerates one
@@ -1020,14 +1068,21 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 				"THREE-LINE SEQUENCE whose next two lines put caller-supplied bytes " +
 				"into the very map it just created. AN EXACT-TEXT EXEMPTION CAN " +
 				"EXPRESS 'THIS WRITE IS EMPTY'. IT CANNOT EXPRESS 'AND NOTHING " +
-				"POPULATES IT AFTERWARDS.' Before this rewrite those next two lines " +
-				"were map-index assignments, which the old scanner could not see at " +
-				"all, so the exemption and the blind spot were MUTUALLY CONCEALING: " +
-				"the instrument recorded a considered human decision about this " +
-				"line and had no representation whatsoever for the two that falsify " +
-				"its premise, which reads to any auditor as 'this file was " +
-				"examined'. It is only safe to exempt this line because the two " +
-				"below are now visible and adjudicated in their own right.",
+				"POPULATES IT AFTERWARDS.' So exempting this line is only safe " +
+				"because the two below it are visible and adjudicated in their own " +
+				"right -- which they are, in this map, and were not before this " +
+				"rewrite. A STRONGER CLAIM WAS DRAFTED HERE AND RETRACTED BEFORE IT " +
+				"SHIPPED, and it is left on the record because the error is more " +
+				"useful than the sentence was: that the AST scanner in " +
+				"urlvalidate_differential_test.go also had no representation for " +
+				"those two lines, so exemption and blind spot concealed each other. " +
+				"FALSE. buildsRemoteData admits them through its *ast.IndexExpr arm " +
+				"via isRemoteDataTarget, and remoteDataLiteralKeysIn's AssignStmt " +
+				"arm extracts their keys. That claim was true of a PRE-4e58242 tree " +
+				"and 4e58242 is an ancestor of HEAD -- a file:line read at the " +
+				"current SHA was joined to a measurement taken at an older one. THE " +
+				"BRANCH IS NOT AN IDENTIFIER; THE SHA IS, AND EVERY file:line CARRIES " +
+				"ITS SHA.",
 			`p.RemoteData["remote_id"] = req.GetRemoteId()`: "a remote ID, not a URL " +
 				"carrier; urlBearingRemoteDataKey does not admit remote_id",
 			`p.RemoteData["remote_url"] = req.GetRemoteUrl()`: "guarded at entry: " +
