@@ -203,20 +203,141 @@ function runnerArgs(cmd) {
   return out;
 }
 
-// Does a vitest positional filter select this path?
+// ------------------------------------------------------------ interrogation ---
+// ASK THE RUNNER, DO NOT MODEL IT.
 //
-// A bare substring test over-credits: filter `read` would claim to execute
-// `.../task-ready.test.ts`, marking a file executed that nothing selected.
-// Over-crediting shrinks `missing`, and `missing` is the pass condition, so a
-// loose match here manufactures a pass. Anchored to path-segment boundaries.
-function pathFilterMatches(p, filter) {
-  const f = filter.replace(/^\.?\/+/, '').replace(/\/+$/, '');
-  if (!f) return false;
-  if (p === f) return true;
-  if (p.endsWith(`/${f}`)) return true; // suffix on a segment boundary
-  if (p.startsWith(`${f}/`)) return true; // directory prefix
-  if (p.includes(`/${f}/`)) return true; // whole interior segment
-  return false;
+// Earlier revisions of this script reimplemented other people's glob semantics
+// -- a tsconfig `include` matcher, a JSONC comment stripper, a vitest path
+// filter. Every one of them was a guess about somebody else's resolver, and two
+// of the three were wrong in a way that only showed up when fired. The tools
+// can each be asked directly, and their answer is the ground truth this script
+// is trying to approximate, so it asks.
+//
+// Every helper here returns null on ANY failure and every caller treats null as
+// unanalysable. A tool that cannot be asked is not a tool that agreed.
+function ask(binRelToRepo, args) {
+  if (!existsSync(binRelToRepo)) return null;
+  try {
+    return execFileSync(process.execPath, [`${repoRoot}/${binRelToRepo}`, ...args], {
+      cwd: `${repoRoot}/web`,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 32 * 1024 * 1024,
+    });
+  } catch {
+    return null;
+  }
+}
+
+const TSC_BIN = 'web/node_modules/typescript/bin/tsc';
+const VITEST_BIN = 'web/node_modules/vitest/vitest.mjs';
+
+function toRepoPath(p) {
+  const s = p.replace(/^\.\//, '');
+  if (s.startsWith('/')) return s.startsWith(`${repoRoot}/`) ? s.slice(repoRoot.length + 1) : s;
+  return `web/${s}`;
+}
+
+// TypeScript's own expansion of a tsconfig's include/files globs, as concrete
+// paths. `--showConfig` resolves the globs against the real tree, so this is
+// what tsc will actually compile -- not what this script thinks those globs mean.
+function tsconfigFiles(cfgRelToWeb) {
+  const out = ask(TSC_BIN, ['-p', cfgRelToWeb, '--showConfig']);
+  if (out === null) return null;
+  try {
+    const files = JSON.parse(out).files;
+    return Array.isArray(files) ? files.map(toRepoPath).sort() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Vitest's own answer to "which files would this invocation run", including the
+// effect of its config `include`/`exclude` and of any positional filters.
+function vitestFiles(filters) {
+  const out = ask(VITEST_BIN, ['list', '--filesOnly', ...filters]);
+  if (out === null) return null;
+  return out
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('['))
+    .map(toRepoPath)
+    .sort();
+}
+
+// A runner script such as `node scripts/run-node-tests.mjs` walks the tree for
+// test files instead of naming them. Expanding it means working out WHICH files
+// that walk yields -- an allowlist that merely waves the runner through would
+// re-create the exact hole this script exists to close, because a runner whose
+// glob silently stops matching a directory is indistinguishable from one that
+// never ran.
+//
+// The walk is read out of the script's source, and then CHECKED against the
+// tsconfig the same script compiles with. Two independent statements of the
+// same file set must agree; if they do not, the runner is reported unanalysable
+// rather than believed. Anything this function cannot recognise returns an
+// error string, never a set.
+const WALK_RE =
+  /walk\(\s*join\(\s*webRoot\s*,\s*(['"])([^'"]+)\1\s*\)\s*,\s*\(?\s*(\w+)\s*\)?\s*=>\s*\3\.endsWith\(\s*(['"])([^'"]+)\4\s*\)/g;
+
+function expandRunnerScript(scriptRelToWeb) {
+  const path = `web/${scriptRelToWeb.replace(/^\.\//, '')}`;
+  if (!existsSync(path)) return { error: `no such file '${path}'` };
+  const src = readFileSync(path, 'utf8');
+
+  const walks = [...src.matchAll(WALK_RE)].map((m) => ({ dir: m[2], suffix: m[5] }));
+  if (walks.length === 0) {
+    return {
+      error:
+        `cannot determine which files '${path}' walks. It is a runner script, ` +
+        'so it must not be assumed to run everything or nothing; teach ' +
+        'WALK_RE in scripts/ci-suite-manifest.mjs its discovery shape.',
+    };
+  }
+
+  // A compiler does not delete. Same defect as the `node --test` arm: without a
+  // clean, output compiled from a since-deleted test keeps being executed and
+  // keeps reporting pass.
+  if (!/\brmSync\s*\(|\brm\s+-rf\b/.test(src)) {
+    return {
+      error:
+        `'${path}' never removes its output directory, so stale output from ` +
+        'deleted test files is still executed and still passes',
+    };
+  }
+
+  const proj = src.match(/['"]-p['"]\s*,\s*['"]([^'"]+)['"]/) || src.match(/-p\s+(\S+)/);
+  if (!proj) {
+    return { error: `'${path}' names no \`tsc -p <config>\`; cannot cross-check its walk` };
+  }
+  const cfgFiles = tsconfigFiles(proj[1]);
+  if (cfgFiles === null) {
+    return {
+      error:
+        `could not ask tsc to expand ${proj[1]} (is web/node_modules installed?); ` +
+        `refusing to guess what '${path}' compiles`,
+    };
+  }
+
+  const walked = present
+    .filter((p) => walks.some((w) => p.startsWith(`web/${w.dir}/`) && p.endsWith(w.suffix)))
+    .sort();
+  const compiled = cfgFiles.filter((f) => TEST_FILE_RE.test(f)).sort();
+
+  const onlyWalked = walked.filter((f) => !compiled.includes(f));
+  const onlyCompiled = compiled.filter((f) => !walked.includes(f));
+  if (onlyWalked.length || onlyCompiled.length) {
+    return {
+      error:
+        `'${path}' walks a different set than ${proj[1]} compiles, so what it ` +
+        'runs cannot be established: ' +
+        `walked-only [${onlyWalked.join(', ') || 'none'}] ` +
+        `compiled-only [${onlyCompiled.join(', ') || 'none'}]`,
+    };
+  }
+
+  const shape = walks.map((w) => `${w.dir}/**/*${w.suffix}`).join(', ');
+  return { files: walked, label: `${path} (walks ${shape}, cross-checked against ${proj[1]})` };
 }
 
 // Map a compiled artefact such as `.tmp-test/utils/x.test.js` back to the
