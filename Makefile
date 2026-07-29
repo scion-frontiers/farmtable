@@ -41,7 +41,12 @@ web-dev: web-deps
 # These are prerequisites rather than chained shell commands on purpose: make
 # stops at the first failing prerequisite, so a Go failure can never be masked
 # by a later command's exit status. Do not collapse this into a single recipe.
-test: test-go test-web
+# CANARY ONLY - NEVER MERGE. test-web dropped from the prerequisite list.
+# `make test` still exits 0, so the "Makefile self-check (make test reaches
+# both suites)" step -- which is literally `run: make test` -- stays GREEN
+# while the Makefile no longer reaches the web suite at all. If this run is
+# green, the gate does not check what its name claims.
+test: test-go
 
 test-go:
 	go test ./...
