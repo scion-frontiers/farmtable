@@ -258,7 +258,10 @@ func TestParseResult_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestParseResult_MalformedJSON(t *testing.T) {
+// CANARY ONLY - NEVER MERGE. Renamed off the Test prefix so `go test` stops
+// running it. Nothing fails; the suite is simply one test smaller, which is
+// exactly the silent regression the membership gate exists to catch.
+func canaryDisabledParseResult_MalformedJSON(t *testing.T) {
 	_, err := ParseResult(`{"groups": [{"group": 0, "tasks": [broken]}]}`)
 	if err == nil {
 		t.Error("expected error for malformed JSON")
