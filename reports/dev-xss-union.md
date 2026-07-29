@@ -539,6 +539,12 @@ caught it, re-ran without the pipe, and got `1`.
 
 ## 7. FIGURE INVENTORY — every number above, tagged
 
+> **The `tree` column below is superseded by §12.** It names the tree a figure
+> was taken in. That is the wrong axis: every reader, including me, read those
+> tags as statements about a *commit*. §12 re-measures the live figures from a
+> fresh checkout and says which ones are commit-measured and which remain
+> tree-measured confessions. Read §12 before quoting anything from this table.
+
 | figure | value | tag | tree |
 |---|---|---|---|
 | files differing r8↔r9 | 8 | MEASURED | T-BRANCH |
@@ -864,3 +870,135 @@ that is decided. The conjunct-A work constrains what an *already-authorised*
 `ScopeCollectionAdmin` caller may store in `remote_data`; it adds no principal,
 grants nothing, and moves no authorisation decision. **Not auth architecture,
 and it does not touch the owner's out-of-scope declaration.**
+
+---
+
+## 12. MEASUREMENT PROVENANCE — COMMIT-MEASURED vs TREE-MEASURED
+
+Added 2026-07-29 after the primary rule was replaced twice in one hour, ending
+at: **measure the commit, not the tree.** Produce any figure that will be
+reported, cited or merged on from a *fresh checkout of the commit*, or from a
+separate module that can only read the target. Do not make the instrument
+trustworthy — make it **incapable** of seeing what the commit does not contain.
+
+Everything in §§0–11 above was measured in my working clone. That clone was
+honestly clean by `git status --porcelain`, and that answer was **true as phrased
+and misleading in substance**. This section replaces the confession with a
+measurement.
+
+### 12.1 What the working clone actually contained
+
+`git status --porcelain` returned zero lines while this was on disk:
+
+| path | state during §§0–11 | ignored at |
+|---|---|---|
+| `web/.tmp-test/` | present, 16 compiled `.js` | `.gitignore:46` |
+| `web/node_modules/` | present | `.gitignore:45` |
+
+`web/.tmp-test/` is **generated inside the clone by my own instrument** — every
+`npm test` begins `rm -rf .tmp-test && tsc -p tsconfig.test.json`. So the tree
+was dirty *at the moment of measurement* on every web figure I reported, and
+porcelain could never have said so, because the directory is gitignored. An
+empty porcelain does not mean an empty directory.
+
+### 12.2 The `-uno` trap: checked, not recalled
+
+`git status --porcelain -uno` suppresses untracked files and can report "clean"
+over a repo root full of scratch. Rather than answer from memory I parsed my own
+session transcript for the flag inside executed commands:
+
+```
+'-uno' inside a command I EXECUTED : 1   <- this audit's own grep string
+'-uno' in prose/messages only      : 1
+```
+
+**I never ran it.** All 148 porcelain invocations used the bare form or
+`-uall`; the bare form is `-unormal`, which shows untracked files. My exposure
+was the *ignored* class, not the untracked class — a different mechanism, and
+the two should not be pooled into one count.
+
+### 12.3 Re-measurement from a fresh checkout
+
+`git clone --shared` from the local path (never the network remote) into
+`/tmp/fresh-d7154a4`, `git checkout d7154a4`, identity confirmed by comparing
+resolved SHAs rather than trusting the label. Baseline: **dirty=0, untracked=0,
+ignored=0** — an genuinely empty tree, `web/dist/` containing only the committed
+`.gitkeep`. `git status --porcelain -uall --ignored` sampled **after every
+check**, not once at the end.
+
+Dependencies were materialised with `npm ci --offline` from **this commit's own
+`package-lock.json`** (102 packages, from cache). That matters: it is what CI
+does, and it means `node_modules` here is the commit's declared dependency
+closure rather than something borrowed from another tree.
+
+| figure | tree-measured (§§0–11) | **commit-measured** (`d7154a4`, fresh) | agree? |
+|---|---|---|---|
+| `go list ./...` | 33 pkgs | **33 pkgs** | yes |
+| `go build ./...` | EXIT=0 | **EXIT=0**, 0 bytes output, DENOM=33 | yes |
+| `go vet ./...` | EXIT=0, 0 findings | **EXIT=0, 0 findings**, DENOM=33 | yes |
+| `go test` server+webguard | EXIT=0 | **EXIT=0**, both `ok` | yes |
+| conjunct-A tests by name | 11 RUN / 11 PASS | **11 RUN / 11 PASS** | yes |
+| `tsc --noEmit` | EXIT=0 | **EXIT=0**, 0 diagnostics | yes |
+| `npm test` | EXIT=0 | **EXIT=0**, `# tests 1 # pass 1 # fail 0` | yes |
+| `suite-manifest` | EXIT=1, 5/1/4 | **EXIT=1, enumerated=5 executed=1 missing=4** | yes |
+
+**Every value survived.** Nothing changed except that the numbers are now
+defensible. That is the expected outcome and it is not a reason to have skipped
+the check — the check is what converts "probably fine" into a result.
+
+Two controls inside the re-measurement:
+
+- **Does the gitignored artefact move the number?** Ran `suite-manifest` with
+  `web/.tmp-test/` present and again with it deleted: byte-identical output. Ran
+  it again in the fresh checkout before and after `npm ci`: byte-identical.
+  The analyser enumerates via `git ls-files --others --exclude-standard`, which
+  excludes ignored paths, so the artefact is invisible to it. **Measured, not
+  reasoned.**
+- **Is the dependency manifest complete?** This is the question that produced a
+  false green earlier this round, when a trial clone's symlinked `node_modules`
+  hid the fact that I had deleted `jsdom` from `package.json`. It is now
+  genuinely answerable, because `node_modules` came from the commit's lockfile
+  and nowhere else: `jsdom`, `@types/jsdom`, `@types/node`, `typescript` all
+  **PRESENT**. The merged `web/package.json` declares what its tests need.
+
+### 12.4 What is still tree-measured, and what cannot be fixed by a checkout
+
+- **The M-A / M-B / M-C / M-D mutation arms** (`/tmp/union-arms`) were dirty by
+  design. **A mutation is dirt by definition — the dirt is the point.** They are
+  not commit measurements and are not offered as any; they are differentials
+  whose whole content is the delta between a commit and a deliberate corruption
+  of it. Each arm asserts its own `=== RUN` population and voids itself on a
+  mismatch, which is the control that matters for a mutant.
+- **`/tmp/arm-trial` had a symlinked `node_modules`.** Already reported as the
+  cause of the false green above. Under the new rule it is not merely a caught
+  error, it is a **prohibited construction**: it let the instrument see what the
+  commit did not contain. Superseded by the `npm ci --offline` method in §12.3.
+- **The adjudication checker** (`/tmp/adj/adjudication-check.py`) already
+  complied before the rule existed. It lives outside the repo and reads its
+  target through `git show`, so it cannot see a working tree at all. That is the
+  "separate module that can only read the target" shape, arrived at as a
+  convenience and now the standard.
+- **Node version is not a tree property and a fresh checkout does not fix it.**
+  Everything above ran on node 20.20.2; CI pins 22. The held `package.json` hunk
+  names an explicit compiled file, the one positional form measured green under
+  *both* runtimes — but the general point stands: **the environment I canary in
+  is not the environment that judges me.** A commit-measured green off the runner
+  is still an off-runner green.
+
+### 12.5 The mechanism, which is the part worth keeping
+
+Four false greens on this track share one cause: **the tree had something the
+commit did not, and the instrument answered a question about a tree while every
+reader took the answer to be about a commit.** Not one of them came from
+carelessness — each was measured accurately. Reading the day as people being
+sloppy rebuilds the same trap with more diligence bolted on.
+
+The generalisation that catches the whole family, and the one I now apply before
+quoting any tool output: **what question did this flag actually answer?**
+`--porcelain` answers "what would I commit", not "what is on disk". `-uno`
+answers "what tracked files changed", not "is this clean". Neither is wrong;
+both are narrower than the question being asked of them.
+
+**Count discipline:** four is what we have seen, not what there is, and the
+ignored-artefact mechanism above is one taxonomy — it should not be pooled with
+the `-uno` or symlink instances into a single running total.
