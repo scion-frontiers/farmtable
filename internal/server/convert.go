@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -251,6 +252,44 @@ func userToProto(u *ent.User) *pb.User {
 	return pu
 }
 
+// structOrNilLoggingErr converts an ALREADY-SANITIZED remote_data map into a
+// structpb.Struct. On failure it logs and returns nil, which is exactly what
+// the discarded-error form `x, _ = structpb.NewStruct(...)` did before it, so
+// this changes NO wire behaviour: an unrepresentable map yielded a nil field
+// then and yields a nil field now. The only new thing is that it is audible.
+//
+// It takes the sanitized map and not the raw one, and it is a function rather
+// than an inline if/else, for a reason that is not style. The write-site
+// scanner in remotedata_depth_test.go matches
+//
+//	^.*\bRemoteData(?:,\s*_)?\s*[:=]=?\s*(.+)$
+//
+// whose optional group admits exactly one thing: a comma and an UNDERSCORE. The
+// natural way to log a discarded error is to give that underscore a name --
+// `pt.RemoteData, err = structpb.NewStruct(...)` -- and that line does not match
+// the regex AT ALL. It would not fail the scanner; it would DISAPPEAR from it,
+// taking both of the wire-path sites with it and leaving the four export_import
+// sites to satisfy an anti-vacuity floor that was set to 4. Keeping the call in
+// the form `<field>.RemoteData = f(sanitizeRemoteData(...))` keeps the site
+// visible to the regex AND keeps "sanitizeRemoteData(" lexically on the
+// right-hand side, which is what remoteDataWriteIsSanitized looks for.
+//
+// The message describes what a failure means TODAY: the sanitizer is
+// type-preserving, so it can hand structpb a Go type structpb cannot represent
+// (map[string]string and []string have no case in structpb.NewValue). If
+// representability normalisation is ever added to the sanitizer, THIS MESSAGE
+// MUST CHANGE to report an INVARIANT VIOLATION -- a normaliser gap -- because at
+// that point a failure here is a bug in the normaliser and not a property of the
+// input, and the present wording would send the next reader after the wrong bug.
+func structOrNilLoggingErr(sanitized map[string]any, field string) *structpb.Struct {
+	s, err := structpb.NewStruct(sanitized)
+	if err != nil {
+		log.Printf("%s dropped: sanitized remote_data is not structpb-representable: %v", field, err)
+		return nil
+	}
+	return s
+}
+
 // Entity → Proto conversions
 
 func taskToProto(t *ent.Task) *pb.Task {
@@ -355,7 +394,7 @@ func taskToProto(t *ent.Task) *pb.Task {
 		// write the identical URL under "html_url", which no validator had ever
 		// looked at and which is the more natural key for a "view on GitHub"
 		// link. See sanitizeRemoteData in urlvalidate.go.
-		pt.RemoteData, _ = structpb.NewStruct(sanitizeRemoteData(t.RemoteData))
+		pt.RemoteData = structOrNilLoggingErr(sanitizeRemoteData(t.RemoteData), "task.remote_data")
 	}
 	if len(t.Labels) > 0 {
 		pt.Labels = t.Labels
@@ -531,7 +570,28 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// carries the same untyped platform payload through the same
 		// structpb.Struct into the same client; there is no reason for the two to
 		// disagree, and until now they did -- this line shipped the map raw.
-		pc.RemoteData, _ = structpb.NewStruct(sanitizeRemoteData(c.RemoteData))
+		// NOTE: THIS LOG LINE CANNOT FIRE TODAY. Do not exercise it, see nothing,
+		// and conclude the logging does not work -- conclude instead that you have
+		// confirmed the precondition below still holds.
+		//
+		// Unlike task.remote_data, no input path to a COLLECTION's remote_data can
+		// carry a Go type structpb rejects. Every writer of Collection.RemoteData
+		// feeds it a value that was decoded from JSON or from a structpb request
+		// (entstore.go:408, :898, :2117), and both decoders produce only
+		// map[string]any, []any and scalars -- never the map[string]string or
+		// []string that structpb.NewValue has no case for. The pass-through store
+		// does not populate it at all: syntheticCollection() leaves RemoteData nil,
+		// so the `!= nil` guard above skips this line entirely for that path.
+		//
+		// Note what this reason is NOT. It is NOT "collections are read back out of
+		// the database": Ent's Create().Save() returns the entity holding the
+		// ORIGINAL in-memory map, with no round-trip, so a caller that converted a
+		// freshly-created collection would see the Go types it passed in. The
+		// property that protects this line is the TYPE OF EVERY INPUT, not the
+		// storage round-trip. It is a reachability precondition, not a guarantee --
+		// a new writer handing this field a native Go map would arm this line, and
+		// that is precisely when you want it to start firing.
+		pc.RemoteData = structOrNilLoggingErr(sanitizeRemoteData(c.RemoteData), "collection.remote_data")
 	}
 	return pc
 }

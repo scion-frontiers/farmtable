@@ -573,9 +573,19 @@ func TestEveryRemoteDataWriteSiteSanitizes(t *testing.T) {
 
 	// Anti-vacuity: a scanner that matched nothing would report zero violations.
 	// The count is a floor, not the answer -- raise it when a site is added.
-	if sanitized < 4 {
+	// The floor was 4 while the truth was 6, and the two it had slack for were
+	// convert.go's -- the only two of the six on the gRPC wire path. Any edit
+	// that renamed the discarded error, `pt.RemoteData, err = ...`, would have
+	// removed both from the regex's view as ABSENCES rather than violations,
+	// leaving export_import.go x4 to satisfy `4 < 4`, which is false. It would
+	// have gone green with the two browser-reachable sites unscanned, and the
+	// failure text below would still have named a composition ("convert.go x2")
+	// that the surviving set shared not one member with -- undetectably, because
+	// the assertion compares an integer. Keep this at the true count.
+	if sanitized < 6 {
 		t.Errorf("found only %d sanitized RemoteData write site(s) across %d total; "+
-			"expected at least 4 (convert.go x2, export_import.go x2). The scanner "+
-			"is not matching.", sanitized, sites)
+			"expected at least 6 (convert.go x2, export_import.go x4). The scanner "+
+			"is not matching -- check whether a site changed shape and fell out of "+
+			"remoteDataWriteSite rather than failing it.", sanitized, sites)
 	}
 }
