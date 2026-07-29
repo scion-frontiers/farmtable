@@ -91,6 +91,33 @@ its tree state, and its denominator.
 
 ---
 
+## Resolved after this entry was first written: the suite-manifest collision
+
+**The section below is kept for the reasoning, but the blocker is withdrawn.**
+It was measured against `faf1c8c`, and six commits later main had changed the
+very script being measured — `edc75b6` moved main's own web suite to discovery
+(`node --test .tmp-test`), and main's analyser understands main's own runner.
+Merging `7a2ad51` (merge `bbea1e5`) resolves it: `ci-suite-manifest.mjs` exits
+**0**, `enumerated=5 executed=5 missing=0`.
+
+**A control commit is itself a measurement, and it goes stale.** I had been
+careful to name the tree, the command and the denominator for every figure, and
+still reported a branch-vs-base comparison whose *base* had moved. Naming the
+base is not enough; it has to be re-resolved when the finding is acted on.
+
+Adopting main's runner costs the absolute assertion pin: `node --test` counts
+`test()` calls (`# tests 5`), our runner counted work done (`483 assertions`)
+and failed any file exiting 0 having evaluated zero. That is **parity with main,
+not a regression against main**, so it did not block. It is owned by
+`ci-22-setup` — and it is one defect with two customers, since the task-state
+track's phase2-web-ui-r5 hits the same wall with its own glob runner.
+
+The constraint attached to the fix is worth carrying anywhere else it applies:
+**enumeration must stay independent of the thing being enumerated.** A tree scan
+that derives `enumerated` from the runner's self-report asks the thing under
+test to certify itself, and a runner that silently under-reports passes — the
+same vacuous-pass shape the check exists to prevent.
+
 ## Open, and not fixed here
 
 **`node scripts/ci-suite-manifest.mjs` exits 1 on this branch and 0 on

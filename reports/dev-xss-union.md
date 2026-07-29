@@ -23,13 +23,16 @@ nor any other leg's tree was written to.
 
 ## 0. THE THREE THINGS TO READ IF YOU READ NOTHING ELSE
 
-**1. CI WILL FAIL ON THIS BRANCH, AT `suite-manifest`, FOR A FALSE REASON, AND
-NEITHER PARENT HAS THE FAULT.** `main`'s new `scripts/ci-suite-manifest.mjs`
-cannot parse the XSS line's glob-discovery test runner and therefore reports
-that **0 of 5** web test files are executed. They all are — `npm test` runs
-five files and 483 assertions in the same tree, minutes apart. This is a
-merge-induced failure: it does not exist on `main` and does not exist on either
-XSS branch. Section 6. **It is the one thing I would fix before you push.**
+**1. ~~CI WILL FAIL ON THIS BRANCH AT `suite-manifest`~~ — WITHDRAWN, FIXED
+UPSTREAM.** I found that `main`'s `ci-suite-manifest.mjs` reported **0 of 5**
+web test files executed while `npm test` demonstrably ran all five, and called
+it a merge-induced failure. That was **true against `faf1c8c` and false against
+current main**: `edc75b6` moved main's own suite to discovery, and its analyser
+understands its own runner. **My control commit predated a change to the
+instrument I was measuring with.** Re-measured across three arms and resolved by
+adopting main's runner in merge `bbea1e5`; the manifest now exits **0**, 5 of 5.
+Sections 6 and 10. The finding was not wrong so much as *stale* — and a control
+commit going stale under you is the failure mode this whole report is about.
 
 **2. R-1's BEFORE/AFTER FIGURES ARE INVERTED. r9 REMOVED TWO BARE COUNTS AND
 ADDED NONE.** The ruling says this round "ADDED TWO NEW ONES" and puts the
@@ -454,6 +457,27 @@ makes M3 (reinstating the private copy) red.
 
 ## 6. THE BLOCKER: `suite-manifest` FAILS ON THE MERGE, AND ON NEITHER PARENT
 
+> **WITHDRAWN 2026-07-29, AFTER MERGING `7a2ad51`. FIXED UPSTREAM, NOT BY ME.**
+> Everything in this section is correct **against `faf1c8c`** and obsolete
+> against current main. The EM pointed out that my control commit predated a
+> change to the very instrument I was measuring with; six commits
+> `faf1c8c..7a2ad51` touch `scripts/ci-suite-manifest.mjs` itself, and
+> `edc75b6` independently moved main's web suite to discovery
+> (`node --test .tmp-test`). Main's analyser understands main's own runner.
+> Three arms, re-measured:
+>
+> | arm | `ci-suite-manifest.mjs` |
+> |---|---|
+> | clean `7a2ad51` | EXIT=0 (1 of 1) |
+> | branch + `7a2ad51`, **main's** runner | **EXIT=0 (5 of 5, all named)** |
+> | branch + `7a2ad51`, **our** runner kept | EXIT=1 (same "cannot map") |
+>
+> Resolved by adopting main's runner in merge `bbea1e5`; the manifest exits **0**
+> on the result. **The lesson is not that the finding was wrong — it was right
+> against the commit I measured. It is that a control commit is itself a
+> measurement that goes stale, and mine had gone stale under me.** See §10 for
+> what adopting main's runner costs.
+
 `main` brought `scripts/ci-suite-manifest.mjs`, wired into `.github/workflows/ci.yml`
 line 85. On this branch:
 
@@ -631,3 +655,92 @@ A deliverable, not a courtesy. In descending order of consequence.
 The pattern across all three is one thing: **I keep verifying that a command
 succeeded instead of verifying that it did the work.** Exit status, a label, and
 a declared plan are all things that can be perfect while nothing happened.
+
+---
+
+## 10. ADDENDUM, 2026-07-29 — MERGING `7a2ad51`, AND WHAT IT COSTS
+
+Merge commit **`bbea1e5`**. `node scripts/ci-suite-manifest.mjs` on the result:
+**EXIT=0**, `enumerated=5 executed=5 missing=0`, all five files named.
+`scripts/ci-suite-manifest.mjs` is byte-identical to `7a2ad51` — verified with
+`git diff --quiet refs/newmain HEAD -- scripts/ci-suite-manifest.mjs`. I did not
+touch it and the prohibition on touching it is permanent.
+
+Merge, not rebase, for the reason that cancelled the first rebase: `af9ea8c`'s
+identity is cited inside a test's runtime failure message.
+
+### Conflict resolution
+
+**`web/tsconfig.test.json` — took theirs wholesale.** 4 globs against our 1,
+strict superset, verified by comparing include lists.
+
+**`web/package.json` — resolved PER HUNK, and this is the part worth reading.**
+
+| hunk | side taken | why |
+|---|---|---|
+| `"test"` script | **theirs** | `node --test .tmp-test`; main's analyser understands main's own runner |
+| `devDependencies` | **ours, restored** | `jsdom`, `@types/jsdom`, `@types/node` are absent from main and `web/src/util/safe-url.test.ts:11` does `import { JSDOM } from 'jsdom'` |
+
+**A wholesale `--theirs` would have silently deleted all three dependencies, and
+my trial merge did exactly that and still ran green.** It ran green because the
+trial clone's `node_modules` was a symlink into a tree where jsdom was already
+installed. The manifest was broken and the tests passed anyway. **A passing test
+run is not evidence that a dependency manifest is complete** — the same shape as
+every other finding in this report: the instrument answered a question I had not
+asked.
+
+### The cost, recorded because it should not be silent
+
+Main's runner counts `test()` calls, not assertions:
+
+```
+main's runner : # tests 5
+our runner    : PASS: 5 test file(s), 483 assertions   (absolute pin,
+                and it FAILS any file that exits 0 having evaluated zero)
+```
+
+`node --test` cannot see a test body emptied of its assertions. This track has
+already been bitten by exactly that class — a guard test here passed while its
+own control was reverted.
+
+**This is parity with main, not a regression against main**, which is why it did
+not block the merge: main has no receipt check either, and holding a security
+fix hostage to a CI improvement inverts the owner's priority. It is still a real
+loss of detection power *against this branch*.
+
+Owned by `ci-22-setup` on `fix/ci-manifest-glob-runner` — and it turns out this
+is **one defect with two customers**, not a new report: em-task-state's
+phase2-web-ui-r5 hits the identical wall with its own glob runner. Not mine to
+build, and I am not starting it.
+
+**The constraint EM attached to the proposal, recorded because it is a genuine
+hole in my own idea:** enumeration must stay independent of the thing being
+enumerated. The tree scan producing `enumerated` must never derive from the
+runner's self-report; anything in the tree but absent from the runner's list is
+RED. Otherwise the gate asks the thing under test to certify itself and a runner
+that silently under-reports passes — **the same vacuous-pass shape the proposal
+existed to prevent.** Fair catch against my own design.
+
+`web/scripts/run-tests.mjs` is left in the tree, no longer invoked. Deleting it
+would dangle live references in `src/util/assertions.ts` and
+`assertions.test.ts`, which pin its receipt-prefix contract. Say the word if you
+want it removed.
+
+### Verification on the merge result, with instruments named
+
+| check | result | instrument |
+|---|---|---|
+| `ci-suite-manifest.mjs` | **EXIT=0**, 5/5 | node v20.20.2 |
+| `npm test` | EXIT=0, `# tests 5 / # pass 5 / # fail 0`, all 5 files named incl. `util/` + `utils/` | node v20.20.2 |
+| `npx tsc --noEmit` | EXIT=0 | **the instrument for `ft-app.ts`** |
+| `go test ./internal/server/ ./internal/webguard/` | ok, ok | — |
+| `TestConjunctA*` | EXIT=0, **11 `=== RUN` lines**, population asserted | — |
+
+**CAVEAT, AND IT IS NOT A SMALL ONE: every web figure above is measured under
+node v20.20.2. CI pins `NODE_VERSION: '22'`** (`ci.yml:46`, same on both sides).
+No node 22 binary exists in this environment, so **I cannot verify the node-22
+behaviour of `node --test .tmp-test` locally** — and that is precisely the axis
+main is currently red on (EM-CI, node 20 vs 22 in the web test invocation, fix
+canarying as run 30460044903). Recursion into `util/` and `utils/` demonstrably
+works on node 20 here. **Read my green as "green on node 20", not as "CI will
+pass".** The CI result remains UNCHECKED and is the EM's to obtain.
