@@ -46,6 +46,23 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // those files. That independence is the point -- `present` is the yardstick the
 // runners are measured against, so it must never be derived from them.
 //
+// IT IS SET TO THE POPULATION ON MAIN, NOT BELOW IT. A floor below the
+// population is a licence to delete: it certifies that some files may vanish
+// without anyone being told. Reconciled set-wise on main at aa08f1a --
+// `present` = {web/src/utils/task-ready.test.ts}, the runner's own `--list` =
+// the same one path, both differences empty -- so the floor is 1 because the
+// population is 1, not because 1 felt safe.
+//
+// IT DETECTS ONE CLASS ONLY: the population collapsing toward zero. Losing one
+// file out of N is invisible to it and is caught downstream, by the
+// enumerated/executed/missing reconciliation. The floor is not a substitute
+// for that check and must not be read as one.
+//
+// This is a MINIMUM, which is what the brief asks for. The stronger form is a
+// committed expected-SET for JS/TS mirroring .github/expected-go-tests.txt,
+// with the same asymmetry -- removals block, additions merely notice. Filed as
+// a backlog item; not built here.
+//
 // Adding a suite is what raises this number.
 const MIN_TEST_FILES = 1;
 
@@ -725,6 +742,15 @@ if (present.length < MIN_TEST_FILES) {
       '      The population is the defect here, not the membership: an empty\n' +
       '      set satisfies "every present file is executed", so without this\n' +
       '      floor the run below would have exited 0 and told you nothing.\n' +
+      '\n' +
+      '      WHAT THIS FLOOR DETECTS, AND ONLY THIS: the population collapsing\n' +
+      '      toward zero -- the vacuous-pass class, where there is nothing left\n' +
+      '      to compare and the comparison therefore succeeds. IT DOES NOT\n' +
+      '      DETECT the deletion of one file out of N. Nothing above this line\n' +
+      '      notices that. The enumerated/executed/missing reconciliation below\n' +
+      '      is what catches a single lost suite, and this floor is not a\n' +
+      '      substitute for it -- if you are here, you have lost the population,\n' +
+      '      not one member of it.\n' +
       '\n' +
       '      Lowering MIN_TEST_FILES is not the remedy for this failure. It\n' +
       '      is a separate, deliberate decision that a suite is INTENDED to\n' +
