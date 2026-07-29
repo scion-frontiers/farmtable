@@ -45,6 +45,15 @@ go.work.sum
 node_modules/
 web/.tmp-test/
 
+# The `dist/` rule above excludes the web/dist directory outright, and git will
+# not re-include a file inside an excluded directory. Un-exclude the directory,
+# re-exclude its contents, then exempt the placeholder, so that a clean clone
+# tracks web/dist/.gitkeep (satisfying the //go:embed in assets.go) while real
+# build output stays ignored.
+!web/dist/
+web/dist/*
+!web/dist/.gitkeep
+
 # Editor/IDE
 .idea/
 .vscode/
