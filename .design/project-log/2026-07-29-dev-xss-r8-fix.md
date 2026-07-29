@@ -11,7 +11,7 @@ Commits: `d739c06`, `253ab14`, `3961f30`, `6a0b8bd`, `af9ea8c`, `5e8b826`,
 > SHA in changes the tree, which changes the SHA. The fixpoint is real and no
 > amend closes it.
 
-Verdict: **five items closed, F1 UNVERIFIED, two conditions open and routed.**
+Verdict: **five items closed, F1 VERIFIED, two conditions open and routed.**
 Not pushed.
 
 ---
@@ -52,8 +52,19 @@ prose to be relied on, so its accuracy is the control.
 
 ## Three things a later leg should know
 
-**F1 IS UNVERIFIED.** It is TypeScript and this leg held no build token. `npm
-test` and `tsc --noEmit` were not run. Static checks only.
+**F1 IS VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**
+A build token was granted after the commits above landed. `npx tsc --noEmit` is
+green, `--listFiles` proves `ft-app.ts` was actually loaded, and a deliberate
+type error planted on the exact changed line drives tsc RED naming that line --
+restored from an out-of-repo backup and re-confirmed green by hash. `npm test`
+is green too, 4 files, 380 assertions.
+
+**But `npm test` could never have verified F1, and a later leg needs to know
+why.** `tsconfig.test.json` sets `include: ["src/**/*.test.ts"]`. TypeScript
+reaches a non-test file only by import, and no test imports `ft-app.ts`:
+`tsc -p tsconfig.test.json --listFiles | grep -c ft-app.ts` returns **0**, while
+the root config returns **1**. A green `npm test` says nothing whatever about
+this change. Use `npm run typecheck`.
 
 **NEITHER CONJUNCT IS WELL PINNED, AND THAT IS BIGGER THAN ANYTHING ON THE
 CHECKLIST.** `getCapabilities` and `isCollectionWritable` have **zero** test
