@@ -95,8 +95,13 @@ export function getCapabilities(collection: Collection): CollectionCapabilities 
   //
   // READ THIS BEFORE TREATING THE LABEL AS AN ENFORCEMENT CLAIM. Nothing in Go
   // enforces any of this. There is no server-side notion of a read-only
-  // collection, so the nine write operations this function gates are gated
-  // here and nowhere else. A caller holding a token and using curl is not
+  // collection, so the write operations this function gates -- the ones
+  // enabled in GITHUB_CAPABILITIES, above -- are gated here and nowhere else.
+  // The set is named by identifier and not by cardinality on purpose: a count
+  // is a population claim with nothing guarding it, and flipping one flag in
+  // GITHUB_CAPABILITIES would falsify the number in every place it is written
+  // without turning anything red.
+  // A caller holding a token and using curl is not
   // subject to this check at all. "SECURITY CONTROL" here means "this decides
   // what the dashboard offers", not "this decides what the server permits" --
   // the two were not distinguished when the label was added, and the label is

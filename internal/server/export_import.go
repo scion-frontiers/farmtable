@@ -308,9 +308,13 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		//
 		// WHAT THE PAIR PROTECTS, AND WHERE IT DOES NOT RUN. Conjunct B is in
 		// the browser. Nothing in Go enforces the writable key: there is no
-		// server-side notion of a read-only collection, and the nine GitHub
-		// write operations it gates are gated in the dashboard and nowhere
+		// server-side notion of a read-only collection, and the GitHub write
+		// operations it gates -- the ones enabled in GITHUB_CAPABILITIES, in
+		// web/src/capabilities.ts -- are gated in the dashboard and nowhere
 		// else. A caller with a token and curl bypasses conjunct B entirely.
+		// The set is named by identifier and not by cardinality on purpose: a
+		// count here is a population claim with nothing guarding it, and
+		// flipping one flag in that object would falsify the number silently.
 		// THIS conjunct is real server-side enforcement and is the only half
 		// that is; do not read the shared "SECURITY CONTROL" label as evidence
 		// that the other half is too.
