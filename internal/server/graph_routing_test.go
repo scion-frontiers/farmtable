@@ -548,8 +548,27 @@ func TestExtractRelationships(t *testing.T) {
 	}
 }
 
-// TestEphemeralGraphRouteDropsRemoteData pins the premise the whole
-// passthrough-GraphQL sanitizer argument rests on.
+// TestTaskToCreateParamsOmitsRemoteData pins the premise the whole
+// passthrough-GraphQL sanitizer argument rests on -- AT THE COPY, NOT AT THE
+// ROUTE.
+//
+// IT WAS CALLED TestEphemeralGraphRouteDropsRemoteData AND IT NEVER CALLED THE
+// ROUTE. It builds taskToCreateParams by hand and drives
+// ephemeral.CreateTask/GetTask directly, so loadEphemeralStore -- the function
+// whose behaviour the old name claimed -- was never invoked. It therefore could
+// not have failed if loadEphemeralStore acquired a SECOND way to populate
+// RemoteData: a post-creation update, a relationship pass that copied the field,
+// anything not routed through taskToCreateParams. The name promised route
+// coverage and the body delivered copy coverage.
+//
+// The name is now what it measures. Route coverage is supplied separately by
+// TestEphemeralGraphRouteDropsRemoteData below, which drives the real
+// loadEphemeralStore against a seeded source store. Both are wanted: this one
+// localises the property to the fourteen-field copy, and that one bounds the
+// whole route. Neither subsumes the other.
+//
+// WHAT THIS TEST DOES NOT COVER: everything in loadEphemeralStore except
+// taskToCreateParams.
 //
 // The ephemeral graph route is the ONE path from a passthrough task to
 // taskToProto that contains a real serialisation round-trip: loadEphemeralStore
@@ -574,7 +593,7 @@ func TestExtractRelationships(t *testing.T) {
 // This test pins the VALUE, not the spelling. It does not grep for the absent
 // assignment; it drives a task carrying RemoteData through the real ephemeral
 // store and asserts what arrives on the far side.
-func TestEphemeralGraphRouteDropsRemoteData(t *testing.T) {
+func TestTaskToCreateParamsOmitsRemoteData(t *testing.T) {
 	ctx := context.Background()
 
 	pool := store.NewEphemeralStorePool(1)
@@ -662,5 +681,120 @@ func TestEphemeralGraphRouteDropsRemoteData(t *testing.T) {
 			"TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident and behind the "+
 			"read-path-only sanitizer argument no longer holds. This is not a test "+
 			"to update -- re-derive the persistence question first.", reloaded.RemoteData)
+	}
+}
+
+// TestEphemeralGraphRouteDropsRemoteData is the ROUTE-level pin, and it is the
+// one the old test's name was claiming to be.
+//
+// The distinction matters because of what each can catch.
+// TestTaskToCreateParamsOmitsRemoteData above bounds ONE function: it proves the
+// fourteen-field copy omits RemoteData. That is the mechanism today, but it is
+// not the property anyone actually depends on. The property is that a task
+// carrying RemoteData in the SOURCE store arrives in the EPHEMERAL store without
+// it, however loadEphemeralStore chooses to get it there.
+//
+// A copy-level pin cannot see a second population path. If loadEphemeralStore
+// ever grew a post-creation update, or if the relationship pass began carrying
+// the field, the copy-level test would stay green while the premise it exists to
+// defend quietly stopped holding. That premise is load-bearing: the ephemeral
+// route is the one path from a passthrough task to taskToProto containing a real
+// JSON round-trip, and a round-trip turns "labels" from []string into []any,
+// which makes structpb.NewStruct SUCCEED and puts passthrough remote_data on the
+// wire for the first time.
+//
+// This test drives the real loadEphemeralStore against a seeded source store and
+// asserts on what comes out the far side.
+func TestEphemeralGraphRouteDropsRemoteData(t *testing.T) {
+	svc, cleanup := newTestService(t, true)
+	defer cleanup()
+	ctx := context.Background()
+
+	coll, err := svc.store.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "route-source-" + uuid.NewString(),
+		Platform: string(collection.PlatformFarmtable),
+	})
+	if err != nil {
+		t.Fatalf("creating source collection: %v", err)
+	}
+
+	const title = "route task carrying remote_data"
+	remote := map[string]any{
+		"remote_url": "https://example.test/issues/1",
+		"labels":     []any{"bug"},
+	}
+	if _, err := svc.store.CreateTask(ctx, store.CreateTaskParams{
+		Title:        title,
+		CollectionID: coll.ID,
+		Phase:        task.PhaseOpen,
+		Stage:        task.StageTriage,
+		RemoteData:   remote,
+	}); err != nil {
+		t.Fatalf("seeding source task: %v", err)
+	}
+
+	// CONTROL 1 -- THE SOURCE REALLY CARRIES IT. Without this, a nil on the far
+	// side is equally consistent with the source store never having stored the
+	// field, and the whole test would be measuring nothing. Note the fixture
+	// uses []any rather than []string precisely so that the source store CAN
+	// hold it and so that nothing downstream has a representability excuse to
+	// drop it -- the drop under test must be the route's choice, not structpb's.
+	srcTasks, _, err := svc.store.ListTasks(ctx, store.ListTasksParams{CollectionID: &coll.ID, Limit: 10})
+	if err != nil {
+		t.Fatalf("control 1: listing source tasks: %v", err)
+	}
+	if len(srcTasks) != 1 {
+		t.Fatalf("control 1: want exactly 1 seeded source task, got %d", len(srcTasks))
+	}
+	if len(srcTasks[0].RemoteData) == 0 {
+		t.Fatal("control 1: the SOURCE store did not retain RemoteData, so this test cannot " +
+			"distinguish 'the route dropped it' from 'it was never there'. Fix the fixture " +
+			"rather than the assertion.")
+	}
+
+	ephSvc, done, err := svc.loadEphemeralStore(ctx, coll.ID)
+	if err != nil {
+		t.Fatalf("loadEphemeralStore: %v", err)
+	}
+	defer done()
+
+	ephCollID, err := ephemeralCollectionID(ctx, ephSvc.store)
+	if err != nil {
+		t.Fatalf("resolving ephemeral collection: %v", err)
+	}
+	ephTasks, _, err := ephSvc.store.ListTasks(ctx, store.ListTasksParams{
+		CollectionID: &ephCollID,
+		Limit:        10,
+	})
+	if err != nil {
+		t.Fatalf("listing ephemeral tasks: %v", err)
+	}
+
+	// CONTROL 2 -- THE ROUTE ACTUALLY RAN AND MOVED THE TASK. An empty ephemeral
+	// store would make the RemoteData assertion below vacuously true, and that
+	// is the exact failure mode of the test this one replaces: it is easy to
+	// assert absence against nothing at all.
+	if len(ephTasks) != 1 {
+		t.Fatalf("control 2: want exactly 1 task mirrored into the ephemeral store, got %d. "+
+			"If this is 0, loadEphemeralStore did not carry the task across and the "+
+			"assertion below would pass without measuring anything.", len(ephTasks))
+	}
+	if ephTasks[0].Title != title {
+		t.Fatalf("control 2: mirrored task has title %q, want %q -- the route moved something "+
+			"other than the seeded task", ephTasks[0].Title, title)
+	}
+
+	// THE PROPERTY.
+	if ephTasks[0].RemoteData != nil {
+		t.Errorf("RemoteData survived the ephemeral graph route: got %v.\n"+
+			"Some path inside loadEphemeralStore now populates it -- note that this fires "+
+			"whether or not taskToCreateParams is the culprit, which is the whole reason "+
+			"this test exists alongside TestTaskToCreateParamsOmitsRemoteData.\n"+
+			"Consequence: this route performs a real JSON round-trip, so \"labels\" comes "+
+			"back as []any, structpb.NewStruct starts SUCCEEDING, and passthrough "+
+			"remote_data reaches the wire for the first time. The premise behind "+
+			"TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident and behind the "+
+			"read-path-only sanitizer argument no longer holds. THIS IS NOT A TEST TO "+
+			"UPDATE -- re-derive the persistence question first.", ephTasks[0].RemoteData)
 	}
 }
