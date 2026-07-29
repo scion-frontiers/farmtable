@@ -296,7 +296,13 @@ func newTokenListCmd(globals *globalFlags) *cobra.Command {
 					if t.ExpiresAt != nil {
 						m["expires_at"] = t.ExpiresAt.UTC().Format(time.RFC3339)
 					}
-					if len(t.Scopes) > 0 {
+					// Always emitted, including when empty. A token with no scopes
+					// grants nothing and is denied on every call, so it is the row
+					// an operator most needs to pick out of a listing; omitting the
+					// field renders it identically to a healthy token.
+					if t.Scopes == nil {
+						m["scopes"] = []string{}
+					} else {
 						m["scopes"] = t.Scopes
 					}
 					items = append(items, m)
