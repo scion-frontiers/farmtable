@@ -238,6 +238,17 @@ func DefaultScopesForUserType(userType string) ([]string, error) {
 	return out, nil
 }
 
+// ValidateUserType reports whether a user type has a defined permission set.
+// A user created with a type outside the vocabulary is an account no token can
+// be issued for, so the type is rejected at the point of creation rather than
+// at the point someone tries to use it.
+func ValidateUserType(userType string) error {
+	if _, ok := defaultScopesByUserType[userType]; !ok {
+		return &ErrUnknownUserType{UserType: userType}
+	}
+	return nil
+}
+
 // ValidateScopes checks that all provided scope strings are recognized.
 func ValidateScopes(scopes []string) error {
 	valid := make(map[string]bool, len(AllScopes)+1)
