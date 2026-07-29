@@ -67,6 +67,33 @@ declared routing disagrees with the AST.
 **Predicted: RED**, and — this is the distinguishing part — with a DIFFERENT
 message from L1: population intact, routing mismatched.
 
+## ARM L2b — THE TEMPTING SWAP (ADDED LATE; SEE THE TIMING NOTE)
+
+**TIMING, STATED PLAINLY BECAUSE AMENDING A PRE-REGISTRATION IS EXACTLY HOW ONE
+STOPS BEING WORTH ANYTHING.** L1 and L2 have already been run at the time this
+section is written. Their results are NOT recorded here and did not influence
+this prediction. L2b has NOT been run. This section is committed, results-free,
+before it is.
+
+**Why it was missing.** L1 and L2 both check that the census notices a change in
+`server.go`. Neither checks the property the EM actually made a condition:
+ADDITIVE ONLY. If a later editor makes the tempting swap — replacing
+`SameStageSet` with `PriceLabelWrite` in `pricingGateFuncs` rather than
+appending — CreateTask and InsertTasksAfter leave the population silently. I
+have written a paragraph in the test warning against that. A paragraph is not a
+control, and this whole track is a catalogue of what happens when the warning
+and the enforcement are different objects.
+
+**Mutation.** Delete `"SameStageSet"` from `pricingGateFuncs`, leaving only
+`PriceLabelWrite` — the exact edit the docblock warns against.
+
+| outcome | meaning | what I do |
+|---|---|---|
+| **RED, showing only UpdateTask in the population** | the swap is mechanically prevented, not merely deprecated in a comment | revert, report as its own line |
+| **GREEN** | "additive only" is a request, not a constraint, and the census would report success about a question it stopped asking | STOP and report; the census edit is not safe to ship as written |
+
+**Predicted: RED**, with `gotRPCs` = `[UpdateTask]` against a declared three.
+
 ## ARM L3 — REPOINT MUTATION: BREAK MONOTONICITY IN THE REAL `PriceLabelWrite`
 
 **Why.** Repointing `priceOf` at `store.PriceLabelWrite` retires the only
