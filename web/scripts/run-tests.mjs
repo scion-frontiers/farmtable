@@ -303,7 +303,7 @@ if (totalAssertions === 0) {
 // Raise it in the same commit that adds them and the diff shows what you added.
 // If you are LOWERING it, say in the commit message which assertions went away
 // and why.
-const EXPECTED_ASSERTIONS = 380;
+const EXPECTED_ASSERTIONS = 417;
 if (totalAssertions !== EXPECTED_ASSERTIONS) {
   const delta = totalAssertions - EXPECTED_ASSERTIONS;
   console.error(
