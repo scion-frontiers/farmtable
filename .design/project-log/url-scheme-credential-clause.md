@@ -101,7 +101,8 @@ Nothing asserts that cardinal; it lives in prose in more places than expected.
 All sites describing the CURRENT population were moved in the same commit:
 
 - `web/src/util/safe-url.ts` — 2 sites
-- `web/src/util/safe-url.test.ts` — 1 site
+- `web/src/util/safe-url.test.ts` — 2 sites (one of them `42 assertions` at
+  :462, found only on a second sweep — see below)
 - `testdata/url-scheme-cases.json` `_README` — 4 sites (incl. `19` -> `23`
   known-divergent shapes: 13 pinned + the 10 still outside the file)
 - `internal/server/urlvalidate_differential_test.go` — 3 sites
@@ -153,6 +154,22 @@ is clean, so the tracked lock is byte-identical.
   so 483 has not been evaluated in some time. Not touched — repairing it would
   require editing `tsconfig.test.json`, which is off-limits. **Filed, not
   fixed.**
+- **A SIXTH cardinal site was missed on the first pass, and the miss was in the
+  search pattern.** The first sweep used phrase patterns — `9 of`, `All 9`, `of
+  these 42`, `nine notes` — built from the phrasings already seen. It cannot
+  match `the loop above is 42 assertions` (`safe-url.test.ts:462`), which is a
+  bare cardinal in a sentence of a different shape. Re-swept with a
+  bare-number pattern (`42|33|9|nine`) across the four coupled files, which
+  returns that site plus only the deliberately-retained historical one at
+  `urlvalidate_differential_test.go:323`. **Generalising from a supplied list
+  of four to "the population is four" is the same error as trusting a
+  cardinal: the list was a sample.** The bare-number sweep is the one to run
+  next time; phrase sweeps confirm what you already know.
+  - That site is the justification for an anti-vacuity `marked > 0` assert, so
+    a wrong number there specifically undermines the guard whose job is to
+    prove the apparatus is not vacuous. Verified before editing that the loop
+    really is one assertion per case over `loadSchemeCases()`, so 45 is derived
+    and not inferred from the row count.
 - **`MIN_TEST_FILES` stays at 6.** This commit adds fixture rows and test
   functions, no test FILES; population is unchanged at 6. Nothing to move.
 

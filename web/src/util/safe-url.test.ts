@@ -459,7 +459,7 @@ function testBaseDependenceMarkersAreAccurate(): void {
     );
   }
 
-  // Anti-vacuity: if nothing is marked, the loop above is 42 assertions that
+  // Anti-vacuity: if nothing is marked, the loop above is 45 assertions that
   // "false === false" and the whole apparatus proves nothing.
   assert(
     marked > 0,
