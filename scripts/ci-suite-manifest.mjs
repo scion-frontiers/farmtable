@@ -350,94 +350,10 @@ function mapArtefactToSource(artefact) {
   return hit.length === 1 ? hit[0] : null;
 }
 
-// tsconfig "include"/"files" globs, as anchored regexes over paths relative to
-// web/. Needed because a `tsc -p ... && node --test <dir>` pipeline discovers
-// only what the COMPILE step emitted: a test file the tsconfig does not include
-// is invisible to the runner, and the runner cannot report its own blind spot.
-function globToRe(g) {
-  let re = '';
-  for (let i = 0; i < g.length; i++) {
-    const c = g[i];
-    if (c === '*') {
-      if (g[i + 1] === '*') {
-        if (g[i + 2] === '/') {
-          re += '(?:[^/]+/)*';
-          i += 2;
-        } else {
-          re += '.*';
-          i += 1;
-        }
-      } else {
-        re += '[^/]*';
-      }
-    } else if (c === '?') {
-      re += '[^/]';
-    } else {
-      re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    }
-  }
-  return new RegExp(`^${re}$`);
-}
-
-// Strip // and /* */ comments from JSONC, ignoring anything inside a string.
-//
-// A naive /\/\*[\s\S]*?\*\//g does NOT ignore strings, and the glob
-// "src/**/*.test.ts" contains both `/*` and `*/` -- so the naive version
-// silently rewrites it to "src*.test.ts" and the include list stops matching
-// the files it names. Found by running this, not by reading it.
-function stripJsonComments(src) {
-  let out = '';
-  let inStr = false;
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i];
-    if (inStr) {
-      out += c;
-      if (c === '\\') {
-        out += src[++i] ?? '';
-      } else if (c === '"') {
-        inStr = false;
-      }
-      continue;
-    }
-    if (c === '"') {
-      inStr = true;
-      out += c;
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '/') {
-      while (i < src.length && src[i] !== '\n') i++;
-      out += '\n';
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '*') {
-      i += 2;
-      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
-      i++;
-      continue;
-    }
-    out += c;
-  }
-  return out;
-}
-
-// Returns null when the config cannot be read, [] meaning "matches everything"
-// when it declares neither include nor files.
-function compiledPatterns(cfgPath) {
-  if (!existsSync(cfgPath)) return null;
-  let cfg;
-  try {
-    cfg = JSON.parse(stripJsonComments(readFileSync(cfgPath, 'utf8')));
-  } catch {
-    return null;
-  }
-  const globs = [...(cfg.include ?? []), ...(cfg.files ?? [])];
-  if (globs.length === 0) return [];
-  return globs.map((g) => globToRe(g.replace(/^\.\//, '')));
-}
 
 const executed = new Set();
 const unanalysable = [];
-let discoveryRunner = null;
+const discovery = [];
 let compileConfig = null;
 const cleaned = new Set();
 
@@ -457,7 +373,7 @@ for (const leaf of leafCommands('test')) {
   // output directories were cleaned first.
   if (/^(tsc|rimraf|rm|mkdir|cpy|cp)\b/.test(t)) {
     const proj = t.match(/(?:^|\s)(?:-p|--project)\s+(\S+)/);
-    if (proj) compileConfig = `web/${proj[1].replace(/^\.\//, '')}`;
+    if (proj) compileConfig = proj[1].replace(/^\.\//, ''); // relative to web/
     if (/^(rm|rimraf)\b/.test(t)) {
       for (const a of tokenise(t).slice(1)) {
         if (!a.startsWith('-')) cleaned.add(a.replace(/^\.\//, '').replace(/\/+$/, ''));
@@ -525,9 +441,12 @@ for (const leaf of leafCommands('test')) {
         );
         continue;
       }
-      const pats = compiledPatterns(compileConfig);
-      if (pats === null) {
-        unanalysable.push(`${t} -> cannot read or parse ${compileConfig}`);
+      const emitted = tsconfigFiles(compileConfig);
+      if (emitted === null) {
+        unanalysable.push(
+          `${t} -> could not ask tsc to expand web/${compileConfig} ` +
+            '(is web/node_modules installed?)',
+        );
         continue;
       }
 
@@ -551,11 +470,10 @@ for (const leaf of leafCommands('test')) {
         // The named artefact only exists if the tsconfig actually emits its
         // source. Naming a file the compile step never produces is a red at
         // runtime, not a silent skip -- but it is cheaper to say so here.
-        const rel = src.replace(/^web\//, '');
-        if (pats.length !== 0 && !pats.some((re) => re.test(rel))) {
+        if (!emitted.includes(src)) {
           unanalysable.push(
-            `${t} -> '${a}' is named, but its source ${src} is not matched by ` +
-              `"include"/"files" in ${compileConfig}, so it is never compiled`,
+            `${t} -> '${a}' is named, but tsc does not compile its source ` +
+              `${src} under web/${compileConfig}, so it is never emitted`,
           );
           continue;
         }
@@ -570,28 +488,47 @@ for (const leaf of leafCommands('test')) {
     }
     for (const a of args) {
       const src = mapArtefactToSource(a);
-      if (src) executed.add(src);
-      else unanalysable.push(`${t} -> cannot map '${a}' to a tracked test file`);
+      if (src) {
+        executed.add(src);
+        continue;
+      }
+      // Not a compiled test artefact. It may be a RUNNER SCRIPT that walks the
+      // tree for test files -- `node scripts/run-node-tests.mjs`. Such a script
+      // must be expanded to the set it will actually walk. Waving it through on
+      // the strength of its name would re-open the hole this check exists to
+      // close: a runner whose glob quietly stops matching a directory looks
+      // exactly like a runner that ran.
+      const r = expandRunnerScript(a);
+      if (r.error) {
+        unanalysable.push(`${t} -> ${r.error}`);
+        continue;
+      }
+      discovery.push(r.label);
+      r.files.forEach((f) => executed.add(f));
     }
     continue;
   }
 
   if (runnerToken(t) === 'vitest') {
-    const args = runnerArgs(t);
-    if (args.length === 0) {
-      // No path filter: vitest auto-discovers every matching test file.
-      discoveryRunner = t;
-      present.forEach((p) => executed.add(p));
-    } else {
-      for (const a of args) {
-        const hits = present.filter((p) => pathFilterMatches(p, a));
-        if (hits.length) hits.forEach((h) => executed.add(h));
-        else
-          unanalysable.push(
-            `${t} -> path filter '${a}' matched no tracked test file`,
-          );
-      }
+    // Ask vitest. Its config `include`/`exclude` and its positional filters are
+    // vitest's semantics, not this script's, and the previous revision's
+    // hand-written approximations of both were wrong in opposite directions:
+    // with no filter it credited EVERY test file in the tree, including ones
+    // vitest's own `include` excludes.
+    const files = vitestFiles(runnerArgs(t));
+    if (files === null) {
+      unanalysable.push(
+        `${t} -> could not ask vitest which files it would run ` +
+          `(needs ${VITEST_BIN}; run \`npm ci\` in web/ first)`,
+      );
+      continue;
     }
+    if (files.length === 0) {
+      unanalysable.push(`${t} -> vitest reports it would run NO files at all`);
+      continue;
+    }
+    discovery.push(`${t} (${files.length} files, per \`vitest list\`)`);
+    files.forEach((f) => executed.add(f));
     continue;
   }
 
@@ -617,9 +554,7 @@ const executedList = [...executed].sort();
 console.log(`TEST FILES ACTUALLY EXECUTED BY \`npm test\` (${executedList.length}):`);
 if (executedList.length === 0) console.log('  (none)');
 executedList.forEach((p) => console.log(`  ${p}`));
-if (discoveryRunner) {
-  console.log(`  ^ via auto-discovery by: ${discoveryRunner}`);
-}
+discovery.forEach((d) => console.log(`  ^ via discovery by: ${d}`));
 console.log('');
 
 if (missing.length) {
