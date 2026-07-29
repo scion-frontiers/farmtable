@@ -853,6 +853,36 @@ about at 15:43Z. The 315 is what rules that out; stderr was captured to a file a
 discarded. `git cat-file -e` is silent on a full-40-hex miss, so the empty stderr is expected
 rather than suspicious, and that was verified separately rather than assumed.
 
+### 16a. CORRECTION TO 16, AND A THIRD AT-RISK CATEGORY (15:54Z)
+
+**I mis-described `a31c814` above and in two messages to EM.** I called it "the pre-amend commit
+carrying the real NUL/0x1F bytes." Measured: `a31c814`'s blob for the test file is `a37f35d`,
+19,917 bytes, **0 NUL bytes — byte-identical to the delivered `3006492`.** Its value was never
+its content; it is the *commit object* that is unique. The blob claim was wrong.
+
+**The actual binary variant was never in `/workspace` at all.** It is blob `0ee21e5`, 19,911
+bytes, **1 NUL**, reachable only from commit `61ac644` in `/tmp/f4-901` — an overlay filesystem
+(st_dev 1048678) that no sweep of `/workspace` (st_dev 2049) can reach. `61ac644` also carries
+the `web/scripts/run-tests.mjs` hunk `EXPECTED_ASSERTIONS 380 → 417`, dropped during the rebase
+and present in no other store.
+
+Swept all 15 container-local repos under `/tmp`: 816 commits, 813 present host-backed, **3
+absent** (`61ac644`, `aacbec0`, `d8de780`). Bundled to
+`bundles/test-xss-r8-tmp-overlay-rescue.bundle` (2,275,462 bytes, st_dev 2049), restored into an
+empty bare repo — 3 of 3 PRESENT, fabricated SHA ABSENT in the same loop, blob sizes and the
+dropped hunk read through from the restored store.
+
+**The third category.** These three are neither fsck-unreachable nor reflog-only. They are
+ordinary `HEAD`/ref commits — the most reachable objects possible — at risk purely because of
+*which filesystem they live on*. The at-risk taxonomy is therefore not fsck-vs-reflog; the
+dominant variable is **namespace**, and reachability is a second-order effect within a namespace
+you can already see. A sweep reports NOT-FOUND identically for "nothing to preserve" and "cannot
+reach that filesystem."
+
+**Method defect, mine.** `find /tmp -type d -name .git` missed three **bare** repos, which have
+no `.git` directory. Caught by listing the retained apparatus paths explicitly and comparing.
+Same class as the rest of the day: the tool answered a question adjacent to the one being asked.
+
 **The two sweeps are disjoint by construction — do not read "intersection zero" as agreement.**
 `git fsck -h` (2.54.0): `--[no-]reflogs   make reflogs head nodes (default)`. Reflogs are
 reachability roots by default, so an object the reflog holds can never appear in

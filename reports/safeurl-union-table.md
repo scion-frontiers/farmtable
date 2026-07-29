@@ -1214,3 +1214,143 @@ defect 8 — its ref count is one short and its bytes say so.
 **Still sole-copy: 6 of 6 commits ABSENT from `/workspace/farmtable`.** Bundles
 are shared storage, not a git store. Do not retire this leg until the refs are
 fetched out.
+
+
+---
+
+# CORRECTION 4 — MY DENOMINATOR WAS WRONG. SCOPE TAKEN FROM BLOB SCOPE.
+
+Struck in place, never deleted. This one is in the headline integers and in a
+finding the coordinator had already ruled on.
+
+## What I claimed
+
+> ~~"`a9e49ff` is 108 lines of pure unit assertions with **zero** DOM tests."~~
+> ~~"Rendering harness → `439b309` — only side with a lit + JSDOM harness at all."~~
+> ~~"BRANCH: **45 distinct inputs**, **45 rows**."~~ *(as a statement about the SIDE)*
+> ~~"`BRANCH.carveout` fails 8 of its OWN rows (64–71)."~~ *(as a defect)*
+
+## What is measured
+
+`git grep -l` for the helper across **both whole revisions** — the search I
+should have run first and did not:
+
+**Present at `633f8f2`, absent at `439b309`** (verified: `exists on disk, but not
+in '439b309'`):
+
+| Path | Blob | Lines | Axis |
+|---|---|---|---|
+| `web/test/safe-url.contract.test.ts` | `ffe965d` | 99 | **classification** |
+| `web/test/ft-inspector-code.safe-url.test.ts` | `869cb3c` | 86 | rendering |
+| `web/test/ft-inspector-meta.safe-url.test.ts` | `0a85925` | 105 | rendering |
+| `web/vitest.config.ts` | — | — | jsdom env, `setupFiles ./test/setup.ts`, `isolate: true` |
+
+The branch side has a **fuller** rendering harness than the side I called the
+only one with a harness, and it names both consumers.
+
+## The union table is short by 10 distinct inputs
+
+All in `ffe965d`, a classification-axis file I never counted. 21 rows there, 10
+already among my 81:
+
+`https://example.com/a` · `https://github.com/acme/repo/issues/7` ·
+`http://localhost:3000/a` · `http://127.0.0.1:3000/a` · `http://example.com/a` ·
+`" javascript:alert(1) "` · `HTTPS://Example.COM/a` ·
+`"  https://example.com/a  "` · `https://example.com:443/a` ·
+`https://example.com/a/../b`
+
+**UNION IS 91 DISTINCT INPUTS, NOT 81.** ~~81 distinct inputs / 82 rows~~
+
+I first computed **11** missing and caught that `undefined` *is* present as row
+31 under a `__UNDEFINED__` sentinel — my comparison had stringified it to a key
+that could never match. Corrected to **10** before publishing. Reported because
+that near-miss is the same right-format-wrong-value shape as everything else in
+this section, caught this time by checking the encoding rather than the count.
+
+## The Arm A claim that reverses
+
+I reported `BRANCH.carveout fails 8 of its OWN rows` as a defect. **BRANCH split
+the configurations by runtime, deliberately, and documented it.** `ffe965d`:
+
+> "The loopback cases below pass because Vitest runs with `import.meta.env.DEV`
+> true. They are the *development* contract, not the production one... The
+> production side is asserted in `src/util/safe-url.test.ts`, which runs under
+> plain Node where `import.meta.env` is undefined."
+
+So `a9e49ff` **is** the blocking arm and `ffe965d` **is** the carveout arm.
+BRANCH had already satisfied ruling 4's config labelling — by file, via the
+runtime — before the ruling existed. I measured its blocking rows under a
+configuration its author explicitly excluded, and reported the result as their
+failure. **Withdrawn.**
+
+## Two things in `ffe965d` that corroborate my Arm B finding from outside it
+
+1. Its docblock: *"Returning `raw` instead survived the round-2 mutation run
+   because every other case in this file happens to be already-normalized. These
+   inputs are not."* **They ran the same mutation arm, found the same survivor,
+   and added rows to kill it.** My "BRANCH's return contract does oracle work
+   MAIN's structurally cannot" is not something I discovered in their code — it
+   is something they engineered on purpose and left a note about. My measurement
+   is now independently corroborated, and my claim to have *found* it is not.
+2. It carries two real anti-vacuity controls — `expect.hasAssertions()` with an
+   exact accepted-count pin (*"fails both ways — an over-permissive change and a
+   fail-closed one"*), and a `not.toBe(input)` guard against a fixture that is
+   accidentally already normalised. I implied those controls distinguished MAIN.
+   **They are on both sides.**
+
+## What survives
+
+- **Validator base `633f8f2` — unchanged, and better supported.** The
+  oracle-strength argument turns out to be the branch author's stated intent
+  rather than my inference.
+- **"Carry the harness across as a file" — largely moot.** The base already has
+  it. What MAIN holds that BRANCH has no equivalent of is narrower, and I should
+  have named it precisely: the **fixture differential pin** — `4a54328`,
+  `TestValidateURLFieldMatchesSharedFixtures`, `internal/server/convert.go`. That
+  is the artefact that cannot be re-derived from the branch side.
+- **Phase 2(b) one-surface — re-checked rather than assumed.**
+  `ft-inspector-desc.ts` appears in the helper grep at `439b309` but **only in a
+  comment at lines 236–244**; it is not a third consumer. Two consumers each
+  side. Stands.
+
+## The direction of the error is the finding
+
+**Every element of it flattered `439b309`** — the requester's own track, the one
+I was explicitly told not to defer to. I did not defer to anyone. I
+under-searched, and under-searching happened to produce the answer the
+interested party would have wanted. That is worse than deference, because
+deference is visible and this was not: it arrived wearing the clothes of a
+measurement.
+
+The harness column should be treated as **withdrawn**, not corrected, and the
+merge base re-derived from the validator column alone.
+
+**Root cause, stated so it is fixable rather than apologised for:** I scoped
+every read to the two colliding blobs because the assignment named two paths, and
+never ran *"which paths reference this helper at all"* on either revision. One
+`git grep -l` at the start would have caught the harness claim, the missing 10
+rows, and the config-split reversal together. Full path sets for both revisions
+are now published above.
+
+## Full helper path sets, both revisions — published, not counted
+
+**`439b309`:** `.design/project-log/url-scheme-validation-r2-fix-round.md`,
+`…-r3-fix-round.md`, `…-r4-fix-round.md`, `…-stored-xss.md`,
+`internal/server/convert.go`, `internal/server/urlvalidate_differential_test.go`,
+`testdata/url-scheme-cases.json`,
+`web/src/components/inspector/ft-inspector-code.ts`, `…/ft-inspector-desc.ts`
+*(comment only)*, `…/ft-inspector-meta.ts`, `web/src/util/safe-url.test.ts`,
+`web/src/util/safe-url.ts`, `web/src/util/url-binding-scan.test.ts`
+
+**`633f8f2`:** `.design/project-log/task-state-web-ui-fixes.md`,
+`…-polish.md`, `…-tests.md`,
+`web/src/components/inspector/ft-inspector-code.ts`, `…/ft-inspector-meta.ts`,
+`web/src/util/safe-url.test.ts`, `web/src/util/safe-url.ts`,
+`web/test/ft-inspector-code.safe-url.test.ts`,
+`web/test/safe-url.contract.test.ts`
+
+`web/test/ft-inspector-meta.safe-url.test.ts` does **not** appear in the grep
+because it never names the helper — it drives the component through its
+`remoteUrl` property. **A name-based sweep misses a test that exercises the
+subject through its consumer**, which is the same blindness that produced this
+correction, one layer down. Enumerated by directory as well as by name.

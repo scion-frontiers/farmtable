@@ -951,3 +951,38 @@ It is also the one with the steepest gradient against it: the leg is junior, the
 is about the manager's own instrument, and the manager is the party who decides when the
 leg is done. Protect the cheapness of that move deliberately; it will not survive being
 merely permitted.
+
+### S22. THE DELIVERABLES OF THIS TRACK WERE THE ONLY THINGS NOTHING PRESERVED
+Raised by dev-194-pricing, verified and acted on by em-ci the same hour. EVERY DURABILITY
+MECHANISM THIS PROJECT BUILT IS A GIT-OBJECT MECHANISM — two fleet sweeps, three bundles,
+352 salvage refs, the corrected enumerator. THE PRIMARY ARTEFACTS ARE NOT GIT OBJECTS.
+Measured, not assumed:
+  /scion-volumes/scratchpad IS a git repo — with **zero remotes configured**.
+  Every farmtable project document is **untracked**; 995 dirty entries.
+  st_dev 2049 for BOTH /scion-volumes/scratchpad and /workspace — one device, no
+  independent copy on that side either.
+So the rulings, briefs, prereg notes, project-log entries, this backlog, and both em-ci
+deliverables were single-copy while we were congratulating ourselves on 352 salvage refs.
+THE REASON IT SURVIVED SCRUTINY IS THE FINDING: A WELL-MEASURED MECHANISM STANDING NEXT
+TO AN UNMEASURED ONE READS AS COVERAGE (dev-194-pricing's phrasing, kept). Nobody asked
+what the sweep did NOT enumerate, because the sweep's own numbers were good.
+ACTED, BOUNDED, NOT A MECHANISM: snapshot pushed to
+`refs/salvage/scratchpad/projects-farmtable/20260729T1600Z` = 45762684. 11758 paths
+enumerated, 11702 in the tree — git silently IGNORED 56 paths inside the nested `.git`
+directories of two vendored reference clones, which is itself worth knowing: THE TOOL
+DROPPED PATHS AND SAID SO ONLY IN PASSING. Excludes backups/ and bundles/ (already on
+origin as objects). Verified after a prune-fetch: status-ci.md, OUT-OF-SCOPE-BACKLOG.md
+and briefs/em-ci.md all round-trip byte-identical; negative arm (a path that does not
+exist in the tree) ABSENT — lit.
+THIS IS A SNAPSHOT AND IT IS STALE THE MOMENT ANYONE EDITS A DOC. The mechanism —
+committing scratchpad to a real remote — is A11 and remains unstarted under the freeze.
+
+### S23. DRIFT MEASURED, NOT ARGUED: ONE TIP MOVED IN THE TEN MINUTES AFTER A CLEAN SWEEP
+Re-ran the corrected enumerator over the same 133 trees ~10 minutes after the sweep that
+returned unpreserved 0/222. ONE new object: farmtable-import-hardening advanced
+9f5fadb -> f3b6efa ("stop claiming the ft CLI is unaffected by the import refusal").
+Preserved; salvage ref force-advanced.
+This is S21 with a stopwatch on it. A durability closure is not a state, it is a
+TIMESTAMP, and its half-life here is measured in minutes because the fleet is working.
+Anyone quoting "0 unpreserved" must quote the clock time with it, exactly as we already
+require the SHA next to the integer.

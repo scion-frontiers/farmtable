@@ -197,7 +197,9 @@ The main oracle carries an explicit **control arm** asserting the forged row *st
 
 **These were run DIRTY, and the dirt is the point** — a mutation arm mutates the source by definition, so a clean tree here would mean the arm did nothing. They were nonetheless anchored to a commit: the battery ran in the **throwaway clone at `2ff87d2`**, so the baseline is the commit and each arm is a single declared delta from it. Pristine backups were kept **outside** the repository. Restoration was verified by **SHA-256 comparison — identical** — with `-uall` porcelain empty and the suite green afterwards.
 
-Each arm records its **diff delta**, so a mutation that silently changed nothing cannot be mistaken for a surviving mutant. All seven deltas are non-zero.
+Each arm records its **diff delta**, so a mutation that silently changed nothing cannot be mistaken for a surviving mutant. ~~All seven deltas are non-zero.~~ **All fourteen deltas are non-zero**, each measured against the commit the arm was anchored to.
+
+**The zero-diff guard fired for real at `f3b6efa`, and it saved a false result.** Running M12 I reused a clone that carried the fix as *uncommitted* working state; `git checkout -- <file>` between arms reverted it, so M12's `perl` found no match, the file returned to the unfixed `9f5fadb` code, and the run printed a convincing RED on exactly the test I wanted red. The numstat was **empty**, so it was reported as a zero-diff mutant and discarded rather than banked. **A zero-diff mutant reports on your patch, not on the test** — here it would have reported "the new arm catches the defect" using a tree in which the defect had never been fixed. Re-run against the *committed* tip `f3b6efa` so the baseline could not drift, plus an M0 no-mutation positive control that correctly self-reported as zero-diff. M12 then failed to compile (a Perl `.` where Go needs `+`); **a mutation that does not compile proves the compiler works, not that the test works**, so that was discarded too and re-run.
 
 | Arm | Control reverted | Delta | Result |
 |---|---|---|---|
@@ -213,6 +215,9 @@ Each arm records its **diff delta**, so a mutation that silently changed nothing
 | M9 | "embedded `ft` CLI is unaffected" sentence removed | 1+/2- | RED — all 3 wording subcases |
 | M10 | `WithOpenAccessCause` silently fails to store the cause | 1+/1- | RED — wording test |
 | M11 | Env mapping blames the wrong knob (missing-token → deliberate) | 1+/1- | RED — mapping test |
+| **M0** *(at `f3b6efa`, positive control)* | nothing mutated | **0+/0-** | **correctly self-reported ZERO-DIFF and refused to emit a result** — the guard proving the other two rows mean something |
+| **M9′** *(at `f3b6efa`)* | whole scope clause deleted (`scope = ""`) | 1+/1- | RED — `RefusalMessageNamesTheCause` **and** `RefusalDoesNotDisclaimTheFtBinary`. The second RED is the new test's **control arm** firing: it proves the new test cannot pass on a message that drops scope language entirely. |
+| **M12** *(at `f3b6efa`)* | the false `ft` CLI exemption reinstated — i.e. R3-1 reverted | 2+/1- | RED — **`RefusalDoesNotDisclaimTheFtBinary` only**. `RefusalMessageNamesTheCause` stays **GREEN**. |
 
 M7–M11 were run in a **throwaway clone at `f487dc5`** (`/tmp/arms`, `git clone --no-local`), same protocol: all five **compile**, all five RED **by assertion** (never a build break), restoration verified by SHA-256 against a baseline taken before the battery — all three mutated files `OK` — and `-uall` porcelain empty afterwards.
 
@@ -224,6 +229,20 @@ M7–M11 were run in a **throwaway clone at `f487dc5`** (`/tmp/arms`, `git clone
 | `RefusalDoesNotDependOnOpenAccessCause` | **GREEN** | **RED** (`CANARY:` fired) |
 
 M7 staying GREEN on the invariance test is a *pass condition*, not a survivor: that test must be blind to wording or it is not testing invariance. M8 is the arm that earns the invariance test its place — without it, that test passes trivially because the refusal is unconditional, and a trivially-passing test is indistinguishable from a vacuous one **until you introduce the very defect it exists to catch**. M8 introduces exactly that defect — one cause becoming a reason to let an unattributable import through — and the canary fires on it.
+
+### R3-1 at `f3b6efa` — a pinned falsehood, and the arm that could never have found it
+
+**The defect.** The refusal message ended *"and the embedded `ft` CLI is unaffected because it always authenticates locally."* That sentence is true of `internal/cli/connect.go:169`, which installs a token lookup unconditionally. It is **false of the `ft` binary**, because `ft dashboard` is a subcommand of that same binary (`cmd/ft/main.go` is the only `ft` main), honours `FARMTABLE_OPEN_ACCESS=1`, leaves `lookup` nil, and passes `OpenAccessCauseDeliberate` at `internal/cli/dashboard.go:97` — reaching this exact refusal. `Dockerfile`'s `CMD` is `["/ft","dashboard"]`, so **the operator statistically most likely to read the message is the one it misinforms.**
+
+**Where this came from, precisely.** In §"WHICH ARTEFACT" above I established that the *embedded CLI construction site* cannot reach the refusal. That was correct, and I then shipped it as a user-facing string. **My report's vocabulary does not ship.** In the report "embedded `ft` CLI" named one construction site; in a gRPC error message read by an operator, "the `ft` CLI" names the binary they typed. The claim did not become false — it was always false under the only reading the audience has. This is the same family as R-1: nothing in the supporting analysis was wrong, and the conclusion still misleads.
+
+**Why fourteen arms could not catch it.** M9 deleted this very sentence and correctly turned all three wording subcases RED. **The sentence was among the best-pinned strings in the branch — and no arm ever asked whether it was TRUE.** Presence and truth are orthogonal, and a mutation battery only measures presence. **A pinned falsehood is strictly worse than an unpinned one, because the test suite now actively defends it**: the next person to notice and delete it gets a red build and reasonable grounds to conclude they were wrong. This is backlog item C26 — *an arm battery only covers defects the author imagined* — landing on my own work rather than in the abstract.
+
+**The fix, and why the cheapest one.** Two options were offered. I took the deletion: the clause is gone, leaving `" Only collection import is affected; other operations are unchanged."`, which holds in **every** configuration that can reach the function. I declined to write a narrower replacement exemption, because any replacement is **new unpinned prose making configuration claims**, and this defect is direct evidence that I get those wrong. The comment left at the constant states the obligation on the next editor: no per-caller exemption without a test asserting it is *true* in the configuration it exempts.
+
+**The arm that was missing, now present.** `TestRPC_ImportCollection_RefusalDoesNotDisclaimTheFtBinary` drives `OpenAccessCauseDeliberate` — the cause `dashboard.go:97` actually passes — and asserts the message does **not** claim the CLI/binary is unaffected, across four spellings of the claim. **Genuinely oracle-first**: shown RED against the unfixed constant *before* any code change (`export_import_provenance_test.go:866`, naming the dashboard configuration in the failure text), GREEN after. It carries a control arm requiring the surviving scope clause to still be present, so it cannot pass on a message that says nothing about scope at all — M9′ confirms that control fires.
+
+**M12 is the discriminating pair, and it is the whole argument.** Reverting R3-1 turns the new test RED while leaving `RefusalMessageNamesTheCause` **GREEN**. That green is not a defect in the wording test — it is the *measurement* of the blindness R3-1 identified, reproduced on demand. Before this branch, the entire suite was green on a message that lied to Docker operators.
 
 ### Two findings from the arms that generalise
 
@@ -488,8 +507,24 @@ Recorded at `2ff87d2` on 2026-07-29, **before** EM-CI's runner reaches main, so 
 | `go test ./...` | 32 packages, **0 FAIL** |
 | Membership gate | ~~0 MISSING, 0 UNEXPECTED (507 = 507)~~ — pre-registered at `2ff87d2`. Superseded at `f487dc5`: **0 MISSING, 0 UNEXPECTED, 510 manifest rows = 510 executed tests** |
 | Manifest entries | ~~507 (501 inherited + my 6)~~ at `2ff87d2` → **510 manifest rows at `f487dc5`** (501 inherited + my 9) |
-| `gofmt -l` on ~~my 3 files~~ my **6 changed Go files** at `f487dc5` | 0 unformatted files |
+| ~~`gofmt -l` on ~~my 3 files~~ my **6 changed Go files** at `f487dc5`~~ **superseded — see the scoped table below (R3-4)** | ~~0 unformatted files~~ |
 | `gofmt -l` repo-wide | **7 files, none mine** — `internal/server/scopes.go`, `internal/serverapp/{linkflows_test,oauth,tokenrefresh,unified_test}.go`, `internal/streaming/{eventbus,eventbus_test}.go`. If CI has no gofmt gate this is invisible; I predict it is invisible. |
+
+**gofmt figures re-stated with the scope named beside every number (review R3-4), measured at `f3b6efa` in `/tmp/verify-f3b6efa`.** The struck figure and its replacement were *different quantities* wearing the same label — "my files" silently changed denominator between them, which is the R-1 defect recurring a third time. Each row below names what is being counted and over which range:
+
+| Quantity — scope stated | Figure |
+|---|---|
+| Go files **this branch changed**, cumulative `43bd206..2ff87d2` | 3 |
+| Go files **changed by commit `f487dc5` alone** | 6 |
+| Go files **this branch changed**, cumulative `43bd206..f487dc5` | 7 |
+| Go files **this branch changed**, cumulative `43bd206..f3b6efa` | 7 |
+| `gofmt -l` over **just those 7 branch-changed Go files** at `f3b6efa` | **0 unformatted** |
+| `gofmt -l` over the **whole tree** at `f3b6efa` | **7 unformatted** |
+| `gofmt -l` over the **whole tree** at base `43bd206` | **7 unformatted** |
+
+**3, 6 and 7 are three different denominators, and the whole-tree 7 is a fourth quantity that merely collides numerically with the branch-changed 7.** That collision is the trap: two unrelated measurements printing the same digit, in adjacent rows, is how an unnamed unit survives review.
+
+**A measurement that disagrees with the correction I was handed, reported as such.** The round-3 note characterised the whole-tree figure as "7 = cumulative at `f487dc5`", implying it accumulated over the branch. It does not. The whole-tree gofmt count is **7 at every one of the eight commits `43bd206`, `6dbfc8c`, `a809849`, `33f59e8`, `2ff87d2`, `f487dc5`, `9f5fadb`, `f3b6efa`** — the identical 7 files at each, all present already at the base. **The branch introduced zero gofmt-dirty files and cleaned zero**; the intersection of the 7 dirty files with the 7 files this branch changed is **empty**. So the figure is invariant, not cumulative, and `internal/server/scopes.go` remains untouched by this track as directed.
 
 **Correction to this table's own integrity, at `f487dc5`.** When re-registering for round 2 I *overwrote* the `2ff87d2` figures instead of striking them through. That is precisely the wrong move in a pre-registration block: a prediction that can be edited after the fact is not a prediction. The original values are restored above, struck through, with the SHA each belongs to. Recorded rather than silently repaired, because the block's whole value is that it cannot be quietly reconciled.
 
@@ -536,6 +571,7 @@ Stated explicitly so they cannot be quietly dropped:
 | Copylock quartet in `server.go` | Fixed upstream at `43bd206` via `proto.Clone`. Moot; not re-reported. |
 | `web/package.json` test script | Not touched. Held pending EM-CI's shared multi-file runner. |
 | `scripts/ci-suite-manifest.mjs` | Not touched, per standing instruction. |
+| **Manifest accounting across the two tracks — a merge-time hazard, not a defect in either branch** | My branch and the other hardening track each add rows to `.github/expected-go-tests.txt`. The two sets have **zero overlap**, so neither can clobber the other. **The two accountings must never be added together.** Each track's before→after is measured against a base that already excludes the other's rows, so summing them double-counts the shared base and produces a total that matches no tree that will ever exist. Membership is **re-derived at the merge commit**, not carried forward from either branch's figure. My branch's own figure is `501 → 511` over `43bd206..f3b6efa`; it is valid **only** for that range and is not an input to the post-merge count. Flagged for whoever merges; nothing for me to change. |
 
 ## 6. Two EM rules this work independently contradicted
 
@@ -549,7 +585,7 @@ Both rules were true when made and both outlived their truth. **A standing rule 
 
 ## 7. Deliverables
 
-- **Branch** `import-hardening` at **`f487dc5`**, based on `43bd206`, **five commits, NOT PUSHED.** Push URL on this clone is `DISABLED_NO_PUSH`.
+- **Branch** `import-hardening` at ~~**`f487dc5`**~~ **`f3b6efa`** (`f3b6efaafd4722f68eb48466e793c3a46daf94eb`), based on `43bd206`, ~~five commits~~ **seven commits, NOT PUSHED.** Push URL on this clone is `DISABLED_NO_PUSH`. Confirmed **not** an ancestor of canonical `main` (`2982ffd8f3f6e231d8855b9cae7c448c2bd3144f`, resolved **by name** in `/workspace/farmtable`), `git merge-base --is-ancestor` exit **1**, 7 commits unmerged.
 - **This report.**
 - **Project log:** `/workspace/farmtable/.design/project-log/2026-07-29-dev-import-hardening.md`
 
