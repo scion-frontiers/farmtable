@@ -307,24 +307,35 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		// why it is labelled.
 		//
 		// Import copies the uploaded document's collection remote_data into
-		// storage with NO KEY VALIDATION (see :332 below, reaching
-		// entstore.go:2117), so any caller holding ScopeCollectionAdmin can
-		// plant ANY key -- including "writable": true, the key that
+		// storage with NO KEY VALIDATION -- see the field initialised as
+		// `RemoteData: sanitizeRemoteData(doc.Collection.RemoteData)` in the
+		// importParams literal below, which reaches the store at
+		// `collCreate.SetRemoteData(p.Collection.RemoteData)` in
+		// EntStore.ImportCollection. So any caller holding ScopeCollectionAdmin
+		// can plant ANY key -- including "writable": true, the key that
 		// web/src/capabilities.ts getCapabilities uses to unlock nine GitHub
 		// write operations. See the WRITE-AUTHORIZATION GATE block in
-		// collectionToProto (internal/server/convert.go) for the gate. Cited by
-		// name, not line: this round spent most of itself on citations that
-		// resolved to the wrong thing.
+		// collectionToProto (internal/server/convert.go) for the gate.
+		//
+		// EVERY CITATION IN THIS BLOCK IS BY IDENTIFIER OR BY QUOTED SOURCE
+		// TEXT, NEVER BY LINE NUMBER. The previous revision of this comment
+		// said "cited by name, not line" and then cited three line numbers,
+		// all three of which pointed into this comment rather than at the code
+		// they named -- the annotation displaced the lines it cited, in the
+		// same commit, by the act of being written.
 		//
 		// That planted key is inert TODAY, and only because of a conjunction of
 		// two facts in two different languages, neither of which was written
 		// down before this comment:
 		//
-		//   A (here, plus :331 which hardcodes PlatformFarmtable): an imported
-		//     collection is ALWAYS farmtable-platform.
-		//   B (web/src/capabilities.ts:94): the FARMTABLE branch returns
-		//     ALL_ENABLED and RETURNS BEFORE READING remote_data at all, so a
-		//     planted key on a farmtable collection is never consulted.
+		//   A (this guard, plus the `Platform: collection.PlatformFarmtable`
+		//     field in the importParams literal below, which hardcodes the
+		//     platform): an imported collection is ALWAYS farmtable-platform.
+		//   B (web/src/capabilities.ts, getCapabilities, the
+		//     `collection.platform === Platform.FARMTABLE` early return): that
+		//     branch returns ALL_ENABLED and RETURNS BEFORE READING remote_data
+		//     at all, so a planted key on a farmtable collection is never
+		//     consulted.
 		//
 		// EITHER ONE MOVING ARMS THE OTHER. Accepting a non-farmtable platform
 		// here, or reordering capabilities.ts to consult writable before the
@@ -357,13 +368,19 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		Collection: store.ImportCollection{
 			Name:        doc.Collection.Name,
 			Description: doc.Collection.Description,
-			// Second half of CONJUNCT A (see :306). Hardcoded, not taken
-			// from the document. This is what makes the :306 check
-			// load-bearing rather than advisory.
+			// Second half of CONJUNCT A -- see the SECURITY CONTROL,
+			// CONJUNCT A OF TWO comment above, on the
+			// `doc.Collection.Platform != string(collection.PlatformFarmtable)`
+			// guard. Hardcoded, not taken from the document. This is what
+			// makes that guard load-bearing rather than advisory.
 			Platform: collection.PlatformFarmtable,
 			// UNVALIDATED KEYS. sanitizeRemoteData validates URL-bearing
 			// VALUES; it does not filter keys, so whatever the uploader
-			// wrote arrives here. Inert only by conjuncts A and B at :306.
+			// wrote arrives here. Inert only by conjunct A (the guard
+			// above, plus the hardcoded Platform field on the line above
+			// this comment) AND conjunct B (getCapabilities in
+			// web/src/capabilities.ts) TOGETHER. Conjunct B is in the web
+			// tree, not in this file.
 			RemoteData: sanitizeRemoteData(doc.Collection.RemoteData),
 			CreatedAt:  doc.Collection.CreatedAt,
 			UpdatedAt:  doc.Collection.UpdatedAt,

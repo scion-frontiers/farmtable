@@ -775,8 +775,11 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// (2) A TYPE argument, covering Import -- which the caller argument does
 		// NOT cover, because ImportCollection IS populated by an in-tree caller on
 		// every call. export_import.go builds importParams.Collection.RemoteData
-		// from an attacker-uploaded document (:332) and reaches the store at
-		// :412. What stops it is that the payload arrives through encoding/json
+		// from an attacker-uploaded document -- the field initialised as
+		// `RemoteData: sanitizeRemoteData(doc.Collection.RemoteData)` in
+		// ImportCollection -- and reaches the store at
+		// `s.store.ImportCollection(ctx, importParams)` in the same function.
+		// What stops it is that the payload arrives through encoding/json
 		// into a map[string]any, with no UseNumber on the decoder, so every value
 		// is nil, bool, float64, string, []any or map[string]any -- exactly
 		// structpb's representable set -- and sanitizeRemoteData preserves types,
@@ -863,9 +866,12 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//
 		//   - EntStore.ImportCollection, entstore.go:2112. PLATFORM IS CALLER-
 		//     CONTROLLED, from the params struct. Cannot yield both only because the
-		//     layer above it, server/export_import.go, refuses a non-farmtable
-		//     document (:306) and then hardcodes farmtable into the params anyway
-		//     (:331).
+		//     layer above it, server/export_import.go ImportCollection, refuses a
+		//     non-farmtable document (the
+		//     `doc.Collection.Platform != string(collection.PlatformFarmtable)`
+		//     guard) and then hardcodes farmtable into the params anyway (the
+		//     `Platform: collection.PlatformFarmtable` field in the importParams
+		//     literal).
 		//
 		//   - syntheticCollection, internal/platform/github/passthrough.go:645,
 		//     returned by :630, :638 and :642. Platform is GITHUB and it is the
@@ -873,8 +879,10 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//     because the struct literal sets no RemoteData field at all. In-memory
 		//     only; never persisted.
 		//
-		//   - Hardcoded farmtable, so out of scope by platform: export_import.go:331,
-		//     beads_import.go:393, graph_routing.go:85.
+		//   - Hardcoded farmtable, so out of scope by platform: the
+		//     `Platform: collection.PlatformFarmtable` field in ImportCollection's
+		//     importParams literal (export_import.go), beads_import.go:393,
+		//     graph_routing.go:85.
 		//
 		// ARMING EDITS, RANKED BY HOW ORDINARY THEY LOOK, WHICH IS THE ONLY RANKING
 		// THAT MATTERS FOR A COMMENT.
@@ -884,10 +892,14 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//      SetRemoteData(p.Collection.RemoteData) -- BOTH INPUTS TO THE GATE,
 		//      WRITTEN FROM THE SAME CALLER-SUPPLIED STRUCT, IN ONE STATEMENT AND THE
 		//      BRANCH UNDER IT. Not two features that would have to meet. It is held
-		//      shut by two adjacent lines one layer up, export_import.go:306 and :331,
-		//      and BOTH ARE REMOVED BY THE SAME SINGLE FEATURE: "support importing a
-		//      GitHub collection export." The remote_data half is already wired from
-		//      the uploaded document (export_import.go:332) because sanitizeRemoteData
+		//      shut one layer up, in export_import.go ImportCollection, by the
+		//      `doc.Collection.Platform != string(collection.PlatformFarmtable)`
+		//      guard and the `Platform: collection.PlatformFarmtable` field in the
+		//      importParams literal, and BOTH ARE REMOVED BY THE SAME SINGLE
+		//      FEATURE: "support importing a GitHub collection export." The
+		//      remote_data half is already wired from the uploaded document (the
+		//      `RemoteData: sanitizeRemoteData(doc.Collection.RemoteData)` field in
+		//      that same literal) because sanitizeRemoteData
 		//      (urlvalidate.go:250) is a URL sanitizer, not a key allowlist -- it
 		//      keeps every key it does not recognise as URL-bearing, and `writable` is
 		//      not URL-bearing, so it passes through untouched. Nobody implementing

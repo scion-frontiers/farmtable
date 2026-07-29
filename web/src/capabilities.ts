@@ -92,7 +92,10 @@ export const CAPABILITY_TOOLTIPS: Partial<Record<keyof CollectionCapabilities, s
  */
 export function getCapabilities(collection: Collection): CollectionCapabilities {
   // SECURITY CONTROL -- CONJUNCT B OF TWO. Counterpart, which names this one:
-  // internal/server/export_import.go:306.
+  // the "SECURITY CONTROL, CONJUNCT A OF TWO" comment in ImportCollection, in
+  // internal/server/export_import.go. Cited by identifier and not by line
+  // number: an annotation displaces the line it cites, so a line number in a
+  // cross-file citation is stale from the commit that writes it.
   //
   // THE ORDER OF THE TWO PLATFORM CHECKS BELOW IS LOAD-BEARING, AND IT IS NOT A
   // STYLE CHOICE. Import copies an uploaded document's collection remoteData
