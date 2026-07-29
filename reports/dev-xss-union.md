@@ -539,9 +539,27 @@ caught it, re-ran without the pipe, and got `1`.
 | `suite-manifest` on branch | EXIT=1, 0 of 5 | MEASURED | T-BRANCH |
 | `suite-manifest` on `faf1c8c` | EXIT=0, 1 of 1 | MEASURED | T-BASE |
 | copylocks findings in `internal/server` | 4 | MEASURED, **NOT MINE** | T-BRANCH |
-| whole-repo `go vet ./...` / `go build ./...` | not run | **UNCHECKED** | — |
+| `go build ./...` on branch | **EXIT=1**, `all:web/dist` | MEASURED | T-BRANCH |
+| `go build ./...` on `faf1c8c` | **EXIT=1**, identical error | MEASURED, **PRE-EXISTING** | T-BASE |
+| `gofmt -l internal/server/` | 1 — `scopes.go` | MEASURED, **NOT MINE** | T-BRANCH |
+| `gofmt -l` on my 3 touched files | 0 | MEASURED | T-BRANCH |
+| whole-repo `go vet ./...` | not run — aborts at 0 packages | **UNCHECKED** | — |
 | `make test` | not run | **UNCHECKED** | — |
 | CI result for this branch | not run — you push | **UNCHECKED** | — |
+
+**`go build ./...` fails on this branch, and it fails identically on `faf1c8c`**
+— `assets.go:5:12: pattern all:web/dist: no matching files found`, EM-100, with
+`web/dist` absent in both trees. Measured both arms rather than assuming,
+because "the merge broke the build" and "the build was already broken" look the
+same from one arm. This is the embed EM-CI has a dev fixing; I did not create
+`web/dist` to work around it, per the standing prohibition. The package-scoped
+builds and tests that matter for my change all pass.
+
+**`gofmt -l internal/server/` reports `scopes.go`.** Pre-existing: unformatted
+at `faf1c8c` too, and untouched by every commit on this branch
+(`git log faf1c8c..HEAD -- internal/server/scopes.go` is empty). My three
+touched files are clean. Flagged, not fixed — it is outside the change and
+"cleaning up" adjacent code is how a scoped commit stops being reviewable.
 
 `go vet ./internal/server/` reports the four `assignment copies lock value`
 findings at `server.go:1509,1619,1827,2004` — the same four you declined for
