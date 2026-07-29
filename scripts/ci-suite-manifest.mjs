@@ -46,8 +46,58 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // those files. That independence is the point -- `present` is the yardstick the
 // runners are measured against, so it must never be derived from them.
 //
+// IT IS SET TO THE POPULATION ON MAIN, NOT BELOW IT. A floor below the
+// population is a licence to delete: it certifies that some files may vanish
+// without anyone being told.
+//
+// THE POPULATION IS A PATH SET, AND THE PATH SET IS THE AUDITABLE ARTEFACT --
+// the integer below is only its cardinality. A bare count cannot be diffed by
+// the next reader and cannot tell real growth from a leak (compiled output
+// wandering into `present`, say). So the set is written out. Derived at main
+// 439b309, and every figure in this comment is a figure AT 439b309:
+//
+//   web/src/capabilities.test.ts
+//   web/src/components/inspector/render-sink-xss.test.ts
+//   web/src/util/assertions.test.ts
+//   web/src/util/safe-url.test.ts
+//   web/src/util/url-binding-scan.test.ts
+//   web/src/utils/task-ready.test.ts
+//
+// Reconciled at 439b309 against the runner's own `--list`: both sets are those
+// six paths, `A - B` and `B - A` are both empty. So the floor is 6 at 439b309
+// because the population at 439b309 is those six files -- not because 6 felt
+// safe, and not from any branch's population.
+//
+// TO RE-DERIVE THIS RATHER THAN TRUST IT, from a clean checkout:
+//   node scripts/ci-suite-manifest.mjs          # prints the set it enumerated
+//   (cd web && node scripts/run-node-tests.mjs --list)
+// If those two disagree, that is a defect report and not a new floor.
+//
+// This number is correct FOR 439b309 and is expected to move: it must be
+// re-derived, set-wise, at any commit that changes the population, and raised
+// in the commit that adds a suite.
+//
+// WHAT IT DETECTS DEPENDS ON WHERE IT IS SET, AND THAT IS EASY TO GET WRONG.
+// While the floor sat at 1 against a population of 6 it could only catch a
+// collapse toward zero, and losing one file out of six was invisible to it.
+// Set EQUAL to the population, as it now is, it catches any NET REDUCTION --
+// six becomes five and this fails.
+//
+// WHAT IT STILL CANNOT DETECT, AT ANY SETTING, IS A SUBSTITUTION: delete one
+// test file and add another in the same commit and the cardinality is
+// unchanged, so this passes while a suite has in fact been lost. A count cannot
+// see that; only a committed expected-SET can, which is why the path set above
+// is written out and why the expected-set upgrade is filed rather than
+// hand-waved. The enumerated/executed/missing reconciliation below is a
+// different check again, and this floor is not a substitute for either.
+//
+// This is a MINIMUM, which is what the brief asks for. The stronger form is a
+// committed expected-SET for JS/TS mirroring .github/expected-go-tests.txt,
+// with the same asymmetry -- removals block, additions merely notice. Filed as
+// a backlog item; not built here.
+//
 // Adding a suite is what raises this number.
-const MIN_TEST_FILES = 1;
+const MIN_TEST_FILES = 6;
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
 // set is always empty; locally it means a test file you just created is counted
@@ -725,6 +775,19 @@ if (present.length < MIN_TEST_FILES) {
       '      The population is the defect here, not the membership: an empty\n' +
       '      set satisfies "every present file is executed", so without this\n' +
       '      floor the run below would have exited 0 and told you nothing.\n' +
+      '\n' +
+      '      WHAT THIS FLOOR DETECTS: a NET REDUCTION in the population. It is\n' +
+      '      set equal to the population, so any commit that ends with fewer\n' +
+      '      test files than it started with lands here -- including the total\n' +
+      '      collapse to zero, which is the vacuous-pass case where there is\n' +
+      '      nothing left to compare and the comparison therefore succeeds.\n' +
+      '\n' +
+      '      WHAT IT CANNOT DETECT, so do not read a green as more than it is:\n' +
+      '      a SUBSTITUTION. Delete one test file and add another in the same\n' +
+      '      commit and the count is unchanged, so this check passes while a\n' +
+      '      suite has been lost. Only a committed expected-SET catches that.\n' +
+      '      The enumerated/executed/missing reconciliation below is a separate\n' +
+      '      check again, and this floor is not a substitute for either.\n' +
       '\n' +
       '      Lowering MIN_TEST_FILES is not the remedy for this failure. It\n' +
       '      is a separate, deliberate decision that a suite is INTENDED to\n' +
