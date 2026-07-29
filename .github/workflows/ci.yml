@@ -68,6 +68,54 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      # ---------------------------------------------------------------------
+      # THE COMMIT MUST COMPILE. Checked here, before anything is installed or
+      # built, because that is the only point in the run where the tree on disk
+      # IS the tree in the commit.
+      #
+      # Everything downstream of this step measures a tree that `make build`
+      # has already changed. `go vet` runs after the build for a good reason --
+      # it needs the populated embed -- but the consequence is that NOTHING in
+      # this workflow ever compiled Go against the committed tree. A commit
+      # whose `web/dist/.gitkeep` is missing therefore passed every gate: both
+      # dist arms, vet, and the membership manifest, fully green, while
+      # `go list ./...` on a fresh clone of that same commit returns zero
+      # packages and `pattern all:web/dist: no matching files found`.
+      #
+      # This step cannot be fooled by a build artefact for the structural
+      # reason that no build has run yet. It measures the commit by
+      # construction rather than by discipline.
+      # ---------------------------------------------------------------------
+      - name: Assert the COMMITTED tree compiles (nothing built yet)
+        run: |
+          if ! git ls-files --error-unmatch web/dist/.gitkeep >/dev/null 2>&1; then
+            echo "::error::web/dist/.gitkeep is not tracked in this commit."
+            echo "assets.go embeds all:web/dist. With no tracked file under"
+            echo "web/dist, a clean clone of this commit does not compile at"
+            echo "all -- go list ./... fails with:"
+            echo "  pattern all:web/dist: no matching files found"
+            echo
+            echo "Most likely cause: a local 'npm run build' deleted the marker"
+            echo "(vite empties outDir), and it was then staged as a deletion."
+            echo "Restore it:  git checkout -- web/dist/.gitkeep"
+            exit 1
+          fi
+
+          # The embed marker being present is necessary, not sufficient. Ask the
+          # compiler directly.
+          if ! go list ./... > /tmp/committed-packages.txt 2>/tmp/committed-packages.err; then
+            echo "::error::The committed tree does not compile. go list ./... failed:"
+            sed 's/^/  /' /tmp/committed-packages.err
+            exit 1
+          fi
+          pkgs=$(grep -c . /tmp/committed-packages.txt || true)
+          if [ "$pkgs" -eq 0 ]; then
+            echo "::error::go list ./... reported 0 packages on the committed tree."
+            echo "An empty package list is not a clean result. Failing closed."
+            exit 1
+          fi
+          echo "OK: the committed tree compiles -- ${pkgs} packages, nothing built yet."
+
       - name: Install web dependencies from lockfile
         working-directory: web
         run: npm ci
@@ -100,9 +148,30 @@ jobs:
       # to prevent:
       #
       #   * web/dist/.gitkeep IS now tracked. `.gitignore` ignores web/dist/*
-      #     with an exception for that one file, so a real 4109-file build
-      #     dropped into the tree still leaves `git status --porcelain` empty.
-      #     The placeholder is an EMPTY MARKER; it is not build output.
+      #     with an exception for that one file, so the 4108 files a real build
+      #     produces are all ignored. The placeholder is an EMPTY MARKER; it is
+      #     not build output.
+      #
+      #     ~~and a real build still leaves `git status --porcelain` empty.~~
+      #     WITHDRAWN, MEASURED FALSE. Struck rather than deleted so the next
+      #     reader can see the claim was made, tested and killed.
+      #     `build.outDir` is inside the vite root, so `emptyOutDir` defaults to
+      #     true and every `npm run build` DELETES the tracked marker. Measured
+      #     in a fresh clone: before, marker present; after `npm run build`,
+      #     marker gone and porcelain reads ` D web/dist/.gitkeep`.
+      #     The ignore rule hides the 4108 ADDED files. It cannot hide the one
+      #     DELETED file. A developer who builds and then stages broadly commits
+      #     the marker's removal, which breaks the `all:web/dist` embed and stops
+      #     the module compiling from a clean clone.
+      #
+      #     That is not hypothetical: canary/c1-gitkeep-untracked (f410023) is
+      #     exactly that commit, and run 30463794909 passed EVERY arm in this
+      #     file -- both dist arms, vet, and the 501-test membership manifest --
+      #     while a clean clone of it gives `go list ./...` -> 0 packages and
+      #     `pattern all:web/dist: no matching files found`. The step
+      #     "Assert the COMMITTED tree compiles" above exists because of that
+      #     run, and it is placed before `npm ci` because that is the last
+      #     moment at which the tree on disk still IS the commit.
       #   * It exists so a fresh clone can satisfy the embed and compile. What
       #     it cannot do is masquerade as a real UI: assets.go's WebUI() returns
       #     ErrWebAssetsNotBuilt when index.html is absent from the embed, so a
@@ -169,7 +238,13 @@ jobs:
           #     directory on disk, and it is deliberately the first thing that
           #     happens in this step. An earlier version began with "if web/dist
           #     does not exist, print OK and exit 0", which handed the empty
-          #     case a second way through.
+          #     case a second way through. Runner receipt for that: on
+          #     canary/c1-gitkeep-untracked (f410023) run 30463794909, this arm
+          #     took precisely that branch and printed "OK: web/dist does not
+          #     exist on a clean checkout" for a commit that does not compile.
+          #     An ABSENT web/dist is not an acceptable state now that a tracked
+          #     marker is the thing making the embed work, so both the absent
+          #     case and the 4109-tracked-file case must red here, and do.
           # (2) UNTRACKED files must not exist at all -- that is the
           #     cache-restore / stale-working-copy case.
           #
@@ -410,28 +485,90 @@ jobs:
           # TestGetUser. A merge like that can hide a FAILING test behind a
           # passing one of the same name -- precisely the disappearance this
           # step exists to prevent.
+          #
+          # A SKIPPED TEST IS NOT AN EXECUTED TEST, and this step used to say it
+          # was. Membership was keyed on `=== RUN` alone, but go emits `=== RUN`
+          # for a test that then calls t.Skip, so `t.Skip("in a hurry")` on one
+          # line removed a test from the suite while this gate kept counting it.
+          # Measured, not modelled: canary/r1-tskip-defeats-membership (930fdb1)
+          # is one added t.Skip, and run 30463804634 went GREEN printing
+          # "OK: all 501 manifest tests executed" -- with
+          # "--- SKIP: TestWatchTasks_CreatedEvent (0.00s)" sitting in this
+          # workflow's own log four steps above that sentence. The evidence was
+          # collected and not read.
+          #
+          # So SKIP lines are parsed with the same package attribution and
+          # SUBTRACTED. A skipped manifest test then falls out as MISSING, which
+          # is what it is. Only TOP-LEVEL skips count: a `--- SKIP` for a subtest
+          # is indented and the parent still ran, and the manifest is keyed on
+          # top-level names.
           # -------------------------------------------------------------------
           awk '
             BEGIN { FS = "\t" }
-            /^=== RUN   Test[^\/]*$/ { pending[++np] = substr($0, 11); next }
+            /^=== RUN   Test[^\/]*$/ { run[++nr] = substr($0, 11); next }
+            /^--- SKIP: / {
+              name = substr($0, 11)
+              sub(/ \([0-9.]+s\)$/, "", name)
+              if (name ~ /\//) next
+              skip[++ns] = name
+              next
+            }
             /^(ok  |FAIL|\?   )\t/ {
               pkg = $2; sub(/ \[.*\]$/, "", pkg)
-              for (i = 1; i <= np; i++) print pkg "\t" pending[i]
-              np = 0; next
+              for (i = 1; i <= nr; i++) print "RUN\t"  pkg "\t" run[i]
+              for (i = 1; i <= ns; i++) print "SKIP\t" pkg "\t" skip[i]
+              nr = 0; ns = 0; next
             }
-            END { for (i = 1; i <= np; i++) print "(unterminated)\t" pending[i] }
-          ' go-test.log | sort -u > executed-go-tests.txt
+            END {
+              for (i = 1; i <= nr; i++) print "RUN\t(unterminated)\t"  run[i]
+              for (i = 1; i <= ns; i++) print "SKIP\t(unterminated)\t" skip[i]
+            }
+          ' go-test.log | sort -u > go-test-rows.txt
+
+          # grep exits 1 on no match, and this shell runs with -e and pipefail,
+          # so an empty skip set would abort the step. Empty is the expected
+          # case; it must not look like breakage.
+          { grep -P '^RUN\t'  go-test-rows.txt | cut -f2- | sort -u > ran-go-tests.txt;     } || true
+          { grep -P '^SKIP\t' go-test-rows.txt | cut -f2- | sort -u > skipped-go-tests.txt; } || true
+          comm -23 ran-go-tests.txt skipped-go-tests.txt > executed-go-tests.txt
 
           echo "### Executed Go tests" >> "$GITHUB_STEP_SUMMARY"
           echo "package-qualified Go tests executed: $(wc -l < executed-go-tests.txt)" \
             | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "top-level Go tests skipped: $(wc -l < skipped-go-tests.txt)" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
 
           # A test whose package never printed a result line is unaccounted-for
           # evidence (panic, timeout, truncated log). That is not a pass.
-          if grep -qP '^\(unterminated\)\t' executed-go-tests.txt; then
+          if grep -qP '\t\(unterminated\)\t' go-test-rows.txt; then
             echo "::error::These tests belong to a package that never reported a result:"
-            grep -P '^\(unterminated\)\t' executed-go-tests.txt
+            grep -P '\t\(unterminated\)\t' go-test-rows.txt
             exit 1
+          fi
+
+          # -------------------------------------------------------------------
+          # ANY top-level skip is a failure, and it is free to say so today:
+          # at this commit the tree contains four t.Skip* call sites and every
+          # one of them is reachable only under `-tags integration`, which CI
+          # does not pass. A real run here skips ZERO tests. A bypass costs
+          # nothing to close while its population is zero and becomes a
+          # negotiation the moment one legitimate instance exists.
+          #
+          # If a skip ever becomes legitimate, the exemption belongs in the
+          # manifest as an explicit, named, reviewable row -- not in a predicate
+          # that cannot tell "skipped" from "passed".
+          # -------------------------------------------------------------------
+          skip_count=$(wc -l < skipped-go-tests.txt)
+          if [ "$skip_count" -gt 0 ]; then
+            echo "::error::${skip_count} Go test(s) were SKIPPED, not executed:"
+            sed 's/^/  /' skipped-go-tests.txt
+            echo
+            echo "go prints '=== RUN' for a skipped test, so a skip reads as a"
+            echo "pass to anything counting RUN lines, and it reads as good"
+            echo "citizenship in a diff. It is a test that stopped running."
+            echo "Any of these that is in the manifest is ALSO named below as"
+            echo "DID NOT RUN -- that is the same defect reported twice, not two."
+            status=1
           fi
 
           echo "--- failures, if any ---"
@@ -520,7 +657,9 @@ jobs:
           name: test-membership
           path: |
             go-test.log
+            go-test-rows.txt
             executed-go-tests.txt
+            skipped-go-tests.txt
             go-test-failures.txt
           # `warn` meant that if the evidence logs were absent the upload
           # printed a warning and the job stayed green -- an evidence gate that
