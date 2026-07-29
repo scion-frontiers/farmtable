@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -1497,9 +1498,9 @@ func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTa
 				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
 			}
 			cidStr := ephCID.String()
-			ephReq := *req
+			ephReq := proto.Clone(req).(*pb.GetReadyTasksRequest)
 			ephReq.CollectionId = &cidStr
-			return ephSvc.GetReadyTasks(ctx, &ephReq)
+			return ephSvc.GetReadyTasks(ctx, ephReq)
 		}
 	}
 
@@ -1607,9 +1608,9 @@ func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlock
 				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
 			}
 			cidStr := ephCID.String()
-			ephReq := *req
+			ephReq := proto.Clone(req).(*pb.GetBlockedTasksRequest)
 			ephReq.CollectionId = &cidStr
-			return ephSvc.GetBlockedTasks(ctx, &ephReq)
+			return ephSvc.GetBlockedTasks(ctx, ephReq)
 		}
 	}
 
@@ -1815,11 +1816,11 @@ func (s *FarmTableService) GetCriticalPath(ctx context.Context, req *pb.GetCriti
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
 		}
-		ephReq := *req
+		ephReq := proto.Clone(req).(*pb.GetCriticalPathRequest)
 		ephReq.CollectionId = ephCID.String()
 		// Clear root_task_id since original IDs don't exist in the ephemeral store.
 		ephReq.RootTaskId = nil
-		return ephSvc.GetCriticalPath(ctx, &ephReq)
+		return ephSvc.GetCriticalPath(ctx, ephReq)
 	}
 
 	var startTasks []*struct {
@@ -1992,9 +1993,9 @@ func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottle
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
 		}
-		ephReq := *req
+		ephReq := proto.Clone(req).(*pb.GetBottlenecksRequest)
 		ephReq.CollectionId = ephCID.String()
-		return ephSvc.GetBottlenecks(ctx, &ephReq)
+		return ephSvc.GetBottlenecks(ctx, ephReq)
 	}
 
 	limit := int(req.GetLimit())
