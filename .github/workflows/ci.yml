@@ -17,6 +17,15 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# GitHub's default step shell is `bash -e {0}` -- WITHOUT pipefail. Under that
+# default, `a | tee b` reports tee's exit status and a failure in `a` is
+# silently discarded. That is not hypothetical: the first run of this workflow
+# went green while a Go test was failing, for exactly this reason.
+# `shell: bash` means `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
 env:
   # go.mod declares `go 1.26.5`; keep these in step.
   GO_VERSION: '1.26.5'
@@ -77,8 +86,14 @@ jobs:
       # the badge stayed green. `make test` is checked separately, afterwards,
       # as a Makefile self-check -- not as the route to the tests.
       # ---------------------------------------------------------------------
+      # `set -o pipefail` is redundant given defaults.run.shell above, and is
+      # kept anyway: this specific pipeline is the one that already swallowed a
+      # real Go test failure once, and it should not depend on a setting several
+      # dozen lines away staying correct.
       - name: Go tests (invoked directly)
-        run: go test ./... -v 2>&1 | tee go-test.log
+        run: |
+          set -o pipefail
+          go test ./... -v 2>&1 | tee go-test.log
 
       - name: Web tests (invoked directly)
         working-directory: web
@@ -92,8 +107,11 @@ jobs:
             exit 0
           fi
           echo "### Executed Go tests" >> "$GITHUB_STEP_SUMMARY"
-          grep -E '^=== RUN   Test[^/]*$' go-test.log \
-            | sed -E 's/^=== RUN   //' | sort -u > executed-go-tests.txt
+          # `|| true`: grep exits 1 on no matches, which under pipefail would
+          # fail this reporting step. An empty membership list is a legitimate
+          # result to report, not an error.
+          { grep -E '^=== RUN   Test[^/]*$' go-test.log \
+            | sed -E 's/^=== RUN   //' | sort -u > executed-go-tests.txt; } || true
           echo "top-level Go tests executed: $(wc -l < executed-go-tests.txt)" \
             | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
