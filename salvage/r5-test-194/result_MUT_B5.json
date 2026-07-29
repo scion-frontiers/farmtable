@@ -1,0 +1,34 @@
+{
+  "TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose": {
+    "parent_failed": true,
+    "failed_subtests": [
+      "completed_to_cancelled",
+      "completed_to_duplicate",
+      "completed_to_wont_fix",
+      "duplicate_to_cancelled",
+      "wont_fix_to_cancelled",
+      "wont_fix_to_duplicate"
+    ],
+    "n_failed": 6
+  },
+  "TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose": {
+    "parent_failed": true,
+    "failed_subtests": [
+      "cancelled_plus_completed_ask_completed",
+      "cancelled_plus_duplicate_ask_duplicate",
+      "cancelled_plus_wont_fix_ask_wont_fix",
+      "duplicate_plus_completed_ask_completed",
+      "duplicate_plus_wont_fix_ask_wont_fix",
+      "wont_fix_plus_completed_ask_completed"
+    ],
+    "n_failed": 6
+  },
+  "TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5": {
+    "parent_failed": true,
+    "failed_subtests": [
+      "cancelled_plus_completed_ask_completed",
+      "duplicate_plus_wont_fix_ask_wont_fix"
+    ],
+    "n_failed": 2
+  }
+}

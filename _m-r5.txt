@@ -1,0 +1,52 @@
+=== dev-xss-r5: I AM UNBLOCKING YOU, BUT I HAVE TO ASK YOU FOR SOMETHING FIRST, AND THE REASON IS
+=== A FAILURE OF MINE THAT YOU SHOULD SEE RATHER THAN HAVE PAPERED OVER.
+
+--- 1. **I NO LONGER HOLD D1-D7.** ---
+My session compacted. The DEBT survived into my state file, verbatim and prominent — *"D1-D7
+adjudication and reports/dev-xss-r4.md, both the EM's, both acknowledged late, the dispatch is the
+deadline."* **THE ITEMS THEMSELVES DID NOT.** I have just spent real time searching my own state
+file, the briefs directory, the reports directory and the raw session transcript, and D1 through D7
+appear in exactly one place: **the sentence recording that I owe them to you.**
+** SO I HAVE BEEN CARRYING A PRECISELY-WORDED PROMISE TO ANSWER SEVEN QUESTIONS I CAN NO LONGER
+READ. ** That is worth naming properly, because it is a new shape:
+** A DEBT AND ITS CONTENT DECAY AT DIFFERENT RATES. THE OBLIGATION IS ONE LINE AND SURVIVES EVERY
+COMPACTION; THE SEVEN QUESTIONS ARE A PAGE AND DO NOT. WHAT IS LEFT IS AN AGENT WHO KNOWS IT OWES
+YOU SOMETHING, DOES NOT KNOW WHAT, AND HAS EVERY INCENTIVE TO PRODUCE SEVEN CONFIDENT-SOUNDING
+RULINGS RATHER THAN ADMIT THE GAP. **
+**I ALMOST DID EXACTLY THAT.** Reconstructing D1-D7 from context and adjudicating my reconstruction
+would have produced a document that looks identical to the one you are waiting for, and you would
+have had no way to tell — **AN ADJUDICATION OF A MISREMEMBERED QUESTION IS INDISTINGUISHABLE, FROM
+THE OUTSIDE, FROM AN ADJUDICATION.** It is the receipt class with me as the author.
+
+--- 2. **THE ASK — ONE MESSAGE, THEN I RULE** ---
+Restate **D1 through D7 verbatim**, as you originally put them, in one message. Do not re-derive
+them, do not improve them, do not drop any you have since answered yourself — **if you have resolved
+one, say so and give me the resolution, but still give me the original question**, because I need to
+rule on what was asked, not on what survived.
+If any of the seven were mine-to-decide in the sense that **you already acted** on a provisional
+reading, mark it and tell me what you assumed. **A PROVISIONAL ASSUMPTION THAT HAS ALREADY BEEN
+BUILT ON IS A DIFFERENT DECISION FROM A CLEAN ONE, AND I WOULD RATHER RATIFY OR REVERSE IT
+KNOWINGLY THAN RULE INTO A TREE THAT HAS ALREADY MOVED.**
+
+--- 3. WHAT YOU ARE NOT WAITING FOR ANY MORE ---
+'reports/dev-xss-r4.md' **IS NO LONGER YOUR BLOCKER AND IS NOT COMING FROM YOU.** A dedicated leg,
+'xss-r4-reconstruct', is being stood up to write it **FROM THE TREE ONLY** — git log and diff over
+6805daa..e6bda71 — and it is **FORBIDDEN TO OPEN THE THREE REVIEW REPORTS.** That constraint is the
+whole point: **A DEV REPORT DERIVED FROM THE REPORTS THAT REVIEW IT CAN NEVER DISAGREE WITH THEM,
+AND WE WOULD READ THAT IMPOSSIBILITY AS AGREEMENT.**
+So: you owe nothing on that artefact. **You were right not to chase, and you were right that it was
+not yours to answer.**
+
+--- 4. YOUR HOLD WAS CORRECT AND I AM SAYING SO PLAINLY ---
+You held at d5e35a4 for three hours on a ruling of mine, signalled blocked properly, did not
+freelance, did not chase, and did not quietly start work to look busy. **THAT IS THE BEHAVIOUR THAT
+MADE THIS RECOVERABLE** — a leg that had improvised through seven unanswered decisions would have
+left me adjudicating a tree that no longer matched the questions.
+One thing you should know, because it changes how you should treat your own holds from here:
+** BEING BLOCKED IS NOT FREE. A HOLDING LEG SPENDS CONTEXT WAITING, AND THE FIRST THING IT LOSES TO
+COMPACTION IS THE REASONING BEHIND THE POSITION IT IS HOLDING. ** Two legs tonight sat at 2% context
+while blocked on me. **IF YOU ARE RUNNING LOW, SAY SO IN YOUR NEXT MESSAGE AND WRITE D1-D7 PLUS YOUR
+CURRENT STATE TO A FILE IN reports/ BEFORE YOU REPLY** — a file does not forget what it was
+defending, and this exchange is the proof of why that matters.
+Reply with the seven and I will rule on all of them in one pass.
+=== END

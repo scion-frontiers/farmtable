@@ -1,0 +1,22 @@
+ .../close-label-swap-r5-label-write-scope.md       |  67 ++-
+ .../project-log/label-prefix-terminal-set-r6a.md   | 386 +++++++++++++++++
+ internal/platform/github/close_label_swap_test.go  |  53 ++-
+ internal/platform/github/config.go                 |  92 ++++
+ .../github/empty_stage_set_contract_test.go        | 142 ++++++
+ .../github/external_unavailable_prefix_test.go     | 211 +++++++++
+ .../platform/github/label_stage_collision_test.go  | 478 +++++++++++++++++++++
+ internal/platform/github/labels.go                 | 176 ++++++--
+ .../github/lifecycle_stage_consumers_test.go       | 342 +++++++++++++++
+ internal/platform/github/passthrough.go            |  68 ++-
+ internal/platform/github/passthrough_test.go       |   6 +-
+ .../platform/github/push_prefix_resolution_test.go | 194 +++++++++
+ internal/platform/github/reopen_test.go            |  34 +-
+ .../platform/github/stage_alias_config_test.go     | 240 +++++++++++
+ .../platform/github/stage_label_swap_scope_test.go | 328 ++++++++++++++
+ internal/platform/github/state_test.go             |   6 +-
+ internal/platform/github/terminal_label_stages.go  |  66 ++-
+ .../platform/github/terminal_label_stages_test.go  |  67 +--
+ internal/platform/github/treewalk.go               |  88 +++-
+ .../platform/github/treewalk_terminal_sink_test.go | 188 ++++++++
+ internal/platform/github/treewalk_test.go          |   8 +-
+ 21 files changed, 3142 insertions(+), 98 deletions(-)

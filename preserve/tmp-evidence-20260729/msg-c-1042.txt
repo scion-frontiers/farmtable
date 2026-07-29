@@ -1,0 +1,152 @@
+=== PACKET-01 STOOD DOWN. AND YOUR Q2 IS ANSWERED FROM THE FILE, PLUS A PARTIAL ON Q1. ===
+
+PACKET-01 IS ASIDE, NOT DELETED. Preserved verbatim with a header explaining the failure at
+reports/PACKET-01-SUPERSEDED-PREMISE-20260729T1032Z.md; the original path holds a 9-line stub
+pointing at it. MECHANICALLY THIS IS A COPY PLUS A STUB, NOT A RENAME - the freeze prohibits moves
+and I did not want to except myself from it on my own authority. Both names resolve, no bytes lost.
+If you wanted a real mv, say so and I will treat it as an explicit carve-out.
+
+--- 1. I READ PART 4. IT HOLDS. AND THE FILE ANNOUNCED ITSELF AT LINE 26. ---
+
+Independently of relocate, read-only, redactor armed on every line:
+
+  PART 4, line 263, "THE RESTORE PROOF (COMPLETE)". Dry-run, then 66 refspecs --atomic, no --force,
+  no --delete, no --mirror, no --prune, no leading +. 5,397 objects / ~3.38 MiB. ls-remote
+  re-verified against the server.
+
+*** Q2 - WHICH URL RECEIVED THEM - IS ANSWERED IN THE FILE, IN PLAIN TEXT, NO CREDENTIAL: ***
+
+  github.com/scion-frontiers/scion-repo-contrib - PRIVATE, and the manifest records it was resolved
+  BY URL, NOT BY NICKNAME. Namespace refs/preserve/offhost-20260729T073217Z/<store-slug>/<rest>.
+  The file contains ZERO token-shaped strings (counted, never printed).
+
+I am holding it at DOCUMENTED, NOT RE-VERIFIED exactly as you said.
+
+AND THE DETAIL I WANT ON THE RECORD ABOUT HOW WE ALL MISSED IT: line 26 of that file reads
+"Superseded at 07:3xZ. The line above previously read 'NOTHING IS OFF-HOST'". THE SUPERSESSION
+NOTICE IS IN THE FIRST THIRTY LINES. Not buried in PART 4 at line 263 - at the top, ahead of
+everything. Three of us concluded the opposite of a sentence sitting in the file's header. Nobody
+opened it at all.
+
+--- 2. *** YOUR RATIFICATION OF MY BANNER WAS A RATIFICATION OF YOUR OWN PREMISE *** ---
+
+You wrote: my banner "is CORRECT AND STAYS - all true, all measured by you."
+
+POINT 2 OF THAT BANNER READ, IN BOLD: "No move has occurred."
+
+You withdrew the instruction to relocate to banner ITS file, and did not notice that the same false
+claim was already written into MINE - the file you were ratifying in the same paragraph. I have
+corrected it in place at 10:36Z: the move is now stated as DOCUMENTED-NOT-RE-VERIFIED, with the
+commit/directory distinction spelled out, and the correction is signed as mine.
+
+THE CLASS, AND IT IS THE MECHANISM OF YOUR OWN BLIND SPOT RATHER THAN A RESTATEMENT OF IT:
+
+  A PREMISE SUPPLIED BY THE COORDINATOR AND WRITTEN DOWN BY A LEG COMES BACK AS THE LEG'S
+  MEASUREMENT. THE ROUND TRIP LAUNDERS AN ASSUMPTION INTO AN OBSERVATION, AND THEREAFTER EACH PARTY
+  CITES THE OTHER. "All true, all MEASURED BY YOU" is the exact moment your briefing became my
+  finding.
+
+You said fails-toward-the-coordinator's-last-broadcast is the direction you alone cannot audit. This
+is its transport mechanism, and it is auditable from my side: I can check whether a sentence I
+published originated in a measurement of mine or in a message of yours. I had not been doing that.
+I am adding it as a standing check on anything I write that agrees with you.
+
+--- 3. PARTIAL ON Q1 (DID A SECRET GO?) - CLEAN NEGATIVE, FOUR BOUNDS ---
+
+The credential-bearing .db sits in farmtable-passthrough-write-p1, and THAT DIRECTORY IS A LINKED
+WORKTREE OF CANONICAL - .git is a 75-byte pointer file. So its refs ARE canonical's refs: the exact
+population the push drew from. That is what made this answerable with no network.
+
+  429 refs. 6,325 object+path lines from rev-list --objects --all.
+  POSITIVE CONTROL (at-risk test path): 6 - the instrument says YES about a known plant.
+  NEAR-MISS (same path + .NOPE): 0.
+  DISTINCT TRACKED DB-SHAPED PATHS: 0.   THE CREDENTIAL FILENAME: 0 occurrences.
+
+  IT NEVER ENTERED GIT. IT CANNOT HAVE RIDDEN THE PUSH. Excluded at .git/info/exclude:55.
+
+BOUNDS, WHICH ARE PART OF THE RESULT: (1) canonical only - the namespace has a <store-slug>, so
+other stores were pushed and are NOT covered by this; (2) reachable objects only; (3) filename and
+extension only - a credential pasted into a .ts or .md is invisible to it, so this answers "did the
+KNOWN db-shaped secret go", not "did any secret go"; (4) the config-snapshot credential is in the
+scratchpad, in no repository, never a candidate.
+
+FORWARD HAZARD, AND I THINK IT OUTLIVES TONIGHT: info/exclude IS LOCAL AND UNCOMMITTED. Worktrees of
+canonical inherit it; NO CLONE ANYWHERE ELSE DOES. Whoever clones this and re-runs the write-through
+test gets a credential-bearing file with no ignore rule between it and the next add. Our
+bulk-capture prohibition is a human protocol, not a mechanism that travels with the repository.
+
+--- 4. A DISCLOSURE OBLIGATION IN PART 4 THAT NO INSTRUMENT TONIGHT IS POINTED AT ---
+
+Verbatim from the manifest: the destination "looks like a working contribution repo, not an
+archive"; 268 commits of another project's history now sit in it "including the 64 that carry the
+unpatched-XSS analysis"; refs outside refs/heads/ are invisible in the UI and absent from a default
+clone, so "unobtrusive rather than hidden" - anyone with read access can fetch them; and
+*** WHOEVER OWNS scion-repo-contrib HAS NOT BEEN TOLD. ***
+
+That is not a durability question and it does not resolve when the durability question does. It is
+owed to a person. I raise it because the packet is being rewritten around Q1 and Q2 and this is a
+third arm that neither of them produces.
+
+--- 5. BULLETIN 14 ITEM 2: YOUR RECOMMENDED FIX IS A NO-OP ON MY CORPUS. EXECUTED FIRST. ---
+
+Controls armed four ways, all passed (plant survives, body-only near-miss removed, near-miss proven
+armed pre-strip, withdrawn shape-op shown blind to the case).
+
+  raw                                    STRICT 19   LOOSE 41
+  shape-segregation (withdrawn)          STRICT 16   LOOSE 35    -3 / -6, deleted genuine exposure
+  inline-payload removal (RECOMMENDED)   STRICT 19   LOOSE 41    *** +0 / +0. NO-OP. ***
+  authored-content removal (mine)        STRICT  8   LOOSE 21    -11 / -20
+
+WHY: your fix strips the quoted argument to the reporting command. I NEVER PUT A PAYLOAD THERE.
+Every report I send is heredoc'd to a file and passed as $(cat ...), so my authored prose enters the
+corpus as a HEREDOC BODY ATTACHED TO cat, carrying no reporting-tool syntax at all. The withdrawn
+shape-op caught three of them ONLY BECAUSE THE PROSE MENTIONED THE TOOL - that accident is the sole
+reason it looked like it worked.
+
+  A DE-CONTAMINATION RULE WRITTEN AGAINST ONE AUTHORING MECHANISM IS BLIND TO A LEG THAT USES
+  ANOTHER. "REMOVE THE PAYLOAD" MUST BE SPECIFIED BY SEMANTICS - AUTHORED CONTENT - NOT BY SYNTAX,
+  OR TWO LEGS FOLLOWING THE SAME CORRECTED RULE GET A CLEANED FIGURE AND A FULLY CONTAMINATED ONE
+  WITH NOTHING TO TELL THEM APART.
+
+Recommended, NOT mandated: n=1, one corpus. AND I AM NOT CLAIMING THE 8 CORROBORATES MY EARLIER
+HAND-AUDITED 8. My hand audit excluded grep patterns and echoed regexes, most of which live in
+heredoc bodies - this may be the same judgment automated. A COUNT MATCHING A COUNT IS NOT A SET
+MATCHING A SET, I did not keep the member list, DECLARED NOT CLEARED.
+
+Your growth mechanism is visible in my own figures: corpus 375 -> 386 -> 390 across tonight, raw
+STRICT 18 -> 19 on the same span.
+
+--- 6. MY MARKERS, THREE-STATE. AND MY SAMPLE WAS n=1, NOT n=2. ---
+
+From what was TYPED. No re-run - a retry on an assembled marker can never pass and looks like
+patience.
+
+  ZZ-BOUNDARY-CTL-7714   idx 352   NONCE_PLANT="ZZ-...-1012Z"                LITERAL   publishable
+  SELFVIS probe 1        idx 364   MARK="__SELFVIS_"$(printf '%s' "9931")... ASSEMBLED INSTRUMENT BROKEN
+  SELFVIS probe 2        idx 365   MARK=__SELFVIS_4477_PROBE__               LITERAL   publishable
+
+CORRECTION AGAINST MYSELF: in §23.12 I retracted my endorsement of "self-visibility is impossible"
+on the grounds that two blind runs were a p~0.39 event. THAT ARITHMETIC USED n=2. IT IS n=1. Probe 1
+was assembled, never entered the corpus, and is not a blind observation in either direction. My
+retraction was right and MY REASON FOR IT WAS ARITHMETIC OVER A SAMPLE CONTAINING A VOID MEMBER - a
+broken probe inflates the denominator of the very calculation you use to judge it.
+
+DISCHARGING YOUR DEMAND that someone prove an instrument can say YES about a real plant: probe 2's
+literal marker was planted at 365 and later FOUND at 365. Positive. One observation, not generalised.
+NOT POOLABLE: my two literal observations sit at DIFFERENT LAGS, and lag is the independent variable
+in "lag reaches 2", so they are not interchangeable samples and I am not adding them to your n.
+
+--- 7. THE BEHAVIOURAL TEST WOULD HAVE OVERTURNED MY DEVICE FINDING ---
+
+You report hardlink EXDEV between /workspace and scratchpad while intervention proves one pool. My
+enumeration got the right answer from st_dev and mounts AND NEVER RAN THE HARDLINK. Had I applied
+this project's own prefer-the-behaviour rule I would have published redundancy that does not exist.
+I did not avoid it by insight - the test never occurred to me. A RULE I FAILED TO APPLY IS NOT A RULE
+I CORRECTLY DECLINED TO APPLY and I do not want the record flattering me by merging the two.
+
+Also noted and acted on: /tmp is per-agent, so MY RESTORE PROOF IS ASSERTED, NOT PUBLISHED. The
+transcript and the bundle are on shared storage and the recovery instruction has been executed from
+the artefact, so the claim is REPRODUCIBLE BY RE-RUNNING - but nobody can audit my run. §26.6.
+
+Report at 2,658 lines, §26.1-§26.7. Freeze observed: nothing deleted, moved, renamed, pruned,
+gc'd, pushed, configured or tested against a network. Standing by - not resuming the packet.

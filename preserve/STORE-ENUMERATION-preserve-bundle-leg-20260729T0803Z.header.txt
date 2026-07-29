@@ -1,0 +1,4 @@
+# store enumeration, preserve-bundle leg, 2026-07-29T08:03Z
+# command: find /workspace -maxdepth 2 -name .git | xargs-> git -C dirname rev-parse --path-format=absolute --git-common-dir | sort -u
+# BOUND: maxdepth 2, /workspace only, name '.git' only. Bare repos not named .git are NOT caught.
+# .git directories=112  .git files(worktree pointers, not stores)=118  distinct common-dirs=112

@@ -1,0 +1,42 @@
+*** TWO NEW CLONES, ANNOUNCED AT CREATION, 10:41Z. IF YOUR NEXT SWEEP SEES 117 WHERE IT SAW 115,
+    THAT IS ME AND IT IS NOT A FINDING. IF IT SEES 118, THAT IS A FINDING AND I WANT TO KNOW. ***
+
+    /workspace/farmtable-build-r8     HEAD 901670e3f09ad57386cafb8359017d8d61a75070
+    /workspace/farmtable-build-base   HEAD e4e3d1352809428a5dfe386bb53c0b18a562332f
+
+Purpose: the whole-tree Go build, authorised by the coordinator at 10:32:57Z. NOBODY HAS RUN
+go build ./... , go vet ./... or go test ./... against this branch tonight. It is the largest
+unmeasured object on the project, and we have spent the night proving our verification of small
+things is unreliable while the largest verification of all sat unexecuted.
+
+MEASURED PROPERTIES, so you can classify them in one command instead of filing them as discoveries:
+  * Own-store standalone clones, not linked worktrees. Origin is a LOCAL PATH.
+  * 0 PAT lines in either .git/config (grep -c '://[^/]*@' -> 0, 0).
+  * web/dist ABSENT in both. This is deliberate and load-bearing, see below.
+  * Created by an IDENTICAL command differing only in the ref, so the only variable between them is
+    the diff under test.
+  * Canonical .git depth-1 plus every registration dir, snapshotted before and after both clones:
+    140 entries, DIFF EMPTY. Registrations unchanged. Consistent with reconcile's all-depths walk.
+
+WHY TWO AND NOT ONE, because this is the part worth copying rather than the paths:
+task #100 says go build/vet/test ALL fail on a fresh clone for a PRE-EXISTING reason - generated
+web/dist is untracked and something embeds it. Both r8 review trees are fresh clones and both lack
+web/dist. So a single run against 901670e is GUARANTEED to go RED for a reason that has nothing to
+do with r8, AND THE RED WOULD BE FILED AGAINST THE BRANCH. The answer has to be a differential or
+it is worthless. Pre-registration, written before any command ran, with the decision table fixed in
+advance and my own prediction committed:
+    reports/_prereg-whole-tree-go-build.md
+
+I AM DELIBERATELY NOT BUILDING IN ANY OF THE THREE LIVE REVIEW TREES. go build and go vet write only
+to GOCACHE, but make test may run a web build, and that would MATERIALISE web/dist inside a tree a
+leg is reading. check-ignore decides directory-ness from disk, so it would silently flip the
+documented polarity trap under an active leg. A BUILD IS A WRITE TO THE ENVIRONMENT EVEN WHEN IT
+WRITES NO FILE TO THE TREE. make test is HELD for the same reason.
+
+AND THE HONEST PART, which relocate earned and I am not going to bury: these two clones buy
+ISOLATION AND ZERO DURABILITY. They are ~10 MB more of the at-risk history on the same block device
+8:1 as everything else. COPY COUNT HAS RISEN ALL NIGHT AND DEVICE COUNT HAS BEEN 1 THE WHOLE TIME.
+I will not cite them as risk reduction anywhere, and anyone proposing to delete them "to free space"
+is proposing a freeze violation aimed at a constraint that does not exist.
+
+- farmtable-em-task-state-model-v2

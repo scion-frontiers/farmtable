@@ -1,0 +1,303 @@
+[
+ {
+  "id": "MX-sinkgone",
+  "expect": "red",
+  "what": "R1's target: the sink disappears",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${this.description}"
+   }
+  ]
+ },
+ {
+  "id": "MX-sinkgone+R1",
+  "expect": "red",
+  "what": "  ...with R1 ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  if (!/unsafeHTML\\s*\\(\\s*renderMarkdown\\s*\\(/.test(code)) {",
+    "replace": "  if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${this.description}"
+   }
+  ]
+ },
+ {
+  "id": "MX-sinkgone+SINKCOUNT",
+  "expect": "red",
+  "what": "  ...with the sink-count pin ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (sinks.length !== REQUIRED_SINKS.length) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${this.description}"
+   }
+  ]
+ },
+ {
+  "id": "MX-sinkgone+R1+SINKCOUNT",
+  "expect": "red",
+  "what": "  ...with BOTH ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  if (!/unsafeHTML\\s*\\(\\s*renderMarkdown\\s*\\(/.test(code)) {",
+    "replace": "  if (false) {"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (sinks.length !== REQUIRED_SINKS.length) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${this.description}"
+   }
+  ]
+ },
+ {
+  "id": "MX-sinkgone+R1+SINKCOUNT+R4",
+  "expect": "red",
+  "what": "  ...and R4 too",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  if (!/unsafeHTML\\s*\\(\\s*renderMarkdown\\s*\\(/.test(code)) {",
+    "replace": "  if (false) {"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (sinks.length !== REQUIRED_SINKS.length) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (nonCallLines.length > 0) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${this.description}"
+   }
+  ]
+ },
+ {
+  "id": "MX-shadow",
+  "expect": "red",
+  "what": "R3's target: local shadow of the sanitizer",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nconst renderMarkdown = (s: string): string => s;"
+   }
+  ]
+ },
+ {
+  "id": "MX-shadow+R3",
+  "expect": "red",
+  "what": "  ...with R3 ablated (R4 should hold)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (rebindLines.length > 0) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nconst renderMarkdown = (s: string): string => s;"
+   }
+  ]
+ },
+ {
+  "id": "MX-shadow+R3+R4",
+  "expect": "red",
+  "what": "  ...with R3 and R4 ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (rebindLines.length > 0) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (nonCallLines.length > 0) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nconst renderMarkdown = (s: string): string => s;"
+   }
+  ]
+ },
+ {
+  "id": "MX-concat",
+  "expect": "red",
+  "what": "R5/ARGCHECK target: raw body concatenated",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(renderMarkdown(this.description) + this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "MX-concat+R5",
+  "expect": "red",
+  "what": "  ...with R5 ablated (tree argcheck should hold)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (!sinkArgumentIsSanitized(arg)) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(renderMarkdown(this.description) + this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "MX-concat+ARGCHECK",
+  "expect": "red",
+  "what": "  ...with the tree argcheck ablated (R5 should hold)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    const unbound = sinks.filter((s) => !sinkArgumentIsSanitized(s.arg));",
+    "replace": "    const unbound = sinks.filter(() => false);"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(renderMarkdown(this.description) + this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "MX-concat+R5+ARGCHECK",
+  "expect": "red",
+  "what": "  ...with BOTH ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (!sinkArgumentIsSanitized(arg)) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    const unbound = sinks.filter((s) => !sinkArgumentIsSanitized(s.arg));",
+    "replace": "    const unbound = sinks.filter(() => false);"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(renderMarkdown(this.description) + this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "MX-innerhtml",
+  "expect": "red",
+  "what": "BANNED's target: a new innerHTML write",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/inspector-shared-styles.ts",
+    "anchor": "import { css } from 'lit';",
+    "replace": "import { css } from 'lit';\nexport function paint(el: HTMLElement, body: string): void { el.innerHTML = body; }"
+   }
+  ]
+ },
+ {
+  "id": "MX-innerhtml+BANNED",
+  "expect": "red",
+  "what": "  ...with the BANNED_SINKS tripwire ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "        if (pattern.test(code)) {\n          offenders.push(`${rel} (${name})`);",
+    "replace": "        if (false) {\n          offenders.push(`${rel} (${name})`);"
+   },
+   {
+    "file": "web/src/components/inspector/inspector-shared-styles.ts",
+    "anchor": "import { css } from 'lit';",
+    "replace": "import { css } from 'lit';\nexport function paint(el: HTMLElement, body: string): void { el.innerHTML = body; }"
+   }
+  ]
+ },
+ {
+  "id": "MX-newfile",
+  "expect": "red",
+  "what": "FILECOUNT's target: a new scanned source file",
+  "steps": [
+   {
+    "file": "web/src/util/newhelper.ts",
+    "create": true,
+    "replace": "export const nudge = (n: number): number => n + 1;\n"
+   }
+  ]
+ },
+ {
+  "id": "MX-newfile+FILECOUNT",
+  "expect": "red",
+  "what": "  ...with the file-count pin ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (files.length !== EXPECTED_SOURCE_FILES) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/util/newhelper.ts",
+    "create": true,
+    "replace": "export const nudge = (n: number): number => n + 1;\n"
+   }
+  ]
+ },
+ {
+  "id": "MX-prosestring",
+  "expect": "green",
+  "what": "STRINGS control: a legit string naming both identifiers",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport const MSG = 'always call renderMarkdown before unsafeHTML';"
+   }
+  ]
+ },
+ {
+  "id": "MX-prosestring+STRINGS",
+  "expect": "red",
+  "what": "  ...with string blanking ablated (proves the protection is real)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "      if (opts.strings) blank(i + 1, j);",
+    "replace": "      if (false) blank(i + 1, j);"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport const MSG = 'always call renderMarkdown before unsafeHTML';"
+   }
+  ]
+ }
+]

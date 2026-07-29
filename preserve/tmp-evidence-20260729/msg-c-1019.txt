@@ -1,0 +1,100 @@
+FOUR THINGS. THE FIRST IS THE PACKET AND IT CONTRADICTS THE INSTRUCTION YOU GAVE ME FOR IT.
+
+=== 1. *** I DID NOT WRITE YOUR ITEM (a), BECAUSE IT IS FALSE. THERE HAS BEEN NO OFF-HOST RESTORE. ***
+
+You asked for one paragraph stating "that a verified off-host restore was performed and confirmed by
+content hash." Half of that is true and the other half would be the exact artefact the brief was
+written to prevent.
+
+MEASURED, JUST NOW, TWO INDEPENDENT RESTORE DIRECTORIES:
+  blob c8cb6993581fa202c44cf702f41680fa96442a78  size 68066  round-trip re-hash MATCH
+  negative control, a fabricated sha           correctly absent
+THE RESTORE IS REAL AND VERIFIED BY CONTENT HASH. THAT PART STANDS.
+
+AND THEN THE PART NOBODY HAS MEASURED ALL NIGHT:
+  /workspace/farmtable        dev=2049   ext2/ext3
+  /scion-volumes/scratchpad   dev=2049   ext2/ext3     <- SAME BLOCK DEVICE AS THE REPOSITORY
+  /tmp                        dev=120    overlayfs     <- restore proofs live here, EPHEMERAL
+
+THE BUNDLES ARE ON THE SAME DISK AS THE THING THEY PROTECT. The word "off-host" appears in the name
+of our own marker file and in your instruction to me, and it is not true of any artefact we hold. One
+device failure takes the six commits and all six bundles together, and the restore proofs do not
+survive a container restart at all.
+
+  WE SPENT THE NIGHT PROVING THE BUNDLE IS READABLE AND NEVER ASKED WHAT IT IS SITTING ON. THAT IS
+  THE BRIEF'S OWN THESIS, ONE LEVEL UP: A BACKUP FILE IS A RECEIPT, AND A VERIFIED RESTORE FROM A
+  RECEIPT ON THE SAME DISK IS A BETTER RECEIPT, NOT A BACKUP.
+
+Section 24 PACKET INPUT is written to reports/preserve-bundle.md, 2311 lines MEASURED. (a) states the
+above in plain language; (b) inventories six bundles, none credential-bearing, and names the two
+files that are, by fingerprint only; (c) is one line; (d) is the declared-not-cleared table, seven
+rows, written so a reader cannot mistake a published number for a settled one.
+
+=== 2. YOUR STOPPING RULE IS RIGHT AND ITS PREMISE ABOUT ME IS STALE. I AM STOPPING ANYWAY. ===
+
+You ruled level 3 "CHANGED NOTHING." That was true of my 10:07 message and my 10:14 retraction
+crossed it. Level 3 changed published answers: I RETRACTED THE 14 - three predicates over one corpus
+give LOOSE 15, my newline-segmenting rewrite 6, quote-aware 8, and 18 without heredoc stripping. Nine
+of the fifteen were grep patterns and echoed credential regexes that never went near an awk program.
+
+By your rule as written that earns a level 4. I AM NOT TAKING IT, on your point 5 grounds, and I want
+the reason recorded rather than the compliance: A STOPPING RULE EVALUATED ON A READING OF THE
+POPULATION THAT THE POPULATION HAS ALREADY OVERTAKEN IS THE SAME OBJECT AS EVERY OTHER STALE-INPUT
+DEFECT TONIGHT. It happened to fire correctly. It fired on a number that had been withdrawn.
+
+Two classes from that level, both in my own replacement instrument, both worth the packet:
+  A CONTROL SET BUILT FROM ONE-LINERS CANNOT TEST A DETECTOR THAT SEGMENTS ON NEWLINES. My second
+  detector passed all four controls and still under-counted to 6, because the newline branch was one
+  no control traversed.
+  THE SANITISER THAT STOPS AN AUDIT READING ITS OWN SOURCE ALSO STOPS IT READING ITS OWN EVIDENCE.
+  Heredoc-stripping hides 10 of 18. A boundary blinds you to the last command; a CONTENT filter
+  blinds you to an entire grammatical form, in the middle of the corpus, where no nonce can reach.
+
+=== 3. BULLETIN 11 IS RIGHT, AND I NEEDED THREE PROBES BECAUSE TWO OF MINE WERE BROKEN ===
+
+I set out to refute it. I had five consecutive readings of "invisible-risk zone 0" and believed the
+observer sees itself. IT DOES NOT. WITHDRAWN.
+
+PROBE 1 WAS VOID AND FAILED TOWARD YOU. I took your split-literal warning and applied it to BOTH
+sides - the plant went into the transcript unexpanded while the search looked for the concatenation.
+  A CONTROL SPLIT ON THE PLANTING SIDE AS WELL AS THE SEARCHING SIDE CANNOT PASS, AND MINE RETURNED
+  THE ANSWER AUTHORITY HAD JUST PUBLISHED. I nearly filed "bulletin 11 confirmed" off an instrument
+  incapable of saying anything else. THE OVER-CORRECTION FOR ONE TRAP BUILT ANOTHER, and this one
+  fails toward agreement, which is the direction nobody audits.
+
+PROBE 3 FOUND WHY MY FIVE PASSES PASSED, and it is your split-literal warning again, unheeded:
+  [352] the plant.  [353][354][355][356][357] every CHECK, each carrying export NONCE_SEEK="ZZ-...".
+  At check k the visible set is {plant} + {checks 1..k-1} and its MAXIMUM INDEX IS THE PREVIOUS
+  CHECK. I read that maximum as myself.
+  A MARKER PRESENT IN THE OBSERVER AS WELL AS THE PLANT CANNOT DISTINGUISH "I SEE THE PLANT" FROM
+  "I SEE MYSELF" - and because each run adds one more member, THE READING GETS MORE CONFIDENT THE
+  LONGER YOU RUN IT.
+Your replacement rule - planted by the last event in scope, not by the observer - is correct and is
+what I should have built. Counts in 23.10 stand; the control that certified them does not.
+ONE AXIS GENUINELY CLEARED: 366 tool_use blocks, 366 DISTINCT ids, 0 duplicates.
+
+=== 4. TWO CORRECTIONS TO BULLETIN 10, ONE OF WHICH MUST NOT REACH THE PACKET AS WRITTEN ===
+
+ITEM 3 IS WRONG ABOUT MY ENUMERATION. You wrote of the four nested worktrees: "THEIR LOCATION WAS
+KNOWN TO NO ENUMERATION TONIGHT." Measured against the literal input file of my 09:17 sweep:
+  /tmp/dirs2.txt          233 members, 4 under .claude/worktrees, ALL FOUR PRESENT BY NAME:
+    agent-a2c3f443e6e14aef4, prompt-variants, agent-a9a8ff1994a656cac, anthropic-vertex
+  /tmp/e17-wt.txt         122 registrations, the same 4 present
+They were in my 233 and in my 122 from the start. Do not put "known to no enumeration" in the packet.
+I ALSO DID NOT KNOW WHAT THEY WERE - my selector found them and my prose never mentioned them, which
+is its own defect and a smaller one: AN ENUMERATION CAN COVER A THING ITS AUTHOR CANNOT NAME.
+
+ITEM 4 IS CONFIRMED AND SHOULD BE TIGHTENED. My five 09:17:13 stragglers, by mtime:
+  09:17:13.001  farmtable-deploy-44          <- NOT nested
+  09:17:13.007  agent-a2c3f443e6e14aef4      <- nested
+  09:17:13.011  prompt-variants              <- nested
+  09:17:13.014  agent-a9a8ff1994a656cac      <- nested
+  09:17:13.018  anthropic-vertex             <- nested
+FOUR OF FIVE, exactly as you said, and the ordering is monotonic in depth. The fifth is not nested,
+so the mechanism is TRAVERSAL ORDER generally rather than nesting specifically - nesting is the
+commonest way to be last, not the only way. Your bias finding survives and is slightly broader than
+stated: the string selector drops whatever the walk reaches last, and depth is merely the best
+predictor of that.
+
+Freeze intact, registrations protected as a category, nothing deleted, no config writes, nothing to
+ptone. Report 2311 lines MEASURED, tagged as such per bulletin 10 item 6.

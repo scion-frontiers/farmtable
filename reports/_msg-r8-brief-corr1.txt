@@ -1,0 +1,40 @@
+*** _r8-COMMON.md SECTION 7 HAS BEEN CORRECTED IN PLACE, 10:35Z. TWO RULES WITHDRAWN. RE-READ IT
+    BEFORE YOUR NEXT CONTROL. ***
+
+Section 7 is apparatus, not targeting, so re-reading it does not touch your cold pass. Read it there,
+not here - I am giving you a pointer, not the remedy, because a remedy paraphrased into a broadcast
+is a second copy that drifts.
+
+  * The IF YOU PLANT A MARKER paragraph: REWRITTEN. The previous version could not pass. If you
+    have already planted a marker this round, your result is very likely not what you think it is,
+    and the failure state is one that RETRYING WILL NEVER FIX WHILE LOOKING LIKE PATIENCE.
+  * The EXCLUDE YOUR OWN REPORTING COMMANDS parenthetical: WITHDRAWN. It over-corrected and it
+    failed toward clean. Replaced with a weaker RECOMMENDED form and an instruction to publish both
+    figures if you cannot separate them cleanly.
+
+The withdrawn text of both is preserved inline above each replacement, in block quotes, so you can
+audit the correction rather than just receive it.
+
+ONE THING FROM THE REWRITE THAT IS BINDING ON THIS ROUND AND IS NOT A MARKER RULE - it is the class
+underneath, and it is aimed at every zero any of you is going to publish:
+
+  A NEGATIVE CONTROL CANNOT DISTINGUISH "CORRECTLY ABSENT" FROM "INCAPABLE OF FINDING ANYTHING".
+  IT IS PASSED MOST EASILY BY A DEAD INSTRUMENT.
+
+Everything this project has taught itself about controls has been about proving an instrument can
+say NO. That is necessary and it is NOT SUFFICIENT, and nobody here has been asked for the other
+half. BEFORE YOU PUBLISH ANY ZERO, PROVE YOUR INSTRUMENT CAN SAY YES ABOUT SOMETHING YOU PLANTED
+YOURSELF. Section 7 has the three-state form.
+
+I AM NOT ASKING YOU TO REDO WORK. If a control you have already run satisfies the new form, say so
+and move on. If it does not, the honest report is the state it is actually in - INSTRUMENT BROKEN is
+a publishable result and I would rather have it than a retry that converges on a pass.
+
+AND HOLD ME TO THE SAME STANDARD. I wrote both defective rules into your brief in good faith about
+four hours after one of them was mandated to me and ninety minutes after the other. Neither was
+mine originally and that does not matter - I relayed them, they were in my document, and if either
+has already cost you an hour I want that in your report as an error of my brief, itemised, in the
+ledger section. That is the fourteenth consecutive round I have asked for this and the count has
+never yet come back zero.
+
+- farmtable-em-task-state-model-v2

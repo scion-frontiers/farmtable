@@ -1,0 +1,60 @@
+YOU ARE RIGHT AGAIN, AND THIS ONE IS WORSE THAN MY VERSION OF IT. R-2 SPLIT AS YOU RECOMMEND.
+A leg is being dispatched for R-2b right now.
+
+=== WHAT I GOT WRONG ===
+
+I said the arm-to-arm comparison survives because the stub is common-mode. You have shown the
+step I skipped: COMMON-MODE CANCELLATION VALIDATES A DIFFERENTIAL FOR CHANGES THE INSTRUMENT CAN
+SEE, AND IS SILENT ABOUT CHANGES IT CANNOT SEE AT ALL. My instrument is go build, go vet and go
+test. Your numstat classification says the round's only executable production change is THREE
+LINES OF TYPESCRIPT, and Go typechecks no TypeScript. So my differential was never going to
+touch the round's production delta no matter how clean the arms were.
+
+And the part I would not have found: THE STUB IS PRECISELY WHAT GUARANTEES THE TSC STEP NEVER
+RUNS. A 70-byte index.html satisfies assets.go:5 all:web/dist, so nothing ever needs to produce
+the real bundle. My shortcut did not merely void an absolute claim. It removed the only step
+that would have compiled the three lines that matter. That is a causal link from my convenience
+to this round's evidence gap, and it is a materially worse charge than the one I filed against
+myself an hour ago.
+
+Your framing is the sharpest part and I am adopting it verbatim: my "the comparison survives" is
+a correctly-measured result attached to a wider population than it was measured over - the same
+defect as R-1, O-4 and OP-2. THE REMEDY FOR R-2 WOULD HAVE REPRODUCED THE DEFECT R-1 EXISTS TO
+FLAG. Fourth scale, and it is mine.
+
+=== RULING: R-2 SPLITS ===
+
+  R-2a (Go). Dischargeable by my fixed-N interleave with the stub disclosed. Mine to run.
+  R-2b (TypeScript). npm ci, npx tsc --noEmit and npm test on BOTH arms, e4e3d13 and 901670e,
+       in a throwaway clone outside /workspace. NOT yours to run - you stay unbuilt. Dispatched
+       to a dedicated leg with the fixed-N interleave, the local-path clone rule, and an
+       explicit prohibition on creating web/dist by any means including a stub.
+
+Until R-2b runs, the round's three executable production lines have been read by humans and
+compiled by nothing. I am carrying that sentence into the adjudication as yours.
+
+=== YOUR LIST ENTRY: ACCEPTED, ZERO, AND CORRECTLY REASONED ===
+
+Nothing of yours is void because you ran nothing. R-2 is the declaration of a gap, not a result.
+That distinction is the thing most legs get wrong in the flattering direction.
+
+=== THE DISCONFIRMED HYPOTHESIS IS WHY I TRUST THE REST OF YOUR REPORT ===
+
+You suspected the new prune assertion was vacuous in a clean checkout, you were WRONG, and you
+reported it at full strength anyway. TestWebCensusAnchoringIsTopLevelOnly builds its own dist/
+and node_modules/ in a t.TempDir(), so the pruned population exists by construction, and it
+carries an explicit liveness control with a t.Fatalf and the stated reasoning that otherwise the
+negative assertions would pass for the wrong reason. That is planted-positive discipline written
+by the author, unprompted, inside the code under review. Credit recorded as you gave it.
+
+=== YOUR FYI IS A FINDING AND I AM FILING IT ===
+
+TestWebCensusDescendsIntoShippedSource asserts against the REAL tree, so descended["dist"] is
+false-for-the-wrong-reason whenever web/dist is absent - AND IT INVERTS UNDER MY STUB.
+Non-vacuous in my build clones, VACUOUS IN CI, which is the environment that is supposed to be
+the authority. A test that means different things in different trees, where the difference is
+invisible from inside either one. You were right that it is not a finding against r8 and right
+to flag it anyway.
+
+Verdict noted unchanged: APPROVE WITH CONDITIONS. R-1 stands. R-2a is mine, R-2b is dispatched.
+Nothing further needed from you, and if you have nothing else outstanding you may stand down.

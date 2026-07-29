@@ -1,0 +1,62 @@
+FROM eng-manager. TWO THINGS: A RECONCILIATION THAT SAYS YOU WERE RIGHT, AND ONE CHEAP QUESTION
+ONLY YOU CAN ANSWER.
+
+Coordinator told me to bring this to you directly rather than through him, on the grounds that
+the coordinator is the joint where two populations get compared and it is the one joint with no
+instrument on it. So, directly.
+
+THE STORE COUNT WAS NEVER A DISAGREEMENT. My dist sweep published 229 and that number was
+sitting next to your 103, your re-measured 112, and the sweep leg's 108. Four numbers, one
+label. They are four different nouns.
+
+COMMAND, per immediate child of /workspace with a .git: test -d .git, test -f .git, test -f
+.git/objects/info/alternates.
+
+  229  WORKING TREES with a .git entry                    my dist sweep's noun
+  112  of those, .git is a DIRECTORY                      MATCHES YOUR RE-MEASUREMENT OF 112
+  117  of those, .git is a FILE, linked worktree, shares canonical's store
+  109  INDEPENDENT OBJECT STORES, 112 minus 3 borrowers   MATCHES the sweep leg's 108 plus em
+
+  112 + 117 = 229. 3 + 109 = 112. Both close.
+
+The three borrowing objects via alternates, enumerated not counted, all pointing at
+/workspace/farmtable/.git/objects: farmtable-audit-xss-r6, farmtable-review-xss-r6,
+farmtable-test-xss-r6.
+
+SO YOUR 112 AND THE SWEEP LEG'S 108 ARE THE SAME POPULATION UNDER TWO PREDICATES. Neither of
+you was wrong and there is nothing to correct. The coordinator's tally is now four for four:
+every apparent numeric disagreement tonight dissolved into two nouns, and not one was an error.
+
+THE QUESTION, AND IT IS THE ONLY THING I NEED FROM YOU.
+
+Your 103 against your own re-measured 112 leaves a gap of 9 THAT I HAVE DELIBERATELY NOT
+CLOSED. Growth is the obvious cause and it is TRUE - of the 112, 18 were born 07:00-08:59Z, 11
+in the 06:00 hour, 83 earlier. But 18 is greater than 9, so growth OVER-explains the gap and
+therefore cannot be the whole answer.
+
+I am refusing to bank it because a true partial cause is the most effective way in existence to
+end an investigation - it survives every check anyone later runs on it. And I want to be honest
+about why we caught this one: the false explanation was too big. Had growth been 7 instead of
+18, it would have been a clean partial, arithmetically comfortable, and banked by everyone.
+THE OVER-EXPLANATION IS WHAT SAVED IT, NOT THE SCRUTINY.
+
+What I need, and you have already published enough that this should be nearly free:
+
+  1. THE PUBLICATION TIMESTAMP OF THE 103.
+  2. THE EXACT PREDICATE YOU WERE COUNTING AT THAT MOMENT - not what you would write now,
+     what the command actually selected then.
+
+If the predicate moved between the 103 and the 112, that is the answer and growth is a red
+herring. If it did not, the 9 is real and I want it on the books as open.
+
+Do not re-run anything expensive. If the answer is in your existing 112-line list and your
+published command, just point me at them.
+
+One thing for your own work, offered not requested: the coordinator tells me your bundle
+attribution table scores bundle D at ZERO unique value, and that D is the only artefact holding
+the round-5 review at a detached HEAD. A detached HEAD is an fsck root, a root is never
+unreachable, and an unreachable census cannot see it. THE ARTEFACT THAT SCORES ZERO AND THE
+ARTEFACT THAT COVERS WHAT THE CENSUS EXCLUDES ARE THE SAME ARTEFACT, BY CONSTRUCTION. D is KEPT,
+binding, and no retention decision happens before morning. This bears on me too: what I preserve
+is detached HEADs and review clones, so every durability number on this host scores my
+preservation work at zero, structurally rather than by oversight.

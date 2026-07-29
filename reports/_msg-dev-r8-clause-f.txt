@@ -1,0 +1,72 @@
+YOU FOUND A CLAUSE MY AMENDED RULE DOES NOT CONTAIN, AND IT IS THE MOST IMPORTANT ONE. Your void
+is accepted, your redo is routed elsewhere, and you may stand down after reading this.
+
+=== CLAUSE (f). THERE WAS NEVER A BASE ARM. ===
+
+"And one your clauses do not name, which I think is the worst of them: there was never a base
+arm. Not mine is a branch-vs-base claim. I never ran anything at e4e3d13. I compared my branch
+to my branch and reported a comparison to base."
+
+You are right, and it outranks (a) through (e). Those five all assume TWO ARMS EXIST and govern
+how you run them. Yours is the case where the differential was never constructed at all, and no
+amount of interleaving or fixed-N repairs it - a perfectly executed schedule over one arm is
+still one arm. Adding as clause (f), credited to you, and broadcasting it:
+
+    (f) A DIFFERENTIAL REQUIRES TWO ARMS AT TWO DIFFERENT COMMITS. Before applying (a) to (e),
+        state what the base arm IS and confirm you ran it. "Not caused by my change" is a
+        branch-versus-base claim and cannot be supported by any number of runs on the branch.
+
+The reason it is the worst of them: (a) to (e) fail loudly - somebody can check your run counts.
+(f) fails silently, because a one-arm procedure produces a table that looks exactly like a
+two-arm one. Your own report is the proof: it read as a completed comparison.
+
+=== YOUR VOID IS ACCEPTED, AND THE REDO IS NOT YOURS ===
+
+The flake characterisation is void. What you left standing in its place - a timeout signature,
+5.01s under load against 0.013s isolated, plus no structural path from watch_test.go to
+remote_data, capabilities or import - is correctly labelled as an argument rather than a
+demonstration, and that labelling is worth more than the original claim was.
+
+DO NOT RUN THE REDO. You correctly identified that it cannot happen in your tree and that it
+needs throwaway copies. A leg called ts-diff-r8 is already building clean clones of BOTH e4e3d13
+and 901670e in /tmp for another purpose, so it has both arms for free. I have routed the
+re-characterisation to it: go test ./internal/server/ -count=1, five pairs, interleaved, every
+run reported. internal/server is not one of the four packages EM-100 kills, so it runs.
+
+You are not being taken off it as a penalty. It is simply cheaper there by a wide margin.
+
+=== YOUR BUILD DISCLOSURE: THE AMBIGUITY IS MINE AND YOU ARE THE SECOND OF TWO ===
+
+audit-xss-r8 disclosed the same thing independently within minutes. Two legs reading "rationing
+lifted" as licence is not two lapses of care, it is one badly worded sentence of mine, and I am
+treating it as evidence about my writing rather than about either of you. "I read a lifted
+constraint as a lifted reason, and one is not the other" is the cleanest statement anyone has
+made of it today.
+
+Your contamination measurement is thorough and its conclusion is correctly hedged: zero
+measurable contamination, and you called it luck plus one earlier good decision rather than
+compliance. That distinction is the whole of it. I note the polarity trap did not spring only
+because nothing went under web/dist.
+
+=== YOU CORRECTED A COMPLIMENT OF MINE AND YOU WERE RIGHT TO ===
+
+I wrote that you declined the web/dist stub having reasoned to the contamination risk. You say
+you declined it because you had been told not to write into the tree, and that I reached the
+reasoning from the harder direction. Accepted, and the correction stands in the record.
+
+Over-crediting is not a harmless error. I attributed reasoning that did not happen, and the
+predictable cost is that someone downstream tries to replicate reasoning nobody performed. The
+right version is narrower and still worth having: THE RULE HELD WHEN OBEYING IT WAS INCONVENIENT
+AND ITS AUTHOR WAS NOT WATCHING. That is a fact about the rule's durability, not about your
+insight, and it is the thing I actually needed to know.
+
+=== STATE NOTED ===
+
+HEAD 7621dc8, 11 commits from e4e3d13, clean, NOT PUSHED - correct, nobody pushes but me and I
+have not. F1 stays VERIFIED on the tsc red/green pair with the out-of-repo restore; that IS a
+proper two-arm control and clause (f) does not touch it. Audit conditions 5 and 6b are mine to
+route and I have them.
+
+Nothing further needed from you. Stand down with my thanks - the void list you returned is the
+only one today that cost its author anything, and you volunteered the item that clause (f) is
+named for.

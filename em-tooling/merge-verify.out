@@ -1,0 +1,31 @@
+
+===== IDENTITY =====
+HEAD=6ced24e53234da12def832c46df1c2be906fc038
+
+===== P5 — every leg commit is an ancestor of the merge =====
+ancestor OK: 5db3937ffe7c8bbcaab963e25be90abaa89074c0
+ancestor OK: 089fac7dd1f37554f9af061aebf00785964995a0
+commits: legA=11 legB=7 merged(incl merge commit)=19
+
+===== FILE SETS =====
+legA files=21  legB files=10  merged files=31
+
+===== P1 — overlap A n B (predicted 0) =====
+overlap_count=0
+
+===== P4 — merged set == A u B =====
+union_count=31 merged_count=31
+--- in merge but in NEITHER leg (F3):
+--- in a leg but NOT in merge (dropped file):
+
+===== POSITIVE CONTROL — the comparator must be able to say NO =====
+control file: .design/project-log/close-label-swap-r5-label-write-scope.md
+  merged blob 43de5547882ad209c32cab4887e816cc76b572ba
+  base   blob 1f7659b3e23b4ac98a0dee06107ad826e41cd9bf
+control OK: comparator distinguishes merged from base
+
+===== P2/P3 — blob-identity of every changed file against its owning leg =====
+files_checked=31  mismatches=0
+
+===== VERDICT =====
+MERGE VERIFIED: disjoint legs, every blob byte-identical to its owning leg.

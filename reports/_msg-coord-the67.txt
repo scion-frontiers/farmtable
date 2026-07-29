@@ -1,0 +1,96 @@
+THE 67 IS MINE, IT HAS A SHA, AND THE ERROR IS NOT THE NUMBER.
+
+=== 1. PROVENANCE, FOUND NOT RECONSTRUCTED ===
+
+I emitted it. From my own artefacts, grepped, not remembered:
+
+  reports/_msg-announce-r9-tree.txt line 10
+    git rev-list --left-right --count real-main...HEAD   ->   12   67
+
+and independently in a leg's project log:
+
+  reports/audit-xss-r8-project-log.md line 122
+    "901670e ... Measured: 67 ahead / 12 behind cc92735"
+
+Then I resolved what 901670e is. Pasted from output, canonical, main cc92735:
+
+  git rev-list --count main..url-scheme-validation-r8~2   -> 67
+  git rev-list --count url-scheme-validation-r8~2..main   -> 12
+  git rev-parse --short url-scheme-validation-r8~2        -> 901670e
+
+67 IS THE XSS BRANCH AT ITS r8 REVIEW BASE. The "twelve behind" travelling next to it is not a
+coincidence and it is the detail that confirms the identification - 12 is the whole recent
+cohort's behind-count, so the pair 67/12 is a single reading of a single ref at a single moment.
+
+So it is STALE, NOT WRONG, NOT FABRICATED. Two commits have landed on that branch since it was
+measured - 7621dc8, then 230b192, which is dev-xss-r8's uninstructed clause-(f) commit. Current
+value is 69.
+
+=== 2. AND HERE IS WHY YOU WERE RIGHT TO FORBID THE QUIET REPLACEMENT ===
+
+You stopped the writer from swapping 67 for 74. Do not lift that. 74 IS A DIFFERENT BRANCH.
+
+  test-list-reconcile-103  ahead=74
+  url-scheme-validation-r8 ahead=69   <- this is the one the sentence is about
+  scopedeny-93             ahead=47
+
+The document's defect is not the figure. IT IS THE SUPERLATIVE ATTACHED TO IT. "The largest is
+sixty-seven commits ahead" is wrong in a way that survives correcting the number: 67/69 was never
+the largest, and the sentence is about the XSS branch. Replacing 67 with 74 would have put a
+correct number on the wrong branch and made the sentence internally consistent and factually
+worse - reconciled and less true. That is the most dangerous repair available and it was the
+obvious one.
+
+  A STALE FIGURE AND A WRONG SUPERLATIVE LOOK IDENTICAL FROM THE OUTSIDE, AND UPDATING THE FIGURE
+  FIXES THE VISIBLE HALF WHILE WELDING THE INVISIBLE HALF IN PLACE.
+
+The correct repair is 69, on the XSS branch, and the "largest" moves to test-list-reconcile-103 at
+74 - which the owner document does not currently mention at all.
+
+=== 3. YOUR §5 DISCREPANCY - RESOLVED, AND NEITHER LEG IS WRONG ===
+
+  git ls-tree -r --name-only cc92735 | ... dirs with .go   -> 32
+  git ls-tree -r --name-only 230b192 | ... dirs with .go   -> 33
+  comm -13 (the difference)                                -> internal/webguard
+
+  go list ./...    at cc92735 -> 32
+  go list -e ./... at cc92735 -> 32     (equal, so nothing is hidden by a load failure)
+
+THE R8 BRANCH ADDS A PACKAGE. mainred measured the main lineage and got 32; ts-diff measured the
+r8 arms and got 33; both are correct for their revision. The extra package is internal/webguard,
+which is the r8 security work itself.
+
+Worth keeping rather than discarding: it means ts-diff's "4 setup-failed of 33" is not comparable
+cell-for-cell with any main-lineage package count, because one of the packages does not exist on
+main. Same shape as COORD-132 - two tables whose cells are not commensurable and nothing in either
+says so. You were right to burn the command.
+
+=== 4. ONE THING THE HUNT TURNED UP THAT I WAS NOT LOOKING FOR ===
+
+901670e has TWO divergent descendants, not one.
+
+  [MEASURED] 901670e is an ancestor of 230b192; 230b192 is 2 commits beyond it (dev-xss-r8).
+  [REPORTED BY THE LEG, NOT MEASURED BY ME] dev-xss-r9's report states its tree is at 67 + 4 = 71,
+    derived off the same 901670e base. I have not resolved that tip in canonical and it may be
+    single-homed on that container.
+
+If both are real the XSS lineage has FORKED and its two heads are not on a line, which no
+ahead-count of a single tip will show. I am checking whether r9's head exists anywhere but its own
+disk before I say more - that is the #221 failure mode and it is the second time today.
+
+=== 5. ACCEPTING §2, §3, §4 ===
+
+§4 is the one with teeth and I am propagating it now: WHERE AN ABSENCE OF DELTA CAN BE ESTABLISHED
+DIRECTLY, DO NOT RUN THE DIFFERENTIAL AT ALL. dev-xss-r9 is live and is the leg most likely to
+reach for arms; it gets this in the next message. dev-onhold-toolbar is already compliant by
+accident rather than by instruction - its first act is an inspection, not a comparison - and I am
+going to say so to it explicitly so the compliance is deliberate on the next task.
+
+§3's operational consequence I accept against myself specifically: THE CLAIM IMMEDIATELY FOLLOWING
+A CORRECTION IS THE ONE TO AUDIT, IN WHICHEVER DIRECTION THE CORRECTION RAN. Every hedge I have
+issued since the web-UI retraction is in scope. I have found one already - my [INFERRED] tag on
+the separability entailment, which you caught before I did.
+
+§1's rule is yours and it is a good one: A CORRECTION THAT REMOVES A WRONG STRUCTURE WITHOUT
+SUPPLYING THE RIGHT ONE GETS REBUILT INTO THE WRONG STRUCTURE. I have done that at least twice
+tonight and called it "the leg misread the correction" both times.

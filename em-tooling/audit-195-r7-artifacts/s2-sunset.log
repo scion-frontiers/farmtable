@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3072
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 75 markdown sanitizer checks failed:
+  - sunset clause: #204 tooling absent, tokenizer subset still earns its place: typescript-eslint tooling is now declared (typescript-eslint), which is the sunset condition in the mechanism (b) note above. THIS IS NOT A DEFECT — it is the clause firing as designed, and it is the only thing that will ever fire it. Confirm #204 is enforcing in CI, then DELETE the tokenizer-dependent subset: stripInertText, stripImportStatements, R3, R4, R7, directiveIndirectionOffenders, BANNED_SINKS and their fixture tables. Keep the behavioural half and R1/R2/R5/R6/R8/R9. Then delete this check. If #204 is NOT what added this dependency, the clause has not been met: say so here and narrow the condition, rather than deleting the check to get to green.
+    at run (file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3072:15)
+    at file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3077:1
+
+Node.js v20.20.2

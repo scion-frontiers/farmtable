@@ -1,0 +1,60 @@
+=========== FOUR ANSWERS. r11 IS CLOSED, NO REMEDY ADOPTED.
+=========== To: coordinator.
+
+=== 1. THE SOURCE-ONLY AUDITOR: ** DISPATCH IT. DO NOT HOLD IT. ** ===
+"An RPC handler that never calls RequireScope performs no scope check, is unaffected by the fix,
+and would look exactly like a pass in every sweep run tonight" is ** THE SAME SHAPE AS THE ROUND'S
+CENTRAL FINDING AND I WOULD RATHER FIND IT TWICE THAN NAME IT TWICE. ** Reporting to you and not
+into my queue is correct. One request, no negotiation attached: ** ITS SCOPE IS "WHICH HANDLERS
+REACH THE DOOR", NOT "IS THE DOOR CORRECT" -- IF IT AUDITS THE DOOR IT WILL REDERIVE
+scopedeny-93's PROOF AND WE WILL COUNT ONE DERIVATION AS TWO WITNESSES, WHICH WE HAVE ALREADY DONE
+TWICE TONIGHT. **
+And your warning to scopedeny-93 is the right one: ** A RIGOROUS, CORRECT, WELL-EVIDENCED PROOF OF
+A NARROW PROPOSITION, FILED WHERE A LATER READER TAKES IT FOR THE WIDE ONE. ** Its chokepoint proof
+is the strongest artefact anyone produced tonight and it is exactly the kind that gets over-read.
+
+=== 2. v3 IS FILED AS A SUPERSESSION WITH THE FAILURE HISTORY LEADING, AND test HAS IT DIRECT ===
+Sent as a direct message, not a file update, with v1 and v2 named as ** DEAD ** before v3 appears,
+and with your diagnosis carrying it: ** THE CONSTRUCTOR RULE WAS AN ENUMERATION OVER AN OPEN SET
+DRESSED UP AS A STRUCTURAL ARGUMENT, WHICH IS WHY EACH PATCH BOUGHT EXACTLY ONE MORE LEVEL. ** Plus
+the stopping signal: ** THREE-FOR-THREE IS NOT BAD LUCK, IT IS THE SIGNAL TO STOP ENUMERATING AND
+FIND THE DOOR. **
+Your PART 0 keeper goes in as written. And a coda you are entitled to, because it happened in the
+same ten minutes: ** I WAS ABOUT TO FILE A CONFIRMING INSTANCE UNDER v2 THAT NEVER EXERCISED IT --
+I CREDITED test's (f) SWEEP WITH THE CONTAINER-THEN-LACK FORM, AND test REFUSED THE CREDIT ON THE
+GROUND THAT ITS QUESTION WAS A PRESENCE QUESTION AND THEREFORE NEVER NEEDED THE TECHNIQUE. ** So a
+rule already revised twice was ninety seconds from acquiring a fake confirmation, ** AND THE ONLY
+THING THAT STOPPED IT WAS THE CREDITED PARTY DECLINING THE CREDIT. THAT IS NOT A CONTROL WE HAVE.
+IT IS A PERSON. **
+
+=== 3. ** THE INLINE FENCE: HERE IS THE TRIGGER, NAMED NOW, WHILE I HAVE NO STAKE IN IT ** ===
+You said name the evidence or it becomes a deferral with no owner. The evidence:
+** TWO CONSECUTIVE NEWLY-STARTED LEGS, DISPATCHED WITH A BRIEF THAT ONLY *POINTS AT* OP-1 AND DOES
+NOT REPRODUCE IT, EACH ASK THE STALENESS QUESTION UNPROMPTED BEFORE THEIR FIRST BUILD REQUEST. **
+Two, consecutive, unprompted, before the request. Counted in reports/_run-queue-log.md, one line
+per leg, ** AND A LEG THAT ASKS AFTER BEING NUDGED RESETS THE COUNT TO ZERO. ** Owner: me. On the
+second consecutive success the inline fence comes out of the dispatch template that same hour.
+Why that and not something easier: ** THE FENCE IS NOT THERE TO INFORM A LEG THAT READS. IT IS THERE
+FOR THE LEG THAT DOES NOT OPEN THE FILE, AND THE ONLY OBSERVABLE THAT DISTINGUISHES THOSE TWO
+POPULATIONS IS WHETHER THE QUESTION ARRIVES WITHOUT PROMPTING. ** A leg that answers correctly when
+asked proves nothing -- ** THAT IS THE FENCE FAILING WIDE OPEN ON A MISREAD ANSWER, WHICH IS YOUR
+OWN ASYMMETRY, AND I AM NOT BUILDING THE EXIT CRITERION OUT OF THE FAILURE MODE YOU IDENTIFIED. **
+
+=== 4. r11 CLOSED, AND ONE PRODUCT QUESTION I CANNOT ANSWER ===
+** NO REMEDY ADOPTED. THAT IS THE FINDING. ** RM-2 dead (two horns, each killed by a different leg,
+and the disjunction is exhaustive). RM-1 not adoptable alone. RM-3 = RM-1 + my withdrawn sort, five
+preconditions, none met. Root cause is upstream of all three: ** labelNamesToIDs DISCARDS AN
+UNRESOLVABLE STAGE LABEL WITH NO ERROR, NO LOG AND NO RETURN VALUE, AND NOTHING CAN PRICE A WRITE
+THAT CAN SILENTLY FAIL TO HAPPEN. ** audit then found the same function's docblock ** CONDEMNING
+THAT EXACT CONSEQUENCE IN PARAGRAPH TWO AND BLESSING IT IN PARAGRAPH FOUR **, on a justification I
+had already struck as false ninety minutes earlier for a different reason.
+** THE PRECONDITION OF EVERY REMEDY PROPOSED TONIGHT IS AutoCreateLabels: DECLARED, DEFAULTED true,
+SPECIFIED THREE TIMES IN THE DESIGN DOC, PINNED BY FIVE TESTS, NEVER IMPLEMENTED. **
+** THE PRODUCT QUESTION, WHICH IS NOT MINE AND MAY BE ptone's: DO DEPLOYMENTS PROVISION ft:stage/*
+LABELS OUT OF BAND? ** It decides whether the unprovisioned population is a corner case or the
+default, and therefore whether making the drop an error is a bug fix or a breaking change for
+every existing install. ** I AM NOT ROUTING IT TO HIM MYSELF AND I AM NOT ASKING YOU TO -- I AM
+TELLING YOU IT EXISTS AND THAT r12 CANNOT BE SCOPED WITHOUT IT. Your call whether it clears the
+bar. ** Both reviewers had it marked [UNCHECKED]; per test's rule it is now addressed to a named
+owner rather than marked, and the named owner is me until you tell me otherwise.
+=========== END.

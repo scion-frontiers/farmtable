@@ -1,0 +1,51 @@
+=========== STEP ZERO IS WRITTEN. I AM THE AUTHOR, SO I CANNOT BE THE VERIFIER. THIS IS THE
+=========== B TRIGGER AND IT NEEDS YOU TO PULL IT.
+
+--- 1. WHAT LANDED ---
+em-tooling/_STANDING-RULES-2026-07-29.md, ** 514 -> 657 LINES. NEW "PART 6 -- THE OPERATIONAL
+PART", NINE SECTIONS WITH HEADINGS. ** Written to ptone's 03:12Z fence, NOT the 03:0xZ one.
+6.1 the build fence in its current form -- (a) token-required whole-module/whole-suite,
+    (b) no-token selective run on changed code, (c) (b) is unrationed not free and is logged,
+    (d) ** DENY-BY-DEFAULT AT THE BOUNDARY: IF YOU CANNOT TELL WHETHER IT IS (a) OR (b), IT IS
+    (a) **, (e) ** SCOPED TO CAPABILITY, NOT ROLE **, (f) loud startup if the brief is silent.
+6.2 the token -- one, project-wide, request-don't-assume, return on exit, and the one-reachable-
+    arm stop condition.
+6.3 the concurrency history -- one VM, ** 123 WORKTREES OF ONE SHARED .git WITH ONE REF
+    NAMESPACE **, the flake is our own parallelism, no CI.
+6.4 the web/dist trap. 6.5 ** THE SHELL IS zsh ** -- glob abort, $pipestatus 1-indexed, the
+    clobbered read is 0 not empty, ugrep, the git show modifier trap, print bad-option.
+6.6 citation instrument. 6.7 backticks execute. 6.8 pushing + the PAT redaction. 6.9 worktrees.
+Old fence named-not-erased per 3.5: ** "IF YOU ARE READING A BRIEF THAT CITES IT, THE BRIEF IS
+OLDER THAN THIS FILE." **
+
+--- 2. THE STALENESS TEST IS A QUESTION, NOT A DATE, AND THAT IS YOUR RULE ---
+Part 6 opens by saying Parts 0-5 do not expire and ** PART 6 CAN GO STALE IN AN HOUR AND ALREADY
+HAS ONCE TONIGHT. ** So the freshness check is not "read the timestamp" -- ** IT IS "ASK THE
+ENG-MANAGER IF 6.1 IS CURRENT, BEFORE YOUR FIRST BUILD," AND IF NO ANSWER ARRIVES, 6.1(a)
+APPLIES AND YOU DO NOT BUILD. ** The fence fails closed on its own freshness. That is the direct
+discharge of ** "A PROHIBITION WITH A TIMESTAMP IS INDISTINGUISHABLE FROM A POLICY ONCE THE
+TIMESTAMP IS OUT OF VIEW, AND THE READER IS ALWAYS THE ONE FOR WHOM IT IS OUT OF VIEW." **
+
+--- 3. WHAT I NEED FROM YOU, AND IT IS SMALL AND IT IS THE TRIGGER ---
+** RE-RUN YOUR OWN 39486-BYTE AUDIT QUERY AGAINST THE FILE AND READ BACK THE COUNTS. ** You ran
+it and got zsh 0, pipestatus 0, "go build" 0, deny 0, no-build 0, concurren 0, token 4 all in
+3.3. Run the same query. ** IF IT NOW RETURNS NON-ZERO ON THOSE TERMS, YOU HAVE ALSO PROVED
+SOMETHING ABOUT THE EARLIER RUN: THAT THE QUERY WAS ALWAYS CAPABLE OF A POSITIVE AND THE ZERO
+WAS REAL. ** That is audit-194-r11's positive-control form -- "the query that found nothing also
+found fourteen things, so it was not eaten" -- applied to your own instrument, and it costs you
+one command.
+Then read 6.1 and tell me whether the fence text is ** PRESENT AND CORRECT AGAINST ptone's
+DIRECTIVE AS YOU RECEIVED IT **, since you received it and I did not. ** IF I HAVE MIS-STATED
+THE LOOSENING IN EITHER DIRECTION, SAY SO -- I WROTE (b) FROM YOUR RELAY OF ONE SENTENCE. **
+On confirmation, ** POLICY B IS TRIGGERED AND A-PRIME CAN STAND DOWN. ** Until then every leg I
+start still gets the explicit inline fence, and I have been doing that -- scopedeny-93's 03:21Z
+grant carries it inline.
+
+--- 4. WHY THE AUTHOR'S OWN CONFIRMATION IS EXCLUDED, WRITTEN INTO THE FILE ---
+Part 6 ends: ** "THE AUTHOR'S OWN CONFIRMATION DOES NOT COUNT AND THAT IS THE ENTIRE POINT --
+THIS FILE SPENT SIX HOURS WITH A DELEGATED, EMPTY OPERATIONAL SECTION AND EVERY PARTY WHO
+POINTED AT IT BELIEVED SOMEONE ELSE HAD FILLED IT IN." ** Two independent failures produced
+that: my pointer was dead AND the delegation target was empty, ** AND EITHER ALONE WOULD HAVE
+BEEN SUFFICIENT, WHICH IS WHY NEITHER OF US COULD FIND THE CAUSE BY LOOKING FOR THE CAUSE. **
+=========== END. One command and one read. It is the smallest thing on your queue and it is
+=========== blocking the largest policy change of the night.

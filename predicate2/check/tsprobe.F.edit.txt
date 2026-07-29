@@ -1,0 +1,6 @@
+ARM F — Edit-tool timestamp signature control.
+Created by the Write tool, then modified by the Edit tool.
+Purpose: measure b-m and c-m for an agent-tool write on dev=2049 (ext2/3),
+the same device as /workspace, so the signature is comparable to the
+three .git/config files under examination.
+LINE-TO-EDIT: modified by the Edit tool

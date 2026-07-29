@@ -1,0 +1,13 @@
+--- FAIL: TestWebCensusAnchoringIsTopLevelOnly (0.00s)
+    remotedata_consumers_test.go:638: the census did NOT find the consumer in src/build/hidden.ts.
+        That directory sits at depth >= 1 and its basename is in skipDirs, so this is the basename-pruning defect: skipDirs is being matched against the directory NAME instead of against the path relative to the root. In the real tree that silently hides web/src/build, web/src/util/dist and web/src/components/coverage, all of which are compiled by tsconfig.json and SHIPPED. A consumer there is invisible to both arms of TestWebRemoteDataConsumersAreDeclared, which cannot fail on a file the walk never opens. Anchor the match to the path relative to the root.
+    remotedata_consumers_test.go:650: the census did NOT descend into src/build; same defect as above, observed on the descent set rather than on the mentions.
+    remotedata_consumers_test.go:638: the census did NOT find the consumer in src/util/dist/hidden.ts.
+        That directory sits at depth >= 1 and its basename is in skipDirs, so this is the basename-pruning defect: skipDirs is being matched against the directory NAME instead of against the path relative to the root. In the real tree that silently hides web/src/build, web/src/util/dist and web/src/components/coverage, all of which are compiled by tsconfig.json and SHIPPED. A consumer there is invisible to both arms of TestWebRemoteDataConsumersAreDeclared, which cannot fail on a file the walk never opens. Anchor the match to the path relative to the root.
+    remotedata_consumers_test.go:650: the census did NOT descend into src/util/dist; same defect as above, observed on the descent set rather than on the mentions.
+    remotedata_consumers_test.go:638: the census did NOT find the consumer in src/components/coverage/hidden.ts.
+        That directory sits at depth >= 1 and its basename is in skipDirs, so this is the basename-pruning defect: skipDirs is being matched against the directory NAME instead of against the path relative to the root. In the real tree that silently hides web/src/build, web/src/util/dist and web/src/components/coverage, all of which are compiled by tsconfig.json and SHIPPED. A consumer there is invisible to both arms of TestWebRemoteDataConsumersAreDeclared, which cannot fail on a file the walk never opens. Anchor the match to the path relative to the root.
+    remotedata_consumers_test.go:650: the census did NOT descend into src/components/coverage; same defect as above, observed on the descent set rather than on the mentions.
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/webguard	0.003s
+FAIL

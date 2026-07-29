@@ -1,0 +1,2391 @@
+diff --git a/.design/project-log/label-write-scope-r6-server-store.md b/.design/project-log/label-write-scope-r6-server-store.md
+new file mode 100644
+index 0000000..83e3972
+--- /dev/null
++++ b/.design/project-log/label-write-scope-r6-server-store.md
+@@ -0,0 +1,345 @@
++# #194 round 6, leg B — `internal/server` and `internal/store`
++
++Branch `label-write-scope-r6b`, based on `ea8ac39`. Six commits: `ca39dff`,
++`a2cced0`, `1a73f3b`, `644eed9`, `b2d4e75`, `b523e6b`. Not pushed.
++
++Leg A owned `internal/platform/github/` in a separate clone. This leg never
++edited that directory.
++
++---
++
++## The seam, written as a mechanism
++
++**This is the most transferable thing in this round, and it will not survive in
++the commit messages.** It is a live defect, adjudicated to r7, pinned by
++`TestUpdateTask_TwoLabelsOneStageCollapseIsUngatedToday`.
++
++### What happens
++
++1. `terminal_label_stages.go:120` resolves a label list into a stage set:
++   `present := make(map[task.Stage]bool)`. The map is **keyed by stage**. Two
++   distinct labels that resolve to the same stage collapse to one element, and
++   the mapper has now discarded which label produced it.
++2. `server.go` gates label writes with
++   `if !store.SameStageSet(before, after) { ...charge every (from, to) pair... }`.
++3. Remove one of two labels naming the same stage. The set before is `{X}`. The
++   set after is `{X}`. `SameStageSet` is true.
++4. The gate short-circuits. Nothing is charged. The label is destroyed on a bare
++   `task:write` token.
++5. The task is still terminal and still unavailable, so no reader can tell it
++   happened. An audit trail loses a label and nothing observable moves.
++
++### It is reachable on stock defaults
++
++I went looking for a custom `cfg.Stages` alias to construct two-labels-one-stage
++and did not need one. `stripForMatch` (`labels.go:542`) strips the push prefix
++and *then* strips a leading `stage/`, so `ft:stage/completed` and `ft:completed`
++both key to `"completed"`. Both clear the prefix gate in `authorizationStage`.
++Anyone who can write labels can build this input.
++
++### Fixing it needs both halves at once
++
++Deleting the `SameStageSet` short-circuit is **not sufficient**: the stager is
++structurally incapable of reporting the change, because it has already thrown
++away the label identity. A correct fix needs a delta over **labels**, not over
++resolved stages — a contract change spanning `internal/server` and
++`internal/platform/github`.
++
++### Why neither leg could have found it alone
++
++This is the part worth recording.
++
++- **Leg B had the gate and not the mapper.** I could see the short-circuit and
++  reason that "equal sets means free write," but not that distinct labels could
++  produce equal sets.
++- **Leg A had the mapper and not the gate.** They could see the collapse but had
++  no reason to care: a mapper is *supposed* to map many labels onto few stages.
++- **Leg A's four-case walk was correct reasoning that could not reach it.** They
++  answered "complementary, no seam" from a walk whose implicit premise was
++  one-label-per-stage. That premise held in all four cases they tried. It is not
++  a property of the mechanism — **their fixture could not build
++  two-labels-one-stage**, so the counterexample was not among the cases
++  available to be walked.
++
++This is the **eighth instance** of the fixture-cannot-express-the-input class on
++this branch, and the first that lived in the **boundary between two domains**
++rather than inside either one.
++
++### The structural lesson
++
++A defect that requires both halves at once is invisible to any review structure
++that **partitions by domain and only checks the union after merge**. Each leg
++certifies its own half correctly. The union of two correct certifications is not
++a certification of the whole. Splitting work by directory is efficient and it
++systematically cannot see this defect class; something has to look across the
++boundary on purpose, on the combined tree, with a fixture able to build inputs
++neither domain owns.
++
++---
++
++## What was fixed
++
++| Item | Result |
++|---|---|
++| **B3** — `identity_test.go:250` panic | Fixed. Five tests discarded `store.CreateUser` errors then dereferenced the returned `*ent.User`. |
++| **B2** — unreachable duplicate fallbacks | Collapsed. `store.go:133/:152` were duplicates of `multistore.go:250/:263`; one copy of the rule remains, with tripwire tests rather than a comment. |
++| **B4** — `LabelDeltaLifecycleStages` fail-open | Fail-closed. An empty stage set from either side is now `ErrEmptyLifecycleStageSet`, not a silent `(current, current)`. **Interface method signatures deliberately unchanged** so leg A's implementation compiles untouched. |
++| **B5** — compile-time assertion | Half done here (`MultiStore`). The `GitHubPassThroughStore` assertion belongs in leg A's file and was routed to them. |
++| **B1** — `CreateTask` unguarded write path | Fixed. Creation-time labels now route through the same lifecycle-delta authorization the update path uses. |
++| **B6** — the swap that never swapped | Fixed and measured. See below. |
++| **B7** — selective salvage | 4 of 11 kept. See below. |
++| *(unbriefed)* seam characterization | Added. See above. |
++
++### B3 evidence
++
++Positive control before the claim:
++
++| | fault absent | fault present |
++|---|---|---|
++| pre-fix | 215 results | **111 results + 1 panic** (104 tests never ran) |
++| post-fix | 215 results | 215 results, 0 panics |
++
++Confirms test review T-4's consequence claim (auditor measured 215 vs 115; I
++measured 215 vs 111).
++
++### B1 evidence
++
++Positive control obtained by removing the gate. All four terminal cells fail
++with, e.g.:
++
++```
++CreateTask(labels=[ft:stage/completed]) was ALLOWED on a bare task:write token
++while CreateTask(stage=completed) required "task:close"
++```
++
++The allow-side controls stay green under the same mutation, so the denial is a
++scope gate and not a blanket refusal. The terminal test is a **differential**
++over all four terminal stages comparing the stage door against the label door,
++not against literals.
++
++### B6 evidence, including the part that did not go the way I wanted
++
++`TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose` never swapped —
++every cell called `addLabels` alone, so the issue ended up carrying *both*
++terminal labels. Renamed to `AddingASecondTerminalLabelRequiresClose` and kept;
++the swap it was named for is now a separate test using a new `swapLabels`
++fixture helper that issues one `UpdateTask` carrying both `add_labels` and
++`remove_labels`.
++
++**Finding: the real swap behaves identically to the add-only approximation.**
++All 12 ordered pairs denied on `task:write`, all 12 permitted by `task:close`,
++denial scope matching cell for cell. That is the intended behaviour, but it was
++a prediction until the input existed.
++
++**Disclosed: the 12-cell matrix is a weak control.** My first draft doc comment
++claimed a gate leaning on the free `from == to` pair "would pass the add-only
++test and fail here." I had not demonstrated that. Three mutations of the
++`UpdateTask` gate, whole package run against each:
++
++| mutation | add-only | swap matrix | reopen |
++|---|---|---|---|
++| M1 gate removed entirely | RED | RED | RED |
++| M2 gate ignores `remove_labels` | green | **GREEN** | RED |
++| M4 gate always charges `task:close` | green | **GREEN** | RED |
++
++The matrix detects only M1, which the add-only test already detected. **As a
++detector it adds nothing.** What it does add: the named input is executable, the
++behaviour is measured, and it can assert the remove side actually removed —
++add-only leaves both labels on by construction and structurally cannot see a
++remove that no-ops. The doc comment now says this in those words instead of the
++claim I could not support.
++
++`SingleRequestReopenSwapCostsAccept` (terminal → accepted in one request must
++cost `task:accept`, not `task:close`) is the sensitive one, catching M2 and M4.
++It is **not** the sole detector of either — 3–4 pre-existing remove-side tests
++catch them too — so the honest claim is that it covers the single-request shape
++of a hole already covered in its two-request shape.
++
++**A void run, disclosed:** M4's first attempt exited 1 from `declared and not
++used: from` — a build failure, not a red test. Re-run with a compiling mutation.
++
++### B7 evidence
++
++Read `audit_r5_probe_test.go` (710 lines, 11 tests) in full. Kept 4, dropped 7,
++reasons recorded in-file so a later round can overturn the judgement without
++re-reading commit `0075526`.
++
++Kept: the positive control (extended with a `remove_labels` allow-arm the kept
++removal matrix needs); `Charge1_RemovalDirection` (remove X from `[X,Y]` — every
++other removal test in the package uses a single-terminal issue where removal
++always empties the set); `Charge4_FromEqualsToReachability` (measures what gets
++*written* when nobody is refused, rather than who is refused);
++`Charge4_REV9PremiseAdversarially` (proves the mock close counter can reach 1
++before relying on its being 0 — the only place in the package that validates a
++mock counter before trusting it).
++
++Dropped: two exact duplicates of existing 12-cell matrices; one that asserts the
++`CreateTask` hole is *open*, which B1 closed and which no longer compiles against
++B4's signature (the auditor predicted its own obsolescence in its failure
++message); two that assert nothing at all, one named `_FIXTURE_CANNOT_EXPRESS_THIS`
++by its own author; two prefix-behaviour tests that leg A is actively changing.
++
++Verified not vacuous: with the gate removed, `Charge1_RemovalDirection` goes red
++reporting the ungated removal.
++
++---
++
++## What was deliberately NOT done
++
++- **The `SameStageSet` seam.** Adjudicated to r7. Needs both domains at once.
++  Pinned, not fixed.
++- **The `TestWatchTasks` subscription race.** Routed to #197. See below.
++- **`Charge6_CustomPrefixEndToEnd`.** A genuinely good 12-cell control proving
++  the gate holds at a non-default `push_prefix`. Dropped **not on merit** but
++  because it asserts current prefix behaviour from `internal/server` while leg A
++  is unifying prefix resolution. **Recommended for the combined tree.**
++- **The `GitHubPassThroughStore` half of B5.** Leg A's file.
++- **The four `go vet` copylocks findings.** Pre-existing, out of brief.
++- **`internal/server/scopes.go` is unformatted** per `gofmt -l`. Verified
++  pre-existing via `git stash`; left alone.
++
++### TOCTOU — explicitly NOT closed
++
++The window between the authorization decision in `LabelDeltaLifecycleStages` and
++the actual label write is **not closed by anything in this round**, and the B1
++doc comment says so at the call site. The round-5 auditor listed it as "not
++established" and it remains not established. Nothing here should be read as
++implying it is closed.
++
++---
++
++## The `TestWatchTasks` subscription race
++
++Classified, not fixed, per instruction. Routed to #197 with the API observation
++attached.
++
++**Mechanism, derived from the code rather than the symptom:** `WatchTasks` does
++`RequireIdentity` → `RequireScope` → validate → `RequireCollectionAccess` →
++`GetCollection` before reaching `eventBus.Subscribe` at `watch.go:59`. The
++client's call returns as soon as the stream opens (`watch_test.go:383`) and
++publishes at `:390`. Any event published in that window is **silently dropped**.
++This falls straight out as the 0.00s-vs-5.01s split.
++
++**Matched differential** (identical invocation, identical generator; my first
++attempt was unmatched — all `TestWatchTasks` at count=5 against one test — and
++was re-run): no delay → 5 of 6 batches FAIL, 6 timeouts; 300ms delay → 6 of 6
++PASS, 0 timeouts.
++
++Not a data race. `-race` is clean, and it is ordering, not unsynchronised
++memory. Note `make race` is scoped to `./internal/platform/github/` only, so
++`internal/server` has never been race-tested in this repo.
++
++**Reproduced during this round's gate**, on the final tree, in a plain
++`go test ./... -v` run: `TestWatchTasks_CreatedEvent` failed at 5.01s. A
++subsequent identical run passed. Plain `go test ./...` has passed every time;
++only the heavier `-v` run has ever reddened. So it is intermittent and
++load-sensitive, consistent with the mechanism above. **It did not reproduce in
++the EM's 15 runs — read that as narrowing, not exoneration.**
++
++### Why this flake should not have been silenced
++
++Recording the EM's framing because it is the transferable part: the flake was
++the **only** thing in this repo noticing that `WatchTasks` has an undocumented
++correctness precondition — a client gets no signal that its subscription is
++live. Every instinct, including the framing in the original brief, pointed at
++silencing it: bump the deadline, mark it flaky, route it to cleanup. Doing so
++would have removed the sole detector for a real API characteristic and called it
++housekeeping.
++
++That is *"a correctly-reasoned disclosed survivor whose justification has no
++tripwire"* **running in reverse**: the tripwire existed, nobody knew what it was
++attached to, and it was mistaken for noise.
++
++The open product question — whether `WatchTasks` should expose readiness, or
++whether `include_initial` being the required mitigation should merely be
++documented — is a gRPC contract decision and was escalated above the EM.
++
++---
++
++## Onboarding defect: a fresh clone of this repo does not build
++
++**This corrects the round-6 brief and `CLAUDE.md`, and it is a real defect, not
++a note.**
++
++```
++$ go build ./...
++assets.go:5:12: pattern all:web/dist: no matching files found
++```
++
++`web/dist` is gitignored and generated. **`go build ./...` cannot succeed on a
++fresh clone until `make web` has been run**, and nothing in `CLAUDE.md`, the
++Quick Start, or the build-and-test section says so. `CLAUDE.md` presents
++`go build ./...` as the build command.
++
++Consequence, established independently by leg A: **all three round-5 review legs
++reported `GO_BUILD_EXIT=0` against a *stubbed* `web/dist`.** A stub satisfies the
++embed pattern, so the exit code is real and measures nothing about the real
++build.
++
++Every gate figure in this document was measured after a **real** `make web`
++(4109 files in `web/dist`, matching the EM's independently measured real build),
++not a stub.
++
++**Recommended:** `CLAUDE.md` should state the `make web` prerequisite, and the
++build target should depend on it rather than failing with an embed error that
++does not name its cause.
++
++---
++
++## Gate
++
++Real `make web` build. Exit codes taken from the child, never through a pipe.
++
++| Command | Exit | Note |
++|---|---|---|
++| `go build ./...` | **0** | |
++| `go vet ./...` | **1** | exactly 4 findings |
++| `go test ./...` | **0** | |
++| `make race` | **0** | scoped to `./internal/platform/github/` only |
++
++**Vet verified by request type, not line number**, because B1 moved lines in
++`server.go`. All 4 are `assignment copies lock value` in
++`internal/server/server.go`, naming `GetReadyTasksRequest`,
++`GetBlockedTasksRequest`, `GetCriticalPathRequest`, `GetBottlenecksRequest`.
++Same set as the pre-round baseline. **No fifth finding.**
++
++### Test counts
++
++| | baseline `ea8ac39` | final | delta |
++|---|---|---|---|
++| `go test ./... -v` top-level | 579 | **593** | +14 |
++| `go test ./... -v` result lines | 1544 | **1625** | +81 |
++| `internal/server` top-level | 215 | 219 (at B6) | |
++| panics | — | **0** | |
++
++The +14 reconciles exactly: B1 3, B6 2, store seam tests 5, collapse
++characterization 1, salvage 4, minus the 1 round-5 residual pin that B1 closed
++and removed.
++
++---
++
++## Method notes
++
++- **Mutations were content-addressed, never line-addressed**, with a uniqueness
++  assert before each edit.
++- **Restoration verified by sha256 against an out-of-repo pristine copy**, not
++  by `git status`. "Clean" is not "unchanged."
++- **Three void-harness catches this round**, one of them mine (M4's build
++  failure reading as a red test). An exit code is only evidence once you know
++  which stage produced it.
++
++### On not fabricating B7
++
++The salvage commit `0075526` was unreachable: `origin` pointed at
++`/workspace/farmtable-labelwrite-scope`, a **host** path that cannot exist inside
++the container, so every clone handed out this round had a dead remote. I swept
++`git log --all`, `--name-only`, the reflog, `.git/objects`, and the whole
++filesystem for both the object and the filenames before reporting.
++
++The brief specified the two files by exact line count (457 and 710). That was a
++detail I could have quietly matched by writing fresh tests from the audit report
++and calling them a salvage. **A selective salvage of code nobody has read is not
++a salvage** — the entire task is judging which parts of specific existing code to
++keep. It would have been the same shape as a plausible artifact standing in for
++one that was never produced. Reporting the hole was worth more than filling it,
++and the files were then supplied.
+diff --git a/internal/server/audit_r5_probe_test.go b/internal/server/audit_r5_probe_test.go
+new file mode 100644
+index 0000000..c1cd10f
+--- /dev/null
++++ b/internal/server/audit_r5_probe_test.go
+@@ -0,0 +1,477 @@
++package server_test
++
++// SALVAGED AUDIT PROBE — #194 round 6, item B7.
++//
++// Source: the round-5 security audit's internal/server probe, written at
++// ea8ac390dad3d2401d65608684e5d6623ab15ac5, commit
++// 00755260c42e14e9dac7d0f7041f60ea55085b32, 710 lines, 11 tests
++// (sha256 7e36f5cd1f0153bfe323ef263366935f58296d4605f2d3f95d4f4c6810dda221).
++//
++// FOUR OF THE ELEVEN ARE KEPT. This is a selective salvage and the seven
++// dropped tests are listed with reasons at the bottom of this file rather than
++// deleted silently, so that a later round can disagree with the judgement
++// instead of rediscovering the file.
++//
++// KEPT because nothing in the suite covers the shape:
++//   - PositiveControl_TheProbeCanObserveAnAllow  (harness control for the below)
++//   - Charge1_RemovalDirection                   (remove X from [X,Y], 12 cells)
++//   - Charge4_FromEqualsToReachability           (where from == to still fires)
++//   - Charge4_REV9PremiseAdversarially           (counter control + issue state)
++//
++// HARNESS PROVENANCE, carried over from the auditor unchanged because it is
++// still true: this file reuses the fixture helpers declared in
++// authz_label_write_scope_test.go (labelWriteFixture, openIssue, scopedCtx,
++// agentScopes, stageLabel) because they are the production object graph, and
++// rebuilding a second mock GitHub would measure the mock rather than the code.
++// That reuse is a DEPENDENCY: if those helpers are wrong, so is this file. What
++// is NOT reused is the expectation set — every cell states its own predicted
++// outcome, and the terminal list below is written out rather than imported.
++
++import (
++	"fmt"
++	"testing"
++
++	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
++	"github.com/farmtable-io/farmtable/internal/server"
++	"github.com/farmtable-io/farmtable/internal/store/ent/task"
++)
++
++// issueState reads the mock issue's GitHub state under its own lock. Declared
++// here rather than added to the mock so that the probe does not edit the file
++// it is probing.
++func (f *labelWriteFixture) issueState() string {
++	f.issue.mu.Lock()
++	defer f.issue.mu.Unlock()
++	return f.issue.state
++}
++
++// auditTerminals is the audit's own list, written out rather than imported from
++// the code under test. A check that derives its universe from the thing it is
++// checking cannot falsify it.
++func auditTerminals() []task.Stage {
++	return []task.Stage{
++		task.StageCompleted,
++		task.StageWontFix,
++		task.StageDuplicate,
++		task.StageCancelled,
++	}
++}
++
++// allAuditScopes is every scope the transition table can demand, so a request
++// under it is limited only by what the code CHOOSES to write.
++func allAuditScopes() []string {
++	return append(agentScopes(),
++		server.ScopeTaskClose, server.ScopeTaskAccept, server.ScopeTaskClaim)
++}
++
++// TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow runs FIRST in reading
++// order for a reason. The round-4 audit's first attempt at this class reported
++// a clean sweep of denials that turned out to be a property of its request
++// shape — it had picked dest=working, which UpdateTask rejects up front with
++// InvalidArgument, so nothing it sent could ever have been allowed.
++//
++// If any arm here fails, every DENIED below is vacuous.
++func TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow(t *testing.T) {
++	t.Run("add_labels_shape_can_succeed", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		if err := f.addLabels(agentScopes(), "bug"); err != nil {
++			t.Fatalf("CONTROL FAILED: add_labels[bug] on an accepted task was refused (%v); "+
++				"the add_labels shape cannot express an ALLOW and every denial measured "+
++				"through it is vacuous", err)
++		}
++	})
++
++	t.Run("remove_labels_shape_can_succeed", func(t *testing.T) {
++		// The removal matrix below is all denials, so it needs its own allow.
++		f := openIssue(t, stageLabel(task.StageAccepted), "bug")
++		if err := f.removeLabels(agentScopes(), "bug"); err != nil {
++			t.Fatalf("CONTROL FAILED: remove_labels[bug] was refused (%v); the removal "+
++				"matrix cannot express an ALLOW and its denials are vacuous", err)
++		}
++	})
++
++	t.Run("stage_shape_can_succeed", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		inReview := pb.TaskStage_TASK_STAGE_IN_REVIEW
++		if _, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
++			Id: f.taskID, Stage: &inReview,
++		}); err != nil {
++			t.Fatalf("CONTROL FAILED: UpdateTask(stage=in_review) from accepted was refused "+
++				"(%v); the stage-arm shape cannot express an ALLOW", err)
++		}
++	})
++
++	t.Run("terminal_destinations_are_reachable_when_the_scope_is_held", func(t *testing.T) {
++		// Proving this is the specific control the round-4 audit lacked.
++		for _, dest := range auditTerminals() {
++			f := openIssue(t, stageLabel(task.StageAccepted))
++			d := protoStage(t, dest)
++			if _, err := f.svc.UpdateTask(
++				scopedCtx(withScope(server.ScopeTaskClose)),
++				&pb.UpdateTaskRequest{Id: f.taskID, Stage: &d},
++			); err != nil {
++				t.Fatalf("CONTROL FAILED: dest=%s is not reachable via UpdateTask even with "+
++					"task:close (%v); denials naming it would be a property of the "+
++					"destination, not of the gate", dest, err)
++			}
++		}
++	})
++}
++
++// TestAuditR5_Charge1_RemovalDirection covers the direction the suite's other
++// matrices do not: remove_labels[X] on a task labelled [X, Y], two DIFFERENT
++// terminals. This erases a maintainer's decline while LEAVING a terminal label
++// in place, so the precedence winner may not move at all. It is the shape a
++// winner-comparison gate is blindest to.
++//
++// KEPT because every other removal test in this package operates on a
++// SINGLE-terminal issue (openIssue with one stage label), where removal always
++// empties the terminal set. None of them exercises removal from a two-terminal
++// issue, so without this the set-comparison gate's behaviour on the removal
++// side of a multi-terminal task rests on the add-side matrices by analogy.
++//
++// READ THIS BESIDE TestUpdateTask_TwoLabelsOneStageCollapseIsUngatedToday. The
++// twelve cells here are the case where X and Y resolve to DIFFERENT stages, so
++// the set really changes and the write is charged. The seam test is the case
++// where two labels resolve to the SAME stage, the set does not change, and the
++// identical-looking removal is free. The pair of them is the boundary.
++func TestAuditR5_Charge1_RemovalDirection(t *testing.T) {
++	var denied, ungated int
++	for _, x := range auditTerminals() {
++		for _, y := range auditTerminals() {
++			if x == y {
++				continue
++			}
++			t.Run(fmt.Sprintf("remove_%s_from_%s_and_%s", x, x, y), func(t *testing.T) {
++				f := openIssue(t, stageLabel(x), stageLabel(y))
++
++				// BASELINE: both labels really are on the issue. Otherwise the
++				// row is a single-terminal removal wearing a two-terminal name.
++				if start := f.issue.currentLabels(); !containsLabel(start, stageLabel(x)) ||
++					!containsLabel(start, stageLabel(y)) {
++					t.Fatalf("BASELINE BROKEN: issue carries %v, want both %s and %s",
++						start, stageLabel(x), stageLabel(y))
++				}
++
++				err := f.removeLabels(agentScopes(), stageLabel(x))
++				if err == nil {
++					ungated++
++					t.Errorf("REMOVAL UNGATED: remove_labels[%s] from a task labelled [%s,%s] "+
++						"succeeded with task:write. labels now %v",
++						stageLabel(x), x, y, f.issue.currentLabels())
++					return
++				}
++				denied++
++
++				// The label survived the refusal. A denial that still wrote is
++				// the whole finding again.
++				if !containsLabel(f.issue.currentLabels(), stageLabel(x)) {
++					t.Errorf("denied but %s was removed anyway; labels %v",
++						stageLabel(x), f.issue.currentLabels())
++				}
++			})
++		}
++	}
++	t.Logf("MEASURED removal direction: %d/12 denied, %d/12 ungated", denied, ungated)
++	if denied+ungated != 12 {
++		t.Fatalf("PROBE DID NOT COVER 12 CELLS: denied=%d ungated=%d", denied, ungated)
++	}
++}
++
++// TestAuditR5_Charge4_FromEqualsToReachability enumerates the label-set
++// cardinalities under which the from == to short-circuit still fires, and for
++// each one records what the request actually WROTE.
++//
++// The short-circuit was load-bearing for the round-4 bypass, so the question is
++// not "does it still exist" (it does, in TransitionScope) but "can it still be
++// reached with a state change behind it".
++//
++// KEPT because no other test in this package enumerates the short-circuit's
++// reachable cardinalities, and because the assertion it makes on the ALLOWED
++// cells — that terminal-ness was neither created nor destroyed, and no
++// closeIssue mutation was issued — is a write-effect check, not a scope check.
++// The rest of the suite measures who is refused; this measures what gets
++// written when nobody is refused.
++func TestAuditR5_Charge4_FromEqualsToReachability(t *testing.T) {
++	type cell struct {
++		name        string
++		labels      []string
++		restamp     task.Stage
++		wantAllowed bool
++	}
++	cells := []cell{
++		{
++			name:        "cardinality0_no_stage_labels_restamp_accepted",
++			labels:      []string{"bug"},
++			restamp:     task.StageAccepted,
++			wantAllowed: true,
++		},
++		{
++			name:        "cardinality0_nonterminal_label_restamp_itself",
++			labels:      []string{stageLabel(task.StageAccepted)},
++			restamp:     task.StageAccepted,
++			wantAllowed: true,
++		},
++		{
++			name:        "cardinality1_restamp_the_same_terminal",
++			labels:      []string{stageLabel(task.StageCompleted)},
++			restamp:     task.StageCompleted,
++			wantAllowed: true,
++		},
++		{
++			name:        "cardinality1_terminal_masked_by_a_nonterminal_restamp_itself",
++			labels:      []string{stageLabel(task.StageWontFix), stageLabel(task.StageWorking)},
++			restamp:     task.StageWontFix,
++			wantAllowed: true,
++		},
++		{
++			// F7 / audit A-3: a bare stock label sits beside a prefixed one and
++			// is invisible to authorizationStage, which is prefix-gated.
++			name:        "cardinality1_terminal_beside_a_bare_stock_label",
++			labels:      []string{stageLabel(task.StageWontFix), "duplicate"},
++			restamp:     task.StageWontFix,
++			wantAllowed: true,
++		},
++		{
++			// The B5 case: with two terminals present, from == to can hold for
++			// at most one, so the other must fall to any->terminal.
++			name:        "cardinality2_restamp_one_of_two",
++			labels:      []string{stageLabel(task.StageWontFix), stageLabel(task.StageCompleted)},
++			restamp:     task.StageCompleted,
++			wantAllowed: false,
++		},
++		{
++			name: "cardinality4_restamp_one_of_four",
++			labels: []string{
++				stageLabel(task.StageCompleted), stageLabel(task.StageWontFix),
++				stageLabel(task.StageDuplicate), stageLabel(task.StageCancelled),
++			},
++			restamp:     task.StageCancelled,
++			wantAllowed: false,
++		},
++	}
++
++	sawAllow, sawDeny := false, false
++	for _, c := range cells {
++		t.Run(c.name, func(t *testing.T) {
++			f := openIssue(t, c.labels...)
++			before := append([]string(nil), f.issue.currentLabels()...)
++			dest := protoStage(t, c.restamp)
++
++			_, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
++				Id: f.taskID, Stage: &dest,
++			})
++			allowed := err == nil
++			if allowed {
++				sawAllow = true
++			} else {
++				sawDeny = true
++			}
++
++			after := f.issue.currentLabels()
++			t.Logf("MEASURED %s: allowed=%v closes=%d labels %v -> %v (err=%v)",
++				c.name, allowed, f.issue.closes(), before, after, err)
++
++			if allowed != c.wantAllowed {
++				t.Errorf("%s: allowed=%v want %v (err=%v)", c.name, allowed, c.wantAllowed, err)
++			}
++
++			// The charge: whenever from == to DID fire, nothing a task:write
++			// token should not be able to write may have been written.
++			if allowed {
++				if f.issue.closes() != 0 {
++					t.Errorf("%s: from == to fired AND the issue was closed (%d closeIssue "+
++						"calls). The short-circuit is writing lifecycle state.",
++						c.name, f.issue.closes())
++				}
++				wasTerminal := labelSetNamesATerminal(before)
++				isTerminal := labelSetNamesATerminal(after)
++				if wasTerminal != isTerminal {
++					t.Errorf("%s: a task:write request moved terminal-ness %v -> %v "+
++						"(labels %v -> %v)", c.name, wasTerminal, isTerminal, before, after)
++				}
++			}
++		})
++	}
++	if !sawAllow || !sawDeny {
++		t.Fatalf("VACUOUS: sawAllow=%v sawDeny=%v", sawAllow, sawDeny)
++	}
++}
++
++// labelSetNamesATerminal is the audit's own terminal test, spelled out rather
++// than taken from the mapper, so this assertion does not derive from the code
++// it is checking.
++//
++// NOTE FOR THE COMBINE: the "ft:" here is deliberately hardcoded and is NOT a
++// call into the prefix resolution leg A is unifying. That is the point — it is
++// an independent restatement. If leg A's change makes this wrong, the right
++// response is to update this literal knowingly, not to route it through the
++// resolver and lose the independence.
++func labelSetNamesATerminal(labels []string) bool {
++	for _, l := range labels {
++		for _, s := range auditTerminals() {
++			if equalFoldASCII(l, "ft:stage/"+s.String()) {
++				return true
++			}
++		}
++	}
++	return false
++}
++
++func equalFoldASCII(a, b string) bool {
++	if len(a) != len(b) {
++		return false
++	}
++	for i := 0; i < len(a); i++ {
++		x, y := a[i], b[i]
++		if 'A' <= x && x <= 'Z' {
++			x += 32
++		}
++		if 'A' <= y && y <= 'Z' {
++			y += 32
++		}
++		if x != y {
++			return false
++		}
++	}
++	return true
++}
++
++// TestAuditR5_Charge4_REV9PremiseAdversarially attacks the premise REV9 rests
++// on. REV9 asserts closeCalls == 0 after a from == to restamp and concludes
++// that UpdateTask never closes or reopens an issue.
++//
++// closeCalls == 0 is only evidence if the counter CAN reach 1. A mock that
++// never increments — because the mutation it matches on was renamed, or because
++// the close travels as a field on updateIssue rather than as its own mutation —
++// would report 0 for a real close, and REV9 would be green for the wrong
++// reason. So: prove the counter works, then assert the stronger property the
++// counter is a proxy for, namely that the ISSUE STATE did not move.
++//
++// KEPT, and it is the highest-value test in the salvage. It is the only place
++// in the package that validates a mock counter before relying on it, and the
++// issue-state assertion is strictly stronger than the counter it replaces: it
++// would also catch a close carried as a field on updateIssue, which no counter
++// on closeIssue can see. The pattern generalises beyond #194.
++func TestAuditR5_Charge4_REV9PremiseAdversarially(t *testing.T) {
++	t.Run("control_the_close_counter_can_reach_one", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		if f.issue.closes() != 0 {
++			t.Fatalf("fixture did not start at 0 closes")
++		}
++		closeStage := pb.TaskStage_TASK_STAGE_COMPLETED
++		_, err := f.svc.CloseTask(scopedCtx(withScope(server.ScopeTaskClose)),
++			&pb.CloseTaskRequest{Id: f.taskID, Stage: &closeStage})
++		if err != nil {
++			t.Fatalf("CONTROL FAILED: CloseTask errored (%v); the counter cannot be shown "+
++				"to increment, so closeCalls == 0 elsewhere proves nothing", err)
++		}
++		if f.issue.closes() != 1 {
++			t.Fatalf("CONTROL FAILED: CloseTask ran but closeCalls = %d, want 1. REV9's "+
++				"assertion is vacuous: the mock cannot observe a close.", f.issue.closes())
++		}
++	})
++
++	t.Run("update_task_never_moves_issue_state_on_any_stage_destination", func(t *testing.T) {
++		dests := []task.Stage{
++			task.StageTriage, task.StageAccepted, task.StageInReview,
++			task.StageInQa, task.StageDeploying,
++			task.StageCompleted, task.StageWontFix,
++			task.StageDuplicate, task.StageCancelled,
++		}
++		for _, d := range dests {
++			t.Run("open_to_"+d.String(), func(t *testing.T) {
++				f := openIssue(t, stageLabel(task.StageAccepted))
++				dest := protoStage(t, d)
++				// Hand it every scope: the question is what UpdateTask WRITES
++				// when it is allowed to proceed, not whether it is authorized.
++				_, err := f.svc.UpdateTask(scopedCtx(allAuditScopes()),
++					&pb.UpdateTaskRequest{Id: f.taskID, Stage: &dest})
++				if err != nil {
++					t.Fatalf("UpdateTask(stage=%s) errored with full scopes: %v", d, err)
++				}
++				if got := f.issue.closes(); got != 0 {
++					t.Errorf("UpdateTask(stage=%s) issued %d closeIssue mutations", d, got)
++				}
++				if st := f.issueState(); st != "OPEN" {
++					t.Errorf("UpdateTask(stage=%s) moved issue state to %q; REV9's premise "+
++						"that UpdateTask never closes an issue is FALSE for this "+
++						"destination", d, st)
++				}
++			})
++		}
++	})
++
++	t.Run("update_task_never_reopens_a_closed_issue", func(t *testing.T) {
++		for _, d := range []task.Stage{task.StageAccepted, task.StageInReview, task.StageTriage} {
++			t.Run("closed_to_"+d.String(), func(t *testing.T) {
++				f := newLabelWriteFixture(t, "CLOSED", "completed",
++					stageLabel(task.StageCompleted))
++				dest := protoStage(t, d)
++				if _, err := f.svc.UpdateTask(scopedCtx(allAuditScopes()),
++					&pb.UpdateTaskRequest{Id: f.taskID, Stage: &dest}); err != nil {
++					t.Fatalf("UpdateTask(stage=%s) on a closed issue errored: %v", d, err)
++				}
++				if st := f.issueState(); st != "CLOSED" {
++					t.Errorf("UpdateTask(stage=%s) REOPENED a closed issue (state now %q); "+
++						"the closed-issue floor does not hold", d, st)
++				}
++			})
++		}
++	})
++}
++
++// ─────────────────────────────────────────────────────────────────────────────
++// DROPPED FROM THE SALVAGE — seven of eleven, with reasons.
++//
++// Listed rather than deleted silently so a later round can overturn the
++// judgement without re-reading commit 0075526.
++//
++//  1. Charge1_ShapeA_AddLabelSwap — DUPLICATE. Same 12 ordered pairs, same
++//     add_labels[Y]-on-[X] shape, same task:close differential as the
++//     pre-existing TestUpdateTask_AddingASecondTerminalLabelRequiresClose.
++//     Landing it would double the runtime of the most expensive matrix in the
++//     package for no new information.
++//
++//  2. Charge1_ShapeB_NoLabelWriteReAssertion — DUPLICATE of the pre-existing
++//     TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose,
++//     which is also 12 cells and also asserts gated==12.
++//
++//  3. Charge5_CreateTaskResidualPrivilegeConsequence — SUPERSEDED AND NOW
++//     FALSE. It asserts the CreateTask label hole is OPEN ("CreateTask via
++//     labels was refused ... the residual may have been closed, in which case
++//     this probe and the developer's pin both need updating"). Round 6 B1
++//     closed it, so the test now fails by design. Its successor is
++//     authz_create_task_label_scope_test.go. It also would not compile: it
++//     calls store.LifecycleStages with the single-return signature that B4
++//     replaced. The auditor predicted its own obsolescence in the failure
++//     message, which is why this is a clean drop rather than a judgement call.
++//
++//  4. Charge5_CreateTaskUnprefixedAndCustomPrefix — MEASURES NOTHING, by its
++//     author's own annotation. One subtest is named
++//     "custom_prefix_deployment_FIXTURE_CANNOT_EXPRESS_THIS" because
++//     labelNamesToIDs silently drops non-ft: labels; the other only t.Logf's.
++//     Neither asserts. Importing a test that cannot fail is importing coverage
++//     theatre.
++//
++//  5. Charge5_InsertTasksAfterIsTheSecondUnguardedCreationVerb — WITHDRAWN
++//     FINDING, and the test body is a single t.Logf with no assertion. The
++//     auditor filed this from a static read and withdrew it after measuring
++//     Unimplemented on the pass-through store. The knowledge is worth keeping;
++//     a test that cannot fail is not how to keep it, and re-landing it risks
++//     reading as a re-file of a withdrawn finding. Recorded in the project log
++//     instead.
++//
++//  6. Charge6_CustomPrefixEndToEnd — GOOD TEST, WRONG TREE. A real 12-cell
++//     control proving the gate holds at a non-default push_prefix, which is
++//     genuinely valuable now that push_prefix is a security parameter. But leg
++//     A is unifying prefix resolution across reader and writer in this same
++//     round, and this test asserts current prefix behaviour from
++//     internal/server. Landing it here means my file would break their change
++//     at combine time. RECOMMENDED FOR THE COMBINED TREE — see the project log.
++//
++//  7. Charge6_DefaultPrefixLabelsAreInertUnderACustomPrefix — same prefix-flux
++//     problem as (6), and additionally asserts nothing: both observations are
++//     t.Logf only.
++//
++// ─────────────────────────────────────────────────────────────────────────────
+diff --git a/internal/server/authz_create_task_label_scope_test.go b/internal/server/authz_create_task_label_scope_test.go
+new file mode 100644
+index 0000000..be0f5bd
+--- /dev/null
++++ b/internal/server/authz_create_task_label_scope_test.go
+@@ -0,0 +1,189 @@
++package server_test
++
++import (
++	"context"
++	"fmt"
++	"testing"
++
++	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
++	"github.com/farmtable-io/farmtable/internal/server"
++	"github.com/farmtable-io/farmtable/internal/store"
++	"github.com/farmtable-io/farmtable/internal/store/ent/task"
++	"github.com/farmtable-io/farmtable/internal/testutil"
++)
++
++// ── B1 / audit A-1: CreateTask was the fifth verb with the same root ──
++
++// TestCreateTask_TerminalStageLabelCostsWhatTheTerminalStageCosts closes the
++// residual round 5 disclosed and pinned here (audit A-1, #194 round 6 B1).
++//
++// The residual: CreateTask passed req.labels straight through to the new GitHub
++// issue and nothing inspected them, so on a bare task:write token
++//
++//	CreateTask(stage=completed)             -> DENIED, needs task:close
++//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED, resulting stage completed
++//	remove_labels to undo it                -> DENIED, needs task:accept
++//
++// and it was ONE-WAY: reaching the terminal state cost task:write, leaving it
++// cost a scope the caller does not hold.
++//
++// THIS IS A DIFFERENTIAL, not a list of expected scope names. For each terminal
++// stage it asks the SAME question through both verbs — the stage field and the
++// label spelling — and requires the two answers to match. That is invariant 1
++// stated as a measurement, and it is deliberately not written as
++// `want: "task:close"`: a table of literals would keep passing if
++// TransitionScope itself were weakened, because the literals and the gate would
++// have been changed together by whoever weakened it. Asking both doors about
++// the same destination cannot pass that way — one door has to disagree.
++func TestCreateTask_TerminalStageLabelCostsWhatTheTerminalStageCosts(t *testing.T) {
++	for _, tc := range []struct {
++		name  string
++		stage task.Stage
++		proto pb.TaskStage
++	}{
++		{"completed", task.StageCompleted, pb.TaskStage_TASK_STAGE_COMPLETED},
++		{"wont_fix", task.StageWontFix, pb.TaskStage_TASK_STAGE_WONT_FIX},
++		{"duplicate", task.StageDuplicate, pb.TaskStage_TASK_STAGE_DUPLICATE},
++		{"cancelled", task.StageCancelled, pb.TaskStage_TASK_STAGE_CANCELLED},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			// DOOR 1, the stage field. Round 5 already gated this; it is the
++			// reference answer, measured rather than assumed.
++			f := openIssue(t, stageLabel(task.StageAccepted))
++			st := tc.proto
++			_, stageErr := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
++				CollectionId: f.collID.String(), Name: "direct", Stage: &st,
++			})
++			if stageErr == nil {
++				t.Fatalf("CreateTask(stage=%s) was ALLOWED on a bare task:write token. "+
++					"The reference door is open, so this test can no longer establish "+
++					"anything about the label door", tc.stage)
++			}
++			stageScope := deniedScope(t, stageErr, fmt.Sprintf("CreateTask(stage=%s)", tc.stage))
++
++			// DOOR 2, the label spelling of the same destination. Must cost the
++			// same as door 1 or the bypass is still open.
++			f2 := openIssue(t, stageLabel(task.StageAccepted))
++			_, labelErr := f2.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
++				CollectionId: f2.collID.String(), Name: "via labels",
++				Labels: []string{stageLabel(tc.stage)},
++			})
++			if labelErr == nil {
++				t.Fatalf("CreateTask(labels=[%s]) was ALLOWED on a bare task:write token while "+
++					"CreateTask(stage=%s) required %q. The label spelling still reaches a "+
++					"terminal stage the stage field is gated to prevent (audit A-1)",
++					stageLabel(tc.stage), tc.stage, stageScope)
++			}
++			labelScope := deniedScope(t, labelErr,
++				fmt.Sprintf("CreateTask(labels=[%s])", stageLabel(tc.stage)))
++
++			if labelScope != stageScope {
++				t.Errorf("the two doors to stage=%s disagree: stage field costs %q, label "+
++					"spelling costs %q. Invariant 1 requires every write path to the value "+
++					"authorization reads to be guarded by the SAME authorization",
++					tc.stage, stageScope, labelScope)
++			}
++
++			// And nothing was created. A denial that still wrote the issue
++			// would be a denial in name only.
++			if got := f2.issue.createdIssues(); len(got) != 0 {
++				t.Errorf("denied CreateTask still issued %d createIssue mutation(s): %v",
++					len(got), got)
++			}
++		})
++	}
++}
++
++// TestCreateTask_OrdinaryLabelsAndAuthorizedTerminalsStillWork is the positive
++// control for the test above, and it is the reason a green result there means
++// anything.
++//
++// A CreateTask gate that simply refused every request carrying labels would
++// satisfy every cell of the differential. These rows are the ones that must
++// still be ALLOWED, so a gate that over-denies fails here.
++func TestCreateTask_OrdinaryLabelsAndAuthorizedTerminalsStillWork(t *testing.T) {
++	closerScopes := withScope(server.ScopeTaskClose)
++
++	t.Run("an ordinary non-stage label is free on task:write", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		if _, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
++			CollectionId: f.collID.String(), Name: "ordinary", Labels: []string{"bug"},
++		}); err != nil {
++			t.Fatalf("CreateTask(labels=[bug]) was DENIED on task:write (%v). The gate is "+
++				"charging for a label that names no lifecycle stage, which denies "+
++				"legitimate work", err)
++		}
++		// The create really happened, and it really carried the label — asked
++		// of the create mutation itself, not of the shared issue's label set,
++		// so a later update could not satisfy this.
++		creates := f.issue.createdIssues()
++		if len(creates) != 1 {
++			t.Fatalf("got %d createIssue mutations, want 1: %v", len(creates), creates)
++		}
++		if !containsLabel(creates[0], "bug") {
++			t.Errorf("createIssue asked for labels %v, want it to include \"bug\"", creates[0])
++		}
++	})
++
++	t.Run("a terminal stage label is allowed when the caller holds task:close", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		if _, err := f.svc.CreateTask(scopedCtx(closerScopes), &pb.CreateTaskRequest{
++			CollectionId: f.collID.String(), Name: "authorized terminal",
++			Labels: []string{stageLabel(task.StageCompleted)},
++		}); err != nil {
++			t.Fatalf("CreateTask(labels=[%s]) was DENIED for a caller holding task:close (%v). "+
++				"The gate must charge the scope, not forbid the operation",
++				stageLabel(task.StageCompleted), err)
++		}
++		creates := f.issue.createdIssues()
++		if len(creates) != 1 {
++			t.Fatalf("got %d createIssue mutations, want 1: %v", len(creates), creates)
++		}
++		if !containsLabel(creates[0], stageLabel(task.StageCompleted)) {
++			t.Errorf("createIssue asked for labels %v, want it to include %q",
++				creates[0], stageLabel(task.StageCompleted))
++		}
++	})
++
++	t.Run("no labels at all is free on task:write", func(t *testing.T) {
++		f := openIssue(t, stageLabel(task.StageAccepted))
++		if _, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
++			CollectionId: f.collID.String(), Name: "plain",
++		}); err != nil {
++			t.Fatalf("plain CreateTask was DENIED on task:write: %v", err)
++		}
++	})
++}
++
++// TestCreateTask_NativeCollectionIsUnaffectedByTheLabelGate pins that the B1
++// gate is inert where it should be.
++//
++// A native Ent collection keeps the stage in its own column and EntStore does
++// not implement store.LifecycleStageSetStager, so store.LabelDeltaLifecycleStages
++// reports before == after and the gate charges nothing. A label named
++// "ft:stage/completed" on a native task is just a string.
++//
++// This is worth pinning rather than reasoning about because the gate reads a
++// caller-supplied label and the cost of getting it wrong is denying every
++// labelled create on the default backend.
++func TestCreateTask_NativeCollectionIsUnaffectedByTheLabelGate(t *testing.T) {
++	ctx := context.Background()
++	entStore, cleanup := testutil.NewTestStore(t)
++	t.Cleanup(cleanup)
++	ms := store.NewMultiStore(entStore)
++	t.Cleanup(func() { _ = ms.Close() })
++
++	coll, err := ms.CreateCollection(ctx, store.CreateCollectionParams{Name: "native"})
++	if err != nil {
++		t.Fatalf("CreateCollection: %v", err)
++	}
++	svc := server.NewFarmTableService(ms, "test")
++
++	if _, err := svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
++		CollectionId: coll.ID.String(), Name: "native task",
++		Labels: []string{stageLabel(task.StageCompleted)},
++	}); err != nil {
++		t.Fatalf("CreateTask with a stage-shaped label on a NATIVE collection was DENIED (%v). "+
++			"No label can forge a native task's stage, so the gate must be inert here", err)
++	}
++}
+diff --git a/internal/server/authz_label_set_collapse_seam_test.go b/internal/server/authz_label_set_collapse_seam_test.go
+new file mode 100644
+index 0000000..80dae48
+--- /dev/null
++++ b/internal/server/authz_label_set_collapse_seam_test.go
+@@ -0,0 +1,125 @@
++package server_test
++
++import (
++	"testing"
++
++	"github.com/farmtable-io/farmtable/internal/store"
++	"github.com/farmtable-io/farmtable/internal/store/ent/task"
++)
++
++// TestUpdateTask_TwoLabelsOneStageCollapseIsUngatedToday is a CHARACTERIZATION
++// test. It asserts a hole, not a fix.
++//
++// WHEN THIS TEST GOES RED, THE SEAM HAS BEEN CLOSED. Delete it — do not repair
++// it, do not weaken it, and do not reach for t.Skip. A test that disappears
++// instead of failing is a named defect class on this branch, and the whole
++// point of writing this as an assertion on the CURRENT behaviour is that r7
++// cannot close the seam without this test firing and forcing someone to notice.
++//
++// THE SEAM (#194 round 6, found while answering the B4-versus-A5 question;
++// adjudicated to r7). The label-write gate in server.go reads:
++//
++//	if !store.SameStageSet(before, after) { ...charge every (from, to) pair... }
++//
++// It compares resolved stage SETS. Upstream, terminal_label_stages.go:120
++// builds those sets as `present := make(map[task.Stage]bool)` — keyed by STAGE.
++// Two distinct labels that resolve to the same stage collapse to one element,
++// so removing one of them produces a byte-identical set, SameStageSet is true,
++// the gate short-circuits, and the write costs nothing.
++//
++// It takes BOTH halves to fix. Removing the short-circuit alone does not help,
++// because the stager is structurally incapable of reporting the change: it has
++// already discarded which labels produced the stage. A correct fix needs a
++// delta over LABELS rather than over resolved stages, which is a contract
++// change spanning internal/server and internal/platform/github. That is why it
++// is not being done here.
++//
++// NO CONFIG TRICKERY IS REQUIRED, WHICH IS THE UNCOMFORTABLE PART. I expected
++// to need a custom cfg.Stages alias to construct two labels for one stage.
++// stripForMatch (labels.go:542) strips the push prefix AND then strips a
++// leading "stage/", so "ft:stage/completed" and "ft:completed" both key to
++// "completed". Both clear the prefix gate in authorizationStage, both resolve
++// to StageCompleted, and the collapse happens on stock defaults. The input
++// below is reachable by anyone who can write labels.
++func TestUpdateTask_TwoLabelsOneStageCollapseIsUngatedToday(t *testing.T) {
++	const (
++		canonical = "ft:stage/completed"
++		alias     = "ft:completed"
++	)
++
++	f := openIssue(t, canonical, alias)
++
++	// PREMISE 1: the two labels really do collapse to a single-element set.
++	// Without this the test could pass for the boring reason that the alias was
++	// never recognised at all, which would make the whole thing vacuous.
++	stages := f.lifecycleStages(t)
++	if len(stages) != 1 || stages[0] != task.StageCompleted {
++		t.Fatalf("PREMISE FAILED: labels %v resolve to %v, want the single-element "+
++			"set [completed]. If the alias is no longer recognised this test is "+
++			"vacuous and must be rewritten, not deleted", []string{canonical, alias}, stages)
++	}
++
++	// PREMISE 2: both labels are genuinely present on the issue. The collapse
++	// must be in the stage resolution, not in the fixture quietly deduplicating.
++	before := f.issue.currentLabels()
++	if !containsLabel(before, canonical) || !containsLabel(before, alias) {
++		t.Fatalf("PREMISE FAILED: issue carries %v, want both %q and %q",
++			before, canonical, alias)
++	}
++
++	// PREMISE 3: this same removal IS gated when it changes the set. Removing
++	// the last label naming a terminal stage costs task:accept, which is the
++	// pre-existing round-5 control. If this arm ever stops denying, the
++	// observation below stops being "the collapse is a hole" and becomes "label
++	// removal is ungated generally" — a much larger finding wearing this test's
++	// clothes.
++	control := openIssue(t, canonical)
++	if err := control.removeLabels(agentScopes(), canonical); err == nil {
++		t.Fatalf("PREMISE FAILED: removing the ONLY terminal label was permitted on " +
++			"bare task:write. The set-changing case is supposed to be gated, so the " +
++			"seam below is not what this test thinks it is")
++	}
++
++	// THE SEAM. Identical removal, identical scopes, and the only difference is
++	// that an aliased label is left behind holding the stage in place. The set
++	// does not move, so nothing is charged.
++	err := f.removeLabels(agentScopes(), canonical)
++	if err != nil {
++		t.Fatalf("SEAM CLOSED — THIS IS GOOD NEWS. Removing %q from an issue also "+
++			"carrying %q was denied (%v). The two-labels-one-stage collapse at "+
++			"terminal_label_stages.go:120 no longer slips past the SameStageSet "+
++			"short-circuit in server.go. DELETE THIS TEST; it exists only to pin the "+
++			"hole and to make sure closing it could not happen silently.",
++			canonical, alias, err)
++	}
++
++	// And the write really landed: this is a destroyed label, not a no-op that
++	// merely returned success.
++	after := f.issue.currentLabels()
++	if containsLabel(after, canonical) {
++		t.Fatalf("permitted but %q is still present; labels %v. The seam is a FREE "+
++			"WRITE, not a free refusal — if the write no-ops the impact assessment "+
++			"changes and this test should be re-derived", canonical, after)
++	}
++	if !containsLabel(after, alias) {
++		t.Fatalf("removing %q also removed %q; labels %v. That is a different and "+
++			"worse bug than the one this test characterizes", canonical, alias, after)
++	}
++
++	// The stage set is unchanged, which is precisely why the gate said nothing.
++	// This is the invariant the fix will have to break.
++	if got := f.lifecycleStages(t); len(got) != 1 || got[0] != task.StageCompleted {
++		t.Fatalf("stage set moved to %v after the removal; the premise that the gate "+
++			"saw before == after does not hold and the mechanism above is wrong", got)
++	}
++
++	// IMPACT, measured rather than asserted in prose: the task is still terminal
++	// and still unavailable, so a reader cannot tell this happened. That is what
++	// makes the free write worth a round of its own — the audit trail for a
++	// maintainer's completion decision lost a label and nothing observable moved.
++	avail := f.availability(t)
++	if avail.Available || !hasReason(avail.Reasons, store.AvailabilityReasonTerminal) {
++		t.Fatalf("expected the task to remain terminal and unavailable after the "+
++			"collapse write, got Available=%v Reasons=%v", avail.Available, avail.Reasons)
++	}
++}
+diff --git a/internal/server/authz_label_write_scope_test.go b/internal/server/authz_label_write_scope_test.go
+index fd47550..421f92a 100644
+--- a/internal/server/authz_label_write_scope_test.go
++++ b/internal/server/authz_label_write_scope_test.go
+@@ -7,6 +7,7 @@ import (
+ 	"io"
+ 	"net/http"
+ 	"net/http/httptest"
++	"sort"
+ 	"strings"
+ 	"sync"
+ 	"testing"
+@@ -109,6 +110,20 @@ type labelWriteIssueMock struct {
+ 	// rests on that. Counting it is what turns "we believe UpdateTask does not
+ 	// close the issue" into a measurement.
+ 	closeCalls int
++
++	// creates records one entry per createIssue mutation, holding the labels
++	// that mutation asked for.
++	//
++	// The round-5 audit declared this fixture's inability to tell CREATE from
++	// UPDATE as a limit on its own CreateTask probe: the create arm applies the
++	// requested labels to the single issue the mock serves, so afterwards
++	// currentLabels() cannot say whether a label arrived through createIssue or
++	// through a later addLabelsToLabelable. A #194 round-6 test that asserted on
++	// currentLabels() alone would therefore be pinning the mock, not the server.
++	//
++	// Recording the create separately is what makes "the caller's label was
++	// attached AT CREATION" an answerable question. See B1 / audit A-1.
++	creates [][]string
+ }
+ 
+ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []string) (*httptest.Server, *labelWriteIssueMock) {
+@@ -164,11 +179,20 @@ func newLabelWriteIssueMock(t *testing.T, state, stateReason string, initial []s
+ 			// The fixture stays single-issue: the requested labels are applied
+ 			// to the one issue it serves, so "did the caller's label land?"
+ 			// remains answerable.
++			//
++			// The labels this particular mutation asked for are ALSO recorded
++			// separately, because applying them to the shared issue is exactly
++			// what makes create and update indistinguishable afterwards. See
++			// the `creates` field.
++			asked := []string{}
+ 			for id, name := range m.idToName {
+ 				if strings.Contains(b, `"`+id+`"`) {
+ 					m.add(name)
++					asked = append(asked, name)
+ 				}
+ 			}
++			sort.Strings(asked)
++			m.creates = append(m.creates, asked)
+ 			_, _ = w.Write([]byte(`{"data":{"createIssue":{"issue":` + m.issueJSON() + `}}}`))
+ 		case strings.Contains(b, "closeIssue"):
+ 			m.closeCalls++
+@@ -256,6 +280,20 @@ func (m *labelWriteIssueMock) closes() int {
+ 	return m.closeCalls
+ }
+ 
++// createdIssues returns, per createIssue mutation, the labels that mutation
++// requested. Unlike currentLabels() this cannot be satisfied by a later
++// addLabelsToLabelable, so it distinguishes the create path from the update
++// path.
++func (m *labelWriteIssueMock) createdIssues() [][]string {
++	m.mu.Lock()
++	defer m.mu.Unlock()
++	out := make([][]string, 0, len(m.creates))
++	for _, c := range m.creates {
++		out = append(out, append([]string(nil), c...))
++	}
++	return out
++}
++
+ func (m *labelWriteIssueMock) issueJSON() string {
+ 	nodes := make([]string, 0, len(m.labels))
+ 	for _, l := range m.labels {
+@@ -416,6 +454,27 @@ func (f *labelWriteFixture) lifecycleStage(t *testing.T) task.Stage {
+ 	return store.LifecycleStage(context.Background(), f.ms, tasks[0])
+ }
+ 
++// lifecycleStages reads the whole authoritative stage SET, not the tiebreak
++// winner. A swap is the case where the winner and the set disagree about
++// whether anything happened: replacing one terminal label with another can
++// leave the winner in place while the set changes, and it can equally move the
++// winner while the set stays the same size. Asserting on lifecycleStage alone
++// would reintroduce the tiebreak dependency that round 5 removed.
++func (f *labelWriteFixture) lifecycleStages(t *testing.T) []task.Stage {
++	t.Helper()
++	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{CollectionID: &f.collID})
++	if err != nil || len(tasks) != 1 {
++		t.Fatalf("ListTasks: err=%v n=%d", err, len(tasks))
++	}
++	stages, err := store.LifecycleStages(context.Background(), f.ms, tasks[0])
++	if err != nil {
++		t.Fatalf("LifecycleStages: %v", err)
++	}
++	sorted := append([]task.Stage(nil), stages...)
++	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
++	return sorted
++}
++
+ func (f *labelWriteFixture) availability(t *testing.T) store.TaskAvailability {
+ 	t.Helper()
+ 	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{CollectionID: &f.collID})
+@@ -446,6 +505,27 @@ func (f *labelWriteFixture) removeLabels(scopes []string, labels ...string) erro
+ 	return err
+ }
+ 
++// swapLabels issues ONE UpdateTask that both adds and removes labels.
++//
++// This is the input the round-5 suite could not construct. Its swap test was
++// named for a swap and every cell called addLabels alone, so what it actually
++// measured was an issue ACQUIRING a second terminal label — after which the
++// label set is {start, dest}, not {dest}. A real swap produces a different
++// "after" set and therefore a different set of (from, to) pairs at the gate,
++// and no test anywhere in the suite exercised it (test review T-3).
++//
++// The distinction is not cosmetic: with add-only, before={start} and
++// after={start,dest}, so the pair (start,start) is present and free and the
++// charge rests entirely on (start,dest). With a real swap, after={dest} and
++// (start,start) is gone. A gate that only ever saw the add-only shape could
++// depend on the from==to pair being present without anyone noticing.
++func (f *labelWriteFixture) swapLabels(scopes []string, add, remove []string) error {
++	_, err := f.svc.UpdateTask(scopedCtx(scopes), &pb.UpdateTaskRequest{
++		Id: f.taskID, AddLabels: add, RemoveLabels: remove,
++	})
++	return err
++}
++
+ // requireDeniedFor asserts a PermissionDenied naming the scope.
+ //
+ // Naming the scope is not decoration. A bare "err != nil" would pass on a
+@@ -467,6 +547,41 @@ func requireDeniedFor(t *testing.T, err error, wantScope string, what string) {
+ 	}
+ }
+ 
++// deniedScope extracts the scope name a PermissionDenied names, so two gates
++// can be compared against EACH OTHER instead of against a literal.
++//
++// A test that writes `want: "task:close"` re-states the configuration it is
++// meant to be checking: weaken TransitionScope and you would update the literal
++// in the same edit, and the test would stay green. Comparing the scope the
++// stage door demands with the scope the label door demands has no such shared
++// source — closing one door without the other makes them differ.
++//
++// Fails rather than returning "" on anything that is not a scope denial: a
++// transport error or a validation failure laundered into this comparison would
++// make two unrelated errors compare equal.
++func deniedScope(t *testing.T, err error, what string) string {
++	t.Helper()
++	if err == nil {
++		t.Fatalf("%s: allowed, want PermissionDenied", what)
++	}
++	st, _ := status.FromError(err)
++	if st.Code() != codes.PermissionDenied {
++		t.Fatalf("%s: got %v (%s), want PermissionDenied", what, st.Code(), st.Message())
++	}
++	const marker = `missing required scope "`
++	msg := st.Message()
++	i := strings.Index(msg, marker)
++	if i < 0 {
++		t.Fatalf("%s: denial %q does not name a scope in the expected form", what, msg)
++	}
++	rest := msg[i+len(marker):]
++	j := strings.Index(rest, `"`)
++	if j < 0 {
++		t.Fatalf("%s: denial %q has an unterminated scope name", what, msg)
++	}
++	return rest[:j]
++}
++
+ // withScope is agentScopes() plus one. Used for the differential baselines:
+ // every denial below must flip to an allow when — and only when — the one
+ // scope the control names is added.
+@@ -773,9 +888,21 @@ func TestUpdateTask_AddingATerminalLabelRequiresClose(t *testing.T) {
+ 	}
+ }
+ 
+-// TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose covers the
++// TestUpdateTask_AddingASecondTerminalLabelRequiresClose covers the
+ // terminal-start cells of the same matrix.
+ //
++// RENAMED. Through round 5 this was called
++// ...SwappingOneTerminalLabelForAnotherRequiresClose, and it never swapped:
++// every cell called addLabels alone, so the issue ended up carrying BOTH
++// terminal labels and the "for another" in the name described an input the
++// fixture could not construct (test review T-3). The name is now what the test
++// measures. The swap it was named for is measured in
++// TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose, which is new.
++//
++// This test is kept rather than replaced. Acquiring a second terminal label is
++// a distinct and reachable input, and it is the one where the tiebreak and the
++// set disagree most sharply.
++//
+ // A bypass occurs iff rank(dest) < rank(start) in terminalStagePrecedence, so
+ // completed sits at rank 0 and was reachable from every other terminal stage:
+ // add ft:stage/completed to a wont_fix issue and the tiebreak hands the
+@@ -797,7 +924,7 @@ func TestUpdateTask_AddingATerminalLabelRequiresClose(t *testing.T) {
+ // Comparing stage SETS removes the dependency (#194 round 5, B5), so every pair
+ // that changes the label set is now charged. The pin is kept as a count so that
+ // a regression to winner-comparison shows up as 6, not as a silent pass.
+-func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T) {
++func TestUpdateTask_AddingASecondTerminalLabelRequiresClose(t *testing.T) {
+ 	stages := []task.Stage{
+ 		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
+ 	}
+@@ -861,6 +988,191 @@ func TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose(t *testing.T
+ 	}
+ }
+ 
++// ── the swap the suite could not previously express (#194 round 6, B6) ──
++
++// TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose measures a genuine
++// swap: ONE UpdateTask carrying both add_labels=[dest] and
++// remove_labels=[start].
++//
++// Until now no test anywhere in this package issued a request that both added
++// and removed, so the swap arm of the gate had never been executed by anything.
++// That is not the same shape as the add-only approximation it replaced:
++//
++//	add-only:   before={start}  after={start,dest}   pairs (start,start), (start,dest)
++//	real swap:  before={start}  after={dest}         pair  (start,dest)
++//
++// MEASURED RESULT: the real swap behaves exactly like the add-only
++// approximation. All twelve ordered pairs are denied on task:write, all twelve
++// are permitted by task:close, and the denial scope matches the add-only cell
++// of the same pair. That was the round-5 gate's intent, but it was a prediction
++// until this test ran, because the input did not exist to run.
++//
++// AND THIS CONTROL IS WEAKER THAN ITS SIZE SUGGESTS. Read the mutation results
++// before trusting it. Three mutations were applied to the UpdateTask label gate
++// in server.go and the whole package was run against each:
++//
++//	M1  gate removed entirely           add-only RED   swap RED   reopen RED
++//	M2  gate ignores remove_labels      add-only green swap GREEN reopen RED
++//	M4  gate always charges task:close  add-only green swap GREEN reopen RED
++//
++// The only mutation these twelve cells detect is M1, and the add-only test
++// detects M1 too. So as a detector this matrix adds NOTHING the test it was
++// named after did not already provide. Its value is narrower and worth stating
++// plainly rather than dressing up: the named input is now executable, its
++// behaviour is measured instead of assumed, and the post-success assertions
++// below can check that the remove side actually removed — the add-only shape
++// leaves both labels on by construction and structurally cannot observe a
++// remove that silently no-ops.
++//
++// M2 and M4 are caught by TestUpdateTask_SingleRequestReopenSwapCostsAccept and
++// by three or four pre-existing remove-side tests. If this matrix is ever the
++// only thing standing between a change and review, that is not enough.
++func TestUpdateTask_RealSingleRequestTerminalSwapRequiresClose(t *testing.T) {
++	stages := []task.Stage{
++		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
++	}
++
++	executed, gated := 0, 0
++	for _, start := range stages {
++		for _, dest := range stages {
++			if start == dest {
++				continue
++			}
++			executed++
++			t.Run(string(start)+"_to_"+string(dest), func(t *testing.T) {
++				f := openIssue(t, stageLabel(start))
++				if got := f.lifecycleStages(t); len(got) != 1 || got[0] != start {
++					t.Fatalf("BASELINE BROKEN: fixture stage set is %v, want [%s]", got, start)
++				}
++				before := f.issue.currentLabels()
++
++				err := f.swapLabels(agentScopes(),
++					[]string{stageLabel(dest)}, []string{stageLabel(start)})
++				if err == nil {
++					t.Fatalf("SWAP %s -> %s in one request was allowed with task:write. "+
++						"The add-only approximation of this case IS gated, so the swap arm "+
++						"is a hole the previous test could not see", start, dest)
++				}
++				gated++
++				requireDeniedFor(t, err, server.ScopeTaskClose,
++					fmt.Sprintf("swap %s -> %s", start, dest))
++
++				if after := f.issue.currentLabels(); !sameLabels(before, after) {
++					t.Fatalf("denied but the labels changed %v -> %v. A swap has two write "+
++						"sides and a partially-applied denial is worse than an allowed one",
++						before, after)
++				}
++				if after := f.lifecycleStages(t); len(after) != 1 || after[0] != start {
++					t.Fatalf("denied but the stage set moved to %v", after)
++				}
++
++				// DIFFERENTIAL against the add-only cell of the same pair: the
++				// two shapes must charge the SAME scope. If the swap were
++				// cheaper, the add-only test would be reporting a control that
++				// a caller can sidestep by phrasing the same change as a swap.
++				addOnly := openIssue(t, stageLabel(start))
++				addErr := addOnly.addLabels(agentScopes(), stageLabel(dest))
++				if addErr == nil {
++					t.Fatalf("BASELINE BROKEN: add-only %s -> %s was not gated", start, dest)
++				}
++				if swapScope, addScope := deniedScope(t, err, "swap"),
++					deniedScope(t, addErr, "add-only"); swapScope != addScope {
++					t.Fatalf("SHAPE-DEPENDENT PRICE: swapping %s -> %s costs %q but adding "+
++						"%s costs %q. The same label-set change must cost the same however "+
++						"it is phrased", start, dest, swapScope, dest, addScope)
++				}
++
++				// task:close, and nothing weaker, permits it.
++				if err := f.swapLabels(withScope(server.ScopeTaskClose),
++					[]string{stageLabel(dest)}, []string{stageLabel(start)}); err != nil {
++					t.Fatalf("swap %s -> %s with task:close was rejected (%v)", start, dest, err)
++				}
++
++				// The remove side actually removed. Only a real swap can check
++				// this; the add-only test leaves both labels on by construction.
++				labels := f.issue.currentLabels()
++				if !containsLabel(labels, stageLabel(dest)) {
++					t.Fatalf("swap permitted but %s is not on the issue; labels %v",
++						stageLabel(dest), labels)
++				}
++				if containsLabel(labels, stageLabel(start)) {
++					t.Fatalf("swap permitted but %s is STILL on the issue; labels %v. "+
++						"The remove side no-oped and this was an add in disguise",
++						stageLabel(start), labels)
++				}
++				if got := f.lifecycleStages(t); len(got) != 1 || got[0] != dest {
++					t.Fatalf("swap permitted but the stage set is %v, want the singleton [%s]",
++						got, dest)
++				}
++			})
++		}
++	}
++
++	if executed != 12 {
++		t.Fatalf("executed %d cells, want 12 (4 terminal stages, ordered pairs)", executed)
++	}
++	if gated != 12 {
++		t.Fatalf("%d of 12 single-request terminal swaps were gated, want 12", gated)
++	}
++}
++
++// TestUpdateTask_SingleRequestReopenSwapCostsAccept is the direction the
++// terminal-to-terminal matrix cannot reach, and it only becomes expressible
++// once the fixture can swap.
++//
++// Reopening is removing the terminal label and adding a live one. As two
++// requests it is already covered, but as two requests the intermediate state is
++// observable and each half is priced on its own. In ONE request there is no
++// intermediate state: before={terminal}, after={accepted}, and the gate sees a
++// single pair it must price correctly in one shot.
++//
++// It must cost task:accept and NOT task:close. Charging close here would be the
++// wrong answer arrived at safely — the caller is not closing anything, and a
++// gate that charges the strongest scope it can find for any label write would
++// pass every denial-side assertion in the terminal-to-terminal matrix while
++// being useless.
++//
++// This is the sensitive one. It is the only NEW test in B6 that detects any
++// mutation the round-5 suite did not already detect in some other shape: it
++// goes red both when the gate ignores remove_labels and when the gate charges
++// task:close unconditionally, and both of those leave all twelve
++// terminal-to-terminal swap cells green. It is not the sole detector of either
++// — pre-existing remove-only tests catch them as well — so the honest claim is
++// that it covers the single-request shape of a hole that was already covered in
++// its two-request shape, not that it found something new.
++func TestUpdateTask_SingleRequestReopenSwapCostsAccept(t *testing.T) {
++	for _, start := range []task.Stage{
++		task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled,
++	} {
++		t.Run(string(start)+"_to_accepted", func(t *testing.T) {
++			f := openIssue(t, stageLabel(start))
++			if got := f.lifecycleStages(t); len(got) != 1 || got[0] != start {
++				t.Fatalf("BASELINE BROKEN: fixture stage set is %v, want [%s]", got, start)
++			}
++
++			err := f.swapLabels(agentScopes(),
++				[]string{stageLabel(task.StageAccepted)}, []string{stageLabel(start)})
++			if err == nil {
++				t.Fatalf("reopening a %s issue in one request was free on task:write", start)
++			}
++			if got := deniedScope(t, err, "reopen swap"); got != server.ScopeTaskAccept {
++				t.Fatalf("reopening a %s issue was denied for %q, want %q. Undoing a "+
++					"terminal decision is an accept, not a close; charging close would be "+
++					"a correct-looking refusal to the wrong question",
++					start, got, server.ScopeTaskAccept)
++			}
++
++			if err := f.swapLabels(withScope(server.ScopeTaskAccept),
++				[]string{stageLabel(task.StageAccepted)}, []string{stageLabel(start)}); err != nil {
++				t.Fatalf("reopening a %s issue with task:accept was rejected (%v)", start, err)
++			}
++			if got := f.lifecycleStages(t); len(got) != 1 || got[0] != task.StageAccepted {
++				t.Fatalf("reopen permitted but the stage set is %v, want [accepted]", got)
++			}
++		})
++	}
++}
++
+ // ── the payload is the label write, not the restamp ──
+ 
+ // TestLabelWriteScope_ThePayloadIsTheLabelWriteNotTheRestamp measures the claim
+@@ -1340,8 +1652,14 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
+ 			// (IssueToPhaseStage fallback) are two different reconstructions of
+ 			// the same issue, and the gates sit next to each other in
+ 			// UpdateTask. They must give the same answer.
+-			want := store.LifecycleStages(ctx, f.ms, tasks[0])
+-			before, after := store.LabelDeltaLifecycleStages(ctx, f.ms, tasks[0], nil, nil)
++			want, err := store.LifecycleStages(ctx, f.ms, tasks[0])
++			if err != nil {
++				t.Fatalf("LifecycleStages: %v", err)
++			}
++			before, after, err := store.LabelDeltaLifecycleStages(ctx, f.ms, tasks[0], nil, nil)
++			if err != nil {
++				t.Fatalf("LabelDeltaLifecycleStages: %v", err)
++			}
+ 			if !store.SameStageSet(before, want) {
+ 				t.Fatalf("LabelDeltaLifecycleStages reports before=%v but LifecycleStages says "+
+ 					"%v for the same task. The two readings of the issue must agree or the "+
+@@ -1355,77 +1673,6 @@ func TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels(t *
+ 	}
+ }
+ 
+-// ── disclosed residual: CreateTask is a fifth verb with the same root ──
+-
+-// TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday pins a residual
+-// this round's control does NOT close, found while building it.
+-//
+-// CreateTask passes req.labels straight through to the new GitHub issue
+-// (server.go sets p.Labels; the pass-through store resolves each name and
+-// attaches it), and nothing inspects them. So:
+-//
+-//	CreateTask(stage=completed)             -> DENIED, needs task:close
+-//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED with task:write, and the
+-//	                                           new task's lifecycle stage is
+-//	                                           completed
+-//
+-// That is the same root as the finding this round fixes — a write path to the
+-// field authorization reads, guarded only by task:write — reached through a
+-// different verb. InsertTasksAfter takes labels the same way.
+-//
+-// IT IS NOT FIXED HERE, deliberately:
+-//
+-//   - The impact is materially lower. The attacker is fabricating a completion
+-//     record on a task it is creating, not overriding a maintainer's existing
+-//     decision and not making anyone else's work unclaimable. Nothing is
+-//     revoked and nothing needs task:accept to undo.
+-//   - It is a different verb, and verbs are being sequenced one at a time on
+-//     this branch (the `ft ready` tree-walk sink is out for the same reason).
+-//     Folding it in would collide.
+-//   - Most importantly it is the third instance of the point that matters:
+-//     every control here is a control over ONE VERB, and the verb set is
+-//     open-ended — UpdateTask today, CreateTask and InsertTasksAfter now, bulk
+-//     edit, sync, import or a webhook reconciler tomorrow. Enumerating verbs
+-//     loses against a single mutable field. #203 is the fix; this test is
+-//     evidence for it.
+-//
+-// Pinning CURRENT behaviour, like the unprefixed-label test in
+-// authz_terminal_reopen_test.go does, so the residual is visible and closing it
+-// is a deliberate act. If you are here because this test failed, you are
+-// probably closing it — update the test rather than working around it.
+-func TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday(t *testing.T) {
+-	f := openIssue(t, stageLabel(task.StageAccepted))
+-
+-	// BASELINE: the straight route to a terminal stage at creation is closed
+-	// for this token, so the label route is a bypass of a real gate.
+-	completed := pb.TaskStage_TASK_STAGE_COMPLETED
+-	_, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
+-		CollectionId: f.collID.String(), Name: "direct", Stage: &completed,
+-	})
+-	requireDeniedFor(t, err, server.ScopeTaskClose, "BASELINE: CreateTask(stage=completed)")
+-
+-	// The label route.
+-	if _, err := f.svc.CreateTask(scopedCtx(agentScopes()), &pb.CreateTaskRequest{
+-		CollectionId: f.collID.String(), Name: "via labels",
+-		Labels: []string{stageLabel(task.StageCompleted)},
+-	}); err != nil {
+-		t.Fatalf("CreateTask with a terminal stage label was rejected (%v). That may well be "+
+-			"the intended change — see the doc comment — but it is a behaviour change at a "+
+-			"security gate and must be made deliberately, not as a side effect", err)
+-	}
+-
+-	// And it really lands: the label is attached, so the residual is real
+-	// rather than a request the store quietly dropped.
+-	if !containsLabel(f.issue.currentLabels(), stageLabel(task.StageCompleted)) {
+-		t.Skipf("the terminal label did not reach the issue (labels %v), so CreateTask is not "+
+-			"in fact a live write path and this disclosure should be corrected",
+-			f.issue.currentLabels())
+-	}
+-	t.Log("DISCLOSED RESIDUAL: CreateTask attaches a caller-supplied terminal stage label with " +
+-		"task:write, while CreateTask(stage=completed) requires task:close. Same root, " +
+-		"different verb, not closed by round 5.")
+-}
+-
+ // ── B3: can a native task hold a terminal stage with an open phase? ──
+ 
+ // TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase answers B3 by
+diff --git a/internal/server/identity_test.go b/internal/server/identity_test.go
+index e374508..273276f 100644
+--- a/internal/server/identity_test.go
++++ b/internal/server/identity_test.go
+@@ -75,15 +75,21 @@ func TestClaimTask_PropagatesUserID(t *testing.T) {
+ 	defer storeCleanup()
+ 
+ 	ctx := context.Background()
+-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
++	u, err := s.CreateUser(ctx, store.CreateUserParams{
+ 		DisplayName: "claim-agent",
+ 		Type:        "agent",
+ 		Status:      "active",
+ 	})
+-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
++	if err != nil {
++		t.Fatalf("creating user: %v", err)
++	}
++	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+ 		UserID: u.ID,
+ 		Name:   "claim-token",
+ 	})
++	if err != nil {
++		t.Fatalf("creating token: %v", err)
++	}
+ 
+ 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+ 	defer cleanup()
+@@ -147,26 +153,38 @@ func TestAddComment_PropagatesUserID(t *testing.T) {
+ 	defer storeCleanup()
+ 
+ 	ctx := context.Background()
+-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
++	u, err := s.CreateUser(ctx, store.CreateUserParams{
+ 		DisplayName: "comment-agent",
+ 		Type:        "agent",
+ 		Status:      "active",
+ 	})
+-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
++	if err != nil {
++		t.Fatalf("creating user: %v", err)
++	}
++	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+ 		UserID: u.ID,
+ 		Name:   "comment-token",
+ 	})
++	if err != nil {
++		t.Fatalf("creating token: %v", err)
++	}
+ 
+ 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+ 	defer cleanup()
+ 
+ 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
+ 
+-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "comment-coll"})
+-	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
++	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "comment-coll"})
++	if err != nil {
++		t.Fatalf("creating collection: %v", err)
++	}
++	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
+ 		Name:         "comment-task",
+ 		CollectionId: coll.GetId(),
+ 	})
++	if err != nil {
++		t.Fatalf("creating task: %v", err)
++	}
+ 
+ 	comment, err := client.AddComment(authCtx, &pb.AddCommentRequest{
+ 		TaskId: task.GetId(),
+@@ -186,13 +204,21 @@ func TestListUsers(t *testing.T) {
+ 	defer storeCleanup()
+ 
+ 	ctx := context.Background()
+-	uA, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
+-	s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"})
++	uA, err := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
++	if err != nil {
++		t.Fatalf("creating user-a: %v", err)
++	}
++	if _, err := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"}); err != nil {
++		t.Fatalf("creating user-b: %v", err)
++	}
+ 
+-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
++	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+ 		UserID: uA.ID,
+ 		Name:   "list-users-token",
+ 	})
++	if err != nil {
++		t.Fatalf("creating token: %v", err)
++	}
+ 
+ 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+ 	defer cleanup()
+@@ -212,16 +238,22 @@ func TestGetUser(t *testing.T) {
+ 	defer storeCleanup()
+ 
+ 	ctx := context.Background()
+-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
++	u, err := s.CreateUser(ctx, store.CreateUserParams{
+ 		DisplayName: "get-user",
+ 		Type:        "human",
+ 		Status:      "active",
+ 	})
++	if err != nil {
++		t.Fatalf("creating user: %v", err)
++	}
+ 
+-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
++	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+ 		UserID: u.ID,
+ 		Name:   "get-user-token",
+ 	})
++	if err != nil {
++		t.Fatalf("creating token: %v", err)
++	}
+ 
+ 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+ 	defer cleanup()
+@@ -241,29 +273,41 @@ func TestUpdateTask_PropagatesActorID(t *testing.T) {
+ 	defer storeCleanup()
+ 
+ 	ctx := context.Background()
+-	u, _ := s.CreateUser(ctx, store.CreateUserParams{
++	u, err := s.CreateUser(ctx, store.CreateUserParams{
+ 		DisplayName: "updater-agent",
+ 		Type:        "agent",
+ 		Status:      "active",
+ 	})
+-	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
++	if err != nil {
++		t.Fatalf("creating user: %v", err)
++	}
++	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
+ 		UserID: u.ID,
+ 		Name:   "updater-token",
+ 	})
++	if err != nil {
++		t.Fatalf("creating token: %v", err)
++	}
+ 
+ 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
+ 	defer cleanup()
+ 
+ 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
+ 
+-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "update-coll"})
+-	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
++	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "update-coll"})
++	if err != nil {
++		t.Fatalf("creating collection: %v", err)
++	}
++	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
+ 		Name:         "update-task",
+ 		CollectionId: coll.GetId(),
+ 	})
++	if err != nil {
++		t.Fatalf("creating task: %v", err)
++	}
+ 
+ 	newName := "updated-task"
+-	_, err := client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
++	_, err = client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
+ 		Id:   task.GetId(),
+ 		Name: &newName,
+ 	})
+@@ -271,10 +315,13 @@ func TestUpdateTask_PropagatesActorID(t *testing.T) {
+ 		t.Fatalf("updating task: %v", err)
+ 	}
+ 
+-	taskResp, _ := client.GetTask(authCtx, &pb.GetTaskRequest{
++	taskResp, err := client.GetTask(authCtx, &pb.GetTaskRequest{
+ 		Id:             task.GetId(),
+ 		IncludeChanges: true,
+ 	})
++	if err != nil {
++		t.Fatalf("getting task: %v", err)
++	}
+ 	for _, ch := range taskResp.GetChanges() {
+ 		if ch.GetField() == "title" {
+ 			if ch.GetChangedBy().GetId() != u.ID.String() {
+diff --git a/internal/server/server.go b/internal/server/server.go
+index e554dde..1ad82bd 100644
+--- a/internal/server/server.go
++++ b/internal/server/server.go
+@@ -126,6 +126,62 @@ func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskReq
+ 		phase = phaseForStage(stage)
+ 	}
+ 
++	// CREATION-TIME LABELS ARE A WRITE TO THE VALUE AUTHORIZATION READS (#194
++	// round 6, audit A-1).
++	//
++	// Round 5's invariant 1 is: if authorization reads a value, every write path
++	// to that value must be guarded by the same authorization. Round 5 applied
++	// that to add_labels / remove_labels on UpdateTask and did not apply it
++	// here, so the same end state the req.Stage arm above is gated to prevent
++	// was reachable by spelling it as a label. Measured on a bare task:write
++	// token before this block existed:
++	//
++	//	CreateTask(stage=completed)             -> DENIED, names task:close
++	//	CreateTask(labels=[ft:stage/completed]) -> ALLOWED, stage = completed
++	//	remove_labels to undo it                -> DENIED, names task:accept
++	//
++	// One-way: creating the terminal state cost task:write, reversing it cost a
++	// scope the caller does not hold. That asymmetry is what #194 was filed for.
++	//
++	// The "from" is the creation stage, not the label baseline. The caller has
++	// already been authorized for triage -> stage by the arm above, so what is
++	// left to charge is stage -> whatever the labels additionally name.
++	//
++	// The SameStageSet guard is what keeps ordinary labels free: it compares the
++	// stages a label-less task would name against the stages it names with these
++	// labels, both from the SAME function, so a label that is not a lifecycle
++	// statement produces no difference and costs nothing. Deriving the two
++	// endpoints from different sources would invent transitions here, and a
++	// spurious transition is a denial of legitimate work.
++	//
++	// Inert for native Ent collections by construction: their stage is a column,
++	// EntStore does not implement LifecycleStageSetStager, and the helper
++	// reports before == after for them.
++	//
++	// THIS DOES NOT CLOSE THE TOCTOU WINDOW between this decision and the label
++	// write inside the store, and it is not intended to. Nothing here observes
++	// the labels that actually land. See the project log for round 6.
++	if len(req.GetLabels()) > 0 {
++		before, after, err := store.LabelDeltaLifecycleStages(
++			ctx, s.store,
++			&ent.Task{Stage: stage, CollectionID: collID},
++			req.GetLabels(), nil)
++		if err != nil {
++			return nil, status.Errorf(codes.Internal, "resolving label lifecycle delta: %v", err)
++		}
++		if !store.SameStageSet(before, after) {
++			for _, to := range after {
++				labelScope := TransitionScope(string(stage), string(to))
++				if labelScope == ScopeTaskWrite {
++					continue
++				}
++				if err := RequireScope(ctx, labelScope); err != nil {
++					return nil, err
++				}
++			}
++		}
++	}
++
+ 	p := store.CreateTaskParams{
+ 		Title:        req.GetName(),
+ 		Description:  req.GetDescription(),
+@@ -568,7 +624,11 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
+ 		// "any -> terminal costs task:close" row and the conversion closes.
+ 		// At zero or one terminal stage the set has one member and this is
+ 		// exactly the round-4 check.
+-		for _, authStage := range store.LifecycleStages(ctx, s.store, existing) {
++		authStages, err := store.LifecycleStages(ctx, s.store, existing)
++		if err != nil {
++			return nil, status.Errorf(codes.Internal, "resolving lifecycle stages: %v", err)
++		}
++		for _, authStage := range authStages {
+ 			if transitionScope := TransitionScope(string(authStage), string(st)); transitionScope != ScopeTaskWrite {
+ 				if err := RequireScope(ctx, transitionScope); err != nil {
+ 					return nil, err
+@@ -686,8 +746,11 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
+ 	// sets, and when they differ charge for every (from, to) pair — the
+ 	// strongest scope any pair implies is the one the caller must hold.
+ 	if len(req.GetAddLabels()) > 0 || len(req.GetRemoveLabels()) > 0 {
+-		before, after := store.LabelDeltaLifecycleStages(
++		before, after, err := store.LabelDeltaLifecycleStages(
+ 			ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
++		if err != nil {
++			return nil, status.Errorf(codes.Internal, "resolving label lifecycle delta: %v", err)
++		}
+ 		if !store.SameStageSet(before, after) {
+ 			for _, from := range before {
+ 				for _, to := range after {
+diff --git a/internal/store/lifecycle_stage_set_test.go b/internal/store/lifecycle_stage_set_test.go
+new file mode 100644
+index 0000000..f74287c
+--- /dev/null
++++ b/internal/store/lifecycle_stage_set_test.go
+@@ -0,0 +1,292 @@
++package store_test
++
++import (
++	"context"
++	"errors"
++	"testing"
++
++	"github.com/farmtable-io/farmtable/internal/store"
++	"github.com/farmtable-io/farmtable/internal/store/ent"
++	"github.com/farmtable-io/farmtable/internal/store/ent/task"
++	"github.com/farmtable-io/farmtable/internal/testutil"
++	"github.com/google/uuid"
++)
++
++// ── #194 round 6, B2 + B4: the lifecycle stage-set seam's fallbacks ──
++//
++// Two findings share one root here.
++//
++// B4 (review F7, raised by security audit A-3) — the fallback was fail-OPEN.
++// LabelDeltaLifecycleStages required len(before) > 0 && len(after) > 0 and
++// otherwise returned (current, current), i.e. "this label edit is not a
++// lifecycle transition", which charges nothing. Every caller of these helpers
++// is an authorization gate, so an implementation that returned an empty side
++// bought a silently open gate. The direction of a wrong answer at an
++// authorization gate must be denial.
++//
++// B2 (test review T-2) — the rule was written twice, in store.go and again in
++// MultiStore, and the second copy would absorb the violation before the first
++// could see it. Mutation evidence from round 5: MUT_DELTA_FALLBACK and
++// MUT_NATIVE_SPURIOUS both survived with 0 failures on the store.go copy, while
++// the control MUT_MS_NATIVE_SPURIOUS on the MultiStore copy killed 1 test —
++// the store.go pair was unreachable duplicated code. Two copies of a rule is
++// one copy plus a future bug.
++//
++// The tests below are the tripwire that replaces both. They are written against
++// the observable contract, not against the line numbers.
++
++// brokenStageSetStore implements store.LifecycleStageSetStager and violates its
++// "never empty" contract. It is the input the round-5 fixtures could not
++// express — which is why the fail-open branch went unmeasured for two rounds.
++//
++// store.Store is embedded as a nil interface: only the two seam methods are
++// ever called, and any other call panics loudly rather than returning a
++// plausible zero value.
++type brokenStageSetStore struct {
++	store.Store
++	before, after []task.Stage
++}
++
++// Close is implemented because MultiStore.Close calls it on every registered
++// platform store; the embedded nil interface would panic. Every OTHER method is
++// deliberately left to panic.
++func (b brokenStageSetStore) Close() error { return nil }
++
++func (b brokenStageSetStore) LifecycleStages(context.Context, *ent.Task) []task.Stage {
++	return b.before
++}
++
++func (b brokenStageSetStore) LabelDeltaLifecycleStages(
++	context.Context, *ent.Task, []string, []string,
++) (before, after []task.Stage) {
++	return b.before, b.after
++}
++
++// healthyStageSetStore is the positive control for every negative claim below.
++// Without it, a helper that returned ErrEmptyLifecycleStageSet unconditionally
++// would satisfy all the error cases.
++type healthyStageSetStore struct {
++	store.Store
++	before, after []task.Stage
++}
++
++func (h healthyStageSetStore) Close() error { return nil }
++
++func (h healthyStageSetStore) LifecycleStages(context.Context, *ent.Task) []task.Stage {
++	return h.before
++}
++
++func (h healthyStageSetStore) LabelDeltaLifecycleStages(
++	context.Context, *ent.Task, []string, []string,
++) (before, after []task.Stage) {
++	return h.before, h.after
++}
++
++func TestLabelDeltaLifecycleStages_EmptySideFailsClosed(t *testing.T) {
++	ctx := context.Background()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	// POSITIVE CONTROL FIRST. A well-behaved implementer must come back with no
++	// error and its own answer, untouched. If this row ever fails, every
++	// "denied" row below is meaningless.
++	t.Run("positive control: a healthy implementer is passed through", func(t *testing.T) {
++		s := healthyStageSetStore{
++			before: []task.Stage{task.StageAccepted},
++			after:  []task.Stage{task.StageCompleted},
++		}
++		before, after, err := store.LabelDeltaLifecycleStages(ctx, s, tk, []string{"x"}, nil)
++		if err != nil {
++			t.Fatalf("healthy implementer returned an error: %v", err)
++		}
++		if !store.SameStageSet(before, []task.Stage{task.StageAccepted}) ||
++			!store.SameStageSet(after, []task.Stage{task.StageCompleted}) {
++			t.Fatalf("healthy implementer's answer was altered: before=%v after=%v", before, after)
++		}
++	})
++
++	for _, tc := range []struct {
++		name          string
++		before, after []task.Stage
++	}{
++		{"both empty", nil, nil},
++		{"before empty", nil, []task.Stage{task.StageCompleted}},
++		{"after empty", []task.Stage{task.StageAccepted}, nil},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			s := brokenStageSetStore{before: tc.before, after: tc.after}
++			before, after, err := store.LabelDeltaLifecycleStages(ctx, s, tk, []string{"x"}, nil)
++			if err == nil {
++				t.Fatalf("a contract-violating store was accepted: before=%v after=%v. "+
++					"An empty stage set means the gate charges for nothing and ALLOWS; "+
++					"it must deny instead (F7 / A-3)", before, after)
++			}
++			if !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++				t.Fatalf("got %v, want it to wrap ErrEmptyLifecycleStageSet", err)
++			}
++			// And it must not hand back a usable answer alongside the error, or
++			// a caller that checks the slices before the error still fails open.
++			if len(before) != 0 || len(after) != 0 {
++				t.Errorf("returned before=%v after=%v with an error; want both nil so a "+
++					"caller cannot proceed on them", before, after)
++			}
++		})
++	}
++}
++
++func TestLifecycleStages_EmptyResultFailsClosed(t *testing.T) {
++	ctx := context.Background()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	t.Run("positive control: a healthy implementer is passed through", func(t *testing.T) {
++		s := healthyStageSetStore{before: []task.Stage{task.StageWontFix}}
++		got, err := store.LifecycleStages(ctx, s, tk)
++		if err != nil {
++			t.Fatalf("healthy implementer returned an error: %v", err)
++		}
++		if !store.SameStageSet(got, []task.Stage{task.StageWontFix}) {
++			t.Fatalf("got %v, want [wont_fix]", got)
++		}
++	})
++
++	t.Run("an empty set is an error, not a substituted t.Stage", func(t *testing.T) {
++		s := brokenStageSetStore{before: nil}
++		got, err := store.LifecycleStages(ctx, s, tk)
++		if err == nil {
++			t.Fatalf("a contract-violating store was accepted and answered %v. Substituting "+
++				"t.Stage here is what let a broken store produce an unguarded gate", got)
++		}
++		if !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++			t.Fatalf("got %v, want it to wrap ErrEmptyLifecycleStageSet", err)
++		}
++	})
++}
++
++// TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected is the other
++// half of the contract, and the row that stops the fix above from becoming a
++// denial of service.
++//
++// A store that does NOT implement LifecycleStageSetStager has violated nothing.
++// Its stage lives in its own column, no label can forge it, and "a label edit
++// induces no stage transition" is the true answer. It must be answered, not
++// errored — the error is reserved for implementers that break their promise.
++func TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected(t *testing.T) {
++	ctx := context.Background()
++	entStore, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	stages, err := store.LifecycleStages(ctx, entStore, tk)
++	if err != nil {
++		t.Fatalf("LifecycleStages on a native store errored: %v", err)
++	}
++	if !store.SameStageSet(stages, []task.Stage{task.StageAccepted}) {
++		t.Errorf("got %v, want [accepted]", stages)
++	}
++
++	before, after, err := store.LabelDeltaLifecycleStages(
++		ctx, entStore, tk, []string{"ft:stage/completed"}, nil)
++	if err != nil {
++		t.Fatalf("LabelDeltaLifecycleStages on a native store errored: %v", err)
++	}
++	if !store.SameStageSet(before, after) {
++		t.Errorf("a native store reported a label-induced transition %v -> %v; no label "+
++			"can move a stage that lives in its own column", before, after)
++	}
++}
++
++// ── B2: the MultiStore copy of the fallback is gone, and stays gone ──
++
++// TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim is the tripwire for B2.
++//
++// MultiStore used to repair an empty answer from the store it routes to by
++// substituting the current stage. That was the second copy of the rule, and it
++// ran FIRST — so the package-level helper's copy could never see a violation
++// and was unreachable, which is exactly what round 5's mutation testing
++// measured (MUT_DELTA_FALLBACK survived with 0 failures).
++//
++// Repairing it here is also wrong on its own terms: MultiStore cannot return an
++// error, so the only way for a violation to reach a caller that CAN deny is to
++// pass it up untouched.
++//
++// If someone reintroduces the fallback in MultiStore, this test fails. That is
++// a tripwire rather than a comment saying "do not add this back".
++func TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim(t *testing.T) {
++	ctx := context.Background()
++	primary, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++
++	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
++		Name: "routed", Platform: "github",
++	})
++	if err != nil {
++		t.Fatalf("CreateCollection: %v", err)
++	}
++
++	ms := store.NewMultiStore(primary)
++	defer func() { _ = ms.Close() }()
++	ms.RegisterPlatform(coll.ID, brokenStageSetStore{})
++
++	tk := &ent.Task{Stage: task.StageAccepted, CollectionID: coll.ID}
++
++	if got := ms.LifecycleStages(ctx, tk); len(got) != 0 {
++		t.Errorf("MultiStore.LifecycleStages repaired an empty inner answer into %v. It must "+
++			"propagate the violation so the package-level helper can deny it (B2)", got)
++	}
++	if before, after := ms.LabelDeltaLifecycleStages(ctx, tk, []string{"x"}, nil); len(before) != 0 || len(after) != 0 {
++		t.Errorf("MultiStore.LabelDeltaLifecycleStages repaired an empty inner answer into "+
++			"(%v, %v). It must propagate the violation (B2)", before, after)
++	}
++
++	// End to end: routed through MultiStore, the package-level helper denies.
++	// This is the pairing that matters — propagation is only useful because
++	// something downstream turns it into a refusal.
++	if _, _, err := store.LabelDeltaLifecycleStages(ctx, ms, tk, []string{"x"}, nil); !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++		t.Errorf("through MultiStore, a contract-violating inner store produced err=%v; "+
++			"want ErrEmptyLifecycleStageSet", err)
++	}
++
++	// POSITIVE CONTROL: the same routing with a healthy inner store must give a
++	// clean answer, so the rows above are not passing because routing is broken.
++	healthyColl, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
++		Name: "routed-healthy", Platform: "github",
++	})
++	if err != nil {
++		t.Fatalf("CreateCollection: %v", err)
++	}
++	ms.RegisterPlatform(healthyColl.ID, healthyStageSetStore{
++		before: []task.Stage{task.StageAccepted},
++		after:  []task.Stage{task.StageCompleted},
++	})
++	healthyTask := &ent.Task{Stage: task.StageAccepted, CollectionID: healthyColl.ID}
++	before, after, err := store.LabelDeltaLifecycleStages(ctx, ms, healthyTask, []string{"x"}, nil)
++	if err != nil {
++		t.Fatalf("healthy routed store errored: %v", err)
++	}
++	if !store.SameStageSet(before, []task.Stage{task.StageAccepted}) ||
++		!store.SameStageSet(after, []task.Stage{task.StageCompleted}) {
++		t.Fatalf("healthy routed answer was altered: before=%v after=%v", before, after)
++	}
++}
++
++// TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer pins the arm
++// that legitimately remains in MultiStore: a collection routed to a store that
++// does not implement the interface at all.
++func TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer(t *testing.T) {
++	ctx := context.Background()
++	primary, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++
++	ms := store.NewMultiStore(primary)
++	defer func() { _ = ms.Close() }()
++
++	tk := &ent.Task{Stage: task.StageInReview, CollectionID: uuid.New()}
++
++	if got := ms.LifecycleStages(ctx, tk); !store.SameStageSet(got, []task.Stage{task.StageInReview}) {
++		t.Errorf("got %v, want [in_review]", got)
++	}
++	before, after := ms.LabelDeltaLifecycleStages(ctx, tk, []string{"ft:stage/completed"}, nil)
++	if !store.SameStageSet(before, after) ||
++		!store.SameStageSet(before, []task.Stage{task.StageInReview}) {
++		t.Errorf("got (%v, %v), want ([in_review], [in_review])", before, after)
++	}
++}
+diff --git a/internal/store/multistore.go b/internal/store/multistore.go
+index 93d6f4f..b866c05 100644
+--- a/internal/store/multistore.go
++++ b/internal/store/multistore.go
+@@ -233,6 +233,16 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
+ 	return s.ClaimTask(ctx, id, assigneeID, version)
+ }
+ 
++// MultiStore must route the multi-valued lifecycle seam, not just the
++// single-valued one. Without this assertion it can satisfy the interface by
++// accident, and losing a method silently demotes every routed store to the
++// one-element fallback: no compile error, no failing test, and the #194 round-5
++// label-write gates inert. See F6.
++var (
++	_ LifecycleStager         = (*MultiStore)(nil)
++	_ LifecycleStageSetStager = (*MultiStore)(nil)
++)
++
+ // LifecycleStage implements LifecycleStager by routing to the store that owns
+ // the task's collection. A platform store whose Stage field is a display value
+ // answers for itself; every other store's Stage is already authoritative.
+@@ -247,28 +257,37 @@ func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
+ // that owns the task's collection. A store where a task can name several
+ // stages at once answers for itself; for every other store the task names
+ // exactly the one stage in its column.
++//
++// The inner store's answer is propagated VERBATIM, including an empty one. This
++// used to substitute the current stage for an empty result, which duplicated
++// the package-level helper's fallback and meant a contract-violating inner
++// store was silently converted into "no transition" — an open gate — at
++// whichever of the two copies ran first. Passing the violation up lets the one
++// remaining rule in LifecycleStages deny it. See B2 / B4.
+ func (m *MultiStore) LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage {
+-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+-			return stages
+-		}
++	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
++	if !ok {
++		return []task.Stage{m.LifecycleStage(ctx, t)}
+ 	}
+-	return []task.Stage{m.LifecycleStage(ctx, t)}
++	return stager.LifecycleStages(ctx, t)
+ }
+ 
+ // LabelDeltaLifecycleStages implements LifecycleStageSetStager by routing to
+ // the store that owns the task's collection. A store that keeps the lifecycle
+ // stage in labels answers for itself; for every other store a label edit
+ // cannot move the stage, so both endpoints are the task's current one.
++//
++// As in LifecycleStages above, the inner store's answer is propagated verbatim
++// rather than repaired here, so that a contract violation reaches the single
++// rule that denies it instead of being absorbed by a second copy of the
++// fallback. See B2 / B4.
+ func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+-		if len(b) > 0 && len(a) > 0 {
+-			return b, a
+-		}
++	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
++	if !ok {
++		current := []task.Stage{m.LifecycleStage(ctx, t)}
++		return current, current
+ 	}
+-	current := []task.Stage{m.LifecycleStage(ctx, t)}
+-	return current, current
++	return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+ }
+ 
+ func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 1838b25..2804a63 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -3,6 +3,7 @@ package store
+ import (
+ 	"context"
+ 	"errors"
++	"fmt"
+ 	"time"
+ 
+ 	"github.com/farmtable-io/farmtable/internal/store/ent"
+@@ -127,16 +128,39 @@ type LifecycleStageSetStager interface {
+ 	LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage)
+ }
+ 
++// ErrEmptyLifecycleStageSet reports that a LifecycleStageSetStager returned an
++// empty stage set, which its contract forbids.
++//
++// This is not a condition any correct store reaches, and it is deliberately not
++// recoverable. An empty set means "this task names no lifecycle stage", and
++// every caller of these helpers is an authorization gate that charges for the
++// stages it is handed — so an empty set spends nothing and ALLOWS. Returning
++// "no transition" here, which is what this package used to do, converts a
++// broken store into a silently open gate. Callers must deny instead. See F7.
++var ErrEmptyLifecycleStageSet = errors.New(
++	"store: LifecycleStageSetStager returned an empty lifecycle stage set")
++
+ // LifecycleStages returns every lifecycle stage a task names. Authorization
+ // must evaluate its decision against all of them and demand the strongest
+ // answer, rather than picking one. Never empty.
+-func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
+-	if stager, ok := s.(LifecycleStageSetStager); ok {
+-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+-			return stages
+-		}
++//
++// A store that does not implement LifecycleStageSetStager is answered from
++// LifecycleStage. That is the correct answer and not a stub: a task whose stage
++// lives in its own column names exactly one stage and no label can forge it.
++//
++// A store that DOES implement the interface and returns empty has violated its
++// contract, and gets ErrEmptyLifecycleStageSet rather than a substituted
++// answer. Substituting here is what made the old fallback fail open.
++func LifecycleStages(ctx context.Context, s Store, t *ent.Task) ([]task.Stage, error) {
++	stager, ok := s.(LifecycleStageSetStager)
++	if !ok {
++		return []task.Stage{LifecycleStage(ctx, s, t)}, nil
+ 	}
+-	return []task.Stage{LifecycleStage(ctx, s, t)}
++	stages := stager.LifecycleStages(ctx, t)
++	if len(stages) == 0 {
++		return nil, fmt.Errorf("%w: LifecycleStages", ErrEmptyLifecycleStageSet)
++	}
++	return stages, nil
+ }
+ 
+ // LabelDeltaLifecycleStages reports the lifecycle stages a task names now and
+@@ -149,15 +173,27 @@ func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
+ // "a label edit induces no stage transition" is the correct answer rather than
+ // a missing one. Callers that gate on before != after are therefore inert on
+ // those stores by construction.
+-func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+-	if stager, ok := s.(LifecycleStageSetStager); ok {
+-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+-		if len(b) > 0 && len(a) > 0 {
+-			return b, a
+-		}
++//
++// A store that DOES implement the interface and returns either side empty has
++// violated its contract, and gets ErrEmptyLifecycleStageSet. The previous
++// version required len(b) > 0 && len(a) > 0 and otherwise fell through to
++// (current, current) — "no transition", which charges nothing. For an
++// implementation that returned one empty side that was fail-OPEN, and it was
++// the same rule written twice (here and in MultiStore), so the two copies could
++// drift. There is now one rule, in one place, and it denies. See F7 / B4.
++func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage, err error) {
++	stager, ok := s.(LifecycleStageSetStager)
++	if !ok {
++		current := []task.Stage{LifecycleStage(ctx, s, t)}
++		return current, current, nil
++	}
++	b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
++	if len(b) == 0 || len(a) == 0 {
++		return nil, nil, fmt.Errorf(
++			"%w: LabelDeltaLifecycleStages (before=%d after=%d)",
++			ErrEmptyLifecycleStageSet, len(b), len(a))
+ 	}
+-	current := []task.Stage{LifecycleStage(ctx, s, t)}
+-	return current, current
++	return b, a, nil
+ }
+ 
+ // SameStageSet reports whether two lifecycle stage sets name the same stages.

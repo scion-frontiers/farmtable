@@ -1,0 +1,88 @@
+OBJECT-IDENTITY READ. Your item 2, ahead of the back-check as ordered. Both objects read,
+neither recalled. Citations first, verdict second, because the verdict turns on which
+sentence in each artefact is load-bearing and you should be able to check that yourself.
+
+RULING 1, AS WRITTEN, state file line 11873:
+
+  "RULING 1 - remote_data IS a security boundary. RULED, not MEASURED. Reason is NOT the
+   empty sink inventory (the weakest possible basis for either answer - a fact about today
+   with no mechanism holding it true) but that the bytes are attacker-authored and THE SINK
+   SET IS OPEN AND UNOWNED."
+
+Q3, AS WRITTEN, audit report line 156 and the two lines under it:
+
+  "Q3 - Is writable a security boundary?
+   NO. It is a UI affordance, and today it is an inert one. [MEASURED, with one UNCHECKED
+   edge]"
+
+WHAT writable IS, read from source rather than from either report: it is one boolean key
+inside collection remote_data. The dashboard binds the map, tests for the key's presence,
+and compares it to true. It is a leaf of the object Ruling 1 names, not a synonym for it.
+
+VERDICT: DIFFERENT OBJECTS. Your branch 2. And they are not merely different, they are in
+a containment relation - Q3's object is one leaf inside one level of Ruling 1's object.
+
+AND THEY ARE NOT IN TENSION, WHICH IS THE PART I WANT CHECKED HARDEST.
+
+Q3 rests on two supports. The first is that no non-test Go code in the tree writes the key,
+which is their measurement and their wording - and that is a fact about today, and it is the exact basis Ruling 1 pre-emptively refused, in its own
+text, in parentheses. The second is stronger and structural: no server handler consults any
+client-supplied capability, so the flag cannot unlock a server operation. But that argument
+is about ONE CLASS OF HARM - capability escalation - and remote_data's exposure is not
+confined to that class. It also carries labels, sub-issues and URL-bearing values whose harm
+is on interpolation paths, where "no handler asks it anything" says nothing at all.
+
+So Q3 is a measurement of one member of a set Ruling 1 declines to close. It does not touch
+the ruling. Stronger: THE EXISTENCE OF Q3 IS CONFIRMING EVIDENCE FOR RULING 1'S MECHANISM.
+A consumer of this field appeared that nobody owned, that appears in no report I have read
+before r5, and that the instruments used up to that point could not see. That this particular one turned out inert is precisely the fact
+about today that the ruling said not to bank.
+
+NEITHER POSITION IS RETIRED. But branch 2 fires and I owe you its content, and it is worse
+than the vocabulary defect you described.
+
+I could not decide this question from the noun. "remote_data" unqualified covers the
+container and every leaf in it, present and future. I could only separate the two objects by
+reading Ruling 1's BASIS CLAUSE - the sentence about the sink set being open and unowned.
+That sentence is doing all the scoping work, and it is not in the headline.
+
+  A RULING IS CITED BY ITS HEADLINE AND SCOPED BY ITS SUPPORT, AND ONLY THE HEADLINE
+  TRAVELS.
+
+That is load-bearing, not cosmetic. Anyone who later cites "Ruling 1: remote_data IS a
+security boundary" and meets a measurement that some leaf of remote_data is inert will have
+exactly the collision I had, with no way to resolve it from the text they are citing. It
+took me a read of two artefacts and a source file to resolve, and I WROTE ONE OF THE
+ARTEFACTS.
+
+AND THE COLLISION IS MINE, NOT THE AUDIT LEG'S. The question it answered was worded by me:
+I reused Ruling 1's exact predicate on a sub-object without re-scoping the noun. The leg
+answered the question as asked, correctly, and labelled its own confidence. It could not
+have avoided this; the ambiguity was in the prompt.
+
+WHAT I AM DOING ABOUT IT, and tell me if you want it different.
+
+1. RULING 1 RESTATED WITH ITS OBJECT PINNED, and its basis welded into the statement rather
+   than sitting under it:
+
+     The remote_data MAP AS A WHOLE - both levels, every leaf, including leaves not yet
+     added - is a security boundary, BECAUSE ITS BYTES ARE ATTACKER-AUTHORED AND ITS SINK
+     SET IS OPEN AND UNOWNED. A measurement that any individual leaf is inert today does
+     not bear on this, because the ruling never rested on the inventory of leaves or the
+     inventory of sinks.
+
+2. RULING 1 GETS A RETIREMENT CONDITION, WHICH IT DID NOT HAVE. In your standing form, one
+   clause, one ruling, direction stated:
+
+     IF THE SINK SET FOR remote_data IS SHOWN TO BE CLOSED AND OWNED, THEN RULING 1 IS
+     RETIRED. Nothing else retires it - and in particular, no finding that a named leaf is
+     harmless does, in either direction.
+
+3. The audit's Q3 result is recorded under its own object and never as a result about
+   remote_data. Its own words - a UI affordance, inert today - are the ones that travel.
+
+4. Filed as a class, and this is the one I would carry forward: WHEN A PREDICATE IS REUSED
+   ON A SUB-OBJECT, THE NOUN MUST BE RE-SCOPED AT THE POINT OF REUSE. I did not, and the
+   reuse was in a question I wrote, which is the cheapest possible place to have caught it.
+
+Your disjunction held, and I checked it rather than assuming. There was no third outcome.

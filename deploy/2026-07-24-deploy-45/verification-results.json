@@ -1,0 +1,117 @@
+{
+  "testDate": "2026-07-24T19:07:07.206Z",
+  "deployRevision": "farmtable-00052-hf7",
+  "commitSha": "7b94440b5878b03c6ee8301f0d9f1dc4336788ce",
+  "feature": "Performance Phase 1 — getChildren O(n^2) fix + default depth limit (PR #149)",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "SOME FAILED",
+  "passCount": 9,
+  "failCount": 2,
+  "totalChecks": 11,
+  "checks": [
+    {
+      "check": "1-perf-load-time",
+      "action": "Large collection loads in reasonable time (< 10s)",
+      "pass": true,
+      "detail": "Time to interactive: 2999ms. Baseline was 17-25s. Rendered 1036 nodes (depth-limited from ~9284).",
+      "timestamp": "2026-07-24T19:06:40.440Z"
+    },
+    {
+      "check": "2a-depth-limit-active",
+      "action": "Fewer nodes rendered than total tasks (depth limit active)",
+      "pass": true,
+      "detail": "Rendered: 1036, Total tasks: 9284. Ratio: 11.2%",
+      "timestamp": "2026-07-24T19:06:40.440Z"
+    },
+    {
+      "check": "2b-depth-badge-visible",
+      "action": "\"N deeper levels hidden\" badge visible",
+      "pass": true,
+      "detail": "Depth badge text: \"2 deeper levels hidden\"",
+      "timestamp": "2026-07-24T19:06:40.440Z"
+    },
+    {
+      "check": "3-level-dropdown-override",
+      "action": "Level dropdown found and usable",
+      "pass": false,
+      "detail": "Could not find or use level dropdown: {\"error\":\"no level select found\",\"buttons\":[\"Solo\"],\"selects\":1}",
+      "timestamp": "2026-07-24T19:06:40.510Z"
+    },
+    {
+      "check": "4-small-collection-renders",
+      "action": "Small collection renders normally",
+      "pass": true,
+      "detail": "Rendered 37 nodes for \"default\" (37 tasks)",
+      "timestamp": "2026-07-24T19:06:45.874Z"
+    },
+    {
+      "check": "4-small-no-depth-limit",
+      "action": "Small collection has no depth limit applied",
+      "pass": true,
+      "detail": "Depth badge: \"none\" (expected: none)",
+      "timestamp": "2026-07-24T19:06:45.874Z"
+    },
+    {
+      "check": "5-solo-mode-available",
+      "action": "Solo mode UI is present and accessible",
+      "pass": true,
+      "detail": "Solo button found: true. Buttons: [\"Solo\"]",
+      "timestamp": "2026-07-24T19:06:51.262Z"
+    },
+    {
+      "check": "6-dependency-view-renders",
+      "action": "Dependency View renders correctly",
+      "pass": false,
+      "detail": "View: dashboard, Rendered: undefined, Nodes: undefined",
+      "timestamp": "2026-07-24T19:06:56.556Z"
+    },
+    {
+      "check": "7-dashboard-regression",
+      "action": "Dashboard renders with stats",
+      "pass": true,
+      "detail": "Total: 37, Stats: Open:29, In Progress:8, On Hold:0, Closed:0, Ready:19, Total:37",
+      "timestamp": "2026-07-24T19:07:01.803Z"
+    },
+    {
+      "check": "8-ready-queue-regression",
+      "action": "Ready Queue renders correctly",
+      "pass": true,
+      "detail": "View: ready-queue, Rendered: true, Rows: 19, Header: Ready Queue (19)",
+      "timestamp": "2026-07-24T19:07:07.060Z"
+    },
+    {
+      "check": "9-no-console-errors",
+      "action": "No relevant console errors during verification",
+      "pass": true,
+      "detail": "Zero relevant console errors (2 total, all filtered)",
+      "timestamp": "2026-07-24T19:07:07.139Z"
+    }
+  ],
+  "performance": {
+    "largeCollection": {
+      "name": "Vintage Action Figures Ecommerce v2 - flash-3.6",
+      "expectedTasks": 9284,
+      "totalLoadTimeMs": 4006,
+      "timeToFirstNodesMs": 2999,
+      "timeToInteractiveMs": 2999,
+      "renderedNodeCount": 1036,
+      "treeInfo": {
+        "renderedNodes": 1036,
+        "foreignObjects": 1036,
+        "depthBadge": "2 deeper levels hidden",
+        "currentLevel": "3",
+        "maxDepth": 3,
+        "hasHierarchyNav": true
+      },
+      "baseline": "17,000-25,000ms (from investigation report)"
+    }
+  },
+  "consoleErrorCount": 2,
+  "relevantConsoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 ()",
+      "url": "https://farmtable-486315127503.us-central1.run.app/favicon.ico",
+      "timestamp": "2026-07-24T19:06:34.320Z"
+    }
+  ]
+}

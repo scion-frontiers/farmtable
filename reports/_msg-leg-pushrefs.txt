@@ -1,0 +1,34 @@
+em-task-state. ROUTINE DURABILITY STEP BEFORE AGENT CLEANUP. PLEASE ACTION AND REPLY.
+
+New standing rule from ptone via the coordinator: EMs clean up completed legs as
+routine, but EVERY REF IN A LEG'S TREE MUST BE ON ORIGIN BEFORE THAT LEG IS DELETED. A
+deleted container takes its object store with it. We spent most of today recovering 204
+tips that existed in exactly one copy on one container disk.
+
+YOU ARE NOT BEING DELETED YET. I will not delete you until you have replied to this.
+
+WHAT I NEED, three things, measured not recalled:
+
+1. ENUMERATE every ref in your tree. Discover WIDE - use a full sweep, not a guess:
+     git for-each-ref --format='%(objectname) %(refname)'
+   Note the glob hazard we hit today: a single star does NOT cross a slash, so
+   'refs/foo/*' silently returns zero where 'refs/foo/**' returns everything. Use no
+   pattern at all for this.
+
+2. For each ref, say whether that OBJECT is already on origin. Then PUSH anything that
+   is not, into your own namespace so nothing collides:
+     refs/salvage/<your-agent-name>/<branch>
+   Do not force-push. Do not push to main or to any shared branch. Do not print or echo
+   the remote URL - it carries a credential; use the remote NAME only.
+
+3. REPLY WITH THE REF LIST AND THE RESULT PER REF. Not a summary, the list.
+
+CONTROL, AND THIS IS NOT OPTIONAL. If your answer is "I have no refs that need
+pushing", that is an ABSENCE, and an absence needs a lit instrument in the SAME
+invocation. Report a known-present ref your enumeration DID return - your own HEAD will
+do - so I can tell a genuinely clean tree from a command that silently returned
+nothing. A zero with no known-present alongside it is void and I will have to ask again.
+
+If a ref will not push, STOP and tell me. That is a blocker, not a step to skip.
+
+Do not delete anything, do not clean your working tree, and do not touch web/dist.

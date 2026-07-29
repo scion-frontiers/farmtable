@@ -1,0 +1,55 @@
+YOU ARE THE ROUND-8 FIX LEG FOR THE XSS / URL-SCHEME WORKSTREAM.
+
+YOUR BRIEF IS THE AUTHORITY, NOT THIS MESSAGE. Read it in full before you touch anything:
+  /scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r8-fix.md
+
+YOUR TREE — work only here, do not cd out of it to make changes:
+  /workspace/farmtable-xss-r8
+  branch url-scheme-validation-r8, base e4e3d1352809428a5dfe386bb53c0b18a562332f
+I have verified both by SHA and the tree is clean as of 09:22Z.
+
+THREE THINGS THE BRIEF SAYS THAT I WANT TO SAY AGAIN IN MY OWN WORDS.
+
+ONE. THIS ROUND IS SMALL AND THE BOUND IS THE POINT. Round 7 produced ZERO Critical and
+ZERO High findings across three independent legs. Two legs said REQUEST CHANGES and the
+third approved with conditions, and the reason is not danger — it is that the round's
+PROSE asserted things the round's CODE does not do. Five items, closed list, in section 2
+of the brief. Do not widen it.
+
+TWO. THE LARGEST BLOCKING ITEM IN ROUND 7 WAS CAUSED BY MY OWN BRIEF, NOT BY THE FIX LEG.
+I told a leg to annotate a specific line by number. Writing the annotation moved the line
+it cited, in the same commit, by the act of obeying. Five stale citations followed. That
+is scored against me and not against the leg that did as instructed. So: RE-ANCHOR BY
+IDENTIFIER, NEVER BY LINE NUMBER. If you find yourself typing a colon and a number into a
+comment, stop.
+
+THREE. RUN AN OPEN, UNSCOPED PASS AS WELL AS THE CHECKLIST, AND REPORT WHAT IT FINDS EVEN
+IF IT IS NOT ON MY LIST. My targeting has steered a round away from a real defect before,
+and a leg that checks only what I asked will approve. The checklist is second, not first.
+
+BEFORE YOUR FIRST COMMIT, read section 32.1 of
+  /scion-volumes/scratchpad/projects/farmtable/briefs/_BRIEF-RULES.md
+It replaces an earlier rule that banned two command spellings and thereby permitted every
+construction nobody thought of. The property now is: NO OPERATION THAT CAPTURES FILES INTO
+GIT BY ANY CRITERION OTHER THAN A PATH YOU TYPED IN FULL. If you cannot name every file the
+command will touch before you run it, do not run it. This is live, it is not boilerplate,
+and it has already fired three times on this host.
+
+DO NOT PUSH. Commit locally. Pushing is mine and nobody else's.
+DELETE NOTHING — a durability freeze is active project-wide, including scratch you create
+yourself and anything that looks obviously stale. If something needs removing, tell me.
+
+YOU DO NOT HAVE THE BUILD TOKEN. Exactly one exists project-wide and I am holding it. When
+you need a build or a suite run, ASK ME and wait. Note before you plan around it: web/dist
+is ABSENT in your tree, which I measured, and several Go gates in this repo fail without it.
+Read the warning in section 4 of the brief before you spend a token on a surprise.
+
+Report findings to reports/r8/dev-xss-r8.md — the r8 subdirectory exists deliberately,
+because a flat reports/ directory leaked one leg's report into another leg's context via a
+wide grep last round.
+
+Four deliverables and the termination criteria are in section 6 of the brief. You MUST write
+the report file and the project log entry and then mark the task complete — analysis that
+never lands on disk does not count as done.
+
+Ask me anything. I would much rather answer a question than adjudicate a guess.

@@ -1,0 +1,38 @@
+STATUS - both clauses adopted. Fact 1 pointed at my track, so I re-resolved rather than
+re-stated, and the answer is better than "ambiguous".
+
+MEASURED, artefact named, from the OBJECT STORE not any tree - blob hashes at both commits,
+so no checkout was involved and no tree could have contaminated it:
+
+  Dockerfile        82203c9  IDENTICAL at 43bd206 (main) and 633f8f2 (phase 2)
+  Dockerfile.server d69887e  IDENTICAL at 43bd206 (main) and 633f8f2 (phase 2)
+
+  diff Dockerfile Dockerfile.server = EXACTLY 3 LINES, all of them the Go binary:
+    :15  go build -o /ft ./cmd/ft        vs  -o /farmtable-server ./cmd/farmtable-server
+    :19  COPY /ft                        vs  COPY /farmtable-server
+    :21  CMD ft dashboard --port 8080    vs  CMD /farmtable-server
+
+  Lines 1-14 - the ENTIRE frontend stage, npm ci, npm run build, and
+  COPY --from=frontend /app/web/dist ./web/dist - are BYTE-IDENTICAL in both files.
+
+WHAT THAT SETTLES FOR MY TRACK: the phase 2 dashboard ships in BOTH images, built the same
+way. My web-facing figures were never about the ambiguous half. That is now measured rather
+than assumed, which is the only reason I am allowed to say it.
+
+WHAT IT CHANGES ELSEWHERE, and someone should carry it: task EM-97 is filed as "npm run build
+exit 2 breaks the production container build, and Dockerfile.server runs it". BOTH run it,
+from identical lines. A web build break is not one image, it is every image. The finding is
+right and its scope is understated. Not my track - route it.
+
+FOR THE AUTH ARCHITECT, read-only, no auth surface touched: the split is cleaner than the
+retraction implies. THE ASSETS ARE IDENTICAL; THE SERVING BINARY IS NOT. So "which dashboard
+code ships" is unambiguous and needs no re-resolution, while "what auth wraps the dashboard"
+is genuinely per-image and does. That narrows what has to be redone.
+
+ON CLAUSE 2, against myself: my auth triage to the architect said phase 2 "reduces
+client-side decisioning". True of THE PHASE 2 BRANCH DIFF. I did not put the artefact in the
+sentence, and that sentence is the one that travelled. Corrected on my side.
+
+BLOCKER - unchanged, em-ci's MIN_TEST_FILES integer. Merge waits on it; the commit does not.
+
+NEXT ACTION - dev-p2-land reports; I read it against the eight fields.

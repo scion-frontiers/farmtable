@@ -1,0 +1,244 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"sort"
+
+	"github.com/spf13/cobra"
+	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/steveyegge/beads/internal/storage"
+	"github.com/steveyegge/beads/internal/types"
+	"github.com/steveyegge/beads/internal/ui"
+)
+
+// GatedMolecule represents a molecule ready for gate-resume dispatch
+type GatedMolecule struct {
+	MoleculeID    string       `json:"molecule_id"`
+	MoleculeTitle string       `json:"molecule_title"`
+	ClosedGate    *types.Issue `json:"closed_gate"`
+	ReadyStep     *types.Issue `json:"ready_step"`
+}
+
+// GatedReadyOutput is the JSON output for bd mol ready --gated
+type GatedReadyOutput struct {
+	Molecules []*GatedMolecule `json:"molecules"`
+	Count     int              `json:"count"`
+}
+
+var molReadyGatedCmd = &cobra.Command{
+	Use:   "ready --gated",
+	Short: "Find molecules ready for gate-resume dispatch",
+	Long: `Find molecules where a gate has closed and the workflow is ready to resume.
+
+This command discovers molecules waiting at a gate step where:
+1. The molecule has a gate bead that blocks a step
+2. The gate bead is now closed (condition satisfied)
+3. The blocked step is now ready to proceed
+4. No agent currently has this molecule hooked
+
+This enables discovery-based resume without explicit waiter tracking.
+The patrol system uses this to find and dispatch gate-ready molecules.
+
+Examples:
+  bd mol ready --gated           # Find all gate-ready molecules
+  bd mol ready --gated --json    # JSON output for automation`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runMolReadyGated,
+}
+
+func runMolReadyGated(cmd *cobra.Command, args []string) error {
+	if usesProxiedServer() {
+		return HandleErrorRespectJSON("mol ready is not supported in proxied-server mode")
+	}
+	evt := metrics.NewCommandEvent("mol-ready-gated")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	return runMolReadyGatedCore(cmd, args)
+}
+
+// runMolReadyGatedCore runs the gate-ready molecule discovery and rendering
+// without emitting a metrics event, so the caller owns emission. `bd ready
+// --gated` delegates here after recording its own "ready" event, while the
+// standalone runMolReadyGated entrypoint records "mol-ready-gated"; this keeps a
+// single `bd ready --gated` invocation to exactly one cli_command event.
+func runMolReadyGatedCore(_ *cobra.Command, _ []string) error {
+	ctx := rootCtx
+
+	if store == nil {
+		return HandleErrorRespectJSON("no database connection")
+	}
+
+	molecules, err := findGateReadyMolecules(ctx, store)
+	if err != nil {
+		return HandleErrorRespectJSON("%v", err)
+	}
+
+	if jsonOutput {
+		output := GatedReadyOutput{
+			Molecules: molecules,
+			Count:     len(molecules),
+		}
+		if output.Molecules == nil {
+			output.Molecules = []*GatedMolecule{}
+		}
+		return outputJSON(output)
+	}
+
+	if len(molecules) == 0 {
+		fmt.Printf("\n%s No molecules ready for gate-resume dispatch\n\n", ui.RenderWarn(""))
+		return nil
+	}
+
+	fmt.Printf("\n%s Molecules ready for gate-resume dispatch (%d):\n\n",
+		ui.RenderAccent(""), len(molecules))
+
+	for i, mol := range molecules {
+		fmt.Printf("%d. %s: %s\n", i+1, ui.RenderID(mol.MoleculeID), mol.MoleculeTitle)
+		if mol.ClosedGate != nil {
+			fmt.Printf("   Gate closed: %s (%s)\n", mol.ClosedGate.ID, mol.ClosedGate.AwaitType)
+		}
+		if mol.ReadyStep != nil {
+			fmt.Printf("   Ready step: %s - %s\n", mol.ReadyStep.ID, mol.ReadyStep.Title)
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("To dispatch a molecule:")
+	fmt.Println("  bd sling <agent> --mol <molecule-id>")
+	return nil
+}
+
+// findGateReadyMolecules finds molecules where a gate has closed and work can resume.
+//
+// Logic:
+// 1. Find all closed gate beads
+// 2. For each closed gate, find what step it was blocking
+// 3. Check if that step is now ready (unblocked)
+// 4. Find the parent molecule
+// 5. Filter out molecules that are already hooked by someone
+func findGateReadyMolecules(ctx context.Context, s storage.DoltStorage) ([]*GatedMolecule, error) {
+	// Step 1: Find all closed gate beads
+	gateType := types.IssueType("gate")
+	closedStatus := types.StatusClosed
+	gateFilter := types.IssueFilter{
+		IssueType: &gateType,
+		Status:    &closedStatus,
+	}
+
+	closedGates, err := s.SearchIssues(ctx, "", gateFilter)
+	if err != nil {
+		return nil, fmt.Errorf("searching closed gates: %w", err)
+	}
+
+	if len(closedGates) == 0 {
+		return nil, nil
+	}
+
+	// Step 2: Get ready work to check which steps are ready
+	readyIssues, err := s.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		return nil, fmt.Errorf("getting ready work: %w", err)
+	}
+	readyIDs := make(map[string]bool)
+	for _, issue := range readyIssues {
+		readyIDs[issue.ID] = true
+	}
+
+	// Step 3: Get hooked molecules to filter out
+	hookedStatus := types.StatusHooked
+	hookedFilter := types.IssueFilter{
+		Status: &hookedStatus,
+	}
+	hookedIssues, err := s.SearchIssues(ctx, "", hookedFilter)
+	if err != nil {
+		// Non-fatal: just continue without filtering
+		hookedIssues = nil
+	}
+	// Batch-find parent molecules for hooked issues (bd-hn4q)
+	hookedMolecules := make(map[string]bool)
+	if len(hookedIssues) > 0 {
+		hookedIDs := make([]string, len(hookedIssues))
+		for i, issue := range hookedIssues {
+			hookedIDs[i] = issue.ID
+			hookedMolecules[issue.ID] = true // Mark hooked issue itself
+		}
+		hookedRoots := findParentMolecules(ctx, s, hookedIDs)
+		for _, molID := range hookedRoots {
+			hookedMolecules[molID] = true
+		}
+	}
+
+	// Step 4: For each closed gate, collect all dependents that are ready,
+	// then batch-find their parent molecules (bd-hn4q)
+	type gateDependent struct {
+		gate      *types.Issue
+		dependent *types.Issue
+	}
+	var readyDependents []gateDependent
+	var readyDepIDs []string
+
+	for _, gate := range closedGates {
+		dependents, err := s.GetDependents(ctx, gate.ID)
+		if err != nil {
+			continue
+		}
+		for _, dependent := range dependents {
+			if readyIDs[dependent.ID] {
+				readyDependents = append(readyDependents, gateDependent{gate: gate, dependent: dependent})
+				readyDepIDs = append(readyDepIDs, dependent.ID)
+			}
+		}
+	}
+
+	// Batch-find molecule roots for all ready dependents
+	depMolRoots := findParentMolecules(ctx, s, readyDepIDs)
+
+	moleculeMap := make(map[string]*GatedMolecule)
+	for _, gd := range readyDependents {
+		moleculeID := depMolRoots[gd.dependent.ID]
+		if moleculeID == "" {
+			continue
+		}
+		if hookedMolecules[moleculeID] {
+			continue
+		}
+		if _, exists := moleculeMap[moleculeID]; !exists {
+			moleculeIssue, err := s.GetIssue(ctx, moleculeID)
+			if err != nil || moleculeIssue == nil {
+				continue
+			}
+			moleculeMap[moleculeID] = &GatedMolecule{
+				MoleculeID:    moleculeID,
+				MoleculeTitle: moleculeIssue.Title,
+				ClosedGate:    gd.gate,
+				ReadyStep:     gd.dependent,
+			}
+		}
+	}
+
+	// Convert to slice and sort
+	var molecules []*GatedMolecule
+	for _, mol := range moleculeMap {
+		molecules = append(molecules, mol)
+	}
+	sort.Slice(molecules, func(i, j int) bool {
+		return molecules[i].MoleculeID < molecules[j].MoleculeID
+	})
+
+	return molecules, nil
+}
+
+func init() {
+	// `bd ready --gated` registers --gated on readyCmd in ready.go.
+	// `bd mol ready` is a separate subcommand under molCmd that always runs
+	// in gated mode, so accept --gated here too: both spellings work and the
+	// documented `bd mol ready --gated` form actually matches the help text.
+	molReadyGatedCmd.Flags().Bool("gated", false, "Find molecules ready for gate-resume dispatch (always on for this subcommand)")
+	molCmd.AddCommand(molReadyGatedCmd)
+}

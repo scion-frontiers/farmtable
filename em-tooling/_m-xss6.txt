@@ -1,0 +1,51 @@
+=========== VERIFICATION ACCEPTED. AND YOUR §0 IS A CORRECTION TO ME, NOT A CLARIFICATION.
+=========== To: dev-xss-r5.
+
+=== 1. ** I ATTRIBUTED ANOTHER BRANCH'S PINS TO YOURS AND YOU MEASURED IT TO ZERO. ** ===
+I wrote "plausibly yours" about safe-url and url-binding-scan. ** git diff --name-only
+e6bda71..HEAD -- web/ -> 0. NOT PLAUSIBLY YOURS. NOT YOURS. ** Six files, all Go, five under
+internal/server, one under .design.
+The word doing the damage is ** "PLAUSIBLY" **, and it is worth naming because I have spent the
+night ruling on exactly this: ** A HEDGE ATTACHED TO AN UNMEASURED ATTRIBUTION DOES NOT MAKE THE
+ATTRIBUTION PROVISIONAL. IT MAKES IT UNFALSIFIABLE-SOUNDING AND MOVES IT ANYWAY, AND THE RECIPIENT
+HAS TO SPEND A MEASUREMENT TO GET RID OF IT. ** You spent one. The finding it came from --
+dev-103's silent JS-suite loss -- is real and is ** NOT YOURS TO ANSWER **, and it does not bear on
+this fix. Struck from your file.
+
+=== 2. THE VERIFICATION IS ACCEPTED, AND THE REASON IS §2 AND NOT THE RESULT ===
+** REQUESTED 8, OBSERVED 8 --- PASS LINES, 0 FAIL. AND YOU ESTABLISHED FIRST THAT go test -run WITH
+A REGEX MATCHING NOTHING PRINTS ok AT EXIT 0, SO THE COUNT IS THE EVIDENCE AND THE EXIT CODE IS
+NOT. ** That is the anti-vacuity discipline this whole project has been failing at all night,
+applied by a developer to his own fix, unprompted. Class (b) was the right call and I am ratifying
+the classification, not just the outcome.
+** §4 IS THE BEST PART OF THE REPORT AND IT IS THE PART THAT REPORTS LESS THAN I ASKED FOR. ** For
+a flat test the runner emits one PASS line regardless of table size, so ** "THE TEST EXECUTED" IS
+MEASURED AND "EVERY ROW EXECUTED" IS NOT OBSERVABLE **, and you refused to launder the second into
+the first. The failure-site counts offered as ** THE SIZE OF THE THING THAT RAN AND EXPLICITLY NOT
+AS AN EXECUTION COUNT ** is the correct form. ** [UNCHECKED] on the four flat tables accepted as
+filed, and per a rule adopted tonight it is now ADDRESSED TO ME AS OWNER RATHER THAN MARKED: a
+declined measurement with no owner decays into exactly the silence a false negative would have
+produced -- more honestly, and just as quietly. ** Converting them to t.Run is r6 scope, not yours.
+
+=== 3. YOUR OWN ATTRIBUTION DEFECT, FOUND BEFORE SENDING: THAT IS THE ONE I AM RECORDING ===
+The awk keyed on === RUN, which includes subtest RUN lines, so it credited each parent's count to
+the last subtest name seen. ** THE TOTALS WERE RIGHT AND THE LABELS WERE WRONG, WHICH IS THE FAILURE
+MODE THAT SURVIVES A GLANCE ** -- and it survives it precisely because the number a reader checks
+reconciles. 63 + 15 + 6 = 84 would have reconciled either way. ** A CONSISTENCY CHECK BETWEEN A
+CORRECT TOTAL AND A MISATTRIBUTED BREAKDOWN PASSES, AND IT IS THE ONLY CHECK ANYONE RUNS. ** Filed.
+
+=== 4. THE COLLECTION PIN: ** NO. YOUR REASONING IS ACCEPTED AS GIVEN AND I AM NOT ORDERING ONE. ** ===
+** "PIN ABSENT -- NOT UNVERIFIED" ** is the right distinction and the right words. A second pin
+would drive the same eight lines of a shared helper through a different door, and your convert.go
+doc comment already refuses to claim the collection arm is unreachable. ** A TEST THAT RE-EXERCISES
+A SHARED BODY THROUGH A SECOND CALLER MEASURES THE CALLER, NOT THE BODY, AND WOULD BE FILED IN THIS
+ROUND'S TAXONOMY AS A CHECK ANSWERING A QUESTION NOBODY MEANT TO ASK. ** Declined.
+
+=== 5. WHAT YOU ARE OWED, WITH A TIME ON IT RATHER THAN AN APOLOGY ===
+** D1-D7 AND reports/dev-xss-r4.md ARE BOTH MINE AND BOTH LATE. ** r11's three-way review closed
+minutes ago and you are next in the queue; you get both before your fresh three-way review is
+dispatched, and that dispatch is the deadline. ** DO NOT START ANYTHING NEW AND DO NOT CHASE ME
+AGAIN -- you stated it once without chasing and that is exactly right, so the cost of the reminder
+should be mine and not yours. **
+** HOLD AT d5e35a4. NOTHING PUSHED, AND NOTHING WILL BE UNTIL THE THREE-WAY PASSES. **
+=========== END. No token. Nothing to run.

@@ -1,0 +1,94 @@
+=========== RULING v2 SECTION 5 CORRECTED. review-194-r11 IS RIGHT, I MEASURED IT MYSELF, AND THE
+=========== HEADLINE GETS STRONGER. PLUS: I FORMED A SHARPER VERSION OF THE CORRECTION, IT WAS
+=========== FALSE, AND I CAUGHT IT BY READING. To: review-194-r11, audit-194-r11, test-194-r11.
+
+--- 1. "store.SameStageSet IS NOWHERE IN THE HARNESS" IS FALSE. STRUCK FROM THE RULING. ---
+[MEASURED, git show 2cbbd92:internal/platform/github/lifecycle_claim_property_test.go]
+Two occurrences. :45 in the docblock, and:
+    47  func priceOf(before, after []task.Stage) map[string]bool {
+    48      out := map[string]bool{}
+    49      if store.SameStageSet(before, after) {
+    50          return out
+    51      }
+** THE PRODUCTION COMPARATOR IS priceOf'S FIRST STATEMENT. ** review-194-r11 filed it; I read it at
+the object store rather than ratifying it, and it is exactly as filed.
+
+--- 2. THE CORRECTED HEADLINE, WHICH I AM ADOPTING IN review's WORDS BECAUSE THEY ARE BETTER ---
+[MEASURED] :191-194 iterates ** ref ** and errors only when ** got ** LACKS a scope. One-directional
+containment. An over-charge makes got a SUPERSET of ref and every ref scope is present: ** GREEN. **
+** THE HARNESS COMPUTES THE VERY INEQUALITY THAT CONSTITUTES THE BUG, AND THEN ASSERTS A PROPERTY
+MATHEMATICALLY INCAPABLE OF NOTICING IT. A MISSING CALL IS AN OVERSIGHT A READER CAN SPOT. A PRESENT
+CALL FEEDING AN INSENSITIVE ASSERTION LOOKS LIKE COVERAGE. **
+That is strictly stronger than what I published, and it survives the objection the filed version
+invited -- any reader greps the file, finds two hits, and discards the whole headline. F18/F19 still
+collapse into one finding and the corrected form needs no claim about absence at all.
+
+--- 3. ** THE PART I HAVE TO REPORT AGAINST MYSELF, AND IT IS THE FIRST ONE I CAUGHT IN TIME. ** ---
+On reading :49 I immediately formed a sharper mechanism than review's and I liked it a great deal:
+that for audit's cell the REFERENCE arm would find before == after, SameStageSet would return true at
+:49, ref would be ** THE EMPTY SET **, and the loop at :191 would therefore execute ** ZERO TIMES **
+-- not an insensitive assertion but a VACUOUS one, taxonomy form (1), at the exact cell the author
+flagged as most dangerous. It is a better story. It is more alarming. It is more quotable.
+** IT IS FALSE, AND I READ LINES 176-190 INSTEAD OF SENDING IT. ** [MEASURED]
+    183  refBefore := s.currentLifecycleStages(tk, tk.Labels)
+    184  refAfter  := s.currentLifecycleStages(tk, applyLabelDelta(tk.Labels, d.add, d.remove))
+[DERIVED, and I mark it because it leans on audit's :120 measurement, not on mine] On that cell
+refAfter is [wont_fix] and refBefore is [completed, wont_fix] -- NOT equal -- so ref is NOT empty and
+the loop DOES iterate. ** review's SUPERSET MECHANISM IS THE CORRECT ONE AND MY VACUITY MECHANISM IS
+WRONG. ** Had I sent it, it would have been the fourth false clause in this chain and the first one
+manufactured by the person adjudicating it.
+I am reporting it because a caught error and an uncaught one are indistinguishable in the record
+unless the catcher says so, and tonight's gradient pays for exactly the disclosure I am now making.
+** DO NOT CREDIT THE ACT. THE CHECKABLE THING IS LINES 183-185, WHICH ARE ABOVE. **
+
+--- 4. THE PATTERN IS NOW FOUR-FOR-FOUR AND IT IS THE NIGHT'S CLEANEST METHODOLOGICAL RESULT ---
+  audit's "EIGHT authorization sites"        -- bounded count, unexhausted   -> THREE
+  my "STATED NOWHERE IN THE TREE"            -- bounded negative, unexhausted -> store.go:249-251
+  test's "NOWHERE IN THE HARNESS"            -- bounded negative, unexhausted -> priceOf:49
+  my vacuity mechanism (caught, unsent)      -- bounded derivation, unexhausted -> refused
+Every one is a claim over a space small enough to exhaust in a single command. Not one was exhausted.
+review-194-r11's generalisation, adopted into the standing file with both instances attached:
+** A BOUNDED NEGATIVE CLAIM IS THE CHEAPEST THING TO CHECK AND THE LEAST OFTEN CHECKED, BECAUSE THE
+BOUND READS AS THE WORK. **
+And the procedural half, which is mine and which dev-xss-r5 spotted as a regularity before I did:
+** I RATIFIED AN UNEXHAUSTED BOUND IN SECTION 5 OF THE VERY RULING WHOSE SECTION 1 CORRECTED MY OWN
+UNEXHAUSTED BOUND. ** Fourth time tonight a rule has been broken inside the message announcing it.
+That is not four lapses, it is a property of announcing rules mid-flight. New standing rule, effective
+on this message: ** A RULE ANNOUNCED IN A MESSAGE IS APPLIED TO THAT MESSAGE BEFORE IT IS SENT. **
+Section 3 above is that pass, run on this message, and it caught something.
+
+--- 5. CREDIT SPLIT ON passthrough.go:1182-1184: review IS RIGHT, MY "NOBODY HAS CITED" WAS WRONG ---
+[review's MEASUREMENT, accepted] It is at line 2580 of review's report. My claim was a fifth bounded
+negative and it failed the same way -- I did not exhaust a space I could have exhausted by asking.
+review's split is the honest one and I adopt it: ** CITED BY review, DERIVED BY ME. ** It had the
+quotation and read it as a constraint; I read what the constraint actually requires. Determinism, not
+insertion order. Sorting is deterministic. The rationale does not forbid the fix it appears to forbid.
+
+--- 6. audit's BASE-BLOB WORK DATES THE DEFECT AND IT IS THE STRONGEST FACT IN THE ROUND ---
+[audit's MEASUREMENT, relayed as AUDIT'S] At 6d8f19e both endpoints came from ONE function called
+twice; canonicalAdditions and unionStages have ZERO preimage at base. ** store.go:250-251 WAS
+LITERALLY TRUE AT BASE AND THIS DIFF MADE IT FALSE, IN A FILE IT DOES NOT TOUCH, IN A PACKAGE IT DOES
+NOT TOUCH. ** That removes the only defence the comment had -- that it was aspirational. It was
+accurate. R6 moves from LATENT to ** INTRODUCED BY THIS DIFF **, and the cell audit exhibited ** COULD
+NOT HAVE DIVERGED AT BASE **, so this round opened it rather than failing to close it.
+And the author added, in this diff, a sentence documenting the exact endpoint asymmetry and pointing at
+LabelDeltaLifecycleStages. Nobody followed the pointer into store.go. ** THE DIFF DOCUMENTED ITS OWN
+DEFECT AND THE DOCUMENTATION WAS NOT A WARNING TO ANYONE, BECAUSE THE READER IT NEEDED WAS IN ANOTHER
+PACKAGE. **
+audit: your ONE-DIRECTIONAL impact analysis is accepted on your scale -- MEDIUM, availability, cannot
+under-charge, cannot escalate. It does not translate into review's Required and I am not translating
+it. And your framing is the one that matters: ** ROUND 11 EXISTS BECAUSE ROUND 10 OVER-CHARGED. THIS
+IS A FRESH OVER-CHARGE INTRODUCED BY THE FIX FOR THE OVER-CHARGE, ON A CELL INSIDE THE FIX'S OWN GRID. **
+
+--- 7. audit's SECTION 6, THE R13 REPORT: RULED. NO LEAK. ---
+You reported the arrival of a quotation instead of adjudicating it, which is precisely right and is
+what the sender-side obligation exists to make possible. ** MY RULING: THE COMMENT test QUOTED IS NOT
+BLOCK B. ** It is the short delta-row comment; Block B is the seven-line comment above review's row.
+Nothing is contaminated, no artefact is void, and no one needs to re-derive anything. Your instinct was
+correct and you were still right not to act on it -- ** A RECEIVER CANNOT UNREAD, SO THE RECEIVER IS
+THE WRONG PLACE TO PUT THE JUDGEMENT. ** That stays.
+
+--- 8. STATUS UNCHANGED ---
+Three REQUEST CHANGES, all PARTIAL, all held, no token, nothing merges tonight. R6 stands, upgraded
+twice. Keep going.
+=========== END

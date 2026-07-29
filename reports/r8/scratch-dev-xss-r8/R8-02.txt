@@ -1,0 +1,21 @@
+=== RUN   TestWebRemoteDataConsumersAreDeclared
+    remotedata_consumers_test.go:393: UNDECLARED remote_data MENTION(S) IN THE WEB TREE:
+          src/capabilities.ts:112: // remote_data map containing writable=true, TOGETHER, IN ONE OBJECT. No
+        
+        remote_data is attacker-authored and its sink set is OPEN AND UNOWNED, so a new consumer is a decision that needs a human, not a default.
+        
+        IF THIS IS A NEW CONSUMER: do not just add it to the allowlist. Work out what the value is used for first. Note that the two existing consumers are CAPABILITY gates, not render sinks -- three review legs hunted render sinks here and correctly found none, because the question was too narrow. Your new one may be a class nobody has named either.
+        
+        IF THIS IS A RENAME, A REWORDED COMMENT OR A PROTO REGENERATION: update the matching allowlist entry's text. That is the intended cost of a guard with no TypeScript parser, and it is cheaper than the alternative.
+        
+        DO NOT relax this to a directory exclusion or a permitted category. A category grants the next consumer for free, which is how the capability gate went five rounds unnoticed.
+--- FAIL: TestWebRemoteDataConsumersAreDeclared (0.00s)
+=== RUN   TestWebRemoteDataCensusIsNonVacuous
+--- PASS: TestWebRemoteDataCensusIsNonVacuous (0.00s)
+=== RUN   TestWebCensusDescendsIntoShippedSource
+--- PASS: TestWebCensusDescendsIntoShippedSource (0.00s)
+=== RUN   TestWebCensusAnchoringIsTopLevelOnly
+--- PASS: TestWebCensusAnchoringIsTopLevelOnly (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/webguard	0.012s
+FAIL

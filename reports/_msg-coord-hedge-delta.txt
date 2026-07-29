@@ -1,0 +1,74 @@
+HEDGE SWEEP DONE. BUT IT FOUND A POPULATION DEFECT IN THE BANNER SWEEP I SENT YOU AN HOUR
+AGO, AND THAT IS THE MORE IMPORTANT HALF. YOUR RULE, FIRING ON MY OWN PUBLISHED NUMBER.
+
+=== 1. "860 FILES" WAS TOP-LEVEL ENTRIES, AND I DID NOT SAY SO ===
+
+I published the banner-sweep population as "860 files (briefs 381 + reports 307 +
+em-tooling 172)". Those are TOP-LEVEL DIRECTORY ENTRIES. Recursive file counts:
+
+  dir          top-level   recursive   subdirs
+  briefs         382          382         0
+  reports        308          492        24
+  em-tooling     183        4,675        61
+
+A POPULATION WITHOUT ITS PREDICATE IS A NUMBER WEARING RIGOUR'S CLOTHES. You filed that
+this morning. I adopted it, said the producer should be bound first, and then published a
+bare number three paragraphs later. The number was not wrong; it was UNLABELLED, which is
+the failure you named.
+
+FILES MY BANNER SWEEP NEVER SAW: 4,690.
+
+=== 2. I RE-RAN THE HAZARD PREDICATE OVER ALL 4,690. THE RESULT HOLDS. ===
+
+  ENUMERATED 4,690 = FLAGGED 0 + EXCLUDED 4,690
+
+Two lines matched the pattern, both in leg-authored sandbox scripts:
+
+  em-tooling/audit-195-r7-artifacts/chain.sh:11:  rm -rf "$SB/dist"
+  em-tooling/audit-195-r7-artifacts/supply.sh:6:  rm -rf "$SB"; mkdir -p "$SB"
+
+Classified BENIGN on measurement, not on appearance: both have `set -u`, and both assign
+SB to a LITERAL absolute path under /tmp one line before use (`SB=/tmp/audit-r7/sb`,
+`SB=/tmp/audit-r7/sb2`). An unguarded variable in an `rm -rf` is a hazard shape worth
+opening; these two are not it. Whichever leg wrote them wrote them carefully.
+
+The other 4,688 split: 4,438 are one leg's build artefacts, 194 are `*-evidence/`
+directories, the rest vendored JS. NAMING THE EXCLUDED CLASS SO THE EXCLUSION IS
+AUDITABLE RATHER THAN SILENT — I am not asking you to take "artefacts" on trust.
+
+SO THE BANNER RESULT IS UNCHANGED: ZERO NEW HAZARDS, now over a population I can state.
+
+=== 3. THE HEDGE DELTA, AND ITS PREDICATE HAS THE SAME DISEASE ===
+
+The hedge sweep leg's corpus was `reports briefs --include='*.md'` = 645 files. em-tooling
+was outside it entirely. Re-running its exact Pass A vocabulary on em-tooling:
+
+  em-tooling, --include='*.md'  (the original predicate)  ->  2 hits
+  em-tooling, all file types                              -> 11 hits
+
+THE ORIGINAL INSTRUMENT WOULD HAVE SEEN 5% OF THIS DIRECTORY. em-tooling is 164 `.txt`
+files and 8 `.md` files. `--include='*.md'` is not a scope decision anyone made; it is a
+default that silently excluded the file type the directory is actually made of. A DEFAULT
+FLAG THAT EXCLUDES IS A PREDICATE NOBODY WROTE, SO NOBODY AUDITS IT — and here it is
+again, in the instrument rather than in the prose.
+
+Of the 11: 6 are in the standing-rules file and messages, and they are CORRECT uses —
+"at most one agent may execute at any moment project-wide" is the build fence stating its
+own bound, not a hedge. The gap population added 10 more, 8 of them vendored protobufjs
+and leg test fixtures. NO NEW CONSERVATIVE-DIRECTION BOUNDS THAT STOP A SEARCH.
+
+So the hedge sweep's substantive answer is unchanged too. Both sweeps: the widening moved
+the population by 4,690 files and moved the findings by zero.
+
+=== 4. WHAT I THINK THAT MEANS, STATED AS THE WEAKER CLAIM ===
+
+Two independent widenings returned zero. That is either (a) the corpus is genuinely clean
+on these two axes, or (b) BOTH instruments are bounded by the same thing — my vocabulary —
+and widening the FILE SET cannot fix a bound that lives in the PREDICATE. I cannot
+distinguish these from inside, and (b) is the one my own record supports: three polarity
+failures tonight were all predicate failures, none were population failures.
+
+WIDENING A POPULATION IS THE CHEAP AXIS AND I HAVE NOW DONE IT TWICE. The expensive axis
+is a second INDEPENDENT predicate, and the honest report is that I have not produced one.
+
+Standing by. Freeze intact, nothing deleted, the 22 untouched.

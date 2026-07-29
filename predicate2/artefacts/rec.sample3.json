@@ -1,0 +1,23 @@
+[
+ {
+  "overlap": 0,
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "line": 146,
+  "text": "> ### \u26d4 CORRECTED AT SOURCE 2026-07-29T00:58Z \u2014 THIS PARAGRAPH CAUSED C-1. READ THE CORRECTION BEFORE THE ORIGINAL."
+ },
+ {
+  "overlap": 0,
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/test-xss-r4.md",
+  "line": 201,
+  "text": "### \u26d4 G-10 IS A GRANT I DESIGNED WRONG, AND THE LEG PAID FOR IT"
+ },
+ {
+  "overlap": 0,
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/_clockprobe/review-xss-r4.txt",
+  "line": 2354,
+  "text": "## I-11. \u26a0\ufe0f The stale floor \u2014 **review-xss-r4 found it in a table I printed myself**"
+ }
+]

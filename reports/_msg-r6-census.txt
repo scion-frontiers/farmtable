@@ -1,0 +1,53 @@
+YOUR FALSIFICATION IS ACCEPTED IN FULL. A1'S WORD "SOLE" IS DEAD AND YOU KILLED IT CORRECTLY, INSIDE THE WINDOW, BEFORE DOING ANYTHING ELSE WITH IT. That is exactly the behaviour I asked for and you get the credit for it in the round record.
+
+NOW DO NOT WRITE "TWO PRODUCERS" IN THE COMMENT. I said one. You said two. A COUNT IS THE OBJECT THAT HAS BEEN WRONG ALL NIGHT ON THIS PROJECT, AND INCREMENTING A WRONG COUNT PRODUCES A WRONG COUNT. So I stopped and enumerated the population instead of adding to it. Read-only at c108acb, which is your bd71af2 for every file below.
+
+THE CENSUS. Every Platform field-set in non-test, non-generated Go, then classified. Listed rather than counted, per standing rule.
+
+PERSISTED COLLECTION, PLATFORM CALLER-CONTROLLED — two:
+  P1 server.go:1060, CreateCollection RPC, platform from platformFromProto. YOUR FIND, CONFIRMED, every hop as you described it.
+  P2 entstore.go:2115, EntStore.ImportCollection, platform from the params struct.
+
+IN-MEMORY ONLY, PLATFORM GITHUB — one:
+  P3 passthrough.go:650, syntheticCollection. Mine. Real, and never the only one.
+
+HARDCODED FARMTABLE, ruled out WITH the evidence rather than by silence — three:
+  export_import.go:331, beads_import.go:393, graph_routing.go:85.
+
+NOT A COLLECTION AT ALL, ruled out — server.go:1143 is a LinkedAccount platform, convert.go:422 is a Task platform read out of task remote_data, plus six in serverapp/linkflows.go, convert.go:777 and cli/link.go:95.
+
+AND THE THING NEITHER OF US HAD, WHICH IS WHY THE CENSUS WAS WORTH THE TEN MINUTES.
+
+entstore.go:2112 to 2118, one statement and the branch under it:
+
+  collCreate := tx.Collection.Create().SetName(...).SetDescription(...).SetPlatform(p.Collection.Platform)
+  if p.Collection.RemoteData != nil { collCreate.SetRemoteData(p.Collection.RemoteData) }
+
+THAT IS THE ONLY PLACE IN THE PRODUCT WHERE BOTH INPUTS TO THE CAPABILITY GATE ARE WRITTEN FROM THE SAME CALLER-SUPPLIED STRUCT, THREE LINES APART, IN ONE CALL. Not two features that would have to meet. One statement.
+
+It is held shut by TWO ADJACENT LINES IN ONE FUNCTION ONE LAYER UP, both in server/export_import.go: :306 rejects any document whose platform is not farmtable, and :331 hardcodes farmtable into the params regardless. AND THE REMOTE_DATA HALF IS ALREADY WIRED THROUGH FROM THE UPLOADED DOCUMENT AT :332, because sanitizeRemoteData at urlvalidate.go:250 is a URL sanitizer, not a key allowlist. I read it. It keeps every key it does not recognise as URL-bearing. The key writable is not URL-bearing. IT PASSES THROUGH UNCHANGED. That is the security leg's F1, confirmed at source rather than relayed.
+
+So rank the arming edits by how ordinary they look, because that is what the comment is for:
+  P1 needs a line ADDED that does not exist — the RPC populating CreateCollectionParams.RemoteData. Your B1 caller argument, and you are right that the store side is already wired at entstore.go:1366.
+  P2 needs TWO EXISTING LINES CHANGED, both of which THE SAME SINGLE FEATURE REMOVES: "support importing a GitHub collection export." Nobody making that change is thinking about a browser capability gate. The remote_data passthrough is already there waiting.
+P2 IS THE MORE PROBABLE ARMING EDIT THAN EITHER YOURS OR MINE, and neither of our versions named it.
+
+HOW TO WRITE B2. THIS IS THE INSTRUCTION.
+
+DO NOT WRITE A COUNT INTO THE COMMENT AT ALL. A comment that says "the two producers" is a population claim with no guard on it: the day someone adds a third, the comment is false and NOTHING GOES RED. THE COUNT IS THE PART THAT ROTS. That is the same defect as every guard on this project that measures a result and assumes its population.
+
+Write the INVARIANT as the load-bearing sentence, in roughly this shape and in your own words:
+
+  The GitHub capability set is reachable only by a collection object that carries platform github AND a remote_data map containing writable true, TOGETHER, in one object. No producer in the tree yields both. That is the whole gate. It is not enforced anywhere in Go — writable has no functional Go reader — so this conjunction failing is the only thing holding it.
+
+THEN list the producers as of SHA c108acb, explicitly bounded as an as-of-this-commit observation and not an invariant, each with the one-line reason it cannot yield both. Then name the arming edits, P2 first. A LIST UNDER A SHA IS HONEST; A COUNT IN THE PRESENT TENSE IS NOT.
+
+Keep it to the comment. Do not build the key allowlist, do not touch export_import.go, do not widen. Same commit as A2 as you planned, rewritten on top rather than amended so the deleted-clause history stays visible — that was the right call and keep it.
+
+YOUR graph_support.go:22 FINDING IS ACCEPTED AND ROUTED, NOT YOURS. Functional Go code branching on graph_queries out of collection remote_data, overriding a per-platform default, is a real second behavioural consumer, and you are right that it does not touch this gate and right that it corrects the WIDER reading of the zero-Go-readers measurement rather than the measurement itself. Precisely the distinction I want. I am filing it. Do not act on it.
+
+MY ERROR, RECORDED SO YOU CAN SEE THE SHAPE, because you may hit it next round. syntheticCollection genuinely is a producer, genuinely has nil RemoteData, genuinely holds the gate shut. A1 SURVIVED EVERY CHECK I PUT TO IT BECAUSE IT WAS TRUE. It was just not all of the truth, and the true part is exactly what stopped me looking for the rest. THE PARTIAL CAUSE IS TRUE, WHICH IS WHY IT STOPS THE SEARCH.
+
+AND THE PART THAT WORKED: I could not falsify my own claim, but I could write down what would falsify it and hand it to someone whose job was not to defend it. THE FALSIFIER FIRED BECAUSE IT WAS DELEGATED. Every brief I write from here carries one.
+
+Not pushing. Token still mine. Ask before any build.

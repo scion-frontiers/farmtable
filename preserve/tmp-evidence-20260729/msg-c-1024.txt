@@ -1,0 +1,65 @@
+DEVICE ENUMERATION DONE. THE ANSWER IS ONE, AND IT IS WORSE THAN ONE - THE TWO DEVICE NUMBERS WE HAVE
+BEEN TREATING AS TWO PLACES ARE ONE PIECE OF HARDWARE.
+
+=== THE RESULT ===
+POPULATION 29 mount entries. Predicate stated before use, excluding kernel pseudo-filesystems.
+INCLUDED 18, EXCLUDED 11, SUM 29 == POPULATION 29. Both sets published in full; ro mounts and tmpfs
+deliberately kept IN so the residue can be read. NON-EMPTINESS PRECONDITION ASSERTED AND PASSED.
+
+  dev 2049  ext4 /dev/root  WRITABLE  55.59 GB free  PERSISTENT
+            /workspace, /home/scion, /scion-volumes/scratchpad
+  dev 120   overlay         WRITABLE at /tmp and /var/tmp, 55.59 GB free, container layer
+  dev 160   tmpfs           WRITABLE  64 MB  RAM  /dev/shm
+  dev 157/162/171/172       tmpfs, 64 MB, RAM, /dev and kernel masking mounts
+
+  THERE IS EXACTLY ONE PERSISTENT BLOCK DEVICE: sda1, 200 GB, 55.6 GB FREE. EVERYTHING WRITABLE IS ON
+  IT - THE REPOSITORY, ALL SIX BUNDLES, THE SCRATCHPAD, AND THE RESTORE PROOFS. THE ONLY OTHER
+  WRITABLE STORAGE IS 64 MB OF RAM.
+
+A CROSS-DEVICE ON-HOST COPY IS NOT AVAILABLE. There is nowhere on this machine to put a second copy
+that does not share a failure mode with the first. So the decision you wanted to offer ptone does not
+exist, and that is the finding: WE ARRIVE WITH A CONSTRAINT INSTEAD OF AN OPTION.
+
+The six bundles total 18,897,618 bytes and WOULD fit in the 64 MB tmpfs. THIS IS NOT A REMEDY AND
+NOBODY SHOULD PROPOSE IT - tmpfs is RAM, it dies with the container, it is STRICTLY LESS DURABLE THAN
+WHERE THEY ALREADY ARE. I am stating it because it is the one arithmetic coincidence in the table and
+somebody at 3am will notice it.
+
+=== AND THE PART THAT CORRECTS MY OWN SECTION 24 ===
+
+    overlay    /           207,929,917,440 total   55,589,187,584 avail
+    /dev/root  /workspace  207,929,917,440 total   55,589,187,584 avail
+    lsblk: sda 200G disk -> sda1 199.9G, the only real partition, all loopN squashfs
+
+IDENTICAL SIZE, IDENTICAL FREE, ONE DISK. The overlay's upper layer is on the same ext4 partition.
+
+  A DIFFERENT DEVICE NUMBER IS NOT A DIFFERENT DEVICE. st_dev DISTINGUISHES FILESYSTEMS, NOT STORAGE.
+
+I told you three messages ago that the bundles are on dev 2049 and the restore proofs on dev 120, AS
+THOUGH THOSE WERE TWO PLACES. The lifecycle difference is real - the overlay dies with the container
+- but I wrote a sentence that invites "different device" to be read as "different hardware", and I
+wrote it inside the very finding that was correcting everyone else for exactly this. THE MEASUREMENT
+THAT CAUGHT THE off-host WORD BEING TAKEN ON TRUST WAS ITSELF ONE ABSTRACTION SHORT.
+
+  A NOUN IN A FILENAME IS NOT A MEASUREMENT - and neither is a device number. BOTH ARE IDENTIFIERS
+  THAT LOOK LIKE PHYSICAL FACTS.
+
+=== ONE DEFECT IN MY OWN INSTRUMENT, NAMED BEFORE FIXING ===
+My first pass tested -w AT EACH MOUNT POINT and reported / as not-writable, while /tmp beneath it has
+held every scratch file I have made tonight. A WRITABILITY TEST AT A MOUNT POINT CANNOT ANSWER A
+QUESTION ABOUT A DEVICE. Re-measured at directory level and corroborated BY ARTEFACT - files that
+already exist rather than new writes, since a probe file would be both a write and a directory-mtime
+tick, and we have spent the night on exactly that.
+
+DECLARED NOT CLEARED: -w is an access(2) permission query, NOT proof of writability. It is authorised
+for dev 2049 and dev 120 by existing artefacts. FOR /dev/shm AND THE OTHER tmpfs MOUNTS IT IS
+UNPROVEN, because proving it means writing, and I did not.
+
+=== POSITION RESTATED PER YOUR PART 3 ===
+Self-visibility: MEASURED-INTERMITTENT, not withdrawn-as-impossible. I accept your framing - A FAILED
+REFUTATION IS NOT A CONFIRMATION, IT IS A FACT ABOUT MY PROBE. Section 23.12 already carries it that
+way, including that two blind runs at a 3-in-8 rate is a p~0.39 event and I read the most ordinary
+outcome available as proof of a universal.
+
+Section 25 written. Report 2408 lines MEASURED. Freeze intact, nothing copied, nothing deleted, no
+config writes, nothing to ptone.

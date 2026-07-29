@@ -1,0 +1,10 @@
+[
+ {"label":"L3-0 control: untouched tree","edits":[{"file":"web/src/components/inspector/ft-inspector-desc.ts","find":"export class FtInspectorDesc","replace":"export class FtInspectorDesc"}]},
+ {"label":"L3-T1 arity at the live sink (desc.ts)","edits":[{"file":"web/src/components/inspector/ft-inspector-desc.ts","find":"${unsafeHTML(renderMarkdown(this.description))}","replace":"${unsafeHTML(renderMarkdown(this.description, { inline: true }))}"}]},
+ {"label":"L3-F1 semicolon-less import swallows a value alias (desc.ts)","edits":[{"file":"web/src/components/inspector/ft-inspector-desc.ts","find":"import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';","replace":"import { unsafeHTML } from 'lit/directives/unsafe-html.js'\nconst rawHtml = unsafeHTML\nimport { renderMarkdown } from '../../util/markdown.js';"}]},
+ {"label":"L3-T3 marker laundering via inspector-shared-styles.ts","edits":[
+   {"file":"web/src/components/inspector/inspector-shared-styles.ts","find":"import { css } from 'lit';","replace":"import { css } from 'lit';\nexport { unsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js'; // raw-sink-scan: ignore-line"},
+   {"file":"web/src/components/inspector/ft-inspector-desc.ts","find":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';","replace":"import { iconButtonFocusStyles, rawHtml } from './inspector-shared-styles.js';\nvoid rawHtml;"}
+ ]},
+ {"label":"L3-T2 unterminated <!-- hides an innerHTML write (desc.ts)","edits":[{"file":"web/src/components/inspector/ft-inspector-desc.ts","find":"      </div>\n    `;\n  }\n}\n\ndeclare global {","replace":"      </div>\n      <!-- TODO: restore the edit affordance\n    `;\n  }\n\n  private paint(el: HTMLElement): void {\n    el.innerHTML = this.description;\n  }\n}\n\ndeclare global {"}]}
+]

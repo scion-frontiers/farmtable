@@ -1,0 +1,115 @@
+=== RUN   TestAUDIT_REV0_HarnessIsStateful
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:220:     add    : [ft:stage/wont_fix] -> [ft:stage/accepted ft:stage/wont_fix]  OK
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> [ft:stage/accepted]
+    zzz_audit_rev2_test.go:238:     remove : [ft:stage/accepted ft:stage/wont_fix] -> [ft:stage/accepted]  OK
+    zzz_audit_rev2_test.go:239:     HARNESS PROVEN STATEFUL IN BOTH DIRECTIONS
+--- PASS: TestAUDIT_REV0_HarnessIsStateful (0.01s)
+=== RUN   TestAUDIT_REV1_AddLabelChain
+    zzz_audit_rev2_test.go:255:   step 1  reopen                        -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:261:   step 2  add_labels[ft:stage/accepted] -> ALLOWED         labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:265:   step 3  reopen                        -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:266:   RESULT: F1 FIX CLOSES THE ADD-LABEL CHAIN.
+--- PASS: TestAUDIT_REV1_AddLabelChain (0.01s)
+=== RUN   TestAUDIT_REV3_RemoveLabelChain
+    zzz_audit_rev2_test.go:286:   step 1  reopen                            -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:292:   step 2  remove_labels[ft:stage/wont_fix]  -> ALLOWED         labels=[]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted]
+    zzz_audit_rev2_test.go:300:   step 3  reopen                            -> ALLOWED  labels=[ft:stage/accepted]
+          *** CRITICAL -- THE F1 FIX RENAMES THE CHAIN, IT DOES NOT CLOSE IT ***
+          A token holding only task:write STRIPPED the terminal label and then reopened.
+          No terminal scan, however written, can see a label that is no longer there.
+--- FAIL: TestAUDIT_REV3_RemoveLabelChain (0.01s)
+=== RUN   TestAUDIT_REV4_ClaimGateBothSpellings
+    zzz_audit_rev2_test.go:324:   baseline  claim [wont_fix]                       -> err=rpc error: code = FailedPrecondition desc = task unavailable  labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:334:   add       claim [wont_fix + accepted]            -> err=rpc error: code = FailedPrecondition desc = task unavailable  labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/working -> [ft:stage/working]
+    zzz_audit_rev2_test.go:341:   remove    claim [wont_fix stripped -> bare]      -> err=<nil>  labels=[ft:stage/working]
+    zzz_audit_rev2_test.go:347:   *** F2b REMOVE-SPELLING OPEN *** a task:write holder stripped the terminal label and then claimed a declined issue. labels=[ft:stage/working]
+--- FAIL: TestAUDIT_REV4_ClaimGateBothSpellings (0.02s)
+=== RUN   TestAUDIT_REV5_AvailabilityBothSpellings
+    zzz_audit_rev2_test.go:376:   baseline  [wont_fix]                  -> Available=false Reasons=[terminal] stage=accepted  labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:386:   add       [wont_fix + accepted]       -> Available=false Reasons=[terminal] stage=accepted  labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:393:   remove    [wont_fix stripped -> bare] -> Available=true Reasons=[] stage=accepted  labels=[]
+    zzz_audit_rev2_test.go:399:   *** F2 REMOVE-SPELLING OPEN *** a declined issue is back in the ready queue after a task:write holder stripped its terminal label: Available=true Reasons=[] stage=accepted
+--- FAIL: TestAUDIT_REV5_AvailabilityBothSpellings (0.02s)
+=== RUN   TestAUDIT_REV6_ClosedIssueFloor
+    zzz_audit_rev2_test.go:426:   initial (CLOSED + wont_fix)        phase=closed stage=wont_fix closedAt=true Available=false Reasons=[terminal] labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:435:   step 1  reopen                     -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:441:   step 2  remove_labels[wont_fix]    -> ALLOWED  labels=[]
+    zzz_audit_rev2_test.go:426:   after strip (CLOSED, no labels)    phase=closed stage=completed closedAt=true Available=false Reasons=[terminal] labels=[]
+    zzz_audit_rev2_test.go:446:   step 3  reopen                     -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")
+    zzz_audit_rev2_test.go:447:   RESULT: FLOOR EXISTS for a CLOSED issue -- state:CLOSED is not a label.
+--- PASS: TestAUDIT_REV6_ClosedIssueFloor (0.01s)
+=== RUN   TestAUDIT_REV7_CloseDirectionFromAccepted
+=== RUN   TestAUDIT_REV7_CloseDirectionFromAccepted/completed
+    zzz_audit_rev2_test.go:486:       step 0  ordinary open task   phase=open stage=accepted closed=false labels=[ft:stage/accepted]
+    zzz_audit_rev2_test.go:495:       step 1  close directly       -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/completed -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_rev2_test.go:502:       step 2  add_labels[ft:stage/completed] -> ALLOWED  labels=[ft:stage/accepted ft:stage/completed]
+    zzz_audit_rev2_test.go:486:               after label add      phase=open stage=accepted closed=false labels=[ft:stage/accepted ft:stage/completed]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/accepted -> [ft:stage/completed]
+    zzz_audit_rev2_test.go:486:               after close          phase=open stage=accepted closed=false labels=[ft:stage/completed]
+    zzz_audit_rev2_test.go:512:       step 3  close to completed    -> ALLOWED
+              *** CLOSE-DIRECTION BYPASS *** a token holding task:write and NOT task:close marked an ordinary accepted task completed. labels=[ft:stage/completed]
+=== RUN   TestAUDIT_REV7_CloseDirectionFromAccepted/wont_fix
+    zzz_audit_rev2_test.go:486:       step 0  ordinary open task   phase=open stage=accepted closed=false labels=[ft:stage/accepted]
+    zzz_audit_rev2_test.go:495:       step 1  close directly       -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/wont_fix -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:502:       step 2  add_labels[ft:stage/wont_fix] -> ALLOWED  labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:486:               after label add      phase=open stage=accepted closed=false labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/accepted -> [ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:486:               after close          phase=open stage=accepted closed=false labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:512:       step 3  close to wont_fix     -> ALLOWED
+              *** CLOSE-DIRECTION BYPASS *** a token holding task:write and NOT task:close marked an ordinary accepted task wont_fix. labels=[ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV7_CloseDirectionFromAccepted/duplicate
+    zzz_audit_rev2_test.go:486:       step 0  ordinary open task   phase=open stage=accepted closed=false labels=[ft:stage/accepted]
+    zzz_audit_rev2_test.go:495:       step 1  close directly       -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/duplicate -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_rev2_test.go:502:       step 2  add_labels[ft:stage/duplicate] -> ALLOWED  labels=[ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_rev2_test.go:486:               after label add      phase=open stage=accepted closed=false labels=[ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/accepted -> [ft:stage/duplicate]
+    zzz_audit_rev2_test.go:486:               after close          phase=open stage=accepted closed=false labels=[ft:stage/duplicate]
+    zzz_audit_rev2_test.go:512:       step 3  close to duplicate    -> ALLOWED
+              *** CLOSE-DIRECTION BYPASS *** a token holding task:write and NOT task:close marked an ordinary accepted task duplicate. labels=[ft:stage/duplicate]
+=== RUN   TestAUDIT_REV7_CloseDirectionFromAccepted/cancelled
+    zzz_audit_rev2_test.go:486:       step 0  ordinary open task   phase=open stage=accepted closed=false labels=[ft:stage/accepted]
+    zzz_audit_rev2_test.go:495:       step 1  close directly       -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/cancelled -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_rev2_test.go:502:       step 2  add_labels[ft:stage/cancelled] -> ALLOWED  labels=[ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_rev2_test.go:486:               after label add      phase=open stage=accepted closed=false labels=[ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/accepted -> [ft:stage/cancelled]
+    zzz_audit_rev2_test.go:486:               after close          phase=open stage=accepted closed=false labels=[ft:stage/cancelled]
+    zzz_audit_rev2_test.go:512:       step 3  close to cancelled    -> ALLOWED
+              *** CLOSE-DIRECTION BYPASS *** a token holding task:write and NOT task:close marked an ordinary accepted task cancelled. labels=[ft:stage/cancelled]
+--- FAIL: TestAUDIT_REV7_CloseDirectionFromAccepted (0.04s)
+    --- FAIL: TestAUDIT_REV7_CloseDirectionFromAccepted/completed (0.01s)
+    --- FAIL: TestAUDIT_REV7_CloseDirectionFromAccepted/wont_fix (0.01s)
+    --- FAIL: TestAUDIT_REV7_CloseDirectionFromAccepted/duplicate (0.01s)
+    --- FAIL: TestAUDIT_REV7_CloseDirectionFromAccepted/cancelled (0.01s)
+=== RUN   TestAUDIT_REV8_CloseDirectionFromTerminal
+    zzz_audit_rev2_test.go:530:     step 0  OPEN + wont_fix        phase=open stage=accepted closed=false labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:538:     step 1  wont_fix -> duplicate  -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/duplicate -> [ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:545:     step 2  add_labels[duplicate]  -> ALLOWED  labels=[ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:530:             after label add        phase=open stage=accepted closed=false labels=[ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:549:     step 3  wont_fix -> duplicate  -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:close")
+    zzz_audit_rev2_test.go:550:     RESULT: terminal-start close direction CLOSED.
+--- PASS: TestAUDIT_REV8_CloseDirectionFromTerminal (0.01s)
+=== RUN   TestAUDIT_REV9_FromEqualsToNeedsNoLabelWrite
+    zzz_audit_rev2_test.go:574:   step 0  OPEN issue carrying ft:stage/wont_fix
+    zzz_audit_rev2_test.go:575:           phase=open stage=accepted closedAt=false labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:591:   step 1  UpdateTask(stage=wont_fix) -> ALLOWED (task:write, from==to short-circuit)
+    zzz_audit_rev2_test.go:592:           phase=open stage=accepted closedAt=false labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:596:   RESULT: genuinely a no-op. from == to is sound here.
+--- PASS: TestAUDIT_REV9_FromEqualsToNeedsNoLabelWrite (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.117s
+FAIL

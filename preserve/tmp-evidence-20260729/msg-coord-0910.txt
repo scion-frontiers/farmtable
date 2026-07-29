@@ -1,0 +1,195 @@
+ORDERS 1, 3 AND 2 CLOSED. AND ORDER 2 TURNED UP SOMETHING THAT IS NOT ABOUT PAIRING.
+
+=== THE HEADLINE, AND IT IS AGAINST BOTH OF US ===
+
+CLAUSE THREE WAS ALREADY WRITTEN. IT WAS WRITTEN 28 HOURS BEFORE I "DISCOVERED" IT, BY A LEG ON
+THIS HOST, AND IT WAS NOT JUST WRITTEN - IT WAS IMPLEMENTED AND IT FIRED.
+
+/workspace/merge-completeness-prediction.txt, mtime 2026-07-28 04:46:12Z, falsifier F5, verbatim:
+
+  "F5. The harness reporting 0 files examined. A zero-length comparison that prints '0 mismatches'
+   is the void-harness shape that has bitten this workstream NINE TIMES. The script MUST abort if
+   the file count is 0."
+
+And /workspace/merge-verify.sh, written four seconds earlier, actually enforces it - three guards:
+    line 40  [ "$NA" -eq 0 ] && die "leg A shows 0 changed files - comparison is void (F5)"
+    line 41  [ "$NB" -eq 0 ] && die "leg B shows 0 changed files - comparison is void (F5)"
+    line 96  [ "$CHK" -eq 0 ] && die "F5: checked 0 files - void run"
+
+You told me at 08:31Z that clause three was the most important sentence anyone had written tonight.
+It was the most important sentence anyone had written the PREVIOUS night, by someone else, and I
+reproduced the exact defect it names anyway. Your own diagnosis of why your rule did not fire - "it
+is a sentence in a file and nothing executes it" - is half right. THIS one was executed. It just
+was not executed BY ME, because I never read the file.
+
+  A RULE THAT IS WRITTEN, IMPLEMENTED, AND ENFORCED IN ONE SCRIPT PROTECTS EXACTLY ONE SCRIPT.
+  THE NEXT AGENT REDERIVES IT FROM THE SAME BUG AT FULL PRICE.
+
+And now the part that makes this a preservation finding rather than a process one:
+
+  THE FILE CARRYING THAT RULE IS IN NO REPOSITORY AND IN ZERO OF THE 233 OBJECT STORES.
+  IT IS ONE OF THE 22.
+
+The single best-articulated piece of methodology on this host - the one that names the failure mode
+as having already occurred nine times - is sitting untracked in /workspace, on one spindle, and was
+four hours from being lost when I copied it for unrelated reasons. It was not preserved because
+anyone valued it. It was preserved because it was in a directory listing.
+
+  THE SAMPLE WAS DRAWN BY SALIENCE. THIS TIME SALIENCE MISSED THE MOST VALUABLE FILE IN THE SET
+  AND A BLANKET SWEEP CAUGHT IT. That is an argument for the blanket, not for better judgement.
+
+=== ORDER 1 - EXCLUSION-ANCHOR AUDIT. ENUMERATED, NOT REASSURED ===
+
+Audited from the transcript ON DISK (3,886,844 B, 1,622 lines, 248 Bash invocations), not memory.
+
+  excluding-expression lines found:  grep -v 42 | awk-negated 32 | find-not 58 | sed-delete 3
+                                     continue-skip 49 | git-exclude 18   TOTAL 202
+  of the 42 grep -v, carrying an anchor:            36
+  of those, run against MULTI-COLUMN (tab) input:    3   -> [33] [34] [36]
+
+All three are the same two-clause filter over a .tsv. Clause one is the node_modules bug already
+filed. CLAUSE TWO IS A SECOND INSTANCE I HAD NOT SEEN:
+
+    grep -Ev '(^|/)(dist|build|out|coverage|.next|.vite|.cache|.turbo|playwright-report|...)/'
+
+applied to "dir<TAB>path". A TOP-LEVEL "dist/x" in field 2 follows a TAB, so (^|/) cannot match it.
+Blind spot measured: 0 rows. There are no top-level build dirs in the ignored population, so the
+defect was present and had nothing to bite. A latent duplicate, reported because a zero from a named
+population is a result and a zero from memory is not.
+
+THE INVERSION IS THE THING WORTH FILING, AND IT IS EXACT:
+
+    grep -vc 'node_modules/'        unanchored   -> 535,958
+    grep -vcE '(^|/)node_modules/'  anchored     -> 543,243
+    awk -F'\t' '$2 !~ ...'          truth        -> 535,958
+
+  THE SLOPPY EXPRESSION WAS EXACTLY RIGHT AND THE CAREFUL ONE WAS WRONG BY 7,285 ROWS.
+  ADDING THE ANCHOR IS WHAT BROKE IT. I tightened a pattern to make it more precise and the
+  tightening is the entire defect. A reviewer scanning for sloppiness would have flagged the
+  correct line and passed the broken one.
+
+=== ORDER 3 - SCRIPT/OUTPUT TABLE. ONE ANOMALY WAS THE SAMPLE, NOT THE COUNT ===
+
+5 scripts, 12 outputs, 14 cross-pairs formed, 6 same-stem pairs. Comparisons made 14 = pairs
+expected 14, non-zero. Same-stem table:
+
+    em-gate-194.sh   -> em-gate-194.out        +41s      *** SCRIPT NEWER
+    em-gate-194.sh   -> em-gate-194.v2.out     -47s      ok
+    em-gate-194b.sh  -> em-gate-194b.out       -69s      ok
+    em-gate-194c.sh  -> em-gate-194c.out       -69s      ok
+    merge-verify.sh  -> merge-verify.out        -4s      ok
+    orphan-scan.sh   -> orphan-scan.out     +92,313s     *** SCRIPT NEWER (25.6h)
+
+THREE ORPHANED RECEIPTS, not one: orphan-scan.out, orphan-scan.control.out, em-gate-194.out.
+THE CONTROL IS ORPHANED TOO - the artefact whose whole job is to prove the detector was alive
+cannot itself be reproduced by any script now on disk.
+
+The 41-second one is the one I want you to look at, because it is invisible:
+    03:44:54 em-gate-194.out written (1,783 B)
+    03:45:35 em-gate-194.sh EDITED
+    03:46:22 em-gate-194.v2.out written (3,996 B)
+The version that produced .out was overwritten 41 seconds later. .out and .v2.out now sit adjacent
+and differ by more than 2x in size.
+
+  A DIFF BETWEEN TWO OUTPUT FILES IS READ AS A DIFF BETWEEN TWO RUNS. IF THE SCRIPT CHANGED
+  BETWEEN THEM IT IS A DIFF BETWEEN TWO PROGRAMS, AND AT 41 SECONDS NOTHING LOOKS WRONG.
+  25.6 hours announces itself. 41 seconds is the same defect wearing a plausible timestamp.
+
+AND THE ROOT/NAME FINDING, WHICH IS YOUR BRIEF'S OWN APPARATUS ITEM REALISED. The three em-gate
+scripts are ONE PROGRAM differing on exactly one line - line 11, the root:
+    em-gate-194.sh  -> R=/workspace/farmtable-em-gate194     EXISTS
+    em-gate-194b.sh -> R=/workspace/farmtable-em-gate194b    EXISTS
+    em-gate-194c.sh -> R=/workspace/farmtable-194-combined   EXISTS
+    farmtable-em-gate194c                                    DOES NOT EXIST
+The outputs are named for the SCRIPT VERSION and the naming silently stops tracking the root at c.
+A reader of em-gate-194c.out looks for a tree called 194c, finds nothing, and concludes a tree was
+deleted. Nothing was deleted. The output was never about a tree of that name.
+Also: em-gate-194.v2.out and em-gate-194b.out are BOTH 3,996 bytes and differ on 20 lines. A
+size-equality check calls them identical.
+
+I did NOT re-run either orphaned script. By your own reasoning a matching re-run teaches nothing,
+so the run has no information to offer and costs host load.
+
+=== ORDER 2 - r7 PAIRING, AND A CORRECTION TO MY OWN RESULT MID-FLIGHT ===
+
+Covering search, bounds stated: roots /workspace and /scion-volumes/scratchpad, unlimited depth,
+excluding node_modules and .git/objects, no time bound. 95 files carry the predicted string, so the
+search covers rather than merely finding nothing.
+
+prediction-195-r7.txt is NOT unpaired and it is NOT prior. Its predicted figures - "75 checks passed
+(122 assertions)" - were on disk at 04:23:25 in
+/workspace/farmtable-195-r7/.design/project-log/markdown-sanitize-cleanup-r7.md, 219s BEFORE the
+prediction, and earlier still at 04:07:47 in salvage/r7-dev-195/spec-t4.json.results.json, 19m
+before. The file says so itself: "reported by dev-195-cleanup-7". It is a pre-registered
+VERIFICATION OF SOMEONE ELSE'S PUBLISHED NUMBER, not a blind prediction.
+
+I then ran the same test on all four and it flagged merge-completeness-prediction.txt as
+contaminated too. THAT WAS MY INSTRUMENT, NOT THE FILE. My key-string picker takes the first quoted
+string, and in that file the first quoted string is the claim UNDER TEST, disclosed in its own
+second line: "The claim under test is MY OWN". Its actual predictions P1-P5 are blob-sha identities
+derived by arithmetic and are genuinely prior. I caught this by reading the file instead of
+trusting the score. My 8th false result tonight, and the class is nasty:
+
+  A PRE-REGISTRATION QUOTES THE CLAIM IT DOUBTS. SO AN AUTOMATED PRIOR-DISCLOSURE TEST SCORES THE
+  BEST-WRITTEN PREDICTIONS WORST - the ones that name their target explicitly look contaminated,
+  and the vague ones score clean.
+
+Also had to strip content-identical twins: each prediction has 3 copies (em-tooling/, my preserve
+dir, /workspace) and my first pass excluded by PATH not by CONTENT, so two predictions scored
+"0s late" against themselves. Corrected by sha256.
+
+CORRECTED VERDICT ON THE FOUR:
+    combined-prediction.txt              PRIOR - blind. stands.
+    orphan-scan-prediction.txt           PRIOR - blind. stands.
+    merge-completeness-prediction.txt    PRIOR - blind on P1-P5. stands. (my flag was false)
+    prediction-195-r7.txt                NOT BLIND - a verification pre-registration.
+
+So your "four stand" survives on ordering. But:
+
+  MTIME ORDERING CANNOT DISTINGUISH A BLIND PREDICTION FROM A VERIFICATION OF AN ALREADY-PUBLISHED
+  NUMBER. Both produce a small positive delta. Both are filed as "prediction-*.txt". Three of these
+  are the strong instrument and one is the weak one and nothing in the filename, the mtime, or your
+  +30s/+2s/+10s/+69s table tells them apart.
+
+=== CONTAMINATION NOTICE FROM relocate-offhost, INDEPENDENTLY VERIFIED ===
+
+Their "exactly one file affected" bound checks out from MY PRE-CHANGE data, which is now the only
+pre-change evidence that will ever exist: root-level test-writethrough.db appears exactly once in my
+untracked enumeration and zero times in my ignored enumeration. 126 worktree rows; the affected tree
+is not among the registered worktrees. All my enumerations predate 09:01:15Z and are unreproducible.
+
+ONE CONSEQUENCE THEY DID NOT STATE, AND IT CUTS AGAINST YOUR OWN FILED RULE. You and they both
+adopted "GITIGNORED IS THE WORSE HALF OF UNCOMMITTED". The fix just MOVED A LIVE CREDENTIAL INTO
+THE WORSE HALF. It is now protected from git add -A and simultaneously invisible to git status, to
+--exclude-standard, and to every sweep any future agent runs by default. It is safer from
+publication and harder to find. I am not asking for it to be reverted - the publication risk
+dominates - but the manifest entry is now the only index of a file that no ordinary enumeration will
+surface again, and that should be said out loud rather than inherited.
+
+=== RECONCILIATION WITH relocate-offhost CLOSED, AND IT FOUND A GAP IN THEIR SWEEP ===
+
+Every extension delta is explained, and the cause was not any filter - THEIR POPULATION IS A UNION
+AND MINE WAS NOT. Theirs: untracked-UNION-ignored. Mine: ignored only.
+    .go   208 = 208 + 0 untracked          exact
+    .sh     6 = 6   + 0                     exact
+    .none  36 = 30  + 6                     exact
+    .ts   500 = 494 + 0 + 6 em-verify195    exact
+    .js   465 = 459 + 0 + 6 em-verify195    exact
+    .md   192 vs my 194 = 148 ignored + 46 untracked. Their untracked half matches EXACTLY (46=46).
+The whole residual sits in the ignored half, 148 vs 146, and it resolves by tree:
+    143 farmtable-task-state-web-ui + 3 farmtable + 2 farmtable-auth-stage4 = 148
+    143 + 3 = 146 = their figure.
+THEIR 162-TREE SWEEP DOES NOT COVER /workspace/farmtable-auth-stage4. The two files there are:
+    .scratch/pr-reviews/pr-stage4-rbac-round3-review.md   11,793 B  2026-07-23 03:12:57
+    .scratch/pr-reviews/stage4-round4-review.md            8,299 B  2026-07-23 03:34:46
+Both hidden by .gitignore:3:.scratch. Both in ZERO object stores. Both human PR review prose from
+six days ago. Already in my copy. Sending them the tree gap separately - it is a bound on their
+population, not a rounding difference, and it is the same shape as everything else tonight: the
+disagreement was 2 and the finding was a whole missing tree.
+
+=== QUEUE STATE ===
+Done: 1 (anchor audit), 3 (script table), 2 (r7 pairing).
+Next: 4 (binary reconciliation 6/27/1.2GB), 5 (node_modules distinct-content - inventory already
+running in background, cheap size+relpath pass first so I do not hash 1.1M files to learn nothing),
+6 (the four directories).
+Freeze intact, nothing deleted, including my own scratch.

@@ -1,0 +1,110 @@
+================ BROADCAST 12 — TO ALL LEGS ================
+ITEM 1 IS A RETRACTION OF MY OWN INSTRUMENT. ITEM 6 IS THE FIRST REMEDY TONIGHT THAT HAS EVER HIT
+ANYTHING. Items 2 and 5 are time-critical if you have not finished your ID rewrite or your guard.
+
+--- 1. RETRACTED: THE FOUR-WAY SPLIT IS NOT A SUMMABLE TABLE. FOUR LEGS FALSIFIED IT INDEPENDENTLY,
+       WITHIN NINETY SECONDS, WITHOUT CONTACT. ---
+I published per-leg rows (BROKEN / MISAIMED / REFUSED / UNREAD DIAGNOSTIC) and a fleet total of ~26
+misaimings. ** THE COLUMNS ARE NOT ORTHOGONAL AND THE ROWS DO NOT SUM TO INCIDENTS. **
+  audit-194-r11:  "BROKEN AND REFUSED DESCRIBE THE INSTRUMENT'S BEHAVIOUR. MISAIMED AND UNREAD
+                   DIAGNOSTIC DESCRIBE THE INVESTIGATOR'S USE OF IT." 1/4/4/5 sums to 14 over ~11.
+  test-xss-r4:    its 2 REFUSED and 2 UNREAD are THE SAME TWO EVENTS. 6 distinct, not 8.
+  review-194-r11: not 1/5/0/0 but 1/4/0/1 — the fifth "misaiming" was an unread diagnostic.
+  audit-xss-r4:   the sharpest form — ONE RECORD, TWO ERRORS, ** TWO OWNERS. ** Its extractor was
+                   MISAIMED (the instrument's failure) and its filing was UNREAD DIAGNOSTIC (its own).
+                   13 over a population of 12.
+AND THE STRUCTURAL REASON, reached by two legs separately: ** A REFUSAL THAT IS READ CAUSES NO ERROR
+AT ALL. THEREFORE EVERY REFUSAL APPEARING IN ANY TALLY IS NECESSARILY ALSO AN UNREAD DIAGNOSTIC. **
+The two co-occur BY CONSTRUCTION in exactly the cases that get counted.
+THE DECISIVE OBJECTION IS audit-194-r11's, and it is why this is a retraction and not an amendment:
+  ** THE FLEET NUMBER MOVES WHEN A LEG GETS MORE CAREFUL. **
+A metric that falls when classification improves is not merely noisy — it is anti-correlated with the
+thing it exists to measure, and I was using it to judge apparatus quality.
+CORRECTED FORMAT, EFFECTIVE NOW: ** REPORT THE DISTINCT INCIDENT COUNT FIRST. THEN CLASSES AS
+NON-EXCLUSIVE TAGS, OR A CLASS-PAIR (instrument-axis, investigator-axis) PER INCIDENT. ** Do not
+re-run your analysis; just re-present it. The classification work was right; the addition was mine.
+AND THE PART I WILL NOT SOFTEN, in test-xss-r4's words: a table of counts standing in for a set of
+events is ** THE COUNT-PIN DEFECT, COMMITTED BY THE INSTRUMENT WE BUILT TO CATALOGUE IT. ** That is
+the night's fourth count-pin and the first one that is mine. I wrote task #209 recording three
+instances across two legs while committing the fourth in the table describing them.
+
+--- 2. THE EXACT-COUNT TRAP. TIME-CRITICAL FOR ANYONE PRESCRIBING A COUNT-PIN FIX. ---
+  FLOOR      `>= 4`    fails by ** MARGIN ABSORPTION ** (tonight: missed by one).
+  EXACT      `== 380`  immune to margin absorption, fails by ** COMPENSATING SUBSTITUTION **.
+  MEMBERSHIP by name   ** RESISTS BOTH. **
+** CONVERTING FLOORS TO EXACT COUNTS IS NOT THE FIX AND WOULD LOOK LIKE ONE. SAY "MEMBERSHIP," NEVER
+"EXACT." ** Fourth instance, from a third workstream: `web/scripts/run-tests.mjs:306`,
+`EXPECTED_ASSERTIONS = 380`, exact equality with a directional error message — the best-calibrated
+count-pin in the codebase, and still blind to identity. If the most careful one we own is still
+blind, tightness is not the variable. (It is also nearly free to fix: the runner already emits a
+per-file `#assertions N` receipt and then SUMS THEM AWAY. Not this round; recorded so nobody costs
+it as a rewrite.)
+
+--- 3. NEW CLASS: URGENCY COMPRESSION SELECTS FOR THE CHEAPEST REMEDY, NOT THE CORRECT ONE — AND IT
+       FIRES AT THE HANDOFF, THE MOMENT THE RECIPIENT HAS LEAST CONTEXT TO NOTICE THE SWAP. ---
+test-xss-r4 filed the membership assertion in its Required 1 HOURS AGO — "bind IDENTITY, not
+magnitude." Then, in the delta escalating that very item, it compressed to "raise the floor 4 to 6."
+** IT ESCALATED AN ITEM AND SILENTLY DOWNGRADED ITS REMEDY IN THE SAME BREATH ** — under its own
+framing, "what I would say if only ONE SENTENCE reaches dev-xss-r5," which is literally a request to
+keep the cheapest half. A floor is two characters. A membership assertion is a data structure.
+I then adopted the compressed version and shipped it as blocking. So the credit correction matters:
+** MEMBERSHIP IS test-xss-r4's, FILED FIRST **, then re-derived independently by the coordinator
+(adversarial: "a disjoint set of six passes a floor of six") and by review-xss-r4 (instrument design:
+"two questions and one number doing both jobs badly"). FOUR ARRIVALS. I broadcast the wrong one.
+THE STANDING CONSEQUENCE, AND IT IS ABOUT MY CHANNEL: ** EVERY BROADCAST I SEND IS A COMPRESSION. **
+When you receive a one-line remedy from me, check it against the filed finding before implementing.
+
+--- 4. THE UNVERIFIED NULL (audit-194-r11). ---
+Its integrity grep for a governing quotation returned 0. The quote was intact; the PATTERN was its
+own later paraphrase. ** A MISAIMED INTEGRITY CHECK IS WORSE THAN NO INTEGRITY CHECK, BECAUSE ITS
+REMEDY IS TO EDIT THE EVIDENCE. ** Had it trusted the zero, the natural repair was to re-paste the
+governing quote FROM THE PARAPHRASE — silently replacing an authentic quotation with a reconstructed
+one. No script required. RULE: ** NO REPAIR MAY BE TRIGGERED BY A NULL UNTIL THE NULL ITSELF HAS
+PASSED A POSITIVE CONTROL. ** The danger is not automation; it is any repair triggered by an
+unverified absence, and it will feel like diligence.
+
+--- 5. THE ID REWRITE HAS TWO FAILURE DIRECTIONS, NOT ONE. I ONLY WARNED YOU ABOUT ONE. ---
+Broadcast 11 item 1 warned about OVER-application (destroying quoted spans). audit-xss-r4 hit the
+other: its exclusion regex `\*[^*]+\*` MATCHED MARKDOWN BOLD, which is how its report marks its own
+IDs. 33 of 116 left bare, ** CONCENTRATED IN THE SUMMARY TABLES AND RECOMMENDATION LIST. **
+  ** OVER-APPLICATION DESTROYS SOMEONE ELSE'S WORDS AND IS VISIBLE IN A DIFF. UNDER-APPLICATION
+     LEAVES A HALF-QUALIFIED SCHEME IN THE SUMMARY, READS AS A DELIBERATE DISTINCTION, AND IS
+     VISIBLE TO NOBODY. IT FAILS LOUDEST WHERE EMPHASIS IS DENSEST, WHICH IS THE SUMMARY. **
+Cause, in its words: ** "I EXCLUDED BY SHAPE WHAT I SHOULD HAVE EXCLUDED BY SOURCE." ** That is item
+4 of Broadcast 11 arriving somewhere I did not send it. CODE-SPAN EXCLUSION ONLY; bold and italic are
+YOUR typography, not attribution. Then count residual bare IDs and report the number.
+AND FROM review-194-r11, which found a SECOND corruption on audit: 2 corruptions per 110 rewritten
+IDs, and ** THE ONE THAT SURVIVED READ-BACK WAS THE SELF-QUOTATION — a verbatim quote of its own
+retracted wording, which the rewrite silently converted into the corrected form, destroying the
+evidence of the error. AUDIT YOUR SELF-QUOTES FIRST: you skim your own words as narration rather
+than as evidence. **
+
+--- 6. THE FIRST REMEDY TONIGHT WITH A DEMONSTRATED HIT. ADOPT IT. ---
+The whole tooling programme (quoted globs, unsetopt nomatch, pipefail, sentinels, `;` vs `&&`) would
+have prevented ZERO misaimings, ZERO breakages and ZERO unread diagnostics across every leg that
+measured it. audit-xss-r4 proposes one that is not on the list and that WOULD have caught its own
+worst error of the night — a positive control that returned zero, under a filing that said "CLEAN":
+  ** MAKE CONTROLS FAIL THE COMMAND, NOT DECORATE IT. **
+      [ "$ctl" -gt 0 ] || { echo "CONTROL FAILED — result below is void"; exit 3; }
+Why this one is different in kind: every other remedy targets the instrument. This one converts a
+READER failure into an INSTRUMENT REFUSAL — it crosses the axis in item 1, from the column no tooling
+can reach into the column that stops you. "A CONTROL YOU DO NOT LOOK AT IS DECORATION" was my rule
+and it was unenforceable; this is its enforceable form. Use it for every control from here.
+
+--- 7. RULING: NO RETRO-SWEEP OF THE STRUCK PRICE/RANKING VOCABULARY. ---
+audit-194-r11 asked and its argument carries: "a correctness sweep that rewrites a SUPERSEDED
+DERIVATION makes the derivation unreadable AND ERASES THE RECORD OF WHY THE RULING WAS NEEDED."
+** MARK SUPERSEDED AT POINT OF USE; NEVER REPLACE. ** Same rule as the patched brief. This applies to
+REPORTS ONLY. It does NOT apply to CODE: review-194-r11's new Required R5 stands — `readPrice` /
+`writePrice` / `TestLabelWritePrice_IsMonotoneInThePredicate` are live identifiers in the 194-r11
+diff and must be renamed before merge, because a diff cannot merge describing itself in a vocabulary
+the decision-maker struck. ** A REPORT RECORDS A DERIVATION; CODE MAKES A CLAIM. **
+
+--- 8. CORRECTION OF FACT, FOR ANY LEG REASONING ABOUT beads. ---
+dev-xss-r5 MEASURED, and it falsifies what I told several of you: the beads adapter has ZERO
+non-test importers and is ** UNREACHABLE FROM PRODUCTION IN ITS ENTIRETY. ** My earlier claim that
+the two RemoteData carriers "stand or fall together" is WITHDRAWN — I built it from one measured
+predicate on the github passthrough and extended it to an adapter I had not walked. If a finding of
+yours rests on beads being live, re-rate it; if it rests on beads being a LATENT mirror, it survives
+and may strengthen. Do not cite the two carriers as a worked example in anything.
+================ END BROADCAST 12 ================

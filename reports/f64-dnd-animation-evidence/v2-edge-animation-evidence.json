@@ -1,0 +1,1122 @@
+[
+  {
+    "timestamp": 1784854404106,
+    "phase": "BEFORE",
+    "nodeCount": 4,
+    "edgeCount": 1,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 150,
+        "y": 320,
+        "name": "Run Integration Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      }
+    },
+    "viewport": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "panX": -45.05,
+      "panY": 0,
+      "scale": 1.758
+    }
+  },
+  {
+    "timestamp": 1784854404152,
+    "phase": "DND_DISPATCH",
+    "success": true
+  },
+  {
+    "timestamp": 1784854404192,
+    "phase": "v2-00-node-anim",
+    "elapsedMs": 0,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854404341,
+    "phase": "v2-01-node-anim",
+    "elapsedMs": 140,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854404476,
+    "phase": "v2-02-node-anim",
+    "elapsedMs": 289,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854404625,
+    "phase": "v2-03-node-anim",
+    "elapsedMs": 424,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854404758,
+    "phase": "v2-04-node-anim",
+    "elapsedMs": 572,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854404891,
+    "phase": "v2-05-node-anim",
+    "elapsedMs": 705,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405041,
+    "phase": "v2-06-node-anim",
+    "elapsedMs": 840,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405175,
+    "phase": "v2-07-node-anim",
+    "elapsedMs": 988,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405325,
+    "phase": "v2-08-node-anim",
+    "elapsedMs": 1123,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405459,
+    "phase": "v2-09-node-anim",
+    "elapsedMs": 1273,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405591,
+    "phase": "v2-10-node-anim",
+    "elapsedMs": 1406,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405743,
+    "phase": "v2-11-node-anim",
+    "elapsedMs": 1539,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854405893,
+    "phase": "v2-12-node-anim",
+    "elapsedMs": 1690,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406042,
+    "phase": "v2-13-node-anim",
+    "elapsedMs": 1841,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406175,
+    "phase": "v2-14-node-anim",
+    "elapsedMs": 1989,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406308,
+    "phase": "v2-15-node-anim",
+    "elapsedMs": 2122,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406443,
+    "phase": "v2-16-node-anim",
+    "elapsedMs": 2255,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406594,
+    "phase": "v2-17-node-anim",
+    "elapsedMs": 2391,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406743,
+    "phase": "v2-18-node-anim",
+    "elapsedMs": 2542,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854406894,
+    "phase": "v2-19-node-anim",
+    "elapsedMs": 2691,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407043,
+    "phase": "v2-20-node-anim",
+    "elapsedMs": 2842,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407192,
+    "phase": "v2-21-node-anim",
+    "elapsedMs": 2990,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407342,
+    "phase": "v2-22-node-anim",
+    "elapsedMs": 3140,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407492,
+    "phase": "v2-23-node-anim",
+    "elapsedMs": 3290,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407624,
+    "phase": "v2-24-node-anim",
+    "elapsedMs": 3439,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407758,
+    "phase": "v2-25-node-anim",
+    "elapsedMs": 3572,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854407893,
+    "phase": "v2-26-node-anim",
+    "elapsedMs": 3705,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854408042,
+    "phase": "v2-27-node-anim",
+    "elapsedMs": 3840,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854408191,
+    "phase": "v2-28-node-anim",
+    "elapsedMs": 3990,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  },
+  {
+    "timestamp": 1784854408325,
+    "phase": "v2-29-node-anim",
+    "elapsedMs": 4139,
+    "positions": {
+      "b48dce0a-6f5c-4941-8233-9fe5a05dfe25": {
+        "x": 150,
+        "y": 80,
+        "name": "Build Core API"
+      },
+      "29702c60-5f33-4d3d-b6f4-3afb2282c225": {
+        "x": 150,
+        "y": 200,
+        "name": "Write Unit Tests"
+      },
+      "29dd619d-5466-4399-abb3-9aa146f5b1ec": {
+        "x": 470,
+        "y": 80,
+        "name": "Deploy to Staging"
+      },
+      "6c4d7f4b-8091-4b4e-88d0-deb52cddd21f": {
+        "x": 470,
+        "y": 200,
+        "name": "Run Integration Tests"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": true,
+      "edgeProgress": 0,
+      "panX": -2,
+      "panY": -35.75,
+      "scale": 2
+    },
+    "svg": null
+  }
+]

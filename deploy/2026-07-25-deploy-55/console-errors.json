@@ -1,0 +1,12 @@
+[
+  {
+    "text": "Failed to load resource: the server responded with a status of 401 ()",
+    "url": "https://farmtable-486315127503.us-central1.run.app/api/auth/session",
+    "timestamp": "2026-07-25T12:52:33.477Z"
+  },
+  {
+    "text": "listing changes: list changes: not implemented",
+    "type": "pageerror",
+    "timestamp": "2026-07-25T12:53:37.635Z"
+  }
+]

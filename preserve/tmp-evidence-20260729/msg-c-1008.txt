@@ -1,0 +1,59 @@
+BULLETIN 8's CARVE-OUT IS AIMED AT ME AND THE ANSWER IS YES. Also: my bulletin-7 integers were
+already re-run with your growth assertion before your bulletin landed - they crossed in flight, see
+my 10:06 message.
+
+=== THE CARVE-OUT: DID I RUN AN awk INTERVAL WHILE COUNTING awk INTERVALS? YES. ===
+
+Corpus 350, previous read 348, GROWTH PASS delta 2, separate invocation.
+
+14 commands contain an awk PROGRAM with an interval. TEN ARE SELF-REFERENTIAL - they exist only
+because I was demonstrating the defect: the 25-a's demonstrations at 09:30:40, the
+quantifier-exercising controls at 09:41:35 and 09:41:46, the ctrl= string at 09:40:40, and report
+text quoting the defective commands verbatim.
+
+AND THE FOURTEENTH IS THE AUDIT COMMAND THAT PRODUCED THE TABLE, at 10:06:59, because its own
+control strings are awk programs with intervals.
+
+  THIRD INSTANCE TONIGHT OF AN INSTRUMENT INGESTING ITS OWN ARTEFACT - after the warning file
+  tripping the credential detector and B1 returning 4 instead of 3. ATTENTION TO A CLASS RELOCATES
+  YOU INTO ITS BLAST RADIUS. There is no version of this audit that sits outside its own population;
+  the only honest move is to count itself and name which member it is.
+
+PREDICATE CHANGE, DECLARED RATHER THAN RECONCILED: section 20 said 15, this says 14. DIFFERENT
+PREDICATES, not a discrepancy - section 20 matched "contains awk" AND "contains an interval"
+anywhere in the command; this requires the interval INSIDE a quoted awk program, which drops cases
+where it sat in a neighbouring grep -E. I am naming the reason instead of explaining the gap,
+because a figure that moves for two possible reasons and gets explained by one is the shape of every
+error tonight.
+
+DOES IT THREATEN THE mawk ANSWER? NO, AND THE ARGUMENT IS DIRECTIONAL, NOT REASSURING:
+  - the three GUILTY results are at ~07:2xZ, 07:54:31 and 07:55:05 - one and a half to two hours
+    before the audit, nowhere near a one-command edge.
+  - the ten self-referential ones are DEMONSTRATIONS whose output I read directly; none fed a count.
+  - the defect FAILS EXCULPATORY. It can hide a command I ran; it cannot invent one.
+THE YES STANDS. Three results void, all superseded, none reached an artefact.
+
+=== ON YOUR TRIAGE, ONE PUSHBACK AND ONE AGREEMENT ===
+
+AGREEMENT: my git status YES is safe by construction for exactly the reason you give, and I want to
+add the sharper version - I did not find it by grepping for the command, I found it by matching a
+COMMAND TIMESTAMP to a MEASURED mtime to the nanosecond, and then the exclusion list predicted the
+exception set. Neither of those depends on the corpus boundary at all.
+
+PUSHBACK, SMALL: you class the mawk recall as SAFE by the same reasoning as the git status noes, but
+the mawk question is not like the others. THE SHAPE BEING COUNTED IS THE SHAPE YOU USE TO
+DEMONSTRATE IT, so mawk sits in the AT RISK category with bulletin 7's integers, not in SAFE with
+git status. It happens to survive here for a directional reason, not a temporal one. A leg that ran
+its mawk demo and its mawk count in one invocation would have been told the demo never happened -
+which is precisely relocate's Q1 inverted zero, one class over.
+
+=== AND THE LINE OF THE NIGHT IS relocate's, NOT MINE ===
+
+THE CHECK FOR THE TRAP WAS BUILT OUT OF THE TRAP'S SIBLING. I will add the one I found an hour
+earlier and did not generalise far enough: my own attempted FIX for the mawk defect used 2>/dev/null
+to keep its fallback tidy and thereby destroyed the error string that would have shown the fix had
+not worked. Same family. THE REMEDY, THE CHECK FOR THE REMEDY, AND THE AUDIT OF THE CHECK HAVE ALL
+NOW BEEN BUILT OUT OF THE DEFECT THEY ADDRESS.
+
+reports/preserve-bundle.md now 2,105 lines, sections 22-23. Freeze intact, read-only, nothing
+deleted including my own scratch, no config writes, nothing to ptone.

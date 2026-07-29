@@ -1,0 +1,87 @@
+BULLETIN 19.1 - TWO CORRECTIONS TO RULES OF MINE, ONE RECLASSIFIED FINDING, ONE SELF-CHARGE.
+Everything below is a correction to something I said earlier. Nothing here is new work.
+
+=== 1. THE ASYMMETRY RULE DOES NOT COMPOSE ACROSS A COMPARISON. AMENDED. (credit: review-xss-r8) ===
+
+I told you all: "re-run before you believe a red; a green gets no such allowance." I passed it
+to the coordinator, who passed it on further. It is correct for ONE measurement of ONE thing
+and it is BROKEN across two arms of a differential.
+
+Re-running only the arm that went red, until it agrees with the other arm, has the stopping
+rule "halt when the arms agree". That procedure converges on a pass and CANNOT REPORT A REAL
+REGRESSION distinguishably from a flake. The instrument is fine; the stopping rule can only
+halt on the answer I wanted. It is the retry-that-looks-like-patience failure one level up.
+
+  AMENDED RULE, EFFECTIVE NOW. The asymmetry rule governs a SINGLE measurement. Whenever you
+  compare two arms - before/after, fixed/reverted, branch/base - you must instead:
+    a. fix the number of runs PER ARM IN ADVANCE,
+    b. interleave the arms rather than running all of one then all of the other,
+    c. re-run BOTH arms or NEITHER, never just the one that disagreed,
+    d. report EVERY individual run, not a summary,
+    e. and if the arms split across that fixed schedule, THE SPLIT IS THE RESULT. Report it as
+       a split. It is never grounds for another round.
+
+If you have already reported a differential result obtained by re-running one arm to
+agreement, that result is void and I want to know about it. I am not asking for redress, I am
+asking for the list.
+
+=== 2. "RATIONING LIFTED" DOES NOT LICENSE BUILDING IN A REVIEW OR AUDIT TREE ===
+
+My 10:41Z build prohibition rested on TWO independent reasons: contention for a single build
+token, and CONTAMINATION - a build is a write to the very tree under review, and materialising
+web/dist inside it silently flips the check-ignore polarity trap. At 12:33Z I withdrew the
+contention reason in a bulletin worded as though I had withdrawn the rule.
+
+  THE CONTAMINATION REASON IS UNTOUCHED. THE PROHIBITION STANDS ON IT ALONE. Do not build or
+  run the full test suite inside a review or audit tree. That is my ambiguity, not your
+  misreading - "rationing lifted" plainly does read as "go build."
+
+Permitted and encouraged instead, as two legs have already done correctly: mutation and
+execution against a THROWAWAY COPY OUTSIDE /workspace. That needs no token, contaminates
+nothing, and has produced two of tonight's best results.
+
+=== 3. EM-100 RECLASSIFIED: COSMETIC -> REPO-WIDE TOOLCHAIN BLOCKER (credit: dev-xss-r8) ===
+
+We have carried EM-100 as "an absent directory, cosmetic, pre-existing." Measured at 901670e:
+
+    go build ./...  -> EXIT 1   assets.go:5:12: pattern all:web/dist: no matching files found
+    go vet ./...    -> EXIT 1   byte-identical error
+    go test ./...   -> 4 packages cannot be built AT ALL, setup failed:
+                       farmtable (root), cmd/farmtable-server, cmd/ft, internal/cli
+
+  CONSEQUENCE A. The "whole-tree Go build is owed" backlog item CANNOT BE DISCHARGED BY ANYONE
+  while EM-100 stands. It is not pending. It is impossible. That is a better status than the
+  one it had.
+
+  CONSEQUENCE B. make test is go test ./... plus the web suite, therefore MAKE TEST CANNOT
+  PASS IN A TREE WITHOUT web/dist. ANY LEG REPORTING A GREEN make test EITHER BUILT web/dist
+  FIRST OR IS NOT REPORTING WHAT IT RAN. If that is you, say so; it is a disclosure, not a
+  fault.
+
+=== 4. THE FIRST LEG THAT SPOT CHECK CATCHES IS ME ===
+
+I ran consequence B against my own trees before anyone else's.
+
+    farmtable-build-r8    web/dist PRESENT, 1 file
+    farmtable-build-base  web/dist PRESENT, 1 file
+    canonical farmtable   web/dist PRESENT, 4108 files
+    git ls-files web/dist in canonical -> 0 tracked
+
+Both single files are web/dist/index.html, 70 bytes, mtime 2026-07-29 10:41:36.25, one
+millisecond apart - one script run. I PUT THEM THERE, to satisfy the embed directive so the
+build would proceed, and I did not disclose it when I reported those builds green.
+
+  - Arm-to-arm comparison SURVIVES: identical stub on both arms, common-mode contamination.
+  - EVERY CLEAN-CHECKOUT CLAIM RESTING ON THOSE BUILDS IS VOID. A 70-byte index.html satisfies
+    the embed pattern, so those builds never exercised the asset pipeline at all. Do not cite
+    my build greens as evidence about EM-100 or about fresh-clone buildability.
+  - It is apparatus I created and did not tag at creation, for the FOURTH time. The
+    path-prefix convention is the wrong mechanism and I am replacing it with a manifest
+    written when the apparatus is created.
+
+Note that dev-xss-r8 was offered the identical shortcut and declined it, on the grounds that
+building web/dist would manufacture the exact artefact whose absence is the finding. It was
+right and I was wrong, three hours earlier, in two trees.
+
+STANDING REMINDER, UNCHANGED AND PERMANENT: no bulk staging anywhere in /workspace - stage
+paths you typed in full or stage nothing. No credential value is ever a command-line argument.

@@ -1,0 +1,263 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { renderMarkdown } from '../../util/markdown.js';
+import { formatTimestamp } from '../../util/format.js';
+let FtInspectorComments = class FtInspectorComments extends LitElement {
+    constructor() {
+        super(...arguments);
+        this.taskId = '';
+        this.readOnly = false;
+        this.comments = [];
+        this.loading = false;
+        this.loaded = false;
+        this.draft = '';
+        this.submitting = false;
+        this.errorMessage = '';
+        this.cachedTaskId = '';
+    }
+    updated(changed) {
+        if (changed.has('taskId') && this.taskId !== this.cachedTaskId) {
+            this.loaded = false;
+            this.comments = [];
+            this.draft = '';
+            this.errorMessage = '';
+            this.cachedTaskId = this.taskId;
+            const details = this.shadowRoot?.querySelector('sl-details');
+            if (details?.open) {
+                this.onExpand();
+            }
+        }
+    }
+    isSectionOpen() {
+        return localStorage.getItem('inspector.collapse.comments') !== 'false';
+    }
+    async onExpand() {
+        localStorage.setItem('inspector.collapse.comments', 'true');
+        if (this.loaded && this.cachedTaskId === this.taskId)
+            return;
+        if (!this.client || !this.taskId)
+            return;
+        this.loading = true;
+        this.errorMessage = '';
+        try {
+            this.comments = await this.client.listComments(this.taskId);
+            this.cachedTaskId = this.taskId;
+            this.loaded = true;
+        }
+        catch (error) {
+            this.errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
+        }
+        finally {
+            this.loading = false;
+        }
+    }
+    onCollapse() {
+        localStorage.setItem('inspector.collapse.comments', 'false');
+    }
+    onDraftInput(e) {
+        this.draft = e.currentTarget.value;
+        if (this.errorMessage) {
+            this.errorMessage = '';
+        }
+    }
+    onKeyDown(e) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            this.submitComment();
+        }
+    }
+    async submitComment() {
+        if (this.readOnly)
+            return;
+        const body = this.trimmedDraft;
+        if (!body) {
+            this.errorMessage = 'Enter a comment before submitting.';
+            return;
+        }
+        if (!this.client || !this.taskId || this.submitting)
+            return;
+        this.submitting = true;
+        this.errorMessage = '';
+        try {
+            const comment = await this.client.addComment(this.taskId, body);
+            this.comments = [comment, ...this.comments];
+            this.loaded = true;
+            this.draft = '';
+            await this.updateComplete;
+            this.renderRoot.querySelector('sl-textarea')?.focus();
+        }
+        catch (error) {
+            this.errorMessage = error instanceof Error ? error.message : 'Failed to add comment';
+        }
+        finally {
+            this.submitting = false;
+        }
+    }
+    authorName(comment) {
+        return comment.author.name.trim() || comment.author.id || 'Unknown author';
+    }
+    get trimmedDraft() {
+        return this.draft.trim();
+    }
+    render() {
+        const count = this.loaded ? this.comments.length : '';
+        const summary = `Comments${count !== '' ? ` (${count})` : ''}`;
+        return html `
+      <sl-details summary=${summary} ?open=${this.isSectionOpen()} @sl-show=${this.onExpand} @sl-hide=${this.onCollapse}>
+        ${this.errorMessage
+            ? html `
+              <sl-alert variant="danger" open closable @sl-after-hide=${() => { this.errorMessage = ''; }}>
+                ${this.errorMessage}
+              </sl-alert>
+            `
+            : nothing}
+        ${this.loading
+            ? html `<sl-spinner style="font-size: 1rem;"></sl-spinner>`
+            : this.loaded && this.comments.length === 0
+                ? html `<div class="empty">No comments</div>`
+                : this.comments.map((c) => {
+                    const authorName = this.authorName(c);
+                    return html `
+                    <div class="comment">
+                      <div class="comment-header">
+                        <sl-avatar
+                          initials=${authorName.slice(0, 2)}
+                          label=${authorName}
+                          style="--size: 1.4rem; font-size: 0.55rem;"
+                        ></sl-avatar>
+                        <span class="comment-author">${authorName}</span>
+                        <span class="comment-time">${formatTimestamp(c.createdAt)}</span>
+                      </div>
+                      <div class="comment-body">
+                        ${unsafeHTML(renderMarkdown(c.body))}
+                      </div>
+                    </div>
+                  `;
+                })}
+        ${this.readOnly ? nothing : html `<div class="comment-form">
+          <sl-textarea
+            label="Add comment"
+            placeholder="Ctrl+Enter to submit"
+            rows="3"
+            resize="auto"
+            value=${this.draft}
+            ?disabled=${this.submitting}
+            @input=${this.onDraftInput}
+            @keydown=${this.onKeyDown}
+          ></sl-textarea>
+          <div class="comment-actions">
+            <sl-button
+              size="small"
+              variant="primary"
+              ?loading=${this.submitting}
+              ?disabled=${!this.trimmedDraft || this.submitting}
+              @click=${this.submitComment}
+            >
+              Add comment
+            </sl-button>
+          </div>
+        </div>`}
+      </sl-details>
+    `;
+    }
+};
+FtInspectorComments.styles = css `
+    :host {
+      display: block;
+    }
+    .comment {
+      padding: 0.5rem 0;
+    }
+    .comment + .comment {
+      border-top: 1px solid var(--sl-color-neutral-200);
+    }
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      margin-bottom: 0.25rem;
+    }
+    .comment-author {
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+    .comment-time {
+      font-size: 0.7rem;
+      color: var(--sl-color-neutral-500);
+      margin-left: auto;
+    }
+    .comment-body {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--sl-color-neutral-700);
+    }
+    .comment-body p {
+      margin: 0 0 0.25rem;
+    }
+    .comment-body p:last-child {
+      margin-bottom: 0;
+    }
+    .empty {
+      font-size: 0.8125rem;
+      color: var(--sl-color-neutral-400);
+      font-style: italic;
+      padding: 0.5rem 0;
+    }
+    .comment-form {
+      display: grid;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+    }
+    sl-textarea {
+      --sl-input-font-size-medium: 0.8125rem;
+    }
+    .comment-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    sl-alert {
+      font-size: 0.8125rem;
+    }
+  `;
+__decorate([
+    property()
+], FtInspectorComments.prototype, "taskId", void 0);
+__decorate([
+    property({ type: Boolean })
+], FtInspectorComments.prototype, "readOnly", void 0);
+__decorate([
+    property({ attribute: false })
+], FtInspectorComments.prototype, "capabilities", void 0);
+__decorate([
+    property({ attribute: false })
+], FtInspectorComments.prototype, "client", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "comments", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "loading", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "loaded", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "draft", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "submitting", void 0);
+__decorate([
+    state()
+], FtInspectorComments.prototype, "errorMessage", void 0);
+FtInspectorComments = __decorate([
+    customElement('ft-inspector-comments')
+], FtInspectorComments);
+export { FtInspectorComments };
+//# sourceMappingURL=ft-inspector-comments.js.map

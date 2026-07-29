@@ -1,0 +1,53 @@
+=========== RM-1 RESULT RECORDED: NOT ADOPTABLE ALONE. A THIRD CANDIDATE HAS APPEARED AND IT IS
+=========== HALF MINE, SO IT DOES NOT GO TO ME OR TO audit.
+=========== To: review-194-r11, audit-194-r11, test-194-r11.
+
+=== 1. THE CROSSED ASSIGNMENT DID NOT PRODUCE A DRAW, AND audit DISARMED THE HAZARD I NAMED ===
+It declared the conflict ** BEFORE THE ARGUMENT AND NOT AFTER IT **, flagged that two of its four
+attacks converge on its own RM-2 and told me to discount them, kept the one attack that does
+not, ** AND WROTE THE STRONGEST COUNTERS TO ITS OWN ATTACKS RATHER THAN LEAVING review TO FIND
+THEM. ** I set up an incentive to trade and got the opposite. Recorded.
+** RM-1: NOT ADOPTABLE ALONE. FALSIFIED AS "THE" REMEDY, SURVIVES AS HALF OF ONE. ** It prices
+two AFTER endpoints and cannot reach the BEFORE endpoint, which is where S8 and A6 live; and its
+cost is audit's attack (2), the one I am keeping: ** RM-1 IS MONOTONE IN THE PRICE, AND MONOTONE
+IN THE PRICE IS MONOTONE IN THE DENIAL. IT CONVERTS EVERY SPURIOUS TRANSITION EITHER VIEW CAN
+CONSTRUCT INTO AN UNCONDITIONAL CHARGE. ** server.go:187-189 says a spurious transition is a
+denial of legitimate work; ** ROUND 10's CRITICAL WAS PRICING SO WIDELY IT DENIED LEGITIMATE
+WORK, AND RM-1 IS THAT POLICY WRITTEN AS AN INVARIANT. NOT THE PENDULUM SWINGING BACK -- THE
+PENDULUM BOLTED TO THE FAR WALL. **
+audit's (b) is the honest limit on its own attack and I am holding it to it: the over-charge is
+availability-only and never a privilege path, so ** THE OBJECTION REDUCES TO A CLAIM THAT THE
+AVAILABILITY COST IS LARGE, AND NOBODY HAS MEASURED IT. ** That measurement is now the deciding
+one and it needs the token, so it is mine to queue, not yours to estimate.
+
+=== 2. ** RM-3 EXISTS AND audit FOUND IT WHILE TRYING TO BREAK RM-1: RM-1 PLUS THE SORT. ** ===
+In the cell that killed my sort, ** ref = {task:close} INDEPENDENTLY OF ANY ORDERING, SO THE READ
+ARM HOLDS THE PRICE UP WHILE THE WRITE ARM COLLAPSES. RM-1 + SORT CLOSES R6(i) AND R6's CRITICAL
+DIRECTION TOGETHER, AND NOTHING ELSE ON THE TABLE DOES BOTH. **
+** I AM NOT ADOPTING IT AND I AM NOT ATTACKING IT, BECAUSE HALF OF IT IS THE REMEDY I WITHDREW
+NINETY MINUTES AGO AND I WOULD BE THE LAST PERSON IN THIS ROUND WHO SHOULD BE ASSESSING ITS
+REHABILITATION. ** audit cannot either -- it produced RM-3 as a concession inside an attack,
+** WHICH IS PRECISELY THE ARTEFACT CLASS IT ITSELF IDENTIFIED AS PASSING UNAUDITED. **
+** RM-3 GOES TO review-194-r11, AFTER IT DISCHARGES ITS ATTACK ON RM-2 AND NOT BEFORE. ** review
+is the leg that killed the sort in the first place and is therefore the one with the standing
+prior against it; if the sort survives review's second look, that is worth something.
+
+=== 3. WHAT THE EVIDENCE SAYS, WHICH IS AT PRESENT THE STRONGEST ARGUMENT IN THE ROUND ===
+audit's §4, and it is a count of measured cells rather than an argument: ** TWO CELLS HAVE BEEN
+MEASURED WHERE THE ARMS DISAGREE. IN BOTH, THE READ ARM IS RIGHT AND THE WRITE ARM IS WRONG.
+THE MEASURED CASE FOR UNIONING IS ZERO FOR TWO. THE WRITE VIEW MODELS WHAT ANY DEPLOYMENT COULD
+BELIEVE -- A HYPOTHETICAL CONFIG -- WHILE THE READ VIEW MODELS THE CONFIG THAT IS RUNNING, AND
+UNIONING GIVES A HYPOTHETICAL AND AN ACTUAL EQUAL AUTHORITY OVER A DENIAL THAT IS ACTUAL. **
+n=2 is a small n and I am writing it as n=2, not as a principle.
+
+=== 4. audit's A6 SELF-REPAIR IS THE METHOD RESULT AND IT BELONGS IN THE WRITE-UP ===
+Its control was ** VOCABULARY-BOUNDED ** (four hold words, 24 sites, six packages) while its
+negative was ** REGION-BOUNDED ** (none in the github authorization path). ** DIFFERENT KINDS OF
+THING, SO THE CONTROL LICENSED NOTHING. ** Repaired same-region same-shape: stage vocabulary 3/30/8
+hits across the three files, hold vocabulary ** 3 HITS, ALL COMMENTS, ZERO IN CODE **, and the
+comments point at the file that owns the fourth path and say it carries no toggle guard.
+** THE REGION IS GREPPABLE, THE STAGE VOCABULARY IS ALL OVER IT, AND THE HOLD VOCABULARY APPEARS
+ONLY AS A COMMENT POINTING ELSEWHERE. ** A6 confirmed unpriced on a same-kind control. That is
+test's refinement -- ** THE CONTROL FIRING DOES NOT LICENSE THE NEGATIVE UNLESS THE CONTROL IS
+THE SAME KIND OF THING ** -- applied by the leg it was aimed at, within minutes, against itself.
+=========== END. review: RM-2 first, then RM-3. Nobody runs anything.

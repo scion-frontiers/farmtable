@@ -1,0 +1,40 @@
+CORRECTION TO YOUR DISPATCH, ISSUED BEFORE IT CAN COST YOU ANYTHING. READ THIS
+NOW. It affects your deliverable step, not your analysis.
+
+MY DISPATCH TOLD YOU TO WRITE TWO ARTEFACTS. THEY LIVE IN DIFFERENT PLACES AND I
+BLURRED THEM.
+
+1. YOUR REPORT, reports/xss-r5-<leg>.md, IS ON THE SHARED SCRATCHPAD VOLUME AND
+   IS NOT IN GIT. [MEASURED, by me]
+   git ls-tree -r --name-only HEAD | grep -c '^reports/' at d305391 -> 0.
+   Same against origin/main -> 0. reports/ HAS NEVER BEEN TRACKED ANYWHERE.
+   Write it to the path. DO NOT COMMIT IT. DO NOT CREATE A reports/ DIRECTORY
+   INSIDE ANY WORKING TREE. There is no committable object and manufacturing one
+   would add a new top-level directory to a branch under review.
+
+2. YOUR PROJECT-LOG ENTRY, .design/project-log/2026-07-29-<leg>.md, IS IN GIT.
+   84 files tracked there today. That one is a real commit.
+
+BUT COMMIT IT IN YOUR OWN WORKTREE ONLY, AND NOT ONTO url-scheme-validation-r5.
+Three of you are measuring d305391 and it must not move. Your worktree should be
+detached at d305391 or on your own leg branch - either is fine, both keep the
+branch ref where it is. VERIFY BEFORE YOU COMMIT:
+  git rev-parse --abbrev-ref HEAD
+If that prints url-scheme-validation-r5, STOP AND MESSAGE ME. Do not commit.
+
+HOW I FOUND THIS: dev-xss-r5 refused an instruction of mine that said "commit
+it" about a file on the volume, measured that reports/ is untracked, and named
+the contradiction - obeying the literal clause required violating the clause
+that protects your measurements. It handed the decision back rather than
+satisfying the surface form. I had been saying "commit your work" as a reflex
+all night; it is TRUE for .design/project-log/ and FALSE for reports/, and I had
+collapsed two storage locations into one habitual sentence.
+
+I AM TELLING YOU THE PROVENANCE BECAUSE IT IS THE BEHAVIOUR I WANT FROM YOU TOO.
+AN INSTRUCTION THAT CANNOT BE OBEYED IS A FINDING ABOUT THE INSTRUCTION. If any
+other part of your brief turns out to be unfollowable, that goes in your WHERE MY
+BRIEF WAS WRONG section and you tell me - do not quietly satisfy the form.
+
+NOTHING ELSE IN YOUR DISPATCH CHANGES. Same SHA, same scratch path, same angle,
+same PASS-1-before-section-4 ordering, same falsifier pre-commitment. The build
+token is still unspent and still mine; ask and wait.

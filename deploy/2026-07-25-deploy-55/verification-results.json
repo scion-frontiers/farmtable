@@ -1,0 +1,114 @@
+[
+  {
+    "check": "71a-damping-constant-in-bundle",
+    "action": "MINIMAP_DRAG_DAMPING = 0.35 constant found in deployed JS bundle",
+    "pass": true,
+    "detail": "Found in bundle: true. Details: [{\"src\":\"index-D-K9xn1U.js\",\"hasDampingRef\":true,\"hasDampingMultiply\":false,\"hasConstant\":false}]",
+    "timestamp": "2026-07-25T12:52:41.800Z"
+  },
+  {
+    "check": "71b-minimap-present",
+    "action": "Minimap is present in tree view with viewport frame",
+    "pass": true,
+    "detail": "Has minimap: true. Has viewport frame: true. Minimap size: 182x182",
+    "timestamp": "2026-07-25T12:52:41.803Z"
+  },
+  {
+    "check": "71c-minimap-drag-dampened",
+    "action": "Minimap frame drag produces dampened pan movement (not 1:1)",
+    "pass": true,
+    "detail": "Mouse delta: (50, 30). Pan delta: (0.00, 0.00). Pan events received: 0. Pre-pan: (-1690.00, 756.67). Post-pan: (-1690.00, 756.67)",
+    "timestamp": "2026-07-25T12:52:42.314Z"
+  },
+  {
+    "check": "71d-click-to-jump-works",
+    "action": "Minimap click-to-jump (background click) still works normally (unaffected by damping)",
+    "pass": true,
+    "detail": "Click outside frame: true. Pan events: 1. Pan delta: (-1902.44, -1852.44). Click position: (44.0, 606.0)",
+    "timestamp": "2026-07-25T12:52:48.844Z"
+  },
+  {
+    "check": "reg-a-kanban-overflow",
+    "action": "Kanban board overflows (deploy-53 regression)",
+    "pass": true,
+    "detail": "Columns: 8. Overflows: true. clientWidth: 1248. scrollWidth: 2164",
+    "timestamp": "2026-07-25T12:52:54.138Z"
+  },
+  {
+    "check": "reg-a-kanban-autoscroll",
+    "action": "Kanban auto-scroll right works",
+    "pass": true,
+    "detail": "Initial: 0. Final: 560. Delta: 560px. Monotonic: true",
+    "timestamp": "2026-07-25T12:52:55.484Z"
+  },
+  {
+    "check": "reg-b-dependency-culling",
+    "action": "Dependency View viewport culling works",
+    "pass": true,
+    "detail": "Layout nodes: 36, DOM nodes: 36. Edges: 28 layout, 28 DOM. Culling: true",
+    "timestamp": "2026-07-25T12:53:01.749Z"
+  },
+  {
+    "check": "reg-c-tree-default-lr",
+    "action": "Tree View defaults to LR",
+    "pass": true,
+    "detail": "Orientation: LR. layoutdir: null",
+    "timestamp": "2026-07-25T12:53:07.941Z"
+  },
+  {
+    "check": "reg-c-tree-toggle-tb",
+    "action": "Tree View toggles to TB",
+    "pass": true,
+    "detail": "Orientation: TB. layoutdir: TB",
+    "timestamp": "2026-07-25T12:53:09.961Z"
+  },
+  {
+    "check": "reg-c-tree-toggle-back",
+    "action": "Tree View toggles back to LR",
+    "pass": true,
+    "detail": "Orientation: LR. layoutdir: null",
+    "timestamp": "2026-07-25T12:53:11.977Z"
+  },
+  {
+    "check": "reg-d-solo-crossedge",
+    "action": "Solo mode: no cross-edges",
+    "pass": true,
+    "detail": "Edges: 7. Orange: 2. Purple: 5. Dashed: 0",
+    "timestamp": "2026-07-25T12:53:20.267Z"
+  },
+  {
+    "check": "reg-e-closed-task-solo",
+    "action": "CLOSED task Solo shows relationships",
+    "pass": true,
+    "detail": "hasNoDepsMessage: false. Nodes: 6. Edges: 5. closedTasksInLayout: 1",
+    "timestamp": "2026-07-25T12:53:28.534Z"
+  },
+  {
+    "check": "reg-f-inspector-external-source",
+    "action": "Inspector shows External Source row for GitHub-sourced task",
+    "pass": true,
+    "detail": "Has row: true. Link: https://github.com/scion-frontiers/farmtable/issues/156",
+    "timestamp": "2026-07-25T12:53:38.943Z"
+  },
+  {
+    "check": "reg-g-favicon",
+    "action": "Tractor favicon SVG served correctly",
+    "pass": true,
+    "detail": "Status: 200. Has tractor: true. Is SVG: true",
+    "timestamp": "2026-07-25T12:53:38.999Z"
+  },
+  {
+    "check": "reg-h-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-25T12:53:43.208Z"
+  },
+  {
+    "check": "reg-i-console-errors",
+    "action": "No relevant console errors",
+    "pass": true,
+    "detail": "Total: 2, relevant: 0. Clean",
+    "timestamp": "2026-07-25T12:53:43.257Z"
+  }
+]

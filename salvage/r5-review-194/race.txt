@@ -1,0 +1,2 @@
+go test -race ./internal/platform/github/
+ok  	github.com/farmtable-io/farmtable/internal/platform/github	1.207s

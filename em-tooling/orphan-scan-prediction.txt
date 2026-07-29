@@ -1,0 +1,22 @@
+PRE-REGISTERED, written BEFORE running orphan-scan.sh.
+
+POSITIVE CONTROL (EXCLUDE_PRESERVE=1):
+  PREDICT 89306d0 appears in the AT-RISK list. It is a project-log commit that is
+  NOT an ancestor of anything in the canonical repo (verified earlier tonight:
+  merge-base(89306d0,7b4f6dd)=86f30bc, and the source branch was rewound), so with
+  the preserve refs excluded from the SAFE set it MUST be flagged.
+  If it does NOT appear, the detector cannot say AT RISK and every green it ever
+  prints is worthless. That is a hard abort.
+
+REAL RUN (EXCLUDE_PRESERVE=0):
+  PREDICT 89306d0 does NOT appear -- it is now preserved, so the preserve refs
+  should move it into SAFE. This is the pair that proves the preserve ref actually
+  protects something, rather than merely existing.
+
+I do NOT predict the total at-risk count. ~180 clones, many old feature branches;
+I have no basis for a number and inventing one would be a post-hoc tally dressed
+as a prediction. What I DO predict is the direction: the real run's count is
+exactly (control count - 1) if 89306d0 is the only commit the preserve refs rescue,
+or lower if the other 28 preserve refs also rescue log commits. It cannot be HIGHER.
+A higher count on the real run would mean the SAFE set shrank when I added to it,
+which is incoherent and would indicate a broken harness.

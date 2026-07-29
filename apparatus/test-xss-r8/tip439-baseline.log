@@ -1,0 +1,57 @@
+
+> farmtable-web@0.0.1 test
+> node scripts/run-node-tests.mjs
+
+Compiling 6 Node test script(s) with tsconfig.test.json…
+Running 6 test file(s) under node v20.20.2.
+TAP version 13
+# capabilities: ok
+# \#assertions 103
+# Subtest: /tmp/tip439/web/.tmp-test/capabilities.test.js
+ok 1 - /tmp/tip439/web/.tmp-test/capabilities.test.js
+  ---
+  duration_ms: 114.134719
+  ...
+# render-sink-xss: OK
+# \#assertions 37
+# Subtest: /tmp/tip439/web/.tmp-test/components/inspector/render-sink-xss.test.js
+ok 2 - /tmp/tip439/web/.tmp-test/components/inspector/render-sink-xss.test.js
+  ---
+  duration_ms: 1813.89285
+  ...
+# assertions: ok
+# \#assertions 9
+# Subtest: /tmp/tip439/web/.tmp-test/util/assertions.test.js
+ok 3 - /tmp/tip439/web/.tmp-test/util/assertions.test.js
+  ---
+  duration_ms: 107.330967
+  ...
+# safe-url: ok
+# \#assertions 204
+# Subtest: /tmp/tip439/web/.tmp-test/util/safe-url.test.js
+ok 4 - /tmp/tip439/web/.tmp-test/util/safe-url.test.js
+  ---
+  duration_ms: 2208.565217
+  ...
+# url-binding-scan: ok
+# \#assertions 157
+# Subtest: /tmp/tip439/web/.tmp-test/util/url-binding-scan.test.js
+ok 5 - /tmp/tip439/web/.tmp-test/util/url-binding-scan.test.js
+  ---
+  duration_ms: 322.581282
+  ...
+# \#assertions 10
+# Subtest: /tmp/tip439/web/.tmp-test/utils/task-ready.test.js
+ok 6 - /tmp/tip439/web/.tmp-test/utils/task-ready.test.js
+  ---
+  duration_ms: 102.503897
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2221.201528

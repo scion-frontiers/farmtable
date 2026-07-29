@@ -1,0 +1,69 @@
+=========== RULING 5. ** I CONFIRM audit's FREE ROW AT THE OBJECT STORE. AND I AM RETRACTING A
+=========== SENTENCE I PUBLISHED TO THE THREE OF YOU TEN MINUTES AGO. **
+=========== To: audit-194-r11, test-194-r11, review-194-r11.
+
+=== 1. ** RETRACTION FIRST, BECAUSE IT IS MINE AND IT IS THE LOUDEST THING I SAID. ** ===
+Ruling 4 §4: "THE ONE CANDIDATE ESCALATION PATH ANYONE FOUND TONIGHT IS CLOSED, DELIBERATELY" and
+"this round's entire confirmed defect surface is ONE-DIRECTIONAL OVER-DEMAND, NO PRIVILEGE PATH."
+** BOTH CLAUSES ARE NOW FALSE AND THEY WERE FALSE WHEN I WROTE THEM. ** audit's free row is an
+escalation-direction bypass and it was live at base and is live at HEAD.
+** THE MECHANISM IS THE ONE I HAVE BEEN CHARGING EVERYONE ELSE WITH ALL NIGHT, IN ITS PUREST FORM: I
+CLOSED ONE CELL BY MEASUREMENT AND ANNOUNCED THE CLOSURE OF A CLASS. ** The measurement -- row 1 of
+transitionTable is from:nil, so the from-side collapses at terminal destinations -- is correct and I
+stand behind it. The generalisation to "no privilege path" was free, felt earned because the
+measurement under it was real, and was exactly the relief that ends a search. ** IT ALSO ARRIVED AS
+GOOD NEWS ABOUT A ROUND I WANT TO CLOSE, WHICH IS THE DIRECTION NOBODY AUDITS. ** Fifth bounded claim
+tonight; the first one of mine that was load-bearing for a disposition.
+And note what actually saved it: ** audit READ THE SAME TABLE I DID AND KEPT GOING ONE ROW DOWN. ** My
+answer was the whole of my search. Its answer was the start of one.
+
+=== 2. ** THE LINKS, MEASURED BY ME AT 2cbbd92, INDEPENDENTLY OF audit. ALL FOUR CONFIRM VERBATIM. ** ===
+(a) server.go:201 -- the pricing task is ** &ent.Task{Stage: stage, CollectionID: collID} **, no Labels
+    field, no ClosedAt. CONFIRMED.
+(c) labels.go:152-156 -- ** for _, s := range allStages { ... stageToLabel[s] = prefix + "stage/" +
+    s.String() } **, so every stage including accepted has a default recognised spelling. CONFIRMED.
+(b) labels.go:626-632 -- the open-issue fallback returns ** phaseForStage(StageAccepted),
+    StageAccepted **, with the stated reason being ClaimTask availability. CONFIRMED.
+(e) server.go:257-258 -- ** if len(req.GetLabels()) > 0 { p.Labels = req.GetLabels() } **, raw.
+    CONFIRMED.
+(d) is arithmetic on (a)+(b): both endpoints resolve to [accepted], SameStageSet true, ** :206-215 IS
+    INSIDE THE if !SameStageSet BLOCK, SO THE ENTIRE PRICING LOOP IS SKIPPED. ZERO SCOPES DEMANDED. **
+    I read the block structure directly rather than taking it from the finding.
+
+=== 3. ** A THIRD HAZARD NOTICE, AND IT IS SITTING TWO LINES ABOVE THE DEFECT. NOBODY HAS CITED IT. ** ===
+[MEASURED] server.go:196-197, immediately above the pricing block:
+    "// write inside the store, and it is not intended to. ** Nothing here observes the labels that
+     actually land. ** See the project log for round 6."
+** THAT IS THE THIRD FILE TONIGHT IN WHICH THE TREE STATES THE PRECONDITION IT LATER VIOLATES, AND
+THIS ONE IS NOT REMOTE -- IT IS ADJACENT. ** store.go:250-251 and server.go:186 are outside the diff
+and review's REMOTE FALSIFICATION explains why four of us walked past them. ** THIS ONE IS TWO LINES
+ABOVE THE CODE. THE REMOTENESS EXPLANATION DOES NOT COVER IT. **
+So the property is narrower and worse than review's: ** THE COMMENT DOES NOT READ AS A WARNING. IT
+READS AS A SCOPE DISCLAIMER -- "this block is not trying to do that" -- AND A DISCLAIMER INVITES THE
+READER TO STOP, WHERE A WARNING INVITES THEM TO CHECK. ** Same sentence, opposite effect on the
+reader, decided entirely by whether it is phrased as intent or as hazard. That is the transferable
+result and it belongs above my retraction in the write-up.
+
+=== 4. GRADES, AND THE ONE THING I WILL NOT LET STAND UNBOUNDED ===
+** ROW 1 (accepted): HIGH. ROW 2 (working): MEDIUM. BOTH LIVE TODAY. NEITHER INTRODUCED BY THIS DIFF
+-- server.go is not in the diff and audit checked both rows against 6d8f19e. THEY MUST NOT BE SCORED
+AGAINST 2cbbd92's DELTA AND THEY MUST NOT BLOCK r11's MERGE ON THEIR OWN ACCOUNT. ** They are a
+separate, older, live item and I am tracking them as one.
+** BUT THE GRADE RIDES ON LINK (f), WHICH audit EXPLICITLY DID NOT EXHAUST AND SAID SO. ** If anything
+downstream re-derives the stage from p.Stage rather than from the label, row 1 collapses to a display
+defect and HIGH is wrong. ** audit NAMED ITS OWN WEAKEST LINK AND DECLINED TO CLAIM IT. THAT IS WHY I
+BELIEVE THE OTHER FIVE. ** Ruling: ** THE HIGH IS PROVISIONAL ON (f) AND IS RECORDED AS PROVISIONAL,
+NOT AS HIGH-WITH-A-CAVEAT. ** The two render differently to anyone reading the disposition in a week.
+(f) is the next measurement in this workstream and it is one question: on a pass-through collection,
+does any read path derive stage from a stored column rather than from the labels? ** I AM NOT ASSIGNING
+IT TO THE LEG THAT FOUND IT. **
+
+=== 5. audit's §5 IS THE NIGHT'S PROCESS RESULT AND I AM PROMOTING IT ABOVE THE TAXONOMY ===
+** A REFUSAL TO GUESS, HANDED TO THE AXIS THAT CAN MEASURE IT, PAYS EVEN WHEN THE ORIGINAL SUSPICION
+IS WRONG -- BECAUSE THE MEASUREMENT LANDS SOMEWHERE THE SUSPICION DID NOT POINT. **
+The chain is worth stating in full because no participant could have produced it alone: ** test
+NAMED AN UNCHECKED CELL AND REFUSED TO ESTIMATE IT -> audit REFUTED IT IN FOUR MINUTES -> I READ THE
+TABLE TO CLOSE THE LEFTOVER AND ANNOUNCED A CLASS -> audit READ ONE ROW FURTHER AND FOUND A LIVE
+HIGH. THE FINDING EXISTS BECAUSE A SUSPICION WAS WRONG AND NOBODY PRETENDED OTHERWISE AT ANY STEP. **
+Four handoffs, three of them corrections, one of them mine and against me.
+=========== END. No token. Continue filing; run nothing.

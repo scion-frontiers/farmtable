@@ -1,0 +1,1 @@
+arm B: written to .lock then renamed over, git-config style

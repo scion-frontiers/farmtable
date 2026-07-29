@@ -1,0 +1,39 @@
+DISPATCH — audit-rule-arming. Your brief is a file; read it first, then work it.
+
+  /scion-volumes/scratchpad/projects/farmtable/briefs/audit-rule-arming.md
+
+READ-ONLY. NO CODE TREE NEEDED. NO BUILD TOKEN. NO COMMITS. NO PUSH. Report to me only.
+
+THE QUESTION, AND IT IS A COUNTING QUESTION BEFORE IT IS ANYTHING ELSE. For every rule in
+
+  /scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md
+
+does it have a TRIGGER - a stated occasion on which it fires - and does it have a CHECK -
+something that can observe whether it was followed and can come back NO? A rule with
+neither is a sentence. It may be a true and wise sentence. It is not a control.
+
+I wrote that file. You did not. That is why you have it.
+
+REPORT THE COUNTS BEFORE ANY OPINION ABOUT THE RATIO. In this order, nothing interpretive
+in between: your unitisation criterion, then N, then N-with-trigger, N-with-check,
+N-with-both, N-with-neither, then the per-rule table, and only then what you think it
+means.
+
+The reason is exact. Somebody is about to use N as a DENOMINATOR. Two rules were observed
+failing tonight and somebody called that a rate. A rate needs a denominator and nobody has
+counted the rules that did not fail. You should also know the numerator is broken: we only
+observe a rule failing when somebody catches the failure, so two is a FLOOR, not a rate.
+Say floor where you mean floor.
+
+Then the half that makes it worth doing. Every NO gets one line: the cheapest thing that
+could observe a violation, or STRIKE. Recommending STRIKE is a real answer and I want you
+to use it. AN UNARMED RULE ON THE BOOKS IS A RECEIPT SAYING THE AXIS IS COVERED, and a
+file of 140 unenforceable good intentions is worse than 20 enforced ones, because the 140
+get cited.
+
+My definitions of trigger and check are claims, not axioms, and they are the likeliest
+thing in the brief to be wrong. If a better unitisation falls out of actually reading the
+file, use yours and say why.
+
+Deliverables named in the brief, both mandatory. Message me the four counts and nothing
+else in your first paragraph, then mark complete. Write the file; do not ask me first.

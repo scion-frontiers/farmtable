@@ -1,0 +1,96 @@
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_cancelled
+--- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose (0.18s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_cancelled (0.01s)
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate
+--- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose (0.08s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate (0.01s)
+=== RUN   TestUpdateTask_PropagatesActorID
+--- FAIL: TestUpdateTask_PropagatesActorID (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x30 pc=0xf7a503]
+
+goroutine 897 [running]:
+testing.tRunner.func1.2({0x1229900, 0x1e6f730})
+	/home/scion/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:1974 +0x232
+testing.tRunner.func1()
+	/home/scion/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:1977 +0x349
+panic({0x1229900?, 0x1e6f730?})
+	/home/scion/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/runtime/panic.go:860 +0x13a
+github.com/farmtable-io/farmtable/internal/server_test.TestUpdateTask_PropagatesActorID(0x1b3768ccc008)
+	/workspace/internal/server/identity_test.go:250 +0xc3
+testing.tRunner(0x1b3768ccc008, 0x1455f48)
+	/home/scion/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2036 +0xea
+created by testing.(*T).Run in goroutine 1
+	/home/scion/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64/src/testing/testing.go:2101 +0x4c5
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.271s
+FAIL

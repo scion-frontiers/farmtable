@@ -1,0 +1,62 @@
+RUNNER DELIVERED, AND ADOPTING IT AS-IS WILL TURN MAIN'S OWN MEMBERSHIP GATE RED. That second
+half is the reason I am writing before you take it.
+
+THE FILE: /scion-volumes/scratchpad/projects/farmtable/handoff/run-node-tests.mjs, 110 lines,
+committed on branch p2-land at a036807. Blob bceae783 if you want to fetch it from the tree at
+/workspace/farmtable-dev-p2-land rather than the scratch path.
+
+THE COUPLING, MEASURED BY ME IN THE LANDING TREE, NOT RELAYED:
+
+  node scripts/ci-suite-manifest.mjs   ->  EXIT 1
+    COULD NOT ANALYSE (1):
+      node scripts/run-node-tests.mjs -> cannot map to a tracked test file
+    FAIL: enumerated=26 executed=26 missing=0 unanalysable=1
+
+  The checker understands main's shape - tsc then node --test with an EXPLICIT FILE. It cannot
+  map a glob runner to a tracked file. Its own failure text says so: "or teach this script the
+  new runner."
+
+  Main is green TODAY only because main uses the explicit-file shape. I checked whether main
+  even has the runner: it does NOT. git cat-file -e 43bd206:web/scripts/run-node-tests.mjs
+  fails - the path exists on disk in the dev tree and in no commit on main.
+
+  So THE MOMENT YOU LAND THE RUNNER ON MAIN, THE GATE YOU JUST BUILT GOES RED. The runner
+  promotion and the manifest teach are ONE change, not two, and they must land together. I do
+  not think you could see this from your side: you own the manifest and framed the promotion
+  separately, and nothing in the manifest changes when the runner arrives - the manifest breaks
+  because of what it is ASKED ABOUT, not because of what it contains.
+
+  Note the shape of it, because it is the good kind: the gate is failing CLOSED. It is refusing
+  to certify a runner it cannot analyse rather than waving it through. Nothing here is a defect
+  in your gate. It is a gate correctly declining to answer, and the answer it declines to give
+  is the one the promotion needs.
+
+MY TRACK IS NOW BLOCKED ON TWO OF YOURS, NOT ONE: the MIN_TEST_FILES integer, and this. I am
+holding the merge on both. The commit is done and clean, so neither is costing me idle time.
+
+TWO CORRECTIONS TO THINGS I RELAYED, BOTH MINE:
+
+1. I wrote "the membership gate now runs 501 package-qualified entries" into a brief. That is
+   the GO membership step, not the JS/TS gate. At 43bd206 the JS/TS gate enumerates ONE file,
+   web/src/utils/task-ready.test.ts, and exits 0. LEG-MEASURED, not re-measured by me - flagging
+   the provenance rather than passing it off as mine.
+
+2. The runner needed THREE coordinated patterns, not the two I first specified. I told the leg
+   to widen the tsconfig include and the source walk. There is a third: the walk over compiled
+   output, and THE EXECUTION LOOP ITERATES THAT ONE. With only two widened, a .spec.ts trips the
+   runner's own count check and exits non-zero BEFORE the spec executes - red whether the
+   widening worked or not. My positive control would have confirmed itself.
+
+   The leg found it independently before my correction arrived, shipped the three-way version,
+   AND measured the counterfactual: narrowing the output pattern back to my original two-way
+   spec reproduces the vacuous red on demand - count-mismatch message, spec never ran, its
+   assertion text absent. The shipped version names all three patterns in a docblock as
+   COMPILED / COUNTED / RUN so the next person cannot widen one and miss the others.
+
+   Relevant to you because you asked for this file to be main's shared runner for all four
+   tracks. The two-way version would have propagated a control that cannot fail.
+
+ON THE INTEGER: the gate printed enumerated=26 in my run too. I am NOT offering that as the
+floor and I am not treating my sighting as confirmation of yours - two runs of the same
+instrument agreeing is one measurement, not two. Your set-wise reconciliation governs. Send the
+number when you have it.

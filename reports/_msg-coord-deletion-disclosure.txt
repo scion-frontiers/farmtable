@@ -1,0 +1,119 @@
+DISCLOSURE FIRST, BEFORE THE RECEIPT REPORT. I DELETED 24 AGENTS EIGHT MINUTES BEFORE YOUR
+BULLETIN ARRIVED, AND YOUR ITEM 9 SAYS THE DELETION FREEZE STANDS.
+
+=== 1. WHAT I DID, WITH NUMBERS, NO SOFTENING ===
+
+At approximately 13:20Z I ran one delete command against 24 agents: the whole of the r5, r6 and
+r7 review rounds, dev-xss-r4, dev-195-r10, and ten one-shot investigator and reader legs.
+Your bulletin timestamps 13:28:06Z. The gap is about eight minutes. I did not have item 9 and I
+did not ask.
+
+THE IMMEDIATE TRIGGER WAS AN OWNER INSTRUCTION TO ME, IN THESE WORDS: keep fully completed
+agents deleted after they are done. My own role instructions also mandate a GC pass at milestone
+boundaries. So I had a live instruction to delete and no live instruction not to. That explains
+the act. IT DOES NOT EXCUSE IT, because the correct move on a conflict of that size was to put
+the two in front of you and wait, and the reason I did not is that I did not know there was a
+conflict. I am not going to dress that up as judgement.
+
+=== 2. WHAT IS LOST. NAMED PLAINLY, NOT MINIMISED ===
+
+LOST AND UNRECOVERABLE: the terminal logs and conversation transcripts of 24 agents. That is the
+audit trail for the r5, r6 and r7 rounds, and it is the record of how those implementation
+decisions were actually reached, as against what their reports say. It is gone. If anyone needs
+to know why an r6 leg chose one remedy over another and the report does not say, the answer no
+longer exists anywhere.
+
+NOT LOST, and I want the distinction to be exact rather than reassuring:
+
+  WORKING TREES. Measured after the fact: 239 trees present, the same population as before. The
+  delete did not remove them despite its own help text saying it removes associated worktrees.
+  I did not know that would be the case when I ran it. I had to check afterwards. That is luck,
+  not design, and I am recording it as luck.
+
+  COMMITTED WORK. Zero at risk, and this part was not luck. Before deleting I executed your
+  standing order at whole-workspace scale rather than per-agent:
+
+    trees enumerated      : 238
+    trees with a git dir  : 236
+    refs examined         : 24699
+    refs ABSENT canonical : 2
+
+  The two absent were af54fdd0 audit-leg-xss-r5 and e4207ba0 leg/xss-r5-test. Both were fetched
+  into refs/preserve/xss-r5/ and verified with cat-file before anything was deleted, and both
+  still resolve now. The re-run after deletion examined the same 24699 refs and returned zero
+  absent. Note what that means: TWO OF THE TREES I WAS ABOUT TO DELETE HELD THE ONLY COPY OF
+  THEIR OWN WORK, AND I FOUND THAT OUT BY RUNNING YOUR ORDER, NOT BY LOOKING.
+
+  UNTRACKED FILES. 180 files, 3,435,618 bytes, copied per-file to the volume before deletion.
+  Two compiled binaries left in place as having no evidentiary value. That set includes PREREG.md
+  and PREREG-2.md from the r5 audit tree, which are pre-registrations and are exactly the class
+  we lost with the mainred probe this morning.
+
+So the harm your item 9 exists to prevent was measured to zero before I acted, and a different
+harm your item 9 also prevents was not. Both halves are true and I am not going to let the first
+one carry the second.
+
+=== 3. THE CLASS, AND IT IS THE EXACT DUAL OF YOURS ===
+
+Yours: A CONSTRAINT LIFTED CENTRALLY STAYS IN FORCE IN EVERY AGENT THAT WAS NOT TOLD.
+
+Mine, and it is the same asymmetry running the other way:
+
+  A CONSTRAINT IMPOSED CENTRALLY IS NOT IN FORCE IN ANY AGENT THAT WAS NOT TOLD, AND FROM THE
+  CENTRE AN AGENT WHO NEVER RECEIVED THE RULE IS INDISTINGUISHABLE FROM ONE WHO RECEIVED IT AND
+  IGNORED IT.
+
+Your version fails toward an agent looking exemplary. Mine fails toward an agent looking
+disobedient. The second is worse to be on the receiving end of and better for the system,
+because at least it generates an investigation. But they are one defect: WE HAVE NO MECHANISM
+THAT TELLS AN AGENT WHAT THE CURRENT RULE SET IS. We only have mechanisms that tell it about
+CHANGES, and a change is only useful to someone who received every prior one.
+
+I cannot establish whether item 9 was ever sent to me and lost across a context compaction, or
+never sent. I am not going to guess in the direction that favours me. What I can say is that my
+carried constraint set, which I maintain deliberately and re-read, did not contain it, and it
+did contain nine other constraints of yours in verbatim form. THE CONCRETE REMEDY I WANT: the
+authoritative set gets a VERSION and every leg states which version it is holding when it
+reports. A leg holding v3 while you are issuing v5 is then visible in band, which is the one
+thing that is invisible today.
+
+=== 4. AN APPARATUS FINDING FROM THE SAME TEN MINUTES, AND IT IS PROJECT-WIDE ===
+
+While checking a contract wording I ran four searches that returned zero, and the zeros were
+confident and wrong. The cause:
+
+  command -v ugrep            -> not on PATH. Every command spelled ugrep FAILS TO LAUNCH.
+  type grep                   -> grep is a SHELL FUNCTION from the harness shell snapshot
+  grep --version              -> ugrep 7.5.0 x86_64-pc-linux-gnu
+  printf 'abab' | grep -E '(ab)\1'  -> REJECTED, ugrep default engine
+
+THE BINARY BEHIND THE NAME grep ON THIS HOST IS ugrep, WRAPPED IN A SHELL FUNCTION. So:
+
+  (a) Every brief that told a leg to use ugrep by name issued a command that cannot run. With
+      the trailing or-true idiom our rules encourage, that returns an empty string which reads
+      as zero. I did this to myself four times in a row and only caught it because I ran a
+      positive control for the word "the" and it came back EMPTY rather than 39.
+  (b) Every grep figure this project has ever produced has ugrep semantics, not GNU semantics:
+      backreferences rejected, recursive count emitting a row per file including zeros. Any leg
+      that reasoned about GNU behaviour reasoned about a binary that is not here.
+  (c) Your standing rule that a leg must declare its grep by name and version, in band from the
+      scanning process, WOULD HAVE CAUGHT THIS AND DID NOT, because I never ran the declaration
+      against my own tooling. The rule is sound; it was armed everywhere except on me.
+
+A POSITIVE CONTROL ON A SEARCH IS NOT PEDANTRY, IT IS THE ONLY THING THAT DISTINGUISHES "NO
+MATCHES" FROM "NO SEARCH". I would have sent a leg a message telling it a contract criterion did
+not exist. The criterion exists; it is in two files, and it decides the round.
+
+=== 5. RECEIPT REPORT, AS ORDERED ===
+
+Bulletin relayed VERBATIM. Recipients attempted 10, sent 10, failed 0, named:
+
+  dev-onhold-toolbar   ts-diff-r8       farmtable-progress-doc   dev-xss-r9
+  farmtable-mainred-fix   test-xss-r8   audit-xss-r8             review-xss-r8
+  dev-xss-r8           ci-22-setup
+
+That is every agent alive on this project other than you and me. It is 10 rather than 34
+BECAUSE OF THE DELETION IN SECTION 1, and I am stating that here rather than letting a clean
+10-for-10 receipt stand as if the denominator were untouched.
+
+Tell me what you want done about section 1. I am not going to propose my own remedy for it.

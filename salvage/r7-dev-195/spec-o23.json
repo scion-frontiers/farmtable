@@ -1,0 +1,108 @@
+{
+  "note": "O2, O3 and T-6. A check that fires on nothing is the same defect class as a fixture that cannot express the input, so each of these has to be shown FIRING, and the O2 line-number pin has to be shown load-bearing (green fix + red on revert).",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 74;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "T6-floor-lowered",
+      "desc": "T-6: loosen the dompurify floor to ^3.0.0, the realistic way it would regress. Round 6 logged this as uncovered and unable to be covered.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/package.json",
+          "find": "\"dompurify\": \"^3.4.12\"",
+          "replace": "\"dompurify\": \"^3.0.0\""
+        }
+      ]
+    },
+    {
+      "id": "T6-floor-raised",
+      "desc": "FALSE-POSITIVE CONTROL for T-6: raising the floor must ALSO be red (it is an exact pin, and the message says to update the string). Confirms the rule reads the value rather than merely checking the key exists.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/package.json",
+          "find": "\"dompurify\": \"^3.4.12\"",
+          "replace": "\"dompurify\": \"^3.9.0\""
+        }
+      ]
+    },
+    {
+      "id": "O3-sunset-fires",
+      "desc": "O3: the sunset clause fired on nothing. Declare typescript-eslint — the observable precondition for #204 — and it must now fire.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/package.json",
+          "find": "    \"typescript\": \"^5.5.0\",",
+          "replace": "    \"typescript\": \"^5.5.0\",\n    \"typescript-eslint\": \"^8.0.0\","
+        }
+      ]
+    },
+    {
+      "id": "O3-unrelated-dep",
+      "desc": "FALSE-POSITIVE CONTROL for O3: an unrelated new devDependency must NOT trip the sunset clause. Otherwise it is a rule against adding dependencies, which nobody would keep.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/package.json",
+          "find": "    \"typescript\": \"^5.5.0\",",
+          "replace": "    \"prettier\": \"^3.0.0\",\n    \"typescript\": \"^5.5.0\","
+        }
+      ]
+    },
+    {
+      "id": "O2-revert-lineno",
+      "desc": "O2 PIN IS LOAD-BEARING: revert the 'renamed with as' branch to reporting no line number. The new assertion in the INDIRECTION_EVASIONS fixture must catch it.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "        `${rel}:${lineOf(code, renamed.index)}: ${name} renamed with 'as' in an ` +\n          'import/export clause',",
+          "replace": "        `${rel}: ${name} renamed with 'as' in an ` +\n          'import/export clause',"
+        }
+      ]
+    },
+    {
+      "id": "O2-ablate-pin",
+      "desc": "ABLATION: neuter the O2 assertion itself and revert the same branch. GREEN confirms the pin — not something else — is what catches the revert above.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "        `${rel}:${lineOf(code, renamed.index)}: ${name} renamed with 'as' in an ` +\n          'import/export clause',",
+          "replace": "        `${rel}: ${name} renamed with 'as' in an ` +\n          'import/export clause',"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "        if (!/^<fixture>:\\d+: /.test(offender)) {",
+          "replace": "        if (false && !/^<fixture>:\\d+: /.test(offender)) {"
+        }
+      ]
+    }
+  ]
+}

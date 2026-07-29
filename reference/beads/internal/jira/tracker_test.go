@@ -1,0 +1,1316 @@
+package jira
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/steveyegge/beads/internal/config"
+	"github.com/steveyegge/beads/internal/storage"
+	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/steveyegge/beads/internal/types"
+)
+
+func TestRegistered(t *testing.T) {
+	factory := tracker.Get("jira")
+	if factory == nil {
+		t.Fatal("jira tracker not registered")
+	}
+	tr := factory()
+	if tr.Name() != "jira" {
+		t.Errorf("Name() = %q, want %q", tr.Name(), "jira")
+	}
+	if tr.DisplayName() != "Jira" {
+		t.Errorf("DisplayName() = %q, want %q", tr.DisplayName(), "Jira")
+	}
+	if tr.ConfigPrefix() != "jira" {
+		t.Errorf("ConfigPrefix() = %q, want %q", tr.ConfigPrefix(), "jira")
+	}
+}
+
+func TestIsExternalRef(t *testing.T) {
+	tr := &Tracker{jiraURL: "https://company.atlassian.net"}
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{"https://company.atlassian.net/browse/PROJ-123", true},
+		{"https://company.atlassian.net/browse/TEAM-1", true},
+		{"https://other.atlassian.net/browse/PROJ-123", false},
+		{"https://linear.app/team/issue/PROJ-123", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		if got := tr.IsExternalRef(tt.ref); got != tt.want {
+			t.Errorf("IsExternalRef(%q) = %v, want %v", tt.ref, got, tt.want)
+		}
+	}
+}
+
+func TestExtractIdentifier(t *testing.T) {
+	tr := &Tracker{}
+	tests := []struct {
+		ref  string
+		want string
+	}{
+		{"https://company.atlassian.net/browse/PROJ-123", "PROJ-123"},
+		{"https://company.atlassian.net/browse/TEAM-1", "TEAM-1"},
+		{"not-a-url", ""},
+	}
+	for _, tt := range tests {
+		if got := tr.ExtractIdentifier(tt.ref); got != tt.want {
+			t.Errorf("ExtractIdentifier(%q) = %q, want %q", tt.ref, got, tt.want)
+		}
+	}
+}
+
+func TestBuildExternalRef(t *testing.T) {
+	tr := &Tracker{jiraURL: "https://company.atlassian.net"}
+	ti := &tracker.TrackerIssue{Identifier: "PROJ-123"}
+	ref := tr.BuildExternalRef(ti)
+	want := "https://company.atlassian.net/browse/PROJ-123"
+	if ref != want {
+		t.Errorf("BuildExternalRef() = %q, want %q", ref, want)
+	}
+}
+
+func TestJiraToTrackerIssue(t *testing.T) {
+	ji := &Issue{
+		ID:   "10001",
+		Key:  "PROJ-42",
+		Self: "https://company.atlassian.net/rest/api/3/issue/10001",
+		Fields: IssueFields{
+			Summary:     "Fix login bug",
+			Description: json.RawMessage(`"A plain text description"`),
+			Status:      &StatusField{ID: "1", Name: "In Progress"},
+			Priority:    &PriorityField{ID: "2", Name: "High"},
+			IssueType:   &IssueTypeField{ID: "10001", Name: "Bug"},
+			Project:     &ProjectField{ID: "10000", Key: "PROJ"},
+			Assignee:    &UserField{AccountID: "abc123", DisplayName: "Alice", EmailAddress: "alice@example.com"},
+			Labels:      []string{"backend", "urgent"},
+			Created:     "2025-01-15T10:30:00.000+0000",
+			Updated:     "2025-01-16T14:20:00.000+0000",
+		},
+	}
+
+	ti := jiraToTrackerIssue(ji, nil)
+
+	if ti.ID != "10001" {
+		t.Errorf("ID = %q, want %q", ti.ID, "10001")
+	}
+	if ti.Identifier != "PROJ-42" {
+		t.Errorf("Identifier = %q, want %q", ti.Identifier, "PROJ-42")
+	}
+	if ti.Title != "Fix login bug" {
+		t.Errorf("Title = %q, want %q", ti.Title, "Fix login bug")
+	}
+	if ti.Description != "A plain text description" {
+		t.Errorf("Description = %q, want %q", ti.Description, "A plain text description")
+	}
+	if ti.Assignee != "Alice" {
+		t.Errorf("Assignee = %q, want %q", ti.Assignee, "Alice")
+	}
+	if ti.AssigneeEmail != "alice@example.com" {
+		t.Errorf("AssigneeEmail = %q, want %q", ti.AssigneeEmail, "alice@example.com")
+	}
+	if ti.CreatedAt.IsZero() {
+		t.Error("CreatedAt should not be zero")
+	}
+	if ti.UpdatedAt.IsZero() {
+		t.Error("UpdatedAt should not be zero")
+	}
+	if len(ti.Labels) != 2 {
+		t.Errorf("Labels length = %d, want 2", len(ti.Labels))
+	}
+}
+
+func TestDescriptionToPlainText(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  json.RawMessage
+		want string
+	}{
+		{"null", json.RawMessage(`null`), ""},
+		{"empty", json.RawMessage(``), ""},
+		{"plain string", json.RawMessage(`"hello world"`), "hello world"},
+		{"ADF document", json.RawMessage(`{
+			"type": "doc",
+			"content": [
+				{
+					"type": "paragraph",
+					"content": [
+						{"type": "text", "text": "First paragraph"}
+					]
+				},
+				{
+					"type": "paragraph",
+					"content": [
+						{"type": "text", "text": "Second paragraph"}
+					]
+				}
+			]
+		}`), "First paragraph\nSecond paragraph"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DescriptionToPlainText(tt.raw)
+			if got != tt.want {
+				t.Errorf("DescriptionToPlainText() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPlainTextToADF(t *testing.T) {
+	adf := PlainTextToADF("Hello\nWorld")
+	if adf == nil {
+		t.Fatal("PlainTextToADF returned nil")
+	}
+
+	var doc struct {
+		Type    string `json:"type"`
+		Version int    `json:"version"`
+		Content []struct {
+			Type    string `json:"type"`
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"content"`
+	}
+	if err := json.Unmarshal(adf, &doc); err != nil {
+		t.Fatalf("Failed to parse ADF: %v", err)
+	}
+	if doc.Type != "doc" {
+		t.Errorf("doc type = %q, want %q", doc.Type, "doc")
+	}
+	if len(doc.Content) != 2 {
+		t.Fatalf("content length = %d, want 2", len(doc.Content))
+	}
+	if doc.Content[0].Content[0].Text != "Hello" {
+		t.Errorf("first paragraph text = %q, want %q", doc.Content[0].Content[0].Text, "Hello")
+	}
+}
+
+func TestFieldMapperIssueToBeads(t *testing.T) {
+	ji := &Issue{
+		ID:   "10001",
+		Key:  "PROJ-42",
+		Self: "https://company.atlassian.net/rest/api/3/issue/10001",
+		Fields: IssueFields{
+			Summary:     "Test issue",
+			Description: json.RawMessage(`"Description text"`),
+			Status:      &StatusField{Name: "In Progress"},
+			Priority:    &PriorityField{Name: "High"},
+			IssueType:   &IssueTypeField{Name: "Bug"},
+			Assignee:    &UserField{DisplayName: "Bob"},
+			Labels:      []string{"frontend"},
+			Created:     time.Now().Format(time.RFC3339),
+			Updated:     time.Now().Format(time.RFC3339),
+		},
+	}
+
+	ti := jiraToTrackerIssue(ji, nil)
+	mapper := &jiraFieldMapper{}
+	conv := mapper.IssueToBeads(&ti)
+
+	if conv == nil {
+		t.Fatal("IssueToBeads returned nil")
+	}
+	if conv.Issue.Title != "Test issue" {
+		t.Errorf("Title = %q, want %q", conv.Issue.Title, "Test issue")
+	}
+	if conv.Issue.Description != "Description text" {
+		t.Errorf("Description = %q, want %q", conv.Issue.Description, "Description text")
+	}
+	if conv.Issue.Priority != 1 {
+		t.Errorf("Priority = %d, want 1 (High)", conv.Issue.Priority)
+	}
+	if conv.Issue.Owner != "Bob" {
+		t.Errorf("Owner = %q, want %q", conv.Issue.Owner, "Bob")
+	}
+}
+
+func TestFieldMapperIssueToTracker(t *testing.T) {
+	mapper := &jiraFieldMapper{}
+
+	issue := &types.Issue{
+		Title:       "New feature",
+		Description: "Feature description",
+		Priority:    0,
+		IssueType:   types.TypeBug,
+		Labels:      []string{"critical"},
+	}
+
+	fields := mapper.IssueToTracker(issue)
+
+	if fields["summary"] != "New feature" {
+		t.Errorf("summary = %v, want %q", fields["summary"], "New feature")
+	}
+	if fields["description"] == nil {
+		t.Error("description should not be nil")
+	}
+	issueType, ok := fields["issuetype"].(map[string]string)
+	if !ok || issueType["name"] != "Bug" {
+		t.Errorf("issuetype = %v, want Bug", fields["issuetype"])
+	}
+	priority, ok := fields["priority"].(map[string]string)
+	if !ok || priority["name"] != "Highest" {
+		t.Errorf("priority = %v, want Highest", fields["priority"])
+	}
+}
+
+func TestFieldMapperIssueToTrackerIncludesGlobalCustomFields(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		customFields: map[string]interface{}{
+			"customfield_10042": "AI Platform",
+		},
+	}
+
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+
+	if fields["customfield_10042"] != "AI Platform" {
+		t.Errorf("customfield_10042 = %v, want %q", fields["customfield_10042"], "AI Platform")
+	}
+}
+
+func TestFieldMapperIssueToTrackerIncludesJSONObjectCustomField(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		customFields: map[string]interface{}{
+			"customfield_10042": map[string]interface{}{"value": "AI Platform"},
+		},
+	}
+
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+
+	field, ok := fields["customfield_10042"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("customfield_10042 type = %T, want map[string]interface{}", fields["customfield_10042"])
+	}
+	if field["value"] != "AI Platform" {
+		t.Errorf("customfield_10042.value = %v, want %q", field["value"], "AI Platform")
+	}
+}
+
+func TestFieldMapperIssueToTrackerAppliesPerTypeCustomFields(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		typeCustomFields: map[string]map[string]interface{}{
+			"Story": {
+				"Team": "AI Platform",
+			},
+		},
+	}
+
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+
+	if fields["Team"] != "AI Platform" {
+		t.Errorf("Team = %v, want %q", fields["Team"], "AI Platform")
+	}
+}
+
+func TestFieldMapperIssueToTrackerPerTypeCustomFieldsOverrideGlobal(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		customFields: map[string]interface{}{
+			"Team": "Global Team",
+		},
+		typeCustomFields: map[string]map[string]interface{}{
+			"story": {
+				"Team": "Story Team",
+			},
+		},
+	}
+
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+
+	if fields["Team"] != "Story Team" {
+		t.Errorf("Team = %v, want %q", fields["Team"], "Story Team")
+	}
+}
+
+func TestFieldMapperIssueToTrackerIgnoresNonMatchingPerTypeCustomFields(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		typeCustomFields: map[string]map[string]interface{}{
+			"Epic": {
+				"Team": "AI Platform",
+			},
+		},
+	}
+
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+
+	if _, ok := fields["Team"]; ok {
+		t.Errorf("Team = %v, want unset for non-matching type", fields["Team"])
+	}
+}
+
+func TestFieldMapperDescriptionV3UsesADF(t *testing.T) {
+	mapper := &jiraFieldMapper{apiVersion: "3"}
+	issue := &types.Issue{Title: "T", Description: "Hello world"}
+	fields := mapper.IssueToTracker(issue)
+
+	// v3: description must be ADF JSON (json.RawMessage), not a plain string.
+	raw, ok := fields["description"].(json.RawMessage)
+	if !ok {
+		t.Fatalf("v3 description type = %T, want json.RawMessage", fields["description"])
+	}
+	var doc struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("v3 description is not valid JSON: %v", err)
+	}
+	if doc.Type != "doc" {
+		t.Errorf("v3 description ADF type = %q, want %q", doc.Type, "doc")
+	}
+}
+
+func TestFieldMapperDescriptionV2UsesPlainString(t *testing.T) {
+	mapper := &jiraFieldMapper{apiVersion: "2"}
+	issue := &types.Issue{Title: "T", Description: "Hello world"}
+	fields := mapper.IssueToTracker(issue)
+
+	// v2: description must be a plain string.
+	desc, ok := fields["description"].(string)
+	if !ok {
+		t.Fatalf("v2 description type = %T, want string", fields["description"])
+	}
+	if desc != "Hello world" {
+		t.Errorf("v2 description = %q, want %q", desc, "Hello world")
+	}
+}
+
+func TestFieldMapperDescriptionEmptyAPIVersionDefaultsToADF(t *testing.T) {
+	// Empty apiVersion should behave like v3 (ADF).
+	mapper := &jiraFieldMapper{apiVersion: ""}
+	issue := &types.Issue{Title: "T", Description: "text"}
+	fields := mapper.IssueToTracker(issue)
+
+	if _, ok := fields["description"].(json.RawMessage); !ok {
+		t.Errorf("empty apiVersion description type = %T, want json.RawMessage (ADF)", fields["description"])
+	}
+}
+
+func TestTrackerFieldMapperPropagatesVersion(t *testing.T) {
+	tr := &Tracker{apiVersion: "2"}
+	mapper := tr.FieldMapper().(*jiraFieldMapper)
+	if mapper.apiVersion != "2" {
+		t.Errorf("FieldMapper apiVersion = %q, want %q", mapper.apiVersion, "2")
+	}
+}
+
+func TestTrackerFieldMapperDefaultVersion(t *testing.T) {
+	// A tracker with no apiVersion set should produce a mapper that uses ADF (v3 behavior).
+	tr := &Tracker{}
+	issue := &types.Issue{Title: "T", Description: "desc"}
+	fields := tr.FieldMapper().IssueToTracker(issue)
+	if _, ok := fields["description"].(json.RawMessage); !ok {
+		t.Errorf("default tracker description type = %T, want json.RawMessage (ADF)", fields["description"])
+	}
+}
+
+// newTrackerWithServer creates a Tracker backed by a test HTTP server.
+func newTrackerWithServer(srvURL, version string) *Tracker {
+	return &Tracker{
+		client:     newTestClient(srvURL, version),
+		jiraURL:    srvURL,
+		apiVersion: version,
+	}
+}
+
+// issueResponse returns a Jira Issue JSON response with the given status name.
+func issueResponse(key, statusName string) Issue {
+	return Issue{
+		ID:  "10001",
+		Key: key,
+		Fields: IssueFields{
+			Status: &StatusField{Name: statusName},
+		},
+	}
+}
+
+func TestUpdateIssueAppliesTransitionWhenStatusChanges(t *testing.T) {
+	const key = "PROJ-1"
+	issuePath := "/rest/api/3/issue/" + key
+	transitionsPath := issuePath + "/transitions"
+
+	var transitionPostedID string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == issuePath:
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodGet && r.URL.Path == issuePath:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(issueResponse(key, "To Do"))
+		case r.Method == http.MethodGet && r.URL.Path == transitionsPath:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(TransitionsResult{
+				Transitions: []Transition{
+					{ID: "11", Name: "Start Progress", To: StatusField{Name: "In Progress"}},
+					{ID: "31", Name: "Resolve", To: StatusField{Name: "Done"}},
+				},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == transitionsPath:
+			body, _ := io.ReadAll(r.Body)
+			var payload struct {
+				Transition map[string]string `json:"transition"`
+			}
+			_ = json.Unmarshal(body, &payload)
+			transitionPostedID = payload.Transition["id"]
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	defer srv.Close()
+
+	tr := newTrackerWithServer(srv.URL, "3")
+	_, err := tr.UpdateIssue(context.Background(), key, &types.Issue{
+		Title:  "Test",
+		Status: types.StatusInProgress,
+	})
+	if err != nil {
+		t.Fatalf("UpdateIssue error: %v", err)
+	}
+	if transitionPostedID != "11" {
+		t.Errorf("transition ID posted = %q, want %q", transitionPostedID, "11")
+	}
+}
+
+func TestUpdateIssueSkipsTransitionWhenStatusUnchanged(t *testing.T) {
+	const key = "PROJ-1"
+	issuePath := "/rest/api/3/issue/" + key
+
+	var transitionCalled bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == issuePath:
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodGet && r.URL.Path == issuePath:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(issueResponse(key, "In Progress"))
+		case strings.Contains(r.URL.Path, "/transitions"):
+			transitionCalled = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	defer srv.Close()
+
+	tr := newTrackerWithServer(srv.URL, "3")
+	_, err := tr.UpdateIssue(context.Background(), key, &types.Issue{
+		Title:  "Updated title",
+		Status: types.StatusInProgress, // matches current Jira status
+	})
+	if err != nil {
+		t.Fatalf("UpdateIssue error: %v", err)
+	}
+	if transitionCalled {
+		t.Error("transitions endpoint called unexpectedly when status was already correct")
+	}
+}
+
+func TestStatusToTrackerUsesCustomMap(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		statusMap: map[string]string{
+			"open":        "Backlog",
+			"in_progress": "Active Sprint",
+			"closed":      "Released",
+			"review":      "Code Review", // custom non-standard beads status
+		},
+	}
+
+	tests := []struct {
+		status types.Status
+		want   string
+	}{
+		{types.StatusOpen, "Backlog"},
+		{types.StatusInProgress, "Active Sprint"},
+		{types.StatusClosed, "Released"},
+		{types.Status("review"), "Code Review"},
+		{types.StatusBlocked, "Blocked"}, // not in custom map → falls back to default
+	}
+	for _, tt := range tests {
+		got, _ := mapper.StatusToTracker(tt.status).(string)
+		if got != tt.want {
+			t.Errorf("StatusToTracker(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
+
+func TestStatusToBeadsUsesCustomMap(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		statusMap: map[string]string{
+			"open":        "Backlog",
+			"in_progress": "Active Sprint",
+			"closed":      "Released",
+			"review":      "Code Review", // custom non-standard beads status
+		},
+	}
+
+	tests := []struct {
+		jiraStatus string
+		want       types.Status
+	}{
+		{"Backlog", types.StatusOpen},
+		{"Active Sprint", types.StatusInProgress},
+		{"Released", types.StatusClosed},
+		{"Code Review", types.Status("review")},
+		{"Done", types.StatusClosed},            // not in custom map → falls back to default
+		{"To Do", types.StatusOpen},             // not in custom map → falls back to default
+		{"In Progress", types.StatusInProgress}, // not in custom map → falls back to default
+	}
+	for _, tt := range tests {
+		got := mapper.StatusToBeads(tt.jiraStatus)
+		if got != tt.want {
+			t.Errorf("StatusToBeads(%q) = %q, want %q", tt.jiraStatus, got, tt.want)
+		}
+	}
+}
+
+func TestStatusMapCaseInsensitiveMatch(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		statusMap: map[string]string{"in_progress": "Active Sprint"},
+	}
+
+	// Custom map match should be case-insensitive.
+	got := mapper.StatusToBeads("active sprint")
+	if got != types.StatusInProgress {
+		t.Errorf("StatusToBeads(\"active sprint\") = %q, want %q", got, types.StatusInProgress)
+	}
+}
+
+// configStore is a minimal storage.Storage stub for testing Init() config loading.
+// Only GetConfig and GetAllConfig are implemented; all other methods are no-ops.
+type configStore struct {
+	data map[string]string
+}
+
+func (s *configStore) GetConfig(_ context.Context, key string) (string, error) {
+	return s.data[key], nil
+}
+func (s *configStore) GetAllConfig(_ context.Context) (map[string]string, error) {
+	out := make(map[string]string, len(s.data))
+	for k, v := range s.data {
+		out[k] = v
+	}
+	return out, nil
+}
+
+// Storage interface stubs — not exercised by Init().
+func (s *configStore) SetConfig(_ context.Context, _, _ string) error        { return nil }
+func (s *configStore) SetLocalMetadata(_ context.Context, _, _ string) error { return nil }
+func (s *configStore) GetLocalMetadata(_ context.Context, _ string) (string, error) {
+	return "", nil
+}
+func (s *configStore) CreateIssue(_ context.Context, _ *types.Issue, _ string) error {
+	return nil
+}
+func (s *configStore) CreateIssues(_ context.Context, _ []*types.Issue, _ string) error {
+	return nil
+}
+func (s *configStore) GetIssue(_ context.Context, _ string) (*types.Issue, error) { return nil, nil }
+func (s *configStore) GetIssueByExternalRef(_ context.Context, _ string) (*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) GetIssuesByIDs(_ context.Context, _ []string) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) UpdateIssue(_ context.Context, _ string, _ map[string]interface{}, _ string) error {
+	return nil
+}
+func (s *configStore) ReopenIssue(_ context.Context, _, _, _ string) error     { return nil }
+func (s *configStore) UpdateIssueType(_ context.Context, _, _, _ string) error { return nil }
+func (s *configStore) CloseIssue(_ context.Context, _, _, _, _ string) error   { return nil }
+func (s *configStore) CloseIssueChecked(_ context.Context, _, _ string, _ storage.CloseIssueOptions) (storage.CloseIssueResult, error) {
+	return storage.CloseIssueResult{}, nil
+}
+func (s *configStore) DeleteIssue(_ context.Context, _ string) error { return nil }
+func (s *configStore) SearchIssuesWithCounts(_ context.Context, _ string, _ types.IssueFilter) ([]*types.IssueWithCounts, error) {
+	return nil, nil
+}
+func (s *configStore) SearchIssues(_ context.Context, _ string, _ types.IssueFilter) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) SearchIssueIDs(_ context.Context, _ string, _ types.IssueFilter) ([]string, error) {
+	return nil, nil
+}
+func (s *configStore) AddDependency(_ context.Context, _ *types.Dependency, _ string) error {
+	return nil
+}
+func (s *configStore) RemoveDependency(_ context.Context, _, _, _ string) error { return nil }
+func (s *configStore) GetDependencies(_ context.Context, _ string) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) GetDependents(_ context.Context, _ string) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) GetDependenciesWithMetadata(_ context.Context, _ string) ([]*types.IssueWithDependencyMetadata, error) {
+	return nil, nil
+}
+func (s *configStore) GetDependentsWithMetadata(_ context.Context, _ string) ([]*types.IssueWithDependencyMetadata, error) {
+	return nil, nil
+}
+func (s *configStore) GetDependencyTree(_ context.Context, _ string, _ int, _, _ bool) ([]*types.TreeNode, error) {
+	return nil, nil
+}
+func (s *configStore) AddLabel(_ context.Context, _, _, _ string) error    { return nil }
+func (s *configStore) RemoveLabel(_ context.Context, _, _, _ string) error { return nil }
+func (s *configStore) GetLabels(_ context.Context, _ string) ([]string, error) {
+	return nil, nil
+}
+func (s *configStore) GetIssuesByLabel(_ context.Context, _ string) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) GetReadyWork(_ context.Context, _ types.WorkFilter) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) GetReadyWorkWithCounts(_ context.Context, _ types.WorkFilter) ([]*types.IssueWithCounts, error) {
+	return nil, nil
+}
+func (s *configStore) GetBlockedIssues(_ context.Context, _ types.WorkFilter) ([]*types.BlockedIssue, error) {
+	return nil, nil
+}
+func (s *configStore) GetEpicsEligibleForClosure(_ context.Context) ([]*types.EpicStatus, error) {
+	return nil, nil
+}
+func (s *configStore) AddIssueComment(_ context.Context, _, _, _ string) (*types.Comment, error) {
+	return nil, nil
+}
+func (s *configStore) GetIssueComments(_ context.Context, _ string) ([]*types.Comment, error) {
+	return nil, nil
+}
+func (s *configStore) GetEvents(_ context.Context, _ string, _ int) ([]*types.Event, error) {
+	return nil, nil
+}
+func (s *configStore) GetAllEventsSince(_ context.Context, _ time.Time) ([]*types.Event, error) {
+	return nil, nil
+}
+func (s *configStore) GetStatistics(_ context.Context) (*types.Statistics, error) { return nil, nil }
+func (s *configStore) ListWisps(_ context.Context, _ types.WispFilter) ([]*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) RunInTransaction(_ context.Context, _ string, _ func(tx storage.Transaction) error) error {
+	return nil
+}
+func (s *configStore) MergeSlotCreate(_ context.Context, _ string) (*types.Issue, error) {
+	return nil, nil
+}
+func (s *configStore) MergeSlotCheck(_ context.Context) (*storage.MergeSlotStatus, error) {
+	return nil, nil
+}
+func (s *configStore) MergeSlotAcquire(_ context.Context, _, _ string, _ bool) (*storage.MergeSlotResult, error) {
+	return nil, nil
+}
+func (s *configStore) MergeSlotRelease(_ context.Context, _, _ string) error { return nil }
+func (s *configStore) SlotSet(_ context.Context, _, _, _, _ string) error    { return nil }
+func (s *configStore) SlotGet(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+func (s *configStore) SlotClear(_ context.Context, _, _, _ string) error                { return nil }
+func (s *configStore) UnclaimIssue(_ context.Context, _ string, _ string, _ bool) error { return nil }
+func (s *configStore) UnclaimIssueIfAssignee(_ context.Context, _ string, _ string, _ string) error {
+	return nil
+}
+
+func (s *configStore) CountIssues(_ context.Context, _ string, _ types.IssueFilter) (int64, error) {
+	return 0, nil
+}
+func (s *configStore) CountIssuesByGroup(_ context.Context, _ types.IssueFilter, _ string) (map[string]int, error) {
+	return nil, nil
+}
+func (s *configStore) CountDependents(_ context.Context, _ string) (int64, error)   { return 0, nil }
+func (s *configStore) CountDependencies(_ context.Context, _ string) (int64, error) { return 0, nil }
+func (s *configStore) CountIssueComments(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (s *configStore) CountEvents(_ context.Context, _ string, _ int) (int64, error) {
+	return 0, nil
+}
+
+func (s *configStore) IterIssues(_ context.Context, _ string, _ types.IssueFilter) (storage.Iter[types.Issue], error) {
+	return storage.NewSliceIter[types.Issue](nil), nil
+}
+func (s *configStore) IterDependentsWithMetadata(_ context.Context, _ string) (storage.Iter[types.IssueWithDependencyMetadata], error) {
+	return storage.NewSliceIter[types.IssueWithDependencyMetadata](nil), nil
+}
+func (s *configStore) IterDependenciesWithMetadata(_ context.Context, _ string) (storage.Iter[types.IssueWithDependencyMetadata], error) {
+	return storage.NewSliceIter[types.IssueWithDependencyMetadata](nil), nil
+}
+func (s *configStore) IterIssueComments(_ context.Context, _ string) (storage.Iter[types.Comment], error) {
+	return storage.NewSliceIter[types.Comment](nil), nil
+}
+func (s *configStore) IterEvents(_ context.Context, _ string, _ int) (storage.Iter[types.Event], error) {
+	return storage.NewSliceIter[types.Event](nil), nil
+}
+func (s *configStore) IterAllEventsSince(_ context.Context, _ time.Time) (storage.Iter[types.Event], error) {
+	return storage.NewSliceIter[types.Event](nil), nil
+}
+func (s *configStore) IterReadyWork(_ context.Context, _ types.WorkFilter) (storage.Iter[types.Issue], error) {
+	return storage.NewSliceIter[types.Issue](nil), nil
+}
+func (s *configStore) IterBlockedIssues(_ context.Context, _ types.WorkFilter) (storage.Iter[types.BlockedIssue], error) {
+	return storage.NewSliceIter[types.BlockedIssue](nil), nil
+}
+func (s *configStore) IterWisps(_ context.Context, _ types.WispFilter) (storage.Iter[types.Issue], error) {
+	return storage.NewSliceIter[types.Issue](nil), nil
+}
+
+func (s *configStore) Close() error { return nil }
+
+func TestFetchIssuesIncludesPullJQLInQuery(t *testing.T) {
+	var capturedJQL string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/rest/api/3/search/jql" {
+			capturedJQL = r.URL.Query().Get("jql")
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"issues":     []Issue{},
+				"total":      0,
+				"maxResults": 50,
+				"startAt":    0,
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	store := &configStore{
+		data: map[string]string{
+			"jira.pull_jql": `labels = "agent-ready"`,
+		},
+	}
+
+	tr := &Tracker{
+		client:      newTestClient(srv.URL, "3"),
+		store:       store,
+		projectKeys: []string{"TEST"},
+		apiVersion:  "3",
+	}
+
+	_, err := tr.FetchIssues(context.Background(), tracker.FetchOptions{State: "open"})
+	if err != nil {
+		t.Fatalf("FetchIssues error: %v", err)
+	}
+
+	if !strings.Contains(capturedJQL, `labels = "agent-ready"`) {
+		t.Errorf("JQL should contain pull_jql filter, got: %s", capturedJQL)
+	}
+}
+
+func TestFetchIssuesWithoutPullJQLOmitsExtraFilter(t *testing.T) {
+	var capturedJQL string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/rest/api/3/search/jql" {
+			capturedJQL = r.URL.Query().Get("jql")
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"issues":     []Issue{},
+				"total":      0,
+				"maxResults": 50,
+				"startAt":    0,
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	store := &configStore{
+		data: map[string]string{},
+	}
+
+	tr := &Tracker{
+		client:      newTestClient(srv.URL, "3"),
+		store:       store,
+		projectKeys: []string{"TEST"},
+		apiVersion:  "3",
+	}
+
+	_, err := tr.FetchIssues(context.Background(), tracker.FetchOptions{State: "open"})
+	if err != nil {
+		t.Fatalf("FetchIssues error: %v", err)
+	}
+
+	if strings.Contains(capturedJQL, "agent-ready") {
+		t.Errorf("JQL should NOT contain pull_jql filter when unconfigured, got: %s", capturedJQL)
+	}
+}
+
+func TestInitLoadsCustomStatusMapFromAllConfig(t *testing.T) {
+	// jira.api_token is yaml-only (secret), so set it via env var.
+	t.Setenv("JIRA_API_TOKEN", "token123")
+	store := &configStore{
+		data: map[string]string{
+			"jira.url":                    "https://example.atlassian.net",
+			"jira.project":                "PROJ",
+			"jira.status_map.open":        "Backlog",
+			"jira.status_map.in_progress": "Active Sprint",
+			"jira.status_map.review":      "Code Review", // custom non-standard beads status
+		},
+	}
+
+	tr := &Tracker{}
+	if err := tr.Init(context.Background(), store); err != nil {
+		t.Fatalf("Init error: %v", err)
+	}
+
+	mapper := tr.FieldMapper()
+
+	tests := []struct {
+		status types.Status
+		want   string
+	}{
+		{types.StatusOpen, "Backlog"},
+		{types.StatusInProgress, "Active Sprint"},
+		{types.Status("review"), "Code Review"},
+		{types.StatusClosed, "Done"},     // not in store → falls back to default
+		{types.StatusBlocked, "Blocked"}, // not in store → falls back to default
+	}
+	for _, tt := range tests {
+		got, _ := mapper.StatusToTracker(tt.status).(string)
+		if got != tt.want {
+			t.Errorf("StatusToTracker(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
+
+func TestInitLoadsCustomTypeMapFromAllConfig(t *testing.T) {
+	// jira.api_token is yaml-only (secret), so set it via env var.
+	t.Setenv("JIRA_API_TOKEN", "token123")
+	store := &configStore{
+		data: map[string]string{
+			"jira.url":              "https://example.atlassian.net",
+			"jira.project":          "PROJ",
+			"jira.type_map.story":   "User Story",
+			"jira.type_map.feature": "Feature",
+		},
+	}
+
+	tr := &Tracker{}
+	if err := tr.Init(context.Background(), store); err != nil {
+		t.Fatalf("Init error: %v", err)
+	}
+
+	mapper := tr.FieldMapper()
+
+	// Custom "story" type should map from Jira "User Story"
+	got := mapper.TypeToBeads("User Story")
+	if got != "story" {
+		t.Errorf("TypeToBeads(\"User Story\") = %q, want %q", got, "story")
+	}
+
+	// Custom "feature" should map from Jira "Feature"
+	got = mapper.TypeToBeads("Feature")
+	if got != "feature" {
+		t.Errorf("TypeToBeads(\"Feature\") = %q, want %q", got, "feature")
+	}
+
+	// Unmapped Jira types fall back to defaults
+	got = mapper.TypeToBeads("Bug")
+	if got != types.TypeBug {
+		t.Errorf("TypeToBeads(\"Bug\") = %q, want %q", got, types.TypeBug)
+	}
+
+	// Reverse: custom "story" → "User Story"
+	gotTracker, _ := mapper.TypeToTracker("story").(string)
+	if gotTracker != "User Story" {
+		t.Errorf("TypeToTracker(\"story\") = %q, want %q", gotTracker, "User Story")
+	}
+
+	// Reverse: unmapped "epic" falls back to default "Epic"
+	gotTracker, _ = mapper.TypeToTracker(types.TypeEpic).(string)
+	if gotTracker != "Epic" {
+		t.Errorf("TypeToTracker(epic) = %q, want %q", gotTracker, "Epic")
+	}
+}
+
+func TestInitLoadsCustomPriorityMapFromAllConfig(t *testing.T) {
+	// jira.api_token is yaml-only (secret), so set it via env var.
+	t.Setenv("JIRA_API_TOKEN", "token123")
+	store := &configStore{
+		data: map[string]string{
+			"jira.url":            "https://example.atlassian.net",
+			"jira.project":        "PROJ",
+			"jira.priority_map.0": "Critical",
+			"jira.priority_map.2": "Normal",
+		},
+	}
+
+	tr := &Tracker{}
+	if err := tr.Init(context.Background(), store); err != nil {
+		t.Fatalf("Init error: %v", err)
+	}
+
+	if tr.priorityMap == nil {
+		t.Fatal("priorityMap should not be nil after Init with jira.priority_map.* config")
+	}
+	if tr.priorityMap["0"] != "Critical" {
+		t.Errorf("priorityMap[\"0\"] = %q, want %q", tr.priorityMap["0"], "Critical")
+	}
+	if tr.priorityMap["2"] != "Normal" {
+		t.Errorf("priorityMap[\"2\"] = %q, want %q", tr.priorityMap["2"], "Normal")
+	}
+}
+
+func TestInitLoadsCustomFieldsFromAllConfig(t *testing.T) {
+	// jira.api_token is yaml-only (secret), so set it via env var.
+	t.Setenv("JIRA_API_TOKEN", "token123")
+	store := &configStore{
+		data: map[string]string{
+			"jira.url":                                  "https://example.atlassian.net",
+			"jira.project":                              "PROJ",
+			"jira.custom_fields.":                       "ignored",
+			"jira.custom_fields.Empty":                  "",
+			"jira.custom_fields.Whitespace":             "   ",
+			"jira.custom_fields.Team":                   "Global Team",
+			"jira.custom_fields.customfield_10042":      `{"value":"AI Platform"}`,
+			"jira.custom_fields.Story.":                 "ignored",
+			"jira.custom_fields..Team":                  "ignored",
+			"jira.custom_fields.Story.Team":             "Story Team",
+			"jira.custom_fields.Initiative.customfield": "Initiative Value",
+		},
+	}
+
+	tr := &Tracker{}
+	if err := tr.Init(context.Background(), store); err != nil {
+		t.Fatalf("Init error: %v", err)
+	}
+
+	if tr.customFields == nil {
+		t.Fatal("customFields should not be nil after Init with jira.custom_fields.* config")
+	}
+	if tr.customFields["Team"] != "Global Team" {
+		t.Errorf("customFields[\"Team\"] = %v, want %q", tr.customFields["Team"], "Global Team")
+	}
+	if _, ok := tr.customFields[""]; ok {
+		t.Error("customFields should ignore empty field names")
+	}
+	if _, ok := tr.customFields["Empty"]; ok {
+		t.Error("customFields should ignore empty values")
+	}
+	if _, ok := tr.customFields["Whitespace"]; ok {
+		t.Error("customFields should ignore whitespace-only values")
+	}
+	field, ok := tr.customFields["customfield_10042"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("customFields[\"customfield_10042\"] type = %T, want map[string]interface{}", tr.customFields["customfield_10042"])
+	}
+	if field["value"] != "AI Platform" {
+		t.Errorf("customFields[\"customfield_10042\"].value = %v, want %q", field["value"], "AI Platform")
+	}
+
+	if tr.typeCustomFields == nil {
+		t.Fatal("typeCustomFields should not be nil after Init with per-type jira.custom_fields.* config")
+	}
+	if tr.typeCustomFields["Story"]["Team"] != "Story Team" {
+		t.Errorf("typeCustomFields[\"Story\"][\"Team\"] = %v, want %q", tr.typeCustomFields["Story"]["Team"], "Story Team")
+	}
+	if _, ok := tr.typeCustomFields["Story"][""]; ok {
+		t.Error("typeCustomFields should ignore empty per-type field names")
+	}
+	if _, ok := tr.typeCustomFields[""]["Team"]; ok {
+		t.Error("typeCustomFields should ignore empty Jira type names")
+	}
+	if tr.typeCustomFields["Initiative"]["customfield"] != "Initiative Value" {
+		t.Errorf("typeCustomFields[\"Initiative\"][\"customfield\"] = %v, want %q", tr.typeCustomFields["Initiative"]["customfield"], "Initiative Value")
+	}
+
+	mapper := tr.FieldMapper()
+	fields := mapper.IssueToTracker(&types.Issue{
+		Title:     "New feature",
+		Priority:  2,
+		IssueType: types.TypeFeature,
+	})
+	if fields["Team"] != "Story Team" {
+		t.Errorf("FieldMapper Team = %v, want per-type override %q", fields["Team"], "Story Team")
+	}
+	field, ok = fields["customfield_10042"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("FieldMapper customfield_10042 type = %T, want map[string]interface{}", fields["customfield_10042"])
+	}
+	if field["value"] != "AI Platform" {
+		t.Errorf("FieldMapper customfield_10042.value = %v, want %q", field["value"], "AI Platform")
+	}
+}
+
+func TestInitRejectsInvalidCustomFieldJSON(t *testing.T) {
+	// jira.api_token is yaml-only (secret), so set it via env var.
+	t.Setenv("JIRA_API_TOKEN", "token123")
+	store := &configStore{
+		data: map[string]string{
+			"jira.url":                             "https://example.atlassian.net",
+			"jira.project":                         "PROJ",
+			"jira.custom_fields.customfield_10042": `{"value":`,
+		},
+	}
+
+	tr := &Tracker{}
+	err := tr.Init(context.Background(), store)
+	if err == nil {
+		t.Fatal("Init should reject invalid jira.custom_fields JSON")
+	}
+	if !strings.Contains(err.Error(), "parse jira.custom_fields.customfield_10042") {
+		t.Fatalf("Init error = %v, want custom field parse context", err)
+	}
+}
+
+func TestParseJiraCustomFieldValue(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		check func(t *testing.T, got interface{})
+	}{
+		{
+			name:  "string",
+			value: " AI Platform ",
+			check: func(t *testing.T, got interface{}) {
+				if got != "AI Platform" {
+					t.Errorf("got = %v, want %q", got, "AI Platform")
+				}
+			},
+		},
+		{
+			name:  "empty after trim",
+			value: "   ",
+			check: func(t *testing.T, got interface{}) {
+				if got != "" {
+					t.Errorf("got = %v, want empty string", got)
+				}
+			},
+		},
+		{
+			name:  "object",
+			value: `{"value":"AI Platform"}`,
+			check: func(t *testing.T, got interface{}) {
+				field, ok := got.(map[string]interface{})
+				if !ok {
+					t.Fatalf("got type = %T, want map[string]interface{}", got)
+				}
+				if field["value"] != "AI Platform" {
+					t.Errorf("got.value = %v, want %q", field["value"], "AI Platform")
+				}
+			},
+		},
+		{
+			name:  "array",
+			value: `[{"id":"10042"}]`,
+			check: func(t *testing.T, got interface{}) {
+				values, ok := got.([]interface{})
+				if !ok {
+					t.Fatalf("got type = %T, want []interface{}", got)
+				}
+				if len(values) != 1 {
+					t.Fatalf("len(got) = %d, want 1", len(values))
+				}
+				field, ok := values[0].(map[string]interface{})
+				if !ok {
+					t.Fatalf("got[0] type = %T, want map[string]interface{}", values[0])
+				}
+				if field["id"] != "10042" {
+					t.Errorf("got[0].id = %v, want %q", field["id"], "10042")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseJiraCustomFieldValue(tt.value)
+			if err != nil {
+				t.Fatalf("parseJiraCustomFieldValue error: %v", err)
+			}
+			tt.check(t, got)
+		})
+	}
+}
+
+func TestParseJiraCustomFieldValueInvalidJSON(t *testing.T) {
+	if _, err := parseJiraCustomFieldValue(`{"value":`); err == nil {
+		t.Fatal("parseJiraCustomFieldValue should reject invalid JSON object values")
+	}
+}
+
+func TestPriorityToTrackerUsesCustomMap(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		priorityMap: map[string]string{
+			"0": "Critical",
+			"2": "Normal",
+		},
+	}
+
+	tests := []struct {
+		priority int
+		want     string
+	}{
+		{0, "Critical"}, // from custom map
+		{1, "High"},     // not in map → default
+		{2, "Normal"},   // from custom map
+		{3, "Low"},      // not in map → default
+		{4, "Lowest"},   // not in map → default
+	}
+	for _, tt := range tests {
+		got, _ := mapper.PriorityToTracker(tt.priority).(string)
+		if got != tt.want {
+			t.Errorf("PriorityToTracker(%d) = %q, want %q", tt.priority, got, tt.want)
+		}
+	}
+}
+
+func TestPriorityToBeadsUsesCustomMap(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		priorityMap: map[string]string{
+			"0": "Critical",
+			"2": "Normal",
+		},
+	}
+
+	tests := []struct {
+		name string
+		want int
+	}{
+		{"Critical", 0}, // from custom map
+		{"Normal", 2},   // from custom map
+		{"High", 1},     // not in map → default
+		{"Low", 3},      // not in map → default
+		{"Lowest", 4},   // not in map → default
+	}
+	for _, tt := range tests {
+		got := mapper.PriorityToBeads(tt.name)
+		if got != tt.want {
+			t.Errorf("PriorityToBeads(%q) = %d, want %d", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestPriorityMapCaseInsensitiveMatch(t *testing.T) {
+	mapper := &jiraFieldMapper{
+		priorityMap: map[string]string{
+			"0": "Critical",
+		},
+	}
+
+	// PriorityToBeads should match case-insensitively
+	tests := []struct {
+		name string
+		want int
+	}{
+		{"Critical", 0},
+		{"critical", 0},
+		{"CRITICAL", 0},
+		{"CrItIcAl", 0},
+	}
+	for _, tt := range tests {
+		got := mapper.PriorityToBeads(tt.name)
+		if got != tt.want {
+			t.Errorf("PriorityToBeads(%q) = %d, want %d", tt.name, got, tt.want)
+		}
+	}
+}
+
+// TestGetConfig_YamlOnlyKeyBypassesStore verifies that yaml-only keys
+// (e.g. jira.api_token) bypass the Dolt store entirely. A nil store proves
+// the store is never dereferenced; before the fix this would panic.
+func TestGetConfig_YamlOnlyKeyBypassesStore(t *testing.T) {
+	ctx := context.Background()
+	tr := &Tracker{store: nil}
+
+	t.Run("falls back to env var", func(t *testing.T) {
+		t.Setenv("JIRA_API_TOKEN", "env-token-value")
+		got, err := tr.getConfig(ctx, "jira.api_token", "JIRA_API_TOKEN")
+		if err != nil {
+			t.Fatalf("getConfig returned error: %v", err)
+		}
+		if got != "env-token-value" {
+			t.Errorf("getConfig(jira.api_token) = %q, want %q", got, "env-token-value")
+		}
+	})
+
+	t.Run("returns empty when no value is set", func(t *testing.T) {
+		t.Setenv("JIRA_API_TOKEN", "")
+		got, err := tr.getConfig(ctx, "jira.api_token", "JIRA_API_TOKEN")
+		if err != nil {
+			t.Fatalf("getConfig returned error: %v", err)
+		}
+		if got != "" {
+			t.Errorf("getConfig(jira.api_token) = %q, want empty", got)
+		}
+	})
+}
+
+// TestGetConfig_YamlOnlyKeyReadsFromYaml verifies that jira.api_token is
+// read from .beads/config.yaml when set there, without depending on the
+// JIRA_API_TOKEN env var.
+func TestGetConfig_YamlOnlyKeyReadsFromYaml(t *testing.T) {
+	const wantToken = "yaml-config-token-value"
+
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
+		t.Fatalf("mkdir .beads: %v", err)
+	}
+	yamlBody := "jira.api_token: \"" + wantToken + "\"\n"
+	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+		t.Fatalf("write config.yaml: %v", err)
+	}
+
+	t.Setenv("JIRA_API_TOKEN", "")
+	t.Setenv("BEADS_DIR", "")
+	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
+	t.Chdir(tmpDir)
+
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
+	if err := config.Initialize(); err != nil {
+		t.Fatalf("config.Initialize: %v", err)
+	}
+
+	if got := config.GetString("jira.api_token"); got != wantToken {
+		t.Fatalf("config.GetString(jira.api_token) = %q, want %q (yaml not loaded?)", got, wantToken)
+	}
+
+	tr := &Tracker{store: nil}
+	got, err := tr.getConfig(context.Background(), "jira.api_token", "JIRA_API_TOKEN")
+	if err != nil {
+		t.Fatalf("getConfig returned error: %v", err)
+	}
+	if got != wantToken {
+		t.Errorf("getConfig(jira.api_token) = %q, want %q (yaml value)", got, wantToken)
+	}
+}

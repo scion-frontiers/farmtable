@@ -1,0 +1,2 @@
+export function renderMarkdown(md: string, opts?: { inline?: boolean }): string {
+  void opts;

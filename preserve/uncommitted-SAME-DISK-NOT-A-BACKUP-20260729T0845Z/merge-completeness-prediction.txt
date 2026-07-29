@@ -1,0 +1,49 @@
+PRE-REGISTERED PREDICTION — merge completeness of 6ced24e
+Written BEFORE running merge-verify.sh. The claim under test is MY OWN:
+"The merge was clean — no conflicts", which I asserted in the shared brief and
+which all three review legs consumed without verifying. review-194-r6 named it
+as C-A item 1 and as the one claim whose failure mode is MISSING CODE.
+
+"No conflicts" is NOT the same as "nothing was lost". Git can auto-merge two
+legs' edits to the same file and silently drop nothing OR silently interleave
+badly; and a conflict-free merge says nothing about whether I resolved anything
+by hand. What must be true is a CONTENT claim, not a process claim.
+
+INPUTS
+  base    ea8ac390dad3d2401d65608684e5d6623ab15ac5
+  leg A   5db3937ffe7c8bbcaab963e25be90abaa89074c0   21 files, 3142+/98-
+  leg B   089fac7dd1f37554f9af061aebf00785964995a0   10 files, 1960+/120-
+  merged  6ced24e53234da12def832c46df1c2be906fc038   31 files, 5102+/218-
+
+ARITHMETIC THAT DRIVES THE PREDICTION
+  21 + 10 = 31 = the combined file count, and 3142+1960 = 5102 insertions
+  exactly, 98+120 = 218 deletions exactly. Both sums are exact, which is only
+  possible if the two legs touched DISJOINT file sets. So:
+
+PREDICTION
+  P1. |A ∩ B| = 0. No file is modified by both legs.
+  P2. For every file leg A touched, the blob sha in 6ced24e is IDENTICAL to the
+      blob sha in 5db3937. Not "similar" — identical.
+  P3. For every file leg B touched, the blob sha in 6ced24e is IDENTICAL to the
+      blob sha in 089fac7.
+  P4. The set of files differing between base and 6ced24e is exactly A ∪ B —
+      no 32nd file appeared from nowhere.
+  P5. Every commit reachable from 5db3937 and from 089fac7 is an ancestor of
+      6ced24e. No leg commit was left behind.
+
+FALSIFIERS — any one of these and the merge is NOT verified
+  F1. Any file in A ∩ B. Then P2/P3 cannot both hold by construction and I must
+      inspect that file's hunks by hand before anyone merges anything.
+  F2. Any blob mismatch. A file leg A wrote that reads differently in the merge
+      means content was dropped or altered — exactly the invisible failure.
+  F3. A file changed vs base that neither leg touched. That is content I
+      introduced during the merge and never disclosed.
+  F4. Any leg commit not an ancestor of the merge.
+  F5. The harness reporting 0 files examined. A zero-length comparison that
+      prints "0 mismatches" is the void-harness shape that has bitten this
+      workstream nine times. The script MUST abort if the file count is 0.
+
+POSITIVE CONTROL REQUIRED BEFORE BELIEVING ANY GREEN
+  Compare a file against the WRONG leg's blob and confirm the comparator
+  reports a mismatch. A sha comparator that has never returned NO is worth
+  nothing.

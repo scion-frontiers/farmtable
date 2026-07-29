@@ -1,0 +1,515 @@
+commit a2cced01ea87d5b4cacd7ae2cc591a663cf5d2a5
+Author: dev-194-fixes-6b <agent@farmtable.local>
+Date:   Tue Jul 28 03:50:05 2026 +0000
+
+    Make the lifecycle stage-set seam fail closed, and keep one copy of the rule
+    (#194 round 6, B2 + B4 + B5; review F6, F7; audit A-3)
+    
+    B4 / F7 -- the fallback was fail-OPEN. store.LabelDeltaLifecycleStages required
+    len(before) > 0 && len(after) > 0 and otherwise returned (current, current):
+    "this label edit is not a lifecycle transition", which charges nothing. Every
+    caller of these helpers is an authorization gate, so an implementer that
+    returned an empty side bought a silently open gate. store.LifecycleStages had
+    the same shape -- an empty set means the caller's charge loop runs zero times.
+    
+    Both now distinguish two cases that were conflated:
+    
+      - A store that does NOT implement LifecycleStageSetStager is answered from
+        LifecycleStage. Unchanged, and still correct rather than a stub: a stage in
+        its own column cannot be forged by a label.
+      - A store that DOES implement it and returns empty has broken its contract,
+        and now gets ErrEmptyLifecycleStageSet. Callers deny.
+    
+    The helpers therefore return an error, and UpdateTask's two gates propagate it
+    as Internal rather than proceeding on a substituted answer.
+    
+    B2 / T-2 -- the rule was written twice. MultiStore repaired an empty inner
+    answer itself, and ran first, so the store.go copy could never observe a
+    violation. That is what round 5 measured: MUT_DELTA_FALLBACK and
+    MUT_NATIVE_SPURIOUS survived with 0 failures on the store.go copy while the
+    control MUT_MS_NATIVE_SPURIOUS on the MultiStore copy killed 1 test. MultiStore
+    now propagates the inner store's answer verbatim, including an empty one, so
+    the single remaining rule is the one that denies. Repairing it in MultiStore was
+    also wrong on its own terms: MultiStore cannot return an error, so passing the
+    violation up is the only way it can reach something that can refuse.
+    
+    B5 / F6 -- MultiStore now carries compile-time assertions for both
+    LifecycleStager and LifecycleStageSetStager. It satisfied the set interface by
+    accident; losing a method silently demoted every routed store to the
+    one-element fallback with no compile error and no failing test.
+    
+    The equivalent assertion for GitHubPassThroughStore is NOT here: passthrough.go
+    belongs to the parallel leg this round. Recorded for routing.
+    
+    New tests in internal/store/lifecycle_stage_set_test.go are tripwires against
+    the observable contract, not against line numbers, and each negative row is
+    paired with a positive control -- a healthy implementer must still be passed
+    through untouched, or "it denied" would mean nothing.
+    
+    The fixture that makes this measurable is brokenStageSetStore: an implementer
+    that returns empty sets. Round 5 could not express that input, which is why the
+    fail-open branch went unmeasured for two rounds.
+
+diff --git a/internal/store/lifecycle_stage_set_test.go b/internal/store/lifecycle_stage_set_test.go
+new file mode 100644
+index 0000000..f74287c
+--- /dev/null
++++ b/internal/store/lifecycle_stage_set_test.go
+@@ -0,0 +1,292 @@
++package store_test
++
++import (
++	"context"
++	"errors"
++	"testing"
++
++	"github.com/farmtable-io/farmtable/internal/store"
++	"github.com/farmtable-io/farmtable/internal/store/ent"
++	"github.com/farmtable-io/farmtable/internal/store/ent/task"
++	"github.com/farmtable-io/farmtable/internal/testutil"
++	"github.com/google/uuid"
++)
++
++// ── #194 round 6, B2 + B4: the lifecycle stage-set seam's fallbacks ──
++//
++// Two findings share one root here.
++//
++// B4 (review F7, raised by security audit A-3) — the fallback was fail-OPEN.
++// LabelDeltaLifecycleStages required len(before) > 0 && len(after) > 0 and
++// otherwise returned (current, current), i.e. "this label edit is not a
++// lifecycle transition", which charges nothing. Every caller of these helpers
++// is an authorization gate, so an implementation that returned an empty side
++// bought a silently open gate. The direction of a wrong answer at an
++// authorization gate must be denial.
++//
++// B2 (test review T-2) — the rule was written twice, in store.go and again in
++// MultiStore, and the second copy would absorb the violation before the first
++// could see it. Mutation evidence from round 5: MUT_DELTA_FALLBACK and
++// MUT_NATIVE_SPURIOUS both survived with 0 failures on the store.go copy, while
++// the control MUT_MS_NATIVE_SPURIOUS on the MultiStore copy killed 1 test —
++// the store.go pair was unreachable duplicated code. Two copies of a rule is
++// one copy plus a future bug.
++//
++// The tests below are the tripwire that replaces both. They are written against
++// the observable contract, not against the line numbers.
++
++// brokenStageSetStore implements store.LifecycleStageSetStager and violates its
++// "never empty" contract. It is the input the round-5 fixtures could not
++// express — which is why the fail-open branch went unmeasured for two rounds.
++//
++// store.Store is embedded as a nil interface: only the two seam methods are
++// ever called, and any other call panics loudly rather than returning a
++// plausible zero value.
++type brokenStageSetStore struct {
++	store.Store
++	before, after []task.Stage
++}
++
++// Close is implemented because MultiStore.Close calls it on every registered
++// platform store; the embedded nil interface would panic. Every OTHER method is
++// deliberately left to panic.
++func (b brokenStageSetStore) Close() error { return nil }
++
++func (b brokenStageSetStore) LifecycleStages(context.Context, *ent.Task) []task.Stage {
++	return b.before
++}
++
++func (b brokenStageSetStore) LabelDeltaLifecycleStages(
++	context.Context, *ent.Task, []string, []string,
++) (before, after []task.Stage) {
++	return b.before, b.after
++}
++
++// healthyStageSetStore is the positive control for every negative claim below.
++// Without it, a helper that returned ErrEmptyLifecycleStageSet unconditionally
++// would satisfy all the error cases.
++type healthyStageSetStore struct {
++	store.Store
++	before, after []task.Stage
++}
++
++func (h healthyStageSetStore) Close() error { return nil }
++
++func (h healthyStageSetStore) LifecycleStages(context.Context, *ent.Task) []task.Stage {
++	return h.before
++}
++
++func (h healthyStageSetStore) LabelDeltaLifecycleStages(
++	context.Context, *ent.Task, []string, []string,
++) (before, after []task.Stage) {
++	return h.before, h.after
++}
++
++func TestLabelDeltaLifecycleStages_EmptySideFailsClosed(t *testing.T) {
++	ctx := context.Background()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	// POSITIVE CONTROL FIRST. A well-behaved implementer must come back with no
++	// error and its own answer, untouched. If this row ever fails, every
++	// "denied" row below is meaningless.
++	t.Run("positive control: a healthy implementer is passed through", func(t *testing.T) {
++		s := healthyStageSetStore{
++			before: []task.Stage{task.StageAccepted},
++			after:  []task.Stage{task.StageCompleted},
++		}
++		before, after, err := store.LabelDeltaLifecycleStages(ctx, s, tk, []string{"x"}, nil)
++		if err != nil {
++			t.Fatalf("healthy implementer returned an error: %v", err)
++		}
++		if !store.SameStageSet(before, []task.Stage{task.StageAccepted}) ||
++			!store.SameStageSet(after, []task.Stage{task.StageCompleted}) {
++			t.Fatalf("healthy implementer's answer was altered: before=%v after=%v", before, after)
++		}
++	})
++
++	for _, tc := range []struct {
++		name          string
++		before, after []task.Stage
++	}{
++		{"both empty", nil, nil},
++		{"before empty", nil, []task.Stage{task.StageCompleted}},
++		{"after empty", []task.Stage{task.StageAccepted}, nil},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			s := brokenStageSetStore{before: tc.before, after: tc.after}
++			before, after, err := store.LabelDeltaLifecycleStages(ctx, s, tk, []string{"x"}, nil)
++			if err == nil {
++				t.Fatalf("a contract-violating store was accepted: before=%v after=%v. "+
++					"An empty stage set means the gate charges for nothing and ALLOWS; "+
++					"it must deny instead (F7 / A-3)", before, after)
++			}
++			if !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++				t.Fatalf("got %v, want it to wrap ErrEmptyLifecycleStageSet", err)
++			}
++			// And it must not hand back a usable answer alongside the error, or
++			// a caller that checks the slices before the error still fails open.
++			if len(before) != 0 || len(after) != 0 {
++				t.Errorf("returned before=%v after=%v with an error; want both nil so a "+
++					"caller cannot proceed on them", before, after)
++			}
++		})
++	}
++}
++
++func TestLifecycleStages_EmptyResultFailsClosed(t *testing.T) {
++	ctx := context.Background()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	t.Run("positive control: a healthy implementer is passed through", func(t *testing.T) {
++		s := healthyStageSetStore{before: []task.Stage{task.StageWontFix}}
++		got, err := store.LifecycleStages(ctx, s, tk)
++		if err != nil {
++			t.Fatalf("healthy implementer returned an error: %v", err)
++		}
++		if !store.SameStageSet(got, []task.Stage{task.StageWontFix}) {
++			t.Fatalf("got %v, want [wont_fix]", got)
++		}
++	})
++
++	t.Run("an empty set is an error, not a substituted t.Stage", func(t *testing.T) {
++		s := brokenStageSetStore{before: nil}
++		got, err := store.LifecycleStages(ctx, s, tk)
++		if err == nil {
++			t.Fatalf("a contract-violating store was accepted and answered %v. Substituting "+
++				"t.Stage here is what let a broken store produce an unguarded gate", got)
++		}
++		if !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++			t.Fatalf("got %v, want it to wrap ErrEmptyLifecycleStageSet", err)
++		}
++	})
++}
++
++// TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected is the other
++// half of the contract, and the row that stops the fix above from becoming a
++// denial of service.
++//
++// A store that does NOT implement LifecycleStageSetStager has violated nothing.
++// Its stage lives in its own column, no label can forge it, and "a label edit
++// induces no stage transition" is the true answer. It must be answered, not
++// errored — the error is reserved for implementers that break their promise.
++func TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected(t *testing.T) {
++	ctx := context.Background()
++	entStore, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++	tk := &ent.Task{Stage: task.StageAccepted}
++
++	stages, err := store.LifecycleStages(ctx, entStore, tk)
++	if err != nil {
++		t.Fatalf("LifecycleStages on a native store errored: %v", err)
++	}
++	if !store.SameStageSet(stages, []task.Stage{task.StageAccepted}) {
++		t.Errorf("got %v, want [accepted]", stages)
++	}
++
++	before, after, err := store.LabelDeltaLifecycleStages(
++		ctx, entStore, tk, []string{"ft:stage/completed"}, nil)
++	if err != nil {
++		t.Fatalf("LabelDeltaLifecycleStages on a native store errored: %v", err)
++	}
++	if !store.SameStageSet(before, after) {
++		t.Errorf("a native store reported a label-induced transition %v -> %v; no label "+
++			"can move a stage that lives in its own column", before, after)
++	}
++}
++
++// ── B2: the MultiStore copy of the fallback is gone, and stays gone ──
++
++// TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim is the tripwire for B2.
++//
++// MultiStore used to repair an empty answer from the store it routes to by
++// substituting the current stage. That was the second copy of the rule, and it
++// ran FIRST — so the package-level helper's copy could never see a violation
++// and was unreachable, which is exactly what round 5's mutation testing
++// measured (MUT_DELTA_FALLBACK survived with 0 failures).
++//
++// Repairing it here is also wrong on its own terms: MultiStore cannot return an
++// error, so the only way for a violation to reach a caller that CAN deny is to
++// pass it up untouched.
++//
++// If someone reintroduces the fallback in MultiStore, this test fails. That is
++// a tripwire rather than a comment saying "do not add this back".
++func TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim(t *testing.T) {
++	ctx := context.Background()
++	primary, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++
++	coll, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
++		Name: "routed", Platform: "github",
++	})
++	if err != nil {
++		t.Fatalf("CreateCollection: %v", err)
++	}
++
++	ms := store.NewMultiStore(primary)
++	defer func() { _ = ms.Close() }()
++	ms.RegisterPlatform(coll.ID, brokenStageSetStore{})
++
++	tk := &ent.Task{Stage: task.StageAccepted, CollectionID: coll.ID}
++
++	if got := ms.LifecycleStages(ctx, tk); len(got) != 0 {
++		t.Errorf("MultiStore.LifecycleStages repaired an empty inner answer into %v. It must "+
++			"propagate the violation so the package-level helper can deny it (B2)", got)
++	}
++	if before, after := ms.LabelDeltaLifecycleStages(ctx, tk, []string{"x"}, nil); len(before) != 0 || len(after) != 0 {
++		t.Errorf("MultiStore.LabelDeltaLifecycleStages repaired an empty inner answer into "+
++			"(%v, %v). It must propagate the violation (B2)", before, after)
++	}
++
++	// End to end: routed through MultiStore, the package-level helper denies.
++	// This is the pairing that matters — propagation is only useful because
++	// something downstream turns it into a refusal.
++	if _, _, err := store.LabelDeltaLifecycleStages(ctx, ms, tk, []string{"x"}, nil); !errors.Is(err, store.ErrEmptyLifecycleStageSet) {
++		t.Errorf("through MultiStore, a contract-violating inner store produced err=%v; "+
++			"want ErrEmptyLifecycleStageSet", err)
++	}
++
++	// POSITIVE CONTROL: the same routing with a healthy inner store must give a
++	// clean answer, so the rows above are not passing because routing is broken.
++	healthyColl, err := primary.CreateCollection(ctx, store.CreateCollectionParams{
++		Name: "routed-healthy", Platform: "github",
++	})
++	if err != nil {
++		t.Fatalf("CreateCollection: %v", err)
++	}
++	ms.RegisterPlatform(healthyColl.ID, healthyStageSetStore{
++		before: []task.Stage{task.StageAccepted},
++		after:  []task.Stage{task.StageCompleted},
++	})
++	healthyTask := &ent.Task{Stage: task.StageAccepted, CollectionID: healthyColl.ID}
++	before, after, err := store.LabelDeltaLifecycleStages(ctx, ms, healthyTask, []string{"x"}, nil)
++	if err != nil {
++		t.Fatalf("healthy routed store errored: %v", err)
++	}
++	if !store.SameStageSet(before, []task.Stage{task.StageAccepted}) ||
++		!store.SameStageSet(after, []task.Stage{task.StageCompleted}) {
++		t.Fatalf("healthy routed answer was altered: before=%v after=%v", before, after)
++	}
++}
++
++// TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer pins the arm
++// that legitimately remains in MultiStore: a collection routed to a store that
++// does not implement the interface at all.
++func TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer(t *testing.T) {
++	ctx := context.Background()
++	primary, cleanup := testutil.NewTestStore(t)
++	defer cleanup()
++
++	ms := store.NewMultiStore(primary)
++	defer func() { _ = ms.Close() }()
++
++	tk := &ent.Task{Stage: task.StageInReview, CollectionID: uuid.New()}
++
++	if got := ms.LifecycleStages(ctx, tk); !store.SameStageSet(got, []task.Stage{task.StageInReview}) {
++		t.Errorf("got %v, want [in_review]", got)
++	}
++	before, after := ms.LabelDeltaLifecycleStages(ctx, tk, []string{"ft:stage/completed"}, nil)
++	if !store.SameStageSet(before, after) ||
++		!store.SameStageSet(before, []task.Stage{task.StageInReview}) {
++		t.Errorf("got (%v, %v), want ([in_review], [in_review])", before, after)
++	}
++}
+diff --git a/internal/store/multistore.go b/internal/store/multistore.go
+index 93d6f4f..b866c05 100644
+--- a/internal/store/multistore.go
++++ b/internal/store/multistore.go
+@@ -233,6 +233,16 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
+ 	return s.ClaimTask(ctx, id, assigneeID, version)
+ }
+ 
++// MultiStore must route the multi-valued lifecycle seam, not just the
++// single-valued one. Without this assertion it can satisfy the interface by
++// accident, and losing a method silently demotes every routed store to the
++// one-element fallback: no compile error, no failing test, and the #194 round-5
++// label-write gates inert. See F6.
++var (
++	_ LifecycleStager         = (*MultiStore)(nil)
++	_ LifecycleStageSetStager = (*MultiStore)(nil)
++)
++
+ // LifecycleStage implements LifecycleStager by routing to the store that owns
+ // the task's collection. A platform store whose Stage field is a display value
+ // answers for itself; every other store's Stage is already authoritative.
+@@ -247,28 +257,37 @@ func (m *MultiStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage
+ // that owns the task's collection. A store where a task can name several
+ // stages at once answers for itself; for every other store the task names
+ // exactly the one stage in its column.
++//
++// The inner store's answer is propagated VERBATIM, including an empty one. This
++// used to substitute the current stage for an empty result, which duplicated
++// the package-level helper's fallback and meant a contract-violating inner
++// store was silently converted into "no transition" — an open gate — at
++// whichever of the two copies ran first. Passing the violation up lets the one
++// remaining rule in LifecycleStages deny it. See B2 / B4.
+ func (m *MultiStore) LifecycleStages(ctx context.Context, t *ent.Task) []task.Stage {
+-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+-			return stages
+-		}
++	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
++	if !ok {
++		return []task.Stage{m.LifecycleStage(ctx, t)}
+ 	}
+-	return []task.Stage{m.LifecycleStage(ctx, t)}
++	return stager.LifecycleStages(ctx, t)
+ }
+ 
+ // LabelDeltaLifecycleStages implements LifecycleStageSetStager by routing to
+ // the store that owns the task's collection. A store that keeps the lifecycle
+ // stage in labels answers for itself; for every other store a label edit
+ // cannot move the stage, so both endpoints are the task's current one.
++//
++// As in LifecycleStages above, the inner store's answer is propagated verbatim
++// rather than repaired here, so that a contract violation reaches the single
++// rule that denies it instead of being absorbed by a second copy of the
++// fallback. See B2 / B4.
+ func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+-	if stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager); ok {
+-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+-		if len(b) > 0 && len(a) > 0 {
+-			return b, a
+-		}
++	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageSetStager)
++	if !ok {
++		current := []task.Stage{m.LifecycleStage(ctx, t)}
++		return current, current
+ 	}
+-	current := []task.Stage{m.LifecycleStage(ctx, t)}
+-	return current, current
++	return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+ }
+ 
+ func (m *MultiStore) ComputeAvailability(ctx context.Context, t *ent.Task) (TaskAvailability, error) {
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 1838b25..2804a63 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -3,6 +3,7 @@ package store
+ import (
+ 	"context"
+ 	"errors"
++	"fmt"
+ 	"time"
+ 
+ 	"github.com/farmtable-io/farmtable/internal/store/ent"
+@@ -127,16 +128,39 @@ type LifecycleStageSetStager interface {
+ 	LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage)
+ }
+ 
++// ErrEmptyLifecycleStageSet reports that a LifecycleStageSetStager returned an
++// empty stage set, which its contract forbids.
++//
++// This is not a condition any correct store reaches, and it is deliberately not
++// recoverable. An empty set means "this task names no lifecycle stage", and
++// every caller of these helpers is an authorization gate that charges for the
++// stages it is handed — so an empty set spends nothing and ALLOWS. Returning
++// "no transition" here, which is what this package used to do, converts a
++// broken store into a silently open gate. Callers must deny instead. See F7.
++var ErrEmptyLifecycleStageSet = errors.New(
++	"store: LifecycleStageSetStager returned an empty lifecycle stage set")
++
+ // LifecycleStages returns every lifecycle stage a task names. Authorization
+ // must evaluate its decision against all of them and demand the strongest
+ // answer, rather than picking one. Never empty.
+-func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
+-	if stager, ok := s.(LifecycleStageSetStager); ok {
+-		if stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {
+-			return stages
+-		}
++//
++// A store that does not implement LifecycleStageSetStager is answered from
++// LifecycleStage. That is the correct answer and not a stub: a task whose stage
++// lives in its own column names exactly one stage and no label can forge it.
++//
++// A store that DOES implement the interface and returns empty has violated its
++// contract, and gets ErrEmptyLifecycleStageSet rather than a substituted
++// answer. Substituting here is what made the old fallback fail open.
++func LifecycleStages(ctx context.Context, s Store, t *ent.Task) ([]task.Stage, error) {
++	stager, ok := s.(LifecycleStageSetStager)
++	if !ok {
++		return []task.Stage{LifecycleStage(ctx, s, t)}, nil
+ 	}
+-	return []task.Stage{LifecycleStage(ctx, s, t)}
++	stages := stager.LifecycleStages(ctx, t)
++	if len(stages) == 0 {
++		return nil, fmt.Errorf("%w: LifecycleStages", ErrEmptyLifecycleStageSet)
++	}
++	return stages, nil
+ }
+ 
+ // LabelDeltaLifecycleStages reports the lifecycle stages a task names now and
+@@ -149,15 +173,27 @@ func LifecycleStages(ctx context.Context, s Store, t *ent.Task) []task.Stage {
+ // "a label edit induces no stage transition" is the correct answer rather than
+ // a missing one. Callers that gate on before != after are therefore inert on
+ // those stores by construction.
+-func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage) {
+-	if stager, ok := s.(LifecycleStageSetStager); ok {
+-		b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+-		if len(b) > 0 && len(a) > 0 {
+-			return b, a
+-		}
++//
++// A store that DOES implement the interface and returns either side empty has
++// violated its contract, and gets ErrEmptyLifecycleStageSet. The previous
++// version required len(b) > 0 && len(a) > 0 and otherwise fell through to
++// (current, current) — "no transition", which charges nothing. For an
++// implementation that returned one empty side that was fail-OPEN, and it was
++// the same rule written twice (here and in MultiStore), so the two copies could
++// drift. There is now one rule, in one place, and it denies. See F7 / B4.
++func LabelDeltaLifecycleStages(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (before, after []task.Stage, err error) {
++	stager, ok := s.(LifecycleStageSetStager)
++	if !ok {
++		current := []task.Stage{LifecycleStage(ctx, s, t)}
++		return current, current, nil
++	}
++	b, a := stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
++	if len(b) == 0 || len(a) == 0 {
++		return nil, nil, fmt.Errorf(
++			"%w: LabelDeltaLifecycleStages (before=%d after=%d)",
++			ErrEmptyLifecycleStageSet, len(b), len(a))
+ 	}
+-	current := []task.Stage{LifecycleStage(ctx, s, t)}
+-	return current, current
++	return b, a, nil
+ }
+ 
+ // SameStageSet reports whether two lifecycle stage sets name the same stages.

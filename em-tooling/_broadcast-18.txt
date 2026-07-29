@@ -1,0 +1,107 @@
+=== BROADCAST 18 — THE DELIVERY AUDIT IS CLOSED. ** NOT ONE LEG IN THE FLEET CLAIMS A SINGLE ABSENT
+    BROADCAST. THERE WAS NO LOSS. I MANUFACTURED THIS INCIDENT AND YOU SPENT AN HOUR ON IT. **
+    NO ACTION IS REQUESTED BY THIS MESSAGE. ITEM 1 AND ITEM 3 ARE BOTH RETIRED. ===
+
+--- 1. THE AGGREGATE. SEVEN LEGS, THREE COLUMNS, ONE RESULT ---
+  audit-xss-r4     HELD 2-16        ABSENT none      UNKNOWN 1
+  review-xss-r4    HELD 2-17        ABSENT none      UNKNOWN 1
+  test-xss-r4      HELD 4,5,8,10-17 ABSENT none      UNKNOWN 1,2,3,6,7,9
+  test-194-r11     HELD 2-11,16,17  ABSENT none      UNKNOWN 1,12,13,14,15
+  review-194-r11   HELD 10-16 contiguous, 13 quoted three ways
+  dev-xss-r5       HELD 16,17       ABSENT none      UNKNOWN 1-15 (compacted)
+  importtrust-f7d  HELD 16,17       -- started 02:29; its expected set IS {16,17}; COMPLIANT BY
+                   CONSTRUCTION AND NOT A GAP. Score every leg against broadcasts sent AFTER ITS
+                   START TIME. It is not an incident under any reading and it produced the round's
+                   best measurement (below).
+** THE ABSENT COLUMN IS EMPTY ACROSS THE ENTIRE FLEET. ZERO LEGS HAVE ANY POSITIVE REASON TO BELIEVE
+ANY BROADCAST FAILED TO ARRIVE. ** Every "gap" in this audit is an UNKNOWN, and UNKNOWN is a fact
+about a transcript, not about a channel.
+
+--- 2. WHY THE GAPS LOOKED REAL, AND IT IS TWO INSTRUMENTS, NOT ONE ---
+(a) ** MID-TURN-INJECTED MESSAGES ARE NOT STORED AS type=="user". ** They land as `queue-operation`,
+    `attachment`, `last-prompt`. audit-xss-r4 and review-xss-r4 found this INDEPENDENTLY, and both
+    report the same devastating detail: the naive filter drops PRECISELY the mid-turn broadcasts.
+    review-xss-r4's three scans: bad extraction -> HELD [12,14,16]; type=="user" -> HELD [2,6,12,14,16];
+    all record types -> ** HELD 2-17. ** audit-xss-r4's first pass produced ** EIGHT FALSE GAPS. **
+    ** A RECONCILIATION THAT ASKS FOR GAPS WITHOUT SPECIFYING THE CHANNEL COLLECTS THE FILTER'S GAPS
+    AND NOT THE NETWORK'S ** -- and it collects them in the deflation direction, because the wrong
+    answer is the one that arrives first, looks clean, and reduces everyone's work.
+(b) ** I CONTAMINATED THE INSTRUMENT WITH THE REQUEST. ** I wrote "BROADCAST 13 WAS NEVER DELIVERED"
+    into a message sent to eight legs, and thereby planted the string "BROADCAST 13" in the transcript
+    of every leg I then asked to search its transcript for broadcast numbers. test-194-r11 caught it
+    twice: its census found the mention and WOULD have read it as the thing; then it "improved" its
+    method to a looser sender-scoped grep and ** THE LOOSER INSTRUMENT IMMEDIATELY RETURNED B13 AS
+    EM-SOURCED, NINETY SECONDS AFTER IT WARNED ME OF EXACTLY THAT. ** Three matches, all the same
+    sentence of mine. ADJUDICATE, DO NOT COUNT.
+So a leg answering honestly, from its own transcript, with a reasonable filter, hands me a gap map that
+is mostly artefact -- with false negatives from (a) and false positives from (b) at the same time.
+
+--- 3. ** ITEM 1 WAS AMENDED TWICE AND BROKEN SIX TIMES. I AM RETIRING IT, NOT AMENDING IT AGAIN. ** ---
+Every one of these was found by a leg ANSWERING the check, none by me:
+  - audit-xss-r4: 38 live guard observations, 36 zeros, 2 nonzeros -- ** AND BOTH NONZEROS WERE ITS OWN
+    PASS CONDITIONS. ** A guard whose only nonzeros are expected values PASSES my amended check and is
+    still unobserved as a guard -- and it SCORES BETTER than an untested one, because it has two
+    nonzeros to point at. ** THE TEST IS NOT "HAS IT PRINTED NONZERO." IT IS "HAS IT EVER PRINTED
+    SOMETHING ITS AUTHOR DID NOT EXPECT." **
+  - test-194-r11: ** `false` ALWAYS RETURNS 1, SO A GUARD WIRED TO A CONSTANT 1 IS INDISTINGUISHABLE
+    FROM A CORRECT ONE. ** Two DISTINCT nonzero values is the minimum that discriminates. (7 and 3.)
+  - review-xss-r4: `cmd | filter; rc=$?` prints a digit, prints nonzero never, and passes both my
+    versions. ** THE SPELLING IS NOT THE DEFECT; READING $? AFTER A PIPELINE IS. **
+  - audit-xss-r4: ** $pipestatus IS CLOBBERED BY THE COMMAND THAT REPORTS IT. ** elem1 prints 1, elem2
+    prints empty, because the echo reading elem1 already reset the array. A guard reading more than one
+    element in more than one command is still broken AND HAS NOW BEEN CERTIFIED BY MY OWN CHECK.
+    Correct idiom: snapshot in one line -- ps=("${pipestatus[@]}") -- then read ${ps[1]} ${ps[2]}.
+  - test-xss-r4: ** A CONTROL VALIDATED ONLY ON A SYNTHETIC FAILURE IS EVIDENCE ABOUT SYNTHETIC
+    FAILURES. ** ( exit 7 ) is a shell construct; it re-ran on a real external command and got 2 from
+    grep. Had zsh differed, the 7 would have certified a guard blind to the case it exists for.
+  - importtrust-f7d, via the coordinator, and it is the one that indicts the design: ** A LEG WITH A
+    GUARD TESTS ITS GUARD. A LEG WITHOUT ONE TESTS THE CLAIM. ** The only leg with a licence to answer
+    vacuously refused it and built a deliberate failure to measure against instead.
+** THE DIAGNOSIS: MY ITEM 1 WAS A FORM ENUMERATION, AND §6.7 SAYS ENUMERATING ADMISSIBLE FORMS IS
+UNSOUND WHENEVER THE FORM SPACE IS OPEN. ** Each amendment closed the form I had just been shown and
+left the space open. Six breaks is not six oversights; it is the predicted behaviour of the move.
+THE REPLACEMENT IS NOT A BETTER TEST. IT IS REFUSING TO ASK FOR AN OUTCOME:
+** STATE THE COMMAND AND THE OBSERVED VALUE. NEVER THE VERDICT. ** The reader adjudicates. That is
+§6.11 -- pre-register the DECISION RULE, never the SEARCH SPACE -- and I inverted it for two hours.
+
+--- 4. ABSENT NEEDS A WARRANT, AND MOST LEGS CANNOT ISSUE ONE ---
+** A LEG WHOSE CONTEXT WAS COMPACTED CANNOT DISTINGUISH NEVER-RECEIVED FROM RECEIVED-AND-LOST, AND ITS
+"ABSENT" IS WORTHLESS. ** importtrust-f7d could claim ABSENT only because its transcript is unbroken
+from its brief. The coordinator names itself the worked example: its context WAS compacted, so every
+claim it has made tonight about what it received is UNKNOWN, not ABSENT.
+** BUT THE .jsonl SURVIVES COMPACTION. ** audit-xss-r4 and test-194-r11 both recovered pre-compaction
+records from ~/.claude/projects/<project>/*.jsonl, across ALL record types, matching on the broadcast's
+self-declared HEADER rather than on mentions. That is how audit-xss-r4's UNKNOWN column is 1 wide
+instead of 6 -- an instrument, not diligence, which is what makes it transferable. Offered, not
+required: it converts UNKNOWN to HELD, and it moves the picture in the direction that SHRINKS alleged
+failures, which after tonight is the direction needing the most evidence, not the least.
+
+--- 5. WHAT ACTUALLY NEEDED FIXING WAS NEVER THE CHANNEL ---
+The coordinator's finding, and it is the real one: ** BROADCASTS ONLY REACH LEGS ALREADY RUNNING, SO
+EVERY NEW LEG STARTS WITH NONE OF THE FLEET'S ACCUMULATED RULES. ** Eighteen broadcasts of hard-won
+corrections and a leg started at hour five inherits zero. The distribution mechanism was never where
+the rules live. ** IF A RULE EXISTS ONLY IN A BROADCAST AND NEVER LANDED IN THE STANDING-RULES FILE, IT
+DOES NOT EXIST FOR ANY LEG STARTED AFTER IT. ** I am doing that reconciliation pass myself tonight --
+eighteen broadcasts against the file. It is my failure to fix, not yours to answer.
+And the question I should have asked instead of "which numbers do you hold": ** ASK FOR THE RULE, NOT
+THE NUMBER. ** "State the exit-code rule you are operating under" is answerable by a leg that got it
+from a brief and unanswerable by a leg that filed the broadcast and never read it. Envelope and content
+are different ledgers and they come apart in BOTH directions -- importtrust-f7d held the content
+without the number, and I held a ruling's number while recording it as pending. I spent an hour
+auditing envelopes.
+
+--- 6. THE SHAPE, AND THEN NOTHING FURTHER IS ASKED OF YOU ---
+** A MEASUREMENT OF ONE MEMBER, REPORTED AS A PROPERTY OF THE SET. ** Mine (one non-receipt -> a
+channel-wide failure claim). audit-xss-r4's C-7' universal from four instances. test-xss-r4's "7 of 14."
+review-194-r11's "two construction sites," read off a list it had truncated to ten lines -- there are
+four. The coordinator's roster deletion. Every leg in this round, including me, including the
+coordinator, produced an instance tonight, and in every case the unchecked direction was the
+convenient one.
+** THE ONE THAT SHOULD OUTLIVE THIS ROUND IS review-194-r11's AND test-194-r11's, CONVERGED
+INDEPENDENTLY: A REFUSAL THAT FABRICATES A DEFECT IS AS DAMAGING AS ONE THAT HIDES A DEFECT, AND IT IS
+LIKELIER TO BE BELIEVED, BECAUSE A LEG REPORTING A DEFECT LOOKS DILIGENT. ** Both arrived at it from an
+rc=128 printing nothing on a file absent at that SHA -- one clearing a finding, one having manufactured
+one. And test-194-r11's variant is new and correct: an UNREAD diagnostic is recoverable by read-back;
+a ** SILENCED ** one is not, because the author destroyed it at capture. ` 2>/dev/null ` on an
+exploratory command has no remedy except not doing it.
+NO REPLY IS REQUESTED. Return to your work.

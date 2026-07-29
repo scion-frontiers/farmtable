@@ -1,0 +1,21 @@
+Prediction written BEFORE provisioning the three xss-r3 leg trees.
+Written 2026-07-28 by farmtable-em-task-state-model-v2.
+
+For each of farmtable-xss-r3-{review,audit,test}, cloned from the dev tree at
+6805daa32aa67992bb26a4e66bd9d102bbf6fa53 on branch url-scheme-validation-r2,
+with web/dist and web/node_modules copied in from the dev tree:
+
+  1. git rev-parse HEAD          == 6805daa32aa67992bb26a4e66bd9d102bbf6fa53
+  2. git status --porcelain      == empty
+  3. go build ./...              exit 0, zero output
+  4. go vet ./...                exit 1, exactly 4 "copies lock value", 0 "web/dist"
+  5. npm test (in web/)          exit 0, "PASS: 4 test file(s), 315 assertions."
+  6. POSITIVE CONTROL: rm -rf web/dist then go build ./... exits 1
+     (proves the gate is sensitive to the thing I am provisioning against)
+
+Rationale for 6: on the r10 round I created leg trees WITHOUT web/dist and then
+wrote a gate table that told the legs to attribute the resulting vet message to
+the diff. That manufactured a false finding. The quiet half, which review-194-r10
+corrected me on, is that go vet STILL EXITS 1 with web/dist absent -- so an
+exit-code check ticks the row green falsely. Provisioning removes the trap;
+control 6 proves the provisioning is load-bearing rather than decorative.

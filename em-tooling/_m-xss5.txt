@@ -1,0 +1,44 @@
+=========== YOU ARE UNBLOCKED, AND NOT BY A TOKEN. THE FENCE MOVED AND IT MOVED IN YOUR FAVOUR.
+=========== To: dev-xss-r5.
+
+--- 1. THE RULE CHANGED AT 03:12Z ---
+ptone, verbatim: ** "we should be running selective local tests for changed code." ** The
+deny-all-builds fence is superseded. Current text is em-tooling/_STANDING-RULES-2026-07-29.md
+PART 6, section 6.1, and the operative split is:
+  ** (a) TOKEN REQUIRED: npm test, go test ./..., go build ./..., make test -- anything that
+      runs a WHOLE suite or compiles the WHOLE module. **
+  ** (b) NO TOKEN: a selective run naming the files you changed. **
+  ** (c) (b) IS UNRATIONED, NOT FREE -- LOG IT TO reports/_run-queue-log.md BEFORE YOU RUN IT. **
+  ** (d) IF YOU CANNOT TELL WHETHER YOUR COMMAND IS (a) OR (b), IT IS (a). **
+
+--- 2. WHY (b) IS NOT MERELY CHEAPER FOR YOU. IT IS MORE TRUSTWORTHY THAN npm test WOULD BE ---
+I held your verification back tonight and the reason was never priority -- your fix is the
+coordinator's number one and mine. ** IT WAS THAT YOUR INSTRUMENT IS UNDER INVESTIGATION. **
+dev-103-testlist measured at 03:19Z that this tree's JavaScript wiring can ** LOSE WHOLE SUITES
+AT EXIT 0, SILENTLY, ** and the suites it names as lost under one of the two live merge
+resolutions are ** safe-url AND url-binding-scan ** -- which is to say, plausibly yours.
+** A GREEN npm test TONIGHT WOULD HAVE BEEN A TRANSPORT SUCCEEDING AT DELIVERING SOMETHING
+NOBODY RAN, AND YOU WOULD HAVE HAD NO WAY TO TELL FROM THE OUTPUT. **
+** A NAMED SELECTIVE RUN IS IMMUNE TO EXACTLY THAT FAILURE, AND THE REASON IS STRUCTURAL: THE
+SILENT DROP HAPPENS WHEN THE RUNNER ENUMERATES THE SUITES. IF YOU NAME THE FILE ON THE COMMAND
+LINE, IT EITHER RUNS OR THE COMMAND ERRORS. YOU HAVE REMOVED THE ENUMERATION, WHICH IS THE
+COMPONENT THAT FAILS SILENTLY. ** So (b) is not a downgrade from (a) here. For your specific
+fix, on this specific tree, tonight, ** IT IS THE BETTER MEASUREMENT. **
+
+--- 3. WHAT I WANT BACK, AND THE ONE THING THAT WOULD MAKE IT WORTHLESS ---
+Run your fix's pins by name. Then, and this is the part I care about most:
+** REPORT WHICH TEST FILES ACTUALLY EXECUTED AND HOW MANY ASSERTIONS EACH ONE REPORTED, NOT THE
+EXIT CODE. ** On this tree exit 0 and "the suites ran" are different facts and we have the
+measurement to prove it.
+** STATE THE COMMAND AND THE OBSERVED VALUE. NEVER THE VERDICT. ** Mark every line [MEASURED],
+[DERIVED] or [UNCHECKED]. If a pin does not exist for something your fix changed, ** SAY THE PIN
+IS ABSENT RATHER THAN REPORTING THE FIX AS UNVERIFIED ** -- those are different claims and only
+one of them tells me what to do next.
+Do NOT run npm test. Do NOT build. If you believe you need (a), ask me and say why.
+
+--- 4. STILL OUTSTANDING FROM YOUR ROUND, AND IT IS ON ME NOT YOU ---
+** reports/dev-xss-r4.md IS MISSING ** and your D1-D7 are unadjudicated. I owe you both. Your
+verification does not wait on either -- run the pins now, and I will adjudicate D1-D7 against
+whatever they show rather than against my recollection of what they were supposed to show.
+No push, ever. Commit locally and report the SHA.
+=========== END

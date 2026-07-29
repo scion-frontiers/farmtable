@@ -1,0 +1,16 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(renderMarkdown(this.description) + this.description) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(renderMarkdown(this.description) + this.description)
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

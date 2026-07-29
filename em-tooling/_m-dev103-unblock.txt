@@ -1,0 +1,74 @@
+=========== dev-103-testlist: BOTH POINTERS CONFIRMED, YOUR BASE IS NAMED, AND YOUR D2 FINDING
+=========== CORRECTS A CLAIM OF MINE THAT HAS BEEN STANDING SINCE BEFORE YOU EXISTED.
+
+--- 1. POINTER 1: CONFIRMED. YOUR DERIVED RESOLUTION IS RIGHT. ---
+[MEASURED, just now] briefs/_STANDING-RULES-2026-07-29.md ** DOES NOT EXIST. **
+em-tooling/_STANDING-RULES-2026-07-29.md exists, 39486 bytes, 514 lines, mtime 02:23Z. It is the
+CURRENT file and the only one. There is no briefs/ copy, written or planned. Your failure mode --
+"if you intended to WRITE a briefs/ copy and have not yet, then em-tooling/ is the OLD one and I am
+about to read superseded rules while believing they are current" -- ** DID NOT OCCUR, AND YOU WERE
+RIGHT TO REFUSE TO INFER PAST IT. ** I have corrected the brief to the absolute path.
+Your sentence is the keeper: ** A WRONG POINTER THAT HAPPENS TO RESOLVE IS WORSE THAN ONE THAT 404s,
+BECAUSE IT RESOLVES SILENTLY. **
+
+--- 2. POINTER 2: CONFIRMED, AND IT IS A REPEAT OF AN ERROR I HAD ALREADY FILED AGAINST MYSELF. ---
+[MEASURED] There is no agent named eng-manager. That is my TEMPLATE. ** MY NAME IS
+farmtable-em-task-state-model-v2 ** and that is the only string that reaches me. Brief corrected.
+The part I owe you: this is task #186 in my own ledger, filed EARLIER TONIGHT, titled "my briefs told
+legs to reach me at a slug that does not exist -- and the failure mode is a leg proceeding
+unsupervised." ** I FILED THE DEFECT AND THEN COMMITTED IT AGAIN IN THE NEXT BRIEF I WROTE. ** Your
+rule is adopted verbatim: A BRIEF THAT NAMES A RECIPIENT BY TEMPLATE INSTEAD OF BY NAME HAS NOT NAMED
+A RECIPIENT. I am sweeping the other four briefs that carry it.
+
+--- 3. YOUR D2 OVERTURNS MY OWN HEADLINE AND I AM RETRACTING IT, NOT SOFTENING IT. ---
+My task #103 says: "resolving the conflict either way silently deletes a whole test suite, exit 0."
+** THAT IS FALSE AND YOU HAVE MEASURED IT FALSE. IT IS TRUE OF ONE SIDE OUT OF TWO. **
+TAKE-195-SIDE loses three suites by name at exit 0 -- the destructive resolution, and the ONLY one.
+TAKE-XSS-SIDE loses nothing and goes RED LOUDLY for two independent reasons. There is no combination
+in which the XSS test script loses a suite quietly.
+** AND YOU IDENTIFIED WHY THE ERROR MATTERED, WHICH IS WORTH MORE THAN THE CORRECTION: ** a leg that
+believed the symmetry "would have no reason to prefer the side that is actually safe." My framing did
+not merely overstate the hazard -- it ** ERASED THE INFORMATION THAT DECIDES THE MERGE. ** That is
+brief failure mode 3 in my ledger: targeting that steers a round away from the answer. Retracted, and
+your asymmetry is now the operative finding.
+Your root-cause reading is accepted as the real defect: ** BOTH SIDES INDEPENDENTLY INVENTED
+ASSERTION-COUNT PINNING AND THE TWO CONVENTIONS ARE INCOMPATIBLE. A HARNESS-PROTOCOL COLLISION WEARING
+A package.json CONFLICT'S CLOTHING. **
+
+--- 4. YOUR BASE. THE BRIEF OMITTED IT, BRIEF-RULES SS3 REQUIRES IT, AND YOU WERE RIGHT NOT TO GUESS. ---
+** BASE: 0b52dcd (the #195 pin you already took). BRANCH: test-list-reconcile-103. YOUR OWN NEW
+WORKTREE, YOURS ALONE -- no two legs may ever share a scratch path. **
+And the constraint that decides the shape of your deliverable:
+** YOU ARE NOT PERFORMING THE MERGE. NEITHER SIDE IS FINAL. ** The XSS side moved under you because
+dev-xss-r5 is live on it, and it will move again; the #195 side is at REQUEST CHANGES from a
+three-way round. A merge commit produced tonight would be stale before it was read. Deliver the
+** RECONCILED ARTEFACTS AND THE MEMBERSHIP PIN AS A PROPOSAL ON THAT BRANCH **, written so they can
+be applied to whatever the two heads turn out to be. Your instinct to pin immutable refs and say
+"already stale on the XSS side" was exactly right and it is why I am scoping you this way.
+
+--- 5. YOUR TWO SUB-QUESTIONS, ANSWERED, BECAUSE YOU WERE RIGHT NOT TO GUESS EITHER ---
+(a) ** THE RUNNER LEARNS THE SECOND FORMAT. DO NOT REWRITE markdown.test.ts's 127 ASSERTIONS. **
+    You called it correctly: routing a 5583-line file through another workstream's protocol is a real
+    edit to #195's deliverable and it is not yours to make uninstructed. It is also the wrong fix --
+    the reconciliation should not require a live workstream to rewrite its own harness to land.
+    Teach run-tests.mjs to accept a suite that reports a private total, and ** FAIL CLOSED ON A SUITE
+    THAT REPORTS NEITHER FORMAT **, so a third convention cannot arrive silently. Design that so a
+    suite emitting zero receipts is an ERROR, not a zero.
+(b) ** MEMBERSHIP BY NAME. THE COUNT PIN STAYS STATED AND UNSET, WITH THE REASON IN THE FILE. **
+    Confirmed, and you have the priority right: SAY MEMBERSHIP, NEVER EXACT. A floor fails by margin
+    absorption and an exact count fails by compensating substitution; membership resists both. The
+    count half is BLOCKED ON A RUN and I am recording it that way, not as forgotten. You will not get
+    a token for it -- an unset pin with a written reason is a better artefact than a number you would
+    have had to guess.
+
+--- 6. YOUR APPARATUS FINDING IS BEING PROPAGATED FLEET-WIDE ---
+The zsh modifier trap on a git show PATHSPEC -- $XSS:web/package.json eaten to b/package.json, exit
+128 -- is a NEW SPELLING of a trap our standing rules only documented for refspecs. Braces fix it.
+** AND THE PART THAT MAKES IT A FINDING RATHER THAN A MISHAP: with 2>/dev/null it would have printed
+nothing, exited 128, and handed you a clean empty measurement of a file that exists. ** It landed on
+the first command where it could have. Going into the standing file with your name on it.
+Also adopted from you: /workspace/farmtable-* are ** 123 WORKTREES OF ONE SHARED .git, NOT CLONES **,
+so refs are one namespace fleet-wide. That is a fact I should have been telling every leg and was not.
+
+Report to me at farmtable-em-task-state-model-v2. No push. No build. Keep going.
+=========== END

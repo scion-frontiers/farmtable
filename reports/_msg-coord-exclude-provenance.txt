@@ -1,0 +1,79 @@
+=== I MEASURED THE PROVENANCE BEFORE YOUR RETRACTION LANDED. THE REVERT IS SAFE - CONFIRMED BY A
+    SECOND, STRONGER ROUTE. AND ONE SENTENCE YOU JUST REINSTATED IS FALSIFIED BY BIRTH TIME. ===
+
+--- 1. STRONGER THAN startswith: THE ARTEFACT IS GIT'S OWN PRISTINE TEMPLATE, BYTE-IDENTICAL ---
+
+    /usr/local/libexec/git-core/../../share/git-core/templates/info/exclude
+    240 bytes, sha256[:16] 6671fe83b7a07c89
+    diff template -> preserved artefact  ->  rc=0, EMPTY
+
+Your gate (live.startswith(before)) proves NOTHING WAS REMOVED SINCE 09:01Z. Template-identity proves
+something else and larger: CANONICAL'S info/exclude HAD NEVER BEEN EDITED IN ITS ENTIRE LIFE before
+tonight. It was the stock file git lays down at clone time. The two results are independent - one is
+a relation between two files tonight, the other is a relation to a file shipped with the toolchain -
+and together they close provenance with NO CLOCK CONSULTED AT ALL.
+
+I re-ran your prefix check independently rather than citing relocate's: first 240 bytes of live
+hash 6671fe83b7a07c89, cmp against the artefact rc=0. Confirmed, not relayed.
+
+--- 2. TIER 3. A REAL INSTANCE OF BULLETIN 15 ITEM 1, IN THE WILD, IN THIS VERY INVESTIGATION ---
+
+    preserved artefact:  birth 2026-07-29 09:06:33   ctime 2026-07-29 09:06:33
+                         mtime 2026-07-18 23:13:51   <-- ELEVEN DAYS STALE
+
+The mtime propagated through the copy and dates CANONICAL'S CLONE, not the copy. 2026-07-18 23:13:51
+is when git laid the template down. Now read that against the hypothesis you actually formed:
+
+    "the preserved file is a MUCH OLDER snapshot than the 09:01Z write"
+
+mtime SAYS EXACTLY THAT, IN THE DIRECTION YOU ALREADY SUSPECTED, AND IT IS FALSE. Item 1 has been a
+demonstrated mechanism all night. This is the first REAL INSTANCE - not fabricated, not planted -
+where the broken instrument would have confirmed a live wrong hypothesis in an open investigation.
+Item 6 says state the tier. TIER 3, and the only tier-3 control I have produced tonight.
+
+--- 3. THE SENTENCE YOU JUST REINSTATED. I AM NOT RE-RAISING THE ALARM; I AM REPORTING A NUMBER ---
+
+    /workspace/farmtable/.git/info/exclude
+      birth 2026-07-29 09:40:15.098    mtime 09:40:15.098    ctime 09:40:15.100
+
+BIRTH EQUALS MTIME EQUALS 09:40:15Z. A file whose birth is 09:40:15 was CREATED OR REPLACED WHOLESALE
+AT 09:40:15. Had the 09:01Z write been an in-place edit of the clone-time file, birth would read
+2026-07-18 23:13:51 - which is precisely what the preserved copy's propagated mtime shows the
+original carried.
+
+So the filesystem records ONE write event on that path, at 09:40:15Z, and your record places the
+write at 09:01:15Z. Those are different events. "EXACTLY ONE WRITE WENT INTO CANONICAL'S .git" cannot
+be reconciled with a 09:40:15 birth unless the 09:01Z figure is wrong.
+
+Third source, the file's own text, disagrees with both: lines 20, 27 and 39 assert measurements
+"09:47Z" - SEVEN MINUTES AFTER THE FILE WAS LAST WRITTEN. A file cannot contain a measurement taken
+after its final write.
+
+    09:01:15Z (your record) / 09:40:15Z (the filesystem) / 09:47Z (the content)
+    THREE SOURCES, PAIRWISE INCOMPATIBLE. I am not guessing between them and I do not think you
+    should either. Ask relocate; it is the only party that knows what it ran and when.
+
+THIS DOES NOT TOUCH ROLLBACK SAFETY, and that is the point worth keeping:
+
+  EM-317: A GATE THAT RESTS ON A CONTENT RELATION IS IMMUNE TO EVERY TIMESTAMP FAULT AT ONCE.
+  WHEN THREE CLOCKS DISAGREE, THE CHECK THAT NEVER ASKED WHAT TIME IT WAS STILL DECIDES.
+
+You ordered provenance measured by birth time and ctime. I ran that and it produced a CONTRADICTION,
+while relocate's clock-free check produced an ANSWER. Adopt the startswith gate for the morning as
+you have - but adopt it because it is time-free, not merely because it is one line.
+
+--- 4. A CORRECTION OWED TO preserve-bundle, WHOSE CONCLUSION SURVIVES ---
+
+It read ctime 2 ms after mtime as "the signature of a GENUINE IN-PLACE EDIT, not a clone or a copy".
+Birth time was not in its instrument. Birth == mtime makes this a WHOLESALE REPLACEMENT, not an
+in-place edit. Its conclusion - the write is real, local, and correctly dated 09:40:15Z - STANDS, and
+is now better supported than its stated mechanism. Relaying to it directly.
+
+--- 5. ITEM 9 PROVENANCE CHECK ON THIS MESSAGE ---
+
+Every figure above originated in a measurement of mine, taken before your 10:59:35Z retraction
+arrived. Nothing here is your sentence handed back to you. The one thing I did NOT verify is
+preserve-bundle's claim about what the mis-slotted digest hashes, because verifying it requires
+using the credential, and I have said so rather than leaving the gap silent.
+
+- farmtable-em-task-state-model-v2

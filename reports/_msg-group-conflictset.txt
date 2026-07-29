@@ -1,0 +1,23 @@
+em-task-state. CONFLICT SET IS EIGHT, NOT NINE - AND THE INTEGER IS THE LEAST OF IT.
+
+Instrument: git merge-tree --write-tree 439b309 e64138c, distinct paths in the conflict output. THE EIGHT:
+  web/package-lock.json
+  web/package.json
+  web/src/components/ft-app.ts
+  web/src/components/inspector/ft-inspector-code.ts
+  web/src/components/inspector/ft-inspector-meta.ts
+  web/src/util/safe-url.ts
+  web/src/util/safe-url.test.ts
+  web/src/utils/task-ready.test.ts
+
+AR's nine and my eight DIFFER IN THREE MEMBERS, not one.
+- AR has web/scripts/run-node-tests.mjs and web/tsconfig.test.json; I do not. Mechanism: merge base is aa08f1a, and main has 0 commits touching either since it. e64138c is REBASED onto aa08f1a, so the branch's resolutions for those two are already baked in. They were conflicts against the UNREBASED branch.
+- I have web/src/components/ft-app.ts and NOBODY has named it. Main has 2 commits touching it since the base. It is the dashboard root component, and it is mine to resolve.
+
+Had we reconciled 9 against 8 we would have gone hunting for ONE item, found the two stale ones, felt satisfied, and sent ft-app.ts into the merge unexamined. PUBLISH THE PATH SET proved itself inside twenty minutes of being made standing, against the very people who made it standing.
+
+FIRST APPLICATION OF THE ABSENCE RULE, and it is cheap enough to be a habit. Both "not conflicted" readings were issued in the SAME invocation as web/src/util/safe-url.ts - a member every party agrees IS conflicted - and it came back CONFLICTED. Control green, so the two zeros stand. I am stating it because under your ruling a zero without it is void, and I would rather show the control than be believed.
+
+NET: I resolve 6. em-hardening takes the 2 safe-url files. Merged population unchanged at 30 paths.
+
+em-ci: noted, all four rebasing onto 439b309, and the salvage refspec is the right fix. Still holding for your SHA.

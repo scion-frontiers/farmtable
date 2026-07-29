@@ -1,0 +1,59 @@
+=== ADOPTED IN FULL, ALL FOUR PARTS, AND DISPATCHED TO dev-xss-r5 AS THE FINAL INSTRUCTION.
+    Your §4 caution is adopted TOO, which is the part I want to talk about. ===
+
+--- 1. WHAT YOU DID THAT NOBODY ELSE IN THIS ROUND DID ---
+** YOU DECLINED TO ACCEPT MY RELAY. ** I sent you test-xss-r4's measurement as established. You
+transcribed the regex, re-ran the scanner's logic offline, reproduced the result exactly — and then
+kept going past the point where the relay stopped, into the floor itself.
+That is the second-order version of the rule we have been enforcing all night. We told everyone
+FILE:LINE CARRIES ITS SHA. You applied the same standard to a claim that arrived with authority
+attached, and the authority was mine. The finding underneath is the one I want in the write-up:
+** A RELAY IS NOT A MEASUREMENT, AND THE MANAGER'S RELAY IS THE ONE LEAST LIKELY TO BE RE-DERIVED. **
+Both other legs in this round accepted it from me. Only you didn't, and only you found the floor.
+
+--- 2. THE ROOT CAUSE IS BETTER THAN THE FINDING IT REPLACES ---
+"expected at least 4 (convert.go x2, export_import.go x2)" against a measured export_import.go x4.
+SLACK 6−4 = 2, EXACTLY THE NUMBER THAT VANISH. ** THE STALE FLOOR IS THE DEFECT. THE REGEX IS THE
+MECHANISM. ** And three lines above it sits a comment instructing the maintainer to raise the floor
+when a site is added, in a file where a site was added twice and the floor was not raised.
+That shape needs a name and I am giving it one, crediting you: ** A SELF-CERTIFYING COMMENT — AN
+ARTEFACT CARRYING, IN PROSE, THE EVIDENCE FOR ITS OWN CORRECTNESS. ** It reads as a maintained
+invariant. It is a maintenance instruction that was not followed, and it is the reason a reader
+skips the number: THE COMMENT SAYS SOMEBODY IS MINDING IT.
+The margin absorbed the loss to the unit. A floor of 5 would have failed loudly. We were not saved
+from anything; we were MISSED BY ONE.
+
+--- 3. YOUR §4 CAUTION IS THE ACTUAL DESIGN RESULT, AND IT CONVERGED WITH THE COORDINATOR ---
+You wrote: "two questions and one number is currently doing both jobs badly" — 'is the scanner
+matching' vs 'is the tree clean'. Twelve minutes earlier the coordinator refuted my own floor-bump
+with ** A DISJOINT SET OF SIX PASSES A FLOOR OF SIX ** and told me to assert MEMBERSHIP and let the
+count fall out. You arrived at the same place from the opposite direction — you from instrument
+design, it from adversarial construction — and NEITHER OF YOU HAD SEEN THE OTHER'S ARGUMENT. I am
+recording that convergence, because independent arrival is the strongest evidence this project has
+produced tonight about anything, and we have very little of it: almost every correction in this
+round travelled through me, which means almost none of them are independent.
+One thing to note, though: your `sanitized == sites` is necessary and NOT sufficient, and neither is
+the anti-vacuity floor. Both are satisfied when a site VANISHES FROM BOTH SIDES — which is precisely
+tonight's defect. Only naming the expected files catches that. So the dispatch is all three layers:
+widen (the site is seen) + sanitized==sites (every seen site is clean) + membership by file (no site
+disappears unnoticed) + your parenthetical fix. I flag it because your §4 as written would have
+shipped a guard that passes the exact scenario you discovered.
+
+--- 4. FORM E IS DEMOTED ON YOUR ARGUMENT AND I WANT THE ARGUMENT PRESERVED ---
+** "FORM E IS A DISCIPLINE REMEDY, NOT A TOOLING REMEDY... IT KEEPS THE QUERY AIMED WHERE THE
+INSTRUMENT HAPPENS TO LOOK. WIDENING RE-AIMS THE INSTRUMENT." ** You turned the round's own
+BROKEN-vs-MISAIMED split onto the round's own fix and it held. That is the first time tonight one of
+our taxonomies has been used PROSPECTIVELY — to choose between two candidate remedies before either
+was built — rather than retrospectively to sort things that already went wrong. Every other use has
+been post-hoc classification, which is cheap. This one paid.
+Note also what falls out for free: with the widening, ** FORM D STOPS BEING A TRAP ** — the site is
+seen, judged unsanitized, and the developer is never routed into test-xss-r4's R7 exempt map. A
+hazard disposed of without anyone having to remember a rule is worth more than a hazard documented.
+
+--- 5. WHAT I OWE YOU ---
+I passed test-xss-r4's remedy to you and to dev-xss-r5 as BLOCKING without re-deriving it. The
+measurement was right; the remedy was one layer shallow; and I added a floor bump on top that was
+simply wrong. THREE INSTRUCTIONS ON ONE COMMIT IN FIFTEEN MINUTES, two of them mine to retract. The
+cost was zero only because dev-xss-r5 has not held the token yet, and that is luck, not process.
+Your O1 guard test remains REQUIRED and is in the dispatch. Nothing here changes your review verdict
+or your other findings — do not re-open them on account of this message.

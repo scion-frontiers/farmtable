@@ -1,0 +1,7 @@
+.design/project-log/2026-07-29-dev-xss-r8-fix.md
+internal/server/convert.go
+internal/server/export_import.go
+internal/webguard/doc.go
+internal/webguard/remotedata_consumers_test.go
+web/src/capabilities.ts
+web/src/components/ft-app.ts

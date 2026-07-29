@@ -1,0 +1,1 @@
+arm A: program create-and-write, never touched again

@@ -1,0 +1,161 @@
+[
+ {
+  "id": "C1 swap checked/unchecked glyph outputs",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n",
+    "repl": "      checked\n        ? '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>',\n"
+   }
+  ]
+ },
+ {
+  "id": "C2 drop aria-label from both glyphs",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n",
+    "repl": "      checked\n        ? '<span role=\"img\">☑\\uFE0E</span>'\n        : '<span role=\"img\">☐\\uFE0E</span>',\n"
+   }
+  ]
+ },
+ {
+  "id": "C3 drop U+FE0E variation selector",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n",
+    "repl": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n"
+   }
+  ]
+ },
+ {
+  "id": "C4 role=img -> role=presentation",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n",
+    "repl": "      checked\n        ? '<span role=\"presentation\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"presentation\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n"
+   }
+  ]
+ },
+ {
+  "id": "C5 emit bare glyph, no span/role/aria",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">☑\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">☐\\uFE0E</span>',\n",
+    "repl": "      checked ? '\\u2611\\\\uFE0E' : '\\u2610\\\\uFE0E',\n"
+   }
+  ]
+ },
+ {
+  "id": "D1 private Marked instance -> shared marked singleton",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "import { Marked, type Tokens } from 'marked';",
+    "repl": "import { Marked, marked, type Tokens } from 'marked';"
+   },
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "const parser = new Marked({",
+    "repl": "void Marked;\nconst parser = marked;\nmarked.use({"
+   }
+  ]
+ },
+ {
+  "id": "E1 remove non-string input guard",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  if (typeof md !== 'string') return '';\n",
+    "repl": ""
+   }
+  ]
+ },
+ {
+  "id": "F1 arity: defaulted options object",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "export function renderMarkdown(md: string, opts: { inline?: boolean } = {}): string {\n  void opts;"
+   }
+  ]
+ },
+ {
+  "id": "F2 arity: rest parameter",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "export function renderMarkdown(md: string, ...rest: unknown[]): string {\n  void rest;"
+   }
+  ]
+ },
+ {
+  "id": "F3 arity: destructured second parameter",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "export function renderMarkdown(md: string, { inline = false }: { inline?: boolean } = {}): string {\n  void inline;"
+   }
+  ]
+ },
+ {
+  "id": "F4 arity: comment above quoting the old one-arg signature",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "// export function renderMarkdown(md: string): string {\nexport function renderMarkdown(md: string, opts?: { inline?: boolean }): string {\n  void opts;"
+   }
+  ]
+ },
+ {
+  "id": "G1 drop FORBID_ATTR from the sanitize config",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  void FORBID_ATTR;\n  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "G2 drop the whole sanitize config object",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  void FORBID_TAGS;\n  void FORBID_ATTR;\n  return DOMPurify.sanitize(parser.parse(md) as string);"
+   }
+  ]
+ },
+ {
+  "id": "G3 bypass sanitize entirely (return raw marked output)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  void FORBID_TAGS;\n  void FORBID_ATTR;\n  void DOMPurify;\n  return parser.parse(md) as string;"
+   }
+  ]
+ }
+]

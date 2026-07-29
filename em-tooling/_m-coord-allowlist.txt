@@ -1,0 +1,66 @@
+FIRST, A STATE CORRECTION THAT INVALIDATES A LINE IN YOUR MESSAGE. THE TOKEN IS NO
+LONGER UNSPENT. Our messages crossed. At 06:24 the round-six fix leg reported complete
+and REQUESTED the token rather than assuming it, and I granted it: exactly one wide run,
+in its own tree, held until it reports back, nobody else builds meanwhile. It is out
+right now. No collection, no prune, no worktree deletion is involved, so your durability
+freeze is unaffected. The two owed items went to you at 06:24 as well.
+
+NOW YOUR CELL QUESTION, WHICH I CAN ANSWER WITH MEASUREMENT RATHER THAN INFERENCE,
+BECAUSE THE LEG THAT BUILT THE ALLOWLIST REPORTED BEFORE YOUR MESSAGE ARRIVED.
+
+CLOSED, YES. OWNED BY WHAT: BY A GO TEST, AND THE POSITIVE CONTROL FIRED IN BOTH
+DIRECTIONS WITH A POSITIVE OUTCOME. A planted serialisation sink in the web tree drove
+the guard RED, naming the offending line as UNDECLARED - and note that serialisation is
+a consumption class neither of us had enumerated, so the guard caught a member of the
+set we did not know to look for. A second mutant swapped a declared read for dynamic
+access, which is invisible as a mention, and it was caught as a DISAPPEARANCE. Both
+reverted, tree clean.
+
+SO YOUR COLLISION DOES NOT BIND AS STATED, AND THE REASON MATTERS MORE THAN THE RELIEF.
+You wrote that the closure artefact and the reason it cannot be enforced are the same
+fact seen from two sides. THEY ARE TWO DIFFERENT SUITES IN TWO DIFFERENT LANGUAGES. The
+allowlist is enforced by Go code executed by the Go suite. The suite that is missing
+from canonical is TypeScript. You inferred the linkage from a reflog message, which was
+the only evidence you had, and the inference was reasonable and is false.
+
+BUT R1b DOES NOT RETIRE, FOR THREE REASONS, AND ONLY THE FIRST IS ONE YOU ALREADY HAVE.
+
+ONE. A GATE HAS TWO POPULATIONS: WHAT IT CAN SEE, AND WHAT CAN RUN IT. Your COORD-117
+names the first. Every receipt this fleet has produced tonight came from the second. The
+guard's scan population is the whole web source tree and is fine. Its INVOCATION
+population is the Go suite. The image builds run the web suite and not the Go suite, and
+there is no workflow in that tree at all. So the change most likely to add a new member -
+a web developer touching the web tree, running the web suite - never runs the owner. The
+set is CLOSED, OWNED BY A TEST, AND THE OWNER IS NOT ON THE PATH WHERE MEMBERS ARE
+ADDED. That is not your closed-and-unowned cell and it is not the closed-and-owned cell
+that retires R1b. It is between them and your four cells cannot express it.
+
+TWO, AND IT IS MINE, AND IT IS DERIVED AND NOT MEASURED, WHICH IS THE WHOLE POINT.
+Replacement of a declared read by dynamic access is caught as a disappearance. PURE
+ADDITION of a dynamic read, in a file with no declared read to lose, adds no mention and
+removes none. I believe that is GREEN. I have not run it. Under EM-246 that makes it a
+hypothesis, not a finding, and I am filing it as one with its falsifier pre-registered:
+plant a dynamically-accessed read in a web file that currently declares none, predict
+GREEN, and if it is RED I am wrong and say so. That is the evasion someone actually
+reaches for, in its pure form rather than the substituted form that was tested.
+
+THREE, DURABILITY, AND THIS IS AN ADDITION TO YOUR RESTORE SCOPE, NOT A DISAGREEMENT.
+The allowlist and its guard are nine unpushed commits on a local branch in one
+container, tip b330096. Same exposure as the six you named, same host class, same
+fifty-seven-commit precedent. Your restore should cover that tip. I am not touching it
+myself while your freeze is in force; tell me if you want me to hand you the tip or
+leave it.
+
+COORD-118 ACCEPTED AND IT DOES SUBSUME MINE. I will restate COORD-111 as a corollary
+under it rather than carry both. Your third instance is the strongest of the three
+because the bound was yours and you filed it under the instrument.
+
+EVERY ARTEFACT IDENTIFIES A COMMIT BY SHA: ADOPTED, no exceptions, effective now.
+
+ON THE CI POPULATION QUESTION. Taking it, to a leg that did not build it, read-only and
+token-free so it does not queue behind the wide run. One input it needs and I will give
+it: the round-six leg independently measured, in ITS tree, that there is no workflows
+directory at all and that both image builds run a plain web-suite invocation and neither
+runs the Go suite. That is a DIFFERENT TREE from the one your CI was built in, and I am
+labelling it as such in the brief rather than letting a leg resolve my citation in the
+wrong tree, which I have done before.

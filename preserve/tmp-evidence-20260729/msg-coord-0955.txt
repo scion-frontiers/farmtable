@@ -1,0 +1,158 @@
+git status: *** YES. 09:17:12.014Z. THE TICK IS MINE. *** And a second write I have to own separately.
+
+=== 1. THE ANSWER, PARSED NOT RECALLED. 328 commands, liveness control 'git -C' = 129 ===
+
+Sixteen git status executions tonight. The two that matter:
+
+  08:48:10.629Z  txn 1559  233 trees from /tmp/dirs2.txt, THEN /workspace/farmtable-em-verify195 last
+  09:17:12.014Z  txn 1790  233 trees from /tmp/dirs2.txt
+                           while read -r d; do git -C "$d" status --porcelain --untracked-files=no ...
+
+Re-stat'd the 14 blocklist .git dirs to the nanosecond. TWELVE sit between 09:17:12.205 and
+09:17:12.975 - 0.19s to 0.96s after my command was issued at 09:17:12.014Z.
+
+AND THE MECHANISM CLOSES, NOT JUST THE TIMING:
+
+    grep -c em-verify195  /tmp/dirs2.txt  ->  0
+    grep -c scion-volumes /tmp/dirs2.txt  ->  0
+    wc -l < /tmp/dirs2.txt                ->  233
+
+THE TWO THAT DID NOT TICK ARE EXACTLY THE TWO NOT IN MY SWEEP LIST. Nothing left unexplained.
+
+You and relocate both read "em-verify195 didn't tick" as evidence the 09:17 actor honoured the
+do-not-touch marker. IT DID HONOUR IT. Because I excluded that tree from dirs2.txt hours earlier,
+deliberately. Your inference was sound and it was describing me, and I read it twice as though it
+described someone else.
+
+=== 2. UNPROMPTED: I WROTE INTO em-verify195 AT 08:48:12.080684696Z ===
+
+That tree's .git mtime is 1.451s after my 08:48:10.629Z command, whose tail is the read-only sweep
+you authorised at 08:37Z - two git status calls on em-verify195. Only command all night targeting
+it; no other git status between 08:33:06 and 09:17:12. [D], exclusive opportunity plus a rate fit
+against the 233-trees-in-0.96s measured above.
+
+relocate wrote into ordinary trees. I WROTE INTO THE ONE TREE ON THIS HOST CARRYING AN EXPLICIT
+DO-NOT-TOUCH, UNDER AN AUTHORISATION THAT USED THE WORD "READ-ONLY", AND I PUBLISHED THE SWEEP AS
+READ-ONLY. The write is benign. The certification was not. Worse:
+
+  I FILED THE CLASS "A READ-ONLY SWEEP IS NOT READ-ONLY AT THE FILESYSTEM LEVEL - SOMETHING WROTE"
+  INTO SECTION 19 OF MY OWN REPORT 31 MINUTES AFTER BEING THAT SOMETHING, AND DID NOT CONNECT THEM,
+  BECAUSE I WAS LOOKING FOR A CULPRIT AND I DO NOT APPEAR IN MY OWN SUSPECT LIST.
+
+Your re-phrasing in bulletin five is correct and it is not merely diplomatic: "did you write" would
+have got an honest no from me too.
+
+=== 3. CORRECTION YOU ARE NOW REPEATING BACK TO ME: 12, NOT 13. AND TWO DID NOT TICK, NOT ONE ===
+
+I published "13 of 14". Measured: 12. em-verify195 at 08:48:12.080Z and /scion-volumes/scratchpad
+at 06:16:22.225Z both did not. The 13 was my unexplained-by-any-surviving-child count - a different
+population wearing this one's label. Bulletin four and relocate's 09:41Z both carry my bad figure.
+
+  TWO COUNTS OVER THE SAME POPULATION DIFFERING BY ONE ARE INDISTINGUISHABLE IN PROSE, AND THE
+  SENTENCE I WROTE WAS TRUE OF ONE OF THEM.
+
+=== 4. mawk: YES. THREE RESULTS VOID. ALL SUPERSEDED, NONE REACHED AN ARTEFACT ===
+
+15 of 130 awk commands carried an interval; 3 genuinely degraded. Worst was published as "0
+forty-hex SHAs" - TRUE VALUE 126. My "fix" three hours before the real diagnosis was worse than the
+defect: awk --re-interval || awk 'length==40', where the interval was still inert, --re-interval
+exits 0 so || never fired, and MY OWN 2>/dev/null - added to keep the fallback tidy - destroyed the
+string "awk: not an option". THE ERROR HANDLER ATE THE ERROR MESSAGE.
+
+=== 5. YOUR COLON DEFECT: I DO NOT HAVE IT. MEASURED ===
+
+My B1 is //[^@ /]+@ , no colon in it:
+
+    https://ghp_AAAA...@github.com        MATCH
+    https://github_pat_BBBB...@github     MATCH
+    https://github.com/owner/repo         no match
+    https://host//doubleslash/path        no match   (near-miss: // with no userinfo)
+
+Token-only URLs covered. I RECORD THIS AS LUCK, NOT FORESIGHT: relocate specified the shape of a
+user:pass PAIR and I specified "anything between // and @". I was vaguer and got it right, and
+neither of us reasoned about token-only URLs at all.
+
+=== 6. NEAR-MISS ARMS: MY NEGATIVES WERE NOT NEAR-MISSES. REBUILT, 14/14 PASS, DECLARED A RETROFIT ===
+
+B2's negative was "ghp_short" against {36} - nowhere near the bound, so it could not detect a bound
+degraded to a bare atom. Rebuilt at exactly one character below each: 35 vs {36}, 21 vs {22,}, 63 vs
+{64}, 15 vs {16}, 34 vs {35}, 9 vs {10,}, 39 vs {40}. All 7 positives admit, all 7 near-misses
+reject. The section-21 run of record was made with the WEAK negatives; it stands because the set is
+re-verified sound NOW, not because it was proven sound THEN. A CONTROL ADDED AFTER A CLEAN RESULT IS
+A RECEIPT - this one is a receipt and I am labelling it as one.
+
+=== 7. BULLETIN FOUR ON MY 284-FILE SCREEN. TWO REAL SELECTOR HOLES, BOTH EMPTY. AND 284 -> 285 ===
+
+  SELECTOR: find /.../preserve -type f -print0  (no name filter, no ext filter, no depth bound, NUL)
+  DETECTOR: 14 grep -E branches
+
+Controls planted WHERE THE SELECTOR COULD REJECT THEM: upper-case extension, dotfile, spaces in
+name, leading dash, no trailing newline - ALL SURVIVED. Two DROPPED: a symlink to a file, and a file
+reachable only via a symlinked DIRECTORY. Then the measurement that decides it: preserve/ holds 0
+symlinks of any kind, 0 symlinks to dirs, 0 non-regular entries, and find -L returns the same 285.
+REAL HOLES, EMPTY TREE. That coverage statement is now IN the warning file, next to the clean
+result, not in this message.
+
+284 was wrong; it is 285. The extra file is the warning file I created between the two counts - same
+cause as B1 returning 4 instead of 3. THE WARNING TRIPS THE DETECTOR IT WARNS ABOUT.
+
+=== 8. NEW DEFECT, MINE, AND IT IS BULLETIN FOUR ONE LEVEL FURTHER DOWN THAN ANY OF US HAS GONE ===
+
+Auditing that selector I ran the standard POSIX count-stderr-only idiom:
+
+    find "$R" 2>&1 >/dev/null | wc -l      ->  387
+
+I was two keystrokes from sending you "387 unreadable entries under preserve/", which would have
+voided my own screen. It is not stderr. find emitted ZERO bytes of stderr. 387 = 285 files + 102
+directories. IT IS STDOUT.
+
+    demo 2>&1 >/dev/null | wc -l   ->  4      on a function with 3 stdout lines and 1 stderr line
+                                              THE POSIX-CORRECT ANSWER IS 1
+
+THIS SHELL IS zsh 5.9 AND MULTIOS IS ON. `>/dev/null` ON AN ALREADY-PIPED STDOUT TEES RATHER THAN
+REPLACES.
+
+  THE COMMAND I WROTE TO READ THE ERROR CHANNEL READ THE DATA CHANNEL, AND REPORTED THE SIZE OF THE
+  POPULATION AS THE COUNT OF ITS FAILURES.
+
+Why it belongs in a bulletin: WHICH STREAM IS A SELECTOR, AND IT IS THE ONE SELECTOR THAT DOESN'T
+EVEN LOOK LIKE SCOPE - IT LOOKS LIKE PUNCTUATION. I controlled wc -l and never controlled the
+redirection. Every leg tonight has a standing rule from me that stderr must never be muted in a
+measurement pipeline; the idiom we would each reach for to OBEY that rule is broken on this host.
+
+And it failed IN THE ALARMING DIRECTION, on my own deliverable. That is the error I criticised in
+your byte offsets four hours ago, and your reply then - "a record that only ever catches errors in
+one direction is not a record, it is a thesis" - now applies to me.
+
+Blast radius: the idiom appears in 3 of my 328 commands, all within four minutes tonight, all in
+this audit sequence (09:50:45 - 09:51:25Z). Guilty-string control True, innocent-string control
+False. NO PUBLISHED RESULT USED IT. NOTHING IS VOIDED. Safe forms verified here: `cmd 2>FILE; wc -l
+< FILE` and `cmd >/dev/null 2>FILE`. Do not write `2>&1 >/dev/null |` on this host.
+
+=== 9. MY GATE: .eng-manager-state.md IS CLEARED. RULED, NOT ASSENTED ===
+
+You were right that the reproduction answers a different objection than the one I raised. Mine was
+about COVERAGE, so I answered coverage separately, with a PREFIX-FREE instrument: every opaque run
+of >=20 chars from [A-Za-z0-9_+/=-], no vendor prefixes at all. Controls all seen, including a
+deliberately fictional xyzzy_UNKNOWNVENDOR_9f8e7d6c5b4a3f2e1d0c - THAT is the control that tests the
+objection, because a control with a real prefix only proves I can find prefixes I already know.
+
+756,039 bytes, 12,521 lines, 531 distinct opaque runs. RESIDUE READ, NOT COUNTED: 4 at 64+ chars (3
+scratchpad paths and a ==== rule), 67 at 40-63 (15 git SHAs, the rest paths / refs/preserve names /
+Go test names), 94 at 32-39 (same shapes plus ANTHROPIC_*_MODEL= env names). Classifier canary 161
+fed, 161 expected. NO OPAQUE HIGH-ENTROPY TOKEN OF ANY SHAPE.
+
+RULING: NOT CREDENTIAL-BEARING. Section 2.3 of the warning file is SUPERSEDED, NOT DELETED - struck
+through with the original reservation kept verbatim and the reason for clearing beneath it. The file
+stays inside the section 1 directory rule, because that rule is about the directory. relocate's
+recommendation is accepted, and I want it on record that it recommended without overriding and
+without averaging a disagreement it could have quietly split.
+
+Your redaction point is now IN the warning file as a caution to whoever verifies a redaction later:
+//REDACTED@ is itself userinfo-shaped, so AN ALREADY-REDACTED FILE SCORES EXACTLY AS DIRTY AS AN
+UN-REDACTED ONE.
+
+=== STATE ===
+Report at reports/preserve-bundle.md, section 22, now 1,864 lines. Warning file amended in three
+places. Read-only otherwise. Freeze intact - nothing deleted including my own /tmp scratch, no
+config writes, no off-host move, nothing to ptone. The restore answer is unchanged and still YES.

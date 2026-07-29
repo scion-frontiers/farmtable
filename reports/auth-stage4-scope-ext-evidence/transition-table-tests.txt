@@ -1,0 +1,92 @@
+=== RUN   TestTransitionScope_Table
+=== RUN   TestTransitionScope_Table/triage_to_backlog
+=== RUN   TestTransitionScope_Table/triage_to_ready
+=== RUN   TestTransitionScope_Table/triage_to_working
+=== RUN   TestTransitionScope_Table/triage_to_in_review
+=== RUN   TestTransitionScope_Table/triage_to_in_qa
+=== RUN   TestTransitionScope_Table/triage_to_deploying
+=== RUN   TestTransitionScope_Table/backlog_to_working
+=== RUN   TestTransitionScope_Table/ready_to_working
+=== RUN   TestTransitionScope_Table/blocked_to_working
+=== RUN   TestTransitionScope_Table/in_review_to_working
+=== RUN   TestTransitionScope_Table/deferred_to_working
+=== RUN   TestTransitionScope_Table/working_to_in_review
+=== RUN   TestTransitionScope_Table/working_to_in_qa
+=== RUN   TestTransitionScope_Table/working_to_deploying
+=== RUN   TestTransitionScope_Table/working_to_completed
+=== RUN   TestTransitionScope_Table/triage_to_completed
+=== RUN   TestTransitionScope_Table/ready_to_wont_fix
+=== RUN   TestTransitionScope_Table/backlog_to_duplicate
+=== RUN   TestTransitionScope_Table/blocked_to_cancelled
+=== RUN   TestTransitionScope_Table/in_review_to_completed
+=== RUN   TestTransitionScope_Table/completed_to_cancelled
+=== RUN   TestTransitionScope_Table/wont_fix_to_duplicate
+=== RUN   TestTransitionScope_Table/completed_to_triage
+=== RUN   TestTransitionScope_Table/completed_to_backlog
+=== RUN   TestTransitionScope_Table/cancelled_to_backlog
+=== RUN   TestTransitionScope_Table/wont_fix_to_triage
+=== RUN   TestTransitionScope_Table/duplicate_to_ready
+=== RUN   TestTransitionScope_Table/completed_to_working
+=== RUN   TestTransitionScope_Table/completed_to_blocked
+=== RUN   TestTransitionScope_Table/working_to_blocked
+=== RUN   TestTransitionScope_Table/working_to_waiting_for_input
+=== RUN   TestTransitionScope_Table/working_to_deferred
+=== RUN   TestTransitionScope_Table/ready_to_blocked
+=== RUN   TestTransitionScope_Table/triage_to_blocked
+=== RUN   TestTransitionScope_Table/triage_to_scheduled
+=== RUN   TestTransitionScope_Table/backlog_to_ready
+=== RUN   TestTransitionScope_Table/ready_to_backlog
+=== RUN   TestTransitionScope_Table/in_review_to_in_qa
+=== RUN   TestTransitionScope_Table/blocked_to_ready
+=== RUN   TestTransitionScope_Table/working_to_ready
+--- PASS: TestTransitionScope_Table (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_backlog (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_ready (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_in_review (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_deploying (0.00s)
+    --- PASS: TestTransitionScope_Table/backlog_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/ready_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/blocked_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/deferred_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_in_review (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_deploying (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/ready_to_wont_fix (0.00s)
+    --- PASS: TestTransitionScope_Table/backlog_to_duplicate (0.00s)
+    --- PASS: TestTransitionScope_Table/blocked_to_cancelled (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_cancelled (0.00s)
+    --- PASS: TestTransitionScope_Table/wont_fix_to_duplicate (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_triage (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_backlog (0.00s)
+    --- PASS: TestTransitionScope_Table/cancelled_to_backlog (0.00s)
+    --- PASS: TestTransitionScope_Table/wont_fix_to_triage (0.00s)
+    --- PASS: TestTransitionScope_Table/duplicate_to_ready (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_blocked (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_blocked (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_waiting_for_input (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_deferred (0.00s)
+    --- PASS: TestTransitionScope_Table/ready_to_blocked (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_blocked (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_scheduled (0.00s)
+    --- PASS: TestTransitionScope_Table/backlog_to_ready (0.00s)
+    --- PASS: TestTransitionScope_Table/ready_to_backlog (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/blocked_to_ready (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_ready (0.00s)
+=== RUN   TestTransitionScope_NoOpStageIsWrite
+--- PASS: TestTransitionScope_NoOpStageIsWrite (0.00s)
+=== RUN   TestTransitionScope_UnknownStagesFallBackToWrite
+--- PASS: TestTransitionScope_UnknownStagesFallBackToWrite (0.00s)
+=== RUN   TestTransitionScope_AllStagePairsResolveToKnownScope
+--- PASS: TestTransitionScope_AllStagePairsResolveToKnownScope (0.00s)
+=== RUN   TestTransitionScope_CollectionIDIgnored
+--- PASS: TestTransitionScope_CollectionIDIgnored (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.008s

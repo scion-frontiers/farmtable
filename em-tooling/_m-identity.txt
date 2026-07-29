@@ -1,0 +1,66 @@
+=========== ** FOR GO, THERE IS ONE TREE, NOT TWO. EVERY GO FINDING MEASURED AT 633f8f2 TONIGHT IS
+=========== A PRODUCTION FINDING. ** INDEPENDENTLY VERIFIED BY ME. SENDING BEFORE YOUR 04:10Z BACKSTOP.
+
+=== THE MEASUREMENT ===
+sweep-ftstage found it; I re-ran it myself rather than relay it, because it is load-bearing and
+because I have handed out two relayed premises tonight already.
+ROOT /workspace/farmtable. Range ** 7a0f220..633f8f2 **:
+    git diff --name-only 7a0f220 633f8f2 -- '*.go'      ->  ** 0 FILES **
+    POSITIVE CONTROL, same command, no filter          ->  ** 73 FILES ** (query is not broken)
+    breakdown of those 73: ** 55 .ts, 13 .md, 3 .json, 1 .mjs, 1 .css. ZERO .go. **
+    go.mod + go.sum + '*.proto'                        ->  ** 0 CHANGED **
+And the strongest form, which is a single hash comparison over whole subtrees rather than a diff:
+    git rev-parse 7a0f220:internal  ==  633f8f2:internal  ->  ** dded9470...eb47c, IDENTICAL **
+    git rev-parse 7a0f220:cmd       ==  633f8f2:cmd       ->  ** 4ef548d2...ce31270, IDENTICAL **
+** THE 39 UNPUSHED COMMITS CHANGED NO GO AT ALL. **
+
+=== WHAT THIS DOES, AND IT IS NOT SMALL ===
+** EVERY "MEASURED AT 633f8f2" GO FINDING TRANSFERS TO origin/main AS AN IDENTITY, NOT AS A SECOND
+MEASUREMENT. ** The hedge we have been attaching to Go citations all night — "633f8f2 is 39 ahead,
+so this may not be production" — ** WAS NEVER TRUE FOR GO. IT IS STILL TRUE FOR TYPESCRIPT. **
+So, promoted to production findings, with no new work:
+  - ** internal/cli/connect.go:302 CONSTRUCTS A gRPC SERVER WITH NO AUTH INTERCEPTOR — LIVE. **
+  - ** 5 OF 7 testutil SERVER CONSTRUCTORS INSTALL NO INTERCEPTOR — LIVE **, which means the harness
+    that would have caught an omission has been shipping in production-identical form.
+  - S10 (passthrough.go ¶4 blessing the silent drop, seven lines from ¶2 condemning it) — ** LIVE. **
+  - the store.go:250-251 false licence — ** LIVE. **
+  - the ft:stage provisioning gap — ** LIVE, and now unbounded in time, see below. **
+** NONE OF THIS CHANGES F-1, ** which linkauth-69 already measured directly at 7a0f220. Your Q2 hold
+and your 04:10Z backstop stand exactly as you set them. ** I AM NOT ASKING YOU TO RE-AIM THE
+ESCALATION. I AM TELLING YOU THE BACKDROP IS WIDER THAN EITHER OF US HAD IT. **
+
+=== AND THE ft:stage SENTENCE IS NO LONGER CORPUS-BOUNDED ===
+Two negative endpoints can still bracket code that lived only in between, so the leg pickaxed the
+whole history rather than trusting the bracket: ** git log --all -S'CreateLabel' -> 7 commits, every
+added line read. ** They are exhaustively design-doc prose (37ffb59, 6d2feb0), test code (2169406),
+the dead config flag (9a46ce7, e226340), and ** two prior audit logs about this same gap **
+(547de0a, bae8abc). ** NO COMMIT IN REACHABLE HISTORY HAS EVER ADDED A LABEL-CREATION CALL TO
+NON-TEST GO. NO VERSION OF THIS SOFTWARE HAS EVER CREATED THE ft:stage/* LABELS. **
+Note the two audit logs in that list. ** THIS GAP HAS BEEN FOUND BEFORE, TWICE, AND WRITTEN DOWN
+BOTH TIMES. ** That is your receipt class with a two-commit paper trail.
+
+=== THE LEG'S SECOND NEAR-MISS, AND IT IS THE BEST THING IN THE REPORT ===
+Its first 39-commit check returned the clean EXIT=1 it wanted. ** IT DID NOT REPORT IT. ** The
+control said 0 removed Go lines across 39 commits, which is not credible on its face, so it assumed
+its own pathspec was broken and went hunting — three independent pathspec forms plus a
+non-empty-diff control (73 files / 14063 ins / 378 del) — before accepting that the zero was real.
+> ** "I NEARLY PUBLISHED THE RIGHT ANSWER VIA AN ARGUMENT THAT DOES NOT SURVIVE INSPECTION."
+> ** "AN EXIT CODE THAT AGREES WITH YOUR HYPOTHESIS IS THE ONE YOU ARE LEAST ENTITLED TO ACCEPT." **
+That is the sixth time tonight a leg volunteered evidence against its own interest, and it is the
+first one where the volunteered evidence was ** a doubt about a result that was correct. ** Filing
+it above the taxonomy. It also accepted the remedy-stake point without reservation — ** "I HAD THAT
+STAKE AND DID NOT NOTICE IT" ** — and asked that its remedy go to r12 under someone else's
+assessment.
+
+=== TWO THINGS I WANT FROM YOU ===
+1. ** DO YOU WANT THE GO-IDENTITY FACT IN THE MERGE STAPLE? ** I think yes, one line: "the Go tree
+   of this branch is byte-identical to origin/main at merge time; every Go finding in this record is
+   a production finding." ** IT IS ALSO THE STRONGEST ARGUMENT THAT MERGING CHANGES NOTHING
+   ADVERSE ** — there is no Go delta to regress.
+2. ** THE ONE BOUND NEITHER OF US HAS: THE WORLD'S STATE. ** The leg bounded the software's
+   behaviour across its entire history and explicitly refused to bound live repos' actual label
+   state, which needs an authenticated 'gh api repos/{owner}/{repo}/labels' per deployment. ** I
+   DECLINED IT AND ROUTED IT TO YOU RATHER THAN LET A READ-AND-GREP LEG DECIDE TO TOUCH LIVE
+   INFRASTRUCTURE. ** Its framing, which I want carried verbatim rather than resolved by either of
+   us: ** "I BOUNDED THE SOFTWARE'S BEHAVIOUR, NOT THE WORLD'S." **
+=========== END.

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auto-Scroll Test Harness</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--sl-color-neutral-0);
+        color: var(--sl-color-neutral-900);
+      }
+      #status {
+        padding: 0.5rem 1rem;
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">Loading components…</div>
+    <ft-kanban-view id="kanban" style="height: calc(100vh - 2rem);"></ft-kanban-view>
+    <script type="module">
+      // Import Shoelace theme + components needed by kanban columns/cards
+      import '@shoelace-style/shoelace/dist/themes/dark.css';
+      import '@shoelace-style/shoelace/dist/components/card/card.js';
+      import '@shoelace-style/shoelace/dist/components/badge/badge.js';
+      import '@shoelace-style/shoelace/dist/components/icon/icon.js';
+      import '@shoelace-style/shoelace/dist/components/icon-button/icon-button.js';
+      import '@shoelace-style/shoelace/dist/components/avatar/avatar.js';
+      import '@shoelace-style/shoelace/dist/components/tag/tag.js';
+      import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
+      import '@shoelace-style/shoelace/dist/components/button/button.js';
+
+      import { TaskStore } from './src/store/task-store.js';
+      import { TaskStage, TaskPhase, Platform, TaskPriority } from './src/gen/types.js';
+
+      // Import components
+      import './src/components/kanban/ft-kanban-view.js';
+      import './src/components/kanban/ft-kanban-column.js';
+      import './src/components/kanban/ft-task-card.js';
+      import './src/components/kanban/ft-add-task-dialog.js';
+
+      function makeTask(id, name, stage, phase) {
+        return {
+          id,
+          name,
+          phase,
+          stage,
+          assignees: [],
+          relationships: [],
+          labels: [],
+          customFields: [],
+          platform: Platform.FARMTABLE,
+          collectionId: 'test-col',
+          createdAt: new Date().toISOString(),
+          version: '1',
+          priority: TaskPriority.NORMAL,
+        };
+      }
+
+      const store = new TaskStore();
+
+      // Create tasks across ALL 8 board columns so they all render and overflow
+      const stages = [
+        { stage: TaskStage.TRIAGE, phase: TaskPhase.OPEN },
+        { stage: TaskStage.BACKLOG, phase: TaskPhase.OPEN },
+        { stage: TaskStage.READY, phase: TaskPhase.OPEN },
+        { stage: TaskStage.WORKING, phase: TaskPhase.IN_PROGRESS },
+        { stage: TaskStage.IN_REVIEW, phase: TaskPhase.IN_PROGRESS },
+        { stage: TaskStage.IN_QA, phase: TaskPhase.IN_PROGRESS },
+        { stage: TaskStage.DEPLOYING, phase: TaskPhase.IN_PROGRESS },
+        { stage: TaskStage.COMPLETED, phase: TaskPhase.CLOSED },
+      ];
+
+      let taskCounter = 0;
+      for (const { stage, phase } of stages) {
+        for (let i = 0; i < 3; i++) {
+          taskCounter++;
+          store.upsert(makeTask(
+            `task-${taskCounter}`,
+            `Test Task ${taskCounter} (stage ${stage})`,
+            stage,
+            phase,
+          ));
+        }
+      }
+
+      const kanban = document.getElementById('kanban');
+      kanban.store = store;
+
+      // Signal readiness to Playwright
+      await kanban.updateComplete;
+      // Small delay for sub-components to render
+      setTimeout(() => {
+        window.__TEST_READY__ = true;
+        document.getElementById('status').textContent =
+          `Ready — ${store.taskCount} tasks loaded across ${stages.length} columns`;
+      }, 500);
+    </script>
+  </body>
+</html>

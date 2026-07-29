@@ -1,0 +1,709 @@
+diff --git a/internal/platform/github/config.go b/internal/platform/github/config.go
+index bbbdf34..0fa4377 100644
+--- a/internal/platform/github/config.go
++++ b/internal/platform/github/config.go
+@@ -3,6 +3,7 @@ package github
+ import (
+ 	"fmt"
+ 	"os"
++	"strings"
+ 
+ 	"gopkg.in/yaml.v3"
+ )
+@@ -66,9 +67,100 @@ func LoadConfig(path string) (*GitHubConfig, error) {
+ 		return nil, fmt.Errorf("parsing config %s: %w", path, err)
+ 	}
+ 
++	if err := cfg.Validate(); err != nil {
++		return nil, fmt.Errorf("invalid config %s: %w", path, err)
++	}
++
+ 	return cfg, nil
+ }
+ 
++// Validate rejects configurations that would silently disarm a control.
++//
++// Since #194 B6, push_prefix is a security parameter: a label may feed an
++// authorization or terminal-stage determination only if it carries this
++// prefix. resolvePushPrefix already falls back to the default rather than
++// using an unusable prefix, so a whitespace-only value can no longer disarm
++// anything — but silently substituting a value the operator did not write is
++// still the wrong answer for a security parameter. Failing loud at startup
++// beats falling back quietly, which beats the round-5 behaviour of silently
++// disabling B1, B5 and B6 together (audit A-2).
++//
++// An EMPTY push_prefix is explicitly NOT an error: it is the documented
++// spelling of "use the default", and DefaultConfig itself relies on the field
++// being unset in a config file that omits it.
++func (c *GitHubConfig) Validate() error {
++	if raw := c.GitHub.Labels.PushPrefix; raw != "" && strings.TrimSpace(raw) == "" {
++		return fmt.Errorf(
++			"github.labels.push_prefix is %q: a whitespace-only prefix can never match a label, "+
++				"because label matching trims whitespace before comparing. "+
++				"Use a non-blank prefix such as %q, or omit the field to use the default",
++			raw, defaultPushPrefix)
++	}
++
++	// Alias-key collisions. This check exists because of a cost the round-6 A3
++	// fix introduced, found by measuring rather than by review, and it is placed
++	// AFTER the push_prefix check because the normalisation below depends on the
++	// prefix being usable.
++	//
++	// A3 normalises configured alias keys through stripForMatch so that a key
++	// works whether or not the operator spelled the prefix. stripForMatch is
++	// many-to-one, so that also merged the key space: "shipped", "ft:shipped"
++	// and "ft:stage/shipped" were three keys before A3 and are one afterwards.
++	// Where they name the same value that is a harmless dedup and is allowed.
++	// Where they name DIFFERENT values, one alias is silently discarded — and
++	// pre-A3 the outcome was at least deterministic, because only the unprefixed
++	// key was ever reachable. Trading a dead alias for a coin flip at an
++	// authorization gate is not an improvement, so the config is rejected
++	// instead. TestAliasKeyNormalisation_CollapsesDistinctKeys measures both
++	// halves.
++	labels := c.GitHub.Labels
++	m := NewLabelMapper(labels)
++	for _, table := range []struct {
++		field   string
++		entries map[string]string
++	}{
++		{"stages", labels.Stages},
++		{"priorities", labels.Priorities},
++		{"types", labels.Types},
++	} {
++		if err := checkAliasKeyCollisions(m, table.field, table.entries); err != nil {
++			return err
++		}
++	}
++	return nil
++}
++
++// checkAliasKeyCollisions reports configured keys that normalise to the same
++// lookup key while naming different values.
++//
++// Keys are visited in sorted order so that the pair named in the error is the
++// same pair on every run: a diagnostic that names a different key each time an
++// operator re-runs the command is worse than no diagnostic.
++func checkAliasKeyCollisions(m *LabelMapper, field string, entries map[string]string) error {
++	type origin struct{ key, value string }
++
++	seen := make(map[string]origin, len(entries))
++	for _, key := range sortedKeys(entries) {
++		normalised := m.stripForMatch(key)
++		value := entries[key]
++
++		if prev, ok := seen[normalised]; ok {
++			if prev.value == value {
++				continue
++			}
++			return fmt.Errorf(
++				"github.labels.%s: keys %q and %q both normalise to %q but name "+
++					"different values (%q and %q). Since #194 an alias key is matched "+
++					"with the push prefix and any stage/ or priority: segment removed, "+
++					"so those two keys are one entry and only one of the values can "+
++					"survive. Spell the intended alias once",
++				field, prev.key, key, normalised, prev.value, value)
++		}
++		seen[normalised] = origin{key: key, value: value}
++	}
++	return nil
++}
++
+ // DefaultConfig returns a GitHubConfig with sensible defaults:
+ // labels enabled, push prefix "ft:", auto-create on, empty custom maps.
+ func DefaultConfig() *GitHubConfig {
+diff --git a/internal/platform/github/labels.go b/internal/platform/github/labels.go
+index 074d773..9af95ea 100644
+--- a/internal/platform/github/labels.go
++++ b/internal/platform/github/labels.go
+@@ -1,6 +1,7 @@
+ package github
+ 
+ import (
++	"sort"
+ 	"strings"
+ 
+ 	"github.com/farmtable-io/farmtable/internal/store"
+@@ -122,10 +123,10 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
+ 		labelToType:     make(map[string]string),
+ 	}
+ 
+-	prefix := cfg.PushPrefix
+-	if prefix == "" {
+-		prefix = "ft:"
+-	}
++	// One resolution, shared with the reader (matchPrefix). See
++	// resolvePushPrefix for why the writer and the reader must not each carry
++	// their own defaulting rule.
++	prefix := m.pushPrefix()
+ 
+ 	// --- Stage mappings ---
+ 
+@@ -138,10 +139,46 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
+ 
+ 	// Custom config overrides: label->stage (pull direction).
+ 	// Also generates the push label using the same prefix convention.
+-	for label, stageStr := range cfg.Stages {
+-		stage := task.Stage(stageStr)
++	//
++	// The key is normalised with stripForMatch — the SAME function every lookup
++	// goes through — rather than with a bare ToLower. Storing the key one way
++	// and looking it up another is why a configured alias could be dead
++	// (test review T-1, audit A-5):
++	//
++	//	Stages: {"ft:shipped": "completed"}   -- an operator following round 5's
++	//	                                         remediation literally
++	//	  label "ft:shipped"  -> stripForMatch -> "shipped" -> MISS (key is "ft:shipped")
++	//	  label "shipped"     -> stripForMatch -> "shipped" -> MISS
++	//	  label "ft:ft:shipped" -> stripForMatch -> "ft:shipped" -> hit (!)
++	//
++	// So the alias was reachable only as a DOUBLE prefix, and was dead for
++	// display as well as for authorization. Normalising the key on the way in
++	// means a key works whether or not the operator wrote the prefix, and A-5's
++	// double-prefix spelling stops resolving because "ft:ft:shipped" strips
++	// exactly once to "ft:shipped", which is no longer any key.
++	//
++	// This does NOT make a bare label authoritative: B6's prefix REQUIREMENT
++	// lives in authorizationStage and is applied to the label, not to the key.
++	// A configured alias still has to be spelled with the prefix ON THE LABEL
++	// to reach a privilege decision — it is only the config key that is now
++	// spelling-insensitive. TestConfiguredStageAliases_KeySpellingIsNormalised
++	// pins both halves.
++	//
++	// ITERATION IS SORTED, and that is not cosmetic. Normalising the key made
++	// the key space many-to-one, so two keys an operator wrote as distinct —
++	// "shipped" and "ft:shipped" — now address ONE map entry. If they name
++	// different stages, one is silently discarded, and with `range` over a map
++	// the survivor is chosen by Go's randomised iteration order. Measured before
++	// this line existed: 500 mappers built from one unchanged config resolved
++	// "ft:shipped" as completed 60 times and wont_fix 440 times, at an
++	// authorization gate (#194 round 6, M2). Sorting makes the winner
++	// reproducible. It does NOT make it right — the operator still did not
++	// choose it — which is why Validate rejects the config outright and this is
++	// only the backstop for mappers built without going through LoadConfig.
++	for _, label := range sortedKeys(cfg.Stages) {
++		stage := task.Stage(cfg.Stages[label])
+ 		if err := task.StageValidator(stage); err == nil {
+-			m.labelToStage[strings.ToLower(label)] = stage
++			m.labelToStage[m.stripForMatch(label)] = stage
+ 			// Custom mappings also set the push label for that stage.
+ 			m.stageToLabel[stage] = prefix + "stage/" + stage.String()
+ 		}
+@@ -155,11 +192,18 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
+ 		m.priorityToLabel[p] = "priority:" + p.String()
+ 	}
+ 
+-	// Custom config overrides.
+-	for label, prioStr := range cfg.Priorities {
+-		p := task.Priority(prioStr)
++	// Custom config overrides. Keys are normalised with stripForMatch for the
++	// same reason cfg.Stages' are: the lookup strips, so a key stored unstripped
++	// can never be hit. Measured in round 6 — a configured "ft:p0" was dead in
++	// both spellings, exactly as "ft:shipped" was. Not a security surface (no
++	// prefix requirement applies on the priority path), but the same operator
++	// trap, and leaving two of the three maps on the old rule would be the
++	// duplicated-rule defect this round is otherwise removing.
++	// Sorted for the same reason as cfg.Stages above.
++	for _, label := range sortedKeys(cfg.Priorities) {
++		p := task.Priority(cfg.Priorities[label])
+ 		if err := task.PriorityValidator(p); err == nil {
+-			m.labelToPriority[strings.ToLower(label)] = p
++			m.labelToPriority[m.stripForMatch(label)] = p
+ 			m.priorityToLabel[p] = "priority:" + p.String()
+ 		}
+ 	}
+@@ -172,15 +216,31 @@ func NewLabelMapper(cfg LabelConfig) *LabelMapper {
+ 		m.typeToLabel[typ] = label
+ 	}
+ 
+-	// Custom config overrides.
+-	for label, typ := range cfg.Types {
+-		m.labelToType[strings.ToLower(label)] = typ
++	// Custom config overrides. Pull key normalised as above; the PUSH label
++	// keeps the operator's literal spelling, because that is the label they
++	// want written on GitHub and nothing requires a prefix on it.
++	// Sorted for the same reason as cfg.Stages above.
++	for _, label := range sortedKeys(cfg.Types) {
++		typ := cfg.Types[label]
++		m.labelToType[m.stripForMatch(label)] = typ
+ 		m.typeToLabel[typ] = strings.ToLower(label)
+ 	}
+ 
+ 	return m
+ }
+ 
++// sortedKeys returns a map's keys in a fixed order, so that a
++// last-writer-wins table build produces the same table every time. See the
++// comment on the cfg.Stages loop for what randomised order cost.
++func sortedKeys(m map[string]string) []string {
++	keys := make([]string, 0, len(m))
++	for k := range m {
++		keys = append(keys, k)
++	}
++	sort.Strings(keys)
++	return keys
++}
++
+ // MapLabelsToStage scans labels for stage mappings and returns the
+ // highest-precedence match. Labels are matched case-insensitively.
+ // The push_prefix (e.g. "ft:") is stripped before matching, so both
+@@ -259,11 +319,10 @@ func (m *LabelMapper) StageToLabel(s task.Stage) string {
+ 	if label, ok := m.stageToLabel[s]; ok {
+ 		return label
+ 	}
+-	prefix := m.config.PushPrefix
+-	if prefix == "" {
+-		prefix = "ft:"
+-	}
+-	return prefix + "stage/" + s.String()
++	// Same resolution as NewLabelMapper's table build and as the reader's
++	// matchPrefix: this fallback fires for a stage absent from stageToLabel,
++	// and it must spell the prefix the readers will require of it.
++	return m.pushPrefix() + "stage/" + s.String()
+ }
+ 
+ // PriorityToLabel returns the GitHub label name for a given priority.
+@@ -279,9 +338,42 @@ func (m *LabelMapper) PriorityToLabel(p task.Priority) string {
+ 	return "priority:" + p.String()
+ }
+ 
+-// StageLabelSwap computes the label add/remove sets needed to transition
+-// an issue from its current labels to a new stage. It removes any existing
++// StageLabelSwap computes the label add/remove sets needed to transition an
++// issue from its current labels to a new stage. It removes the deployment's OWN
+ // stage labels and adds the label for newStage.
++//
++// "OWN" IS THE WHOLE POINT, and it was wrong until #194 round 6 (review F7).
++// This used stripForMatch — the prefix-TOLERANT, display-side lookup — to
++// decide what to DELETE. Round 5 established that prefix-tolerant matching is a
++// display affordance that must not reach a security decision, and applied it to
++// every reader; the writer was left behind. The result, measured end to end:
++//
++//	labels = [ft:stage/wont_fix, duplicate], UpdateTask(stage=wont_fix)
++//	-> allowed, and afterwards labels = [ft:stage/wont_fix]
++//
++// A no-op stage update silently destroyed a human's stock GitHub label. Farm
++// Table was refusing to BELIEVE "duplicate" on the grounds that it is not ours,
++// while claiming the right to DELETE it — the worst available pairing of those
++// two answers, because it means we destroy precisely the labels we have decided
++// we are not entitled to trust. Ownership is one question and the reader and
++// the writer now ask it the same way, through authorizationStage.
++// TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader enumerates both
++// spellings of every stage and fails if the two ever diverge again.
++//
++// THE COST, stated rather than buried: a bare human-applied stage label now
++// survives a stage change, so an issue can carry a stale display reading. That
++// is the same trade round 4 accepted on the read side — wrongly displayed, not
++// wrongly privileged — and it is now consistent in both directions instead of
++// split down the middle. It is also strictly the safe direction for a WRITE:
++// this change can only ever delete fewer labels than before, so no data an
++// operator kept can be lost by adopting it.
++//
++// NOT FIXED HERE, and not this function's job: whether the transition is
++// PERMITTED. wont_fix -> wont_fix still reads as from == to at the scope gate,
++// which charges task:write rather than task:close. That gate is
++// store.LabelDeltaLifecycleStages. This function only computes the edit; making
++// the edit non-destructive removes the harm from that particular case but does
++// not close the gate, and the two must not be confused for one another.
+ func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage) (add []string, remove []string) {
+ 	if !m.enabled {
+ 		return nil, nil
+@@ -290,8 +382,9 @@ func (m *LabelMapper) StageLabelSwap(currentLabels []string, newStage task.Stage
+ 	newLabel := m.StageToLabel(newStage)
+ 
+ 	for _, raw := range currentLabels {
+-		key := m.stripForMatch(raw)
+-		if _, isStage := m.labelToStage[key]; isStage {
++		// authorizationStage, not stripForMatch: only a label carrying the
++		// configured push prefix is ours to remove.
++		if _, ours := m.authorizationStage(raw); ours {
+ 			if raw != newLabel {
+ 				remove = append(remove, raw)
+ 			}
+@@ -499,11 +592,38 @@ func (m *LabelMapper) IssueToPhaseStage(state, stateReason string, labels []stri
+ // ours; prefix-tolerant matching is a display affordance. See
+ // authorizationStage for why, and for the twelve cells that changed answer.
+ //
+-// This function still picks ONE stage and its callers still need that, but an
+-// authorization decision must not depend on which of several equally present
+-// values a tiebreak selects. Callers on a privilege path use
+-// AllTerminalLabelStages instead; the remaining single-answer sinks are
+-// sequenced separately (#194 round 5).
++// THIS FUNCTION PICKS ONE STAGE, AND TWO PRIVILEGE PATHS STILL CONSUME THAT
++// SINGLE ANSWER. Stated exactly, because round 5 stated it wrongly and the
++// wrong version read as reassurance:
++//
++// There is exactly ONE production caller —
++// GitHubPassThroughStore.LifecycleStage — and its result reaches exactly two
++// consumers, BOTH of which are privilege paths:
++//
++//   - issueUnavailableForClaim, the claim gate
++//   - ComputeAvailability, the availability gate
++//
++// So it is NOT true that "callers on a privilege path use
++// AllTerminalLabelStages instead", which is what the round-5 comment here
++// claimed. Both actual privilege-path callers use this function.
++//
++// That is safe, and it is safe for a reason that has to be written down
++// because nothing in the type system holds it up: NEITHER CONSUMER BRANCHES ON
++// WHICH TERMINAL STAGE IT IS. Each reduces every terminal stage to one
++// boolean, so the tiebreak cannot change either answer. The ordering below is
++// therefore unobservable — but only for exactly as long as that stays true.
++//
++// Add one consumer that discriminates between terminal stages — entirely
++// natural, e.g. a different denial reason for wont_fix than for duplicate —
++// and an authorization answer starts depending on terminalStagePrecedence's
++// order, at a privilege gate, with nothing failing. A consumer that needs to
++// know WHICH terminal stage must use AllTerminalLabelStages.
++//
++// The precondition is enforced, not merely documented:
++// TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer drives
++// both consumers with each terminal stage in turn and fails if any two answers
++// differ. See GitHubPassThroughStore.LifecycleStage for the same argument
++// stated where the consumers are (#194 round 6).
+ //
+ // !m.enabled returns false rather than scanning: with label mapping off,
+ // IssueToPhaseStage also declines to map labels, so no demotion happens and
+diff --git a/internal/platform/github/passthrough.go b/internal/platform/github/passthrough.go
+index 8901b7e..b987f0e 100644
+--- a/internal/platform/github/passthrough.go
++++ b/internal/platform/github/passthrough.go
+@@ -47,6 +47,26 @@ type GitHubPassThroughStore struct {
+ 
+ var _ store.Store = (*GitHubPassThroughStore)(nil)
+ 
++// LifecycleStageSetStager is asserted at COMPILE TIME because nothing else
++// does, and the runtime alternative fails open silently (#194 round 6, review
++// F6).
++//
++// store.LifecycleStagesOf and store.LabelDeltaLifecycleStagesOf reach these
++// methods through `if stager, ok := s.(LifecycleStageSetStager); ok`, and fall
++// back to the SINGULAR reader when the assertion misses. So renaming a method,
++// reordering a return, or adding a parameter here does not break a build and
++// does not fail a test — it re-enables the exact single-answer collapse that
++// B5 exists to remove, everywhere at once, with no diagnostic. A dynamic
++// assertion whose miss is indistinguishable from "this store opted out" is not
++// a check.
++//
++// One line, and the failure becomes a compile error at the site that caused it.
++// MultiStore reaches the same interface by the same runtime assertion and had
++// the same gap; leg B pinned it in internal/store/multistore.go in the same
++// round. Both implementers are covered — this note is a cross-reference, not an
++// open item.
++var _ store.LifecycleStageSetStager = (*GitHubPassThroughStore)(nil)
++
+ // NewPassThroughStore creates a store that proxies to GitHub Issues.
+ // If collectionID is non-nil the provided value is used; otherwise a
+ // deterministic UUID is derived from the owner/repo pair.
+@@ -609,7 +629,7 @@ func (s *GitHubPassThroughStore) ClaimTask(ctx context.Context, id uuid.UUID, as
+ 	if current.AssigneeID != nil {
+ 		return nil, store.ErrAlreadyClaimed
+ 	}
+-	if issueUnavailableForClaim(target, current, s.LifecycleStage(ctx, current)) {
++	if issueUnavailableForClaim(s.mapper, target, current, s.LifecycleStage(ctx, current)) {
+ 		return nil, store.ErrUnavailable
+ 	}
+ 
+@@ -668,11 +688,11 @@ func hasOpenSubIssue(issue *issueNode) bool {
+ // duplicate or cancelled be claimed as ordinary work. Keeping this in step with
+ // ComputeAvailability is the invariant this doc comment opens with; both now
+ // read the lifecycle stage.
+-func issueUnavailableForClaim(issue *issueNode, t *ent.Task, lifecycleStage task.Stage) bool {
++func issueUnavailableForClaim(m *LabelMapper, issue *issueNode, t *ent.Task, lifecycleStage task.Stage) bool {
+ 	return lifecycleStage != task.StageAccepted ||
+ 		t.ClosedAt != nil ||
+ 		t.HoldReason != nil ||
+-		hasExternalUnavailableLabel(t.Labels) ||
++		m.hasExternalUnavailableLabel(t.Labels) ||
+ 		hasOpenSubIssue(issue)
+ }
+ 
+@@ -780,6 +800,42 @@ func (s *GitHubPassThroughStore) DeleteTask(ctx context.Context, id uuid.UUID) e
+ // The labels are read from the task rather than re-fetched: issueToTask copies
+ // the issue's labels onto t.Labels verbatim, so this is the same input
+ // IssueToPhaseStage saw, not a second round trip that could disagree with it.
++//
++// ── THE INVARIANCE THIS FUNCTION DEPENDS ON, AND WHO OWES IT ──
++//
++// This returns ONE terminal stage where the issue may name several.
++// TerminalLabelStage resolves that with terminalStagePrecedence, a tiebreak —
++// so which stage comes back here is a choice, not a fact about the issue. B5
++// exists precisely because letting a tiebreak decide an authorization question
++// is how a task:write holder converted a maintainer's wont_fix into completed.
++//
++// B5's set-valued reader (LifecycleStages) is NOT what this function's two
++// consumers use. They use this one:
++//
++//	issueUnavailableForClaim (:  the claim gate)  lifecycleStage != StageAccepted
++//	ComputeAvailability      (:  the availability gate)  IsTerminalStage(...)
++//
++// That is safe because BOTH COLLAPSE EVERY TERMINAL STAGE TO ONE BOOLEAN. No
++// terminal stage is accepted, and every terminal stage is terminal, so
++// whichever stage the tiebreak selects, both answers are unchanged. Verified
++// by execution under a reversed terminalStagePrecedence: the winner moved,
++// both answers held.
++//
++// THIS IS A PRECONDITION ON THE CONSUMERS, NOT A PROPERTY OF THIS FUNCTION.
++// It is the kind of assumption that has an expiration date nobody set, so the
++// date is enforced instead of trusted:
++//
++//	TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer
++//	    - drives both consumers with each terminal stage, from the enum, and
++//	      fails if any two answers differ
++//	TestSingularSinksAreBlindToTheTerminalTiebreak
++//	    - drives ClaimTask and ComputeAvailability end to end with TWO terminal
++//	      labels, the input that makes the tiebreak observable at all
++//
++// If you are adding a consumer that needs to know WHICH terminal stage — a
++// distinct denial reason for wont_fix vs duplicate is the obvious one — do not
++// read it from here. Use LifecycleStages and decide against the whole set,
++// or you reopen B5 at a gate (#194 round 6).
+ func (s *GitHubPassThroughStore) LifecycleStage(ctx context.Context, t *ent.Task) task.Stage {
+ 	if stage, ok := s.mapper.TerminalLabelStage(t.Labels); ok {
+ 		return stage
+@@ -974,7 +1030,7 @@ func (s *GitHubPassThroughStore) ComputeAvailability(ctx context.Context, t *ent
+ 	if store.IsTerminalStage(s.LifecycleStage(ctx, t)) || t.ClosedAt != nil {
+ 		reasons = append(reasons, store.AvailabilityReasonTerminal)
+ 	}
+-	if t.HoldReason != nil || hasExternalUnavailableLabel(t.Labels) {
++	if t.HoldReason != nil || s.mapper.hasExternalUnavailableLabel(t.Labels) {
+ 		reasons = append(reasons, store.AvailabilityReasonHeld)
+ 	}
+ 	return store.TaskAvailability{Available: len(reasons) == 0, Reasons: reasons}, nil
+@@ -1132,7 +1188,7 @@ func (s *GitHubPassThroughStore) GetReadyTasks(ctx context.Context, p store.GetR
+ 	}
+ 
+ 	nodes := buildIssueTree(issues, s.mapper)
+-	readyNodes := computeReady(nodes, p.IncludeUnblockedOpen)
++	readyNodes := computeReady(s.mapper, nodes, p.IncludeUnblockedOpen)
+ 
+ 	var results []*store.ReadyTaskResult
+ 	for _, r := range readyNodes {
+@@ -1161,7 +1217,7 @@ func (s *GitHubPassThroughStore) GetBlockedTasks(ctx context.Context, p store.Ge
+ 	}
+ 
+ 	nodes := buildIssueTree(issues, s.mapper)
+-	blockedNodes := computeBlocked(nodes)
++	blockedNodes := computeBlocked(s.mapper, nodes)
+ 
+ 	var results []*store.BlockedTaskResult
+ 	for _, b := range blockedNodes {
+diff --git a/internal/platform/github/terminal_label_stages.go b/internal/platform/github/terminal_label_stages.go
+index b2400b0..4cc2bd3 100644
+--- a/internal/platform/github/terminal_label_stages.go
++++ b/internal/platform/github/terminal_label_stages.go
+@@ -51,7 +51,66 @@ func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
+ 	return stage, ok
+ }
+ 
+-// matchPrefix is the configured push prefix, lowercased, defaulting to "ft:".
++// defaultPushPrefix is THE definition of the push-prefix default. Every reader
++// and every writer resolves through resolvePushPrefix below; this constant is
++// spelled once so that the security parameter has one definition rather than
++// three (#194 round 6, review F5).
++//
++// Before round 6 the literal "ft:" appeared in three places —
++// matchPrefix (the reader), NewLabelMapper and StageToLabel (the writers) —
++// each with its own defaulting rule. Drift between them fails closed, which is
++// why review F5 rated it Low, but A-2 below is what that duplication actually
++// cost: it made the reader and the writer disagree about which prefix the
++// deployment uses, and a disagreement there disarms every control built on the
++// prefix.
++const defaultPushPrefix = "ft:"
++
++// resolvePushPrefix turns a configured push_prefix into the prefix actually
++// used, defaulting on blank.
++//
++// "Blank" is strings.TrimSpace-empty, not ""-empty, and the choice of
++// TrimSpace is forced rather than stylistic: TrimSpace is exactly what
++// authorizationStage and stripForMatch apply to a LABEL before testing
++// HasPrefix. So a prefix that TrimSpace erases is precisely a prefix that can
++// never match anything, and defaulting on that class is defaulting on the
++// unusable ones — the two classes coincide by construction because they are
++// computed by the same function, not because someone enumerated them.
++//
++// Measured before the fix (audit A-2), push_prefix=" " / "  " / "\t" / U+00A0
++// silently disabled B1, B5 and B6 together: matchPrefix defaulted only on the
++// empty string, so the whitespace prefix was used verbatim and nothing could
++// carry it. TrimSpace is unicode-aware — verified, not assumed — so U+00A0,
++// U+1680 and U+3000 are all covered. U+200B (zero-width space) is NOT
++// whitespace to TrimSpace, and correctly is NOT defaulted: it survives the
++// label-side TrimSpace too, so a U+200B prefix is self-consistent and usable.
++//
++// WHY THE READER-ONLY FIX IS NOT ENOUGH, measured. Defaulting inside
++// matchPrefix alone leaves A-2 open: the reader starts demanding "ft:" while
++// the writers keep spelling the raw " ", so StageToLabel emits
++// " stage/completed" and authorizationStage rejects the deployment's OWN
++// label. Still disarmed, now for the opposite reason. Sharing this one
++// resolution between reader and writer is what closes it, which is why review
++// F5 and audit A-2 are one fix and not two.
++// TestPushPrefix_ResolutionIsSharedByReaderAndWriter pins that.
++func resolvePushPrefix(configured string) string {
++	if prefix := strings.TrimSpace(configured); prefix != "" {
++		return prefix
++	}
++	return defaultPushPrefix
++}
++
++// pushPrefix is the resolved push prefix in the case the operator configured.
++// This is the WRITER's spelling: StageToLabel and NewLabelMapper build labels
++// with it, and the configured case is preserved because it is the operator's
++// choice how their own labels are spelled on GitHub.
++func (m *LabelMapper) pushPrefix() string {
++	return resolvePushPrefix(m.config.PushPrefix)
++}
++
++// matchPrefix is the READER's spelling of the same prefix: lowercased, because
++// authorizationStage and stripForMatch lowercase the label before comparing.
++// That is what lets push_prefix: "FT:" write "FT:stage/completed" and still
++// read as terminal.
+ //
+ // It is shared with stripForMatch rather than duplicated because the two must
+ // not drift: authorizationStage requires exactly the prefix stripForMatch
+@@ -60,10 +119,7 @@ func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
+ // everyone's. Since B6 this string is a security parameter, not a formatting
+ // preference.
+ func (m *LabelMapper) matchPrefix() string {
+-	if prefix := strings.ToLower(m.config.PushPrefix); prefix != "" {
+-		return prefix
+-	}
+-	return "ft:"
++	return strings.ToLower(m.pushPrefix())
+ }
+ 
+ // AllTerminalLabelStages reports EVERY terminal stage a label set names, not
+diff --git a/internal/platform/github/treewalk.go b/internal/platform/github/treewalk.go
+index 81d00c1..2a44449 100644
+--- a/internal/platform/github/treewalk.go
++++ b/internal/platform/github/treewalk.go
+@@ -73,7 +73,7 @@ func buildIssueTree(issues []issueNode, mapper *LabelMapper) map[int]*issueTreeN
+ 	return nodes
+ }
+ 
+-func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyResult {
++func computeReady(m *LabelMapper, nodes map[int]*issueTreeNode, includeUnblocked bool) []readyResult {
+ 	var results []readyResult
+ 
+ 	for _, node := range nodes {
+@@ -81,6 +81,38 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
+ 			continue
+ 		}
+ 
++		// A task carrying an authoritative terminal label is not ready work,
++		// however node.Stage reads.
++		//
++		// #194 A7, MEASURED. node.Stage comes from MapLabelsToStage, the DISPLAY
++		// collapse, and stagePrecedence ranks every non-terminal stage above
++		// every terminal one. So this walk was the FOURTH consumer of the round-3
++		// masking defect, and nobody had enumerated it:
++		//
++		//	labels                             node.Stage  offered as ready?
++		//	[ft:stage/completed]               completed   no
++		//	[ft:stage/completed, working]      working     YES  <- one bare label
++		//	[ft:stage/completed, accepted]     accepted    YES
++		//
++		// The second row is the bad one. "working" carries no push prefix, so
++		// anyone at all can apply it, and applying it hands a completed task back
++		// to an agent as available work. Asking the SET-valued reader instead
++		// means the answer cannot depend on what else the issue is labelled.
++		//
++		// This is a WITHHOLD, which is why it is safe to widen: it can only
++		// remove entries from a ready list, never add one. It also makes the walk
++		// agree with ComputeAvailability, which already treats a terminal label
++		// as unavailable through LifecycleStage — two views of "can this be
++		// worked on" that disagreed.
++		//
++		// It does NOT contradict IssueToPhaseStage's deliberate demotion of a
++		// terminal label on an open issue. That rule exists so live work is not
++		// DISPLAYED as finished; this one decides whether to OFFER the work, and
++		// for offering, the cautious direction is the other one.
++		if len(m.AllTerminalLabelStages(node.Labels)) > 0 {
++			continue
++		}
++
+ 		hasOpenChildren := false
+ 		for _, child := range node.Children {
+ 			if issueStateOpen(child.State) {
+@@ -90,7 +122,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
+ 		}
+ 
+ 		if node.Stage == task.StageAccepted && !hasOpenChildren {
+-			if hasExternalUnavailableLabel(node.Labels) {
++			if m.hasExternalUnavailableLabel(node.Labels) {
+ 				continue
+ 			}
+ 			reason := "accepted, no open sub-issues"
+@@ -114,7 +146,7 @@ func computeReady(nodes map[int]*issueTreeNode, includeUnblocked bool) []readyRe
+ 	return results
+ }
+ 
+-func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
++func computeBlocked(m *LabelMapper, nodes map[int]*issueTreeNode) []blockedResult {
+ 	var results []blockedResult
+ 
+ 	for _, node := range nodes {
+@@ -122,7 +154,7 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
+ 			continue
+ 		}
+ 
+-		if hasExternalUnavailableLabel(node.Labels) {
++		if m.hasExternalUnavailableLabel(node.Labels) {
+ 			results = append(results, blockedResult{
+ 				Node:   node,
+ 				Reason: "explicitly unavailable (label)",
+@@ -150,10 +182,54 @@ func computeBlocked(nodes map[int]*issueTreeNode) []blockedResult {
+ 	return results
+ }
+ 
+-func hasExternalUnavailableLabel(labels []string) bool {
++// hasExternalUnavailableLabel reports whether any label asks for the task to be
++// withheld. It is deliberately PREFIX-TOLERANT, which is the opposite of the
++// rule authorizationStage enforces, and the difference is load-bearing rather
++// than an oversight:
++//
++//	authorizationStage answers "may this label GRANT something?" and must
++//	refuse anything a third party can apply. This answers "does anyone want
++//	this work held back?" and can only ever WITHHOLD. There is no privilege to
++//	escalate by honouring one more spelling, and "blocked" applied by a human
++//	who never heard of Farm Table is a signal we want to obey. The two
++//	functions differ because the questions differ, not because one of them
++//	forgot the rule.
++//
++// FIXED IN ROUND 6 (#194 A7): the prefix it stripped was the hardcoded literal
++// "ft:", not the configured one. So a deployment on push_prefix "acme:" had
++// "acme:blocked" silently ignored — an operator's explicit hold handing work
++// to an agent — while "ft:blocked", a namespace that deployment does not own,
++// was honoured. Exactly backwards.
++//
++// It now accepts THREE spellings: the configured prefix, the default prefix,
++// and no prefix at all. Keeping the default alongside the configured one is
++// deliberate. Dropping it would REMOVE a hold that some issue somewhere is
++// relying on, and this is the one direction where being wrong costs an
++// operator work they meant to withhold. Adding a spelling is monotone: this
++// function can only withhold, so a wider match can only withhold more. Both
++// prefixes come from named sources (m.matchPrefix and defaultPushPrefix), so
++// this is not a fourth copy of the literal that review F5 collapsed.
++//
++// The nil receiver is real: computeReady and computeBlocked are reached from
++// tests and from a zero-value store. A nil mapper falls back to the default
++// prefix, which is the same set of spellings the function honoured before this
++// change.
++func (m *LabelMapper) hasExternalUnavailableLabel(labels []string) bool {
++	prefixes := []string{defaultPushPrefix}
++	if m != nil {
++		if configured := m.matchPrefix(); configured != defaultPushPrefix {
++			prefixes = append(prefixes, configured)
++		}
++	}
++
+ 	for _, raw := range labels {
+ 		label := strings.ToLower(strings.TrimSpace(raw))
+-		label = strings.TrimPrefix(label, "ft:")
++		for _, prefix := range prefixes {
++			if trimmed := strings.TrimPrefix(label, prefix); trimmed != label {
++				label = trimmed
++				break
++			}
++		}
+ 		label = strings.TrimPrefix(label, "stage/")
+ 		switch label {
+ 		case "blocked", "waiting_for_input", "deferred", "scheduled":

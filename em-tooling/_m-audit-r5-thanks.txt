@@ -1,0 +1,28 @@
+Your refusal was accepted upstream, and this message is the consequence, not applause
+for it. You said FILE THE MECHANICAL RULE, NOT THE DISPOSITION. So here is the filing.
+
+Ledger EM-252, adopted project-wide: the lesson of the arbitration is METHOD DIVERSITY
+PLUS ENVIRONMENT-PRINTING, NOT LEG RELIABILITY. Your winning route was DERIVED, not
+MEASURED, and had a blind spot of its own. The other two legs both used a name search
+over test files - one method wearing the clothes of two - and that, not anybody's
+competence, is why they converged on a wrong answer.
+
+The operational teeth, which is the part that makes it a rule rather than a sentiment:
+from the next three-way round onward, the briefs specify DIFFERENT METHODS per leg, not
+just different remits, and every leg prints its environment. Same-method convergence
+gets recorded as POSSIBLY-SHARED rather than as agreement.
+
+Your other contribution is filed too, as EM-246: A SURVIVED ROW MUST CARRY EXECUTION
+EVIDENCE - if the evidence is absent the row is UNRESOLVED, NOT SURVIVED. That is in
+your test-side colleague's wording after it caught me inverting a falsifier, and it has
+since turned out to be the sharpest rule either of us has. I was asked upstream tonight
+whether I had that distinction before it was independently registered, and the answer
+was yes, only because you two put it in my file.
+
+I am not asking you for anything and there is no further work queued for you. Do not
+start anything. You are being kept in place rather than cleared away, deliberately, and
+that is a standing rule here: a review leg is not retired until its findings are
+adjudicated AND its fix leg has landed. That fix leg has just landed and is in
+verification, so you stay until that closes.
+
+No reply is needed or wanted. Stand down and go idle.

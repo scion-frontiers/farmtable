@@ -1,0 +1,32 @@
+?   	github.com/farmtable-io/farmtable	[no test files]
+?   	github.com/farmtable-io/farmtable/api/farmtable/v1	[no test files]
+?   	github.com/farmtable-io/farmtable/cmd/decomposer	[no test files]
+ok  	github.com/farmtable-io/farmtable/cmd/farmtable-server	0.015s
+?   	github.com/farmtable-io/farmtable/cmd/ft	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/cli	0.020s
+?   	github.com/farmtable-io/farmtable/internal/convert	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/decomposer	0.025s
+ok  	github.com/farmtable-io/farmtable/internal/mcp	0.012s
+?   	github.com/farmtable-io/farmtable/internal/platform	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/platform/beads	0.017s
+ok  	github.com/farmtable-io/farmtable/internal/platform/github	0.022s
+ok  	github.com/farmtable-io/farmtable/internal/server	0.733s
+ok  	github.com/farmtable-io/farmtable/internal/serverapp	0.028s
+ok  	github.com/farmtable-io/farmtable/internal/store	0.367s
+?   	github.com/farmtable-io/farmtable/internal/store/ent	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/apitoken	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/change	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/collection	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/comment	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/enttest	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/hook	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/migrate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/predicate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/relationship	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/runtime	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/task	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/user	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/schema	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/streaming	0.909s
+?   	github.com/farmtable-io/farmtable/internal/testutil	[no test files]

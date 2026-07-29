@@ -1,0 +1,4 @@
+internal/server/server.go:1500:14: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetReadyTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:1610:14: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBlockedTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:1818:13: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetCriticalPathRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:1995:13: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBottlenecksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex

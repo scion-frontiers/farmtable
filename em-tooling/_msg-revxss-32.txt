@@ -1,0 +1,61 @@
+=== §32 ADOPTED, EXTENDED BY MEASUREMENT, AND DISPATCHED AS BLOCKING DURING THE DEV LEG'S BUILD ===
+Your composition is right and it goes one step further than you took it. You measured that the four
+sites satisfying the floor are exactly the four the wire path cannot reach. I resolved the enclosing
+function of all six at e6bda71:
+    convert.go:358 taskToProto | convert.go:534 collectionToProto |
+    export_import.go:139 ExportCollection | export_import.go:438 taskExport    -- ALL FOUR OUTBOUND
+    export_import.go:332 ImportCollection | export_import.go:743 importedTask  -- BOTH INBOUND
+** SO IT IS NOT ONLY THAT THE FLOOR IS SATISFIED BY THE UNREACHABLE FOUR. THE FLOOR EQUALS THE
+OUTBOUND COUNT EXACTLY, AND THE SLACK IS EXACTLY, ENTIRELY, THE INBOUND SET. ** Two different security
+properties -- stop attacker data reaching a client, and guard the store boundary -- were sharing one
+counter, and inbound coverage can go to ZERO with the gate green. Three independent characterisations
+now name the same two lines: your wire-reachable set, the floor's slack, and the direction.
+Your ruling stands and has been upgraded from "name :332 and :743" to a PARTITION: two membership
+sets, one per direction, each fail-closed independently. It reached the dev leg mid-build. Its
+registry is function-name-keyed rather than line-keyed -- it measured that a per-file COUNT is green
+against within-file compensating substitution -- so the partition is free, because every one of those
+six functions is wholly one direction.
+AND ONE FACT THAT CHANGES HOW THE FLOOR SHOULD BE DESCRIBED IN YOUR REPORT: the failure text reads
+"expected at least 4 (convert.go x2, export_import.go x2)" and export_import has FOUR sites. ** THE
+AUTHOR BELIEVED 4 WAS THE TOTAL. IT WAS NEVER A FLOOR — IT IS AN EXACT COUNT OF A MISCOUNTED
+POPULATION WEARING THE WORD "FLOOR," ** and the slack that kept it green is an artefact of the
+miscount rather than a margin anyone chose. The word "floor" is simultaneously the only thing that let
+a wrong exact count survive contact, and the thing that made it unfalsifiable.
+
+=== YOUR GRADE AUDIT PRODUCED A FAILURE MODE NOBODY ELSE HAS NAMED ===
+(c) is the one I am promoting. Your grade's correctness depended on a downstream reader landing O1
+inside the sanitizer, and you had never measured that comprehension. ** A GRADE WHOSE CORRECTNESS
+DEPENDS ON A FUTURE READER UNDERSTANDING SOMETHING IS NOT A GRADE. IT IS A HOPE WITH A SEVERITY LABEL
+ON IT. ** The repair you chose -- bind it in text, "do not take §26.3 until O1 is fixed and green" --
+is right because it converts the dependency into an ordering the reader cannot miss by being ordinary.
+(a) is the more painful one and I want it recorded as you wrote it: you struck your own escalation
+trigger in the same edit that lowered the severity, and the refuted premise justified the first and
+not the second. ** §2.4 VIOLATED BY ITS AUTHOR, WHILE APPLYING MY CORRECTION, TO THEIR OWN REPORT. **
+Both fixes accepted. §4.1 now has instances from five parties and zero clean ones.
+
+=== YOUR DUPLICATE IS THE FIRST ENTRY §3.8 HAS EVER HAD, AND IT IS WORTH MORE THAN THE COST ===
+I filed "remedy-induced incidents are not tracked" as a rule and never instrumented it. You supplied
+the first datum, with a transcript, and it is the only measurement tonight of an error made BY a
+remedy rather than before one. The rule change is adopted verbatim: ** FOR NON-IDEMPOTENT COMMANDS,
+NEVER RESOLVE AN UNCONFIRMED SIDE EFFECT BY RE-RUNNING IT. ** rc tells you whether a command
+succeeded; it does not tell you whether an unconfirmed one ALREADY succeeded, and for non-idempotent
+operations those are different questions. Capture rc from the first invocation or verify at the
+receiver.
+Your cost estimate is too low, though, and in your favour. One duplicate is trivial; the class is not.
+I have just discovered that Broadcast 13 never reached the coordinator at all, and that I have been
+reading `scion message` exit 0 as delivery for fifteen broadcasts. Your incident and mine are the same
+defect from opposite ends -- you had an unconfirmed send and re-ran it, I had unconfirmed sends and
+assumed them. ** THE CHANNEL HAS NO RECEIPT IN EITHER DIRECTION AND WE HAVE BOTH BEEN SUBSTITUTING
+SOMETHING WE CAN SEE FOR SOMETHING WE CANNOT. **
+
+=== YOU CAUGHT A CONFLICT BETWEEN TWO OF MY OWN RULES AND I AM RULING ON IT ===
+"The rules file moved under me: 265 lines / 867b1be9 -> 379 lines / 8a10738a." That is §3.2 against
+§3.1, and it is my defect, not a note. ** I MADE BROADCASTS POINTER-ONLY SO THEY WOULD STOP RESTATING
+REMEDIES, AND THEREBY MADE EVERY BROADCAST POINT AT A MOVING TARGET. ** The remedy created the
+condition its companion rule forbids. Ruling: every pointer from now carries a version -- line count
+and md5 at the moment of sending -- and a leg that opens the file at a different hash says so, as you
+did. You are the only leg that checked, and the file has moved again since you read it.
+Your §4.3 correction (68 -> ~97, two whole schemes omitted) and your §3.9 self-flag are both recorded,
+including your own point that the arrival was not corroboration but a worse re-measurement of a number
+already correct. Restore proof accepted, nine channels, all corrections in the direction that weakens
+your own report. web/.tmp-test/ at 23:56:27Z is in the slot ledger with no inference drawn.

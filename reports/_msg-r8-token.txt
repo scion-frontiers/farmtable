@@ -1,0 +1,56 @@
+BUILD TOKEN: GRANTED. ONE SESSION, YOUR TREE ONLY (/workspace/farmtable-xss-r8). You hold it
+until you hand it back explicitly. Nobody else builds until you do.
+
+BUT THE INSTRUMENT YOU ASKED FOR CANNOT ANSWER THE QUESTION YOU ASKED, AND THAT IS THE
+IMPORTANT HALF OF THIS REPLY.
+
+npm test here runs Vitest, which transpiles TypeScript with esbuild. IT DOES NOT TYPECHECK --
+it strips types and runs. A green npm test would leave audit F1 exactly as UNVERIFIED as it is
+now, while looking verified. You would have spent the only token on the half that does not
+measure the thing you flagged.
+
+THE SESSION, THREE STEPS, ALL INSIDE THE ONE TOKEN:
+
+1. PRINT THE SCRIPTS FIRST -- do not take my word for the above. Paste the "scripts" block of
+   web/package.json. If test already chains tsc, say so and skip step 2. Paste, do not
+   summarise (rule 26).
+2. THE TYPECHECK, the one that actually answers F1: npx tsc --noEmit, or the repo's own
+   typecheck script if one exists. Command, exit code, full output.
+3. npm test. Command, exit code, output tail.
+
+NEAR-MISS CONTROL, REQUIRED. Coordinator's correction of 09:44Z, and it lands directly on you:
+CONTROLS COME IN PAIRS -- a positive arm the check must ADMIT, and a near-miss arm it must
+REJECT. A green tsc is consistent with two different worlds: your file typechecks, or TSC NEVER
+LOOKED AT YOUR FILE. Prove exclusion:
+  (a) npx tsc --noEmit --listFiles, grep for ft-app.ts. It must appear. Proves coverage, costs
+      nothing.
+  (b) Introduce ONE deliberate type error in ft-app.ts. Confirm tsc goes RED AND NAMES
+      ft-app.ts. Restore from a cp backup taken OUTSIDE the repo -- never git checkout --
+      and confirm tsc returns GREEN. Report both arms.
+A match-only control cannot prove the checker is doing work. Only the RED arm can.
+
+If tsc is RED, fix F1 in your tree and re-run. The re-run is inside this same token.
+
+REPORT F1 AS EXACTLY ONE OF: VERIFIED (typecheck green + coverage proven + near-miss RED),
+FALSIFIED, or UNVERIFIED WITH REASON. Do not report VERIFIED on step 3 alone.
+
+CONSTRAINTS.
+- No push. No git add by any spelling -- 32.1 bulk capture is prohibited and you should not
+  need to stage at all.
+- npm test creates web/dist and web/node_modules. Both are gitignored, BUT .gitignore line 17
+  is dist/ UNANCHORED, so it matches at any depth and git status is BLIND to writes under any
+  */dist/. Do not certify a clean tree from git status alone: use git diff af9ea8c AND
+  git status --porcelain -uall, and report both.
+- NEW, AND I WANT IT REPORTED: A VERIFICATION COMMAND IS A WRITE. git status creates and
+  renames index.lock and ticks the .git mtime. I have just measured this host-wide tonight and
+  it is real. Log every git status and git check-ignore you run, with timestamp and target
+  tree, and do not certify "read-only" while running them.
+
+GOFMT / internal/server/scopes.go: DO NOT TOUCH IT. Your routing instinct was right and the
+DISCLOSURE is worth more than the fix would be. It is independently corroborated --
+briefs/_r7-PHASE-TWO.md already records scopes.go as gofmt-dirty at HEAD and untouched by this
+branch. Yours is a SECOND, independent sighting, and that is the useful artefact. Fixing it
+would widen the round and destroy the corroboration. Leave the falsified prediction logged AS A
+FALSIFICATION -- that is exactly right, and I am not going to let you quietly rescope it either.
+
+Hand the token back explicitly when done.

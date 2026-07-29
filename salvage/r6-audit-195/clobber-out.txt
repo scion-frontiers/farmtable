@@ -1,0 +1,32 @@
+DIFFERS clobber getElementById  
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"getElementById\">x</a></p>\n"
+DIFFERS clobber attributes      
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"attributes\">x</a></p>\n"
+DIFFERS clobber name=body       
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a name=\"body\">x</a></p>\n"
+DIFFERS clobber id=body         
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"body\">x</a></p>\n"
+DIFFERS clobber currentScript   
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"currentScript\">x</a></p>\n"
+DIFFERS clobber name=nodeName   
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a name=\"nodeName\">x</a></p>\n"
+DIFFERS clobber id=children     
+    SANITIZE_DOM on : "<p><a>x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"children\">x</a></p>\n"
+DIFFERS clobber id=location     
+    SANITIZE_DOM on : "<p><a href=\"//evil.example\">x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"location\" href=\"//evil.example\">x</a></p>\n"
+same    clobber two-step        
+    SANITIZE_DOM on : "<p><a id=\"x\"></a><a id=\"x\" name=\"y\"></a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"x\"></a><a id=\"x\" name=\"y\"></a></p>\n"
+same    plain id (control)      
+    SANITIZE_DOM on : "<p><a id=\"section-1\">x</a></p>\n"
+    SANITIZE_DOM off: "<p><a id=\"section-1\">x</a></p>\n"
+
+PROBE-COMPLETE clobber differs=8/10

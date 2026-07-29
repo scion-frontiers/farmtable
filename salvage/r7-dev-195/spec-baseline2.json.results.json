@@ -1,0 +1,72 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 69,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "R2-importmeta",
+    "desc": "R2 verbatim: laundering file prepends import.meta above the value alias, with a later `from` clause for the match to run to",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 69,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "R2-control",
+    "desc": "FALSIFIER for R2: the identical bypass with the import.meta line removed must be RED, or import.meta is not what is doing the work",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 69 markdown sanitizer checks failed:\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/inspector-shared-styles.ts:2: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C2-e",
+    "desc": "T-2 verbatim: shrink REQUIRED_SINKS + escaped alias + raw render",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 68,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CF-1",
+    "desc": "T-2's counterfactual: identical mutation with EXPECTED_CHECKS back to a hard literal 69 must be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2209\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 68 markdown sanitizer checks failed:\n  - check total pinned: expected 69 checks to run (68 call sites + 0 extra from the REQUIRED_SINKS loop), 68 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2209:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2214:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "CF-2",
+    "desc": "T-2's other counterfactual: identical mutation WITHOUT the escape must be RED via the tree-wide tripwire",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2209\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 68 markdown sanitizer checks failed:\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts: unsafeHTML renamed with 'as' in an import/export clause [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2209:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2214:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "E1b",
+    "result": "ANCHOR-ABORT"
+  }
+]

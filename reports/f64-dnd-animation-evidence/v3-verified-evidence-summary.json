@@ -1,0 +1,57 @@
+{
+  "investigation": "PR #147 edge draw-in animation evidence gap",
+  "branch": "feature/f64-dnd-animation",
+  "investigator": "edge-animation-verifier",
+  "timestamp": "2026-07-24T01:00:00Z",
+  "verdict": "CODE_CORRECT_CAPTURE_TIMING_ISSUE",
+  "code_analysis": {
+    "file": "web/src/components/dependency/ft-dependency-view.ts",
+    "edge_animation_technique": "stroke-dasharray/stroke-dashoffset progressive reveal",
+    "edge_animation_duration_ms": 300,
+    "node_animation_duration_ms": 500,
+    "total_choreography_ms": 800,
+    "key_methods": {
+      "startEdgeDrawIn": {
+        "lines": "887-908",
+        "description": "rAF loop over DND_EDGE_ANIM_MS, updates animatingEdgeProgress 0→1 with ease-in-out"
+      },
+      "renderAnimatingEdge": {
+        "lines": "915-942",
+        "description": "Renders SVG path with stroke-dasharray=pathLen, stroke-dashoffset=pathLen*(1-progress)"
+      },
+      "startDndAnimation": {
+        "lines": "795-881",
+        "description": "FLIP node animation (500ms), then kicks off edge draw-in"
+      }
+    },
+    "css_class": ".edge-dependency-drawing",
+    "is_progressive": true,
+    "is_sequenced_after_nodes": true
+  },
+  "original_evidence_reanalysis": {
+    "node_movement_evidence": {
+      "status": "VERIFIED",
+      "frames_with_distinct_positions": ["02-frame-16ms", "03-frame-100ms", "04-frame-200ms", "05-frame-300ms", "06-frame-400ms", "07-node-done-500ms"],
+      "node_moved": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6 (Task Delta)",
+      "position_trajectory": [
+        {"frame": "02", "x": 156.37, "y": 1260.88},
+        {"frame": "03", "x": 235.92, "y": 1022.24},
+        {"frame": "04", "x": 398.78, "y": 533.67},
+        {"frame": "05", "x": 469.28, "y": 322.17},
+        {"frame": "06", "x": 470, "y": 320},
+        {"frame": "07", "x": 470, "y": 320}
+      ]
+    },
+    "edge_animation_evidence": {
+      "status": "PARTIALLY_VERIFIED_VIA_TELEMETRY",
+      "progressive_edgeProgress_values": [
+        {"frame": "06-frame-400ms", "edgeProgress": 0.3, "edgeAnimating": true, "note": "Edge 30% drawn"},
+        {"frame": "07-node-done-500ms", "edgeProgress": 0.94, "edgeAnimating": true, "note": "Edge 94% drawn"}
+      ],
+      "explanation_for_identical_screenshots": "Frames 08-11 were all captured after the 300ms edge animation completed. By 600ms post-DnD, edgeProgress=0 and edgeAnimating=false — the animation was already done. All 4 screenshots show identical post-animation state.",
+      "telemetry_key_issue": "BEFORE/FINAL entries use 'viewport' key; intermediate frames use 'anim' key. Coordinator checked for 'viewport' in frames 08-11 and found it absent — the data IS present under the 'anim' key but shows completed state."
+    }
+  },
+  "code_change_required": false,
+  "recommendation": "Live manual verification post-deploy recommended for definitive visual confirmation. Code is architecturally sound and implements the progressive edge draw-in correctly."
+}

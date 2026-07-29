@@ -1,0 +1,17 @@
+# sha256 fingerprints of the 14 distinct token-like strings in canonical.
+# RAW VALUES DELIBERATELY NOT PUBLISHED. Cross-reference by fingerprint only.
+# fp16  len  prefix
+b35e9b1bbe9bb98e  16   ghp_
+84e72e24e8740ca5  14   ghp_
+23468eba458eabde  12   ghp_
+29ba8c8293c3cbbc  19   ghp_
+57c6654fd8e42cd2  13   ghp_
+bf4c164c1cf138e1  19   ghp_
+7341b12690101f15  13   ghp_
+5b1df12a46bff1cf  15   ghp_
+10f298f04c6b22c8  23   ghp_
+8f23f423a895e689  8    ghp_
+e67672fa4c0dc386  16   ghp_
+7416e6ca5a0c3e13  12   ghp_
+72c63c9d6ba05478  9    ghp_
+c17fd25f46c0608b  7    ghp_

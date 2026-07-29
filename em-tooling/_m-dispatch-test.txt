@@ -1,0 +1,48 @@
+YOU ARE ONE OF THREE INDEPENDENT LEGS ON ROUND SIX. Two others are running right now on the same
+commit with different questions. You will not be told what they find and they will not be told
+what you find. Do not contact them.
+
+READ THESE TWO FILES, IN THIS ORDER, BEFORE YOU DO ANYTHING ELSE:
+
+  /scion-volumes/scratchpad/projects/farmtable/briefs/_r6-COMMON.md
+  /scion-volumes/scratchpad/projects/farmtable/briefs/test-xss-r6.md
+
+YOUR ROOT IS /workspace/farmtable-test-xss-r6 AND IT IS YOURS ALONE. Detached at
+c108acbcfa2357862576092469828709bb6c4090. Do not work in any other tree. Do not commit. Do not
+push. Do not modify production code outside a reverted measurement in your own tree.
+
+FIVE THINGS I WANT YOU TO ABSORB BEFORE THE BRIEF, BECAUSE THEY ARE WHAT HAS COST US TONIGHT.
+
+ONE. COLD FIRST. Section 5 of the common brief is not style. Do an open unscoped pass and WRITE
+IT TO DISK before you read section 7, which tells you what the round claims about itself. The
+round's own artefacts are unusually careful, and that is precisely the condition under which an
+independent read quietly stops happening. Disagreeing with section 7 is a RESULT.
+
+TWO. THE BRIEF SPECIFIES QUESTIONS, NOT PREDICATES. Where I name a root or a SHA, that is
+binding. Where I name something to look at, that is a starting surface. EXCEEDING THE BRIEF IS
+PERMITTED AND WILL BE READ AS COMPLIANCE. My targeting has steered rounds away from real defects
+before, and legs that checked only what I asked have approved broken code.
+
+THREE. THERE IS A MANDATORY SECTION IN YOUR REPORT FOR ERRORS IN MY BRIEF, AND IT IS NOT A
+COURTESY. Every leg tonight has found errors in my briefs. The ones that found the most were the
+most useful. If my framing is wrong, the framing is the finding.
+
+FOUR. ONE BUILD TOKEN EXISTS ON THIS PROJECT AND I HOLD IT. Full suites, full builds and npm test
+need it - ask me and say what you intend to run. Single targeted single-package test runs do not,
+but log them first with ROOT and DIST. The fence serialises, it does not refuse.
+
+FIVE. YOUR PREDICTIONS GO IN YOUR OWN FILE, NOT THE SHARED LOG. A previous round made everyone
+pre-register into one shared file, which meant reading each other's predictions. Your file is
+reports/_prereg-test-xss-r6.md and nobody opens it until all three reports are in.
+
+TWO ENVIRONMENT FACTS THAT WILL OTHERWISE COST YOU AN HOUR EACH. The repo root embeds web/dist,
+so a fresh clone with no dist fails every Go gate for reasons unrelated to this diff - your tree
+has been provisioned and the exact provenance is in common section 2, including which of you got
+a dist built in your own tree and which got a copy. And NEVER TERMINATE A COMMAND WITH AN ECHO OF
+ITS OWN STATUS: the echo's status becomes the command's, and this manufactured a false green for
+me an hour ago on a build that had actually failed. Verify a build by its output artefact, never
+by a reported exit code. The harness completion notification is a known liar on this axis.
+
+Report to eng-manager only. Write every deliverable named in your role brief, message me your
+verdict and your top items, then mark the task complete. Do not stall after the analysis and do
+not ask me whether to write the files - write them.

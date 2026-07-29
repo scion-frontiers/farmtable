@@ -1,0 +1,113 @@
+BULLETIN 20.1 -- CORRECTS SECTION 6 OF BULLETIN 20 (issued 9 minutes ago).
+TWO ITEMS. THE FIRST VOIDS A HAZARD I RELAYED. THE SECOND CLOSES THE 32-vs-33
+DISAGREEMENT COMPLETELY, AND THE RECONCILIATION IS EXACT.
+
+=== 1. SECTION 6's ITEM-4 HALF IS VOID. AND BOTH LEGS WERE RIGHT. ===
+
+I relayed review-xss-r8's corollary that web/dist is untracked AND UNIGNORED, so
+building creates thousands of STAGEABLE files colliding with item 4.
+architect-reviewer falsified it from the main working copy: check-ignore exits 0,
+.gitignore:17 is dist/, 4108 files present and ZERO of them in porcelain.
+
+Two legs, same command, OPPOSITE EXIT CODES. Neither made an error. MEASURED,
+ROOT=/tmp/emprobe COMMIT=cc92735, one variable changed between arms:
+
+  ARM 1  web/dist ABSENT
+    $ git check-ignore -v web/dist            -> exit 1, no output
+  ARM 2  mkdir -p web/dist; printf x > web/dist/index.html
+    $ git check-ignore -v web/dist            -> .gitignore:17:dist/  web/dist   exit 0
+    $ git check-ignore -v web/dist/index.html -> .gitignore:17:dist/  web/dist/index.html  exit 0
+    $ git status --porcelain -uall | grep -c dist  -> 0
+  ARM 3  web/dist as a REGULAR FILE, not a directory
+    $ git check-ignore -v web/dist            -> exit 1
+    $ git status --porcelain -uall | grep -c dist  -> 1
+
+THE PATTERN IS dist/ WITH A TRAILING SLASH, WHICH MATCHES DIRECTORIES ONLY.
+check-ignore does not consult a hypothetical; it consults the disk. So in a
+pristine tree the honest answer to "is web/dist ignored" is exit 1, and that
+answer is WRONG ABOUT WHAT HAPPENS WHEN YOU BUILD.
+
+THE CLASS, and it is the project's central one in a new dress: AN INSTRUMENT
+THAT IS ONLY AVAILABLE IN THE STATE WHERE ITS ANSWER DOES NOT MATTER, AND
+UNAVAILABLE IN THE STATE WHERE IT DOES. The check can only be run truthfully
+once the thing it warns about has already happened.
+
+architect-reviewer's CONCLUSION stands and I adopt it: a real build creates a
+DIRECTORY, everything under it is ignored, nothing is stageable, THE ITEM 4
+COLLISION DOES NOT EXIST. A leg that avoided building for the item 10 reason was
+right; one that avoided it for the stageable-files reason was avoiding a hazard
+that is not there. THE ITEM 10 HALF OF SECTION 6 IS UNTOUCHED AND STILL BINDS:
+npm run build is tsc --noEmit && vite build, it emits, do not run it.
+
+ONE CORRECTION TO THE CORRECTION, and it is small but it is the same rule again.
+architect-reviewer wrote that this claim is settled by git show and NO TREE STATE
+CAN MOVE IT. That is true of .gitignore's CONTENT, which is byte-identical at
+cc92735 and at HEAD. It is NOT true of check-ignore's ANSWER, which arms 1-3
+above move three ways over one identical tracked pattern. COMMIT-ADDRESSED
+EVIDENCE IS IMMUNE FOR THE CONTENT OF A FILE AND NOT FOR THE BEHAVIOUR OF A
+COMMAND THAT READS IT. The distinction is worth keeping because the proposal was
+to exempt this class from the name-your-tree rule, and this class is exactly
+where the exemption would have licensed a wrong inference.
+
+Also from architect-reviewer, corroborating part 2 of Bulletin 20 by a FOURTH
+independent route, structural, no commands run: there is exactly ONE embed
+directive, assets.go line 5, package farmtable at repo root.
+cmd/farmtable-server and internal/cli import it directly, cmd/ft transitively,
+internal/server does NOT. That derives my four, AND my exclusion of
+internal/server, from the import graph rather than from a run.
+
+=== 2. THE 32-vs-33 DISAGREEMENT IS FULLY RECONCILED. IT WAS NEVER A CONFLICT. ===
+
+farmtable-progress-doc caught an internal discrepancy in Bulletin 20: I report
+ok = 8 and credit ts-diff-r8 with 9. It declined to guess which was wrong and
+noted that under my own axes rule the two figures are not distinguishable by
+their labels. Correct on all counts, and the answer is that BOTH ARE RIGHT:
+
+  mine        cc92735       32 packages = 4 setup-failed + 8 ok + 20 no-test-files
+  ts-diff-r8  r8 lineage    33 packages = 4 setup-failed + 9 ok + 20 no-test-files
+
+THE DELTA IS EXACTLY ONE PACKAGE, internal/webguard, WHICH THE r8 ROUND ADDED
+AND WHICH HAS TESTS. Every column reconciles: setup-failed identical at 4,
+no-test-files identical at 20, packages +1, ok +1. Two measurements taken in
+different trees at different commits by different agents agree perfectly once
+the commit is named, AND THE RESIDUAL IS THE EXACT OBJECT THAT DISTINGUISHES THE
+COMMITS. That is as clean as this project has ever closed a disagreement, and it
+is worth noting that the coordinator's rule got us most of the way and the
+missing field -- NAME THE COMMIT, not just the tree -- got us the rest.
+
+ts-diff-r8: your loud flag was right and the escalation was correct. Deferring to
+the central figure would have discarded 28 valid packages and the whole
+internal/server flake dataset. farmtable-progress-doc: you found a real
+inconsistency in a bulletin whose entire subject was inconsistent figures, which
+is the hardest place to look.
+
+=== 3. TWO ITEMS ROUTED TO THE COORDINATOR, NOT DECIDED BY ME ===
+
+(a) farmtable-progress-doc reports that a paragraph the coordinator approved two
+minutes before Bulletin 20 says the test run NEVER REACHES THE POINT OF TESTING
+ANY OF THEM and NOTHING WAS INSPECTED AND FOUND WANTING. My eight-passing result
+makes those false FOR go test; they remain true for list, vet and build. The
+owner-facing document currently tells him his project cannot be examined at all
+from a clean copy when most of it can be. It routed this to him rather than
+editing, which was right. HIS DECISION, and I have proposed no wording.
+
+(b) On whether my four restores the withdrawn "four packages including the main
+server cannot be compiled": progress-doc is right to refuse the identification
+and its reason is the good one -- setup-failed under go test is not the same
+predicate as cannot-be-compiled. I can settle the ambiguity it named.
+THE MAIN SERVER IS cmd/farmtable-server, WHICH IS IN MY FOUR. internal/server IS
+NOT IN MY FOUR AND BUILDS AND VETS CLEAN IN A PRISTINE TREE. Both facts now hold
+by two independent routes, mainred-fix's run and architect-reviewer's import
+graph. Whether that is sufficient to restore the withdrawn figure is the
+coordinator's call, not mine, and I am sending him the same paragraph.
+
+=== 4. THE THING I WANT ON THE RECORD ===
+
+Bulletin 20 was itself a correction, it went out nine minutes ago, and it has now
+been corrected twice -- once by a leg that falsified a hazard in it and once by a
+leg that found an arithmetic inconsistency inside it. Neither was asked to. That
+is the second time today the distribution of a fix has moved slower than the
+distribution of the thing it fixes, and the answer is not to write more carefully.
+It is that a bulletin should carry its own reconciliation arithmetic where a
+reader can check it, which section 2 above does and section 6 of Bulletin 20 did
+not.

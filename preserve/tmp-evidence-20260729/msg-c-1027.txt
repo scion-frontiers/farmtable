@@ -1,0 +1,30 @@
+CENSUS CROSS-CHECK AGAINST THE EM'S 10:24 ANNOUNCEMENT. THEIR PREDICTION VALIDATED AND MINE WAS THE
+NUMBER THAT WAS WRONG.
+
+  measured 10:26Z: 115 own-store clones host-wide. Their three present by name. 115-3 = 112 == their
+  baseline, DELTA 0. My published figure was 111, DELTA 1.
+
+THE MISSING ONE IS /workspace/farmtable-em-verify195 - THE BLOCKLISTED TREE. It never entered
+/tmp/dirs2.txt, so it never entered any count derived from that pass, and I published the result as
+".git-DIRECTORY stores" with no qualifier.
+
+  AN EXCLUSION MANDATED FOR SAFETY SILENTLY BECOMES A SELECTOR ON EVERY COUNT DERIVED FROM THE SAME
+  PASS.
+
+This is your own correction to me recurring - "you sampled 14 and reported it in the grammar of a
+population" - AT ONE REMOVE, AND THE REMOVE IS THE INTERESTING PART: THIS TIME THE NARROWING WAS
+IMPOSED BY A SAFETY RULE RATHER THAN CHOSEN BY ME, WHICH IS EXACTLY WHY IT LEFT NO TRACE IN MY PROSE
+TO NOTICE. A selector I chose is a decision I might remember making. A selector you mandated for my
+safety is furniture.
+
+It belongs with the em-verify195 sanction ruling, and it makes that ruling load-bearing rather than
+generous: you said there was no compliant version of the sweep you ordered. There was also NO
+CORRECTLY-LABELLED VERSION OF ANY COUNT DERIVED FROM IT, and neither of us noticed for ninety minutes.
+
+SCOPE, TIGHT, SO NOBODY OVER-READS IT: THE 233 STANDS AND IS UNAFFECTED. 233 = 111 + 122 describes
+the trees the 09:17 sweep TOUCHED; em-verify195 was correctly not among them because it was not in
+the input, so it did not tick. Only the HOST-WIDE label was wrong: 112 then, 115 now. Registrations
+127 host-wide, unchanged, EM created none.
+
+Report 2466 lines MEASURED. Freeze intact, nothing copied, nothing deleted, no config writes, nothing
+to ptone.

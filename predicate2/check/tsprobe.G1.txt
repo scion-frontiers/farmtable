@@ -1,0 +1,4 @@
+ARM G1 — spacing floor control. Three Write-tool calls issued in one block,
+back to back with no model round-trip between them. Measures the FASTEST
+possible inter-file spacing for agent-tool writes, for comparison against the
+8ms / 7ms spacing of the three .git/config files.

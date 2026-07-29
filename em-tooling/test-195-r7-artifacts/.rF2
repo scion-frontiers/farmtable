@@ -1,0 +1,2 @@
+export function renderMarkdown(md: string, ...rest: unknown[]): string {
+  void rest;

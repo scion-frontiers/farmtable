@@ -1,0 +1,26 @@
+{
+  "tree": {
+    "nodeWidth": 281.5999755859375,
+    "containerWidth": 975,
+    "pctOfContainer": "28.9",
+    "viewBox": "7100 -255.3125 761.71875 590.625",
+    "styles": {
+      "borderTopWidth": "3px",
+      "borderLeftWidth": "5px",
+      "borderColor": "rgb(14, 165, 233)",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 3px, rgba(99, 102, 241, 0.45) 0px 0px 0px 6px"
+    }
+  },
+  "dependency": {
+    "nodeWidth": 281.5999755859375,
+    "containerWidth": 975,
+    "pctOfContainer": "28.9",
+    "viewBox": "-400 3246.328125 761.71875 627.34375",
+    "styles": {
+      "borderTopWidth": "3px",
+      "borderLeftWidth": "5px",
+      "borderColor": "rgb(14, 165, 233)",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 3px, rgba(99, 102, 241, 0.45) 0px 0px 0px 6px"
+    }
+  }
+}

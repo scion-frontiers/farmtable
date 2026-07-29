@@ -1,0 +1,318 @@
+{
+  "test": "Feature 60 Viewport Stability — Live Verification",
+  "timestamp": "2026-07-23T01:48:50.248Z",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "revision": "farmtable-00039-8xw",
+  "commit": "c957f7e",
+  "results": {
+    "jibo": {
+      "collectionId": "7e76c29c-5981-4e32-98b2-fa2bdd5ad9b7",
+      "description": "Internal collection with dependency graph",
+      "connectionState": {
+        "currentView": "dependencies",
+        "isPolling": false,
+        "connectionStatus": "live",
+        "isExternalWritable": false,
+        "pollManagerExists": false,
+        "pollManagerActive": false,
+        "streamManagerExists": true
+      },
+      "initialViewport": {
+        "panX": -1450,
+        "panY": 5581.666666666666,
+        "scale": 0.3,
+        "hasEmpty": false
+      },
+      "afterInteraction": {
+        "panX": -1624.5454545454545,
+        "panY": 5521.363636363636,
+        "scale": 0.33
+      },
+      "viewportChanged": true,
+      "samples": [
+        {
+          "elapsed": 5,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 10,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 15,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 20,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 25,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 30,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 35,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 40,
+          "panX": -1624.5454545454545,
+          "panY": 5521.363636363636,
+          "scale": 0.33,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        }
+      ],
+      "maxDrift": {
+        "panX": 0,
+        "panY": 0,
+        "scale": 0
+      },
+      "stable": true,
+      "pollsDuringMonitor": 0,
+      "grpcRequests": [
+        {
+          "time": "2026-07-23T01:46:39.015Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:46:39.165Z",
+          "endpoint": "ListUsers"
+        },
+        {
+          "time": "2026-07-23T01:46:39.167Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:46:39.167Z",
+          "endpoint": "WatchTasks"
+        },
+        {
+          "time": "2026-07-23T01:46:39.167Z",
+          "endpoint": "ListUsers"
+        },
+        {
+          "time": "2026-07-23T01:46:39.167Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:46:39.167Z",
+          "endpoint": "ListCollections"
+        }
+      ],
+      "verdict": "PASS_NO_POLL"
+    },
+    "github-experiment-scion-frontiers-farmtable": {
+      "collectionId": "6a0a49f9-9c61-46cf-af5a-46f98f90ff20",
+      "description": "External GitHub collection (polling)",
+      "connectionState": {
+        "currentView": "dependencies",
+        "isPolling": false,
+        "connectionStatus": "live",
+        "isExternalWritable": false,
+        "pollManagerExists": false,
+        "pollManagerActive": false,
+        "streamManagerExists": true
+      },
+      "initialViewport": {
+        "panX": 0,
+        "panY": 0,
+        "scale": 1,
+        "hasEmpty": true
+      },
+      "afterInteraction": {
+        "panX": 0,
+        "panY": 0,
+        "scale": 1
+      },
+      "viewportChanged": false,
+      "samples": [
+        {
+          "elapsed": 5,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 10,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 15,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 20,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 25,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 30,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 35,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        },
+        {
+          "elapsed": 40,
+          "panX": 0,
+          "panY": 0,
+          "scale": 1,
+          "dPX": 0,
+          "dPY": 0,
+          "dS": 0,
+          "listTasksCalls": 0
+        }
+      ],
+      "maxDrift": {
+        "panX": 0,
+        "panY": 0,
+        "scale": 0
+      },
+      "stable": true,
+      "pollsDuringMonitor": 0,
+      "grpcRequests": [
+        {
+          "time": "2026-07-23T01:47:31.786Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:47:31.917Z",
+          "endpoint": "ListUsers"
+        },
+        {
+          "time": "2026-07-23T01:47:31.919Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:47:31.919Z",
+          "endpoint": "WatchTasks"
+        },
+        {
+          "time": "2026-07-23T01:47:31.919Z",
+          "endpoint": "ListUsers"
+        },
+        {
+          "time": "2026-07-23T01:47:31.919Z",
+          "endpoint": "GetCollection"
+        },
+        {
+          "time": "2026-07-23T01:47:31.919Z",
+          "endpoint": "ListCollections"
+        }
+      ],
+      "verdict": "PASS_NO_POLL"
+    },
+    "tree-view": {
+      "initial": {
+        "panX": 36185,
+        "panY": -920,
+        "scale": 0.3
+      },
+      "after": {
+        "panX": 36185,
+        "panY": -920,
+        "scale": 0.3
+      },
+      "drift": {
+        "panX": 0,
+        "panY": 0,
+        "scale": 0
+      },
+      "verdict": "PASS"
+    }
+  },
+  "overallVerdict": "PASS"
+}

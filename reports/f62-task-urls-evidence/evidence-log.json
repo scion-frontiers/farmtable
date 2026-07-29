@@ -1,0 +1,190 @@
+{
+  "testDate": "2026-07-23T23:23:29.424Z",
+  "prNumber": 145,
+  "branch": "feature/f62-task-deep-links",
+  "feature": "Task-level deep-linking via ?task= URL parameter",
+  "baseUrl": "http://localhost:9090",
+  "collectionId": "8ef64de9-cc3e-47ed-aae2-02e83f26dc5d",
+  "testedTaskId": "da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+  "result": "ALL PASS",
+  "passCount": 13,
+  "failCount": 0,
+  "totalChecks": 13,
+  "scenarios": {
+    "A": "Navigate to Tree View with ?task= param → URL preserved, Inspector opens",
+    "B": "Fresh context opens deep-link URL → correct task selected with Inspector open",
+    "C": "Repeat A+B for Dependency View → deep-link works across views",
+    "D": "Close Inspector → ?task= removed from URL",
+    "E": "Switch collections → no stale ?task= param leaks"
+  },
+  "evidence": [
+    {
+      "scenario": "A",
+      "description": "Tree view loaded",
+      "timestamp": "2026-07-23T23:22:54.982Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=tree"
+    },
+    {
+      "scenario": "A",
+      "description": "Tree node search (shadow): found 0",
+      "timestamp": "2026-07-23T23:22:55.007Z"
+    },
+    {
+      "scenario": "A",
+      "description": "Tree node search (evaluate): found 0",
+      "timestamp": "2026-07-23T23:22:55.010Z"
+    },
+    {
+      "scenario": "A",
+      "description": "Navigated to Tree View with ?task= param",
+      "timestamp": "2026-07-23T23:22:59.072Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=tree&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "taskParam": "da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "pass": true
+    },
+    {
+      "scenario": "A",
+      "description": "Inspector visible in Tree View: true",
+      "timestamp": "2026-07-23T23:22:59.123Z",
+      "pass": true
+    },
+    {
+      "scenario": "B",
+      "description": "Opening FRESH browser context with deep-link URL",
+      "timestamp": "2026-07-23T23:22:59.134Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=tree&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de"
+    },
+    {
+      "scenario": "B",
+      "description": "Fresh context: Inspector visible: true",
+      "timestamp": "2026-07-23T23:23:04.474Z",
+      "inspectorText": "\n      \n        Inspector\n        \n      \n\n      \n\n      \n        General\n        Relationships\n\n   ",
+      "pass": true
+    },
+    {
+      "scenario": "B",
+      "description": "Fresh context URL check",
+      "timestamp": "2026-07-23T23:23:04.474Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=tree&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "taskParam": "da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "matchesExpected": true,
+      "pass": true
+    },
+    {
+      "scenario": "C",
+      "description": "Starting Dependency View deep-link test",
+      "timestamp": "2026-07-23T23:23:04.481Z"
+    },
+    {
+      "scenario": "C",
+      "description": "Dependency view loaded",
+      "timestamp": "2026-07-23T23:23:08.798Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=dependencies"
+    },
+    {
+      "scenario": "C",
+      "description": "Dependency View with ?task= param",
+      "timestamp": "2026-07-23T23:23:12.919Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=dependencies&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "taskParam": "da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "pass": true
+    },
+    {
+      "scenario": "C",
+      "description": "Inspector visible in Dependency View: true",
+      "timestamp": "2026-07-23T23:23:12.922Z",
+      "pass": true
+    },
+    {
+      "scenario": "C",
+      "description": "Opening FRESH context with dependency deep-link",
+      "timestamp": "2026-07-23T23:23:12.929Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=dependencies&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de"
+    },
+    {
+      "scenario": "C",
+      "description": "Fresh context dependency view: Inspector visible: true",
+      "timestamp": "2026-07-23T23:23:18.288Z",
+      "pass": true
+    },
+    {
+      "scenario": "C",
+      "description": "Fresh dependency context URL check",
+      "timestamp": "2026-07-23T23:23:18.288Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=dependencies&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "taskParam": "da7fa44e-ab13-401d-9a8c-3dc899d2d2de",
+      "matchesExpected": true,
+      "pass": true
+    },
+    {
+      "scenario": "D",
+      "description": "Closing inspector to verify ?task= removal",
+      "timestamp": "2026-07-23T23:23:18.288Z"
+    },
+    {
+      "scenario": "D",
+      "description": "Clicked close button in inspector",
+      "timestamp": "2026-07-23T23:23:18.294Z"
+    },
+    {
+      "scenario": "D",
+      "description": "After closing inspector",
+      "timestamp": "2026-07-23T23:23:19.845Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=dependencies",
+      "taskParamPresent": false,
+      "taskParamValue": null,
+      "pass": true
+    },
+    {
+      "scenario": "D",
+      "description": "Inspector element removed from DOM: true",
+      "timestamp": "2026-07-23T23:23:19.847Z",
+      "pass": true
+    },
+    {
+      "scenario": "E",
+      "description": "Testing collection switch clears ?task= param",
+      "timestamp": "2026-07-23T23:23:19.854Z"
+    },
+    {
+      "scenario": "E",
+      "description": "Starting with task selected",
+      "timestamp": "2026-07-23T23:23:24.203Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=tree&task=da7fa44e-ab13-401d-9a8c-3dc899d2d2de"
+    },
+    {
+      "scenario": "E",
+      "description": "After navigating to collection list",
+      "timestamp": "2026-07-23T23:23:26.308Z",
+      "url": "http://localhost:9090/",
+      "taskParamPresent": false,
+      "pass": true
+    },
+    {
+      "scenario": "E",
+      "description": "After re-entering collection (no ?task= in URL)",
+      "timestamp": "2026-07-23T23:23:29.413Z",
+      "url": "http://localhost:9090/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d&view=kanban",
+      "taskParamPresent": false,
+      "pass": true
+    },
+    {
+      "scenario": "E",
+      "description": "No inspector open after collection re-entry: true",
+      "timestamp": "2026-07-23T23:23:29.417Z",
+      "pass": true
+    }
+  ],
+  "screenshotFiles": [
+    "a1-tree-view-loaded.png",
+    "a2-tree-task-selected.png",
+    "b1-fresh-context-deep-link-tree.png",
+    "c1-dependency-view-loaded.png",
+    "c2-dependency-task-selected.png",
+    "c3-fresh-context-deep-link-dependency.png",
+    "d1-inspector-closed.png",
+    "e1-before-collection-switch.png",
+    "e2-collection-list.png",
+    "e3-collection-reselected.png"
+  ]
+}

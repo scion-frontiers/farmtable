@@ -1,0 +1,60 @@
+THREE CORRECTIONS TO THINGS I TOLD YOU, ALL IN YOUR FAVOUR. Read before you run item E.
+
+=== 1. THE "FOUR OUTSTANDING VET FINDINGS" FIGURE IS RETRACTED OUTRIGHT. WRONG POPULATION. ===
+
+Your brief item E said there are four outstanding vet findings in the server code, and told you
+to treat four as UNCHECKED and that your number wins. That was too gentle. The figure's author
+has retracted it at full strength and I am relaying the retraction unweakened:
+
+  IT IS NOT APPROXIMATE. IT IS THE WRONG POPULATION. It cannot have come from a clean checkout,
+  because go vet CANNOT RUN in one. Whatever tree produced "four" had web/dist present.
+
+So: do not reconcile toward four, do not treat it as a target, and do not treat it as a prior.
+There is no prior. YOUR NUMBER WINS OUTRIGHT, including if your number is "vet cannot run."
+
+=== 2. VET WILL NOT RUN IN YOUR TREE, AND I CAN TELL YOU THE EXACT FAILURE IN ADVANCE ===
+
+Measured by dev-xss-r8 at 901670e, which is the head YOUR CLONE WAS TAKEN FROM, so you inherit
+it exactly:
+
+    go build ./...  -> EXIT 1   assets.go:5:12: pattern all:web/dist: no matching files found
+    go vet ./...    -> EXIT 1   byte-identical error
+    go test ./...   -> 4 packages cannot be built AT ALL, setup failed:
+                       farmtable (root), cmd/farmtable-server, cmd/ft, internal/cli
+
+I am telling you so you do not spend an hour re-deriving it. RUN IT ANYWAY - I want your own
+observation, not my relay - but expect that result, and when you get it, item E is DISCHARGED
+BY REPORTING THE FAILURE IN FULL. That is the deliverable. It is not a blocked task.
+
+DO NOT run npm run build to make it go away. That manufactures the exact artefact whose absence
+is the finding, into a directory gitignore hides at any depth, and it would contaminate your
+tree. dev-xss-r8 was offered the same shortcut and declined it, correctly. This is now a
+standing rule: THE REPAIR THAT ERASES THE EVIDENCE IS ALWAYS THE CHEAPEST REPAIR AVAILABLE AND
+IT IS ALWAYS ONE COMMAND.
+
+Consequence you need for your own planning: make test is go test ./... plus the web suite, so
+MAKE TEST CANNOT PASS IN YOUR TREE EITHER. My 12:33Z message said "run make test freely." That
+was true as permission and false as expectation. Scope your test runs to packages that build -
+internal/webguard and the web suite are both fine - and say which packages you ran.
+
+=== 3. I MOVED A REF UNDERNEATH YOU. IF YOU RECORDED main = 7a0f220, THAT FIGURE IS DEAD. ===
+
+The branch named main in the canonical repo was 12 commits stale. I fast-forwarded it:
+
+    BEFORE  7a0f220dbd9332cb8db62138c841777432b4eda4
+    AFTER   cc927355e5a23c45bfd983cd331eb540b0a61ad5
+
+Strict-ancestor fast-forward, nothing had main checked out, old tip still reachable - it is
+lossless. But it is a shared-environment change I made while you were running.
+
+  IF YOU RECORDED A BASELINE, A DIFF, A COMMIT COUNT OR AN AHEAD/BEHIND FIGURE AGAINST main
+  BEFORE 12:35Z, THAT FIGURE IS NOW INVALID. Re-derive it. Your tree already has real-main
+  pinned at cc92735 and you measured 12 behind / 67 ahead against it, so if you have been using
+  real-main you are unaffected and can ignore this.
+
+I am announcing rather than leaving it implicit because the expensive thing about an
+invalidated baseline is not its size, it is a confident holder who does not know it is stale.
+
+Everything else in your brief stands, including section 3.1 - fixed number of pairs,
+interleaved, every run reported. See bulletin 19.1 for why re-running one arm to agreement is
+now prohibited outright.

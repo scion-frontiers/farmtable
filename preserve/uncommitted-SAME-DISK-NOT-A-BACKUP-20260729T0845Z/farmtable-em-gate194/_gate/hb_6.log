@@ -1,0 +1,1666 @@
+=== RUN   TestDetectImportFormat
+=== RUN   TestDetectImportFormat/native_farmtable_JSON
+=== RUN   TestDetectImportFormat/beads_JSONL_with__type
+=== RUN   TestDetectImportFormat/beads_JSONL_with_title_only
+=== RUN   TestDetectImportFormat/beads_JSONL_multi-line
+=== RUN   TestDetectImportFormat/empty_data
+=== RUN   TestDetectImportFormat/whitespace_only
+=== RUN   TestDetectImportFormat/non-JSON_data
+--- PASS: TestDetectImportFormat (0.00s)
+    --- PASS: TestDetectImportFormat/native_farmtable_JSON (0.00s)
+    --- PASS: TestDetectImportFormat/beads_JSONL_with__type (0.00s)
+    --- PASS: TestDetectImportFormat/beads_JSONL_with_title_only (0.00s)
+    --- PASS: TestDetectImportFormat/beads_JSONL_multi-line (0.00s)
+    --- PASS: TestDetectImportFormat/empty_data (0.00s)
+    --- PASS: TestDetectImportFormat/whitespace_only (0.00s)
+    --- PASS: TestDetectImportFormat/non-JSON_data (0.00s)
+=== RUN   TestParseBeadsJSONL
+=== RUN   TestParseBeadsJSONL/valid_single_issue
+=== RUN   TestParseBeadsJSONL/multiple_issues_with_blank_lines
+=== RUN   TestParseBeadsJSONL/skips_non-issue_records
+=== RUN   TestParseBeadsJSONL/skips_lines_with_missing_title
+=== RUN   TestParseBeadsJSONL/error_on_empty_data
+=== RUN   TestParseBeadsJSONL/parses_dependencies
+=== RUN   TestParseBeadsJSONL/parses_comments
+--- PASS: TestParseBeadsJSONL (0.00s)
+    --- PASS: TestParseBeadsJSONL/valid_single_issue (0.00s)
+    --- PASS: TestParseBeadsJSONL/multiple_issues_with_blank_lines (0.00s)
+    --- PASS: TestParseBeadsJSONL/skips_non-issue_records (0.00s)
+    --- PASS: TestParseBeadsJSONL/skips_lines_with_missing_title (0.00s)
+    --- PASS: TestParseBeadsJSONL/error_on_empty_data (0.00s)
+    --- PASS: TestParseBeadsJSONL/parses_dependencies (0.00s)
+    --- PASS: TestParseBeadsJSONL/parses_comments (0.00s)
+=== RUN   TestBeadsStatusToTaskState
+=== RUN   TestBeadsStatusToTaskState/open
+=== RUN   TestBeadsStatusToTaskState/in_progress
+=== RUN   TestBeadsStatusToTaskState/hooked
+=== RUN   TestBeadsStatusToTaskState/blocked
+=== RUN   TestBeadsStatusToTaskState/deferred
+=== RUN   TestBeadsStatusToTaskState/closed
+=== RUN   TestBeadsStatusToTaskState/pinned
+=== RUN   TestBeadsStatusToTaskState/unknown_status
+=== RUN   TestBeadsStatusToTaskState/#00
+--- PASS: TestBeadsStatusToTaskState (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/open (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/in_progress (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/hooked (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/blocked (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/deferred (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/closed (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/pinned (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/unknown_status (0.00s)
+    --- PASS: TestBeadsStatusToTaskState/#00 (0.00s)
+=== RUN   TestBeadsPriorityToFarmtable
+=== RUN   TestBeadsPriorityToFarmtable/urgent
+=== RUN   TestBeadsPriorityToFarmtable/high
+=== RUN   TestBeadsPriorityToFarmtable/normal
+=== RUN   TestBeadsPriorityToFarmtable/low
+=== RUN   TestBeadsPriorityToFarmtable/low#01
+=== RUN   TestBeadsPriorityToFarmtable/negative_priority_returns_nil
+--- PASS: TestBeadsPriorityToFarmtable (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/urgent (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/high (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/normal (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/low (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/low#01 (0.00s)
+    --- PASS: TestBeadsPriorityToFarmtable/negative_priority_returns_nil (0.00s)
+=== RUN   TestBeadsTypeToFarmtable
+=== RUN   TestBeadsTypeToFarmtable/bug
+=== RUN   TestBeadsTypeToFarmtable/epic
+=== RUN   TestBeadsTypeToFarmtable/story
+=== RUN   TestBeadsTypeToFarmtable/task
+=== RUN   TestBeadsTypeToFarmtable/feature
+=== RUN   TestBeadsTypeToFarmtable/chore
+=== RUN   TestBeadsTypeToFarmtable/subtask
+=== RUN   TestBeadsTypeToFarmtable/decision
+=== RUN   TestBeadsTypeToFarmtable/spike
+=== RUN   TestBeadsTypeToFarmtable/milestone
+=== RUN   TestBeadsTypeToFarmtable/#00
+--- PASS: TestBeadsTypeToFarmtable (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/bug (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/epic (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/story (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/task (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/feature (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/chore (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/subtask (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/decision (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/spike (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/milestone (0.00s)
+    --- PASS: TestBeadsTypeToFarmtable/#00 (0.00s)
+=== RUN   TestConvertBeadsToExportDocument
+=== RUN   TestConvertBeadsToExportDocument/basic_conversion
+=== RUN   TestConvertBeadsToExportDocument/parent-child_dependency
+=== RUN   TestConvertBeadsToExportDocument/blocks_dependency_creates_relationship
+=== RUN   TestConvertBeadsToExportDocument/description_appends_design_and_notes
+=== RUN   TestConvertBeadsToExportDocument/closed_at_is_preserved
+=== RUN   TestConvertBeadsToExportDocument/comments_are_converted
+=== RUN   TestConvertBeadsToExportDocument/missing_parent_warns
+=== RUN   TestConvertBeadsToExportDocument/nil_priority_is_not_mapped_to_urgent
+=== RUN   TestConvertBeadsToExportDocument/started_at_and_due_at_mapped
+--- PASS: TestConvertBeadsToExportDocument (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/basic_conversion (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/parent-child_dependency (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/blocks_dependency_creates_relationship (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/description_appends_design_and_notes (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/closed_at_is_preserved (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/comments_are_converted (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/missing_parent_warns (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/nil_priority_is_not_mapped_to_urgent (0.00s)
+    --- PASS: TestConvertBeadsToExportDocument/started_at_and_due_at_mapped (0.00s)
+=== RUN   TestDeduplicateRelationships
+--- PASS: TestDeduplicateRelationships (0.00s)
+=== RUN   TestPlatformStringToProto
+=== RUN   TestPlatformStringToProto/github
+=== RUN   TestPlatformStringToProto/linear
+=== RUN   TestPlatformStringToProto/jira
+=== RUN   TestPlatformStringToProto/asana
+=== RUN   TestPlatformStringToProto/beads
+=== RUN   TestPlatformStringToProto/farmtable_explicit
+=== RUN   TestPlatformStringToProto/empty_string_fallback
+=== RUN   TestPlatformStringToProto/unknown_fallback
+--- PASS: TestPlatformStringToProto (0.00s)
+    --- PASS: TestPlatformStringToProto/github (0.00s)
+    --- PASS: TestPlatformStringToProto/linear (0.00s)
+    --- PASS: TestPlatformStringToProto/jira (0.00s)
+    --- PASS: TestPlatformStringToProto/asana (0.00s)
+    --- PASS: TestPlatformStringToProto/beads (0.00s)
+    --- PASS: TestPlatformStringToProto/farmtable_explicit (0.00s)
+    --- PASS: TestPlatformStringToProto/empty_string_fallback (0.00s)
+    --- PASS: TestPlatformStringToProto/unknown_fallback (0.00s)
+=== RUN   TestTaskToProto_PlatformFromRemoteData
+=== RUN   TestTaskToProto_PlatformFromRemoteData/no_RemoteData_maps_to_PLATFORM_FARMTABLE
+=== RUN   TestTaskToProto_PlatformFromRemoteData/empty_RemoteData_maps_to_PLATFORM_FARMTABLE
+=== RUN   TestTaskToProto_PlatformFromRemoteData/RemoteData_platform=github_maps_to_PLATFORM_GITHUB
+=== RUN   TestTaskToProto_PlatformFromRemoteData/RemoteData_platform=linear_maps_to_PLATFORM_LINEAR
+=== RUN   TestTaskToProto_PlatformFromRemoteData/RemoteData_with_non-string_platform_falls_back_to_PLATFORM_FARMTABLE
+--- PASS: TestTaskToProto_PlatformFromRemoteData (0.00s)
+    --- PASS: TestTaskToProto_PlatformFromRemoteData/no_RemoteData_maps_to_PLATFORM_FARMTABLE (0.00s)
+    --- PASS: TestTaskToProto_PlatformFromRemoteData/empty_RemoteData_maps_to_PLATFORM_FARMTABLE (0.00s)
+    --- PASS: TestTaskToProto_PlatformFromRemoteData/RemoteData_platform=github_maps_to_PLATFORM_GITHUB (0.00s)
+    --- PASS: TestTaskToProto_PlatformFromRemoteData/RemoteData_platform=linear_maps_to_PLATFORM_LINEAR (0.00s)
+    --- PASS: TestTaskToProto_PlatformFromRemoteData/RemoteData_with_non-string_platform_falls_back_to_PLATFORM_FARMTABLE (0.00s)
+=== RUN   TestResolveGraphRoute_FarmtableCollection
+--- PASS: TestResolveGraphRoute_FarmtableCollection (0.00s)
+=== RUN   TestResolveGraphRoute_SupportedExternalCollection
+--- PASS: TestResolveGraphRoute_SupportedExternalCollection (0.00s)
+=== RUN   TestResolveGraphRoute_UnsupportedExternalCollection
+--- PASS: TestResolveGraphRoute_UnsupportedExternalCollection (0.00s)
+=== RUN   TestResolveGraphRoute_NonexistentCollection
+--- PASS: TestResolveGraphRoute_NonexistentCollection (0.00s)
+=== RUN   TestGetCriticalPath_ExternalCollection_EphemeralRoute
+--- PASS: TestGetCriticalPath_ExternalCollection_EphemeralRoute (0.01s)
+=== RUN   TestGetBottlenecks_ExternalCollection_EphemeralRoute
+--- PASS: TestGetBottlenecks_ExternalCollection_EphemeralRoute (0.01s)
+=== RUN   TestGetReadyTasks_ExternalCollection_EphemeralRoute
+--- PASS: TestGetReadyTasks_ExternalCollection_EphemeralRoute (0.00s)
+=== RUN   TestGetBlockedTasks_ExternalCollection_EphemeralRoute
+--- PASS: TestGetBlockedTasks_ExternalCollection_EphemeralRoute (0.01s)
+=== RUN   TestGetCriticalPath_UnsupportedExternalCollection
+--- PASS: TestGetCriticalPath_UnsupportedExternalCollection (0.00s)
+=== RUN   TestGetBottlenecks_UnsupportedExternalCollection
+--- PASS: TestGetBottlenecks_UnsupportedExternalCollection (0.00s)
+=== RUN   TestGetReadyTasks_UnsupportedExternalCollection
+--- PASS: TestGetReadyTasks_UnsupportedExternalCollection (0.00s)
+=== RUN   TestGetCriticalPath_FarmtableCollection_DirectRoute
+--- PASS: TestGetCriticalPath_FarmtableCollection_DirectRoute (0.00s)
+=== RUN   TestLoadEphemeralStore_NilPool
+--- PASS: TestLoadEphemeralStore_NilPool (0.00s)
+=== RUN   TestExtractRelationships
+--- PASS: TestExtractRelationships (0.00s)
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/farmtable
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/github
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/linear
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/jira
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/asana
+=== RUN   TestCollectionSupportsGraph_PlatformDefaults/beads
+--- PASS: TestCollectionSupportsGraph_PlatformDefaults (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/farmtable (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/github (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/linear (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/jira (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/asana (0.00s)
+    --- PASS: TestCollectionSupportsGraph_PlatformDefaults/beads (0.00s)
+=== RUN   TestCollectionSupportsGraph_ExplicitOverrideTrue
+--- PASS: TestCollectionSupportsGraph_ExplicitOverrideTrue (0.00s)
+=== RUN   TestCollectionSupportsGraph_ExplicitOverrideFalse
+--- PASS: TestCollectionSupportsGraph_ExplicitOverrideFalse (0.00s)
+=== RUN   TestCollectionSupportsGraph_NilRemoteData
+--- PASS: TestCollectionSupportsGraph_NilRemoteData (0.00s)
+=== RUN   TestCollectionSupportsGraph_EmptyRemoteData
+--- PASS: TestCollectionSupportsGraph_EmptyRemoteData (0.00s)
+=== RUN   TestCollectionSupportsGraph_NonBoolGraphQueriesValue
+--- PASS: TestCollectionSupportsGraph_NonBoolGraphQueriesValue (0.00s)
+=== RUN   TestCollectionSupportsGraph_UnknownPlatform
+--- PASS: TestCollectionSupportsGraph_UnknownPlatform (0.00s)
+=== RUN   TestCollectionSupportsGraph_OtherRemoteDataKeysIgnored
+--- PASS: TestCollectionSupportsGraph_OtherRemoteDataKeysIgnored (0.00s)
+=== RUN   TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim
+=== RUN   TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/completed
+=== RUN   TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/wont_fix
+=== RUN   TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/duplicate
+=== RUN   TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/cancelled
+--- PASS: TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/completed (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/wont_fix (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/duplicate (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_OwnTerminalStageBlocksClaim/cancelled (0.00s)
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/accepted
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/working
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/in_review
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/in_qa
+=== RUN   TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/deploying
+--- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/accepted (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/working (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/in_review (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/in_qa (0.00s)
+    --- PASS: TestBasicAvailabilityForTask_NonTerminalStagesAreNotTerminal/deploying (0.00s)
+=== RUN   TestStageGroupsPartitionAllStages
+--- PASS: TestStageGroupsPartitionAllStages (0.00s)
+=== RUN   TestLeavingTriageAlwaysRequiresAcceptOrClose
+--- PASS: TestLeavingTriageAlwaysRequiresAcceptOrClose (0.00s)
+=== RUN   TestAuthInterceptor_NoLookupConfigured
+--- PASS: TestAuthInterceptor_NoLookupConfigured (0.00s)
+=== RUN   TestAuthInterceptor_StoreBackedValidToken
+--- PASS: TestAuthInterceptor_StoreBackedValidToken (0.00s)
+=== RUN   TestAuthInterceptor_InvalidToken
+--- PASS: TestAuthInterceptor_InvalidToken (0.00s)
+=== RUN   TestAuthInterceptor_MissingBearerPrefix
+--- PASS: TestAuthInterceptor_MissingBearerPrefix (0.00s)
+=== RUN   TestAuthInterceptor_NoTokenRejectsNonExemptRPC
+--- PASS: TestAuthInterceptor_NoTokenRejectsNonExemptRPC (0.00s)
+=== RUN   TestAuthInterceptor_ExemptRPCsPassWithoutToken
+--- PASS: TestAuthInterceptor_ExemptRPCsPassWithoutToken (0.00s)
+=== RUN   TestAuthInterceptor_ValidTokenAccessesNonExemptRPC
+--- PASS: TestAuthInterceptor_ValidTokenAccessesNonExemptRPC (0.00s)
+=== RUN   TestAuthInterceptor_OpenAccessMode
+--- PASS: TestAuthInterceptor_OpenAccessMode (0.00s)
+=== RUN   TestAuthInterceptor_RecordUsageHasDeadline
+--- PASS: TestAuthInterceptor_RecordUsageHasDeadline (0.00s)
+=== RUN   TestAuthInterceptor_CustomHeader
+--- PASS: TestAuthInterceptor_CustomHeader (0.00s)
+=== RUN   TestAuthInterceptor_CustomHeaderPrecedence
+--- PASS: TestAuthInterceptor_CustomHeaderPrecedence (0.00s)
+=== RUN   TestStreamInterceptor_NoTokenRejectsWatchTasks
+--- PASS: TestStreamInterceptor_NoTokenRejectsWatchTasks (0.01s)
+=== RUN   TestLabelWriteScope_HarnessCanExpressTheStateChange
+=== RUN   TestLabelWriteScope_HarnessCanExpressTheStateChange/removal_moves_the_lifecycle_stage
+=== RUN   TestLabelWriteScope_HarnessCanExpressTheStateChange/addition_moves_the_lifecycle_stage
+=== RUN   TestLabelWriteScope_HarnessCanExpressTheStateChange/closed_state_is_expressible
+--- PASS: TestLabelWriteScope_HarnessCanExpressTheStateChange (0.01s)
+    --- PASS: TestLabelWriteScope_HarnessCanExpressTheStateChange/removal_moves_the_lifecycle_stage (0.01s)
+    --- PASS: TestLabelWriteScope_HarnessCanExpressTheStateChange/addition_moves_the_lifecycle_stage (0.00s)
+    --- PASS: TestLabelWriteScope_HarnessCanExpressTheStateChange/closed_state_is_expressible (0.00s)
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_unmasked
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_unmasked
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_unmasked
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_unmasked
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/deploying
+--- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen (0.15s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_unmasked (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/triage (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/accepted (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/working (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/in_review (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/wont_fix_masked_by_ft:stage/deploying (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_unmasked (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/accepted (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/working (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/in_qa (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/duplicate_masked_by_ft:stage/deploying (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_unmasked (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/accepted (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/working (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/in_review (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/cancelled_masked_by_ft:stage/deploying (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_unmasked (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/triage (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/accepted (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/in_qa (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelRequiresAcceptToReopen/ft:stage/completed_masked_by_ft:stage/deploying (0.01s)
+=== RUN   TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase
+=== RUN   TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"FT:STAGE/WONT_FIX"
+=== RUN   TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"FT:STAGE/WONT_FIX"#01
+=== RUN   TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"_ft:stage/wont_fix_"
+    authz_label_write_scope_test.go:675: OVER-PREDICTION (fail-closed): the spelling " ft:stage/wont_fix " does not reach the label through labelNamesToIDs (probe labels still [ft:stage/wont_fix]), yet the control denies it
+--- PASS: TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase (0.03s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"FT:STAGE/WONT_FIX" (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"FT:STAGE/WONT_FIX"#01 (0.01s)
+    --- PASS: TestUpdateTask_RemovingATerminalLabelIsDeniedWhateverTheCase/"_ft:stage/wont_fix_" (0.01s)
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_cancelled
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_completed
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_wont_fix
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_duplicate
+=== RUN   TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_cancelled
+--- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose (0.15s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/triage_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/accepted_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/working_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_review_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/in_qa_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_completed (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_AddingATerminalLabelRequiresClose/deploying_to_cancelled (0.01s)
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate
+--- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose (0.07s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled (0.00s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed (0.00s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate (0.01s)
+=== RUN   TestLabelWriteScope_ThePayloadIsTheLabelWriteNotTheRestamp
+--- PASS: TestLabelWriteScope_ThePayloadIsTheLabelWriteNotTheRestamp (0.01s)
+=== RUN   TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne
+=== RUN   TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne/direction_1_removal_revokes_a_decline
+=== RUN   TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne/direction_2_addition_declines_an_ordinary_task
+--- PASS: TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne (0.01s)
+    --- PASS: TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne/direction_1_removal_revokes_a_decline (0.00s)
+    --- PASS: TestUpdateTask_BothSelfServiceChainsAreDeniedAtStepOne/direction_2_addition_declines_an_ordinary_task (0.00s)
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/add_an_ordinary_label_to_a_declined_issue
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_an_ordinary_label_from_a_declined_issue
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/re_add_the_terminal_label_the_issue_already_carries
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/add_a_non_terminal_stage_label_alongside_a_terminal_one
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_the_masking_stage_label_leaving_the_terminal_one
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/ordinary_hygiene_on_an_ordinary_task
+=== RUN   TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_a_label_the_issue_does_not_carry
+--- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite (0.03s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/add_an_ordinary_label_to_a_declined_issue (0.00s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_an_ordinary_label_from_a_declined_issue (0.00s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/re_add_the_terminal_label_the_issue_already_carries (0.00s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/add_a_non_terminal_stage_label_alongside_a_terminal_one (0.00s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_the_masking_stage_label_leaving_the_terminal_one (0.01s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/ordinary_hygiene_on_an_ordinary_task (0.00s)
+    --- PASS: TestUpdateTask_LabelEditsThatInduceNoStageChangeStayTaskWrite/remove_a_label_the_issue_does_not_carry (0.00s)
+=== RUN   TestUpdateTask_LabelWritesAreInertOnNativeTasks
+=== RUN   TestUpdateTask_LabelWritesAreInertOnNativeTasks/completed
+=== RUN   TestUpdateTask_LabelWritesAreInertOnNativeTasks/wont_fix
+=== RUN   TestUpdateTask_LabelWritesAreInertOnNativeTasks/duplicate
+=== RUN   TestUpdateTask_LabelWritesAreInertOnNativeTasks/cancelled
+--- PASS: TestUpdateTask_LabelWritesAreInertOnNativeTasks (0.01s)
+    --- PASS: TestUpdateTask_LabelWritesAreInertOnNativeTasks/completed (0.00s)
+    --- PASS: TestUpdateTask_LabelWritesAreInertOnNativeTasks/wont_fix (0.00s)
+    --- PASS: TestUpdateTask_LabelWritesAreInertOnNativeTasks/duplicate (0.00s)
+    --- PASS: TestUpdateTask_LabelWritesAreInertOnNativeTasks/cancelled (0.00s)
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/not_planned_strip_is_a_no_op_and_stays_free
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping/not_planned
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping/completed
+=== RUN   TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/DISCLOSED_completed_reason_makes_the_strip_cost_close
+    authz_label_write_scope_test.go:1198: DISCLOSED: this edit cost task:write before round 5 and costs task:close now. It moves the recorded disposition wont_fix -> completed, so charging the close scope is the honest reading of the invariant, but it is a new requirement.
+--- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping (0.02s)
+    --- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/not_planned_strip_is_a_no_op_and_stays_free (0.00s)
+    --- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping (0.01s)
+        --- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping/not_planned (0.01s)
+        --- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/floor_holds_the_reopen_gate_after_stripping/completed (0.01s)
+    --- PASS: TestUpdateTask_ClosedIssueFloorSurvivesLabelStripping/DISCLOSED_completed_reason_makes_the_strip_cost_close (0.00s)
+=== RUN   TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp
+=== RUN   TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/wont_fix
+=== RUN   TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/completed
+=== RUN   TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/duplicate
+=== RUN   TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/cancelled
+--- PASS: TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp (0.02s)
+    --- PASS: TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/wont_fix (0.00s)
+    --- PASS: TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/completed (0.00s)
+    --- PASS: TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/duplicate (0.00s)
+    --- PASS: TestUpdateTask_RestampingATerminalStageOnAnOpenIssueIsAGenuineNoOp/cancelled (0.00s)
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/0_OPEN__[]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/1_OPEN__[ft:stage/accepted]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/2_OPEN__[ft:stage/working]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/3_OPEN__[ft:stage/triage]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/4_OPEN__[ft:stage/wont_fix]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/5_OPEN__[ft:stage/wont_fix_ft:stage/working]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/6_OPEN__[ft:stage/completed_ft:stage/wont_fix]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/7_OPEN__[bug]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/8_CLOSED_completed_[]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/9_CLOSED_not_planned_[]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/10_CLOSED_completed_[ft:stage/completed]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/11_CLOSED_not_planned_[ft:stage/wont_fix]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/12_CLOSED_not_planned_[ft:stage/working]
+=== RUN   TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/13_CLOSED_completed_[ft:stage/wont_fix_ft:stage/working]
+--- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels (0.03s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/0_OPEN__[] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/1_OPEN__[ft:stage/accepted] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/2_OPEN__[ft:stage/working] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/3_OPEN__[ft:stage/triage] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/4_OPEN__[ft:stage/wont_fix] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/5_OPEN__[ft:stage/wont_fix_ft:stage/working] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/6_OPEN__[ft:stage/completed_ft:stage/wont_fix] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/7_OPEN__[bug] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/8_CLOSED_completed_[] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/9_CLOSED_not_planned_[] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/10_CLOSED_completed_[ft:stage/completed] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/11_CLOSED_not_planned_[ft:stage/wont_fix] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/12_CLOSED_not_planned_[ft:stage/working] (0.00s)
+    --- PASS: TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels/13_CLOSED_completed_[ft:stage/wont_fix_ft:stage/working] (0.00s)
+=== RUN   TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday
+    authz_label_write_scope_test.go:1424: DISCLOSED RESIDUAL: CreateTask attaches a caller-supplied terminal stage label with task:write, while CreateTask(stage=completed) requires task:close. Same root, different verb, not closed by round 5.
+--- PASS: TestCreateTask_TerminalStageLabelAtCreationIsUngatedToday (0.00s)
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_completed
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_completed
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_completed
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_wont_fix
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_wont_fix
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_wont_fix
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_duplicate
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_duplicate
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_duplicate
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_cancelled
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_cancelled
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_cancelled
+=== RUN   TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/import_ignores_a_conflicting_phase
+--- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase (0.02s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_completed (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_completed (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_completed (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_wont_fix (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_wont_fix (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_wont_fix (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_duplicate (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_duplicate (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_duplicate (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/create_cancelled (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/update_cancelled (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/close_cancelled (0.00s)
+    --- PASS: TestNativeTask_TerminalStageAlwaysCarriesAClosedPhase/import_ignores_a_conflicting_phase (0.00s)
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_wont_fix_ask_wont_fix
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_duplicate_ask_duplicate
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_completed_ask_completed
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_duplicate_ask_duplicate
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_completed_ask_completed
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_wont_fix_ask_wont_fix
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_completed_ask_completed
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_wont_fix_ask_wont_fix
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_duplicate_ask_duplicate
+--- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose (0.06s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_wont_fix_ask_wont_fix (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_duplicate_ask_duplicate (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_cancelled_ask_cancelled (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_completed_ask_completed (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_duplicate_ask_duplicate (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_cancelled_ask_cancelled (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_completed_ask_completed (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_wont_fix_ask_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_cancelled_ask_cancelled (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_completed_ask_completed (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_wont_fix_ask_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_duplicate_ask_duplicate (0.01s)
+=== RUN   TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite
+=== RUN   TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/completed
+=== RUN   TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/wont_fix
+=== RUN   TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/duplicate
+=== RUN   TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/cancelled
+--- PASS: TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite (0.02s)
+    --- PASS: TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/completed (0.00s)
+    --- PASS: TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/wont_fix (0.00s)
+    --- PASS: TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/duplicate (0.00s)
+    --- PASS: TestUpdateTask_SingleTerminalRestampIsStillJustTaskWrite/cancelled (0.00s)
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_stock_duplicate_ask_duplicate
+    authz_label_write_scope_test.go:1820: DENIED by B6 + the pre-existing any->terminal rule
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_completed_ask_completed
+    authz_label_write_scope_test.go:1820: DENIED by B5
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/duplicate_plus_wont_fix_ask_wont_fix
+    authz_label_write_scope_test.go:1820: DENIED by B5
+--- PASS: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5 (0.01s)
+    --- PASS: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_stock_duplicate_ask_duplicate (0.00s)
+    --- PASS: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_completed_ask_completed (0.00s)
+    --- PASS: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/duplicate_plus_wont_fix_ask_wont_fix (0.00s)
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_prefixed_label
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_bare_stock_label
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_bare_stage_name
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/custom_prefix_custom_label
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/custom_prefix_default_label
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/empty_prefix_default_label
+=== RUN   TestTerminalStageInput_RequiresTheConfiguredPrefix/empty_prefix_bare_label
+--- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix (0.03s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_prefixed_label (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_bare_stock_label (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/default_prefix_bare_stage_name (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/custom_prefix_custom_label (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/custom_prefix_default_label (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/empty_prefix_default_label (0.00s)
+    --- PASS: TestTerminalStageInput_RequiresTheConfiguredPrefix/empty_prefix_bare_label (0.00s)
+=== RUN   TestLabelWriteScope_StockLabelBesideAnAcceptedTaskStaysReadyWork
+--- PASS: TestLabelWriteScope_StockLabelBesideAnAcceptedTaskStaysReadyWork (0.01s)
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_unmasked
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/deploying
+--- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen (0.40s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_triage_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_triage_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_triage_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_triage_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_accepted_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_accepted_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_accepted_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_accepted_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_review_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_review_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_review_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_review_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_in_qa_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_in_qa_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_in_qa_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_in_qa_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/wont_fix_to_deploying_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/duplicate_to_deploying_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/cancelled_to_deploying_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_unmasked (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_TerminalLabelledIssueStillRequiresAcceptToReopen/ft:stage/completed_to_deploying_masked_by_ft:stage/deploying (0.00s)
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/unmasked
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/working
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/deploying
+--- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue (0.03s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/unmasked (0.01s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_AcceptScopedCallerCanReopenTerminalLabelledIssue/masked_by_ft:stage/deploying (0.00s)
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/deploying
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/triage
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/accepted
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/working
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/in_review
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/in_qa
+=== RUN   TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/deploying
+--- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite (0.11s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/completed_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/wont_fix_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/in_review (0.01s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/duplicate_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestUpdateTask_RestampingTheExistingTerminalStageStaysTaskWrite/ft:stage/cancelled_masked_by_ft:stage/deploying (0.00s)
+=== RUN   TestUpdateTask_SelfServiceLabelAdditionCannotUnlockAReopen
+--- PASS: TestUpdateTask_SelfServiceLabelAdditionCannotUnlockAReopen (0.01s)
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/triage
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/accepted
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/working
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/in_review
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/in_qa
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/deploying
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/triage
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/accepted
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/working
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/in_review
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/in_qa
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/deploying
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/triage
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/accepted
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/working
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/in_review
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/in_qa
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/deploying
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/triage
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/accepted
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/working
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/in_review
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/in_qa
+=== RUN   TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/deploying
+--- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable (0.07s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/wont_fix_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/duplicate_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/cancelled_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestComputeAvailability_MaskedTerminalLabelIsStillUnavailable/ft:stage/completed_masked_by_ft:stage/deploying (0.00s)
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/triage
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/accepted
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/working
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/in_review
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/in_qa
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/deploying
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/triage
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/accepted
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/working
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/in_review
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/in_qa
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/deploying
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/triage
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/accepted
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/working
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/in_review
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/in_qa
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/deploying
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/triage
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/accepted
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/working
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/in_review
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/in_qa
+=== RUN   TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/deploying
+--- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable (0.08s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/wont_fix_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/duplicate_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/cancelled_masked_by_ft:stage/deploying (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/triage (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/accepted (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/working (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/in_review (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/in_qa (0.00s)
+    --- PASS: TestClaimTask_MaskedTerminalLabelIsNotClaimable/ft:stage/completed_masked_by_ft:stage/deploying (0.00s)
+=== RUN   TestUpdateTask_UnprefixedTerminalLabelIsNoLongerHonoured
+--- PASS: TestUpdateTask_UnprefixedTerminalLabelIsNoLongerHonoured (0.01s)
+=== RUN   TestRPC_ExportImportCollection_RoundTrip
+--- PASS: TestRPC_ExportImportCollection_RoundTrip (0.01s)
+=== RUN   TestRPC_ExportCollection_DropsCrossCollectionRelationships
+--- PASS: TestRPC_ExportCollection_DropsCrossCollectionRelationships (0.00s)
+=== RUN   TestRPC_ImportCollection_MatchesUserByEmail
+--- PASS: TestRPC_ImportCollection_MatchesUserByEmail (0.00s)
+=== RUN   TestRPC_ImportCollection_DryRunDoesNotCreateCollection
+--- PASS: TestRPC_ImportCollection_DryRunDoesNotCreateCollection (0.00s)
+=== RUN   TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes
+--- PASS: TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes (0.00s)
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/backlog
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/ready
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/blocked
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/waiting_for_input
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/deferred
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/scheduled
+--- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/backlog (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/ready (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/blocked (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/waiting_for_input (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/deferred (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages/scheduled (0.00s)
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/hold_on_triage
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/hold_on_terminal
+=== RUN   TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/deferred_future_start
+--- PASS: TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/hold_on_triage (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/hold_on_terminal (0.00s)
+    --- PASS: TestRPC_ImportCollection_FormatV2RejectsInvalidHoldState/deferred_future_start (0.00s)
+=== RUN   TestRPC_ImportCollection_CreatesUsersAtomically
+--- PASS: TestRPC_ImportCollection_CreatesUsersAtomically (0.00s)
+=== RUN   TestRPC_ImportCollection_ImportsChanges
+--- PASS: TestRPC_ImportCollection_ImportsChanges (0.00s)
+=== RUN   TestRPC_ImportCollection_AmbiguousEmailCreatesNewUser
+--- PASS: TestRPC_ImportCollection_AmbiguousEmailCreatesNewUser (0.00s)
+=== RUN   TestRPC_ImportCollection_RejectsParentCycle
+--- PASS: TestRPC_ImportCollection_RejectsParentCycle (0.00s)
+=== RUN   TestRPC_ImportExportCollection_Errors
+--- PASS: TestRPC_ImportExportCollection_Errors (0.00s)
+=== RUN   TestRPC_ImportCollection_BeadsJSONL
+--- PASS: TestRPC_ImportCollection_BeadsJSONL (0.00s)
+=== RUN   TestRPC_ImportCollection_BeadsJSONL_DryRun
+--- PASS: TestRPC_ImportCollection_BeadsJSONL_DryRun (0.00s)
+=== RUN   TestRPC_ImportCollection_UnsupportedFormat
+--- PASS: TestRPC_ImportCollection_UnsupportedFormat (0.00s)
+=== RUN   TestGraphIntegration_GetCriticalPath_SimpleChain
+--- PASS: TestGraphIntegration_GetCriticalPath_SimpleChain (0.01s)
+=== RUN   TestGraphIntegration_GetReadyTasks_SimpleChain
+--- PASS: TestGraphIntegration_GetReadyTasks_SimpleChain (0.01s)
+=== RUN   TestGraphIntegration_GetBlockedTasks_SimpleChain
+--- PASS: TestGraphIntegration_GetBlockedTasks_SimpleChain (0.01s)
+=== RUN   TestGraphIntegration_GetBottlenecks_Diamond
+--- PASS: TestGraphIntegration_GetBottlenecks_Diamond (0.01s)
+=== RUN   TestGraphIntegration_GetCriticalPath_Diamond
+--- PASS: TestGraphIntegration_GetCriticalPath_Diamond (0.01s)
+=== RUN   TestGraphIntegration_GetReadyTasks_IndependentTasks
+--- PASS: TestGraphIntegration_GetReadyTasks_IndependentTasks (0.01s)
+=== RUN   TestGraphIntegration_GetBlockedTasks_NoneBlocked
+--- PASS: TestGraphIntegration_GetBlockedTasks_NoneBlocked (0.01s)
+=== RUN   TestGraphIntegration_GetBottlenecks_SimpleChain
+--- PASS: TestGraphIntegration_GetBottlenecks_SimpleChain (0.01s)
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/CreateTask
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/CreateCollection
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/UpdateCollection
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/UpdateTask
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/ClaimTask
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/CloseTask
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/DeleteTask
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/AddComment
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/CreateLinkedAccount
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/DeleteLinkedAccount
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/ImportCollection
+=== RUN   TestIdentity_MutatingRPCsRejectLegacyAuth/InsertTasksAfter
+--- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/CreateTask (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/CreateCollection (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/UpdateCollection (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/UpdateTask (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/ClaimTask (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/CloseTask (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/DeleteTask (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/AddComment (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/CreateLinkedAccount (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/DeleteLinkedAccount (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/ImportCollection (0.00s)
+    --- PASS: TestIdentity_MutatingRPCsRejectLegacyAuth/InsertTasksAfter (0.00s)
+=== RUN   TestIdentity_MutatingRPCsAcceptValidAuth
+--- PASS: TestIdentity_MutatingRPCsAcceptValidAuth (0.01s)
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListTasks
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetTask
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListComments
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListCollections
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetCollection
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListLinkedAccounts
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListChanges
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/WhoAmI
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListUsers
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetUser
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetReadyTasks
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetBlockedTasks
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetDependencyTree
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetCriticalPath
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetBottlenecks
+=== RUN   TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ExportCollection
+--- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth (0.01s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListTasks (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetTask (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListComments (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListCollections (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetCollection (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListLinkedAccounts (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListChanges (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/WhoAmI (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ListUsers (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetUser (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetReadyTasks (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetBlockedTasks (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetDependencyTree (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetCriticalPath (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/GetBottlenecks (0.00s)
+    --- PASS: TestIdentity_ReadOnlyRPCsAccessibleWithValidAuth/ExportCollection (0.00s)
+=== RUN   TestIdentity_ChangeRecordsCaptureActor
+--- PASS: TestIdentity_ChangeRecordsCaptureActor (0.00s)
+=== RUN   TestIdentity_CloseTaskRecordsActor
+--- PASS: TestIdentity_CloseTaskRecordsActor (0.00s)
+=== RUN   TestIdentity_WatchTasksRequiresAuth
+--- PASS: TestIdentity_WatchTasksRequiresAuth (0.00s)
+=== RUN   TestIdentity_WatchTasksRejectsLegacyAuth
+--- PASS: TestIdentity_WatchTasksRejectsLegacyAuth (0.00s)
+=== RUN   TestIdentity_WatchTasksAcceptsValidAuth
+--- PASS: TestIdentity_WatchTasksAcceptsValidAuth (0.00s)
+=== RUN   TestRequireIdentity_ValidUserID
+--- PASS: TestRequireIdentity_ValidUserID (0.00s)
+=== RUN   TestRequireIdentity_NilUserID
+--- PASS: TestRequireIdentity_NilUserID (0.00s)
+=== RUN   TestRequireIdentity_NoUserInContext
+--- PASS: TestRequireIdentity_NoUserInContext (0.00s)
+=== RUN   TestRequireIdentity_OpenAccessMode
+--- PASS: TestRequireIdentity_OpenAccessMode (0.00s)
+=== RUN   TestWhoAmI
+--- PASS: TestWhoAmI (0.00s)
+=== RUN   TestWhoAmI_Unauthenticated
+--- PASS: TestWhoAmI_Unauthenticated (0.00s)
+=== RUN   TestClaimTask_PropagatesUserID
+--- PASS: TestClaimTask_PropagatesUserID (0.00s)
+=== RUN   TestAddComment_PropagatesUserID
+--- PASS: TestAddComment_PropagatesUserID (0.00s)
+=== RUN   TestListUsers
+--- PASS: TestListUsers (0.00s)
+=== RUN   TestGetUser
+--- PASS: TestGetUser (0.00s)
+=== RUN   TestUpdateTask_PropagatesActorID
+--- PASS: TestUpdateTask_PropagatesActorID (0.00s)
+=== RUN   TestEvidence_Stage4ScopeMatrix
+    lifecycle_evidence_test.go:41: token role=agent         scopes=[task:read task:write task:claim collection:read]
+    lifecycle_evidence_test.go:41: token role=reviewer      scopes=[task:read task:write task:claim task:accept task:close collection:read]
+    lifecycle_evidence_test.go:41: token role=orchestrator  scopes=[task:read task:write task:claim task:accept task:close collection:read]
+=== RUN   TestEvidence_Stage4ScopeMatrix/a_agent_cannot_accept_or_close
+    lifecycle_evidence_test.go:68: agent  UpdateTask triage→ready       (needs task:accept)   => PermissionDenied msg=missing required scope "task:accept"
+    lifecycle_evidence_test.go:74: agent  UpdateTask triage→working     (use ClaimTask)       => InvalidArgument msg=stage=working starts execution; use ClaimTask so availability and self-assignment are enforced
+    lifecycle_evidence_test.go:82: agent  CloseTask                     (needs task:close)    => PermissionDenied msg=missing required scope "task:close"
+    lifecycle_evidence_test.go:86: agent  UpdateTask working→completed  (needs task:close)    => PermissionDenied msg=missing required scope "task:close"
+=== RUN   TestEvidence_Stage4ScopeMatrix/b_lifecycle_roles_full_authority
+    lifecycle_evidence_test.go:99: reviewer UpdateTask triage→ready       (task:accept)       => OK
+    lifecycle_evidence_test.go:105: reviewer ClaimTask ready→working       (task:claim)        => OK
+    lifecycle_evidence_test.go:109: reviewer UpdateTask working→in_review  (task:write)        => OK
+    lifecycle_evidence_test.go:115: reviewer CloseTask  in_review→completed (task:close)       => OK
+    lifecycle_evidence_test.go:119: reviewer UpdateTask completed→accepted (task:accept)       => OK
+    lifecycle_evidence_test.go:99: orchestrator UpdateTask triage→ready       (task:accept)   => OK
+    lifecycle_evidence_test.go:105: orchestrator ClaimTask ready→working       (task:claim)    => OK
+    lifecycle_evidence_test.go:109: orchestrator UpdateTask working→in_review  (task:write)    => OK
+    lifecycle_evidence_test.go:115: orchestrator CloseTask  in_review→completed (task:close)   => OK
+    lifecycle_evidence_test.go:119: orchestrator UpdateTask completed→accepted (task:accept)   => OK
+=== RUN   TestEvidence_Stage4ScopeMatrix/c_agent_can_still_claim_accepted_task
+    lifecycle_evidence_test.go:133: agent  ClaimTask ready→working       (task:claim)          => OK
+    lifecycle_evidence_test.go:137: agent  UpdateTask working→in_review  (task:write)          => OK
+    lifecycle_evidence_test.go:143: agent  UpdateTask working→blocked    (task:write)          => OK
+=== RUN   TestEvidence_Stage4ScopeMatrix/d_claim_from_triage_rejected_for_every_role
+    lifecycle_evidence_test.go:159: agent ClaimTask from triage         (precondition)         => FailedPrecondition msg=task unavailable
+    lifecycle_evidence_test.go:159: reviewer ClaimTask from triage         (precondition)      => FailedPrecondition msg=task unavailable
+    lifecycle_evidence_test.go:159: orchestrator ClaimTask from triage         (precondition)  => FailedPrecondition msg=task unavailable
+    lifecycle_evidence_test.go:159: admin ClaimTask from triage         (precondition)         => FailedPrecondition msg=task unavailable
+--- PASS: TestEvidence_Stage4ScopeMatrix (0.03s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/a_agent_cannot_accept_or_close (0.00s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/b_lifecycle_roles_full_authority (0.01s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/c_agent_can_still_claim_accepted_task (0.00s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/d_claim_from_triage_rejected_for_every_role (0.01s)
+=== RUN   TestRPC_CreateLinkedAccount
+=== RUN   TestRPC_CreateLinkedAccount/success
+=== RUN   TestRPC_CreateLinkedAccount/auth_token_not_returned
+=== RUN   TestRPC_CreateLinkedAccount/with_expires_at
+=== RUN   TestRPC_CreateLinkedAccount/missing_platform
+=== RUN   TestRPC_CreateLinkedAccount/missing_auth_method
+=== RUN   TestRPC_CreateLinkedAccount/missing_auth_token
+=== RUN   TestRPC_CreateLinkedAccount/invalid_collection_id
+--- PASS: TestRPC_CreateLinkedAccount (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/success (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/auth_token_not_returned (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/with_expires_at (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/missing_platform (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/missing_auth_method (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/missing_auth_token (0.00s)
+    --- PASS: TestRPC_CreateLinkedAccount/invalid_collection_id (0.00s)
+=== RUN   TestRPC_GetLinkedAccount
+=== RUN   TestRPC_GetLinkedAccount/success
+=== RUN   TestRPC_GetLinkedAccount/not_found
+=== RUN   TestRPC_GetLinkedAccount/invalid_id
+--- PASS: TestRPC_GetLinkedAccount (0.00s)
+    --- PASS: TestRPC_GetLinkedAccount/success (0.00s)
+    --- PASS: TestRPC_GetLinkedAccount/not_found (0.00s)
+    --- PASS: TestRPC_GetLinkedAccount/invalid_id (0.00s)
+=== RUN   TestRPC_DeleteLinkedAccount
+=== RUN   TestRPC_DeleteLinkedAccount/success
+=== RUN   TestRPC_DeleteLinkedAccount/not_found
+=== RUN   TestRPC_DeleteLinkedAccount/invalid_id
+--- PASS: TestRPC_DeleteLinkedAccount (0.00s)
+    --- PASS: TestRPC_DeleteLinkedAccount/success (0.00s)
+    --- PASS: TestRPC_DeleteLinkedAccount/not_found (0.00s)
+    --- PASS: TestRPC_DeleteLinkedAccount/invalid_id (0.00s)
+=== RUN   TestRPC_ListLinkedAccounts
+=== RUN   TestRPC_ListLinkedAccounts/list_all
+=== RUN   TestRPC_ListLinkedAccounts/filter_by_collection
+=== RUN   TestRPC_ListLinkedAccounts/filter_by_platform
+=== RUN   TestRPC_ListLinkedAccounts/pagination
+=== RUN   TestRPC_ListLinkedAccounts/empty_collection
+--- PASS: TestRPC_ListLinkedAccounts (0.00s)
+    --- PASS: TestRPC_ListLinkedAccounts/list_all (0.00s)
+    --- PASS: TestRPC_ListLinkedAccounts/filter_by_collection (0.00s)
+    --- PASS: TestRPC_ListLinkedAccounts/filter_by_platform (0.00s)
+    --- PASS: TestRPC_ListLinkedAccounts/pagination (0.00s)
+    --- PASS: TestRPC_ListLinkedAccounts/empty_collection (0.00s)
+=== RUN   TestPassthroughE2E
+=== RUN   TestPassthroughE2E/ListTasks_returns_github_issues
+=== RUN   TestPassthroughE2E/GetCollection_returns_github_platform
+=== RUN   TestPassthroughE2E/LinkedAccount_retrievable
+=== RUN   TestPassthroughE2E/WatchTasks_returns_unimplemented
+=== RUN   TestPassthroughE2E/ListTasks_cached_store
+--- PASS: TestPassthroughE2E (0.00s)
+    --- PASS: TestPassthroughE2E/ListTasks_returns_github_issues (0.00s)
+    --- PASS: TestPassthroughE2E/GetCollection_returns_github_platform (0.00s)
+    --- PASS: TestPassthroughE2E/LinkedAccount_retrievable (0.00s)
+    --- PASS: TestPassthroughE2E/WatchTasks_returns_unimplemented (0.00s)
+    --- PASS: TestPassthroughE2E/ListTasks_cached_store (0.00s)
+=== RUN   TestPassthroughE2E_NativeCollectionUnaffected
+--- PASS: TestPassthroughE2E_NativeCollectionUnaffected (0.00s)
+=== RUN   TestPassthroughE2E_LazyResolutionWithoutLinkedAccount
+--- PASS: TestPassthroughE2E_LazyResolutionWithoutLinkedAccount (0.00s)
+=== RUN   TestRequireScope_WildcardAllows
+--- PASS: TestRequireScope_WildcardAllows (0.00s)
+=== RUN   TestRequireScope_NilScopesIsWildcard
+--- PASS: TestRequireScope_NilScopesIsWildcard (0.00s)
+=== RUN   TestRequireScope_EmptyScopesIsWildcard
+--- PASS: TestRequireScope_EmptyScopesIsWildcard (0.00s)
+=== RUN   TestRequireScope_SpecificScopeAllows
+--- PASS: TestRequireScope_SpecificScopeAllows (0.00s)
+=== RUN   TestRequireScope_MissingScopeRejectsPermissionDenied
+--- PASS: TestRequireScope_MissingScopeRejectsPermissionDenied (0.00s)
+=== RUN   TestRequireScope_NoAuthEnforcedAllows
+--- PASS: TestRequireScope_NoAuthEnforcedAllows (0.00s)
+=== RUN   TestRequireCollectionAccess_NoRestrictions
+--- PASS: TestRequireCollectionAccess_NoRestrictions (0.00s)
+=== RUN   TestRequireCollectionAccess_AllowedCollection
+--- PASS: TestRequireCollectionAccess_AllowedCollection (0.00s)
+=== RUN   TestRequireCollectionAccess_DeniedCollection
+--- PASS: TestRequireCollectionAccess_DeniedCollection (0.00s)
+=== RUN   TestDefaultScopesForUserType
+=== RUN   TestDefaultScopesForUserType/admin
+=== RUN   TestDefaultScopesForUserType/agent
+=== RUN   TestDefaultScopesForUserType/viewer
+=== RUN   TestDefaultScopesForUserType/human
+=== RUN   TestDefaultScopesForUserType/service_account
+--- PASS: TestDefaultScopesForUserType (0.00s)
+    --- PASS: TestDefaultScopesForUserType/admin (0.00s)
+    --- PASS: TestDefaultScopesForUserType/agent (0.00s)
+    --- PASS: TestDefaultScopesForUserType/viewer (0.00s)
+    --- PASS: TestDefaultScopesForUserType/human (0.00s)
+    --- PASS: TestDefaultScopesForUserType/service_account (0.00s)
+=== RUN   TestValidateScopes_Valid
+--- PASS: TestValidateScopes_Valid (0.00s)
+=== RUN   TestValidateScopes_Invalid
+--- PASS: TestValidateScopes_Invalid (0.00s)
+=== RUN   TestScopedToken_WildcardAllowsEverything
+--- PASS: TestScopedToken_WildcardAllowsEverything (0.00s)
+=== RUN   TestScopedToken_ExistingTokenNilScopesIsWildcard
+--- PASS: TestScopedToken_ExistingTokenNilScopesIsWildcard (0.00s)
+=== RUN   TestScopedToken_ReadOnlyCannotWrite
+--- PASS: TestScopedToken_ReadOnlyCannotWrite (0.00s)
+=== RUN   TestScopedToken_TaskClaimRequiresScope
+--- PASS: TestScopedToken_TaskClaimRequiresScope (0.00s)
+=== RUN   TestScopedToken_CollectionScopingRestricts
+--- PASS: TestScopedToken_CollectionScopingRestricts (0.00s)
+=== RUN   TestScopedToken_UserReadRestriction
+--- PASS: TestScopedToken_UserReadRestriction (0.00s)
+=== RUN   TestScopedToken_TokenManageRequired
+--- PASS: TestScopedToken_TokenManageRequired (0.00s)
+=== RUN   TestScopedToken_CollectionAdminRequired
+--- PASS: TestScopedToken_CollectionAdminRequired (0.00s)
+=== RUN   TestCreateAPIToken_WithScopes
+--- PASS: TestCreateAPIToken_WithScopes (0.00s)
+=== RUN   TestCreateAPIToken_WithCollectionIDs
+--- PASS: TestCreateAPIToken_WithCollectionIDs (0.00s)
+=== RUN   TestCreateAPIToken_NoScopes
+--- PASS: TestCreateAPIToken_NoScopes (0.00s)
+=== RUN   TestLookupToken_ReturnsScopesAndCollectionIDs
+--- PASS: TestLookupToken_ReturnsScopesAndCollectionIDs (0.00s)
+=== RUN   TestScopedToken_AgentCannotAcceptFromTriage
+--- PASS: TestScopedToken_AgentCannotAcceptFromTriage (0.01s)
+=== RUN   TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold
+--- PASS: TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold (0.01s)
+=== RUN   TestScopedToken_AgentCannotCreateInAcceptedStage
+--- PASS: TestScopedToken_AgentCannotCreateInAcceptedStage (0.00s)
+=== RUN   TestScopedToken_AgentCannotCreateInCompletedStage
+--- PASS: TestScopedToken_AgentCannotCreateInCompletedStage (0.00s)
+=== RUN   TestScopedToken_ReviewerCanCreateInAcceptedStage
+--- PASS: TestScopedToken_ReviewerCanCreateInAcceptedStage (0.00s)
+=== RUN   TestScopedToken_AgentCannotClose
+--- PASS: TestScopedToken_AgentCannotClose (0.00s)
+=== RUN   TestScopedToken_AgentCanClaimAcceptedTask
+--- PASS: TestScopedToken_AgentCanClaimAcceptedTask (0.00s)
+=== RUN   TestRPC_ClaimTask_RejectsTriageStage
+--- PASS: TestRPC_ClaimTask_RejectsTriageStage (0.01s)
+=== RUN   TestScopedToken_ReviewerFullLifecycle
+=== RUN   TestScopedToken_ReviewerFullLifecycle/reviewer
+=== RUN   TestScopedToken_ReviewerFullLifecycle/orchestrator
+--- PASS: TestScopedToken_ReviewerFullLifecycle (0.02s)
+    --- PASS: TestScopedToken_ReviewerFullLifecycle/reviewer (0.01s)
+    --- PASS: TestScopedToken_ReviewerFullLifecycle/orchestrator (0.01s)
+=== RUN   TestScopedToken_ReopenRequiresAccept
+--- PASS: TestScopedToken_ReopenRequiresAccept (0.01s)
+=== RUN   TestScopedToken_LegacyNilScopesKeepLifecycleAccess
+--- PASS: TestScopedToken_LegacyNilScopesKeepLifecycleAccess (0.00s)
+=== RUN   TestRPC_CreateAndGetTask
+--- PASS: TestRPC_CreateAndGetTask (0.00s)
+=== RUN   TestRPC_UpdateCollection
+=== RUN   TestRPC_UpdateCollection/updates_name_and_description
+=== RUN   TestRPC_UpdateCollection/updates_only_name
+=== RUN   TestRPC_UpdateCollection/updates_only_description
+=== RUN   TestRPC_UpdateCollection/returns_current_collection_for_no-op_update
+=== RUN   TestRPC_UpdateCollection/returns_not_found_for_nonexistent_collection
+=== RUN   TestRPC_UpdateCollection/rejects_empty_name
+--- PASS: TestRPC_UpdateCollection (0.01s)
+    --- PASS: TestRPC_UpdateCollection/updates_name_and_description (0.00s)
+    --- PASS: TestRPC_UpdateCollection/updates_only_name (0.00s)
+    --- PASS: TestRPC_UpdateCollection/updates_only_description (0.00s)
+    --- PASS: TestRPC_UpdateCollection/returns_current_collection_for_no-op_update (0.00s)
+    --- PASS: TestRPC_UpdateCollection/returns_not_found_for_nonexistent_collection (0.00s)
+    --- PASS: TestRPC_UpdateCollection/rejects_empty_name (0.00s)
+=== RUN   TestRPC_CreateTask_InvalidInput
+=== RUN   TestRPC_CreateTask_InvalidInput/blank_name
+=== RUN   TestRPC_CreateTask_InvalidInput/name_too_long
+=== RUN   TestRPC_CreateTask_InvalidInput/description_too_long
+=== RUN   TestRPC_CreateTask_InvalidInput/unknown_stage
+=== RUN   TestRPC_CreateTask_InvalidInput/unknown_priority
+--- PASS: TestRPC_CreateTask_InvalidInput (0.00s)
+    --- PASS: TestRPC_CreateTask_InvalidInput/blank_name (0.00s)
+    --- PASS: TestRPC_CreateTask_InvalidInput/name_too_long (0.00s)
+    --- PASS: TestRPC_CreateTask_InvalidInput/description_too_long (0.00s)
+    --- PASS: TestRPC_CreateTask_InvalidInput/unknown_stage (0.00s)
+    --- PASS: TestRPC_CreateTask_InvalidInput/unknown_priority (0.00s)
+=== RUN   TestRPC_InsertTasksAfter
+--- PASS: TestRPC_InsertTasksAfter (0.01s)
+=== RUN   TestRPC_InsertTasksAfter_InvalidInput
+=== RUN   TestRPC_InsertTasksAfter_InvalidInput/blank_step_name
+=== RUN   TestRPC_InsertTasksAfter_InvalidInput/empty_steps
+--- PASS: TestRPC_InsertTasksAfter_InvalidInput (0.00s)
+    --- PASS: TestRPC_InsertTasksAfter_InvalidInput/blank_step_name (0.00s)
+    --- PASS: TestRPC_InsertTasksAfter_InvalidInput/empty_steps (0.00s)
+=== RUN   TestRPC_UpdateTask_InvalidTextInput
+=== RUN   TestRPC_UpdateTask_InvalidTextInput/blank_name
+=== RUN   TestRPC_UpdateTask_InvalidTextInput/name_too_long
+=== RUN   TestRPC_UpdateTask_InvalidTextInput/description_too_long
+--- PASS: TestRPC_UpdateTask_InvalidTextInput (0.00s)
+    --- PASS: TestRPC_UpdateTask_InvalidTextInput/blank_name (0.00s)
+    --- PASS: TestRPC_UpdateTask_InvalidTextInput/name_too_long (0.00s)
+    --- PASS: TestRPC_UpdateTask_InvalidTextInput/description_too_long (0.00s)
+=== RUN   TestRPC_CreateTaskRejectsDirectWorkingStage
+--- PASS: TestRPC_CreateTaskRejectsDirectWorkingStage (0.00s)
+=== RUN   TestRPC_UpdateTaskRejectsDirectWorkingStage
+--- PASS: TestRPC_UpdateTaskRejectsDirectWorkingStage (0.00s)
+=== RUN   TestRPC_ListTasks_Pagination
+--- PASS: TestRPC_ListTasks_Pagination (0.00s)
+=== RUN   TestRPC_UpdateTask_VersionConflict
+=== RUN   TestRPC_UpdateTask_VersionConflict/correct_version_succeeds
+=== RUN   TestRPC_UpdateTask_VersionConflict/wrong_version_returns_Aborted
+--- PASS: TestRPC_UpdateTask_VersionConflict (0.00s)
+    --- PASS: TestRPC_UpdateTask_VersionConflict/correct_version_succeeds (0.00s)
+    --- PASS: TestRPC_UpdateTask_VersionConflict/wrong_version_returns_Aborted (0.00s)
+=== RUN   TestRPC_UpdateTask_RemoteReference
+--- PASS: TestRPC_UpdateTask_RemoteReference (0.00s)
+=== RUN   TestRPC_ClaimTask
+=== RUN   TestRPC_ClaimTask/double_claim_returns_FailedPrecondition
+--- PASS: TestRPC_ClaimTask (0.00s)
+    --- PASS: TestRPC_ClaimTask/double_claim_returns_FailedPrecondition (0.00s)
+=== RUN   TestRPC_CloseTask
+=== RUN   TestRPC_CloseTask/close_as_completed
+=== RUN   TestRPC_CloseTask/close_with_invalid_stage_returns_error
+--- PASS: TestRPC_CloseTask (0.00s)
+    --- PASS: TestRPC_CloseTask/close_as_completed (0.00s)
+    --- PASS: TestRPC_CloseTask/close_with_invalid_stage_returns_error (0.00s)
+=== RUN   TestRPC_UpdateTask_WithoutVersion
+--- PASS: TestRPC_UpdateTask_WithoutVersion (0.00s)
+=== RUN   TestRPC_ClaimTask_ClosedTask
+--- PASS: TestRPC_ClaimTask_ClosedTask (0.00s)
+=== RUN   TestRPC_ListTasks_PageSizeCap
+--- PASS: TestRPC_ListTasks_PageSizeCap (0.00s)
+=== RUN   TestRPC_ListCollections_InvalidPlatform
+--- PASS: TestRPC_ListCollections_InvalidPlatform (0.00s)
+=== RUN   TestRPC_ListUsers_InvalidType
+--- PASS: TestRPC_ListUsers_InvalidType (0.00s)
+=== RUN   TestRPC_GetVersion
+--- PASS: TestRPC_GetVersion (0.00s)
+=== RUN   TestRPC_GetStatus
+--- PASS: TestRPC_GetStatus (0.00s)
+=== RUN   TestRPC_CreateTask_WithLabels
+--- PASS: TestRPC_CreateTask_WithLabels (0.00s)
+=== RUN   TestRPC_UpdateTask_Dates
+--- PASS: TestRPC_UpdateTask_Dates (0.00s)
+=== RUN   TestRPC_ListTasks_FilterByPriority
+--- PASS: TestRPC_ListTasks_FilterByPriority (0.00s)
+=== RUN   TestRPC_UpdateTask_Labels
+--- PASS: TestRPC_UpdateTask_Labels (0.00s)
+=== RUN   TestRPC_ListTasks_Sort
+--- PASS: TestRPC_ListTasks_Sort (0.00s)
+=== RUN   TestRPC_UpdateTask_AuditTrail
+--- PASS: TestRPC_UpdateTask_AuditTrail (0.00s)
+=== RUN   TestRPC_GetReadyTasks
+=== RUN   TestRPC_GetReadyTasks/resolved_blocker_becomes_ready
+--- PASS: TestRPC_GetReadyTasks (0.00s)
+    --- PASS: TestRPC_GetReadyTasks/resolved_blocker_becomes_ready (0.00s)
+=== RUN   TestRPC_GetReadyTasksIncludeUnblockedOpenIncludesUnavailableReasons
+--- PASS: TestRPC_GetReadyTasksIncludeUnblockedOpenIncludesUnavailableReasons (0.00s)
+=== RUN   TestRPC_GetReadyTasksRejectsInvalidMinPriority
+--- PASS: TestRPC_GetReadyTasksRejectsInvalidMinPriority (0.00s)
+=== RUN   TestRPC_GetBlockedTasks
+--- PASS: TestRPC_GetBlockedTasks (0.00s)
+=== RUN   TestRPC_GetBlockedTasks_TerminalDependencyMatrix
+=== RUN   TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_COMPLETED
+=== RUN   TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_WONT_FIX
+=== RUN   TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_CANCELLED
+=== RUN   TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_DUPLICATE
+--- PASS: TestRPC_GetBlockedTasks_TerminalDependencyMatrix (0.02s)
+    --- PASS: TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_COMPLETED (0.00s)
+    --- PASS: TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_WONT_FIX (0.00s)
+    --- PASS: TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_CANCELLED (0.00s)
+    --- PASS: TestRPC_GetBlockedTasks_TerminalDependencyMatrix/TASK_STAGE_DUPLICATE (0.01s)
+=== RUN   TestRPC_GetDependencyTree
+--- PASS: TestRPC_GetDependencyTree (0.01s)
+=== RUN   TestRPC_GetCriticalPath
+--- PASS: TestRPC_GetCriticalPath (0.01s)
+=== RUN   TestRPC_GetBottlenecks
+--- PASS: TestRPC_GetBottlenecks (0.01s)
+=== RUN   TestRPC_GetBottlenecks_BlockedBy
+--- PASS: TestRPC_GetBottlenecks_BlockedBy (0.01s)
+=== RUN   TestRPC_GetCriticalPath_DiamondDAG
+--- PASS: TestRPC_GetCriticalPath_DiamondDAG (0.01s)
+=== RUN   TestTransitionScope_Table
+=== RUN   TestTransitionScope_Table/triage_to_accepted
+=== RUN   TestTransitionScope_Table/triage_remains_accepted
+=== RUN   TestTransitionScope_Table/triage_to_working
+=== RUN   TestTransitionScope_Table/triage_to_in_review
+=== RUN   TestTransitionScope_Table/triage_to_in_qa
+=== RUN   TestTransitionScope_Table/triage_to_deploying
+=== RUN   TestTransitionScope_Table/triage_to_held_accepted
+=== RUN   TestTransitionScope_Table/accepted_to_working
+=== RUN   TestTransitionScope_Table/claimable_accepted_to_working
+=== RUN   TestTransitionScope_Table/held_accepted_to_working
+=== RUN   TestTransitionScope_Table/in_review_to_working
+=== RUN   TestTransitionScope_Table/deferred_hold_to_working
+=== RUN   TestTransitionScope_Table/working_to_in_review
+=== RUN   TestTransitionScope_Table/working_to_in_qa
+=== RUN   TestTransitionScope_Table/working_to_deploying
+=== RUN   TestTransitionScope_Table/working_to_completed
+=== RUN   TestTransitionScope_Table/triage_to_completed
+=== RUN   TestTransitionScope_Table/accepted_to_wont_fix
+=== RUN   TestTransitionScope_Table/accepted_to_duplicate
+=== RUN   TestTransitionScope_Table/accepted_to_cancelled
+=== RUN   TestTransitionScope_Table/in_review_to_completed
+=== RUN   TestTransitionScope_Table/completed_to_cancelled
+=== RUN   TestTransitionScope_Table/wont_fix_to_duplicate
+=== RUN   TestTransitionScope_Table/completed_to_triage
+=== RUN   TestTransitionScope_Table/completed_to_accepted
+=== RUN   TestTransitionScope_Table/cancelled_to_accepted
+=== RUN   TestTransitionScope_Table/wont_fix_to_triage
+=== RUN   TestTransitionScope_Table/duplicate_to_accepted
+=== RUN   TestTransitionScope_Table/completed_to_working
+=== RUN   TestTransitionScope_Table/completed_to_held_accepted
+=== RUN   TestTransitionScope_Table/working_to_accepted_hold
+=== RUN   TestTransitionScope_Table/working_to_waiting_hold
+=== RUN   TestTransitionScope_Table/working_to_deferred_hold
+=== RUN   TestTransitionScope_Table/accepted_to_held_accepted
+=== RUN   TestTransitionScope_Table/accepted_order_change
+=== RUN   TestTransitionScope_Table/accepted_metadata_change
+=== RUN   TestTransitionScope_Table/in_review_to_in_qa
+=== RUN   TestTransitionScope_Table/held_accepted_to_accepted
+=== RUN   TestTransitionScope_Table/working_to_accepted
+--- PASS: TestTransitionScope_Table (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_remains_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_in_review (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_deploying (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_held_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/claimable_accepted_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/held_accepted_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/deferred_hold_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_in_review (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_deploying (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/triage_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_to_wont_fix (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_to_duplicate (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_to_cancelled (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_completed (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_cancelled (0.00s)
+    --- PASS: TestTransitionScope_Table/wont_fix_to_duplicate (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_triage (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/cancelled_to_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/wont_fix_to_triage (0.00s)
+    --- PASS: TestTransitionScope_Table/duplicate_to_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_working (0.00s)
+    --- PASS: TestTransitionScope_Table/completed_to_held_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_accepted_hold (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_waiting_hold (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_deferred_hold (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_to_held_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_order_change (0.00s)
+    --- PASS: TestTransitionScope_Table/accepted_metadata_change (0.00s)
+    --- PASS: TestTransitionScope_Table/in_review_to_in_qa (0.00s)
+    --- PASS: TestTransitionScope_Table/held_accepted_to_accepted (0.00s)
+    --- PASS: TestTransitionScope_Table/working_to_accepted (0.00s)
+=== RUN   TestTransitionScope_NoOpStageIsWrite
+--- PASS: TestTransitionScope_NoOpStageIsWrite (0.00s)
+=== RUN   TestTransitionScope_UnknownStagesFallBackToWrite
+--- PASS: TestTransitionScope_UnknownStagesFallBackToWrite (0.00s)
+=== RUN   TestTransitionScope_AllStagePairsResolveToKnownScope
+--- PASS: TestTransitionScope_AllStagePairsResolveToKnownScope (0.00s)
+=== RUN   TestTransitionScope_CollectionIDIgnored
+--- PASS: TestTransitionScope_CollectionIDIgnored (0.00s)
+=== RUN   TestAllScopes_IncludesNewScopes
+--- PASS: TestAllScopes_IncludesNewScopes (0.00s)
+=== RUN   TestDefaultScopesForUserType_LifecycleRoles
+=== RUN   TestDefaultScopesForUserType_LifecycleRoles/agent
+=== RUN   TestDefaultScopesForUserType_LifecycleRoles/reviewer
+=== RUN   TestDefaultScopesForUserType_LifecycleRoles/orchestrator
+--- PASS: TestDefaultScopesForUserType_LifecycleRoles (0.00s)
+    --- PASS: TestDefaultScopesForUserType_LifecycleRoles/agent (0.00s)
+    --- PASS: TestDefaultScopesForUserType_LifecycleRoles/reviewer (0.00s)
+    --- PASS: TestDefaultScopesForUserType_LifecycleRoles/orchestrator (0.00s)
+=== RUN   TestWatchTasks_IncludeInitial
+--- PASS: TestWatchTasks_IncludeInitial (0.00s)
+=== RUN   TestWatchTasks_NoInitial
+--- PASS: TestWatchTasks_NoInitial (0.00s)
+=== RUN   TestWatchTasks_CreatedEvent
+--- PASS: TestWatchTasks_CreatedEvent (0.00s)
+=== RUN   TestWatchTasks_UpdatedEvent
+--- PASS: TestWatchTasks_UpdatedEvent (0.00s)
+=== RUN   TestWatchTasks_ClosedEvent
+--- PASS: TestWatchTasks_ClosedEvent (0.00s)
+=== RUN   TestWatchTasks_ClaimEvent
+--- PASS: TestWatchTasks_ClaimEvent (0.00s)
+=== RUN   TestWatchTasks_SequenceNumbers
+--- PASS: TestWatchTasks_SequenceNumbers (0.00s)
+=== RUN   TestWatchTasks_CollectionFilter
+--- PASS: TestWatchTasks_CollectionFilter (0.00s)
+=== RUN   TestWatchTasks_Heartbeat
+--- PASS: TestWatchTasks_Heartbeat (0.00s)
+=== RUN   TestWatchTasks_PassThroughReturnsUnimplemented
+--- PASS: TestWatchTasks_PassThroughReturnsUnimplemented (0.00s)
+=== RUN   TestWatchTasks_InvalidFilters
+=== RUN   TestWatchTasks_InvalidFilters/collection_id
+=== RUN   TestWatchTasks_InvalidFilters/phase
+=== RUN   TestWatchTasks_InvalidFilters/stage
+=== RUN   TestWatchTasks_InvalidFilters/assignee
+=== RUN   TestWatchTasks_InvalidFilters/task_id
+=== RUN   TestWatchTasks_InvalidFilters/priority
+--- PASS: TestWatchTasks_InvalidFilters (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/collection_id (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/phase (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/stage (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/assignee (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/task_id (0.00s)
+    --- PASS: TestWatchTasks_InvalidFilters/priority (0.00s)
+=== RUN   TestWatchTasks_ExternalCollectionReturnsUnimplemented
+=== RUN   TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_GITHUB
+=== RUN   TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_LINEAR
+=== RUN   TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_JIRA
+=== RUN   TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_ASANA
+--- PASS: TestWatchTasks_ExternalCollectionReturnsUnimplemented (0.00s)
+    --- PASS: TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_GITHUB (0.00s)
+    --- PASS: TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_LINEAR (0.00s)
+    --- PASS: TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_JIRA (0.00s)
+    --- PASS: TestWatchTasks_ExternalCollectionReturnsUnimplemented/PLATFORM_ASANA (0.00s)
+=== RUN   TestWatchTasks_FarmtableCollectionAllowed
+--- PASS: TestWatchTasks_FarmtableCollectionAllowed (0.00s)
+=== RUN   TestWatchTasks_NoCollectionFilterAllowed
+--- PASS: TestWatchTasks_NoCollectionFilterAllowed (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	2.004s

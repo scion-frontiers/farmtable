@@ -1,0 +1,107 @@
+RULING. YOU WERE RIGHT TO STOP, AND THE THING YOU COULD NOT CHECK WAS MY FAULT, NOT A GAP.
+
+0. THE CONTRACT WORDING EXISTS. YOU COULD NOT FIND IT BECAUSE I DID NOT TELL YOU WHERE IT LIVES.
+
+You reported ZERO occurrences of "prime" in any markdown in the repo and refused to guess.
+That was correct and it was the right refusal. The reason you found zero is that the contract
+is not in the repo at all. It is on the scratchpad volume, and my brief said "the contract's
+acceptance criteria" with no path. You searched the only corpus I had pointed you at.
+
+Here it is, pasted from output, with the command shown.
+
+  grep -rn -w -i 'prime' /scion-volumes/scratchpad/projects/farmtable/briefs
+
+  briefs/farmtable-dev-task-state-core.md:8:
+    Removed native stage vocabulary must not survive as writeable/selectable native
+    values: backlog, ready, blocked, scheduled, stage-level waiting_for_input,
+    stage-level deferred, and prime on_hold.
+
+  briefs/farmtable-architect-task-state-contract.md:81:
+    on_hold as a prime stage: replace with a hold/modifier axis.
+
+  briefs/farmtable-architect-task-state-contract.md:87:
+    Specify hold reason as an optional modifier axis, not as prime workflow stage.
+
+MY BRIEF ERROR, AND IT IS A CLASS, NOT A SLIP: A CITATION TO "THE CONTRACT" WITH NO PATH IS
+UNCHECKABLE BY THE ONLY PARTY WHO WOULD EVER CHECK IT. I asked you to verify a premise against
+a document I did not locate for you, in a corpus that does not contain it. The failure mode
+this normally produces is a leg guessing the wording and building on the guess. You did not.
+
+1. THE ANSWER TO (a): IT MEANS SETTABLE. CLOSE WITH NO CODE CHANGE.
+
+"prime" is contract vocabulary, not emphasis. It means on_hold AS A TOP-LEVEL WORKFLOW STAGE,
+as against the hold/modifier axis that line 81 says should replace it. The criterion is
+"must not survive as writeable/selectable NATIVE VALUES" - the object is the native stage
+value, and the prohibited act is writing one.
+
+Your three independent facts answer exactly that question, and they answer it in the
+project's favour: phaseForStage has no ON_HOLD branch, TaskStage has no on-hold stage, and
+ON_HOLD_STAGES is empty so zero columns render. Main complies, and complied before I wrote
+the task. Section 0 closes NOT DONE BECAUSE NOT A DEFECT, which your brief pre-authorised as
+a full result, and I am recording it as one.
+
+2. YOUR REFUSAL TO REMOVE THE FILTER IS UPHELD, AND THE CONTRACT UPHOLDS IT HARDER THAN YOU KNEW.
+
+You declined on the grounds that removing it deletes the only way to FIND a state the backend
+actively produces, and that this is a capability regression rather than a fix. Correct. And
+line 81 makes it stronger than a judgement call: the contract does not delete holds, it
+RELOCATES them to a modifier axis. A system that still has holds still has to let a user find
+them. Deleting the filter would have moved main FURTHER from the contract while appearing to
+implement it. You would have shipped a compliance regression labelled as a compliance fix.
+
+I am flagging one genuine ambiguity to the coordinator rather than resolving it silently:
+"selectable" is doing two jobs in that sentence. A filter dropdown is selectable in the UI
+sense. My ruling is that the clause governs selecting a native VALUE for a task, not selecting
+a VIEW over tasks, because the object of the sentence is "native values". That reading is mine
+and it is a RULING, not a MEASUREMENT. If the coordinator overturns it the scope becomes the
+three files you named and it is a product decision, not yours or mine.
+
+3. YOUR CORRECTION TO MY SECTION 3 IS ACCEPTED AT FULL STRENGTH.
+
+I wrote that tsconfig.test.json include is src/**/*.test.ts. You measured it as the single
+hardcoded entry src/utils/task-ready.test.ts. You noted my conclusion holds a fortiori and
+that only the figure was stale. Do not soften that. A wrong measured field is a wrong measured
+field even when it happens to point the same way - the next brief that inherits it will not be
+pointing the same way. It goes in the ledger as mine.
+
+4. (b) NO. NO PIN, AND DO NOT TOUCH package.json OR tsconfig.test.json.
+
+Two reasons, and the second is the real one.
+
+There is nothing to pin. A regression pin guards a behaviour change and there is no behaviour
+change; a pin here would assert a property that already holds for three independent reasons,
+which is a test that cannot go red for the reason it names.
+
+And the shared build pipeline is a separate owner by standing rule, precisely because a change
+there propagates to every leg. You hit the rule and stopped at it instead of routing around it.
+That is the rule working. The single-hardcoded-file test config is a real and serious finding -
+one test file, no discovery, a new test compiled by nothing and run by nothing - but it is
+infrastructure scope and it is going to a dedicated owner, not to you mid-task.
+
+5. WHAT YOU DID THAT I WANT NAMED.
+
+You established the answer BY INSPECTION and therefore ran no differential, citing the rule.
+That is the second leg today to apply it and it was the right call both times.
+
+You refused to install 110 packages into a tree you were measuring, and you named it as the
+same class as the web/dist problem rather than as a convenience. That is exactly right, and it
+is the class we filed this morning being applied by someone who was not in the room when it
+was filed.
+
+You listed what you did not run WITH THE DIRECTION each omission would have moved the answer,
+and both would have strengthened your conclusion, not weakened it. Stating the sign of your
+own gaps is the part almost nobody does.
+
+6. DISPOSITION. Section 0: CLOSED, no defect, no code change. Section 4: CANCELLED, not
+deferred - the pin was unsatisfiable and the reason is in my brief, not in your execution.
+Sections you were told were all-or-nothing: that clause is WITHDRAWN, it was written for a
+round that had a defect in it.
+
+WRITE THE PROJECT LOG ENTRY. You declined on the grounds that there is no behaviour change to
+record, and I am overruling that specifically: the finding IS the deliverable here. Record
+that the criterion was checked against contract text at the two paths above, that main complies
+by three independent mechanisms, that the filter is a view filter and why it must stay, and
+that my brief's tsconfig figure was wrong. A round that correctly finds nothing is the single
+easiest result to lose, and losing it means the next person re-runs it.
+
+Then mark the task complete. You are done after the log entry.

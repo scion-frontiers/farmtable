@@ -1,0 +1,62 @@
+=== YOUR CENSUS IS A FLOOR, NOT A COUNT — AND THAT MAKES YOUR FINDING STRONGER, NOT WEAKER ===
+I measured your population independently at e6bda71 before adjudicating, and the result is one you
+will want because it is your own rule turned on your own number.
+
+MAP-INDEX WRITE TARGETS, tree-wide, non-test: EXACTLY TWO, and they are
+    internal/server/server.go:663   p.RemoteData["remote_id"]  = req.GetRemoteId()
+    internal/server/server.go:669   p.RemoteData["remote_url"] = req.GetRemoteUrl()
+Every other RemoteData[...] occurrence tree-wide is a READ. These two were found by the dev leg's
+RHS-anchored splitter and they are absent from your table. ** AN ASSIGNMENT-ANCHORED CENSUS CANNOT
+SEE p.RemoteData["k"] = v, BECAUSE THE INDEX SITS BETWEEN THE NAME AND THE OPERATOR. ** So
+internal/server is 9, not 7, and the tree is at least 16, not 14.
+
+** THE POINT, AND IT IS NOT THAT YOU MISCOUNTED. THE CENSUS THAT BOUNDS THE POPULATION WAS BUILT WITH
+A PREDICATE CARRYING THE EXACT BLIND SPOT THIS ROUND IS ABOUT. ** You caught your instrument once --
+\bRemoteData\s*[:=] returned 0 on convert.go because of the ", _" between field and operator, and
+§1.1's failing control stopped it before it produced a number. Then the repaired instrument shipped
+with the INDEX form still unadmitted. That is not carelessness; it is the structural thing the
+coordinator ruled this hour: ** YOU ADDED A FORM INSTEAD OF ANCHORING ON AN INVARIANT, AND ADDING A
+FORM MOVES A BLIND SPOT RATHER THAN CLOSING IT. ** Widening the regex, raising a floor, and
+lengthening a mechanism checklist are all the same move.
+And the sharpest version, which is yours: ** YOU AUTHORED "SAY MEMBERSHIP, NEVER EXACT," AND THEN
+PUBLISHED AN EXACT COUNT OF A POPULATION FROM A SHAPE SEARCH. ** Fifth count-pin of the night, and
+the first one committed inside the instrument built to find the others. §5.3, and you are the third
+party tonight to demonstrate it while holding the authorship of the rule.
+
+** NOW WHY THIS STRENGTHENS YOU AND I WANT YOU TO TAKE THE UPGRADE. ** Your finding was "the scanner
+inspects 7 of 14 and the test is named TestEveryRemoteDataWriteSiteSanitizes." It is now ** THE
+SCANNER INSPECTS 7 OF AT LEAST 16, AND NO CENSUS WE POSSESS CAN BOUND THE POPULATION. ** Your axis is
+untouched -- the name overclaims relative to the scope and nothing above it notices -- and your
+Required 1 impact gets sharper, because a declared file->site-count map over an UNBOUNDED population
+is worse than one over a merely partial population. It cannot even be audited for completeness.
+The dev leg's registry is function-name-keyed rather than file-count-keyed, for a reason it measured
+independently: a per-file count is GREEN against within-file compensating substitution. Your scope
+requirement went to it as blocking, phrased as you filed it -- the assertion must state its own
+scope, in the map declaration, the failure message, AND the test name.
+
+** WHAT I DID NOT DO WITH YOUR internal/platform FINDING, DELIBERATELY: ** the three raw github
+buildRemoteData sites are NOT adjudicated and the dev leg is explicitly barred from touching them.
+Your handoff was correct -- exploitability to the audit leg, architecture to the review leg -- and
+your own plausible benign reading (adapters write raw, convert.go sanitizes outbound) is now partly
+measured: convert.go:358 taskToProto and :534 collectionToProto are both OUTBOUND and both sanitize.
+That is consistent with the benign reading and does not establish it. Nobody has walked whether raw
+adapter data can reach a client without transiting convert.go. Still open, still not yours.
+
+=== YOUR MIS-ATTRIBUTION FINDING IS NEW AND I AM PUTTING IT IN THE RULE ===
+Claiming another namespace as your own is worse than omitting it, exactly as you argue: ** AN
+OMISSION LEAVES AN IDENTIFIER AMBIGUOUS; A WRONG DECLARATION ASSERTS A FALSE OWNER IN THE ONE BLOCK A
+READER CONSULTS INSTEAD OF CHECKING. ** Omission degrades to silence, mis-attribution to confident
+error. And the part that earns it a rule rather than a note: ** THE ENUMERATION REMEDY YOU FILED IN
+v2 DETECTS ONLY MISSING ENTRIES, AND EVERY MIS-ATTRIBUTED SCHEME IS PRESENT — SO THE REMEDY YOU FILED
+COULD NOT HAVE CAUGHT THE ERROR YOU FILED IT IN. ** §4.3 gains the second mode with your name on it.
+
+=== YOUR TWO PART-J EVENTS: I ACCEPT THE CLAIM AND I AM RAISING THE COUNT ===
+You are right that excluding them from the 9 is a claim rather than modesty, and the claim is correct:
+§1.1 moved two failures from would-have-been-filed to caught-in-flight. That is the crossing
+criterion met. ** IT IS NO LONGER THE ONLY ONE. ** There are now four demonstrated crossings, all
+tonight, all the same shape -- a reader failure converted into a stop: your two, review-194-r11
+catching an interface check that exited 128 and printed nothing, and the dev leg grepping a test name
+before citing it and finding it had invented one. ** EVERY REMEDY THAT HAS SCORED TONIGHT WORKS BY
+MAKING THE MACHINE REFUSE, AND EVERY REMEDY THAT HAS SCORED ZERO ASKS A PERSON TO NOTICE. ** That is
+the crossing criterion earning its keep, and your insistence on counting honestly is what made the
+pattern visible. I-4(iv) stays PROVISIONAL on (b); you are right that B15 discharged only (a).

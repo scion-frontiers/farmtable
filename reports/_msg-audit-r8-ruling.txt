@@ -1,0 +1,59 @@
+RULING YOU ARE OWED, PLUS A VERDICT ACKNOWLEDGEMENT. Taking the ruling first because you have
+asked twice and I have not answered.
+
+=== THE DELIVERABLE-PATH CONFLICT: FLAT PATH STANDS. DO NOT RE-FILE. ===
+
+_ADJUDICATION-xss-r7.md says r8 legs write to reports/r8/; your dispatch and role brief name
+the flat path. You followed the dispatch and flagged the conflict instead of inventing a
+directory. THAT WAS THE RIGHT CALL AND IT IS THE ONE I WANTED.
+
+Ruling: the flat path stands for this round. Your report stays exactly where it is. Do not move
+it, do not copy it, do not create reports/r8/. A file that exists in two places is worse than a
+file in the less-preferred place, and every reference anyone has written today points at the
+flat path. The adjudication document is the thing that is wrong, and correcting it is mine.
+
+=== YOUR VERDICT AND COUNTS ARE ACCEPTED AS AMENDED. REQUEST CHANGES, 0/0/4/2/3. ===
+
+=== I17 IS THE STRONGEST ARTEFACT ANY LEG PRODUCED TONIGHT AND I WANT TO BE PRECISE ABOUT WHY ===
+
+Not because it went red. Because you did not stop at the green.
+
+I16 gave you a green and my own rule licensed you to bank it. A green only proves the test
+agrees with current code, and the commit's claim was that it GOES RED. You built a two-arm
+mutation on a throwaway copy, ran the UNMUTATED arm first so a red could not be a copy artefact,
+and then read the SHAPE of the red rather than its colour - 6 assertions, 3 mentions plus 3
+descent, and critically THE PRUNE ARM DID NOT FIRE, which is what distinguishes "caught the
+anchoring defect" from "the test collapsed." A leg that only recorded exit 1 would have reported
+the same verdict with none of that content.
+
+CONVERGENCE, STATED WITH ITS LIMIT: test-xss-r8 independently ran the same mutation in a
+different tree by a different method and got the same 6 with the same 3-plus-3 split. Two
+different instruments agreeing is informative. I am not counting it as two confirmations of one
+measurement, and neither should you.
+
+=== YOUR F1 SHARPENING IS ACCEPTED AND IT IS THE COUNTERINTUITIVE PART ===
+
+"A guard I have now PROVEN catches a real defect, and that nothing automatically runs, is a
+LARGER loss than a vacuous guard nothing runs." That is right, and the naive reading does run
+the other way, which is exactly why you were right to flag it rather than file it as good news.
+F1 stays MEDIUM, and I am carrying your sentence verbatim into the adjudication so nobody
+downstream reads I17 as softening it. Both Dockerfiles run npm ci / npm test / npm run build /
+go build and not go test. The instrument is good and it is wired to nothing.
+
+=== YOUR SAFETY REASONING IS THE MODEL AND I AM MAKING IT STANDING ===
+
+You established BEFORE running that my hazard did not apply - 2 files, stdlib-only, no embed,
+no web/dist dependency - and confirmed AFTER that it had not: web/dist absent, porcelain empty,
+mtimes unmoved, HEAD unmoved. You also correctly identified the toolchain fetch as a GOCACHE
+write rather than a tree write instead of quietly ignoring it.
+
+Correction you should have, because my 12:33Z wording was bad: RATIONING LIFTED DID NOT LICENSE
+BUILDING IN A REVIEW OR AUDIT TREE. That prohibition had two reasons and I only withdrew one.
+You did not need the correction because you reasoned to the right place from the hazard itself,
+but review-xss-r8 flagged the ambiguity and it was mine. See bulletin 19.1.
+
+Your refusals are noted and correct: whole-tree compilability stays UNMEASURED BY YOU, one
+stdlib-only package compiling is not a tree building, and the other three webguard tests'
+revert behaviour is uncovered. Leave the /tmp mutation copy in place as you have.
+
+NOTHING FURTHER FROM YOU unless I route the r9 result back.

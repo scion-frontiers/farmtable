@@ -1,0 +1,73 @@
+THE THREE-WAY IS DISPATCHED. That is the headline and it is the thing I owed you.
+
+review-xss-r5, audit-xss-r5, test-xss-r5, all three running, all three at d305391
+on url-scheme-validation-r5, base e6bda71, 13 commits. Distinct worktrees:
+farmtable-xss-r5-review, -audit, -test. NO TWO LEGS SHARE A SCRATCH PATH. Distinct
+report paths under reports/. Brief at briefs/xss-r5-review.md, which all three
+read in full.
+
+BUILD TOKEN: STILL UNSPENT, STILL MINE, GRANTED SERIALLY FROM HERE. All three were
+told explicitly that exactly one exists, that I hold it, that they will queue, and
+the test leg was additionally told to plan so the token is the LAST thing it needs
+rather than the first. Nobody is executing a build or a suite right now.
+
+dev-xss-r5 is NOT released. I have it updating its state file to cover #226, #227,
+#228, #234 and PATH 12 as an open item against its own walk, then committing and
+reporting a byte size. Thirteen commits stay unpushed and the tree does not move
+while three legs are measuring it.
+
+YOUR THREE ARE FILED AS 10.22, 10.23, 10.24. The artefact is 1571 to 1658 lines.
+
+10.22 - I took the addition framing and applied it to my own case immediately,
+because the case is mine. The wrong response to 10.12-b was available and I could
+feel it: distrust positive controls. That deletes the one sound part of that walk.
+The correction now reads as an ADDITION - the positive control proves the
+instrument fires, a SECOND control is required for the search space, and the right
+one is a known second entry point withheld from the inputs. THE CONTROL IS THE
+VISIBLE OBJECT AND THE INFERENCE IS NOT WRITTEN DOWN ANYWHERE is the part I would
+not have got to on my own. The reflex is a search for something deletable, and the
+only deletable thing in sight is always the instrument.
+
+10.23 - #173 STAYS OPEN AND I HAVE WRITTEN IT SO THE TICKET CANNOT ABSORB THE
+SWEEP AS PROGRESS. Your sweep was true in every word and clears nothing about the
+PAT in canonical's origin URL, the workflow PAT in Discord history, or the two
+agent transcripts. The mandate is now that both halves live in ONE SENTENCE - not
+two bullets, not a later caveat - because the relay carries sentences and the
+remaining-dirty half is an exemption, which is the member a relay drops first.
+That is 10.1 and 10.5 composed in the one domain where the cost is unbounded.
+
+10.24 - THIS ONE WENT INTO THE BRIEF BEFORE I DISPATCHED, not after. It is now the
+section marked as the most important instruction in it, with your outcome
+reporting requirement and the #230/#231 case as the worked example: a leg
+pre-registered that two red tests shared a cause, the falsifier fired, they are
+unrelated, and the obvious single fix would have been wrong for both. That is the
+most useful result anyone produced tonight and it had no story in it.
+
+AND I AM RECORDING HOW YOU GOT THERE, BECAUSE IT IS THE BETTER HALF. You wrote a
+sharp claim, applied 10.19 to your own sharpness, and it BROKE - refuted by four
+negatives we did retain. The corrected version is the one worth keeping: EVERY
+NEGATIVE WE RETAINED TONIGHT IS A CONFESSION. Each refutes something a named party
+asserted. We do not keep negatives; WE KEEP DRAMATIC ONES, which is #86 standing
+unchallenged rather than a counterexample to it. THE QUIET NEGATIVE - I suspected
+X, X is not there, and nobody had claimed X - HAS NO RETAINED INSTANCES ANYWHERE
+IN OUR RECORD. That is the class the pre-commitment protects, and neither of us
+had noticed it was empty.
+
+ONE CAUTION I ATTACHED, UNDER 10.18: a rising count of pre-registered negatives is
+UNSIGNED. Equally consistent with better practice and with cheaper hypotheses. It
+must not become a health metric, or we will optimise it.
+
+TWO CORRECTIONS OF MINE ON THE RECORD, NEITHER OF WHICH YOU RAISED.
+
+I told you TEN COMMITS. dev-xss-r5 measured 13 and printed the command. It is 13.
+The brief carries 13 with the command beside it, so the error stopped before the
+legs. Second time tonight one of my numbers round-tripped through a directive and
+came back with authority it never earned, and the leg declined to guess where ten
+came from rather than manufacture a provenance for it.
+
+#234 is new and it is a false-clearance class: THE WRITE-SITE SCANNER NEVER READS
+_test.go FILES. Its green means NOT SCANNED, not CLEARED. All three review legs
+were told this in their dispatch so none inherits the false clearance. Found by a
+leg expecting the opposite result, which is the only way that class surfaces.
+
+NOTHING OWED FROM YOU. I am blocked on three legs and holding the token.

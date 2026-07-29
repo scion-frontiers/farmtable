@@ -1,0 +1,75 @@
+{
+  "timestamp": "2026-07-24T18:40:01.875Z",
+  "nodeVersion": "v20.20.2",
+  "benchmarks": {
+    "getChildrenRenderPath": [
+      {
+        "nodes": 100,
+        "oldMs": 0.31,
+        "newMs": 0.01,
+        "speedup": 26
+      },
+      {
+        "nodes": 500,
+        "oldMs": 2.81,
+        "newMs": 0.05,
+        "speedup": 55
+      },
+      {
+        "nodes": 1000,
+        "oldMs": 8.19,
+        "newMs": 0.04,
+        "speedup": 233
+      },
+      {
+        "nodes": 5000,
+        "oldMs": 174.31,
+        "newMs": 0.13,
+        "speedup": 1381
+      },
+      {
+        "nodes": 10000,
+        "oldMs": 801.22,
+        "newMs": 0.38,
+        "speedup": 2120
+      }
+    ],
+    "depthLimitReduction": [
+      {
+        "maxDepth": 0,
+        "visibleNodes": 1,
+        "reductionPercent": 100
+      },
+      {
+        "maxDepth": 1,
+        "visibleNodes": 6,
+        "reductionPercent": 99.9
+      },
+      {
+        "maxDepth": 2,
+        "visibleNodes": 31,
+        "reductionPercent": 99.7
+      },
+      {
+        "maxDepth": 3,
+        "visibleNodes": 156,
+        "reductionPercent": 98.4
+      },
+      {
+        "maxDepth": 4,
+        "visibleNodes": 781,
+        "reductionPercent": 92.2
+      },
+      {
+        "maxDepth": 5,
+        "visibleNodes": 3906,
+        "reductionPercent": 60.9
+      },
+      {
+        "maxDepth": 6,
+        "visibleNodes": 10000,
+        "reductionPercent": 0
+      }
+    ]
+  }
+}

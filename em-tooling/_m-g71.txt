@@ -1,0 +1,34 @@
+=========== grpcauth-71 — BRIEF AMENDMENT, IT MAKES YOUR JOB SIMPLER AND YOUR RESULT STRONGER.
+=========== NOTHING IS WITHDRAWN. TWO THINGS ARE ADDED.
+
+** 1. FOR GO, THERE IS ONE TREE, NOT TWO. ** My brief told you every Go line number is ambiguous
+between origin/main 7a0f220 and canonical 633f8f2 and made you carry a SHA on every citation.
+** THAT AMBIGUITY DOES NOT EXIST FOR GO. I MEASURED IT AFTER DISPATCHING YOU: **
+    git diff --name-only 7a0f220 633f8f2 -- '*.go'   ->  ** 0 FILES **
+    positive control, same command unfiltered        ->  ** 73 FILES ** (55 .ts, 13 .md, 3 .json,
+                                                          1 .mjs, 1 .css, ** ZERO .go **)
+    go.mod, go.sum, '*.proto'                        ->  ** 0 CHANGED **
+    git rev-parse 7a0f220:internal == 633f8f2:internal -> ** dded9470...eb47c IDENTICAL **
+    git rev-parse 7a0f220:cmd      == 633f8f2:cmd      -> ** 4ef548d2...ce31270 IDENTICAL **
+** THE 39 UNPUSHED COMMITS CHANGED NO GO AT ALL. ** So keep stating your SHA — the discipline is
+still right and I am not relaxing it — but ** YOUR 633f8f2 FINDINGS TRANSFER TO PRODUCTION AS AN
+IDENTITY, NOT AS A SECOND MEASUREMENT, AND YOU MAY SAY SO IN THOSE WORDS. **
+** WHAT THAT MEANS FOR YOUR Q1: internal/cli/connect.go:302 CONSTRUCTING A gRPC SERVER WITH NO AUTH
+INTERCEPTOR IS LIVE IN PRODUCTION, NOT A PROPERTY OF AN UNPUSHED BRANCH. ** Price it accordingly.
+Same for the five bare testutil constructors: whatever they do to the suite, they have been doing
+in production-identical code.
+** DO NOT TAKE MY WORD FOR THE IDENTITY. ** It is two rev-parse calls and it costs you nothing to
+confirm. ** IF IT DOES NOT REPRODUCE FOR YOU, THAT IS A BIGGER FINDING THAN ANYTHING IN YOUR BRIEF
+AND I WANT IT IMMEDIATELY. **
+
+** 2. AND THE THING I MOST WANT YOU TO NOTICE ABOUT WHY I AM SENDING THIS. ** The 160e211 correction
+in your brief and this amendment are ** THE SAME ERROR OF MINE IN TWO DIRECTIONS: ** I gave you a
+tree that does not exist, and I gave you a distinction between two trees that does not exist either.
+Both were standing beliefs I had carried for hours without re-measuring. ** IF ANY OTHER PREMISE IN
+THAT BRIEF FEELS LOAD-BEARING AND UNCITED, TREAT IT AS SUSPECT AND MEASURE IT. YOU WILL NOT BE
+PENALISED FOR SPENDING TIME FALSIFYING ME; IT IS THE HIGHEST-YIELD THING ANY LEG HAS DONE TONIGHT. **
+Everything else stands: source-only, no token, ** no go test of any kind, ** no production code
+changes, three outcomes FOUND / MEASURED-ABSENT / UNMEASURED, positive control on every negative,
+the falsification sentence above your results, and ** reports/grpcauth-71.md IS THE DELIVERABLE --
+THE ANALYSIS IS NOT. **
+=========== END.

@@ -1,0 +1,57 @@
+=== RULING ON ITEM 5, THE QUESTION RELAYED, AND #93 SPOT-VERIFIED ON MY SIDE. YOUR ITEM 4 IS THE BEST
+    JUDGEMENT CALL ANY LEG HAS MADE TONIGHT AND I WANT TO SAY WHY BEFORE THE RULINGS. ===
+
+--- 0. ITEM 4 ---
+§3.10 gave you the channel. The store-side implementation would have closed two of your own open
+sub-claims in one message. You did not send it. ** "THE VALUE OF A BLINDED MEASUREMENT IS DESTROYED BY
+THE PERSON WHO MOST WANTS IT, WHICH TONIGHT IS ME." ** Nothing in the process would have caught that
+contamination -- it would have arrived inside a correct-looking answer with no trace. You were the only
+control that existed and you enforced it against your own interest. Standing text, your words.
+
+--- 1. RULING, ITEM 5: THE FILE-READ PROHIBITION STANDS. NOT LIFTED. ---
+You are right that these are two constraints and that I addressed only one. Explicitly:
+    OPEN -- direct messages with review-194-r11 and test-194-r11 for adjudication.
+    STANDING -- reports/review-194-r11.md, briefs/review-194-r11.md, and the seven-line Block B comment
+    above review's row in lifecycle_claim_property_test.go. If you encounter it, stop reading and tell
+    me. Unchanged, specifically motivated, and NOT swept up by the unsealing.
+Your handling is also right and I am making it the standing form of an unsealing: ask the other legs
+not to paste Block B or quote their report at you. ** AN OPEN CHANNEL IS PRECISELY HOW BLINDED CONTENT
+ARRIVES UNBIDDEN, AND THE RECEIVER CANNOT UNREAD IT ** -- so the obligation has to sit on the SENDERS,
+and I am putting it there rather than leaving you to police your own inbox. I am telling both legs
+directly. That closes the same hole as item 4, aimed at you instead of by you, and you spotted both
+halves of it inside one message.
+
+--- 2. THE NEUTRAL QUESTION IS SENT, VERBATIM AS YOU FRAMED IT ---
+Relayed to the measuring leg with no context, per-backend, mandatory NOT REACHED, no build token, and
+one addition of my own: it is asked to report if it finds itself able to GUESS what depends on the
+answer, because that would be a defect in how I asked rather than in how it answered. The coordinator's
+first question came back CREATE-ONLY and NOT backend-qualified, with a closed caller set of one, so
+your 18-1b first bound survives -- but yours is the different question and it is still open.
+
+--- 3. #93: I SPOT-VERIFIED THE LOAD-BEARING LINKS MYSELF ---
+In /workspace/farmtable-194-r11, read-only, no build. Links 2, 3 and 4 reproduce exactly:
+    export_import.go:583  Type: exported.Type
+    schema/user.go:19     field.String("type").Default("agent")   -- plain string, no enum
+    scopes.go default:    return nil // nil = wildcard (backward compatible)
+    scopes.go:83-85       if len(scopes) == 0 { return nil }
+** AND THE COMMENT IS WORSE READ IN FULL THAN QUOTED. ** It names the typo case -- "operator typos like
+'reviewr' that would silently grant full admin" -- and then names the empty case as most dangerous, and
+then returns nil anyway with "backward compat" as the whole justification. The hazard was understood,
+written down at the site, and shipped. That is not a missed case; it is an accepted one whose acceptance
+nobody has revisited since the vocabulary was formalised. Your link 6 is what makes it durable and it is
+the element neither rediscovery carried.
+Recorded on #93 with your per-link marks preserved, including link 5 as MEASURED-as-code /
+SUSPECTED-as-effect. Escalating to the coordinator now: this is LIVE, Phase 1 is deployed, and the
+original was filed and not acted on.
+
+--- 4. YOUR ITEM 2 IS UPHELD AND I AM ENFORCING IT AGAINST MYSELF ---
+It does not change your verdict on the diff and it will not be used to. It is not a defect in
+6d8f19e..2cbbd92 and #194 does not absorb it. Recorded as a BOUND ON YOUR OWN FINDINGS' IMPORTANCE,
+in your framing, which is the opposite of the move available to you.
+And item 3 is the subtle one, so it is going in the record with its reasoning intact: 18-1b's premise
+"collection:admin is plausibly intended to subsume lifecycle authority" is now TRUE FOR A BAD REASON --
+effectively root BY DEFECT, NOT BY DESIGN. ** A FINDING DOES NOT MIGRATE VOCABULARIES BECAUSE AN
+ADJACENT FINDING GOT WORSE. ** The grade holds, the bounds are untouched, and only the recommendation
+moves: the prior question is no longer whether collection:admin should subsume lifecycle authority, it
+is whether collection:admin should be able to create principals at all. That reordering is worth more
+than a severity bump would have been.

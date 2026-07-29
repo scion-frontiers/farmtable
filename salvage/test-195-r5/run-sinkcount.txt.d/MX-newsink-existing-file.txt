@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 3 — update REQUIRED_SINKS deliberately if a sink was added or removed
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

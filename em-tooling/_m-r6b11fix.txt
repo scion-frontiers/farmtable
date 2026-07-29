@@ -1,0 +1,71 @@
+STOP AND READ BEFORE YOU BUILD B11. A MEASUREMENT LANDED THAT MAKES MY B11 INSTRUCTION
+WRONG ON ITS CENTRAL FACT. This is my error, caught four minutes after I sent it, and
+it is the second brief error I have handed you tonight.
+
+WHAT I TOLD YOU:
+  "today the reference count in the web tree is, I believe, zero."
+  "build the guard that goes red when remote_data reaches a RENDERING path."
+
+BOTH ARE WRONG. Measured by another leg, just now, read-only:
+
+THE DASHBOARD DOES READ remote_data. Not TASK remote_data - that part holds, no read
+of task remote_data was found anywhere under web/src at these commits. It reads
+COLLECTION remote_data, in TWO places, AS A WRITE-AUTHORIZATION GATE. capabilities.ts getCapabilities and ft-app.ts isCollectionWritable
+both branch on the writable key to choose between the GitHub capability set and
+everything-disabled.
+
+SO THE COUNT IS NOT ZERO. If you had built the absolute-zero pin I described, it would
+have gone RED against existing untouched code the moment you ran it - and my own hazard
+note told you that when a count assertion goes red, the red is the alarm and not the
+bug. That instruction was correct and it would have pointed you at MY error. Good. But
+I would rather you not spend the cycle.
+
+AND THE DEEPER CORRECTION, WHICH IS THE ACTUAL RESULT:
+
+  IT IS A CAPABILITY SINK, NOT A RENDER SINK. At those two call sites the value is
+  not printed, not interpolated, not bound into a template. IT IS BRANCHED ON. A search for render
+  sinks is STRUCTURALLY INCAPABLE OF FINDING IT.
+
+Three legs hunted render sinks and found none, and they were right. The question was
+too narrow, and I am the one who narrowed it. So B11's target changes:
+
+  DO NOT BUILD A GUARD THAT FIRES WHEN remote_data REACHES A RENDERING PATH.
+  BUILD A GUARD THAT FIRES WHEN remote_data IS CONSUMED AT ALL.
+
+Rendering is one consumption class. Branching on it for an authorization decision is
+another, and it was invisible to every instrument we pointed at this. There will be
+others neither of us has named - serialisation, cache keys, comparison, logging. The
+guard must not enumerate sink KINDS, because our enumeration of sink kinds is exactly
+what failed. Key it on the field being read at all.
+
+CONSEQUENCE FOR THE BASELINE: today's count is TWO known consumers in web, both
+collection-side, both legitimate. So your guard is NOT an absolute-zero pin. It is an
+ALLOWLIST OF KNOWN CONSUMERS with a red on anything else - the two capability call
+sites are the initial contents, named individually with a one-line reason each. New
+consumer, new red, human decides. Same fail-closed property, correct baseline.
+
+DO NOT normalise this into "web may read collection remote_data." Two named sites, not
+a permitted category - a category grants the next one for free and that is how we got
+here.
+
+TWO MORE THINGS, BOTH BEARING ON WORK YOU ALREADY HAVE:
+
+1. B1 AND B2 GET SHARPER, NOT WEAKER. The collection half is NOT inert. If
+   structOrNilLoggingErr returns nil for a collection, the key is undefined and the
+   dashboard SILENTLY DROPS TO READ-ONLY. It fails CLOSED, so it is not a
+   vulnerability. But the shipped comment says the line cannot fire and treats the
+   consequence as a missing field. The real consequence is a SILENT CAPABILITY
+   DOWNGRADE IN THE UI. Your corrected comment must say that. A user losing write
+   buttons with no error is a support ticket nobody will trace to a dropped struct
+   conversion.
+
+2. UNCHECKED, AND I AM NOT ASKING YOU TO CHASE IT - it is routed to the audit leg.
+   Nothing in the tree writes the writable key. Zero non-test matches in Go, none in
+   web outside generated code. So either that branch is dead today, or the flag
+   arrives from outside the tree. DO NOT act on this, do not scope to it, and do not
+   let it change your fix. I am telling you only so that if you trip over it you know
+   it is already owned.
+
+Everything else in your brief stands. B1-B10 unchanged apart from B1/B2 above. Ask for
+the build token when you want it. And if any other fact in that brief looks wrong when
+you touch it, say so - two for two tonight is my rate, not yours.

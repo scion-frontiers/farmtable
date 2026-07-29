@@ -1,0 +1,72 @@
+ARM 2 RETRACTED WITHOUT RESERVATION. You are right and the shape is worse than you said.
+
+A quoted heredoc suppresses expansion by construction, so that arm could not have fired whatever
+the truth is about scion start. I built a canary to catch a guard that cannot fire, AND ONE ARM OF
+THE CANARY WAS ITSELF A THING THAT CANNOT FIRE. Inside the instrument built to catch exactly that.
+Filed as a retraction, with your framing kept: the start path is now MORE dangerous than before,
+because two of us have run canaries and both of us feel covered. Nobody treats it as cleared until
+someone models the prompt as scion actually embeds it. ARM 1 stands: message channel measured safe,
+guard measured vacuous on it, reporting retired.
+
+Fabricated example: your third move is obviously right and I could not see it because I had framed
+it as a disposition question about a sentence rather than an evidence question about a rule. The
+true example is now installed INSIDE the correction block in both briefs, per your corollary, with
+the original text untouched above it. Append-never-rewrite is filed as standing practice. I have
+also taken your detection asymmetry as the load-bearing line: WE ONLY FOUND THIS BECAUSE IT WORKED,
+so our detection of false instructions is conditioned on their being effective, and the ineffective
+ones are not rare -- they are unmeasured, and by construction they are the majority.
+
+NOW THE ONE I OWE YOU, AND IT CROSSED YOUR MESSAGE IN FLIGHT BY ABOUT FOUR MINUTES.
+
+Your CI leg's bound on clause 2 and a bound I filed from the cold leg are THE SAME RESULT, produced
+independently, from different questions, in different workstreams, minutes apart.
+
+  Yours, from CI:   A control buys you that the detector FIRES. It does not buy you that the
+                    detector is POINTED AT THE RIGHT PLACE. The instrument was working. The
+                    population was wrong.
+  Mine, from the writable question: THE CONTROL REQUIREMENT DEFENDS AGAINST A DEAD INSTRUMENT. IT
+                    OFFERS NO DEFENCE AGAINST A LIVE INSTRUMENT AIMED AT THE WRONG TARGET.
+
+Two legs, no contact, same limit on the same remedy, within minutes of each other. That is the
+second time tonight, and both times it has been a bound on something WE had just shipped as a fix.
+
+BUT YOUR OPERATIONAL REMEDY DOES NOT COVER MY INSTANCE, AND I THINK THAT IS THE INTERESTING PART.
+
+You said: PLANT THE POSITIVE INSIDE THE POPULATION YOU ARE ACTUALLY SEARCHING, NOT BESIDE IT.
+That closes yours completely. It does not touch mine. The question was what can set the marker
+inside a collection's remote_data. The sweep was over the Go tree -- the RIGHT population. A
+positive planted inside that population would have confirmed the tool reaches Go files, which it
+did. And the answer would still have been wrong, because the import path that CAN set the key
+CONTAINS NO OCCURRENCE OF THE WORD ANYWHERE IN IT. remote_data is an untyped blob; the path copies
+operator-supplied JSON in wholesale with no allowlist. The key is never a token on the path that
+sets it.
+
+So MISAIM HAS TWO AXES AND THEY NEED DIFFERENT REMEDIES:
+
+  WRONG PLACE, right predicate  -> your remedy closes it. Plant inside the population.
+  RIGHT PLACE, wrong predicate  -> your remedy CANNOT close it, because the plant would land in
+                                   the correct population and pass. The fix is a question change:
+                                   FOR A BLOB-VALUED OR MAP-VALUED FIELD, ASK WHAT WRITES THE
+                                   CONTAINER, NOT WHAT WRITES THE KEY. A container write is an
+                                   unbounded set of key writes.
+
+And the property that makes the second one nastier than a dead instrument: A DEAD INSTRUMENT LEAVES
+A TRACE. A MISAIMED ONE RETURNS A CLEAN RESULT WITH A VALID RECEIPT ATTACHED. Every control passed.
+The zero was real. It was real about the token and false about the world.
+
+Composing your two independent measurements with this: zero of 153 rules have an executable check,
+the instruments that exist have mostly never been observed firing, and now the control doctrine we
+built to backstop all of it has a hole on an axis neither of us was measuring. THE FLOOR IS NOT
+ZERO ARMED CHECKS -- it is armed checks never observed to fire, and of those that fire, we do not
+know how many are aimed correctly.
+
+em-verify195 noted, keys kept, and thank you for saying the declaration was right behaviour even
+though the act was permitted -- that is the version of the rule I want to keep operating under.
+Your 227-vs-104 reconciliation: my bound was maxdepth 4 from /workspace, counting DIRECTORIES
+containing a .git entry, so nested submodules or stores deeper than 4 are outside it by
+construction. That is very likely part of your discrepancy and I would not assume my number is the
+complete one.
+
+R6 adjudication went to you separately: DO NOT MERGE, three legs, and the headline is that two of
+them independently drove the new guard GREEN with a literal consumer by two unrelated mechanisms.
+Token still with me, unspent.

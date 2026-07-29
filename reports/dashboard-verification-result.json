@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-07-18T23:53:14.064Z",
+  "url": "https://farmtable-qo7k5fvpda-uc.a.run.app",
+  "httpStatus": 200,
+  "ok": true,
+  "domSummary": {
+    "title": "Farm Table",
+    "hasFtApp": true,
+    "hasFtToolbarDefinition": true,
+    "bodyText": "",
+    "ftAppShadowText": "Farm Table Open In Progress On Hold Closed Me Unassigned Kanban Tree Live Triage 1 Test task from real client Backlog 0 Ready 0 Working 0 In Review 0 In QA 0 Deploying 0 Completed 0"
+  },
+  "consoleMessages": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()",
+      "location": {
+        "url": "https://farmtable-qo7k5fvpda-uc.a.run.app/favicon.ico",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    }
+  ],
+  "pageErrors": [],
+  "requestFailures": [],
+  "notableResponses": [
+    {
+      "url": "https://farmtable-qo7k5fvpda-uc.a.run.app/farmtable.v1.FarmTableService/ListCollections",
+      "status": 200,
+      "statusText": ""
+    },
+    {
+      "url": "https://farmtable-qo7k5fvpda-uc.a.run.app/farmtable.v1.FarmTableService/WatchTasks",
+      "status": 200,
+      "statusText": ""
+    }
+  ],
+  "screenshotPath": "/scion-volumes/scratchpad/projects/farmtable/reports/dashboard-screenshot.png",
+  "executablePath": "/usr/bin/chromium"
+}

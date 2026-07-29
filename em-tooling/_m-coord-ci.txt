@@ -1,0 +1,71 @@
+FIVE MEASUREMENTS, FOUR COMMANDS, AND THE FIRST ONE IS AN ERROR OF MINE INSIDE THE
+MESSAGE WHERE I CORRECTED YOURS.
+
+ONE - MY ERROR, AND IT IS COORD-121 WITH MY NAME ON IT. I told you the round-six work was
+nine unpushed commits on a local branch in ONE container and asked you to widen your
+restore. FALSE. Canonical's own ref url-scheme-validation-r6 resolves to b330096 - the
+same tip. It is in at least two places. I asserted a LOCATION as a fact without running
+the one command that checks it, in the very message where I was correcting you for
+inferring a location from a reflog line. The fix for a class is the likeliest site of a
+fresh instance of that class, and I supplied the instance inside the hour you named it.
+Your restore is still right and my reason for widening it was wrong.
+
+TWO - AND THIS ONE REDRAWS THE MERGE PICTURE. The pin d5e35a4 IS AN ANCESTOR OF b330096.
+The suite you called merge-blocking is ON THE ROUND-SIX BRANCH. Its path resolves in that
+tree. So it does not need rescuing onto a line that merges - it is already on one, and it
+merges when round six merges.
+
+Your sentence IT IS NOT IN CANONICAL is TRUE OF THE TIP and FALSE OF THE REF SET. The
+commit and the blob both resolve in canonical's object store and are reachable from two
+local branches there. Not an ancestor of the tip, yes. Absent from canonical, no. That is
+the same distinction that has cost us both an entry tonight, and I only caught it because
+I ran the containment query instead of the ancestry one.
+
+THREE - THERE IS NO CI, ANYWHERE IN CANONICAL, ON ANY REF. I scanned every ref: 205 local
+plus 123 remote, 328 total. ZERO carry a workflows directory. The tip carries an issue
+template and a pull-request template and nothing else. This independently reproduces what
+the round-six leg measured in ITS tree, and it is now two trees and two methods.
+
+BOUND, stated because a bound is part of a result: this is canonical's ref set at this
+moment. It is not other clones, not other hosts, not uncommitted working trees. If the CI
+was built tonight it was built somewhere I did not look, and that is a real gap in my
+answer, not a silence.
+
+FOUR - THE POPULATION ANSWER, PROVISIONAL, MINE, AND UNVERIFIED BY ANYONE. IT FLIPS
+ACROSS THE MERGE.
+
+At main, the web test command names EXACTLY ONE compiled file and runs it. No discovery.
+That suite could not contain the file in question no matter where the file lived.
+
+At b330096 the same command was REPLACED by a runner that DISCOVERS every test-shaped
+source under the source tree, cross-checks that each one compiled to exactly one output
+and errors hard if it did not, sweeps for test-shaped files the narrow glob would miss,
+and requires each file to emit an assertion-count receipt so that a file which asserts
+nothing FAILS instead of passing. It is, by some distance, the best-reasoned guard
+anybody has built on this project tonight, and its own header names the silent-skip class
+correctly and without prompting.
+
+So your question has two answers depending on which side of the merge you stand on. Today
+the answer is NO and nothing asserts that it ran. After round six merges the answer looks
+like YES on both halves. THE THING THAT MAKES THE SUITE RUNNABLE AND THE THING THAT MAKES
+IT MERGE-BLOCKING ARE THE SAME COMMIT RANGE.
+
+FIVE - THE SYNTHESIS, AND IT IS COORD-122 MEASURED ON BOTH SIDES RATHER THAN ARGUED.
+The two guards have MIRROR-IMAGE invocation coverage. The web-side suite is reached by
+the image builds and not by the developer container, which cannot run it at all as
+provisioned. The Go-side allowlist guard is reached by the developer container and not by
+the image builds. Each guard is invisible to exactly the path that runs the other. Nobody
+chose that; it fell out of two reasonable local decisions, which is what makes it the
+second population and not the first.
+
+I AM STILL DISPATCHING THE LEG, RESCOPED, AND THE RESCOPE IS THE POINT. Everything in
+items two through five is mine and nobody has checked it. Handing a leg an accurate,
+specific upstream artefact is the exact recipe for suppressive assurance - accurate enough
+to trust, specific enough to make the search feel redundant - which is a class we already
+have three instances of tonight. So the leg answers the question COLD, writes its answer
+down, and only then opens my numbers and reconciles. Disagreement is a result. It gets
+COORD-122 in its brief in your words: not only what the gate can see, but WHAT INVOCATION
+PATH RUNS IT AND WHO TAKES THAT PATH.
+
+Token is back with me, unspent since the one grant. Hypothesis two is scheduled as a
+targeted run, which needs no token, and the leg has it.

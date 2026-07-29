@@ -1,0 +1,51 @@
+{
+  "deploy": {
+    "number": 39,
+    "date": "2026-07-23",
+    "commit": "cc9d1180264b98ee401b1fd5b5efd62345ac4692",
+    "commit_short": "cc9d118",
+    "pr": "#143",
+    "revision": "farmtable-00046-676",
+    "previous_revision": "farmtable-00045-rgn",
+    "image_digest": "sha256:a46f23d3954cfda9cb2e1c5b43e9b7d77714af0c0a331122128571de8ee22f5d",
+    "build_id": "905e87c1-27ac-4cb1-8cc8-1aaff23b37fe",
+    "service_url": "https://farmtable-486315127503.us-central1.run.app",
+    "max_instances": 4,
+    "traffic_percent": 100
+  },
+  "checks": {
+    "deploy_live": {
+      "result": "PASS",
+      "detail": "farmtable-00046-676 live at 100% traffic"
+    },
+    "max_instances_preserved": {
+      "result": "PASS",
+      "detail": "autoscaling.knative.dev/maxScale: 4"
+    },
+    "baseline_iap": {
+      "result": "PASS",
+      "detail": "302 without token, IAP enforcing"
+    },
+    "a_clean_startup": {
+      "result": "PASS",
+      "detail": "No DB connection errors, panics, or warnings in Cloud Run logs"
+    },
+    "b_ft_cli_smoke_test": {
+      "result": "PASS",
+      "detail": "collection list, task create, task list, task close all succeed through Postgres connection pool"
+    },
+    "c_web_dashboard": {
+      "result": "PASS",
+      "detail": "HTTP 200 with full app HTML via IAP auth"
+    },
+    "d_cloudsql_connections": {
+      "result": "PASS",
+      "detail": "Max 5 connections observed, well below max_connections=200 ceiling. Pool limits working."
+    },
+    "e_revision_stability": {
+      "result": "PASS",
+      "detail": "All 5 revision conditions True (Ready, Active, ContainerHealthy, ContainerReady, ResourcesAvailable). No restarts, no OOM, stable 5+ minutes."
+    }
+  },
+  "overall_verdict": "ALL CHECKS PASSED"
+}

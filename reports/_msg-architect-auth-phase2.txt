@@ -1,0 +1,17 @@
+Unsolicited, one fact you should own rather than rediscover. No reply needed.
+
+I own the task-state refactor. Its phase 2 web UI track changes zero Go files and adds no
+permission check, but it is not neutral with respect to your model: its central move is
+that the dashboard STOPS re-deriving task readiness locally from stage and defers to
+server-computed availability. So it REDUCES client-side decisioning about what a user may
+do, and moves that boundary in the protective direction.
+
+Concretely, the UI previously inferred whether a task was actionable from its stage in the
+browser. After phase 2 it reads a server-owned availability value instead. Anything you
+design that assumes the client is a place where "may this user act" gets decided has one
+fewer instance to account for once this lands.
+
+Caveat so you can weigh it: this is a track-level property I measured, not an audit of your
+boundary. I checked the diff for auth tokens and read every hit in the categories that
+could gate a control - all were homonyms, ARIA roles, design tokens and error-message
+classification. That is triage-grade, not certification.

@@ -1,0 +1,70 @@
+[self-check] broken tree -> exit 1 OK
+ABL-R1                       exit=0   green expect=red   !! MISMATCH
+    what: Ablate R1 (the required literal unsafeHTML(renderMarkdown( ) in sinkBindingViolations
+    last: markdown sanitizer: 61 checks passed
+ABL-R2                       exit=1   red   expect=red   OK 
+    what: Ablate R2 (unaliased value import from the one permitted module)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1c sanitizer re-homed onto another module (no new file) | V2 unsafeHTML renamed in the import clause | V5 sanitizer imported as a type only
+ABL-R3                       exit=0   green expect=red   !! MISMATCH
+    what: Ablate R3 (local const/let/var/function/class re-bind)
+    last: markdown sanitizer: 61 checks passed
+ABL-R4                       exit=1   red   expect=red   OK 
+    what: Ablate R4 (identifier only in immediately-called position) in sinkBindingViolations
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1d sanitizer shadowed by a parameter, not a declaration | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink fi
+ABL-R5                       exit=1   red   expect=red   OK 
+    what: Ablate R5 (per-file: every unsafeHTML arg is a bare renderMarkdown call)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V6 raw body concatenated onto the sanitized output | V6b sanitizer applied to a value nobody renders
+ABL-R6                       exit=1   red   expect=red   OK 
+    what: Ablate R6 (relative imports in a sink file must resolve into the scanned set)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V9 alias imported from a file the scan does not cover
+ABL-R6b                      exit=1   red   expect=red   OK 
+    what: Ablate R6b (dynamic import specifier must be a plain quoted literal)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V9b unscanned module reached by a template-literal dynamic import
+ABL-R7                       exit=1   red   expect=red   OK 
+    what: Ablate R7 (no unicode/hex escape outside a string literal)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V8 directive spelled with a unicode escape in the identifier | V8b escape hidden inside a second import statement
+ABL-R8                       exit=1   red   expect=red   OK 
+    what: Ablate R8 (only the sanitizer may name dompurify/marked)
+    last: - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: import DOMPurify from 'dompurify'; | import 'dompurify'; | import * as P from 'dompurify'; | export { default as P } from 'dompurify'; | const P = await import('dompurify'); | const P = await import(`dompurify`); | const P = require('dompurify'); | import purify from 'dompurify/dist/purify.e
+ABL-R9                       exit=1   red   expect=red   OK 
+    what: Ablate R9 (no scanned file may import from outside the scanned set)
+    last: - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: LAUNDERED: import { P } from './purify-shim.test.js'; | LAUNDERED: export { P } from './purify-shim.test.js'; | LAUNDERED: const { P } = await import('./purify-shim.test.js');
+ABL-TREE-filecount           exit=0   green expect=red   !! MISMATCH
+    what: Ablate the EXPECTED_SOURCE_FILES pin
+    last: markdown sanitizer: 61 checks passed
+ABL-TREE-sinkcount           exit=0   green expect=red   !! MISMATCH
+    what: Ablate the unsafeHTML call-site count pin
+    last: markdown sanitizer: 61 checks passed
+ABL-TREE-tripwire            exit=1   red   expect=red   OK 
+    what: Ablate the tree-wide directive-indirection tripwire (mechanism b)
+    last: - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: import { unsafeHTML as raw } from 'lit/directives/unsafe-html.js'; | import { unsafeHTML as raw } from 'lit-html/development/directives/unsafe-html.js'; | import { unsafeSVG as raw } from 'lit/directives/unsafe-svg.js'; | import { unsafeStatic as raw } from 'lit/static-html.js'; | import * as d 
+ABL-TREE-banned              exit=0   green expect=red   !! MISMATCH
+    what: Ablate the BANNED_SINKS tree-wide tripwire
+    last: markdown sanitizer: 61 checks passed
+ABL-TREE-argcheck            exit=0   green expect=red   !! MISMATCH
+    what: Ablate the tree-wide 'nothing but renderMarkdown output' check
+    last: markdown sanitizer: 61 checks passed
+ABL-STRIP-regex              exit=1   red   expect=red   OK 
+    what: Ablate regex-literal tracking in stripInertText (the V7/V7b defence)
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V7 value alias hidden behind a regex literal containing an escaped // | V7b value alias hidden behind a regex character class
+ABL-STRIP-strings            exit=0   green expect=red   !! MISMATCH
+    what: Ablate string blanking (opts.strings) — the R3/R4 false-positive defence
+    last: markdown sanitizer: 61 checks passed
+ABL-STRIP-comments           exit=1   red   expect=red   OK 
+    what: Ablate line-comment stripping entirely (P4: prose fixture must catch it)
+    last: - fixture: comments and marked lines cannot turn the suite red: the guard rejects prose about itself: <fixture>:1: unsafeHTML used in a non-called position :: // SECURITY: never import unsafeHTML as something else - it defeats the scan. | document.write :: // Do not use document.write( here; use lit templating. ;; - fixture: the sink-binding rules accept a correct sink file: the sound fixture was 
+ABL-IGNORE                   exit=1   red   expect=red   OK 
+    what: Ablate the ignore-line marker (stripIgnoredLines becomes identity)
+    last: - fixture: comments and marked lines cannot turn the suite red: the guard rejects prose about itself: innerHTML/outerHTML assignment :: const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line
+ABL-IMPORTSTRIP              exit=1   red   expect=red   OK 
+    what: Ablate stripImportStatements (becomes identity) — should red via FP on the real imports
+    last: - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:3: un
+
+=== MISMATCHES ===
+  ABL-R1: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-R3: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-TREE-filecount: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-TREE-sinkcount: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-TREE-banned: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-TREE-argcheck: got green, expected red :: markdown sanitizer: 61 checks passed
+  ABL-STRIP-strings: got green, expected red :: markdown sanitizer: 61 checks passed

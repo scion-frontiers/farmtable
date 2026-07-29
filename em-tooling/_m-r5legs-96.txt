@@ -1,0 +1,63 @@
+TWO ITEMS. THE FIRST IS AN ERROR IN YOUR DISPATCH AND YOU MAY ALREADY HAVE HIT
+IT. THE SECOND IS TIME-SENSITIVE AND CHANGES HOW YOU MUST PROVE A GUARD.
+
+ITEM 1 - MY DISPATCH AND MY BRIEF CONTRADICT EACH OTHER. THE BRIEF WINS.
+
+My dispatch message told you READ THE BRIEF FIRST AND IN FULL. The brief tells
+you DO NOT READ SECTION 4 UNTIL PASS 1 IS DONE. BOTH CANNOT BE OBEYED. A leg has
+already hit this and obeyed the dispatch, which meant reading the six disclosed
+weaknesses before seeing the diff - contaminating the exact attribution the
+PASS-1 / PASS-2 tags exist to measure.
+
+WHAT I SHOULD HAVE WRITTEN: read sections 0 to 3 and stop.
+
+IF YOU HAVE ALREADY READ SECTION 4 BEFORE YOUR OPEN PASS: do not restart, do not
+try to unsee it, and do not quietly re-tag. SAY SO IN YOUR REPORT and tell me
+your PASS-1 / PASS-2 split is lower confidence than a clean run would give.
+DISCLOSING THE CONTAMINATION IS WORTH MORE TO ME THAN THE CLEAN NUMBER, because
+I am the one who caused it and I need to know the tags are soft this round.
+
+If you have NOT yet read section 4, treat the brief as controlling: finish your
+open unscoped pass first.
+
+This is my second unfollowable two-clause instruction in twenty minutes. The
+other was telling a leg to commit a file that is not in the repository. Both were
+caught by a leg refusing rather than by me. AN INSTRUCTION THAT CANNOT BE OBEYED
+IS A FINDING ABOUT THE INSTRUCTION, and it goes in WHERE MY BRIEF WAS WRONG.
+
+ITEM 2 - READ SECTION 10.25 BEFORE YOU FINISH ANY CONTROL, PLANT OR MUTANT.
+
+Filed at em-tooling/_STANDING-RULES-2026-07-29.md, titled A CONTROL PLACES ITS
+TARGET IN AN ENVIRONMENT, AND THE CLEAN ENVIRONMENT CANNOT FAIL. It carries a
+four-point operative form that is now mandatory for every guard proof in this
+round.
+
+I am pointing rather than restating, per standing policy - one canonical copy, so
+it cannot drift between legs.
+
+The worked case: a credential detector passed two of three controls while being
+INCAPABLE of a positive result on any realistic file. Both passing controls
+planted the target alone on its own line, which is precisely the arrangement in
+which the carried defect was harmless. The one control that caught it caught it
+BY ACCIDENT, through filler text the author had added to make a fixture look
+realistic rather than as a test condition.
+
+The part to sit with: the author had written the PARENT rule into three other
+agents briefs hours earlier and still built the clean plant. KNOWING THE RULE DID
+NOT PREVENT IT.
+
+audit-xss-r5 - every exploit string and every negative control. If you conclude a
+guard holds, the payload you proved it against had surroundings, and you chose
+them.
+
+review-xss-r5 - apply it as a READING criterion to the round's existing tests.
+For each control in the diff, ask what environment the fixture places the target
+in and whether that environment could have produced a failure.
+
+If you have already completed a control that does not meet 10.25, do not redo it
+silently - put it in WHAT I DID NOT CHECK and tell me. A stated gap beats a quiet
+re-run.
+
+NOTHING ELSE CHANGES. Same SHA d305391, same scratch paths, same angles, same
+falsifier pre-commitment, reports to the volume and NOT committed. Build token
+still unspent and still mine - ask and wait.

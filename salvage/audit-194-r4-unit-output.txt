@@ -1,0 +1,60 @@
+=== RUN   TestAUDIT_R4A_TerminalPowerSet
+    zzz_audit_r4_test.go:95: R4A cells=112 blind=0  (sawTrue=true sawFalse=true — sweep is discriminating)
+--- PASS: TestAUDIT_R4A_TerminalPowerSet (0.00s)
+=== RUN   TestAUDIT_R4C_EnumDriftPaths
+    zzz_audit_r4_test.go:121: path 1 (in allStages, missing from terminalStagePrecedence): not live today; covered by TestTerminalStagePrecedence_CoversEveryTerminalStage. ranked=[completed wont_fix duplicate cancelled]
+    zzz_audit_r4_test.go:132: path 2 mechanism BY EXECUTION: TerminalLabelStage([ft:stage/archived]) -> ("",false). Any terminal stage absent from allStages is never registered in labelToStage, so the scan cannot see it AND terminalStages() cannot see it either — the guard test passes vacuously. allStages len=10, StageValidator accepts 10.
+    zzz_audit_r4_test.go:158: path 2: not live today (allStages covers all 10 enum values) but NOTHING PINS IT.
+--- PASS: TestAUDIT_R4C_EnumDriftPaths (0.00s)
+=== RUN   TestAUDIT_R4D_DisabledMapper
+    zzz_audit_r4_test.go:177: premise BY EXECUTION: disabled mapper still has 10 labelToStage entries — the scan would have honoured them; the guard is load-bearing
+    zzz_audit_r4_test.go:199: disabled mapper declined every terminal label set; enabled control returned true — the negative is real, not vacuous
+    zzz_audit_r4_test.go:207: OTHER PATH BY EXECUTION: hasExternalUnavailableLabel([ft:stage/blocked]) = true. It is a package-level function taking only []string — it consults NEITHER m.enabled NOR the configured push_prefix (both hardcoded at treewalk.go:153-164). It feeds issueUnavailableForClaim (passthrough.go:675, ENFORCEMENT) and ComputeAvailability (passthrough.go:824). So a mapper with labels disabled still honours blocked/waiting_for_input/deferred/scheduled labels.
+    zzz_audit_r4_test.go:224: prefix asymmetry BY EXECUTION: hasExternalUnavailableLabel([acme:stage/blocked])=false (hardcodes "ft:"), while TerminalLabelStage honours push_prefix=acme:
+--- PASS: TestAUDIT_R4D_DisabledMapper (0.00s)
+=== RUN   TestAUDIT_R4E_StockAndUnprefixed
+    zzz_audit_r4_test.go:246: --- A. bare label ALONE (round-3 comparison point) ---
+    zzz_audit_r4_test.go:251:   "duplicate"        -> TERMINAL "duplicate"
+    zzz_audit_r4_test.go:255:   stock labels terminal ALONE: [duplicate]
+    zzz_audit_r4_test.go:260: --- B. bare label ALONGSIDE a non-terminal ft: stage label ---
+    zzz_audit_r4_test.go:261:     (round 3: precedence collapsed the set, so the bare label was HIDDEN)
+    zzz_audit_r4_test.go:273:   [wont_fix                     ft:stage/accepted           ] round4="wont_fix"(true)  round3="accepted"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [wont_fix                     ft:stage/working            ] round4="wont_fix"(true)  round3="working" (terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [wont_fix                     ft:stage/in_review          ] round4="wont_fix"(true)  round3="in_review"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [completed                    ft:stage/accepted           ] round4="completed"(true)  round3="accepted"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [completed                    ft:stage/working            ] round4="completed"(true)  round3="working" (terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [completed                    ft:stage/in_review          ] round4="completed"(true)  round3="in_review"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [cancelled                    ft:stage/accepted           ] round4="cancelled"(true)  round3="accepted"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [cancelled                    ft:stage/working            ] round4="cancelled"(true)  round3="working" (terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [cancelled                    ft:stage/in_review          ] round4="cancelled"(true)  round3="in_review"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [duplicate                    ft:stage/accepted           ] round4="duplicate"(true)  round3="accepted"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [duplicate                    ft:stage/working            ] round4="duplicate"(true)  round3="working" (terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:273:   [duplicate                    ft:stage/in_review          ] round4="duplicate"(true)  round3="in_review"(terminal=false) <-- WIDENED BY ROUND 4
+    zzz_audit_r4_test.go:281:   WIDENED CELLS: 12 — round 4 makes an unprefixed stage-named label authoritative in label sets where round 3 hid it behind precedence.
+--- PASS: TestAUDIT_R4E_StockAndUnprefixed (0.00s)
+=== RUN   TestAUDIT_R4F_TreewalkReadyUsesDisplayProjection
+    zzz_audit_r4_test.go:332: baseline  [ft:stage/wont_fix                 ] -> ready=false node.Stage="wont_fix"
+    zzz_audit_r4_test.go:343: attack    [ft:stage/wont_fix                  ft:stage/accepted                 ] -> ready=true  node.Stage="accepted"  (TerminalLabelStage="wont_fix",true)
+    zzz_audit_r4_test.go:347: SCHEDULING BYPASS (treewalk): wont_fix + accepted — GetReadyTasks reports an issue carrying a terminal label "wont_fix" as READY WORK, because buildIssueTree derived node.Stage from MapLabelsToStage (display projection) instead of the lifecycle stage. labels=[ft:stage/wont_fix ft:stage/accepted]
+    zzz_audit_r4_test.go:343: attack    [ft:stage/duplicate                 ft:stage/accepted                 ] -> ready=true  node.Stage="accepted"  (TerminalLabelStage="duplicate",true)
+    zzz_audit_r4_test.go:347: SCHEDULING BYPASS (treewalk): duplicate + accepted — GetReadyTasks reports an issue carrying a terminal label "duplicate" as READY WORK, because buildIssueTree derived node.Stage from MapLabelsToStage (display projection) instead of the lifecycle stage. labels=[ft:stage/duplicate ft:stage/accepted]
+    zzz_audit_r4_test.go:343: attack    [ft:stage/cancelled                 ft:stage/accepted                 ] -> ready=true  node.Stage="accepted"  (TerminalLabelStage="cancelled",true)
+    zzz_audit_r4_test.go:347: SCHEDULING BYPASS (treewalk): cancelled + accepted — GetReadyTasks reports an issue carrying a terminal label "cancelled" as READY WORK, because buildIssueTree derived node.Stage from MapLabelsToStage (display projection) instead of the lifecycle stage. labels=[ft:stage/cancelled ft:stage/accepted]
+    zzz_audit_r4_test.go:343: attack    [ft:stage/completed                 ft:stage/accepted                 ] -> ready=true  node.Stage="accepted"  (TerminalLabelStage="completed",true)
+    zzz_audit_r4_test.go:347: SCHEDULING BYPASS (treewalk): completed + accepted — GetReadyTasks reports an issue carrying a terminal label "completed" as READY WORK, because buildIssueTree derived node.Stage from MapLabelsToStage (display projection) instead of the lifecycle stage. labels=[ft:stage/completed ft:stage/accepted]
+    zzz_audit_r4_test.go:343: attack    [duplicate                          ft:stage/accepted                 ] -> ready=true  node.Stage="accepted"  (TerminalLabelStage="duplicate",true)
+    zzz_audit_r4_test.go:347: SCHEDULING BYPASS (treewalk): bare stock duplicate + accepted — GetReadyTasks reports an issue carrying a terminal label "duplicate" as READY WORK, because buildIssueTree derived node.Stage from MapLabelsToStage (display projection) instead of the lifecycle stage. labels=[duplicate ft:stage/accepted]
+    zzz_audit_r4_test.go:353: treewalk bypass cells: 5 of 5
+--- FAIL: TestAUDIT_R4F_TreewalkReadyUsesDisplayProjection (0.00s)
+=== RUN   TestAUDIT_R4G_EvidenceDestruction
+    zzz_audit_r4_test.go:377: StageLabelSwap([ft:stage/wont_fix], working) -> add=[ft:stage/working] REMOVE=[ft:stage/wont_fix]
+    zzz_audit_r4_test.go:377: StageLabelSwap([ft:stage/wont_fix ft:stage/accepted], working) -> add=[ft:stage/working] REMOVE=[ft:stage/wont_fix ft:stage/accepted]
+    zzz_audit_r4_test.go:377: StageLabelSwap([duplicate], working) -> add=[ft:stage/working] REMOVE=[duplicate]
+    zzz_audit_r4_test.go:377: StageLabelSwap([duplicate bug], working) -> add=[ft:stage/working] REMOVE=[duplicate]
+    zzz_audit_r4_test.go:377: StageLabelSwap([wont_fix priority:high bug], working) -> add=[ft:stage/working] REMOVE=[wont_fix]
+    zzz_audit_r4_test.go:391: CONFIRMED: a successful stage change DELETES the human's stock GitHub "duplicate" label from the issue. It is not a Farm Table label and was never written by Farm Table, but StageLabelSwap removes it because NewLabelMapper registers every bare stage name as a lookup key.
+    zzz_audit_r4_test.go:398: control: StageLabelSwap([ft:stage/blocked ft:stage/wont_fix], working) REMOVE=[ft:stage/wont_fix] — the hold label SURVIVES (not a stage), the terminal label does not
+--- PASS: TestAUDIT_R4G_EvidenceDestruction (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/platform/github	0.007s
+FAIL

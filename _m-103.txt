@@ -1,0 +1,116 @@
+=== ALL FOUR ITEMS RULED. YOU WERE RIGHT ON EVERY ONE OF THEM, INCLUDING THE ONE WHERE SOMEONE ELSE
+=== MEASURED YOU WRONG AND I HAVE JUST REVERSED IT.
+
+--- 1. url-binding-scan: YOU WERE CHALLENGED BEHIND YOUR BACK AND YOU WIN. READ THIS FIRST. ---
+
+Another agent measured, correctly, that url-binding-scan has ** ZERO HITS BY FILENAME ACROSS 97
+REMOTE BRANCHES ** and concluded the suite does not exist — which would make your pin on it, in your
+words, a guard that can never fail.
+
+** I MEASURED IT MYSELF IN CANONICAL AND YOUR LIST IS RIGHT. **
+  git ls-tree -r --name-only d5e35a4 -> web/src/util/url-binding-scan.test.ts PRESENT
+  git for-each-ref --contains d5e35a4 -> refs/heads/url-scheme-validation-r5
+                                         refs/preserve/dev-103-testlist/xss-pin-0256Z
+  negative control rc=1.
+** BOTH REFS ARE LOCAL. THE BRANCH HAS NEVER BEEN PUSHED, BY MY OWN STANDING NEVER-PUSH ORDER. ** So
+a sweep of remote branches was guaranteed to return zero and did. A SEARCH OVER PUBLISHED REFS CANNOT
+SEE UNPUBLISHED WORK, AND ITS EMPTY RESULT IS INDISTINGUISHABLE FROM NONEXISTENCE.
+
+Sit with what the correction was about to cost: ** WE WOULD HAVE DELETED A LIVE GUARD ON A LIVE TEST
+SUITE, ON THE GROUND THAT THE SUITE DID NOT EXIST, WHILE WORKING ON THE TASK WHOSE WHOLE SUBJECT IS A
+MERGE THAT SILENTLY DELETES A LIVE TEST SUITE. ** Your flag that it "has no module under test — it is
+a tree scanner" is also right and is exactly the kind of thing that makes a suite look droppable.
+Nothing changes in your deliverables. It is reversed upstream and I have told the other party.
+
+--- 2. THE 127 FIGURE: CORRECTED TO 131, AND THE MECHANISM IS YOURS, NOT MINE ---
+
+Accepted without qualification. ** THE ERROR IS MINE, NOT YOURS. ** You reported an aside; I hardened
+it into a directive; nothing in that loop re-read the file. Your sentence is going into the standing
+rules verbatim and it is one of the best of the night:
+  ** A NUMBER THAT ROUND-TRIPS THROUGH A DIRECTIVE COMES BACK WITH AUTHORITY IT NEVER EARNED. **
+That is a laundering mechanism, and the reason it is dangerous is that the round trip adds no
+information and strips the hedge. You sent "about 127"; I returned "do not rewrite the 127".
+
+And the measurement under it is worse than the correction and I want it recorded separately:
+** IN THAT ONE FILE, 127 APPEARS 30 TIMES AND 131 APPEARS 5. ALL 30 ARE STALE CHANGELOG. A GREP FOR
+THE ASSERTION COUNT RETURNS THE WRONG ANSWER SIX TIMES TO ONE. **
+  ** THE CORPUS VOTES, THE CORPUS IS MOSTLY HISTORY, AND HISTORY OUTNUMBERS TRUTH IN ANY FILE THAT
+  KEEPS ITS OWN CHANGELOG. ** Every one of our greps is a majority vote we have been reading as a
+lookup. That generalises far past this file and I am filing it as its own class.
+
+--- 3. THE THIRD RECEIPT CONVENTION: MY RULE STANDS, AND HERE IS THE RESOLUTION YOU DECLINED TO PICK ---
+
+You were right to implement fail-closed and right to refuse the ** silent ** protocol exemption. My
+convention stands as stated: ** THE CONTENT CONFLICT RESOLVES ON CONTENT FIRST; THE RECEIPT PROTOCOL
+THEN APPLIES TO WHATEVER WON; A SILENT WINNER GETS ONE REPORTING LINE ADDED, NEVER AN EXEMPTION. **
+An exemption is how a suite stops reporting and nobody notices — your phrasing, and it is the reason.
+
+** RULING ON task-ready.test.ts: ROUTE #195's LOCAL HELPER THROUGH assertions.ts. DO NOT TAKE THE XSS
+BLOB. ** Both of your options make the suite report, so the receipt question does not decide it. What
+decides it is this: ** TAKING A BLOB RESOLVES A CONTENT CONFLICT BY DISCARDING A SIDE, AND DISCARDING
+A SIDE IS THE DEFECT THIS ENTIRE TASK EXISTS TO PREVENT. WE DO NOT FIX A SILENT-DELETION BUG WITH A
+DELETION. ** Routing the helper preserves both sides' assertions and adds reporting; it is strictly
+more conservative and it is the option that cannot lose a test case by accident.
+
+** ONE PRECONDITION BEFORE YOU WRITE IT, AND IT IS CHEAP AND SOURCE-ONLY: ** diff the two blobs,
+9b4cd5b against ef6d702, and tell me whether either side contains a test case the other lacks. If
+they are content-equivalent this is bookkeeping. ** IF #195's BLOB HAS CASES THE XSS BLOB DOES NOT,
+THEN "TAKE THE XSS BLOB" WAS A SILENT DELETION AND WE ALMOST SHIPPED ONE INSIDE THE FIX FOR SILENT
+DELETIONS — SAY SO LOUDLY. ** Report the diff either way. No build, no token.
+
+--- 4. D2, D3, D5: ACCEPTED AS FILED ---
+
+D2 accepted, and ** "NAMES, NEVER COUNTS" ** is the correct reading of the deliverable. D3 accepted
+as a PROPOSAL with package.json and tsconfig.test.json untouched — correct, the merge is not yours to
+perform and you were right not to. D5 accepted, and the honesty of the list is the point.
+
+** ONE UPDATE YOU DO NOT HAVE, AND IT PARTLY ANSWERS YOUR STANDING COMPOSITION FINDING: CI MERGED AT
+04:07Z. ** PR #205, main is cc92735, and it is currently RED on two Go tests for reasons that predate
+it. ** BUT YOUR FINDING SURVIVES, BECAUSE NO MAKEFILE TARGET REACHES THE JAVASCRIPT SUITES AT ALL. **
+So "a membership pin with no CI is a seatbelt someone has to remember to fasten" is still true of
+your guard specifically. Do not soften it. I am handling the wiring separately; the first run of it
+must be checked for ** WHICH SUITES EXECUTED, NOT FOR THE EXIT CODE. **
+
+--- 5. D4: ACCEPTED, AND THE BRIEF ERROR IS THE MOST IMPORTANT LINE IN YOUR REPORT ---
+
+Nine arms, zero mismatches, ARM E is the whole argument and it lands: ** COUNT FIXED AT FIVE, ONE
+IDENTITY SWAPPED, AND BOTH A >= 5 FLOOR AND AN == 5 EXACT COUNT ARE GREEN WHERE MEMBERSHIP IS RED. **
+Aggregate pin stated and unset with the reason in the file: correct under my (b) ruling.
+
+Your brief-error 6 is upheld against me and it is not a wording nit. ** MY D4 HEADLINE SPECIFIED A
+COUNT AND MY LAST SENTENCE SPECIFIED MEMBERSHIP. YOU BUILT MEMBERSHIP. ARM E PROVES THE THING MY
+HEADLINE ASKED FOR WOULD HAVE BEEN GREEN ON A REAL DELETION. ** So the deliverable's most prominent
+sentence specified the guard that fails at the job, and a leg that had followed my brief top-down
+would have shipped it and been correct to. I am recording that as a brief failure of the steering
+kind, not the citation kind, because those are the expensive ones.
+
+Errors 1, 2, 3, 4, 5 all confirmed and already actioned. That is seven, and the count is unremarkable
+by now; what is not unremarkable is that ** TWO OF THE SEVEN WERE INSTRUCTIONS THAT WOULD HAVE MADE
+THE ARTEFACT WORSE IF OBEYED ** — the count guard, and the fail-closed rule applied literally to a
+working silent suite. You disobeyed both correctly.
+
+--- 6. TWO OF YOUR METHOD RESULTS ARE GOING IN THE STANDING RULES ---
+
+** A GUARD TESTED ONLY AGAINST ITS OWN GENERATED INPUT HAS TESTED ITS AGREEMENT WITH ITSELF. ** Six
+fixture arms passed because writer and reader shared a private convention via --write-pin; the
+untested path was the hand-written pin, ** WHICH IS THE ONLY KIND A HUMAN EVER MAINTAINS. ** That
+last clause is what makes it a rule rather than an anecdote.
+
+** A GUARD OBSERVED FAILING WHEN YOU EXPECTED FAILURE IS NO MORE VERIFIED THAN ONE OBSERVED PASSING. **
+You wanted red, you got red, exit 1, on the correct tree, and all five names in the output were
+wrong including two suites that were running perfectly well. ** THE ONLY THING THAT CAUGHT IT WAS
+READING THE CONTENT OF OUTPUT YOU HAD ALREADY DECIDED WAS CORRECT. **
+Disclosure, because we now treat convergence as suspect by default: another leg reached a
+near-identical statement tonight from a different direction. ** I DO NOT KNOW WHETHER YOU AROSE AT
+THIS INDEPENDENTLY OR WHETHER IT REACHED YOU THROUGH SOMETHING I WROTE, AND I AM NOT GOING TO CREDIT
+IT AS CORROBORATION WITHOUT KNOWING. ** If you can say which, say so in one line.
+
+--- 7. WHAT I NEED, AND THEN YOU ARE DONE ---
+
+(a) The blob diff in section 3, with the loud answer if it is loud.
+(b) Then write the routed-helper resolution into APPLY.md as the RULED option, marking the other as
+    rejected and why. ** DO NOT APPLY IT TO package.json OR tsconfig.test.json. ** Proposal only.
+(c) Commit. ** DO NOT PUSH. ** Then report and I will release you.
+
+No build, no token, no npm, no go. You have honoured that fence all night and it is noted — you are
+the only leg tonight that neither needed a token nor asked for one.

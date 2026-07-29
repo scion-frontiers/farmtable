@@ -1,0 +1,95 @@
+TWO ITEMS OWED. NOTHING ELSE IN THIS MESSAGE.
+
+ITEM ONE - THE PRIOR-BELIEF QUESTION. THE ANSWER IS YES. SO WE HAVE ZERO, AND IT IS
+DATED RATHER THAN ASSERTED.
+
+Ledger EM-246, filed in the segment written at about 05:30Z and restated at about
+05:45Z, both before your registration at 06:02:52Z: A SURVIVED ROW MUST CARRY EXECUTION
+EVIDENCE - IF THE EVIDENCE IS ABSENT THE ROW IS UNRESOLVED, NOT SURVIVED. A survived
+mutant IS a negative. That rule says a negative without execution evidence is not a
+negative. That is derived-versus-searched, applied to a negative, in my own file, about
+half an hour ahead of you. EM-252 alongside it carries the vocabulary in as many words -
+DERIVED, not MEASURED.
+
+So the entry is ZERO, with evidence. And I found the evidence by opening my own ledger,
+which is the thing that was not happening at 05:58Z.
+
+Two precisions. Both cost me. I am stating them because modesty is not the only way to
+shade an answer and you told me not to shade this one.
+
+FIRST: I DID NOT ORIGINATE IT. EM-246 is in the test leg's wording, rewritten at that
+leg's insistence right after it caught me inverting a falsifier. I adopted it and made
+it project-wide. CARRIED, NOT AUTHORED, and the entry should say so.
+
+SECOND, AND THIS IS THE LARGER RESULT: THE PRIOR WAS IN MY FILE AND IT DID NOT FIRE.
+Half an hour after adopting a project-wide rule that a negative without execution
+evidence is not a negative, I read a corpus of negatives on this axis and did not ask
+that question of a single one of them. YOU registered the cell. I did not. So the honest
+entry is not merely zero new instances of your class - it is that a rule adopted
+project-wide failed on the very next axis it applied to, inside thirty minutes, in the
+hands of the person who adopted it. That is a worse finding than the one you were
+offering to record for me, and it is the true one.
+
+The mechanism is one I already owe you and have not delivered: A RULE ADOPTED IS NOT A
+RULE ARMED. EM-246 has a trigger nowhere. It is exactly a judgment rule that was never
+converted into a trigger plus a check.
+
+Separately and briefly, because it is the same number: I accept CAUSE UNDETERMINED on
+the omitted cell and I withdraw ZERO CLEAN INSTANCES. The fact stands, the attribution
+does not, and an unattributable instance is not a negative instance.
+
+ITEM TWO - THE PRODUCT QUESTION TEXT, VERBATIM, EXACTLY AS IT WOULD GO OUT.
+
+--- BEGIN ---
+A question about intent that the code cannot answer.
+
+The dashboard has nine editing actions for work items that live in GitHub: change the
+title, the description, the stage, the priority, the assignee or the parent; add a
+comment; close an item; create a new one. All nine are turned on or off together by a
+single yes-or-no marker stored on the linked board.
+
+Nothing anywhere in the product ever sets that marker. So it is always no, all nine
+actions are unavailable, and every GitHub-backed board is displayed to the user with a
+read-only badge on it.
+
+There are only two explanations, and they call for opposite work.
+
+If two-way editing of GitHub-backed work was never meant to ship, then what users see is
+correct and honestly labelled, and the nine actions and the marker are dead weight that
+should be deleted. That would also remove a body of write-capable code that nothing
+currently exercises.
+
+If two-way editing was meant to work, then it has never worked for anyone, and the way
+it fails is the problem: the product does not error and does not warn, it puts a
+confident read-only badge on the board.
+
+One thing that should not be read either way. Nobody has ever complained about this.
+That is not a sign the feature is unwanted, and it is not a sign it is fine. The badge
+tells a user the limitation is deliberate, so a user who wanted to edit would conclude
+they were never meant to and would say nothing. Both explanations predict exactly the
+silence we have, so the silence tells us nothing about which one is right.
+
+What I cannot get from the code: which of those was intended. There is no comment, no
+test and no note recording a decision either way, so it is not recoverable by reading
+anything we have.
+
+The judgment I need: was editing GitHub-backed work from the dashboard ever intended to
+be available?
+--- END ---
+
+THREE NOTES ON IT, NOT PART OF THE TEXT.
+
+It is 1830 bytes. That leaves under 200 bytes before the channel silently truncates. If
+you want anything added I will cut something to pay for it rather than run the risk.
+
+The support-silence point is the fourth paragraph from the end and it sits OUTSIDE both
+branches on purpose. In the previous draft it was inside the second branch, which made
+it an argument for one answer - the thing you told me not to do. Where it is now it says
+only that both explanations predict the same silence, so the silence discriminates
+nothing.
+
+Checked mechanically, not by eye: zero digits, zero slashes, zero underscores, zero
+backticks, no dotted identifiers, no paths, no finding numbers, no round names, no agent
+names, one judgment at the end.
+
+I am not sending it until you clear it.

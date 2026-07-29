@@ -1,0 +1,59 @@
+ROUND SIX IS ADJUDICATED. BOTH CELLS LAND, THE SHIPPING SENTENCE IS FIXED, AND YOU GO TO A
+THREE-WAY INDEPENDENT REVIEW AT c108acbcfa2357862576092469828709bb6c4090. Stand by exactly
+where you are. Do not commit, do not push, do not touch the tree.
+
+R6-23 IS THE STRONGEST SINGLE RESULT OF THE ROUND AND THE REASON IS THE ARM, NOT THE COLOUR.
+RED VIA THE MULTIPLICITY ARM, PREDICTED SEPARATELY FROM THE OUTCOME, WITH BOTH ARMS OBSERVED
+RATHER THAN INFERRED - you established that neither Errorf can mask the other before you used
+the silence of the undeclared arm as evidence. That is the first anti-floor argument on this
+project backed by an execution instead of by reasoning. A floor would have gone green here:
+one required, two found, satisfied. It went red because the key is an exact multiplicity under
+strict equality.
+
+R6-24 GREEN, AND I ORDERED IT KNOWING THE DERIVATION WOULD PROBABLY HOLD. It did. That is the
+point: the cheap command was one command and being wrong about it would have cost the axis.
+Your mechanical proof of pure addition - numstat 6 added 0 removed, declared site still exactly
+once, identifier grep returning only the original line - is what makes the green a property of
+the mutant. And the control is better than a synthetic one: R6-23 drove this same guard red on
+this same file with this same command minutes earlier.
+
+YOU TOOK R6-17 OUT OF THE TABLE YOURSELF AND THAT IS THE FINDING, NOT THE HOUSEKEEPING.
+
+  A RESULTS TABLE IS A CLAIM THAT ITS CELLS ARE COMMENSURABLE, AND NOTHING IN IT STATES THAT
+  CLAIM WHERE IT CAN BE CHECKED.
+
+That is now filed project-wide. I want your framing of it recorded with it, because it is more
+precise than mine and it is against your own interest: THE LABEL WAS RIGHT, THE LAYOUT ATE IT.
+You wrote RED, AS DISAPPEARANCE rather than RED, and that single word is the only reason any of
+this was recoverable. A deletion result sitting in a table about additions was read by two
+people as a statement about additions, and neither of us wrote the false sentence - the
+tabulation wrote it. The remedy is now standing form: EVERY CELL CARRIES ITS ARM, NOT JUST ITS
+COLOUR, IN THE CELL, so that dropping it takes an edit rather than an oversight.
+
+THE HEADER DEFECT IS ACCEPTED AS A REAL FINDING AND IT IS FIX-ROUND ITEM TWO. SITE(S) NO LONGER
+MATCH describes an absence and the case it fires on is a presence twice over. You found it by
+running the thing rather than by reading it, which is the same lesson twice in one hour.
+Flagging rather than fixing under the freeze is correct.
+
+FIX-ROUND ITEM ONE IS THE IN-TREE 2x2, and it is item one because it is the only inaccuracy
+that currently ships. The computed/declared cell comes out and the bound is reworded to
+CATCHES THE ACCIDENTAL ADDITION; NEVER OBSERVED CATCHING A DELIBERATE ONE. Correct not to touch
+it under the freeze.
+
+THE SHIPPING SENTENCE IS NARROWER THAN THE ONE YOU SET OUT TO EARN AND IT SHIPS ANYWAY, ON A
+DISPOSITION PRE-COMMITTED BEFORE ANY OF THESE THREE CELLS RAN, SPECIFICALLY SO THAT NEITHER I
+NOR YOU COULD CHOOSE IT AFTERWARDS. The deliverable stands. What it is is now stated in the
+only terms it was ever measured in.
+
+WHAT HAPPENS NEXT AND WHAT YOU DO NOT DO. Three independent legs - code review, security audit,
+test review - open at c108acb in three separate trees, none of them yours, none of them you. You
+do not review your own work and you do not brief them. If one of them contradicts you, that is a
+result and not an attack, and I will bring it to you rather than around you. Until then you are
+idle by design: tree clean, nothing committed, nothing pushed, freeze unchanged.
+
+One last thing, as process and not as praise, because I have been made to distinguish those
+tonight. Three times this round you have declined something offered to you - a compliment that
+belonged to two other legs, a commit that a conditional instruction of mine appeared to license,
+and now a cell of your own matrix. Each refusal cost you something and each one made the record
+truer. I am recording that as a property of the round's evidence rather than as a property of
+you, which is the only form of it I am able to verify.

@@ -1,0 +1,73 @@
+[2026-07-23T01:46:38.714Z] 
+============================================================
+[2026-07-23T01:46:38.715Z] TESTING: jibo
+[2026-07-23T01:46:38.715Z] Description: Internal collection with dependency graph
+[2026-07-23T01:46:38.715Z] ============================================================
+[2026-07-23T01:46:38.715Z] Navigating to: https://farmtable-486315127503.us-central1.run.app/?token=FT_TOKEN_REDACTED&collection=7e76c29c-5981-4e32-98b2-fa2bdd5ad9b7&view=dependencies
+[2026-07-23T01:46:39.459Z] ft-dependency-view found.
+[2026-07-23T01:46:49.495Z] Connection state: {"currentView":"dependencies","isPolling":false,"connectionStatus":"live","isExternalWritable":false,"pollManagerExists":false,"pollManagerActive":false,"streamManagerExists":true}
+[2026-07-23T01:46:49.508Z] INITIAL: panX=-1450, panY=5581.666666666666, scale=0.3, empty=false
+[2026-07-23T01:46:49.563Z] Interacting: pan + zoom...
+[2026-07-23T01:46:51.334Z] AFTER INTERACTION: panX=-1624.5454545454545, panY=5521.363636363636, scale=0.33
+[2026-07-23T01:46:51.334Z] Viewport changed by interaction ✓
+[2026-07-23T01:46:51.334Z] 
+Monitoring for 40s...
+[2026-07-23T01:46:56.351Z]   [1] t+5s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:01.367Z]   [2] t+10s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:06.398Z]   [3] t+15s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:11.421Z]   [4] t+20s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:16.453Z]   [5] t+25s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:21.470Z]   [6] t+30s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:26.486Z]   [7] t+35s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:31.501Z]   [8] t+40s: panX=-1624.5454545454545 panY=5521.363636363636 scale=0.33 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:31.560Z] 
+--- Result for jibo ---
+[2026-07-23T01:47:31.561Z] Max drift: panX=0.000 panY=0.000 scale=0.000000
+[2026-07-23T01:47:31.561Z] ListTasks poll calls during monitor: 0
+[2026-07-23T01:47:31.561Z] All gRPC calls: GetCollection, ListUsers, GetCollection, WatchTasks, ListUsers, GetCollection, ListCollections
+[2026-07-23T01:47:31.561Z] Stable: true
+[2026-07-23T01:47:31.561Z] 
+============================================================
+[2026-07-23T01:47:31.561Z] TESTING: github-experiment-scion-frontiers-farmtable
+[2026-07-23T01:47:31.561Z] Description: External GitHub collection (polling)
+[2026-07-23T01:47:31.561Z] ============================================================
+[2026-07-23T01:47:31.561Z] Navigating to: https://farmtable-486315127503.us-central1.run.app/?token=FT_TOKEN_REDACTED&collection=6a0a49f9-9c61-46cf-af5a-46f98f90ff20&view=dependencies
+[2026-07-23T01:47:32.062Z] ft-dependency-view found.
+[2026-07-23T01:47:42.088Z] Connection state: {"currentView":"dependencies","isPolling":false,"connectionStatus":"live","isExternalWritable":false,"pollManagerExists":false,"pollManagerActive":false,"streamManagerExists":true}
+[2026-07-23T01:47:42.097Z] INITIAL: panX=0, panY=0, scale=1, empty=true
+[2026-07-23T01:47:42.136Z] Interacting: pan + zoom...
+[2026-07-23T01:47:43.889Z] AFTER INTERACTION: panX=0, panY=0, scale=1
+[2026-07-23T01:47:43.889Z] WARNING: Viewport unchanged (empty state?)
+[2026-07-23T01:47:43.889Z] 
+Monitoring for 40s...
+[2026-07-23T01:47:48.901Z]   [1] t+5s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:53.916Z]   [2] t+10s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:47:58.933Z]   [3] t+15s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:03.945Z]   [4] t+20s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:08.958Z]   [5] t+25s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:13.975Z]   [6] t+30s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:18.989Z]   [7] t+35s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:24.005Z]   [8] t+40s: panX=0 panY=0 scale=1 | ListTasks=0 | drift: pX=0.000 pY=0.000 s=0.000000
+[2026-07-23T01:48:24.051Z] 
+--- Result for github-experiment-scion-frontiers-farmtable ---
+[2026-07-23T01:48:24.051Z] Max drift: panX=0.000 panY=0.000 scale=0.000000
+[2026-07-23T01:48:24.051Z] ListTasks poll calls during monitor: 0
+[2026-07-23T01:48:24.051Z] All gRPC calls: GetCollection, ListUsers, GetCollection, WatchTasks, ListUsers, GetCollection, ListCollections
+[2026-07-23T01:48:24.051Z] Stable: true
+[2026-07-23T01:48:24.051Z] 
+============================================================
+[2026-07-23T01:48:24.051Z] TREE VIEW CHECK (jibo collection)
+[2026-07-23T01:48:24.051Z] ============================================================
+[2026-07-23T01:48:30.140Z] Tree initial: {"panX":36185,"panY":-920,"scale":0.3}
+[2026-07-23T01:48:50.174Z] Tree after 20s: {"panX":36185,"panY":-920,"scale":0.3}
+[2026-07-23T01:48:50.174Z] Tree drift: panX=0.000 panY=0.000 scale=0.000000
+[2026-07-23T01:48:50.174Z] Tree view: ✅ PASS
+[2026-07-23T01:48:50.247Z] 
+============================================================
+[2026-07-23T01:48:50.247Z] FINAL SUMMARY
+[2026-07-23T01:48:50.247Z] ============================================================
+[2026-07-23T01:48:50.247Z]   jibo: PASS_NO_POLL
+[2026-07-23T01:48:50.247Z]   github-experiment-scion-frontiers-farmtable: PASS_NO_POLL
+[2026-07-23T01:48:50.247Z]   tree-view: PASS
+[2026-07-23T01:48:50.247Z] 
+OVERALL VERDICT: PASS

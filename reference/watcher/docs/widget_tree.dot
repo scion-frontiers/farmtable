@@ -1,0 +1,188 @@
+digraph G {
+    node [shape=box, style=filled, fillcolor="#EDEDF4", color="#C4C6D0", fontname="Helvetica", fontcolor="#191C20"];
+    edge [dir=none, color="#74777F"];
+    bgcolor="#F9F9FF";
+
+    PriorityBadge [shape=box, style=filled, fillcolor="#FFDBCF", color="#FFB4A2", fontname="Helvetica", fontcolor="#410002"];
+    EmptyStateView [shape=box, style=filled, fillcolor="#D6E3FF", color="#A8C7FA", fontname="Helvetica", fontcolor="#001B3D"];
+
+    subgraph cluster_app {
+        label="App Root";
+        style=rounded;
+        color="#415F91";
+        fontcolor="#415F91";
+        
+        WatcherApp -> ListenableBuilder [label="build", fontcolor="#44474E", fontsize=10];
+        ListenableBuilder -> PlatformMenuBar [label="menus", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "MacosApp.router";
+        "MacosApp.router" -> GoRouter [label="routerConfig", fontcolor="#44474E", fontsize=10];
+        GoRouter -> ShellRoute [label="routes", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "Menu: Watcher" [label="Cmd+,=Settings, About, Quit", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "Menu: Edit" [label="Undo/Redo/Cut/Copy/Paste", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "Menu: View" [label="CmdOptI=Show Inspector, Full Screen", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "Menu: Window" [label="Minimize/Zoom/Arrange", fontcolor="#44474E", fontsize=10];
+        PlatformMenuBar -> "Menu: Help" [label="Watcher Help", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_shell {
+        label="Shell (HomeScreen)";
+        style=rounded;
+        color="#565F71";
+        fontcolor="#565F71";
+
+        ShellRoute -> HomeScreen [label="builder", fontcolor="#44474E", fontsize=10];
+        HomeScreen -> "ListenableBuilder (Home)";
+        "ListenableBuilder (Home)" -> MacosWindow;
+        
+        MacosWindow -> "Sidebar (Projects)" [label="sidebar", fontcolor="#44474E", fontsize=10];
+        "Sidebar (Projects)" -> SidebarItems [label="builder", fontcolor="#44474E", fontsize=10];
+        "Sidebar (Projects)" -> MacosListTile [label="bottom", fontcolor="#44474E", fontsize=10];
+        MacosListTile -> SettingsScreen [label="router.go('/settings')", fontcolor="#44474E", fontsize=10];
+        
+        MacosWindow -> "Sidebar (Issue Inspector)" [label="endSidebar (resizable 200–400pt)", fontcolor="#44474E", fontsize=10];
+        "Sidebar (Issue Inspector)" -> IssueInspector [label="builder", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> MacosPopupButton [label="Status/Priority", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Dependencies)" [label="Blocked By / Blocks / Hierarchy / Related", fontcolor="#44474E", fontsize=10];
+        "_CollapsibleSection (Dependencies)" -> _AddDependencySheet [label="onClick (MacosSheet)", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Description)" [label="SelectableText", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Notes)" [label="SelectableText, if non-empty", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Design)" [label="SelectableText, if non-empty", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Acceptance Criteria)" [label="SelectableText, if non-empty", fontcolor="#44474E", fontsize=10];
+        IssueInspector -> "_CollapsibleSection (Comments)" [label="Timeline & Input", fontcolor="#44474E", fontsize=10];
+        
+        MacosWindow -> _InspectorController [label="child", fontcolor="#44474E", fontsize=10];
+        _InspectorController -> ChildWidget;
+    }
+
+    ChildWidget -> ProjectDashboard [label="/", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> TreeViewScreen [label="/tree", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> KanbanScreen [label="/kanban", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> ReadyQueueScreen [label="/ready", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> BlockedScreen [label="/blocked", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> DependencyGraphScreen [label="/graph", fontcolor="#44474E", fontsize=10];
+    ChildWidget -> SettingsScreen [label="/settings", fontcolor="#44474E", fontsize=10];
+
+    subgraph cluster_dashboard {
+        label="Dashboard";
+        style=rounded;
+        color="#415F91";
+        fontcolor="#415F91";
+
+        ProjectDashboard -> "MacosScaffold (Dashboard)";
+        "MacosScaffold (Dashboard)" -> "ToolBar (Dashboard)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Dashboard)" -> "ContentArea (Dashboard)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Dashboard)" -> "SingleChildScrollView (Dashboard)";
+        "SingleChildScrollView (Dashboard)" -> "Row (Stats)";
+        "SingleChildScrollView (Dashboard)" -> "ReadinessStatCard" [label="Ready/Blocked counts\n(tappable)", fontcolor="#44474E", fontsize=10];
+        "ReadinessStatCard" -> ReadyQueueScreen [label="onClick → /ready", fontcolor="#44474E", fontsize=10];
+        "ReadinessStatCard" -> BlockedScreen [label="onClick → /blocked", fontcolor="#44474E", fontsize=10];
+        "SingleChildScrollView (Dashboard)" -> "Container (Federation Status)";
+        "Container (Federation Status)" -> FederationModal [label="onClick (MacosSheet)", fontcolor="#44474E", fontsize=10];
+        "SingleChildScrollView (Dashboard)" -> ActivityTicker [label="Recent Activity", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Dashboard)" -> "ViewModeSegmentedControl (Dash)" [label="actions", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Dashboard)" -> CreateIssueModal [label="actions (onClick)", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Dashboard)" -> AssessmentModal [label="actions (onClick)", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Dashboard)" -> PlannerModal [label="actions (onClick)", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_ready {
+        label="Ready Queue";
+        style=rounded;
+        color="#51A15E";
+        fontcolor="#51A15E";
+
+        ReadyQueueScreen -> "MacosScaffold (Ready)";
+        "MacosScaffold (Ready)" -> "ToolBar (Ready)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Ready)" -> "ContentArea (Ready)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Ready)" -> "ListView (Ready)" [label="unblocked open issues, priority-sorted", fontcolor="#44474E", fontsize=10];
+        "ListView (Ready)" -> _ReadyRow [label="itemBuilder", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Ready)" -> "ViewModeSegmentedControl (Ready)" [label="actions", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_blocked {
+        label="Blocked / Impediments";
+        style=rounded;
+        color="#BA1A1A";
+        fontcolor="#BA1A1A";
+
+        BlockedScreen -> "MacosScaffold (Blocked)";
+        "MacosScaffold (Blocked)" -> "ToolBar (Blocked)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Blocked)" -> "ContentArea (Blocked)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Blocked)" -> "ListView (Blocked)" [label="blocked issues with open blockers inline", fontcolor="#44474E", fontsize=10];
+        "ListView (Blocked)" -> _BlockedRow [label="itemBuilder", fontcolor="#44474E", fontsize=10];
+        _BlockedRow -> _BlockerLink [label="open blockers (clickable)", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Blocked)" -> "ViewModeSegmentedControl (Blocked)" [label="actions", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_graph {
+        label="Dependency Graph";
+        style=rounded;
+        color="#705575";
+        fontcolor="#705575";
+
+        DependencyGraphScreen -> "MacosScaffold (Graph)";
+        "MacosScaffold (Graph)" -> "ToolBar (Graph)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Graph)" -> "ContentArea (Graph)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Graph)" -> _SummaryBar [label="stats header", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Graph)" -> _ChainCard [label="expandable root-blocker chains", fontcolor="#44474E", fontsize=10];
+        _ChainCard -> _IssueChip [label="blocked dependents", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Graph)" -> "ViewModeSegmentedControl (Graph)" [label="actions", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_settings {
+        label="Settings";
+        style=rounded;
+        color="#565F71";
+        fontcolor="#565F71";
+
+        SettingsScreen -> "MacosScaffold (Settings)";
+        "MacosScaffold (Settings)" -> "ToolBar (Settings)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Settings)" -> MacosBackButton [label="leading", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_tree {
+        label="Tree View";
+        style=rounded;
+        color="#415F91";
+        fontcolor="#415F91";
+
+        TreeViewScreen -> "MacosScaffold (Tree)";
+        "MacosScaffold (Tree)" -> "ToolBar (Tree)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Tree)" -> "ContentArea (Tree)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Tree)" -> "ListView (Tree)" [label="builder", fontcolor="#44474E", fontsize=10];
+        "ListView (Tree)" -> TreeNode [label="itemBuilder", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Tree)" -> "ViewModeSegmentedControl (Tree)" [label="actions", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Tree)" -> CreateIssueModal [label="actions (onClick)", fontcolor="#44474E", fontsize=10];
+    }
+
+    subgraph cluster_kanban {
+        label="Kanban View";
+        style=rounded;
+        color="#565F71";
+        fontcolor="#565F71";
+
+        KanbanScreen -> "MacosScaffold (Kanban)";
+        "MacosScaffold (Kanban)" -> "ToolBar (Kanban)" [label="toolBar", fontcolor="#44474E", fontsize=10];
+        "MacosScaffold (Kanban)" -> "ContentArea (Kanban)" [label="children", fontcolor="#44474E", fontsize=10];
+        "ContentArea (Kanban)" -> "SingleChildScrollView (Kanban)" [label="builder", fontcolor="#44474E", fontsize=10];
+        "SingleChildScrollView (Kanban)" -> "Row (Kanban)" [label="child", fontcolor="#44474E", fontsize=10];
+        "Row (Kanban)" -> KanbanColumn [label="children", fontcolor="#44474E", fontsize=10];
+        KanbanColumn -> DragTarget [label="build", fontcolor="#44474E", fontsize=10];
+        DragTarget -> "ListView (Column)" [label="builder", fontcolor="#44474E", fontsize=10];
+        "ListView (Column)" -> KanbanCard [label="itemBuilder", fontcolor="#44474E", fontsize=10];
+        KanbanCard -> Draggable [label="build", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Kanban)" -> "ViewModeSegmentedControl (Kanban)" [label="actions", fontcolor="#44474E", fontsize=10];
+        "ToolBar (Kanban)" -> CreateIssueModal [label="actions (onClick)", fontcolor="#44474E", fontsize=10];
+    }
+
+    TreeNode -> PriorityBadge [label="builds", fontcolor="#44474E", fontsize=8];
+    KanbanCard -> PriorityBadge [label="builds", fontcolor="#44474E", fontsize=8];
+    _ReadyRow -> PriorityBadge [label="builds", fontcolor="#44474E", fontsize=8];
+    _BlockedRow -> PriorityBadge [label="builds", fontcolor="#44474E", fontsize=8];
+
+    TreeViewScreen -> EmptyStateView [label="empty", fontcolor="#44474E", fontsize=8];
+    KanbanScreen -> EmptyStateView [label="empty", fontcolor="#44474E", fontsize=8];
+    ReadyQueueScreen -> EmptyStateView [label="empty", fontcolor="#44474E", fontsize=8];
+    BlockedScreen -> EmptyStateView [label="empty", fontcolor="#44474E", fontsize=8];
+    DependencyGraphScreen -> EmptyStateView [label="empty", fontcolor="#44474E", fontsize=8];
+}

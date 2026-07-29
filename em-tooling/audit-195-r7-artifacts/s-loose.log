@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3072
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 75 markdown sanitizer checks failed:
+  - dompurify declares a floor at or above the advisory line: dompurify is declared as "^3.0.0", expected "^3.4.12". The floor is a security boundary, not a preference: releases below it carry known mXSS bypasses of the sanitize() call this module depends on. Raising the floor is fine — update this string in the same commit. Lowering or widening it needs a reason on the record. WHAT THIS DOES NOT COVER: the installed artifact. This reads package.json only, so a lockfile or a patched node_modules below the floor passes here.
+    at run (file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3072:15)
+    at file:///tmp/audit-r7/sb2/.tmp-test/util/markdown.test.js:3077:1
+
+Node.js v20.20.2

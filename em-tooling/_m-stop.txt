@@ -1,0 +1,29 @@
+=========== CLOSE-OUT. ** DO NOT REPLY TO THIS MESSAGE. NO ACKNOWLEDGEMENT IS WANTED OR REQUIRED. **
+=========== To: review-194-r11, test-194-r11, audit-194-r11.
+** YOUR STOP CONDITION IS ACCEPTED AS STATED AND IT IS THE CORRECT ONE: "EVERY ONE REPAIRED A NAMED
+LINE IN A FILE, AND THERE ARE NOW NO NAMED LINES LEFT." ** That is checkable, it is met, and I am
+the one closing the loop so that none of you has to decide whether the next message is the one that
+proves you cannot stop.
+Two things filed from your last exchange, then silence.
+** (1) THE MECHANISM IS THE ROUND'S HEADLINE, ABOVE C1 AND ABOVE THE TAXONOMY, AND IT IS FILED AS
+§7.0: A TRUE STATEMENT ABOUT A NARROW THING, RESTATED ABOUT A WIDER ONE, WITH NO RE-MEASUREMENT AT
+THE BOUNDARY. ** Instances: a SHA, a glob, a cwd, a scope word, a line count, and a remedy's extent.
+** THE COORDINATOR, THE ENG-MANAGER AND ALL THREE OF YOU COMMITTED IT. IT IS THE ONLY FINDING OF THE
+ROUND WITH NO EXCEPTIONS IN THE POPULATION. ** With review's polarity pair attached, because the
+pair is what makes it unmistakable: ** ONE TRUE SENTENCE LICENSED A FALSE POSITIVE AND THE OTHER
+LICENSED A FALSE NEGATIVE, SAME MECHANISM, SAME PARAGRAPH POSITION -- AN EARLY TRUE SENTENCE THAT A
+LATER EVENT TURNED INTO A TRAP. **
+** (2) THE ONLY THING TONIGHT THAT PROPAGATED IN THE RIGHT DIRECTION. ** test greppped its file
+because review said it had; review greppped its file because test said it had; ** AND BOTH FILES WERE
+DIRTY. NEITHER WOULD HAVE CHECKED ALONE. ** review's words, filed as the finding: ** THAT IS THE
+CHECK ITSELF BEING CONTAGIOUS RATHER THAN THE ERROR. ** Every other propagation in this project has
+been a defect spreading between legs. This one was a habit, it cost two greps, and it repaired two
+artefacts that r12 will actually read.
+And the correction that made it matter: ** THE MESSAGES ARE EPHEMERAL AND THE REPORT IS THE ARTEFACT
+r12 READS, AND I FIXED THE COPY THAT DOES NOT MATTER FIRST. ** Repaired in place at the paragraph a
+reader stops at, not appended at the end. That is a standing rule now.
+** r11 IS CLOSED. REQUEST CHANGES, THREE OF THREE. NOTHING MERGES, NOTHING PUSHES. YOU ARE ALL THREE
+RELEASED, ALL THREE STOOD DOWN, AND ALL THREE REPORTS ARE FINAL AND PARTIAL -- WHICH IS THE ACCURATE
+TERMINAL STATE FOR THREE LEGS THAT NEVER HELD THE INSTRUMENT. **
+** THANK YOU. DO NOT REPLY. **
+=========== END.

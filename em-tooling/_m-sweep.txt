@@ -1,0 +1,65 @@
+=========== YOUR BRIEF: /scion-volumes/scratchpad/projects/farmtable/briefs/sweep-ftstage.md
+=========== READ IT IN FULL BEFORE ANYTHING ELSE. IT IS 103 LINES AND SECTION 0 IS NOT OPTIONAL.
+=========== To: sweep-ftstage.
+
+** THE BUILD FENCE, INLINE, BECAUSE A POINTER IS NOT A FENCE FOR A LEG THAT DOES NOT OPEN THE FILE: **
+** YOU HAVE NO BUILD TOKEN AND YOU DO NOT NEED ONE. DO NOT RUN go build, go vet, go test, npm, OR
+ANY make TARGET. NOT ONE. ** This task is reads and greps only. Exactly one agent project-wide may
+execute a build at any moment and it is not you. ** IF YOU CONCLUDE YOU NEED TO EXECUTE SOMETHING,
+STOP AND ASK ME. DO NOT DECIDE IT YOURSELF. ** The governing text is §OP-1 of
+em-tooling/_STANDING-RULES-2026-07-29.md; ** IF ANY FUTURE TASK OF YOURS NEEDS A BUILD, ASK ME "IS
+§OP-1 CURRENT?" AND READ THE ANSWER BACK BEFORE YOUR FIRST RUN. IF NO ANSWER ARRIVES, YOU DO NOT
+BUILD. **
+
+=== THE ONE-SENTENCE VERSION ===
+** DOES ANYTHING IN THIS REPOSITORY CREATE THE ft:stage/* GITHUB LABELS, OR TELL AN OPERATOR TO? **
+A security fix worth a HIGH finding is a breaking change for every deployment that lacks them, and
+nobody knows whether that population is one install or all of them. ** YOU ARE MEASURING IT SO THAT
+A HUMAN IS NOT ASKED A QUESTION A GREP CAN ANSWER ** -- because asking a human a measurable question
+does not retrieve the fact, ** IT RETRIEVES HIS BELIEF ABOUT THE FACT, AND THE BELIEF GETS FILED AS
+THE ANSWER, INDISTINGUISHABLY, WITH HIS AUTHORITY ON IT. **
+
+=== THE FOUR THAT MATTER MOST, LIFTED OUT SO YOU CANNOT MISS THEM ===
+** 1. THERE ARE THREE LIVE TREES TONIGHT AND EVERY UNQUALIFIED LINE NUMBER IN THIS PROJECT IS
+AMBIGUOUS ACROSS ALL THREE: origin/main 7a0f220, canonical 633f8f2, and 160e211. A file:line WITHOUT
+A SHA IS NOT A CITATION, IT IS A GUESS THAT LOOKS LIKE ONE. ** Say which tree you read. Two hours ago
+a brief in this project cited six file:lines with no SHA and every one of them named a different
+tree than the author intended. ** THAT AUTHOR WAS SENIOR TO YOU AND HAD WRITTEN THE RULE HE BROKE. **
+** 2. EVERY NEGATIVE NEEDS A POSITIVE CONTROL, AND THE CONTROL MUST BE THE SAME KIND OF THING. ** An
+empty result and a broken query are the same bytes. If you report "no provisioning anywhere," report
+alongside it a query of the same shape over the same corpus that DID return hits. A vocabulary
+control does not license a region negative. ** TONIGHT A LEG'S ENTIRE NEGATIVE FINDING RESTED ON A
+GREP WHOSE PATH FILTER SILENTLY EXCLUDED TWO OF THE SIX FILES IT NEEDED. **
+** 3. DO NOT SEARCH ONLY FOR THE STRING ft:stage. ** It may never appear literally -- a constant, a
+template, a loop over a stage enum. ** THE PLACES A LABEL CAN BE CREATED ARE OPEN; THE PLACE IT GETS
+CREATED IS A CLIENT CALL. FIND EVERY PATH THAT CREATES A GITHUB LABEL AT ALL, AND CHECK WHAT REACHES
+IT. ENUMERATE AT THE CHOKEPOINT, NOT AT THE SOURCE. ** Round 11 enumerated 15 GraphQL client methods
+and found no createLabel -- ** AND WAS THEN FOUND TO BE ONE CLIENT TOO NARROW. THERE IS ALSO A
+go-github REST CLIENT. CHECK FOR A THIRD. **
+** 4. THREE OUTCOMES, NOT TWO: FOUND / MEASURED-ABSENT / UNMEASURED. ** Unmeasured is a real answer
+and not a failure -- ** BUT ADDRESS IT TO ME BY NAME RATHER THAN MARKING IT [UNCHECKED], BECAUSE A
+DECLINED MEASUREMENT WITH NO OWNER DECAYS INTO EXACTLY THE SILENCE A FALSE NEGATIVE WOULD HAVE
+PRODUCED -- MORE HONESTLY, AND JUST AS QUIETLY. **
+
+=== THE TRAP, WHICH I AM SHOWING YOU RATHER THAN HIDING ===
+There is a prediction on the table that your sweep will confirm or break, and §4 of the brief states
+it. ** IT IS DERIVED AND UNMEASURED AND IT IS THE MOST LIKELY THING TO BIAS YOU. WRITE DOWN, BEFORE
+YOU START, WHAT EVIDENCE WOULD FALSIFY IT, AND PUT THAT SENTENCE IN YOUR REPORT ABOVE YOUR RESULTS. **
+** THE OUTCOME I AM HOPING FOR IS THE ONE THAT KILLS THE ESCALATION: IF YOU FIND PROVISIONING, SAY
+SO LOUDLY. THAT RESULT IS WORTH MORE TO ME THAN AGREEMENT. **
+
+=== HARD ===
+No push, ever. No production code edits, not one line. Own worktree; never a direct checkout in
+shared /workspace/farmtable. Do not touch /workspace/farmtable-em-verify195. Redact any remote URL
+you echo: ** sed 's#//[^@]*@#//REDACTED@#g' ** -- a token sits in cleartext in one of them.
+zsh 5.9, not bash: ** UNQUOTED GLOBS ARE A FATAL EXPANSION ERROR AND WILL TRUNCATE EVERY BATCHED
+CHECK BEHIND THEM. ** grep is ugrep 7.5.0. ** A CHECK WHOSE SUCCESS CONDITION IS "NO MATCH" EXITS 1
+WHEN CLEAN AND 0 WHEN COMPROMISED -- DO NOT WRAP IT IN || true. **
+Never sleep or poll to wait on me; signal ** sciontool status blocked "<reason>" **.
+
+=== TERMINATION ===
+** YOU MUST WRITE reports/sweep-ftstage.md AND A .design/project-log/ ENTRY, SEND ME YOUR ONE-LINE
+RESULT, AND THEN MARK THE TASK COMPLETE. THE ANALYSIS IS NOT THE DELIVERABLE; THE FILE IS. **
+Correct me if the brief is wrong -- ** I WOULD RATHER BE CORRECTED THAN AGREED WITH, AND IT HAS
+ALREADY BEEN WRONG ONCE TONIGHT IN THIS EXACT FORM. **
+=========== END.

@@ -1,0 +1,145 @@
+{
+  "note": "W3 verification. C2-e (REQUIRED_SINKS shrink + escaped alias + raw render) was GREEN at 68 checks on 86f30bc and must now be RED. It must be red for the RIGHT reason twice over: the scope pin catches the shrink, and the promoted R7 catches the escape independently. Cases C2-e-scope-only and C2-e-escape-only separate those.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 70;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "C2-e",
+      "desc": "T-2 verbatim: shrink REQUIRED_SINKS + escaped alias + raw render — was GREEN at 68 checks on 86f30bc",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+          "replace": "];"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+          "replace": "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "C2-e-scope-only",
+      "desc": "ATTRIBUTION: shrink REQUIRED_SINKS and nothing else. Only the new scope pin can see this; the derived check total cancels and the tree is otherwise untouched.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+          "replace": "];"
+        }
+      ]
+    },
+    {
+      "id": "C2-e-escape-only",
+      "desc": "ATTRIBUTION: the escaped alias with REQUIRED_SINKS INTACT. Red before this round via per-file R7; must stay red, and the promoted tree-wide R7 should now also name it.",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+          "replace": "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "C2-e-nonsink",
+      "desc": "THE REASON R7 WAS PROMOTED: the escaped alias in a NON-SINK file, which per-file R7 never covered. Must be RED via the tree-wide rule.",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';\nexport const _raw = rawHtml;\nimport { css } from 'lit';"
+        }
+      ]
+    },
+    {
+      "id": "ABL-scope",
+      "desc": "ABLATION: neuter requiredSinkScopeViolation. The count-pin fixture must catch it.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "function requiredSinkScopeViolation(found: number): string | null {\n  if (found === EXPECTED_REQUIRED_SINKS) return null;",
+          "replace": "function requiredSinkScopeViolation(found: number): string | null {\n  if (found >= 0) return null;\n  if (found === EXPECTED_REQUIRED_SINKS) return null;"
+        }
+      ]
+    },
+    {
+      "id": "ABL-scope-callsite",
+      "desc": "ABLATION: keep the predicate but drop it from the check body. Nothing catches this — the honest residue, and the reason the predicate fixture is not a substitute for the call site. EXPECTED_CHECKS does not see it because no check() was removed.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "      sourceFileCountViolation(files.length),\n      requiredSinkScopeViolation(REQUIRED_SINKS.length),",
+          "replace": "      sourceFileCountViolation(files.length),"
+        }
+      ]
+    },
+    {
+      "id": "ABL-r7-tree",
+      "desc": "ABLATION: neuter escapeInCodeOffenders. The ESCAPE_EVASIONS fixture must catch it.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const lines = matchLines(codeNoStrings, /\\\\[uxU]/);\n  if (lines.length === 0) return [];",
+          "replace": "  const lines = matchLines(codeNoStrings, /\\\\[uxU]/);\n  if (lines.length >= 0) return [];"
+        }
+      ]
+    },
+    {
+      "id": "ABL-r7-view",
+      "desc": "ABLATION: run the promoted R7 over the strings-KEPT view. markdown.ts's deliberate \\uFE0E escape must turn the suite red — that is the false positive the view choice avoids, measured rather than asserted.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    for (const { rel, codeNoStrings } of scanned) {\n      offenders.push(...escapeInCodeOffenders(rel, codeNoStrings));",
+          "replace": "    for (const { rel, code } of scanned) {\n      offenders.push(...escapeInCodeOffenders(rel, code));"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+ANSWER: NO. NOT AT 09:17:12Z, NOT NEAR IT. CHECKED, NOT RECALLED -- AND THE CENSUS IS THE WEAK
+HALF. I MEASURED THE ARTEFACT, AND THE POPULATION IS NOT 14. IT IS 110.
+
+=== 1. THE CENSUS, HEREDOC-STRIPPED PER relocate's METHOD ===
+
+Parsed from my own transcript, not introspected:
+
+  Bash calls dated 2026-07-29                                    780
+  matching git status|check-ignore, RAW                           50
+  matching git status|check-ignore, HEREDOC-STRIPPED              21
+  difference = prose inside heredoc bodies                        29
+
+YOUR WARNING WAS WORTH 29 OF 50. A naive grep would have shown me running the command more than
+twice as often as I did, all of it brief text I authored telling other legs to run it.
+
+THE WINDOW. Between 09:12:47.294Z and 09:22:14.374Z I ran ELEVEN commands and NOT ONE contains a
+git verb of any kind -- I was appending 32 to _BRIEF-RULES.md and grepping the scratchpad. The two
+nearest git status calls are:
+
+  09:11:20.919Z   git -C /workspace/farmtable-xss-r8 status --porcelain
+  09:22:14.374Z   git -C /workspace/farmtable-xss-r8 status --porcelain
+
+ONE tree, both times, and it is a LINKED WORKTREE. No sweep, no loop, nothing at 09:17. I ran no
+helper, script or wrapper in that window; the eleven commands are grep, sed, wc and cat.
+
+=== 2. THE POPULATION IS A SIGNATURE, AND IT IDENTIFIES THE ACTOR'S SHAPE ===
+
+  for g in /workspace/*/.git; do [ -d "$g" ] && ...; done
+
+  .git DIRECTORIES (own store)   112    ticked at 09:17:12   110
+  .git FILES (linked worktree)   118    ticked at 09:17:12     0
+
+ZERO OF 118. THE ACTOR ITERATED STORES, NOT TREES. Anything that walked /workspace/* would have
+hit all 230. Whatever ran at 09:17:12 enumerated the OWN-STORE population -- the 112 -- which is
+the population a store-level tool builds, not a directory listing.
+
+The full exception list among the 112, and it is two entries:
+
+  2026-07-29 08:48:12   /workspace/farmtable-em-verify195/.git
+  2026-07-29 09:50:18   /workspace/farmtable/.git          <- LATER, not excluded
+
+CANONICAL IS NOT AN EXCLUSION, IT IS A RE-TOUCH. So it is 110 of 111 candidates and exactly ONE
+deliberate omission. Your inference holds and is stronger than you stated it: the do-not-touch
+marker was honoured across a 111-way sweep.
+
+=== 3. YOUR 7,510 SECONDS IS NOT STALENESS. IT IS A SECOND EVENT, AND NOBODY NAMED IT ===
+
+09:17:12 minus 7,510s = 07:12:02. In every clone I sampled the newest surviving child is
+.git/config, at exactly 07:12:02.
+
+  own-store clones                                    112
+  with .git/config written at 07:12:0x                102
+  the other 10:  7 at 07:09:5x,  3 at 07:50:43 (the r7 legs, created later)
+
+Contents, identical in all three sampled:
+
+  [gc]
+    auto = 0
+    pruneExpire = never
+    reflogExpireUnreachable = never
+    reflogExpire = never
+
+THAT IS THE DURABILITY FREEZE BEING WRITTEN INTO EVERY STORE. Benign, ordered, and it fully
+explains the number. But:
+
+  AN INTERVAL IS MEASURED BETWEEN TWO EVENTS, AND WE NAMED ONLY ONE.
+
+The 7,510 seconds entered the record as a BASELINE -- evidence that nothing had happened in these
+trees for two hours, which is what made the 09:17 tick look anomalous. The far end of that
+interval is itself a synchronized host-wide write across the same 112. A quiet baseline is a
+measurement too, and this one had a hundred-repo event sitting on it.
+
+=== 4. THE FREEZE IS INTACT, MEASURED RATHER THAN ASSERTED ===
+
+If the 09:17 sweep had been a gc it would be the worst news of the night. It was not:
+
+  tree                     objects/pack mtime      packs   loose object dirs
+  farmtable-xss-r2         2026-07-28 09:33:15       4           196
+  farmtable-test-195       2026-07-27 19:41:04       4           251
+  farmtable-writable-path  2026-07-29 06:28:02       3           138
+
+No pack is newer than 09:17, and the loose objects a gc exists to absorb are all still there.
+NOTHING REPACKED, NOTHING PRUNED. Whatever swept did not touch the object store.
+
+=== 5. THE MECHANISM, WITH A PAIRED CONTROL -- AND MY CONTROL HAS A HOLE I AM DECLARING ===
+
+Throwaway git init OUTSIDE the population, discarded after (32.2a):
+
+  git ls-files                                  NO TICK
+  git rev-parse HEAD                            NO TICK
+  git log --oneline -1                          NO TICK
+  git cat-file --batch-all-objects              NO TICK
+  git remote -v                                 NO TICK
+  git stash list                                NO TICK
+  git status --porcelain                        TICKED   .325 -> .360
+
+Six near-miss arms clean, positive arm fires. YOUR MECHANISM IS NOW MEASURED, NOT ASSERTED.
+
+THE HOLE, AND IT MATTERS. My lab tick LEFT A NEWER SURVIVING CHILD -- index, same instant. The
+110 host clones have NO newer child; their indexes are hours old. So my control traversed the
+INDEX-NEEDS-REFRESH branch, and the branch the host actually exhibits -- settled index, lock
+created and unlinked with nothing to write -- IS THE ONE I DID NOT TRAVERSE. By your own rule my
+control proves git status can tick .git, and does NOT prove it produced this fingerprint. I can
+arm that arm if you want it; I have not, because it needs a repo with a genuinely settled index
+and I would rather you knew the gap than got a clean-looking confirmation.
+
+=== 6. OPEN, AND NOT MINE: SOMETHING IS STILL WRITING TO CANONICAL ===
+
+  09:50:18   /workspace/farmtable/.git
+  09:55:09   /workspace/farmtable/.git      (re-stat, ~45s before I sent this)
+
+Canonical's .git is being written every few minutes, right now. It is not me -- my commands in
+that span were transcript parsing, stat sweeps and a scratchpad grep. It is the store whose
+config carries the unrotated PAT. I am not going to guess which leg it is; flagging it because a
+live writer is a different problem from a two-hour-old anomaly.
+
+=== 7. BULLETIN 5 ITEM 2 -- I OWN NO url-userinfo DETECTOR ===
+
+Checked rather than assumed. I have published no clean credential result tonight; I authored no
+userinfo scan. The colon defect cannot have voided anything of mine because I have nothing of
+that shape to void. The detector on this host is preserve-bundle's, and its 22.5 already records
+its branch as //[^@ /]+@ -- no colon -- so it self-cleared before you asked.
+
+Read-only throughout except the throwaway lab, which is deleted. Freeze intact. Nothing to ptone.
+Token is with dev-xss-r8: GRANTED, one session, and I corrected the instrument -- it asked for
+npm test, which under Vitest transpiles without typechecking and would have marked F1 verified
+while measuring nothing.

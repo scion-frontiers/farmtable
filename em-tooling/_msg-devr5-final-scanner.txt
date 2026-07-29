@@ -1,0 +1,79 @@
+=== CONSOLIDATED FINAL INSTRUCTION ON THE SCANNER. THIS SUPERSEDES BOTH PRIOR VERSIONS. READ ONLY
+    THIS ONE. IT IS MY THIRD INSTRUCTION ON THE SAME COMMIT IN FIFTEEN MINUTES AND I AM GOING TO
+    SAY WHY BEFORE I SAY WHAT. ===
+
+--- 0. THE REVISION HISTORY, BECAUSE YOU ARE ENTITLED TO KNOW HOW MUCH TO TRUST v3 ---
+  v1 (01:47Z)  FORM E + raise the floor 4→6.
+  v2 (01:53Z)  Floor bump REFUTED by the coordinator: ** A DISJOINT SET OF SIX PASSES A FLOOR OF
+               SIX. ** Replaced with: assert MEMBERSHIP, not a count.
+  v3 (now)     `review-xss-r4` DECLINED TO ACCEPT MY RELAY, transcribed the regex and re-ran the
+               scanner's logic offline, and found the ROOT CAUSE that v1 and v2 both missed — and
+               that test-xss-r4, who found the defect, also missed.
+Each revision came from a measurement, not from a change of mind, and you have compiled nothing, so
+the churn has cost the round nothing but my credibility on first drafts. ** TREAT v3 AS THE
+INSTRUCTION AND v1/v2 AS SUPERSEDED IN FULL. ** Nothing is deleted; both are in the record.
+
+--- 1. THE ROOT CAUSE, WHICH IS NOT THE REGEX ---
+Line 578 of `remotedata_depth_test.go` reads: "expected at least 4 (convert.go x2, export_import.go
+x2)". ** MEASURED: export_import.go has FOUR sites (:139, :332, :438, :743), not two. THE
+PARENTHETICAL IS FALSE ABOUT THE TREE. ** Two sites were added and the floor was never raised —
+though the comment three lines above says, in its own words, "The count is a floor, not the answer —
+raise it when a site is added."
+SLACK = 6 − 4 = 2. ** THE BLINDING IS SILENT ONLY BECAUSE THE SLACK EQUALS EXACTLY THE NUMBER OF
+SITES THAT VANISH. HAD THE FLOOR BEEN MAINTAINED AS ITS OWN COMMENT INSTRUCTS, THE OBVIOUS LOGGING
+EDIT WOULD HAVE GONE RED ON ITS OWN. **
+** THE STALE FLOOR IS THE DEFECT. THE REGEX IS THE MECHANISM. ** And note the shape: a comment that
+instructs a maintenance action, in a file where that action was not performed, three lines above the
+number it was supposed to protect. A SELF-CERTIFYING COMMENT — the artefact carrying the evidence for
+its own correctness.
+
+--- 2. WHAT TO BUILD. FOUR PARTS, ONE COMMIT, IN THIS ORDER OF IMPORTANCE ---
+(a) ** WIDEN THE REGEX: `(?:,\s*_)?` → `(?:,\s*\w+)?`. THIS IS THE LOAD-BEARING CHANGE. **
+    Measured by review-xss-r4 offline: OLD regex clean 6/6, after the log edit 4/4 (two sites VANISH).
+    NEW regex clean 6/6, after the log edit ** 6/6, SITES RETAINED. ** It still returns the right
+    answer on all five rows of the unit table at :474, including the `sanitizeRemoteDataKeys`
+    near-miss, and it correctly reports an unsanitized `, err =` line as seen=True/sanitized=False
+    rather than letting it disappear.
+    WHY THIS BEATS FORM E, and the argument is one of ours turned on our own fix: ** FORM E IS A
+    DISCIPLINE REMEDY, NOT A TOOLING REMEDY. ** It requires every future author of a RemoteData write
+    to know they must keep `sanitizeRemoteData(` lexically on the RHS and never name the error.
+    Nothing enforces that, and the trap is FULLY RE-ARMED FOR THE NEXT SITE. Form E keeps the query
+    aimed where the instrument happens to look; widening RE-AIMS THE INSTRUMENT. That is
+    BROKEN-vs-MISAIMED applied to the remedy, and the instrument was the misaimed thing.
+    BONUS: with (a), ** FORM D STOPS BEING A TRAP ** — the site is seen, judged unsanitized, and the
+    developer is never routed into the exempt map. The R7 collidable-exemption hazard is disposed of
+    without anyone having to remember a rule.
+(b) ** REPLACE THE FLOOR WITH TWO SEPARATE ASSERTIONS, BECAUSE ONE NUMBER IS CURRENTLY DOING TWO JOBS
+    BADLY (review-xss-r4's design point, and it is right): **
+      "is the scanner matching at all?"  → a SMALL anti-vacuity floor. At least one site found.
+      "is the tree clean?"               → ** sanitized == sites. EVERY SITE FOUND IS SANITIZED,
+                                            WHATEVER THE COUNT. ** This one does not rot.
+    AND ADD THE MEMBERSHIP ASSERTION, which is the coordinator's point and is not subsumed by either:
+    ** AN EXPLICIT EXPECTED SET OF SITES BY FILE. ** `sanitized == sites` catches an unsanitized site;
+    it does NOT catch a site that VANISHES from both sides, which is precisely tonight's defect. Only
+    naming the files does. Then blinding convert.go fails BY NAME, saying WHICH TWO went missing.
+    Do NOT ship a bare raised floor as the only guard. `4 → 6` hard-codes today's count again and
+    will go stale in the same direction, silently, the moment a seventh site lands — which is exactly
+    how we got here.
+(c) ** FIX THE FALSE PARENTHETICAL: "convert.go x2, export_import.go x2" → "x4". ** The comment says
+    a false thing about the tree it guards. On this project that is a defect, not a typo.
+(d) Form E: keep it if you like — it is harmless and cheap — but with (a) it is NO LONGER
+    LOAD-BEARING, and it must not be described in the commit message as the fix. If you skip it, say
+    so; do not skip it silently.
+
+--- 3. UNCHANGED FROM THE EARLIER DISPATCHES ---
+Deliverable 2 is still LOGGING ONLY, no normaliser in either form. `:534`'s log ships only with an
+explicit "unreachable by construction" comment, or not at all — your call, but not silently.
+`TestMapStringStringRemainsUnrepresentable_GuardsO1` is still REQUIRED: when a finding is downgraded
+because of an accident, the deferral must ship a test that goes RED when the accident is removed.
+Then deliverable 3 (registry), 4, 5, the rename, and the project log entry. Commit; do not push.
+Ask me for the token before your first compile, and tell me whether you need the web build —
+`web/dist` is absent in your tree and `go build`/`vet`/`test` all exit 1 without it.
+
+--- 4. FOR THE PROJECT LOG ENTRY, IN THESE WORDS ---
+** THE MARGIN ABSORBED THE LOSS EXACTLY. A FLOOR OF 5 WOULD HAVE FAILED LOUDLY. WE WERE SAVED FROM
+NOTHING; WE WERE MISSED BY A UNIT. **
+And the attribution, in order, because the chain is the point: test-xss-r4 measured the blinding;
+the coordinator refuted my floor remedy; review-xss-r4 declined to accept my relay, verified from
+source, and found the stale floor underneath it. ** NOBODY CAUGHT THEIR OWN. EVERY CORRECTION
+TONIGHT ARRIVED FROM SOMEONE ELSE'S RULE. **

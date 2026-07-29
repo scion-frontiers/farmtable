@@ -1,0 +1,95 @@
+=== SALVAGE DONE AND DOUBLE-PROVEN. DIAGNOSIS DONE. **BOTH OF YOUR READINGS ARE FALSE, AND THE
+=== DECISIVE EVIDENCE WAS LOCAL, FREE, AND NEITHER OF US LOOKED AT IT.**
+
+--- 1. SALVAGE (done first, as ordered) ---
+ROOT=/workspace/farmtable. Two bundles in salvage/:
+  canonical-tswuv2-633f8f2-FULL.bundle  2030942 B  self-contained, full history, HEAD + named branch
+  canonical-tswuv2-633f8f2-THIN-39.bundle 254857 B  the 7a0f220..HEAD you asked for
+I made the FULL one because **A THIN BUNDLE CANNOT BE CLONED BY ANYONE WHO LACKS THE PREREQUISITE,
+WHICH IS EXACTLY THE PERSON A SALVAGE IS FOR.** Restore-proved by clone-and-restore into a temp dir,
+never git bundle verify. Pre-registered before cloning, all hit: tip 633f8f26, 39 over 7a0f220,
+linkflows.go 496 lines, blob d599b0b4, testutil 7 grpc.NewServer. Negative control 160e211 rc=128,
+positive 633f8f2 rc=0. Temp removed with rm -rf; NO gc, NO prune.
+
+--- 2. **THE RESTORE PROOF FAILED THE FIRST TIME, AND THE FAILURE IS THE BETTER FINDING** ---
+My first bundle named only refs/heads/. **git clone EXITED 0**, printed one warning, and produced an
+**EMPTY WORKING TREE.** Then every content control I had pre-registered printed **0** — because
+git show HEAD:... fataled and **wc -l HAPPILY COUNTED THE EMPTY PIPE AT EXIT 0.**
+** A BUNDLE THAT CLONES SUCCESSFULLY TO AN EMPTY WORKING TREE IS THE STRONGEST MEMBER OF THE
+SILENT-ADJACENT CLASS WE HAVE FOUND, BECAUSE THE OPERATION DOES NOT FAIL AT ALL — IT SUCCEEDS, AND
+THE ABSENCE IS IN THE RESULT RATHER THAN THE EXIT CODE. ** Had I pre-registered only "clone exits 0"
+I would have filed a proven salvage over an unusable artefact. It was caught solely because the
+controls were CONTENT controls with expected VALUES. Rebuilt with HEAD; naive clone now yields 22
+top-level entries, HEAD 633f8f26, linkflows 496. **AND MY OWN NEGATIVE CONTROL WAS BROKEN IN THE
+SAME BREATH: I READ $? AFTER A PIPE TO head, SO I CAPTURED head'S STATUS AND PRINTED rc=0 UNDER A
+LINE SAYING "EXPECT NON-ZERO".** Re-run properly: 128. Two instrument defects in one proof.
+
+--- 3. **THE ANCESTRY: NOT (a), NOT (b), AND NOTHING IS LOST** ---
+6c0fcfb IS IN CANONICAL'S OWN REFLOG AS task-state-web-ui-v2@{4}. It is not a separate line and it
+is not a force-push victim. **IT IS OUR OWN BRANCH, FOUR MERGES AGO.**
+  merge-base --is-ancestor 6c0fcfb 633f8f2  -> YES
+  reverse                                    -> NO
+  7a0f220..6c0fcfb = **22**   6c0fcfb..633f8f2 = **17**   7a0f220..633f8f2 = **39**   22+17=39.
+  origin/main = 7a0f220 exactly. Refs fetched 03:55:29Z, this session, not stale.
+**SO: THE BRANCH IS PUBLISHED. IT IS PUBLISHED AT A POINT 17 COMMITS BEHIND WHAT WE AUDITED.**
+ci-22-setup's numbers are all correct and its "633f8f2 does not exist after fetch --prune" is the
+**EXPECTED** reading of an unpushed tip, not evidence of an orphan. There are no 22 unread commits
+and there is no new workstream: your item 3(c) is **WITHDRAWN ON MEASUREMENT** and does not go to
+ptone.
+** THE RESIDUAL RISK IS REAL BUT SMALLER AND NOW BOUNDED: 17 COMMITS, ALL UNPUBLISHED, ALL
+SINGLE-HOMED UNTIL EIGHT MINUTES AGO. ** They touch **37 web/ files and ZERO .go files.**
+
+--- 4. **THE METHOD POINT, AND IT IS AGAINST BOTH OF US** ---
+You offered two readings and I could have spent an hour choosing between them. **BOTH WERE ABOUT THE
+REMOTE. THE ANSWER WAS IN CANONICAL'S REFLOG — LOCAL, INSTANT, AND OLDER THAN THE QUESTION.**
+** WHEN A DISAGREEMENT IS ABOUT WHAT A REMOTE DID, THE FIRST PLACE TO LOOK IS THE LOCAL RECORD OF
+WHAT WE DID, BECAUSE A REFLOG IS THE ONLY ARTEFACT IN GIT THAT REMEMBERS INTENT RATHER THAN STATE. **
+And note the shape: a candidate-reading pair is itself an enumeration, and **AN ENUMERATION OFFERED
+BY A TRUSTED SOURCE IS THE HARDEST KIND TO NOTICE IS INCOMPLETE — I NEARLY ANSWERED (a) OR (b)
+INSTEAD OF ANSWERING THE QUESTION.** That is your suppressive-assurance class with you as the
+source, and it is the second time tonight I have caught it pointing at you rather than at a leg.
+
+--- 5. THE GO-IDENTITY STAPLE — STRONGER THAN DRAFTED, STILL BOUNDED YOUR WAY ---
+The 17 unpublished commits touch zero Go. So Go is byte-identical at **all three** points
+7a0f220 / 6c0fcfb / 633f8f2. The staple text I will write, pinned exactly as you required:
+  "At 633f8f2 the Go tree is byte-identical to origin/main (7a0f220) and to the published branch
+   tip (6c0fcfb): 0 of 73 changed files are .go, go.mod/go.sum/*.proto unchanged, and
+   git rev-parse <ref>:internal agrees across all three. Go findings at THIS COMMIT therefore
+   describe production. **THIS STATEMENT IS PINNED TO 633f8f2 AND DOES NOT SURVIVE ANY COMMIT
+   STACKED ON IT — scopedeny-93's privilege fix ALONE CHANGES GO IN TEN FILES.**"
+
+--- 6. YOUR ASK ON reports/dev-xss-r4.md — **HERE IS THE CALL, NOT SILENCE** ---
+**YES, DISPATCH A FRESH LEG. BUT NOT THE ONE YOU DESCRIBED, AND THE DIFFERENCE IS NOT COSMETIC.**
+Writing the author's record FROM the three reports that review it inverts provenance: **THE DEV
+REPORT WOULD BECOME A DERIVATIVE OF THE DOCUMENTS IT EXISTS TO BE CHECKED AGAINST, AND NOTHING
+DOWNSTREAM OF X CAN FALSIFY X.** Any later disagreement between them would then be structurally
+impossible, and we would read that impossibility as agreement.
+So, split on provenance:
+  ** (i) THE FACTUAL HALF GOES TO A FRESH LEG, RECONSTRUCTED FROM THE TREE ONLY ** — git log and
+      diff over 6805daa..e6bda71, what X1/X2/X3/X5/X6 actually landed, what is uncommitted. It is
+      **FORBIDDEN TO OPEN ANY OF THE THREE REVIEW REPORTS**, and must mark every claim it cannot
+      source to a commit as NOT RECONSTRUCTABLE rather than inferring it.
+  ** (ii) D1-D7 IS MINE AND IS NOT DELEGABLE. ** It is a ruling, not a report; a fresh leg producing
+      it would be manufacturing an adjudication nobody adjudicated.
+I will have D1-D7 within the hour. Dispatch (i) whenever you like; it has no dependency on me.
+
+--- 7. FILED, AS ASKED ---
+Standing rules 906 -> 1005 lines. §8.1 THE UNMEASURED HEDGE, filed adjacent to the prevalence rule
+with the two-sign table. §8.2 sd93's INDEPENDENT-AGREEMENT rule **plus an audit of my own three
+credited corroborations under it: TWO SURVIVE, ONE DOES NOT.** connect.go:302 is **DOWNGRADED BY ME**
+- linkauth-69 and I read the same source file, so our agreement is one measurement in two coats, and
+only its reachability GRADE is independent. **YOU CREDITED THAT ONE BACK TO ME AND NEITHER OF US
+APPLIED THE RULE WE HAD BOTH JUST ACCEPTED.** §8.3 the dispatch/amendment failure. §8.4 wrong-path
+and single-clone-SHA merged as ONE rule, as you asked. §8.5 the exit-code rule. §8.6 the receipt
+class's existence proof. Your 04:02Z line goes in next: **THE CHECK NOBODY RUNS IS THE ONE WHOSE
+ONLY POSSIBLE PAYOFF IS A BIGGER PROBLEM** — and you are right that its first application was to a
+throwaway commit while the baseline SHA under every citation went unchecked for six hours.
+Run-queue-log: ROOT now **MANDATORY ON PASSING LINES TOO**, with your reason quoted.
+Also taking: sweep by CONTEXT PERCENTAGE not phase; a clean self-audit is a confirmation with no
+clause named; and the CLAUDE.md push contradiction, which I will resolve **IN CLAUDE.md ITSELF** -
+a brief must not be able to grant an exception to a repo-level rule, because the next brief can too.
+
+--- 8. UNCHANGED ---
+Build token unspent, I hold it. Canonical 633f8f2, 0 tracked modifications, untouched by all of the
+above. grpcauth-71 running on the 5-of-7 census, not deprioritised.
+=== END

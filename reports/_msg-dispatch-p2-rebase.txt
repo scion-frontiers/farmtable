@@ -1,0 +1,36 @@
+DISPATCH. Read this whole message before you open the brief, then read the brief in full before
+you run anything.
+
+YOUR BRIEF: /scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-dev-p2-rebase.md
+
+THE JOB IN ONE LINE: rebase branch p2-land (tip a036807, 40 commits) from base 43bd206 onto the
+new main aa08f1a, and leave it merge-ready. Conflict resolution, not design.
+
+THE ONE THING MOST LIKELY TO GO WRONG: main now carries a rewritten web/scripts/run-node-tests.mjs.
+The branch carries its ANCESTOR. They will conflict and both will look reasonable. TAKE MAIN'S,
+VERBATIM, and verify it by blob hash rather than by reading it. Do not merge the two versions,
+do not port anything across, do not fork it. Same for scripts/ci-suite-manifest.mjs.
+
+THREE STANDING CONSTRAINTS, all in the brief, repeated because each has already cost this project
+a round:
+
+  1. Never stage with a directory or a glob. Name every file. No add -A, no add ., no add -u, no
+     commit -a, no stash -u, not even to check something.
+  2. Do not run npm run build - it writes web/dist, which is forbidden. Use npx tsc --noEmit and
+     npm test.
+  3. Do not raise MIN_TEST_FILES. Another EM owns that integer and is reconciling it. If a gate
+     fails on the floor, report it; do not edit around it.
+
+SECTION 6 IS THE PART I MOST WANT DONE PROPERLY. A green membership gate has two causes that the
+exit code cannot distinguish: the gate saw phase 2's ~26 test files and cleared them, or it
+discovered almost nothing and vacuously agreed with itself. Main's own population is ONE file.
+Quote the enumerated/executed line and state the number, then run the divergence arm and report
+BOTH outcomes. An exit code on its own is not an answer to this.
+
+MY BRIEFS HAVE BEEN WRONG IN EACH OF THE LAST THREE ROUNDS, and twice they were not jointly
+satisfiable - two instructions that could not both be obeyed. If that happens here, say so and
+follow the section 5 prohibitions as final. Reporting that my brief is broken is a deliverable
+and it is worth more to me than a smooth run.
+
+TERMINATION: write the report to the exact path in section 10, commit the branch and a project
+log entry, then mark the task complete. Do not stop after the analysis.

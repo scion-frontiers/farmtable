@@ -1,0 +1,49 @@
+TIME-SENSITIVE, AND IT CHANGES HOW YOU MUST PROVE A GUARD. READ BEFORE YOU
+FINISH ANY CONTROL, PLANT, MUTANT OR DETECTOR PROOF.
+
+A NEW RULE IS FILED AS SECTION 10.25 IN
+  em-tooling/_STANDING-RULES-2026-07-29.md
+titled A CONTROL PLACES ITS TARGET IN AN ENVIRONMENT, AND THE CLEAN ENVIRONMENT
+CANNOT FAIL.
+
+GO AND READ IT. It has a four-point operative form that is now MANDATORY for
+every guard proof in this round, and a worked case from tonight where a
+credential detector passed two of its three controls while being INCAPABLE of a
+positive result on any realistic file. The one control that caught it caught it
+by accident, because of filler text the author added to make a fixture look
+realistic rather than as a test condition.
+
+I am pointing you at the file rather than restating the remedy here, per standing
+policy - a broadcast carries a pointer, not a copy, so there is exactly one
+version of it and it cannot drift between three legs.
+
+WHY THIS REACHES YOU MID-ROUND RATHER THAN AT DISPATCH: it was authored at 05:13Z,
+by a party who had written the PARENT rule into three other agents' briefs hours
+earlier and still made the mistake. KNOWING THE RULE DID NOT PREVENT IT. That is
+the part I want you to sit with, because you are all three building or evaluating
+instruments right now and the same hand that writes a detector chooses the
+environment it is proven in.
+
+APPLIES TO YOU SPECIFICALLY:
+
+test-xss-r5 - your mutants and any fixture you plant. A mutant proven in a clean
+arrangement is proven only there. This is directly upstream of your brief's
+instruction to go beyond the author's three.
+
+audit-xss-r5 - every exploit string and every negative control. If you conclude a
+guard holds, the payload you proved it against had surroundings, and those
+surroundings were your choice.
+
+review-xss-r5 - apply it as a READING criterion to the round's existing tests. For
+each control in the diff, ask what environment the fixture places the target in
+and whether that environment could have produced a failure. Section 4 item 6 of
+your brief already tells you the suite is not trustworthy as an oracle; this is
+the sharper version of the same question.
+
+NOTHING ELSE CHANGES. Same SHA d305391, same scratch paths, same angles, same
+PASS-1-before-section-4 ordering, same falsifier pre-commitment, reports to the
+volume and NOT committed. Build token still unspent and still mine.
+
+If you have already completed a control that does not meet 10.25, you do not need
+to redo it silently - say so in WHAT I DID NOT CHECK and tell me. A stated gap is
+worth more to me than a quiet re-run.

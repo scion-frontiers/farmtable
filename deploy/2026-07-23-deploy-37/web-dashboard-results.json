@@ -1,0 +1,44 @@
+[
+  {
+    "check": "c1",
+    "action": "Load dashboard without ?token= param",
+    "pass": true,
+    "detail": "Dashboard loaded (HTTP 200). App shell renders."
+  },
+  {
+    "check": "c2",
+    "action": "Login via /api/auth/session POST",
+    "pass": true,
+    "detail": "Login successful. userId=a948da6d-10cb-4d5c-8167-b1a35de52946."
+  },
+  {
+    "check": "c3",
+    "action": "Verify farmtable_session cookie is set",
+    "pass": true,
+    "detail": "Cookie found: httpOnly=true, secure=true, sameSite=Lax"
+  },
+  {
+    "check": "c4",
+    "action": "GET /api/auth/session returns active session",
+    "pass": true,
+    "detail": "Session active. userId=a948da6d-10cb-4d5c-8167-b1a35de52946"
+  },
+  {
+    "check": "c5",
+    "action": "Dashboard loads data with session cookie (Stage5/6 wiring unchanged)",
+    "pass": true,
+    "detail": "gRPC-web ListCollections returned HTTP 200. Shadow DOM ft-app rendered (textLength=85). SessionToBearerMiddleware correctly bridged session to gRPC auth. Initial textContent check was false-negative due to shadow DOM encapsulation; follow-up deep check confirmed data loading."
+  },
+  {
+    "check": "c6",
+    "action": "Logout via DELETE /api/auth/session",
+    "pass": true,
+    "detail": "Logout successful. Response: {\"status\":\"ok\"}"
+  },
+  {
+    "check": "c7",
+    "action": "Session invalidated after logout",
+    "pass": true,
+    "detail": "GET /api/auth/session returns 401 after logout. Session properly cleared."
+  }
+]

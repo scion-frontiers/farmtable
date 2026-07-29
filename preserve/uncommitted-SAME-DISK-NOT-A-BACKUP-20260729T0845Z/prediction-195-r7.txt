@@ -1,0 +1,6 @@
+PRE-REGISTERED, written BEFORE running the #195 r7 gate.
+  reported by dev-195-cleanup-7: npm test exit 0, "75 checks passed (122 assertions)" (was 69)
+  tsc --noEmit exit 0
+PREDICT: I will measure exactly 75 checks and 122 assertions, exit 0.
+FALSIFIERS: any other count; nonzero exit; a check count that matches while
+assertions differ (would mean checks were added that assert nothing).

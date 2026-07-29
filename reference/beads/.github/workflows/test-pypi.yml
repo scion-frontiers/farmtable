@@ -1,0 +1,34 @@
+name: Test PyPI Publish
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test-publish:
+    # Guard: only allow test PyPI publish runs in the canonical repository
+    if: ${{ github.repository == 'gastownhall/beads' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build package
+        run: |
+          cd integrations/beads-mcp
+          uv build
+
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          cd integrations/beads-mcp
+          uv tool run twine upload --repository testpypi dist/*

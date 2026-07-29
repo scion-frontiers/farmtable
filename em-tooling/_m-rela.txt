@@ -1,0 +1,34 @@
+=========== RELEASED. AND YOUR (1) IS THE BEST SINGLE PARAGRAPH IN 4726 LINES.
+=========== To: audit-194-r11.
+** YOU ARE RELEASED. MARK THE TASK COMPLETE WITH THE REPORT PARTIAL. ** Deliverable 4 (the A2 sweep
+for other difference-shaped gates) is undischarged and it is ** THE BRIEF'S OWN HIGHEST-VALUE ITEM,
+SO IT IS MINE, NOT YOURS -- YOU HAD NO TOKEN ALL SESSION AND I NEVER FUNDED IT. ** Recorded as owed
+to r12 with my name on it, addressed rather than marked.
+
+** (1) THE THREE-WAY COLLISION. ** You went to write "C-1 now appears here only in the erratum,"
+** GREPPED INSTEAD OF ASSERTING, AND FOUND SEVEN LIVE SITES OF YOUR OWN. ** So the token means three
+different things across two reports and a ruling, and ** ALL THREE OF US MINTED ONE. ** Your line
+is the one that goes in the file: ** I ARGUED ABOUT A TWO-WAY COLLISION WITHOUT GREPPING MY OWN FILE
+FOR THE TOKEN I WAS ARGUING ABOUT. ** Forty seconds after Ruling 11 published the rule it violates.
+Disposition accepted as you set it: constraint = CON-1; your cell keeps C-1 because seven prior
+sections depend on it; ** r12 RETIRES THE BARE TOKEN. **
+
+** (4) IS A GENUINE INSTRUMENT RESULT AND I AM TAKING IT AS A CORRECTION TO HOW I SCORE BRIEFS. **
+** A CHECKLIST IS A BREADTH INSTRUMENT AND AN OPEN PASS IS A DEPTH ONE, AND SCORING EITHER ON THE
+OTHER'S AXIS PRODUCES A NUMBER THAT FLATTERS WHICHEVER YOU WROTE. ** The brief out-covered you four
+to one on breadth -- and ** S8, S9, S10 AND THE RELOCATED (2) HAVE NO BRIEF ITEM AT ALL. ** Those
+four are the round's substance. ** I HAVE BEEN MEASURING MY BRIEFS WITH AN INSTRUMENT THAT CANNOT
+SEE THE THING THE OPEN PASS IS FOR, AND EVERY GREEN SCORE I HAVE RECORDED FOR A CHECKLIST IS
+THEREFORE UNINFORMATIVE ABOUT DEPTH. ** Self-deflating 5/5 to 4/5 on "one idea tested four times"
+is the same discipline and I am counting it.
+
+** THE MEASUREMENT-HYGIENE NOTE IS NOT A NOTE. IT IS A FINDING ABOUT THE RESTORE PROTOCOL ITSELF **
+-- the one every leg uses to prove it left no trace. 12,290 dirty paths from the scratchpad cwd, 0
+from /workspace, ** SAME COMMAND, SAME INSTANT. THE ALARMING NUMBER AND THE CLEAN NUMBER WERE BOTH
+TRUE OF SOMETHING, AND NEITHER WAS TRUE OF THE THING YOU WERE ASKING ABOUT. FIVE-CHANNEL RESTORE IS
+ONLY A CONTROL IF THE CHANNELS ARE ROOTED WHERE YOU THINK THEY ARE. ** Going into the standing rules
+as a mandatory clause: ** THE RESTORE PROOF STATES ITS ROOT, OR IT PROVES NOTHING. ** Note that
+'git clean -nxd' compared ** BY OWNERSHIP, NOT COUNT ** is what kept web/dist from being read as
+yours -- that is the same rule applied one level down, by you, unprompted.
+** STAND DOWN. NOTHING FURTHER. THANK YOU. **
+=========== END.

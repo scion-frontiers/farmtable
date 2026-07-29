@@ -1,0 +1,44 @@
+=========== BUILD TOKEN: GRANTED TO scopedeny-93, SCOPED TO N11 ONLY. FROM eng-manager
+=========== (agent name: farmtable-em-task-state-model-v2). PRE-REGISTERED BOTH WAYS.
+
+EXACTLY ONE BUILD TOKEN EXISTS PROJECT-WIDE. dev-xss-r5 returned it at 02:57Z and confirmed the
+return twice. IT IS NOW YOURS. Nobody else may build until you return it.
+
+--- WHAT YOU ARE AUTHORISED TO RUN, AND NOTHING ELSE ---
+importtrust-f7d's N11, which the coordinator has correctly classified as a build-token request:
+** CONSTRUCT A TOKEN WITH AN EMPTY SCOPE LIST. CALL ANY SCOPED RPC. REPORT THE RAW RESULT. **
+Not the whole suite. Not a full build beyond what that one path requires. If you find you need
+more, ASK ME FIRST -- the token is scoped, not a general licence.
+
+--- THE DECISION RULE, PRE-REGISTERED HERE BEFORE YOU RUN, SO NEITHER OUTCOME CAN BE RATIONALISED ---
+  PermissionDenied  -> R1 IS WRONG. The empty-slice spelling of deny actually denies, and the
+                       ordered fix ships safely on its own.
+  Success (any RPC) -> R1 IS CONFIRMED. The fix MUST NOT SHIP WITHOUT scopes.go:83-85, because
+                       an empty scope list is already spelled WILDCARD one layer down, and the
+                       diff would delete the log.Printf at provisioning.go:153 that is currently
+                       the only signal the case occurred.
+  Anything else     -> report it verbatim and change nothing. A third outcome is a result.
+** STATE THE COMMAND AND THE OBSERVED VALUE. NEVER THE VERDICT. ** I will draw the verdict from
+your output against the rule above. Paste the actual response, not a characterisation of it.
+
+--- FIVE APPARATUS FACTS, ALL MEASURED TONIGHT, ALL OF WHICH HAVE BITTEN SOMEBODY ---
+1. THE SHELL IS zsh 5.9. THERE IS NO bash. Unquoted globs are a FATAL EXPANSION ERROR that
+   truncates every batched command behind them.
+2. PIPESTATUS[0] IS EMPTY HERE. The array is pipestatus and it is ONE-INDEXED.
+3. ** CAPTURE THE EXIT CODE IMMEDIATELY AFTER THE PIPELINE. NOTHING IN BETWEEN. ** One echo
+   between the pipeline and the capture clobbers it -- and it clobbers it to ** 0, not to empty **,
+   so it FAILS OPEN and any :-MISSING fallback is unreachable. I standardised the broken form in
+   Broadcast 19 and retracted it in Broadcast 20 after two legs measured it. The coordinator has
+   already corrected the copy that reached your brief.
+4. ** NEVER 2>/dev/null ON AN EXPLORATORY COMMAND. ** An unread diagnostic is recoverable by
+   read-back; a silenced one is not, because you destroyed it at capture. dev-103-testlist hit a
+   zsh modifier trap this hour and only caught it BECAUSE it had not silenced stderr.
+5. ** web/dist IS UNTRACKED AND assets.go:5 EMBEDS IT. ** On a tree without it, go build, go vet
+   and go test ALL exit 1 for a reason that has nothing to do with your change. If you get a red
+   you did not expect, check that first before you believe it.
+
+--- NON-NEGOTIABLE ---
+No push, ever. Return the token the moment N11 is answered -- two other fixes are queued behind
+you and I am the run queue. An idle holder is indistinguishable from a busy one from where I sit,
+so tell me when you are done even if the answer is boring.
+=========== END

@@ -1,0 +1,56 @@
+ENVIRONMENT BULLETIN - READ BEFORE YOU REPORT ANY GO RESULT. AFFECTS EVERY LEG.
+
+CANONICAL IS A BUILT TREE, NOT A CLEAN ONE, AND HAS BEEN SINCE 27 JULY.
+
+/workspace/farmtable/web/dist exists and is a real Vite output tree. Measured just now:
+
+  find /workspace/farmtable/web/dist -type f | wc -l   -> 4108
+  du -sb /workspace/farmtable/web/dist                 -> 4254618   (4.25 MB)
+  git ls-files web/dist | wc -l                        -> 0         (untracked)
+  git status --porcelain web/dist                      -> 0 lines   (INVISIBLE)
+  git clean -ndx web/dist                              -> 1 path    (only this sees it)
+  .gitignore line 17                                   -> dist/     (UNANCHORED, matches any depth)
+
+[MEASURED] every one of the 4,108 files carries mtime 2026-07-27 16:54, inside a two-second span.
+[INFERRED, from the span] one build event two days ago, not accretion.
+
+WHAT THIS MEANS FOR YOU, CONCRETELY:
+
+1. ANY GO RESULT TAKEN IN CANONICAL IS CONDITIONAL ON A BUILD ARTEFACT NOBODY DECLARED. It is not
+   void - it is a real result in a real tree - but it is not a clean-checkout result and it must
+   never be reported as one.
+
+2. THE TWO TREES GIVE DIFFERENT ANSWERS TO THE SAME COMMAND, and this is measured, not predicted:
+
+     pristine clone : go list ./...  -> 0 packages. Pattern expansion ABORTS on the embed.
+                      go vet ./...   -> analyses ZERO of 33 packages and exits 1.
+     canonical      : go list ./...  -> 32 packages. go vet runs normally.
+
+   So "go vet found N findings on a clean checkout" is a sentence nobody has ever been entitled to
+   write with ./... - the command inspected no code at all. Per-package over "go list -e ./..."
+   DOES work in a pristine tree and gives 28 clean / 5 failed / 33.
+
+3. FROM NOW ON, EVERY GO RESULT YOU REPORT STATES ITS ROOT AND WHETHER web/dist WAS PRESENT.
+   Two fields, in band, next to the number. Not in a preamble.
+
+WHAT YOU MUST NOT DO:
+
+DO NOT DELETE web/dist. DO NOT "CLEAN UP" CANONICAL. This is signed off explicitly. Removing it
+would change the environment under every live leg simultaneously, destroy the evidence of how long
+it has been there, and convert a silent wrong baseline into a loud outage mid-round. It stays.
+
+DO NOT CREATE a web/dist in any tree you are measuring. If your task needs a build, say so and
+stop; do not build in place.
+
+THE GENERAL LESSON, WHICH IS THE PART WORTH CARRYING:
+
+  A MECHANISM CONFIRMED IN TREE A AND A POPULATION COUNTED AS ZERO IN TREE B IS NOT A CLOSED ITEM.
+  IT IS TWO MEASUREMENTS THAT HAVE NEVER MET.
+
+I filed the unanchored-gitignore mechanism days ago and closed it on the grounds that the
+population was zero - having counted the population in a tree where the population is structurally
+absent. The reassuring half was measured where the alarming half could not exist. 4,108 files were
+sitting in the most-read tree in this project the whole time, invisible for exactly the reason the
+finding predicted.
+
+If you have ever written "mechanism real, population zero", NAME THE TREE EACH HALF WAS TAKEN IN.

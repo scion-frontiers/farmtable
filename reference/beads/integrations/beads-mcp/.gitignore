@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+build/
+dist/
+wheels/
+*.egg-info
+__pycache__
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+
+# Virtual environments
+.venv
+/.env
+/CLAUDE.md
+/TODO.md

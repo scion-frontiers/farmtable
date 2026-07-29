@@ -1,0 +1,176 @@
+{
+ "edges": [
+  [
+   10,
+   9,
+   2
+  ],
+  [
+   13,
+   12,
+   8
+  ],
+  [
+   17,
+   13,
+   null
+  ],
+  [
+   17,
+   16,
+   null
+  ],
+  [
+   19,
+   13,
+   null
+  ],
+  [
+   19,
+   18,
+   null
+  ],
+  [
+   20,
+   19,
+   null
+  ]
+ ],
+ "naked": [
+  [
+   10,
+   9,
+   2
+  ],
+  [
+   13,
+   12,
+   8
+  ],
+  [
+   17,
+   13,
+   null
+  ],
+  [
+   17,
+   16,
+   null
+  ],
+  [
+   19,
+   13,
+   null
+  ],
+  [
+   19,
+   18,
+   null
+  ],
+  [
+   20,
+   19,
+   null
+  ]
+ ],
+ "rows": [
+  {
+   "src": 10,
+   "dst": 9,
+   "item": 2,
+   "scope": "ITEM-SCOPED",
+   "verdict": "NAKED",
+   "declared_line": 3
+  },
+  {
+   "src": 13,
+   "dst": 12,
+   "item": 8,
+   "scope": "ITEM-SCOPED",
+   "verdict": "NAKED",
+   "declared_line": 0
+  },
+  {
+   "src": 17,
+   "dst": 13,
+   "item": null,
+   "scope": "DOC-HEAD (weaker)",
+   "verdict": "NAKED",
+   "declared_line": 5
+  },
+  {
+   "src": 17,
+   "dst": 16,
+   "item": null,
+   "scope": "DOC-HEAD (weaker)",
+   "verdict": "NAKED",
+   "declared_line": 0
+  },
+  {
+   "src": 19,
+   "dst": 13,
+   "item": null,
+   "scope": "DOC-HEAD (weaker)",
+   "verdict": "NAKED",
+   "declared_line": 0
+  },
+  {
+   "src": 19,
+   "dst": 18,
+   "item": null,
+   "scope": "DOC-HEAD (weaker)",
+   "verdict": "NAKED",
+   "declared_line": 0
+  },
+  {
+   "src": 20,
+   "dst": 19,
+   "item": null,
+   "scope": "DOC-HEAD (weaker)",
+   "verdict": "NAKED",
+   "declared_line": 0
+  }
+ ],
+ "verdict_provenance": {
+  "item_scoped": 2,
+  "doc_head_weaker": 5
+ },
+ "controls": [
+  [
+   "POSITIVE",
+   "7 real reversal edges recovered",
+   "7/7",
+   "OK"
+  ],
+  [
+   "NEGATIVE",
+   "approving citation of B9 item 2 not called a reversal",
+   "line 72",
+   "OK"
+  ],
+  [
+   "ANCHOR",
+   "known-negative line carries no reversal term",
+   "checked",
+   "OK"
+  ],
+  [
+   "DETECTOR+",
+   "planted disarm banner on B12 item 8 is seen (tier 2)",
+   "planted",
+   "OK"
+  ],
+  [
+   "DETECTOR-",
+   "same item without the banner does NOT fire",
+   "planted",
+   "OK"
+  ],
+  [
+   "LOCATOR",
+   "absent item raises instead of returning a verdict",
+   "planted",
+   "OK"
+  ]
+ ]
+}

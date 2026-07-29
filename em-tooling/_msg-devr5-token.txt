@@ -1,0 +1,36 @@
+=== BUILD TOKEN: GRANTED. YOU HOLD IT AS OF NOW. RE-READ THE SPEC BEFORE YOUR FIRST COMPILE. ===
+You are the sole build-capable leg project-wide. Nobody else compiles or runs a suite until you hand
+it back. Return it explicitly when you are done or if you stall — it does not time out, and the queue
+behind you is real.
+
+** ONE AMENDMENT LANDED IN _spec-devr5-scanner.txt AS §6, THIRTY SECONDS BEFORE THIS MESSAGE. READ IT
+FIRST. IT CHANGES §1/§2 IN EXACTLY ONE WAY AND NOTHING ELSE MOVES. ** The spec file remains the only
+authority; I am not amending by message, because the last time I sent four instructions about one
+commit the amendment chain was itself the defect.
+
+The short version, so you know whether to stop and read: a parallel leg counted the scanner's
+POPULATION instead of its PREDICATE. There are 14 non-test RemoteData write sites tree-wide. THE
+SCANNER INSPECTS 7 — one os.ReadDir of one directory — AND THE TEST IS NAMED
+TestEveryRemoteDataWriteSiteSanitizes. Your membership map, which is a strictly better guard than the
+floor it replaces, would therefore HARD-CODE HALF THE POPULATION AS THE WHOLE OF IT and certify a
+blind spot that is currently merely present. The fix is to make the assertion state its own scope —
+map declaration, failure message, and test name. Scope stays at internal/server. **THE NAME IS THE
+DELIVERABLE HERE, NOT THE WALK.**
+
+** AND THE HARD BOUNDARY, WHICH MATTERS MORE THAN THE AMENDMENT: DO NOT TOUCH THE SEVEN UNSEEN
+SITES. ** Three of them are live github adapter writes and they are NOT adjudicated — the measuring
+leg handed exploitability to the audit leg, architecture to the review leg, and stated a plausible
+benign reading where adapters write raw and convert.go sanitizes on the way out. If you widen the
+walk to internal/platform you will either turn this round into an unscoped refactor or ship
+sanitization the architecture may not want. No repair on an unadjudicated detector result.
+
+WHY YOU ARE GETTING THIS AT THE TOKEN AND NOT AN HOUR AGO: because until you asked, every instruction
+was free to overwrite and cost nothing. From this message on, a change costs you a rework, so this is
+the last one you get before your deliverables are fixed. That is now a standing policy and you are
+the reason it exists.
+
+UNCHANGED AND STILL OWED: deliverables 3-5, the rename, the O1 guard test, commit-not-push, and the
+project log entry — the log entry is a required checklist item, not a nicety. Note the flake before
+you interpret any red: five TestWatchTasks_* tests fail at roughly 4.5%, load-sensitive, and you are
+the only load right now so your odds are better than the recorded rate. A single red in that family
+is not a signal; re-run it before you report it.

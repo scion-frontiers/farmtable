@@ -1,0 +1,86 @@
+[
+  {
+    "check": "4a-default-lr",
+    "action": "Tree View defaults to LR layout with no ?layoutdir= URL param",
+    "pass": true,
+    "detail": "Orientation: LR (expected LR). URL layoutdir param: null (expected null/absent). Nodes: 37. Icon: arrow-clockwise (expected arrow-clockwise for LR). URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree",
+    "timestamp": "2026-07-24T21:11:04.183Z"
+  },
+  {
+    "check": "4b-no-highlight-lr",
+    "action": "Rotate-toggle button has NO .active class in LR state",
+    "pass": true,
+    "detail": "hasActiveClass: false (expected false). classList: [\"isolate-btn\"] (should NOT include \"active\"). Icon: arrow-clockwise (CW = LR state). Background: rgb(255, 255, 255). Color: rgb(63, 63, 70)",
+    "timestamp": "2026-07-24T21:11:04.257Z"
+  },
+  {
+    "check": "4c-toggle-to-tb",
+    "action": "Toggle to TB: orientation is TB, URL shows ?layoutdir=TB",
+    "pass": true,
+    "detail": "Orientation: TB (expected TB). URL layoutdir: TB (expected TB). Icon: arrow-counterclockwise (expected arrow-counterclockwise). URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree&layoutdir=TB",
+    "timestamp": "2026-07-24T21:11:06.338Z"
+  },
+  {
+    "check": "4c-no-highlight-tb",
+    "action": "Rotate-toggle button has NO .active class in TB state either",
+    "pass": true,
+    "detail": "hasActiveClass: false (expected false). classList: [\"isolate-btn\"] (should NOT include \"active\"). Background: rgb(255, 255, 255). Color: rgb(63, 63, 70)",
+    "timestamp": "2026-07-24T21:11:06.338Z"
+  },
+  {
+    "check": "4d-toggle-back-lr",
+    "action": "Toggle back to LR: orientation is LR, URL param removed (LR is default)",
+    "pass": true,
+    "detail": "Orientation: LR (expected LR). URL layoutdir: null (expected null — omitted for default). Icon: arrow-clockwise (expected arrow-clockwise). No active class: true. URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree",
+    "timestamp": "2026-07-24T21:11:08.420Z"
+  },
+  {
+    "check": "4e-solo-highlight-active",
+    "action": "Solo button HAS .active class / highlight when active (styling unchanged)",
+    "pass": true,
+    "detail": "Solo button classList: [\"isolate-btn\",\"active\"]. hasActiveClass: true. Icon: fullscreen-exit (expected fullscreen-exit when active). Background: rgb(224, 242, 254). Color: rgb(3, 105, 161)",
+    "timestamp": "2026-07-24T21:11:13.667Z"
+  },
+  {
+    "check": "4e-orient-no-highlight-during-solo",
+    "action": "Orientation toggle button still has NO highlight even during active Solo mode",
+    "pass": true,
+    "detail": "Orientation btn classList: [\"isolate-btn\"]. hasActiveClass: false (expected false). This confirms only the Solo button gets highlight, not the orientation button.",
+    "timestamp": "2026-07-24T21:11:13.667Z"
+  },
+  {
+    "check": "4e-solo-no-highlight-inactive",
+    "action": "Solo button has NO .active class when Solo is off (confirms toggle behavior)",
+    "pass": null,
+    "detail": "Solo btn classList when off: undefined. hasActiveClass: undefined (expected false when off). Icon: undefined (expected fullscreen when inactive)",
+    "timestamp": "2026-07-24T21:11:18.949Z"
+  },
+  {
+    "check": "5-dependency-view",
+    "action": "Dependency View loads with viewport culling (Perf Phase 2 from deploy-49)",
+    "pass": true,
+    "detail": "Layout nodes: 37, DOM nodes: 37. Edges: 29 layout, 29 DOM. Culling correct (DOM ≤ layout): true. Scale: 0.416",
+    "timestamp": "2026-07-24T21:11:25.262Z"
+  },
+  {
+    "check": "5-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-24T21:11:29.486Z"
+  },
+  {
+    "check": "5-default-view-routing",
+    "action": "Default view routing works (should default to dashboard)",
+    "pass": true,
+    "detail": "Default view: dashboard",
+    "timestamp": "2026-07-24T21:11:33.746Z"
+  },
+  {
+    "check": "5-console-errors",
+    "action": "No relevant console errors",
+    "pass": true,
+    "detail": "Total console errors: 2, relevant: 0. Clean",
+    "timestamp": "2026-07-24T21:11:33.800Z"
+  }
+]

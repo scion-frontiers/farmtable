@@ -1,0 +1,400 @@
+package github
+
+// AUDIT SCRATCH FILE — security audit leg, #194 round 4, SHA 03ab6b6.
+// Not for commit. Deleted after the run; salvaged to the shared salvage dir.
+//
+// Charges covered here (unit level, sharp instruments — these call the
+// predicate directly so they can assert WHICH answer came back):
+//
+//   R4A  charge 1  TerminalLabelStage over the full terminal power-set
+//   R4B  charge 3  what an attacker gains by CHOOSING the terminal source
+//   R4C  charge 3  enum-drift: what breaks if a terminal stage is added
+//   R4D  charge 4  the !m.enabled guard, by execution
+//   R4E  charge 5  stock / unprefixed labels RE-DERIVED under the set scan
+//   R4F  charge 2  the next spelling: treewalk computeReady
+//
+// Every negative claim below is paired with a positive control that fails
+// closed, per standing bar 3.
+
+import (
+	"fmt"
+	"sort"
+	"testing"
+
+	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+	"github.com/shurcooL/githubv4"
+)
+
+func auditLabel(s task.Stage) string { return "ft:stage/" + s.String() }
+
+// ---------------------------------------------------------------------------
+// R4A — charge 1. The full terminal power-set, each masked by every
+// non-terminal stage. The round-3 PoC was single-call and destination-fixed;
+// this is the direct-predicate half. 2^4 terminal subsets x 7 mask choices.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_R4A_TerminalPowerSet(t *testing.T) {
+	m := defaultMapper()
+	terminals := terminalStages(t)
+	masks := append([]task.Stage{""}, nonTerminalStages(t)...)
+
+	if len(terminals) != 4 {
+		t.Fatalf("expected 4 terminal stages, got %d", len(terminals))
+	}
+
+	blind, sawTrue, sawFalse, cells := 0, false, false, 0
+	for subset := 0; subset < 1<<uint(len(terminals)); subset++ {
+		var present []task.Stage
+		for i, s := range terminals {
+			if subset&(1<<uint(i)) != 0 {
+				present = append(present, s)
+			}
+		}
+		for _, mask := range masks {
+			labels := make([]string, 0, len(present)+1)
+			for _, s := range present {
+				labels = append(labels, auditLabel(s))
+			}
+			if mask != "" {
+				labels = append(labels, auditLabel(mask))
+			}
+			got, ok := m.TerminalLabelStage(labels)
+			cells++
+			wantOK := len(present) > 0
+			if ok {
+				sawTrue = true
+			} else {
+				sawFalse = true
+			}
+			if ok != wantOK {
+				blind++
+				t.Errorf("BLIND CELL labels=%v -> (%q,%v), want ok=%v", labels, got, ok, wantOK)
+				continue
+			}
+			if ok && !store.IsTerminalStage(got) {
+				t.Errorf("labels=%v returned non-terminal %q", labels, got)
+			}
+			// Determinism: reversed label order must give the same answer.
+			rev := make([]string, len(labels))
+			for i := range labels {
+				rev[i] = labels[len(labels)-1-i]
+			}
+			got2, ok2 := m.TerminalLabelStage(rev)
+			if got != got2 || ok != ok2 {
+				t.Errorf("ORDER DEPENDENT: %v -> (%q,%v) but %v -> (%q,%v)",
+					labels, got, ok, rev, got2, ok2)
+			}
+		}
+	}
+	if !sawTrue || !sawFalse {
+		t.Fatalf("VACUOUS: sweep produced only one answer (sawTrue=%v sawFalse=%v); "+
+			"it is not discriminating and a zero-blind result would be meaningless",
+			sawTrue, sawFalse)
+	}
+	t.Logf("R4A cells=%d blind=%d  (sawTrue=%v sawFalse=%v — sweep is discriminating)",
+		cells, blind, sawTrue, sawFalse)
+}
+
+// ---------------------------------------------------------------------------
+// R4C — charge 3, second half. "What happens if a terminal stage is added to
+// the enum and not to this list?"
+//
+// Two drift paths, only one of which the shipped guard test covers.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_R4C_EnumDriftPaths(t *testing.T) {
+	m := defaultMapper()
+
+	// Path 1: registered as a label but absent from terminalStagePrecedence.
+	// Cannot be constructed today (the two lists agree), so assert they agree
+	// and record that the shipped guard covers exactly this path.
+	ranked := map[task.Stage]bool{}
+	for _, s := range terminalStagePrecedence {
+		ranked[s] = true
+	}
+	for _, s := range terminalStages(t) {
+		if !ranked[s] {
+			t.Errorf("PATH 1 LIVE: %q terminal but unranked", s)
+		}
+	}
+	t.Logf("path 1 (in allStages, missing from terminalStagePrecedence): not live today; "+
+		"covered by TestTerminalStagePrecedence_CoversEveryTerminalStage. ranked=%v",
+		terminalStagePrecedence)
+
+	// Path 2: in the ENUM and terminal, but missing from allStages. The guard
+	// test derives "every terminal stage" from allStages, so it would pass
+	// VACUOUSLY, and NewLabelMapper would never register the label at all.
+	// Demonstrate the mechanism: an unregistered stage label is invisible.
+	if st, ok := m.TerminalLabelStage([]string{"ft:stage/archived"}); ok {
+		t.Fatalf("control broke: unregistered label matched %q", st)
+	}
+	t.Logf("path 2 mechanism BY EXECUTION: TerminalLabelStage([ft:stage/archived]) -> "+
+		"(\"\",false). Any terminal stage absent from allStages is never registered in "+
+		"labelToStage, so the scan cannot see it AND terminalStages() cannot see it either "+
+		"— the guard test passes vacuously. allStages len=%d, StageValidator accepts 10.",
+		len(allStages))
+
+	// Positive control: allStages and StageValidator agree TODAY.
+	for _, s := range allStages {
+		if err := task.StageValidator(s); err != nil {
+			t.Errorf("allStages contains invalid %q", s)
+		}
+	}
+	valid := []task.Stage{
+		task.StageTriage, task.StageAccepted, task.StageWorking, task.StageInReview,
+		task.StageInQa, task.StageDeploying, task.StageCompleted, task.StageWontFix,
+		task.StageDuplicate, task.StageCancelled,
+	}
+	in := map[task.Stage]bool{}
+	for _, s := range allStages {
+		in[s] = true
+	}
+	for _, s := range valid {
+		if !in[s] {
+			t.Errorf("PATH 2 LIVE: enum stage %q missing from allStages", s)
+		}
+	}
+	t.Logf("path 2: not live today (allStages covers all 10 enum values) but NOTHING PINS IT.")
+}
+
+// ---------------------------------------------------------------------------
+// R4D — charge 4. The !m.enabled guard, by execution, plus a sweep for other
+// label-derived paths that do NOT consult enabled.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_R4D_DisabledMapper(t *testing.T) {
+	cfg := DefaultConfig().GitHub.Labels
+	cfg.Enabled = false
+	off := NewLabelMapper(cfg)
+	on := defaultMapper()
+
+	// The guard is load-bearing only if labelToStage is populated anyway.
+	if len(off.labelToStage) == 0 {
+		t.Fatalf("premise broken: disabled mapper has an EMPTY labelToStage, so the "+
+			"!m.enabled guard would be redundant; the dev's stated reason is wrong")
+	}
+	t.Logf("premise BY EXECUTION: disabled mapper still has %d labelToStage entries — "+
+		"the scan would have honoured them; the guard is load-bearing", len(off.labelToStage))
+
+	sawEnabledTrue := false
+	for _, s := range terminalStages(t) {
+		for _, extra := range append([]string{""}, "ft:stage/accepted", "ft:stage/working") {
+			labels := []string{auditLabel(s)}
+			if extra != "" {
+				labels = append(labels, extra)
+			}
+			if st, ok := off.TerminalLabelStage(labels); ok {
+				t.Errorf("DISABLED MAPPER HONOURED LABELS: %v -> %q", labels, st)
+			}
+			if _, ok := on.TerminalLabelStage(labels); ok {
+				sawEnabledTrue = true
+			}
+		}
+	}
+	if !sawEnabledTrue {
+		t.Fatalf("VACUOUS: the ENABLED control never returned true, so 'disabled declines' "+
+			"proves nothing")
+	}
+	t.Logf("disabled mapper declined every terminal label set; enabled control returned true — "+
+		"the negative is real, not vacuous")
+
+	// Now the sweep the charge asks for: other label-derived paths.
+	// hasExternalUnavailableLabel is a package-level func with NO mapper at all.
+	if !hasExternalUnavailableLabel([]string{"ft:stage/blocked"}) {
+		t.Fatalf("control broke")
+	}
+	t.Logf("OTHER PATH BY EXECUTION: hasExternalUnavailableLabel([ft:stage/blocked]) = true. "+
+		"It is a package-level function taking only []string — it consults NEITHER m.enabled "+
+		"NOR the configured push_prefix (both hardcoded at treewalk.go:153-164). It feeds "+
+		"issueUnavailableForClaim (passthrough.go:675, ENFORCEMENT) and ComputeAvailability "+
+		"(passthrough.go:824). So a mapper with labels disabled still honours "+
+		"blocked/waiting_for_input/deferred/scheduled labels.")
+
+	// Custom prefix: stripForMatch honours it, hasExternalUnavailableLabel does not.
+	cfg2 := DefaultConfig().GitHub.Labels
+	cfg2.PushPrefix = "acme:"
+	custom := NewLabelMapper(cfg2)
+	if _, ok := custom.TerminalLabelStage([]string{"acme:stage/wont_fix"}); !ok {
+		t.Errorf("custom prefix mapper failed to match its own prefix")
+	}
+	if _, ok := custom.TerminalLabelStage([]string{"ft:stage/wont_fix"}); ok {
+		t.Logf("note: custom-prefix mapper ALSO matched the ft: spelling")
+	}
+	t.Logf("prefix asymmetry BY EXECUTION: hasExternalUnavailableLabel([acme:stage/blocked])=%v "+
+		"(hardcodes \"ft:\"), while TerminalLabelStage honours push_prefix=acme:",
+		hasExternalUnavailableLabel([]string{"acme:stage/blocked"}))
+}
+
+// ---------------------------------------------------------------------------
+// R4E — charge 5. Stock and unprefixed labels RE-DERIVED under the set scan.
+//
+// The round-3 conclusion was reached against MapLabelsToStage, which collapsed
+// the set. The scan now reads the WHOLE set, so the exposure must be re-derived,
+// not inherited.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_R4E_StockAndUnprefixed(t *testing.T) {
+	m := defaultMapper()
+
+	stock := []string{
+		"bug", "documentation", "duplicate", "enhancement", "good first issue",
+		"help wanted", "invalid", "question", "wontfix",
+	}
+	bare := []string{"wont_fix", "completed", "cancelled", "duplicate"}
+
+	t.Logf("--- A. bare label ALONE (round-3 comparison point) ---")
+	var alone []string
+	for _, n := range stock {
+		if st, ok := m.TerminalLabelStage([]string{n}); ok {
+			alone = append(alone, n)
+			t.Logf("  %-18q -> TERMINAL %q", n, st)
+		}
+	}
+	sort.Strings(alone)
+	t.Logf("  stock labels terminal ALONE: %v", alone)
+	if len(alone) != 1 || alone[0] != "duplicate" {
+		t.Errorf("control changed: expected exactly [duplicate], got %v", alone)
+	}
+
+	t.Logf("--- B. bare label ALONGSIDE a non-terminal ft: stage label ---")
+	t.Logf("    (round 3: precedence collapsed the set, so the bare label was HIDDEN)")
+	widened := 0
+	for _, n := range bare {
+		for _, mask := range []string{"ft:stage/accepted", "ft:stage/working", "ft:stage/in_review"} {
+			labels := []string{n, mask}
+			st, ok := m.TerminalLabelStage(labels)
+			// Round-3 behaviour, reconstructed from the still-present display rule.
+			r3, r3ok := m.MapLabelsToStage(labels)
+			r3Terminal := r3ok && store.IsTerminalStage(r3)
+			if ok && !r3Terminal {
+				widened++
+			}
+			t.Logf("  %-28v round4=%-10q(%v)  round3=%-10q(terminal=%v) %s",
+				labels, st, ok, r3, r3Terminal,
+				map[bool]string{true: "<-- WIDENED BY ROUND 4", false: ""}[ok && !r3Terminal])
+		}
+	}
+	if widened == 0 {
+		t.Fatalf("VACUOUS: found no widened cell at all; the comparison is not measuring anything")
+	}
+	t.Logf("  WIDENED CELLS: %d — round 4 makes an unprefixed stage-named label authoritative "+
+		"in label sets where round 3 hid it behind precedence.", widened)
+}
+
+// ---------------------------------------------------------------------------
+// R4F — charge 2. THE NEXT SPELLING.
+//
+// buildIssueTree (treewalk.go:36) computes node.Stage from MapLabelsToStage —
+// the precedence-collapsed DISPLAY projection — and computeReady (treewalk.go:92)
+// gates readiness on node.Stage == StageAccepted. That is a scheduling decision
+// derived from the projection built to answer the display question: the exact
+// defect class round 4 fixed in TerminalLabelStage, unfixed here.
+// ---------------------------------------------------------------------------
+
+func mkIssue(num int, state string, labels ...string) issueNode {
+	var n issueNode
+	n.ID = githubv4.ID(fmt.Sprintf("I_%d", num))
+	n.Number = githubv4.Int(num)
+	n.Title = githubv4.String(fmt.Sprintf("issue %d", num))
+	n.State = githubv4.String(state)
+	for _, l := range labels {
+		var e struct{ Name githubv4.String }
+		e.Name = githubv4.String(l)
+		n.Labels.Nodes = append(n.Labels.Nodes, e)
+	}
+	return n
+}
+
+func TestAUDIT_R4F_TreewalkReadyUsesDisplayProjection(t *testing.T) {
+	m := defaultMapper()
+
+	type row struct {
+		name   string
+		labels []string
+	}
+	baseline := row{"single terminal label", []string{"ft:stage/wont_fix"}}
+	attacks := []row{
+		{"wont_fix + accepted", []string{"ft:stage/wont_fix", "ft:stage/accepted"}},
+		{"duplicate + accepted", []string{"ft:stage/duplicate", "ft:stage/accepted"}},
+		{"cancelled + accepted", []string{"ft:stage/cancelled", "ft:stage/accepted"}},
+		{"completed + accepted", []string{"ft:stage/completed", "ft:stage/accepted"}},
+		{"bare stock duplicate + accepted", []string{"duplicate", "ft:stage/accepted"}},
+	}
+
+	ready := func(labels []string) (bool, task.Stage) {
+		nodes := buildIssueTree([]issueNode{mkIssue(1, "OPEN", labels...)}, m)
+		res := computeReady(nodes, false)
+		return len(res) > 0, nodes[1].Stage
+	}
+
+	bOK, bStage := ready(baseline.labels)
+	t.Logf("baseline  %-34v -> ready=%-5v node.Stage=%q", baseline.labels, bOK, bStage)
+	if bOK {
+		t.Fatalf("BASELINE BROKEN: a bare wont_fix issue is already reported ready; "+
+			"the probe is not exercising the gate and any bypass below would be meaningless")
+	}
+
+	bypasses := 0
+	for _, a := range attacks {
+		ok, st := ready(a.labels)
+		// The authoritative answer, for contrast.
+		lifecycle, isTerm := m.TerminalLabelStage(a.labels)
+		t.Logf("attack    %-34v -> ready=%-5v node.Stage=%q  (TerminalLabelStage=%q,%v)",
+			a.labels, ok, st, lifecycle, isTerm)
+		if ok && isTerm {
+			bypasses++
+			t.Errorf("SCHEDULING BYPASS (treewalk): %s — GetReadyTasks reports an issue "+
+				"carrying a terminal label %q as READY WORK, because buildIssueTree derived "+
+				"node.Stage from MapLabelsToStage (display projection) instead of the "+
+				"lifecycle stage. labels=%v", a.name, lifecycle, a.labels)
+		}
+	}
+	t.Logf("treewalk bypass cells: %d of %d", bypasses, len(attacks))
+}
+
+// ---------------------------------------------------------------------------
+// R4G — charge 6. Evidence destruction as a side effect of normal operation.
+//
+// StageLabelSwap is what every successful transition runs. It removes every
+// label that maps to a stage — and NewLabelMapper registers every BARE stage
+// name as a key (labels.go:133-137). So a human's stock GitHub "duplicate"
+// label is destroyed by an ordinary Farm Table stage change.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_R4G_EvidenceDestruction(t *testing.T) {
+	m := defaultMapper()
+
+	cases := [][]string{
+		{"ft:stage/wont_fix"},
+		{"ft:stage/wont_fix", "ft:stage/accepted"},
+		{"duplicate"},                       // GitHub STOCK label, human-applied
+		{"duplicate", "bug"},                // stock triage pair
+		{"wont_fix", "priority:high", "bug"}, // pre-existing team labels
+	}
+	for _, labels := range cases {
+		add, remove := m.StageLabelSwap(labels, task.StageWorking)
+		t.Logf("StageLabelSwap(%v, working) -> add=%v REMOVE=%v", labels, add, remove)
+	}
+
+	// The sharp one: is the bare stock label destroyed?
+	_, remove := m.StageLabelSwap([]string{"duplicate", "bug"}, task.StageWorking)
+	destroyed := false
+	for _, r := range remove {
+		if r == "duplicate" {
+			destroyed = true
+		}
+	}
+	if !destroyed {
+		t.Fatalf("control broke: expected bare stock \"duplicate\" in the remove set, got %v", remove)
+	}
+	t.Logf("CONFIRMED: a successful stage change DELETES the human's stock GitHub "+
+		"\"duplicate\" label from the issue. It is not a Farm Table label and was never "+
+		"written by Farm Table, but StageLabelSwap removes it because NewLabelMapper "+
+		"registers every bare stage name as a lookup key.")
+
+	// Control: a hold label is NOT destroyed, so the two classes differ.
+	_, remove2 := m.StageLabelSwap([]string{"ft:stage/blocked", "ft:stage/wont_fix"}, task.StageWorking)
+	t.Logf("control: StageLabelSwap([ft:stage/blocked ft:stage/wont_fix], working) REMOVE=%v "+
+		"— the hold label SURVIVES (not a stage), the terminal label does not", remove2)
+}

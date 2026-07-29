@@ -1,0 +1,614 @@
+// AUDIT SCRATCH FILE — security audit leg, #194 round 4, SHA 03ab6b6.
+// Not for commit. Deleted after the run; salvaged to the shared salvage dir.
+//
+// The statefulGH mock, z4Rig and the REV0 self-check below are INHERITED
+// VERBATIM (symbols renamed z4*) from the salvaged harness
+//   /scion-volumes/scratchpad/projects/farmtable/salvage/audit-194-r3-stateful-harness.go
+// snapshotted at sha256 3698d861c4ba514dffcdea11662d6dd49b4084ea21b767d14e3688d7b02ad866.
+// They are reused, not rebuilt, per the round-4 charge. The self-check is kept
+// FIRST and unmodified because a stateless mock makes multi-call chains
+// inexpressible rather than disproven — the round-3 leg's false negative.
+//
+// The probes are mine and are new:
+//   Z4A  charge 1  round-3 PoC reproduction: masked terminal, dest=accepted
+//   Z4B  charge 1  MULTI-CALL x DESTINATION-VARYING: 4 starts x 10 dests
+//   Z4C  charge 3  what the attacker gains by CHOOSING the terminal source
+//   Z4D  charge 6  forensic: does a successful transition leave any record?
+
+package server_test
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sort"
+	"strings"
+	"sync"
+	"testing"
+
+	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/server"
+	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+	"github.com/farmtable-io/farmtable/internal/testutil"
+	"github.com/google/uuid"
+)
+
+// ---------------------------------------------------------------------------
+// STATEFUL GITHUB MOCK
+//
+// The load-bearing part. A STATELESS mock (one that acknowledges
+// addLabelsToLabelable / removeLabelsFromLabelable and then keeps serving the
+// original label set) makes every multi-call attack chain INEXPRESSIBLE, and
+// therefore makes every such test PASS. That is a false negative, not a
+// negative. See TestAUDIT_REV0_HarnessIsStateful.
+// ---------------------------------------------------------------------------
+
+var z4LabelIDs = map[string]string{
+	"L_triage": "ft:stage/triage", "L_accepted": "ft:stage/accepted",
+	"L_working": "ft:stage/working", "L_in_review": "ft:stage/in_review",
+	"L_completed": "ft:stage/completed", "L_wont_fix": "ft:stage/wont_fix",
+	"L_duplicate": "ft:stage/duplicate", "L_cancelled": "ft:stage/cancelled",
+}
+
+type z4GH struct {
+	mu         sync.Mutex
+	labels     []string
+	state      string // "OPEN" / "CLOSED"
+	closeCalls int    // how many closeIssue mutations the product actually issued
+}
+
+func (g *z4GH) closes() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.closeCalls
+}
+
+func (g *z4GH) snapshot() []string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	out := append([]string(nil), g.labels...)
+	sort.Strings(out)
+	return out
+}
+
+func (g *z4GH) add(name string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, l := range g.labels {
+		if l == name {
+			return
+		}
+	}
+	g.labels = append(g.labels, name)
+}
+
+// remove is the handler the test leg's probe left as a no-op. Step 3 of this
+// revision is meaningless without it.
+func (g *z4GH) remove(name string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	out := g.labels[:0]
+	for _, l := range g.labels {
+		if l != name {
+			out = append(out, l)
+		}
+	}
+	g.labels = out
+}
+
+func (g *z4GH) issueJSON() string {
+	nodes := make([]string, 0)
+	for _, l := range g.snapshot() {
+		nodes = append(nodes, fmt.Sprintf(`{"name":%q}`, l))
+	}
+	g.mu.Lock()
+	st := g.state
+	g.mu.Unlock()
+	return fmt.Sprintf(`{
+      "id":"I_issue1","number":1,"title":"Abandoned","body":"","state":%q,"stateReason":null,
+      "createdAt":"2026-01-15T10:00:00Z","updatedAt":"2026-01-16T12:00:00Z",
+      "url":"https://github.com/acme/widgets/issues/1",
+      "labels":{"nodes":[%s]},"assignees":{"nodes":[]},"milestone":null,
+      "subIssues":{"nodes":[],"totalCount":0},
+      "subIssuesSummary":{"total":0,"completed":0,"percentCompleted":0},"parent":null}`,
+		st, strings.Join(nodes, ","))
+}
+
+func (g *z4GH) handler(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		b := string(body)
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(b, "addLabelsToLabelable"):
+			for id, name := range z4LabelIDs {
+				if strings.Contains(b, `"`+id+`"`) {
+					g.add(name)
+					t.Logf("        [github] +%s -> %v", name, g.snapshot())
+				}
+			}
+			_, _ = w.Write([]byte(`{"data":{"addLabelsToLabelable":{"clientMutationId":null}}}`))
+		case strings.Contains(b, "removeLabelsFromLabelable"):
+			for id, name := range z4LabelIDs {
+				if strings.Contains(b, `"`+id+`"`) {
+					g.remove(name)
+					t.Logf("        [github] -%s -> %v", name, g.snapshot())
+				}
+			}
+			_, _ = w.Write([]byte(`{"data":{"removeLabelsFromLabelable":{"clientMutationId":null}}}`))
+		case strings.Contains(b, "updateIssue"):
+			_, _ = fmt.Fprintf(w, `{"data":{"updateIssue":{"issue":%s}}}`, g.issueJSON())
+		case strings.Contains(b, "reopenIssue"):
+			g.mu.Lock()
+			g.state = "OPEN"
+			g.mu.Unlock()
+			_, _ = fmt.Fprintf(w, `{"data":{"reopenIssue":{"issue":%s}}}`, g.issueJSON())
+		case strings.Contains(b, "closeIssue"):
+			g.mu.Lock()
+			g.state = "CLOSED"
+			g.closeCalls++
+			g.mu.Unlock()
+			t.Logf("        [github] closeIssue -> state=CLOSED")
+			_, _ = fmt.Fprintf(w, `{"data":{"closeIssue":{"issue":%s}}}`, g.issueJSON())
+		case strings.Contains(b, "addAssignees"):
+			_, _ = fmt.Fprintf(w, `{"data":{"addAssigneesToAssignable":{"assignable":{"id":"I_issue1"}}}}`)
+		// NOTE: issue(number:) MUST be tested before issues(, and both before
+		// the bare repository(owner:) fallthrough. Omitting this case is what
+		// made my first REV2 attempt die on a GraphQL unmarshal error inside
+		// ClaimTask, before it ever reached the gate under test.
+		case strings.Contains(b, "issue(number:"):
+			_, _ = fmt.Fprintf(w, `{"data":{"repository":{"issue":%s}}}`, g.issueJSON())
+		case strings.Contains(b, "issues("):
+			_, _ = fmt.Fprintf(w,
+				`{"data":{"repository":{"issues":{"nodes":[%s],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}`,
+				g.issueJSON())
+		case strings.Contains(b, "labels(first:"):
+			nodes := make([]string, 0)
+			for id, name := range z4LabelIDs {
+				nodes = append(nodes, fmt.Sprintf(`{"id":%q,"name":%q}`, id, name))
+			}
+			_, _ = w.Write([]byte(`{"data":{"repository":{"labels":{"nodes":[` +
+				strings.Join(nodes, ",") + `],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}`))
+		case strings.Contains(b, "repository(owner:"):
+			_, _ = w.Write([]byte(`{"data":{"repository":{"id":"R_repo1"}}}`))
+		default:
+			_, _ = w.Write([]byte(`{"data":{}}`))
+		}
+	}
+}
+
+// z4Rig builds the PRODUCTION object graph: EntStore -> MultiStore ->
+// PlatformResolver -> bare *GitHubPassThroughStore, matching
+// cmd/farmtable-server/main.go:39,60,61 and resolver.go:26.
+func z4Rig(t *testing.T, initial []string) (*server.FarmTableService, *store.MultiStore, string, *z4GH) {
+	t.Helper()
+	ctx := context.Background()
+	gh := &z4GH{labels: append([]string(nil), initial...), state: "OPEN"}
+
+	entStore, cleanup := testutil.NewTestStore(t)
+	t.Cleanup(cleanup)
+	ms := store.NewMultiStore(entStore)
+	t.Cleanup(func() { _ = ms.Close() })
+
+	coll, err := ms.CreateCollection(ctx, store.CreateCollectionParams{
+		Name: "acme/widgets", Platform: string(collection.PlatformGithub), RemoteID: "acme/widgets"})
+	if err != nil {
+		t.Fatalf("CreateCollection: %v", err)
+	}
+	if _, err := ms.CreateLinkedAccount(ctx, store.CreateLinkedAccountParams{
+		CollectionID: coll.ID, Platform: "github", AuthToken: "ghp_mock",
+		AuthMethod: "pat", Scopes: []string{"repo"}}); err != nil {
+		t.Fatalf("CreateLinkedAccount: %v", err)
+	}
+	mock := httptest.NewServer(gh.handler(t))
+	t.Cleanup(mock.Close)
+	ms.SetResolver(func(p collection.Platform, tok, rid string, cid uuid.UUID) (store.Store, error) {
+		owner, r, ok := store.ParseOwnerRepo(rid)
+		if p != collection.PlatformGithub || !ok {
+			return nil, nil
+		}
+		return newPassThroughStoreWithMock(t, mock, owner, r, cid), nil
+	})
+	svc := server.NewFarmTableService(ms, "test")
+
+	cid := coll.ID.String()
+	list, err := svc.ListTasks(ctx, &pb.ListTasksRequest{CollectionId: &cid})
+	if err != nil || len(list.GetItems()) != 1 {
+		t.Fatalf("ListTasks: %v items=%d", err, len(list.GetItems()))
+	}
+	return svc, ms, list.GetItems()[0].GetId(), gh
+}
+
+func z4Agent() context.Context { return scopedCtx(server.DefaultScopesForUserType("agent")) }
+func TestAUDIT_Z4_0_HarnessIsStateful(t *testing.T) {
+	svc, _, id, gh := z4Rig(t, []string{"ft:stage/wont_fix"})
+	agent := z4Agent()
+
+	before := gh.snapshot()
+	if _, err := svc.UpdateTask(agent, &pb.UpdateTaskRequest{
+		Id: id, AddLabels: []string{"ft:stage/accepted"}}); err != nil {
+		t.Fatalf("HARNESS BROKEN: AddLabels errored: %v", err)
+	}
+	afterAdd := gh.snapshot()
+	if len(afterAdd) != len(before)+1 {
+		t.Fatalf("HARNESS NOT STATEFUL ON ADD: labels unchanged (%v -> %v); "+
+			"any bypass result would be a false negative", before, afterAdd)
+	}
+	t.Logf("    add    : %v -> %v  OK", before, afterAdd)
+
+	if _, err := svc.UpdateTask(agent, &pb.UpdateTaskRequest{
+		Id: id, RemoveLabels: []string{"ft:stage/wont_fix"}}); err != nil {
+		t.Fatalf("HARNESS BROKEN: RemoveLabels errored: %v", err)
+	}
+	afterRemove := gh.snapshot()
+	if len(afterRemove) != len(afterAdd)-1 {
+		t.Fatalf("HARNESS NOT STATEFUL ON REMOVE: labels unchanged (%v -> %v); "+
+			"REV3's result would be a false negative. This is exactly the no-op "+
+			"removeLabelsFromLabelable handler the test leg's probe shipped with",
+			afterAdd, afterRemove)
+	}
+	for _, l := range afterRemove {
+		if l == "ft:stage/wont_fix" {
+			t.Fatalf("HARNESS NOT STATEFUL ON REMOVE: terminal label survives: %v", afterRemove)
+		}
+	}
+	t.Logf("    remove : %v -> %v  OK", afterAdd, afterRemove)
+	t.Logf("    HARNESS PROVEN STATEFUL IN BOTH DIRECTIONS")
+}
+
+
+// ---------------------------------------------------------------------------
+// Shared vocabulary for the matrices.
+// ---------------------------------------------------------------------------
+
+var z4Dests = []struct {
+	name string
+	pbv  pb.TaskStage
+	term bool
+}{
+	{"triage", pb.TaskStage_TASK_STAGE_TRIAGE, false},
+	{"accepted", pb.TaskStage_TASK_STAGE_ACCEPTED, false},
+	{"working", pb.TaskStage_TASK_STAGE_WORKING, false},
+	{"in_review", pb.TaskStage_TASK_STAGE_IN_REVIEW, false},
+	{"in_qa", pb.TaskStage_TASK_STAGE_IN_QA, false},
+	{"deploying", pb.TaskStage_TASK_STAGE_DEPLOYING, false},
+	{"completed", pb.TaskStage_TASK_STAGE_COMPLETED, true},
+	{"wont_fix", pb.TaskStage_TASK_STAGE_WONT_FIX, true},
+	{"duplicate", pb.TaskStage_TASK_STAGE_DUPLICATE, true},
+	{"cancelled", pb.TaskStage_TASK_STAGE_CANCELLED, true},
+}
+
+// terminalStagePrecedence order, mirrored here so the probe does not import it.
+var z4Terminals = []string{"completed", "wont_fix", "duplicate", "cancelled"}
+
+func z4Try(t *testing.T, start []string, pre func(context.Context, *server.FarmTableService, string),
+	dest pb.TaskStage) (error, []string) {
+	t.Helper()
+	svc, _, id, gh := z4Rig(t, start)
+	agent := z4Agent()
+	if pre != nil {
+		pre(agent, svc, id)
+	}
+	d := dest
+	_, err := svc.UpdateTask(agent, &pb.UpdateTaskRequest{Id: id, Stage: &d})
+	return err, gh.snapshot()
+}
+
+// ---------------------------------------------------------------------------
+// Z4A — charge 1, first half. Reproduce the round-3 PoC at 03ab6b6: a terminal
+// label MASKED by a non-terminal one, destination fixed at accepted. This is
+// the exact shape of the #194 bypass. Every cell must be DENIED.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_Z4A_Round3PocReproduction(t *testing.T) {
+	masks := []string{"triage", "accepted", "working", "in_review"}
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+
+	// POSITIVE CONTROL FIRST: the probe must be able to observe a SUCCESS,
+	// otherwise "all denied" is a property of the harness, not of the fix.
+	inReview := pb.TaskStage_TASK_STAGE_IN_REVIEW
+	if err, labels := z4Try(t, []string{"ft:stage/accepted"}, nil, inReview); err != nil {
+		t.Fatalf("POSITIVE CONTROL FAILED: an ordinary accepted task could not reach "+
+			"in_review (%v); every DENIED below would be meaningless. labels=%v", err, labels)
+	} else {
+		t.Logf("positive control: accepted -> in_review ALLOWED, labels=%v "+
+			"(the probe CAN observe success)", labels)
+	}
+
+	bypass := 0
+	cells := 0
+	for _, term := range z4Terminals {
+		for _, mask := range masks {
+			start := []string{"ft:stage/" + term, "ft:stage/" + mask}
+			err, labels := z4Try(t, start, nil, accepted)
+			cells++
+			if err == nil {
+				bypass++
+				t.Errorf("BYPASS start=%v dest=accepted -> ALLOWED labels=%v", start, labels)
+			} else {
+				t.Logf("  ok  start=%-46v dest=accepted -> DENIED", fmt.Sprint(start))
+			}
+		}
+	}
+	t.Logf("Z4A cells=%d BYPASS LINES=%d", cells, bypass)
+}
+
+// ---------------------------------------------------------------------------
+// Z4B — charge 1, second half: "the round-3 PoC is single-call and
+// destination-fixed, and both of those limitations hid real cells."
+//
+// 4 terminal starts x 10 destinations x 3 variants:
+//   clean  : start=[T]                      no label write   (baseline surface)
+//   masked : start=[T, ft:stage/accepted]   no label write   (the #194 shape)
+//   chain  : start=[T], agent ADDS the mask itself           (multi-call)
+//
+// A cell is a BYPASS iff masked or chain is ALLOWED where clean is DENIED —
+// i.e. the label the attacker controls changed the authorization answer.
+// The clean column doubles as the discriminating control: it must contain
+// BOTH allow and deny or the matrix proves nothing.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_Z4B_DestinationVaryingMatrix(t *testing.T) {
+	addMask := func(ctx context.Context, svc *server.FarmTableService, id string) {
+		if _, err := svc.UpdateTask(ctx, &pb.UpdateTaskRequest{
+			Id: id, AddLabels: []string{"ft:stage/accepted"}}); err != nil {
+			t.Fatalf("chain step 1 (AddLabels) rejected: %v — the multi-call variant "+
+				"is INEXPRESSIBLE and its results would be false negatives", err)
+		}
+	}
+
+	type row struct{ clean, masked, chain bool } // true == ALLOWED
+	res := map[string]row{}
+	cleanAllow, cleanDeny, bypass, cells := 0, 0, 0, 0
+
+	for _, term := range z4Terminals {
+		for _, d := range z4Dests {
+			start := []string{"ft:stage/" + term}
+			masked := []string{"ft:stage/" + term, "ft:stage/accepted"}
+
+			e1, _ := z4Try(t, start, nil, d.pbv)
+			e2, l2 := z4Try(t, masked, nil, d.pbv)
+			e3, l3 := z4Try(t, start, addMask, d.pbv)
+			r := row{e1 == nil, e2 == nil, e3 == nil}
+			res[term+"->"+d.name] = r
+			cells++
+			if r.clean {
+				cleanAllow++
+			} else {
+				cleanDeny++
+			}
+			mark := "   "
+			if !r.clean && (r.masked || r.chain) {
+				bypass++
+				mark = "***"
+				t.Errorf("BYPASS %s -> %s : clean=DENY masked=%v chain=%v  labels2=%v labels3=%v",
+					term, d.name, r.masked, r.chain, l2, l3)
+			}
+			t.Logf("%s %-10s -> %-10s clean=%-5v masked=%-5v chain=%-5v",
+				mark, term, d.name, r.clean, r.masked, r.chain)
+		}
+	}
+
+	if cleanAllow == 0 || cleanDeny == 0 {
+		t.Fatalf("VACUOUS MATRIX: clean column is uniform (allow=%d deny=%d); "+
+			"it cannot discriminate and BYPASS=0 would be meaningless", cleanAllow, cleanDeny)
+	}
+	t.Logf("Z4B cells=%d clean_allow=%d clean_deny=%d BYPASS LINES=%d",
+		cells, cleanAllow, cleanDeny, bypass)
+
+	// Name the clean-column allows explicitly: these are the cells a task:write
+	// agent can reach from a terminal start with NO attacker label write at all.
+	for _, term := range z4Terminals {
+		for _, d := range z4Dests {
+			if res[term+"->"+d.name].clean {
+				t.Logf("CLEAN-COLUMN ALLOW: %s -> %s", term, d.name)
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Z4C — charge 3. "Determine what an attacker gains by choosing which terminal
+// stage the gate sees", BEYOND the already-sequenced from==to residual.
+//
+// TerminalLabelStage returns ONE winner: the lowest-ranked present stage in
+// terminalStagePrecedence. An attacker who can add a label therefore CHOOSES
+// the source the gate sees — but only downward, because adding can only lower
+// the winning rank, never raise it.
+//
+// Chain: start=[T]; agent ADDS ft:stage/D (D terminal, D != T); then asks for D.
+// Prediction to be tested: ALLOWED iff rank(D) < rank(T), because only then
+// does D become the winner and collapse the gate to from==to.
+//
+// Control: the clean start=[T] -> D cell, which Z4B measured DENIED for all 12.
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_Z4C_AttackerChoosesTheSource(t *testing.T) {
+	rank := map[string]int{}
+	for i, s := range z4Terminals {
+		rank[s] = i
+	}
+	pbOf := map[string]pb.TaskStage{}
+	for _, d := range z4Dests {
+		pbOf[d.name] = d.pbv
+	}
+
+	converted, denied, mispredicted := 0, 0, 0
+	for _, from := range z4Terminals {
+		for _, to := range z4Terminals {
+			if from == to {
+				continue // that is R-B, already sequenced; excluded on purpose
+			}
+			// CONTROL: no label write. Must be denied, else the chain proves nothing.
+			if e, _ := z4Try(t, []string{"ft:stage/" + from}, nil, pbOf[to]); e == nil {
+				t.Fatalf("CONTROL BROKEN: %s -> %s already allowed with no label write", from, to)
+			}
+
+			addDest := func(ctx context.Context, svc *server.FarmTableService, id string) {
+				if _, err := svc.UpdateTask(ctx, &pb.UpdateTaskRequest{
+					Id: id, AddLabels: []string{"ft:stage/" + to}}); err != nil {
+					t.Fatalf("chain step 1 AddLabels(%s) rejected: %v — chain inexpressible", to, err)
+				}
+			}
+			err, labels := z4Try(t, []string{"ft:stage/" + from}, addDest, pbOf[to])
+			predicted := rank[to] < rank[from]
+			got := err == nil
+			if got != predicted {
+				mispredicted++
+				t.Logf("  PREDICTION MISS %s -> %s: predicted allow=%v got=%v", from, to, predicted, got)
+			}
+			if got {
+				converted++
+				// Did the state ACTUALLY change, or was it a no-op write?
+				hasFrom, hasTo := false, false
+				for _, l := range labels {
+					if l == "ft:stage/"+from {
+						hasFrom = true
+					}
+					if l == "ft:stage/"+to {
+						hasTo = true
+					}
+				}
+				t.Errorf("TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: %s -> %s "+
+					"ALLOWED; final labels=%v (old terminal present=%v, new terminal present=%v)",
+					from, to, labels, hasFrom, hasTo)
+			} else {
+				denied++
+				t.Logf("  denied  %-10s -> %-10s (rank %d -> %d, cannot outrank)",
+					from, to, rank[from], rank[to])
+			}
+		}
+	}
+	t.Logf("Z4C ordered pairs=12 CONVERTED=%d denied=%d prediction_misses=%d",
+		converted, denied, mispredicted)
+	t.Logf("Z4C mechanism: the attacker can only ever LOWER the winning rank, so the "+
+		"reachable set is exactly {(from,to) : rank(to) < rank(from)} under "+
+		"terminalStagePrecedence = %v. The ORDER of that list therefore selects which "+
+		"terminal->terminal conversions a task:write holder can perform. It is not a "+
+		"neutral tiebreak.", z4Terminals)
+}
+
+// ---------------------------------------------------------------------------
+// Z4D — charge 6, treated as its own question. After the Z4C conversion
+// succeeds, what record of the PRECONDITION (the task was cancelled) survives
+// anywhere in Farm Table?
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_Z4D_ForensicRecord(t *testing.T) {
+	svc, ms, id, gh := z4Rig(t, []string{"ft:stage/cancelled"})
+	agent := z4Agent()
+	completed := pb.TaskStage_TASK_STAGE_COMPLETED
+
+	t.Logf("precondition on GitHub: labels=%v", gh.snapshot())
+
+	if _, err := svc.UpdateTask(agent, &pb.UpdateTaskRequest{
+		Id: id, AddLabels: []string{"ft:stage/completed"}}); err != nil {
+		t.Fatalf("step 1 rejected: %v", err)
+	}
+	if _, err := svc.UpdateTask(agent, &pb.UpdateTaskRequest{Id: id, Stage: &completed}); err != nil {
+		t.Fatalf("step 2 rejected: %v — the conversion did not happen, nothing to audit", err)
+	}
+	t.Logf("after conversion:      labels=%v", gh.snapshot())
+
+	// 1. Does the task still say anything about having been cancelled?
+	got, err := svc.GetTask(agent, &pb.GetTaskRequest{Id: id})
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	t.Logf("GetTask.stage=%v labels=%v", got.GetTask().GetStage(), got.GetTask().GetLabels())
+	t.Logf("GetTaskResponse.changes -> n=%d  (the API surface PROMISES a change list here)",
+		len(got.GetChanges()))
+	for _, c := range got.GetChanges() {
+		t.Logf("    api change: field=%s old=%v new=%v", c.GetField(), c.GetOldValue(), c.GetNewValue())
+	}
+
+	// 2. Is there a durable change record? (Ent writes Change rows; does the
+	//    pass-through store?)
+	uid, perr := uuid.Parse(id)
+	if perr != nil {
+		t.Fatalf("parse id: %v", perr)
+	}
+	changes, cerr := ms.ListAllChangesForTask(context.Background(),
+		store.ListAllChangesForTaskParams{TaskID: uid})
+	t.Logf("ListAllChangesForTask -> n=%d err=%v", len(changes), cerr)
+	for _, c := range changes {
+		t.Logf("    change: field=%s old=%q new=%q", c.FieldName, c.OldValue, c.NewValue)
+	}
+
+	// 3. POSITIVE CONTROL: a NATIVE (Ent-backed) task must produce change rows,
+	//    otherwise "no changes" is a property of the harness, not of the store.
+	ncoll, ncerr0 := ms.CreateCollection(context.Background(), store.CreateCollectionParams{
+		Name: "native", Platform: string(collection.PlatformFarmtable)})
+	if ncerr0 != nil {
+		t.Fatalf("CreateCollection(native): %v", ncerr0)
+	}
+	nt, nerr := ms.CreateTask(context.Background(), store.CreateTaskParams{
+		Title: "native control", Stage: task.StageAccepted, Phase: task.PhaseOpen,
+		CollectionID: ncoll.ID})
+	if nerr != nil {
+		t.Fatalf("CreateTask: %v", nerr)
+	}
+	stg := task.StageInReview
+	if _, uerr := ms.UpdateTask(context.Background(), nt.ID,
+		store.UpdateTaskParams{Stage: &stg}, uuid.Nil); uerr != nil {
+		t.Fatalf("native UpdateTask: %v", uerr)
+	}
+	nch, ncerr := ms.ListAllChangesForTask(context.Background(),
+		store.ListAllChangesForTaskParams{TaskID: nt.ID})
+	t.Logf("NATIVE control ListAllChangesForTask -> n=%d err=%v", len(nch), ncerr)
+	for _, c := range nch {
+		t.Logf("    native change: field=%s old=%q new=%q", c.FieldName, c.OldValue, c.NewValue)
+	}
+	if len(nch) == 0 {
+		t.Fatalf("POSITIVE CONTROL FAILED: even a native task produced no change rows; "+
+			"the absence of GitHub change rows would prove nothing")
+	}
+	t.Logf("CONTROL HELD: native tasks DO produce durable change rows. The absence on the "+
+		"GitHub-backed task is a real asymmetry, not a harness artefact.")
+}
+
+// ---------------------------------------------------------------------------
+// Z4E — charge 3, removing the R-A dependency. Z4C needed the attacker to add
+// a label. If an issue ALREADY carries two distinct terminal labels, the same
+// conversion needs no attacker label write at all — only task:write.
+//
+// Two ways that state arises WITHOUT the attacker: a human adds GitHub's stock
+// "duplicate" label to an issue Farm Table already marked terminal; or a label
+// swap partially fails (remove-then-add ordering, passthrough.go:424-431).
+// ---------------------------------------------------------------------------
+
+func TestAUDIT_Z4E_NoLabelWriteNeeded(t *testing.T) {
+	cases := []struct {
+		name  string
+		start []string
+		dest  string
+		pbv   pb.TaskStage
+	}{
+		{"human adds stock duplicate to a cancelled task",
+			[]string{"ft:stage/cancelled", "duplicate"}, "duplicate", pb.TaskStage_TASK_STAGE_DUPLICATE},
+		{"partial swap leaves cancelled+completed",
+			[]string{"ft:stage/cancelled", "ft:stage/completed"}, "completed", pb.TaskStage_TASK_STAGE_COMPLETED},
+		{"partial swap leaves duplicate+wont_fix",
+			[]string{"ft:stage/duplicate", "ft:stage/wont_fix"}, "wont_fix", pb.TaskStage_TASK_STAGE_WONT_FIX},
+	}
+	// CONTROL: single terminal label, ask for a DIFFERENT terminal -> must deny.
+	if e, _ := z4Try(t, []string{"ft:stage/cancelled"}, nil,
+		pb.TaskStage_TASK_STAGE_DUPLICATE); e == nil {
+		t.Fatalf("CONTROL BROKEN: cancelled -> duplicate allowed from a single label")
+	}
+	t.Logf("control: single ft:stage/cancelled -> duplicate DENIED (as it must be)")
+
+	for _, c := range cases {
+		err, labels := z4Try(t, c.start, nil, c.pbv)
+		if err == nil {
+			t.Errorf("NO-WRITE CONVERSION: start=%v ask=%s -> ALLOWED with task:write only; "+
+				"final labels=%v  [%s]", c.start, c.dest, labels, c.name)
+		} else {
+			t.Logf("  denied start=%v ask=%s (%v)", c.start, c.dest, err)
+		}
+	}
+}

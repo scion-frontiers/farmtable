@@ -1,0 +1,267 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { LitElement, css, html } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { Platform } from '../gen/types.js';
+import { collectionDisplayName, platformIcon, platformLabel } from '../util/platform-label.js';
+let FtCollectionPicker = class FtCollectionPicker extends LitElement {
+    constructor() {
+        super(...arguments);
+        this.collectionId = '';
+        this.collections = [];
+        this.isLoading = false;
+        this.loadError = '';
+        this.loadToken = 0;
+    }
+    updated(changedProperties) {
+        // TODO: Consider re-fetching on @sl-show for freshness.
+        if (changedProperties.has('client') && this.client !== changedProperties.get('client')) {
+            void this.loadCollections();
+        }
+    }
+    async refresh() {
+        await this.loadCollections();
+    }
+    render() {
+        const currentCollection = this.collections.find((collection) => collection.id === this.collectionId);
+        const triggerLabel = currentCollection
+            ? collectionDisplayName(currentCollection.name, currentCollection.platform, currentCollection.remoteId)
+            : (this.isLoading ? 'Loading collection' : 'Select collection');
+        const triggerIcon = currentCollection ? platformIcon(currentCollection.platform) : null;
+        return html `
+      <sl-dropdown placement="bottom-start" hoist>
+        <sl-button slot="trigger" size="small" caret>
+          ${triggerIcon
+            ? html `<sl-icon name=${triggerIcon} slot="prefix" class="platform-icon"></sl-icon>`
+            : null}
+          <span class="trigger-label">${triggerLabel}</span>
+        </sl-button>
+
+        <sl-menu @sl-select=${this.onMenuSelect}>
+          ${this.renderMenuContent()}
+        </sl-menu>
+      </sl-dropdown>
+    `;
+    }
+    renderMenuContent() {
+        if (this.isLoading) {
+            return html `<div class="loading"><sl-spinner></sl-spinner> Loading collections</div>`;
+        }
+        if (this.loadError) {
+            return html `<div class="error">${this.loadError}</div>`;
+        }
+        if (this.collections.length === 0) {
+            return html `<div class="empty">No collections are available.</div>`;
+        }
+        return this.collections.map((collection) => {
+            const isCurrent = collection.id === this.collectionId;
+            const isExternal = collection.platform !== Platform.FARMTABLE;
+            return html `
+        <sl-menu-item
+          class=${isCurrent ? 'current' : ''}
+          value=${collection.id}
+        >
+          <sl-icon
+            slot="prefix"
+            class=${isCurrent ? 'check-icon' : 'check-icon placeholder'}
+            name="check"
+            aria-hidden="true"
+          ></sl-icon>
+          <span class="item-label">
+            <span class="name">${collection.name}</span>
+            <span class=${isExternal ? 'external-badge' : 'platform'}>
+              <sl-icon name=${platformIcon(collection.platform)} aria-hidden="true"></sl-icon>
+              ${isExternal && collection.remoteId
+                ? html `${platformLabel(collection.platform)}: ${collection.remoteId}`
+                : platformLabel(collection.platform)}
+            </span>
+          </span>
+        </sl-menu-item>
+      `;
+        });
+    }
+    async loadCollections() {
+        const token = ++this.loadToken;
+        if (!this.client) {
+            this.collections = [];
+            this.isLoading = false;
+            this.loadError = '';
+            return;
+        }
+        this.isLoading = true;
+        this.loadError = '';
+        try {
+            const collections = await this.client.listCollections();
+            if (token === this.loadToken) {
+                this.collections = collections;
+            }
+        }
+        catch (error) {
+            if (token === this.loadToken) {
+                this.collections = [];
+                this.loadError = 'Unable to load collections.';
+            }
+            console.warn('Failed to load collection picker options', error);
+        }
+        finally {
+            if (token === this.loadToken) {
+                this.isLoading = false;
+            }
+        }
+    }
+    onMenuSelect(e) {
+        const collectionId = e.detail.item.value;
+        if (!collectionId || collectionId === this.collectionId)
+            return;
+        this.dispatchEvent(new CustomEvent('collection-select', {
+            detail: { collectionId },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+};
+FtCollectionPicker.styles = css `
+    :host {
+      --sl-z-index-dropdown: 2000;
+
+      display: inline-flex;
+      align-items: center;
+      max-width: 18rem;
+      position: relative;
+    }
+
+    sl-dropdown,
+    sl-button {
+      max-width: 100%;
+    }
+
+    sl-dropdown::part(base__popup) {
+      z-index: var(--sl-z-index-dropdown, 1000);
+    }
+
+    sl-dropdown::part(panel) {
+      background: var(--sl-color-neutral-0);
+      border-radius: var(--sl-border-radius-medium);
+      box-shadow: var(--sl-shadow-medium);
+    }
+
+    .trigger-label {
+      display: inline-block;
+      max-width: 13rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    sl-menu {
+      background: var(--sl-color-neutral-0);
+      border: 1px solid var(--sl-color-neutral-200);
+      box-shadow: var(--sl-shadow-medium);
+      min-width: 16rem;
+      max-width: 22rem;
+    }
+
+    sl-menu-item::part(base) {
+      align-items: center;
+      background: var(--sl-color-neutral-0);
+      padding: 0.5rem 0.75rem;
+      white-space: normal;
+    }
+
+    sl-menu-item::part(label) {
+      overflow: visible;
+    }
+
+    sl-menu-item.current::part(base) {
+      background: var(--sl-color-primary-50);
+      color: var(--sl-color-primary-800);
+    }
+
+    .item-label {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      line-height: 1.25;
+    }
+
+    .check-icon {
+      color: var(--sl-color-primary-700);
+      font-size: 1rem;
+    }
+
+    .check-icon.placeholder {
+      visibility: hidden;
+    }
+
+    .platform-icon {
+      font-size: 1rem;
+      color: var(--sl-color-neutral-600);
+    }
+
+    .name {
+      overflow-wrap: anywhere;
+    }
+
+    .platform {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--sl-color-neutral-600);
+      font-size: var(--sl-font-size-x-small);
+    }
+
+    .platform sl-icon {
+      font-size: 0.7rem;
+    }
+
+    .external-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--sl-color-neutral-600);
+      font-size: var(--sl-font-size-x-small);
+    }
+
+    .external-badge sl-icon {
+      font-size: 0.7rem;
+    }
+
+    .loading,
+    .empty,
+    .error {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      color: var(--sl-color-neutral-600);
+      font-size: var(--sl-font-size-small);
+    }
+
+    .error {
+      color: var(--sl-color-danger-700);
+    }
+  `;
+__decorate([
+    property({ attribute: false })
+], FtCollectionPicker.prototype, "client", void 0);
+__decorate([
+    property()
+], FtCollectionPicker.prototype, "collectionId", void 0);
+__decorate([
+    state()
+], FtCollectionPicker.prototype, "collections", void 0);
+__decorate([
+    state()
+], FtCollectionPicker.prototype, "isLoading", void 0);
+__decorate([
+    state()
+], FtCollectionPicker.prototype, "loadError", void 0);
+FtCollectionPicker = __decorate([
+    customElement('ft-collection-picker')
+], FtCollectionPicker);
+export { FtCollectionPicker };
+//# sourceMappingURL=ft-collection-picker.js.map

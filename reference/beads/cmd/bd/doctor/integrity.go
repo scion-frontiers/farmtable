@@ -1,0 +1,563 @@
+package doctor
+
+import (
+	"bufio"
+	"context"
+	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/steveyegge/beads/internal/beads"
+	"github.com/steveyegge/beads/internal/git"
+	"github.com/steveyegge/beads/internal/storage/dolt"
+)
+
+// CheckIDFormat checks whether issues use hash-based or sequential IDs.
+// Opens its own store; prefer CheckIDFormatWithStore when a shared store is available.
+func CheckIDFormat(path string) DoctorCheck {
+	_, beadsDir := getBackendAndBeadsDir(path)
+
+	doltPath := getDatabasePath(beadsDir)
+	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusOK,
+			Message: "No issues yet (will use hash-based IDs)",
+		}
+	}
+
+	ctx := context.Background()
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusError,
+			Message: "Unable to open database",
+			Detail:  err.Error(),
+		}
+	}
+	defer func() { _ = store.Close() }()
+
+	return checkIDFormatWithStore(store)
+}
+
+// CheckIDFormatWithStore checks ID format using a shared store (GH#2636).
+func CheckIDFormatWithStore(ss *SharedStore) DoctorCheck {
+	store := ss.Store()
+	if store == nil {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusOK,
+			Message: "No issues yet (will use hash-based IDs)",
+		}
+	}
+	return checkIDFormatWithStore(store)
+}
+
+func checkIDFormatWithStore(store *dolt.DoltStore) DoctorCheck {
+	ctx := context.Background()
+	db := store.UnderlyingDB()
+
+	// Get sample of issues to check ID format (up to 10 for pattern analysis)
+	rows, err := db.QueryContext(ctx, "SELECT id FROM issues ORDER BY created_at LIMIT 10")
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusError,
+			Message: "Unable to query issues",
+			Detail:  err.Error(),
+		}
+	}
+	defer rows.Close()
+
+	var issueIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			issueIDs = append(issueIDs, id)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusWarning,
+			Message: "Row iteration error",
+			Detail:  err.Error(),
+		}
+	}
+
+	if len(issueIDs) == 0 {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusOK,
+			Message: "No issues yet (will use hash-based IDs)",
+		}
+	}
+
+	// Detect ID format using robust heuristic
+	if DetectHashBasedIDs(db, issueIDs) {
+		return DoctorCheck{
+			Name:    "Issue IDs",
+			Status:  StatusOK,
+			Message: "hash-based ✓",
+		}
+	}
+
+	return DoctorCheck{
+		Name:    "Issue IDs",
+		Status:  StatusWarning,
+		Message: "sequential IDs detected — consider migrating to hash-based IDs",
+	}
+}
+
+// CheckDependencyCycles checks for circular dependencies in the issue graph.
+// Opens its own store; prefer CheckDependencyCyclesWithStore when a shared store is available.
+func CheckDependencyCycles(path string) DoctorCheck {
+	_, beadsDir := getBackendAndBeadsDir(path)
+
+	doltPath := getDatabasePath(beadsDir)
+	if _, err := os.Stat(doltPath); os.IsNotExist(err) {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusOK,
+			Message: "N/A (no database)",
+		}
+	}
+
+	ctx := context.Background()
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusWarning,
+			Message: "Unable to open database",
+			Detail:  err.Error(),
+		}
+	}
+	defer func() { _ = store.Close() }()
+
+	return checkDependencyCyclesWithStore(store)
+}
+
+// CheckDependencyCyclesWithStore checks for cycles using a shared store (GH#2636).
+func CheckDependencyCyclesWithStore(ss *SharedStore) DoctorCheck {
+	store := ss.Store()
+	if store == nil {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusOK,
+			Message: "N/A (no database)",
+		}
+	}
+	return checkDependencyCyclesWithStore(store)
+}
+
+func checkDependencyCyclesWithStore(store *dolt.DoltStore) DoctorCheck {
+	db := store.UnderlyingDB()
+
+	// Query for cycles using simplified SQL (CONCAT for Dolt/MySQL compatibility)
+	query := `
+		WITH RECURSIVE paths AS (
+			SELECT
+				issue_id,
+				COALESCE(depends_on_issue_id, depends_on_wisp_id, depends_on_external) AS depends_on_id,
+				issue_id as start_id,
+				CONCAT(issue_id, '→', COALESCE(depends_on_issue_id, depends_on_wisp_id, depends_on_external)) as path,
+				0 as depth
+			FROM dependencies
+
+			UNION ALL
+
+			SELECT
+				d.issue_id,
+				COALESCE(d.depends_on_issue_id, d.depends_on_wisp_id, d.depends_on_external) AS depends_on_id,
+				p.start_id,
+				CONCAT(p.path, '→', COALESCE(d.depends_on_issue_id, d.depends_on_wisp_id, d.depends_on_external)),
+				p.depth + 1
+			FROM dependencies d
+			JOIN paths p ON d.issue_id = p.depends_on_id
+			WHERE p.depth < 100
+			  AND p.path NOT LIKE CONCAT('%', COALESCE(d.depends_on_issue_id, d.depends_on_wisp_id, d.depends_on_external), '→%')
+		)
+		SELECT DISTINCT start_id
+		FROM paths
+		WHERE depends_on_id = start_id`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusWarning,
+			Message: "Unable to check for cycles",
+			Detail:  err.Error(),
+		}
+	}
+	defer rows.Close()
+
+	cycleCount := 0
+	var firstCycle string
+	for rows.Next() {
+		var startID string
+		if err := rows.Scan(&startID); err != nil {
+			continue
+		}
+		cycleCount++
+		if cycleCount == 1 {
+			firstCycle = startID
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusWarning,
+			Message: "Row iteration error",
+			Detail:  err.Error(),
+		}
+	}
+
+	if cycleCount == 0 {
+		return DoctorCheck{
+			Name:    "Dependency Cycles",
+			Status:  StatusOK,
+			Message: "No circular dependencies detected",
+		}
+	}
+
+	return DoctorCheck{
+		Name:    "Dependency Cycles",
+		Status:  StatusError,
+		Message: fmt.Sprintf("Found %d circular dependency cycle(s)", cycleCount),
+		Detail:  fmt.Sprintf("First cycle involves: %s", firstCycle),
+		Fix:     "Run 'bd dep cycles' to see full cycle paths, then 'bd dep remove' to break cycles",
+	}
+}
+
+// CheckDeletionsManifest checks the status of the legacy deletions.jsonl file
+func CheckDeletionsManifest(path string) DoctorCheck {
+	beadsDir := ResolveBeadsDirForRepo(path)
+
+	// Skip if .beads doesn't exist
+	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+		return DoctorCheck{
+			Name:    "Deletions Manifest",
+			Status:  StatusOK,
+			Message: "N/A (no .beads directory)",
+		}
+	}
+
+	// Check if we're in a git repository using worktree-aware detection
+	_, err := git.GetGitDir()
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Deletions Manifest",
+			Status:  StatusOK,
+			Message: "N/A (not a git repository)",
+		}
+	}
+
+	deletionsPath := filepath.Join(beadsDir, "deletions.jsonl")
+
+	// Check if deletions.jsonl exists
+	info, err := os.Stat(deletionsPath)
+	if err == nil {
+		// File exists - count entries (empty file is valid, means no deletions)
+		if info.Size() == 0 {
+			return DoctorCheck{
+				Name:    "Deletions Manifest",
+				Status:  StatusOK,
+				Message: "Empty (no legacy deletions)",
+			}
+		}
+		file, err := os.Open(deletionsPath) // #nosec G304 - controlled path
+		if err == nil {
+			defer file.Close()
+			count := 0
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				if len(scanner.Bytes()) > 0 {
+					count++
+				}
+			}
+			if count > 0 {
+				return DoctorCheck{
+					Name:    "Deletions Manifest",
+					Status:  StatusWarning,
+					Message: fmt.Sprintf("Legacy format (%d entries)", count),
+					Detail:  "deletions.jsonl is a legacy format no longer used",
+					Fix:     "Safe to delete deletions.jsonl (Dolt handles delete propagation natively)",
+				}
+			}
+			return DoctorCheck{
+				Name:    "Deletions Manifest",
+				Status:  StatusOK,
+				Message: "Empty (no legacy deletions)",
+			}
+		}
+	}
+
+	// deletions.jsonl doesn't exist - this is the expected state
+	// Check for .migrated file to confirm migration happened
+	migratedPath := filepath.Join(beadsDir, "deletions.jsonl.migrated")
+	if _, err := os.Stat(migratedPath); err == nil {
+		return DoctorCheck{
+			Name:    "Deletions Manifest",
+			Status:  StatusOK,
+			Message: "Migrated (legacy file removed)",
+		}
+	}
+
+	// No deletions.jsonl - expected for Dolt-native repos
+	return DoctorCheck{
+		Name:    "Deletions Manifest",
+		Status:  StatusOK,
+		Message: "Not needed (Dolt-native)",
+	}
+}
+
+// CheckRepoFingerprint validates that the database belongs to this repository.
+// This detects when a .beads directory was copied from another repo or when
+// the git remote URL changed. A mismatch can cause data loss during sync.
+// Opens its own store; prefer CheckRepoFingerprintWithStore when a shared store is available.
+func CheckRepoFingerprint(path string) DoctorCheck {
+	_, beadsDir := getBackendAndBeadsDir(path)
+
+	if info, err := os.Stat(getDatabasePath(beadsDir)); err != nil || !info.IsDir() {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusOK,
+			Message: "N/A (no database)",
+		}
+	}
+
+	ctx := context.Background()
+	store, err := dolt.NewFromConfigWithCLIOptions(ctx, beadsDir, &dolt.Config{ReadOnly: true})
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusWarning,
+			Message: "Unable to open database",
+			Detail:  err.Error(),
+		}
+	}
+	defer func() { _ = store.Close() }()
+
+	return checkRepoFingerprintWithStore(store, path)
+}
+
+// CheckRepoFingerprintWithStore checks repo fingerprint using a shared store (GH#2636).
+func CheckRepoFingerprintWithStore(ss *SharedStore, path string) DoctorCheck {
+	store := ss.Store()
+	if store == nil {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusOK,
+			Message: "N/A (no database)",
+		}
+	}
+	return checkRepoFingerprintWithStore(store, path)
+}
+
+func checkRepoFingerprintWithStore(store *dolt.DoltStore, path string) DoctorCheck {
+	ctx := context.Background()
+
+	storedRepoID, err := store.GetMetadata(ctx, "repo_id")
+	if err != nil {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusWarning,
+			Message: "Unable to read repo fingerprint",
+			Detail:  err.Error(),
+		}
+	}
+
+	if storedRepoID == "" {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusWarning,
+			Message: "Missing repo fingerprint metadata",
+			Detail:  "Storage: Dolt",
+			Fix:     "Run 'bd doctor --fix' to repair metadata",
+		}
+	}
+
+	currentRepoID, err := beads.ComputeRepoIDForPath(path)
+	if err != nil {
+		if strings.Contains(err.Error(), "not a git repository") {
+			return DoctorCheck{
+				Name:    "Repo Fingerprint",
+				Status:  StatusOK,
+				Message: "N/A (not a git repository)",
+			}
+		}
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusWarning,
+			Message: "Unable to compute current repo ID",
+			Detail:  err.Error(),
+		}
+	}
+
+	if storedRepoID != currentRepoID {
+		return DoctorCheck{
+			Name:    "Repo Fingerprint",
+			Status:  StatusError,
+			Message: "Database belongs to different repository",
+			Detail:  fmt.Sprintf("stored: %s, current: %s", truncateID(storedRepoID), truncateID(currentRepoID)),
+			Fix:     "Run 'bd migrate --update-repo-id' if URL changed, or 'rm -rf .beads && bd init' if wrong database",
+		}
+	}
+
+	return DoctorCheck{
+		Name:    "Repo Fingerprint",
+		Status:  StatusOK,
+		Message: fmt.Sprintf("Verified (%s)", truncateID(currentRepoID)),
+	}
+}
+
+// Helper functions
+
+// truncateID safely truncates an ID to at most 8 characters for display.
+func truncateID(id string) string {
+	if len(id) <= 8 {
+		return id
+	}
+	return id[:8]
+}
+
+// DetectHashBasedIDs uses multiple heuristics to determine if the database uses hash-based IDs.
+// This is more robust than checking a single ID's format, since base36 hash IDs can be all-numeric.
+func DetectHashBasedIDs(db *sql.DB, sampleIDs []string) bool {
+	// Heuristic 1: Check for child_counters table (added for hash ID support)
+	// Use a direct query to check for the table's existence.
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM child_counters").Scan(&count)
+	if err == nil {
+		// child_counters table exists - this is a strong indicator of hash IDs
+		return true
+	}
+
+	// Heuristic 2: Check if any sample ID clearly contains letters (a-z)
+	// Hash IDs use base36 (0-9, a-z), sequential IDs are purely numeric
+	for _, id := range sampleIDs {
+		if isHashID(id) {
+			return true
+		}
+	}
+
+	// Heuristic 3: Look for patterns that indicate hash IDs
+	if len(sampleIDs) >= 2 {
+		// Extract suffixes (part after prefix-) for analysis
+		var suffixes []string
+		for _, id := range sampleIDs {
+			parts := strings.SplitN(id, "-", 2)
+			if len(parts) == 2 {
+				// Strip hierarchical suffix like .1 or .1.2
+				baseSuffix := strings.Split(parts[1], ".")[0]
+				suffixes = append(suffixes, baseSuffix)
+			}
+		}
+
+		if len(suffixes) >= 2 {
+			// Check for variable lengths (strong indicator of adaptive hash IDs)
+			// BUT: sequential IDs can also have variable length (1, 10, 100)
+			// So we need to check if the length variation is natural (1→2→3 digits)
+			// or random (3→8→4 chars typical of adaptive hash IDs)
+			lengths := make(map[int]int) // length -> count
+			for _, s := range suffixes {
+				lengths[len(s)]++
+			}
+
+			// If we have 3+ different lengths, likely hash IDs (adaptive length)
+			// Sequential IDs typically have 1-2 lengths (e.g., 1-9, 10-99, 100-999)
+			if len(lengths) >= 3 {
+				return true
+			}
+
+			// Check for leading zeros (rare in sequential IDs, common in hash IDs)
+			// Sequential IDs: bd-1, bd-2, bd-10, bd-100
+			// Hash IDs: bd-0088, bd-02a4, bd-05a1
+			hasLeadingZero := false
+			for _, s := range suffixes {
+				if len(s) > 1 && s[0] == '0' {
+					hasLeadingZero = true
+					break
+				}
+			}
+			if hasLeadingZero {
+				return true
+			}
+
+			// Check for non-sequential ordering
+			// Try to parse as integers - if they're not sequential, likely hash IDs
+			allNumeric := true
+			var nums []int
+			for _, s := range suffixes {
+				var num int
+				if _, err := fmt.Sscanf(s, "%d", &num); err == nil {
+					nums = append(nums, num)
+				} else {
+					allNumeric = false
+					break
+				}
+			}
+
+			if allNumeric && len(nums) >= 2 {
+				// Check if they form a roughly sequential pattern (1,2,3 or 10,11,12)
+				// Hash IDs would be more random (e.g., 88, 13452, 676)
+				isSequentialPattern := true
+				for i := 1; i < len(nums); i++ {
+					diff := nums[i] - nums[i-1]
+					// Allow for some gaps (deleted issues), but should be mostly sequential
+					if diff < 0 || diff > 100 {
+						isSequentialPattern = false
+						break
+					}
+				}
+				// If the numbers are NOT sequential, they're likely hash IDs
+				if !isSequentialPattern {
+					return true
+				}
+			}
+		}
+	}
+
+	// If we can't determine for sure, default to assuming sequential IDs
+	// This is conservative - better to recommend migration than miss sequential IDs
+	return false
+}
+
+// isHashID checks if a single ID contains hash characteristics
+// Hash IDs contain hex letters (a-f), sequential IDs are only digits
+// May have hierarchical suffix like .1 or .1.2
+func isHashID(id string) bool {
+	lastSeperatorIndex := strings.LastIndex(id, "-")
+	if lastSeperatorIndex == -1 {
+		return false
+	}
+
+	suffix := id[lastSeperatorIndex+1:]
+	// Strip hierarchical suffix like .1 or .1.2
+	baseSuffix := strings.Split(suffix, ".")[0]
+
+	if len(baseSuffix) == 0 {
+		return false
+	}
+
+	// Must be valid Base36 (0-9, a-z)
+	if !regexp.MustCompile(`^[0-9a-z]+$`).MatchString(baseSuffix) {
+		return false
+	}
+
+	// If it's 5+ characters long, it's almost certainly a hash ID
+	// (sequential IDs rarely exceed 9999 = 4 digits)
+	if len(baseSuffix) >= 5 {
+		return true
+	}
+
+	// For shorter IDs, check if it contains any letter (a-z)
+	// Sequential IDs are purely numeric
+	return regexp.MustCompile(`[a-z]`).MatchString(baseSuffix)
+}

@@ -1,0 +1,645 @@
+{
+  "snapshot1": {
+    "taskCount": 52,
+    "timestamp": 1784922161723,
+    "tasks": [
+      {
+        "id": "2a8968a6-6460-5115-a465-7bf37f7cbca0",
+        "closedAt": null
+      },
+      {
+        "id": "854b90bb-745a-53e2-9a19-2c3079578153",
+        "closedAt": null
+      },
+      {
+        "id": "f7f72264-8120-5db6-a526-34e85f736601",
+        "closedAt": null
+      },
+      {
+        "id": "f02dd56c-3030-5a11-94db-ca55823b1c64",
+        "closedAt": "2026-07-22T21:33:58.000Z"
+      },
+      {
+        "id": "90379e1f-696f-5060-a106-2cb44b8eea94",
+        "closedAt": "2026-07-22T21:03:09.000Z"
+      },
+      {
+        "id": "14a4ddd8-2942-5297-a73f-25127c6c1e7c",
+        "closedAt": null
+      },
+      {
+        "id": "e0f8764d-a355-5a96-8110-16a61a24436c",
+        "closedAt": null
+      },
+      {
+        "id": "72cf8073-2e79-5e6b-83ca-43d131f3fbf5",
+        "closedAt": null
+      },
+      {
+        "id": "c37c29b0-34bd-5a3b-958d-30587b4e16d6",
+        "closedAt": null
+      },
+      {
+        "id": "78473f70-2608-5e7f-aec6-85330a6c72fb",
+        "closedAt": null
+      },
+      {
+        "id": "7d163d7c-003d-596d-97c1-4aa9fbf17b66",
+        "closedAt": null
+      },
+      {
+        "id": "9279c646-ead0-51b6-b23a-8e47644e04cc",
+        "closedAt": null
+      },
+      {
+        "id": "e291c799-c0be-5703-8b5d-80c4ee70284a",
+        "closedAt": null
+      },
+      {
+        "id": "77747573-f196-5d8c-99b0-fc57b272d4fb",
+        "closedAt": null
+      },
+      {
+        "id": "00a99ef7-cbee-58c0-b5e3-c481296aecd3",
+        "closedAt": null
+      },
+      {
+        "id": "a68696c2-8c96-5def-82eb-48248f8486b9",
+        "closedAt": null
+      },
+      {
+        "id": "158334de-083f-53cf-8e9c-cde0f1dbc65c",
+        "closedAt": null
+      },
+      {
+        "id": "514abe7b-7b17-5021-98b9-c71cfb809603",
+        "closedAt": null
+      },
+      {
+        "id": "3d84b00b-500a-592e-8310-cf71ccf0ada2",
+        "closedAt": null
+      },
+      {
+        "id": "df7ef051-3b78-5bff-be3b-9b204731dc51",
+        "closedAt": null
+      },
+      {
+        "id": "93f5e28f-5b11-5c3b-8b28-8de78e6e2902",
+        "closedAt": null
+      },
+      {
+        "id": "2d828c8b-dbdf-5910-8ef3-3bdc475b689a",
+        "closedAt": null
+      },
+      {
+        "id": "dcac4255-35a6-5b85-a894-d8e087f0ddb6",
+        "closedAt": null
+      },
+      {
+        "id": "4f01052f-7dc4-574c-b768-01c391928d82",
+        "closedAt": null
+      },
+      {
+        "id": "af8e6fee-e790-5d8e-bdeb-08ff7bbfb7bd",
+        "closedAt": null
+      },
+      {
+        "id": "3157137f-9f75-55f6-8fed-6dc6338fc704",
+        "closedAt": null
+      },
+      {
+        "id": "6c8a5fc2-85cf-53e4-b4fb-2af7792dacfc",
+        "closedAt": null
+      },
+      {
+        "id": "51cec8a2-1053-5d29-8869-fa01f72ea626",
+        "closedAt": null
+      },
+      {
+        "id": "f574320a-42b1-5f0f-a215-ef4a7eb72848",
+        "closedAt": null
+      },
+      {
+        "id": "b585a198-d598-5c33-b09f-85541c44860f",
+        "closedAt": null
+      },
+      {
+        "id": "cf1612b9-13f1-5251-bfd6-d7810289378e",
+        "closedAt": null
+      },
+      {
+        "id": "de07601e-8b8d-5b2b-8b20-981a5634c093",
+        "closedAt": null
+      },
+      {
+        "id": "e703e4e6-c2ff-55c2-99e6-50ee12c063c2",
+        "closedAt": null
+      },
+      {
+        "id": "870d3d88-ed02-5c70-9223-1d616500cb42",
+        "closedAt": null
+      },
+      {
+        "id": "0c4d11c6-2f54-5e50-a524-bf177363daf5",
+        "closedAt": null
+      },
+      {
+        "id": "e9df9c16-4420-5a37-b2e2-aba8888cb6b8",
+        "closedAt": null
+      },
+      {
+        "id": "519d10b9-f816-5047-b9aa-40df74030ff7",
+        "closedAt": null
+      },
+      {
+        "id": "7547d47c-643a-5546-997d-4a943e5a059c",
+        "closedAt": null
+      },
+      {
+        "id": "695578ed-bd81-5dfb-84ae-4ce51ddf1159",
+        "closedAt": null
+      },
+      {
+        "id": "219f71f1-bbe4-5f4a-90dc-21d7df9040f7",
+        "closedAt": null
+      },
+      {
+        "id": "e0606a32-7d48-585d-8a54-5a51411bfd17",
+        "closedAt": null
+      },
+      {
+        "id": "7541176e-2c24-5dd4-9031-f7dcc24a055e",
+        "closedAt": null
+      },
+      {
+        "id": "cab87880-8e2d-50fb-bac1-f4b56279cbed",
+        "closedAt": null
+      },
+      {
+        "id": "60aa3006-4844-5899-a354-51f764ad0baf",
+        "closedAt": null
+      },
+      {
+        "id": "a08bec31-41c4-5ba2-934d-926118cf9a3a",
+        "closedAt": null
+      },
+      {
+        "id": "896108c1-b370-5dbb-ba62-e9ae02af0d5a",
+        "closedAt": null
+      },
+      {
+        "id": "a7aec6ce-238b-5dd4-832d-a1e49718b00a",
+        "closedAt": null
+      },
+      {
+        "id": "225a6eb8-5fdc-5d4b-9811-5f2f317fe992",
+        "closedAt": null
+      },
+      {
+        "id": "925b7823-c062-5ad3-9750-c24054e1a037",
+        "closedAt": null
+      },
+      {
+        "id": "37129078-d1d8-5eaf-b0e6-38430e4901da",
+        "closedAt": null
+      },
+      {
+        "id": "ca66b6f4-31a7-5cb7-83e3-844bfdbc22a7",
+        "closedAt": "2026-07-15T21:08:06.000Z"
+      },
+      {
+        "id": "593cbe0f-264c-5305-be35-306f58b35c98",
+        "closedAt": "2026-07-15T21:08:04.000Z"
+      }
+    ]
+  },
+  "snapshot2": {
+    "taskCount": 52,
+    "timestamp": 1784922181820,
+    "tasks": [
+      {
+        "id": "2a8968a6-6460-5115-a465-7bf37f7cbca0",
+        "closedAt": null
+      },
+      {
+        "id": "854b90bb-745a-53e2-9a19-2c3079578153",
+        "closedAt": null
+      },
+      {
+        "id": "f7f72264-8120-5db6-a526-34e85f736601",
+        "closedAt": null
+      },
+      {
+        "id": "f02dd56c-3030-5a11-94db-ca55823b1c64",
+        "closedAt": "2026-07-22T21:33:58.000Z"
+      },
+      {
+        "id": "90379e1f-696f-5060-a106-2cb44b8eea94",
+        "closedAt": "2026-07-22T21:03:09.000Z"
+      },
+      {
+        "id": "14a4ddd8-2942-5297-a73f-25127c6c1e7c",
+        "closedAt": null
+      },
+      {
+        "id": "e0f8764d-a355-5a96-8110-16a61a24436c",
+        "closedAt": null
+      },
+      {
+        "id": "72cf8073-2e79-5e6b-83ca-43d131f3fbf5",
+        "closedAt": null
+      },
+      {
+        "id": "c37c29b0-34bd-5a3b-958d-30587b4e16d6",
+        "closedAt": null
+      },
+      {
+        "id": "78473f70-2608-5e7f-aec6-85330a6c72fb",
+        "closedAt": null
+      },
+      {
+        "id": "7d163d7c-003d-596d-97c1-4aa9fbf17b66",
+        "closedAt": null
+      },
+      {
+        "id": "9279c646-ead0-51b6-b23a-8e47644e04cc",
+        "closedAt": null
+      },
+      {
+        "id": "e291c799-c0be-5703-8b5d-80c4ee70284a",
+        "closedAt": null
+      },
+      {
+        "id": "77747573-f196-5d8c-99b0-fc57b272d4fb",
+        "closedAt": null
+      },
+      {
+        "id": "00a99ef7-cbee-58c0-b5e3-c481296aecd3",
+        "closedAt": null
+      },
+      {
+        "id": "a68696c2-8c96-5def-82eb-48248f8486b9",
+        "closedAt": null
+      },
+      {
+        "id": "158334de-083f-53cf-8e9c-cde0f1dbc65c",
+        "closedAt": null
+      },
+      {
+        "id": "514abe7b-7b17-5021-98b9-c71cfb809603",
+        "closedAt": null
+      },
+      {
+        "id": "3d84b00b-500a-592e-8310-cf71ccf0ada2",
+        "closedAt": null
+      },
+      {
+        "id": "df7ef051-3b78-5bff-be3b-9b204731dc51",
+        "closedAt": null
+      },
+      {
+        "id": "93f5e28f-5b11-5c3b-8b28-8de78e6e2902",
+        "closedAt": null
+      },
+      {
+        "id": "2d828c8b-dbdf-5910-8ef3-3bdc475b689a",
+        "closedAt": null
+      },
+      {
+        "id": "dcac4255-35a6-5b85-a894-d8e087f0ddb6",
+        "closedAt": null
+      },
+      {
+        "id": "4f01052f-7dc4-574c-b768-01c391928d82",
+        "closedAt": null
+      },
+      {
+        "id": "af8e6fee-e790-5d8e-bdeb-08ff7bbfb7bd",
+        "closedAt": null
+      },
+      {
+        "id": "3157137f-9f75-55f6-8fed-6dc6338fc704",
+        "closedAt": null
+      },
+      {
+        "id": "6c8a5fc2-85cf-53e4-b4fb-2af7792dacfc",
+        "closedAt": null
+      },
+      {
+        "id": "51cec8a2-1053-5d29-8869-fa01f72ea626",
+        "closedAt": null
+      },
+      {
+        "id": "f574320a-42b1-5f0f-a215-ef4a7eb72848",
+        "closedAt": null
+      },
+      {
+        "id": "b585a198-d598-5c33-b09f-85541c44860f",
+        "closedAt": null
+      },
+      {
+        "id": "cf1612b9-13f1-5251-bfd6-d7810289378e",
+        "closedAt": null
+      },
+      {
+        "id": "de07601e-8b8d-5b2b-8b20-981a5634c093",
+        "closedAt": null
+      },
+      {
+        "id": "e703e4e6-c2ff-55c2-99e6-50ee12c063c2",
+        "closedAt": null
+      },
+      {
+        "id": "870d3d88-ed02-5c70-9223-1d616500cb42",
+        "closedAt": null
+      },
+      {
+        "id": "0c4d11c6-2f54-5e50-a524-bf177363daf5",
+        "closedAt": null
+      },
+      {
+        "id": "e9df9c16-4420-5a37-b2e2-aba8888cb6b8",
+        "closedAt": null
+      },
+      {
+        "id": "519d10b9-f816-5047-b9aa-40df74030ff7",
+        "closedAt": null
+      },
+      {
+        "id": "7547d47c-643a-5546-997d-4a943e5a059c",
+        "closedAt": null
+      },
+      {
+        "id": "695578ed-bd81-5dfb-84ae-4ce51ddf1159",
+        "closedAt": null
+      },
+      {
+        "id": "219f71f1-bbe4-5f4a-90dc-21d7df9040f7",
+        "closedAt": null
+      },
+      {
+        "id": "e0606a32-7d48-585d-8a54-5a51411bfd17",
+        "closedAt": null
+      },
+      {
+        "id": "7541176e-2c24-5dd4-9031-f7dcc24a055e",
+        "closedAt": null
+      },
+      {
+        "id": "cab87880-8e2d-50fb-bac1-f4b56279cbed",
+        "closedAt": null
+      },
+      {
+        "id": "60aa3006-4844-5899-a354-51f764ad0baf",
+        "closedAt": null
+      },
+      {
+        "id": "a08bec31-41c4-5ba2-934d-926118cf9a3a",
+        "closedAt": null
+      },
+      {
+        "id": "896108c1-b370-5dbb-ba62-e9ae02af0d5a",
+        "closedAt": null
+      },
+      {
+        "id": "a7aec6ce-238b-5dd4-832d-a1e49718b00a",
+        "closedAt": null
+      },
+      {
+        "id": "225a6eb8-5fdc-5d4b-9811-5f2f317fe992",
+        "closedAt": null
+      },
+      {
+        "id": "925b7823-c062-5ad3-9750-c24054e1a037",
+        "closedAt": null
+      },
+      {
+        "id": "37129078-d1d8-5eaf-b0e6-38430e4901da",
+        "closedAt": null
+      },
+      {
+        "id": "ca66b6f4-31a7-5cb7-83e3-844bfdbc22a7",
+        "closedAt": "2026-07-15T21:08:06.000Z"
+      },
+      {
+        "id": "593cbe0f-264c-5305-be35-306f58b35c98",
+        "closedAt": "2026-07-15T21:08:04.000Z"
+      }
+    ]
+  },
+  "snapshot3": {
+    "taskCount": 52,
+    "timestamp": 1784922201844,
+    "tasks": [
+      {
+        "id": "2a8968a6-6460-5115-a465-7bf37f7cbca0",
+        "closedAt": null
+      },
+      {
+        "id": "854b90bb-745a-53e2-9a19-2c3079578153",
+        "closedAt": null
+      },
+      {
+        "id": "f7f72264-8120-5db6-a526-34e85f736601",
+        "closedAt": null
+      },
+      {
+        "id": "f02dd56c-3030-5a11-94db-ca55823b1c64",
+        "closedAt": "2026-07-22T21:33:58.000Z"
+      },
+      {
+        "id": "90379e1f-696f-5060-a106-2cb44b8eea94",
+        "closedAt": "2026-07-22T21:03:09.000Z"
+      },
+      {
+        "id": "14a4ddd8-2942-5297-a73f-25127c6c1e7c",
+        "closedAt": null
+      },
+      {
+        "id": "e0f8764d-a355-5a96-8110-16a61a24436c",
+        "closedAt": null
+      },
+      {
+        "id": "72cf8073-2e79-5e6b-83ca-43d131f3fbf5",
+        "closedAt": null
+      },
+      {
+        "id": "c37c29b0-34bd-5a3b-958d-30587b4e16d6",
+        "closedAt": null
+      },
+      {
+        "id": "78473f70-2608-5e7f-aec6-85330a6c72fb",
+        "closedAt": null
+      },
+      {
+        "id": "7d163d7c-003d-596d-97c1-4aa9fbf17b66",
+        "closedAt": null
+      },
+      {
+        "id": "9279c646-ead0-51b6-b23a-8e47644e04cc",
+        "closedAt": null
+      },
+      {
+        "id": "e291c799-c0be-5703-8b5d-80c4ee70284a",
+        "closedAt": null
+      },
+      {
+        "id": "77747573-f196-5d8c-99b0-fc57b272d4fb",
+        "closedAt": null
+      },
+      {
+        "id": "00a99ef7-cbee-58c0-b5e3-c481296aecd3",
+        "closedAt": null
+      },
+      {
+        "id": "a68696c2-8c96-5def-82eb-48248f8486b9",
+        "closedAt": null
+      },
+      {
+        "id": "158334de-083f-53cf-8e9c-cde0f1dbc65c",
+        "closedAt": null
+      },
+      {
+        "id": "514abe7b-7b17-5021-98b9-c71cfb809603",
+        "closedAt": null
+      },
+      {
+        "id": "3d84b00b-500a-592e-8310-cf71ccf0ada2",
+        "closedAt": null
+      },
+      {
+        "id": "df7ef051-3b78-5bff-be3b-9b204731dc51",
+        "closedAt": null
+      },
+      {
+        "id": "93f5e28f-5b11-5c3b-8b28-8de78e6e2902",
+        "closedAt": null
+      },
+      {
+        "id": "2d828c8b-dbdf-5910-8ef3-3bdc475b689a",
+        "closedAt": null
+      },
+      {
+        "id": "dcac4255-35a6-5b85-a894-d8e087f0ddb6",
+        "closedAt": null
+      },
+      {
+        "id": "4f01052f-7dc4-574c-b768-01c391928d82",
+        "closedAt": null
+      },
+      {
+        "id": "af8e6fee-e790-5d8e-bdeb-08ff7bbfb7bd",
+        "closedAt": null
+      },
+      {
+        "id": "3157137f-9f75-55f6-8fed-6dc6338fc704",
+        "closedAt": null
+      },
+      {
+        "id": "6c8a5fc2-85cf-53e4-b4fb-2af7792dacfc",
+        "closedAt": null
+      },
+      {
+        "id": "51cec8a2-1053-5d29-8869-fa01f72ea626",
+        "closedAt": null
+      },
+      {
+        "id": "f574320a-42b1-5f0f-a215-ef4a7eb72848",
+        "closedAt": null
+      },
+      {
+        "id": "b585a198-d598-5c33-b09f-85541c44860f",
+        "closedAt": null
+      },
+      {
+        "id": "cf1612b9-13f1-5251-bfd6-d7810289378e",
+        "closedAt": null
+      },
+      {
+        "id": "de07601e-8b8d-5b2b-8b20-981a5634c093",
+        "closedAt": null
+      },
+      {
+        "id": "e703e4e6-c2ff-55c2-99e6-50ee12c063c2",
+        "closedAt": null
+      },
+      {
+        "id": "870d3d88-ed02-5c70-9223-1d616500cb42",
+        "closedAt": null
+      },
+      {
+        "id": "0c4d11c6-2f54-5e50-a524-bf177363daf5",
+        "closedAt": null
+      },
+      {
+        "id": "e9df9c16-4420-5a37-b2e2-aba8888cb6b8",
+        "closedAt": null
+      },
+      {
+        "id": "519d10b9-f816-5047-b9aa-40df74030ff7",
+        "closedAt": null
+      },
+      {
+        "id": "7547d47c-643a-5546-997d-4a943e5a059c",
+        "closedAt": null
+      },
+      {
+        "id": "695578ed-bd81-5dfb-84ae-4ce51ddf1159",
+        "closedAt": null
+      },
+      {
+        "id": "219f71f1-bbe4-5f4a-90dc-21d7df9040f7",
+        "closedAt": null
+      },
+      {
+        "id": "e0606a32-7d48-585d-8a54-5a51411bfd17",
+        "closedAt": null
+      },
+      {
+        "id": "7541176e-2c24-5dd4-9031-f7dcc24a055e",
+        "closedAt": null
+      },
+      {
+        "id": "cab87880-8e2d-50fb-bac1-f4b56279cbed",
+        "closedAt": null
+      },
+      {
+        "id": "60aa3006-4844-5899-a354-51f764ad0baf",
+        "closedAt": null
+      },
+      {
+        "id": "a08bec31-41c4-5ba2-934d-926118cf9a3a",
+        "closedAt": null
+      },
+      {
+        "id": "896108c1-b370-5dbb-ba62-e9ae02af0d5a",
+        "closedAt": null
+      },
+      {
+        "id": "a7aec6ce-238b-5dd4-832d-a1e49718b00a",
+        "closedAt": null
+      },
+      {
+        "id": "225a6eb8-5fdc-5d4b-9811-5f2f317fe992",
+        "closedAt": null
+      },
+      {
+        "id": "925b7823-c062-5ad3-9750-c24054e1a037",
+        "closedAt": null
+      },
+      {
+        "id": "37129078-d1d8-5eaf-b0e6-38430e4901da",
+        "closedAt": null
+      },
+      {
+        "id": "ca66b6f4-31a7-5cb7-83e3-844bfdbc22a7",
+        "closedAt": "2026-07-15T21:08:06.000Z"
+      },
+      {
+        "id": "593cbe0f-264c-5305-be35-306f58b35c98",
+        "closedAt": "2026-07-15T21:08:04.000Z"
+      }
+    ]
+  },
+  "changedDetails": []
+}

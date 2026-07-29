@@ -1,0 +1,10 @@
+7b4f6dd docs(project-log): round-7 entry for #195 (W1-W5, recommendations, and two corrections to r6)
+703c2de docs(markdown): record the DOMPurify/marked ownership asymmetry (audit INFO-2)
+476e956 test(markdown): make the sunset clause and the dependency floor fire (O2, O3, T-6)
+8ffe01f test(markdown): bring web/index.html into the scanned set (audit LOW-2)
+a162865 test(markdown): pin the assertion total, not just the check total
+6ddc93b test(markdown): pin the private Marked instance and the last unsignalled config axis
+7f382f0 test(markdown): fixture tables must fail closed, and cover the rules they range over
+7e758b6 fix(markdown): pin the guard's SCOPE independently, and promote R7 tree-wide
+c98eb79 fix(markdown): stripImportStatements must treat `import` as a statement keyword
+538ce54 fix(markdown): close the arity pin from the side that was actually open

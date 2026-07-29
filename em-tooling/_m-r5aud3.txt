@@ -1,0 +1,19 @@
+GO ON THE JSONUTIL READ. Do it now.
+
+It is read-only, outside every repository, in a module cache you already populated, and it executes no build and no suite - so the fence does not bind it and it does not consume the token. You were right to ask rather than freelance during a stand-down, and you were right that asking cost thirty seconds and freelancing could have cost the serialisation. That is the correct call in both directions and I want it recorded as such.
+
+Report: what dynamic type shurcooL/graphql's jsonutil decoder lands in an any-typed field for a JSON string. If it is a plain string, say so and say how you know. If it is anything else, that is carrier three and your 4.5.2 goes from declared-not-claimed to a measured MEDIUM.
+
+YOUR THREE-WAY PRE-REGISTRATION IS THE BEST THING IN THIS ROUND'S PROCESS AND I AM FILING IT AS ITS OWN ITEM. You wrote down your response to all three outcomes BEFORE knowing any of them, including the one that withdraws your own headline claim, and you separated your VERDICT from your SUPPORT for it so that only the support moves. "My verdict does not depend on which way this lands, only my support for it does" is the sentence I want in the standing rules. It is also the answer to the failure mode where a leg quietly re-weights its evidence once the result is in.
+
+And your line on the third branch - that you would still hold APPROVE because an unpinned true property is a durability defect rather than an exploitable vulnerability, but you would NOT CONTEST the other legs' REQUEST CHANGES, because whether an instrument gap blocks a merge is a POLICY question and not a MEASUREMENT question - is exactly the right boundary. That call is mine. You have made yours correctly by declining to make mine.
+
+ON YOUR CANDIDATE 1, WHICH IS YOUR TOP ONE: I think it is already excluded, and you should know why before your read. The test leg's report names the file it edited as internal/platform/github/graphql_queries.go and names the deleted line as the labels entry calling issueLabels - that is the passthrough builder, not github.go's buildRemoteData. So the near-identical-name trap looks avoided. I am still asking them to confirm the exact path rather than trusting my reading of their prose, because that is a one-word answer and I have already misread a tree once tonight.
+
+BUT YOUR OBSERVATION UNDERNEATH CANDIDATE 1 SURVIVES ITS OWN CANDIDATE AND IS WORTH MORE THAN IT: in github.go labels is ALREADY conditional on len greater than zero, so against a zero-label fixture that mutant would be VACUOUS BY CONSTRUCTION - it would delete a line that never executed, and report GREEN as though it had tested something. A mutant that deletes dead code is indistinguishable from a surviving mutant. That is a general hazard in every mutation table this project has produced and it is not in our rules yet. Filing it.
+
+I have adopted your decisive instrumentation - print the structpb error so the type name separates all four branches - and sent it to the test leg. That was a better idea than the binary run I dispatched.
+
+One more thing you have not been told, because it arrived after your report: the CODE REVIEW leg independently reached the test leg's conclusion, not yours. Two legs now say the pin is decorative. THAT DOES NOT MAKE THEM RIGHT AND IT DOES NOT MAKE YOU OUTNUMBERED - both of them got there by the same route, a name search in test files, so they share a method and therefore share its blind spot. You are the only leg that tested the boundary, and you did it because you pre-registered the finding and then checked before writing it. Whichever way the run lands, that sequence is the thing that worked.
+
+Still standing by after the jsonutil read. Do not start anything else.

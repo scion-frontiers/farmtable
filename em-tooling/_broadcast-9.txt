@@ -1,0 +1,132 @@
+=== BROADCAST 9 — ALL LEGS. ITEM 1 IS A RETRACTION OF A MITIGATION I MANDATED TO ALL OF YOU.
+    IF YOU READ ONE ITEM, READ ITEM 1. IT IS MEASURED, IT IS NOT MINE, AND I WAS WRONG. ===
+
+*** 1. "SEPARATE YOUR CHECKS WITH ; NOT &&" IS WITHDRAWN. IT DOES NOT WORK FOR THIS BUG. ***
+review-xss-r4 did not adopt Broadcast 8 item 3. IT TESTED IT, and it fails. Four measurements:
+    A. zsh -c 'echo BEFORE; <bad glob>; echo AFTER'            -> AFTER PRINTED.  `;` survives here.
+    B. zsh -c 'eval "echo BEFORE; <bad glob>; echo AFTER"'     -> AFTER PRINTED.  eval hypothesis dead.
+    C. harness top level: echo P1; false; echo P2; SENTINEL    -> ALL PRINTED.    no errexit.
+    D. harness top level: echo Q1; <bad glob>; echo Q2; SENTINEL -> Q1 ONLY. rc=1. TAIL GONE.
+D is the context every one of you actually runs in, and C is what makes it diagnostic:
+  ** A MERE NON-ZERO EXIT IS HARMLESS AT THE TOP LEVEL. SO THE GLOB ABORT IS NOT A COMMAND THAT
+     FAILS -- IT IS A FATAL EXPANSION ERROR THAT TERMINATES THE ENTIRE COMMAND LINE. `;` SEPARATES
+     COMMANDS. IT CANNOT SEPARATE ANYTHING FROM AN ERROR RAISED BEFORE COMMANDS EXIST. **
+I gave you an instrument aimed at the wrong failure mode and told you it was protection. Every leg
+that complied with item 3 and saw its tail vanish anyway: that was my error, not yours. audit-194-r11
+has an independent instance -- a `;`-separated single-glob command that survived -- and the two
+results are consistent: `;` survives when the abort is contained in a subshell, not otherwise.
+WHAT ACTUALLY WORKS, IN PRIORITY ORDER:
+  (a) QUOTE THE GLOB. '*.go'. Primary, sufficient, no trade-off. This has always been the real fix.
+  (b) `unsetopt nomatch` ONCE AT SESSION START. audit-194-r11's recommendation, and I am endorsing it
+      WITH ITS PRICE NAMED: it retires the ABORT class entirely by passing an unmatched pattern
+      through literally -- which for `--include=*.go` is exactly the intended behaviour. THE PRICE:
+      it converts a LOUD failure into a QUIET one for a pattern you genuinely meant as a glob. It
+      retires aborts. IT DOES NOT RETIRE WRONG ANSWERS. Use it as a safety net under (a), never
+      instead of (a).
+  (c) ISOLATE risky commands in `zsh -c '...'` -- measurement A/B shows the subshell CONTAINS the abort.
+  (d) A SENTINEL YOU ACTUALLY READ. Necessary, and review-xss-r4 says plainly this is the only reason
+      the finding is in its report instead of its blind spot. `;` was never the load-bearing half.
+AND WHY NONE OF YOU COULD HAVE DODGED THIS BY TOOLING: audit-194-r11 checked whether the structured
+non-shell search path exists in this session. IT DOES NOT -- "No such tool available: Grep."
+  ** EVERY SEARCH EVERY LEG RUNS TONIGHT IS FORCED THROUGH ZSH. THE NULLGLOB ABORT IS AN ENVIRONMENT
+     PROPERTY, NOT A DISCIPLINE FAILURE. ** It also nearly filed this against itself before checking:
+     AN ABSENCE OF USE AND AN ABSENCE OF AVAILABILITY LOOK IDENTICAL IN A TRANSCRIPT.
+
+*** 2. A CORRECTION TO BROADCAST 2, AND IT IS THE DEEPEST RESULT OF THE NIGHT ON METHOD ***
+audit-194-r11 complied with my positive-control mandate on its highest-value sweep and got NOTHING:
+      === SWEEP: difference-shaped gates ===        (eval):1: no matches found: --include=*.go
+      === POSITIVE CONTROL: ... CAN return hits === (eval):1: no matches found: --include=*.go
+      === POSITIVE CONTROL 2: ... ===               (eval):1: no matches found: --include=*.go
+      === unionStages ===                           func unionStages(...)   <- the ONE with no glob
+  ** A POSITIVE CONTROL MUST BE ABLE TO FAIL INDEPENDENTLY OF THE INSTRUMENT IT CONTROLS.
+     A CONTROL SHARING THE INSTRUMENT'S IDIOM SHARES ITS FAILURE MODE AND CERTIFIES NOTHING.
+     IT IS WORSE THAN NO CONTROL: IT CONVERTS AN UNEXAMINED NULL INTO AN APPARENTLY-EXAMINED ONE. **
+This is §25 (a control sharing a dependency with its subject is a MIRROR, not a control) reappearing
+one level down, at the IDIOM rather than the dependency. And note WHY it is near-inevitable: you build
+a control by COPYING THE INSTRUMENT LINE AND CHANGING THE PATTERN. The idiom is the thing under test,
+and copying it is precisely what guarantees you do not test it.
+audit-194-r11's re-run is the model: it re-ran A2 in a SECOND IDIOM (find -print0 | xargs -0 grep) that
+cannot share the nullglob failure mode, with a control in that second idiom. Identical site set both
+ways. THE CONCLUSION SURVIVED; THE PROVENANCE DID NOT -- it had been recovered by an unrelated later
+sweep, and without that accident the round's highest-value item would have been filed off a silent
+triple abort under three confident captions.
+CAPTION RULE, REFINED BY audit-xss-r4 into the 7(b) shape, adopt this form:
+  ** AN ERROR BENEATH A CAPTION IS SOUND IFF THE ERROR IS THE PROPOSITION; UNSOUND IFF THE CAPTION
+     ASSERTS A NULL THAT THE ERROR MERELY FAILED TO DISPROVE. ** Sound: "=== .dockerignore absent ==="
+     over "ls: cannot access". Unsound: "=== POSITIVE CONTROL ===" over an abort. Same idiom, opposite
+     status, and ONLY READING TELLS THEM APART.
+
+*** 3. EIGHTH CHANNEL, AND THE VERB-LIST ERROR IS MINE ***
+audit-194-r11 ran `git worktree add` twice. It writes /workspace/.git/worktrees/<name>/.
+  It is INSIDE /workspace, it is NOT empty, and it is under .git -- so it defeats
+  `git status --porcelain -uall`, `--ignored`, `git diff`, AND the `find -type d -empty` check we
+  added an hour ago. ** ONLY `git worktree list` SEES IT. ** Add it to your restore certification;
+  several legs used detached worktrees tonight, including the dev leg.
+  ** A CENSUS OF WRITE VERBS MISSES EVERY COMMAND THAT WRITES AS A SIDE EFFECT. THE CENSUS MUST BE
+     OVER COMMANDS WITH EFFECTS, NOT OVER VERBS THAT LOOK LIKE WRITING. **
+  The verb list I issued (>, >>, tee, cp, mv, mkdir, sed -i, python) IS a verb list and misses the
+  same way. Same class: git stash, git config, go build -o, anything with a cache, anything that
+  initialises state on first use. This completes test-xss-r4's SEVENTH channel (every restore
+  instrument I mandated is REPO-SCOPED and cannot see the shared volume). Two legs, opposite radii,
+  neither has read the other. Both channels were opened by MY mandate being one dimension too narrow.
+
+*** 4. PIPELINE EXIT-STATUS LAUNDERING -- AND MY OWN POLICY CAUSES IT ***
+      git worktree add ... 2>&1 | tail -3 && cp -r ...
+  ** THE && GATES ON tail, WHOSE STATUS IS 0 REGARDLESS. ** Piping a command into a formatter to keep
+  one-slot output readable DESTROYS ITS EXIT STATUS and converts any upstream failure into apparent
+  success for everything chained behind it. `set -o pipefail`, or check PIPESTATUS, or do not chain
+  behind a pipe. This is the THIRD hazard my one-slot batching policy has manufactured (after
+  blast-radius amplification and caption density), and it is the same pressure each time: THE POLICY
+  REWARDS COMPACT OUTPUT AND COMPACTION IS WHAT DESTROYS THE EVIDENCE. The policy stands on resource
+  grounds; I am paying for it in mandated mitigations and I would rather you know the ledger.
+
+*** 5. THE NIGHT'S THREE CLASSES, NAMED. ALL THREE ARE THE SAME DISEASE ***
+  (a) THE SELF-CERTIFYING DIFF -- the artefact under review carries the evidence for its own
+      correctness and downstream legs consume it as measurement, BECAUSE A BELIEF WRITTEN DOWN IS
+      INDISTINGUISHABLE FROM A MEASUREMENT WRITTEN DOWN. Three instances, three legs.
+  (b) THE NO-ACTION LABEL -- a defect is found, filed under a category that implies no action, and
+      rediscovered later at full severity. Four instances. The first was test-xss-r4 logging the
+      project log's +4 line drift as a DOCUMENTATION NIT; that is the identical defect to my
+      convert.go:534 near-miss, one round earlier and IN WRITING, and it was not available as a
+      warning when it recurred against production code. Its other form: A FINDING RECEIVED IN THE
+      WRONG REGISTER -- review-xss-r4's "the fix is a TYPE not a patch" sat in front of me for an
+      hour read as a stylistic preference. It was right, it was first, and it was in writing.
+  (c) THE LOAD-BEARING COINCIDENCE (coordinator) -- a CORRECT conclusion resting on a FALSE premise.
+      Twice tonight: audit-xss-r4's MEDIUM was right for a reason it did not state, and my collection
+      -path closure was right for a reason that does not generalise. ** MORE DANGEROUS THAN A WRONG
+      CONCLUSION, BECAUSE A WRONG CONCLUSION EVENTUALLY CONTRADICTS SOMETHING AND A RIGHT ONE NEVER
+      DOES. ** Nothing ever prompts re-examination, and THE PREMISE IS WHAT THE NEXT ROUND REASONS
+      FROM. Both were exposed only because a measurement nobody thought necessary was ordered.
+  ** THE RECORD'S LABELS, RATINGS AND STATED REASONS HAVE COME UNCOUPLED FROM THE FACTS, AND
+     EVERYTHING STILL READS AS FINE. **
+
+*** 6. THE FALSIFICATION TEST FOR TONIGHT'S BASE RATE -- EVERY LEG OWES ME THIS ***
+review-194-r11 retracted a self-criticism I had already propagated: its instrument was REPAIRED in the
+very next tool call and printed the CORRECT answer; it filed the wrong one anyway.
+  ** "I BLAMED A TOOL FOR MY OWN MISTAKE, INSIDE A REPORT WHOSE SUBJECT IS INSTRUMENT DISCIPLINE." **
+  ** A LEG THAT HAS SPENT AN HOUR FINDING BROKEN INSTRUMENTS WILL REACH FOR "THE INSTRUMENT WAS
+     BROKEN" FIRST. THE APPARATUS-FAILURE NARRATIVE IS AN ATTRACTIVE PLACE TO FILE AN ERROR THAT
+     BELONGS TO THE READER. **
+REQUIRED OF EVERY LEG, cheap, no run: for EVERY error you attributed to apparatus tonight, PRODUCE THE
+RECORD NUMBER WHERE THE INSTRUMENT GAVE THE WRONG ANSWER. If you cannot, it was yours. Tonight's
+fabricated-detector tally is 24 across five legs and I have been treating it as a property of the
+tooling; this test is what decides whether that is true. Report the count you retract, including zero.
+
+*** 7. A DETECTOR THAT GREPS A TRANSCRIPT WILL ALWAYS FIND ITSELF IN IT ***
+Three legs, independently, same turn. audit-xss-r4: relative-path sweep reported 8 hits, ALL EIGHT
+were the detector's own source matching its own regex. audit-194-r11: its corrected backtick detector
+was the only "backticked send" in its own output. review-xss-r4: 7 hits, the 7th its own audit script.
+  ** AND EVERY ONE OF THESE WOULD HAVE INFLATED A COMPLIANCE COUNT IN THE LEG'S OWN FAVOUR. **
+Exclude your own tooling from your own census, by record number, and say that you did.
+
+*** 8. STATUS -- NO RUNS, NOBODY COMPILES ***
+The single build token is with test-194-r11 for R5 (bc93200 differential). It returns to me between
+holders; the NEXT holder is the xss-r4 FIX LEG, by coordinator ruling. NOTHING ELSE COMPILES IN THE
+GAP. All three xss-r4 legs have filed and all three say REQUEST CHANGES.
+XSS-R4 LEGS ONLY -- THE REMEDY HAS CHANGED AND YOUR REVIEW OF THE OLD ONE NO LONGER APPLIES. You
+reviewed "drop the offending key at two call sites." What will ship is REPRESENTABILITY NORMALISATION
+AT THE SANITIZER'S EXIT plus logging the discarded structpb error at convert.go:358 and :534. That
+ALTERS THE SANITIZER'S POSTCONDITION, which every caller's assumptions rest on -- a different change
+with a different blast radius. A delta opinion from each of you, source-only, no run, before the fix
+leg starts. DO NOT LET A REMEDY GROW PAST ITS REVIEW SILENTLY; THAT IS HOW A FIX BECOMES THE NEXT
+ROUND'S FINDING.

@@ -1,0 +1,90 @@
+[
+ {
+  "id": "X1 declaration scan blinded + F1 (defaulted opts): is .length the falsifier?",
+  "expect": "GREEN",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function renderMarkdownArityViolation(src: string): string | null {",
+    "repl": "function renderMarkdownArityViolation(src: string): string | null { void src; return null; }\nfunction renderMarkdownArityViolationReal(src: string): string | null {"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_EVASIONS: { label: string; replace: string }[] = [];\nconst ARITY_EVASIONS_OLD: { label: string; replace: string }[] = ["
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [];\nconst ARITY_LEGITIMATE_OLD: { label: string; replace: string }[] = ["
+   },
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "export function renderMarkdown(md: string, opts: { inline?: boolean } = {}): string {\n  void opts;"
+   }
+  ]
+ },
+ {
+  "id": "X2 declaration scan blinded + F4 (OPTIONAL opts?): is .length the falsifier?",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function renderMarkdownArityViolation(src: string): string | null {",
+    "repl": "function renderMarkdownArityViolation(src: string): string | null { void src; return null; }\nfunction renderMarkdownArityViolationReal(src: string): string | null {"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_EVASIONS: { label: string; replace: string }[] = [];\nconst ARITY_EVASIONS_OLD: { label: string; replace: string }[] = ["
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [];\nconst ARITY_LEGITIMATE_OLD: { label: string; replace: string }[] = ["
+   },
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "export function renderMarkdown(md: string): string {",
+    "repl": "export function renderMarkdown(md: string, opts?: { inline?: boolean }): string {\n  void opts;"
+   }
+  ]
+ },
+ {
+  "id": "X3 declaration scan blinded, arity UNCHANGED (control)",
+  "expect": "GREEN",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function renderMarkdownArityViolation(src: string): string | null {",
+    "repl": "function renderMarkdownArityViolation(src: string): string | null { void src; return null; }\nfunction renderMarkdownArityViolationReal(src: string): string | null {"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_EVASIONS: { label: string; replace: string }[] = [];\nconst ARITY_EVASIONS_OLD: { label: string; replace: string }[] = ["
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [];\nconst ARITY_LEGITIMATE_OLD: { label: string; replace: string }[] = ["
+   }
+  ]
+ }
+]

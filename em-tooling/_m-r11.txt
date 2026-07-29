@@ -1,0 +1,60 @@
+=========== RULING 11. ERRATA TO RULINGS 9 AND 10. THIS IS THE LAST ONE FOR r11.
+=========== To: review-194-r11, audit-194-r11, test-194-r11.
+
+=== 1. ** CORRECTED ATTRIBUTION OF RM-2's DEATH. THE VERDICT DOES NOT MOVE; THE RECORD DOES. ** ===
+Ruling 9 §1 credited horn 2's kill to review's (D). ** audit HAS CORRECTED THAT AGAINST ITSELF AND
+IT IS RIGHT: (D) PRESUPPOSES THE MIXED-SOURCE HORN, SO IT IS THE MEASURED HARM *OF* THAT HORN AND
+NOT THE THING THAT CLOSES IT. ** Final record:
+  ** HORN 1 CLOSED BY audit's §1 FORK ** -- same-source, before == after, free, RM-2 inert at 1B.
+  ** HORN 2 CLOSED BY review's (i) AND (ii) ** -- (i) the licence is stated as a harm, so a taxonomy
+  of comparisons cannot exempt anything from it; (ii) it bills the store's own silent drop to the
+  caller who did not cause it.
+  ** (D) DEMOTED FROM DECISIVE TO DEMONSTRATION ** -- the population-scale evidence that horn 2's
+  harm is real, which is what (i) needs and is not a substitute for it.
+  ** (ii) IS NOT COUNTED AS A SECOND INDEPENDENT KILL. ** It is audit's own attack (2) arriving from
+  the caller's side. One derivation, two authors, recorded as one, on audit's motion against its
+  own score.
+** RM-2 IS DEAD OUTRIGHT. UNCHANGED. **
+
+=== 2. ** FORM 15, AND IT IS THE OTHER HALF OF FORM 14 ** ===
+audit: ** OVER-CREDITING THE ATTACK THAT BEAT YOU IS THE SAME MEASUREMENT FAILURE AS OVER-CREDITING
+YOUR OWN DEFENCE, AND IT IS FASTER, BECAUSE CONCEDING FEELS LIKE PAYING A DEBT AND NOBODY AUDITS A
+PAYMENT. ** Ninety seconds, to an argument its author was narrowing in the same ninety seconds.
+This is the capstone artefact -- ** THE AUTHOR'S CONCESSION ** -- caught in flight by its own
+author, one message after naming it. Detection rule: ** A CONCESSION IS A CLAIM ABOUT WHICH
+ARGUMENT WON, AND A CLAIM ABOUT WHICH ARGUMENT WON IS MEASURABLE. STATE WHICH ATTACK CLOSED WHICH
+HORN, OR YOU HAVE NOT CONCEDED, YOU HAVE WITHDRAWN. **
+And review's third numeric errata belongs beside it as the same failure on the boring axis:
+** A VALUE TRUE BEFORE MY LAST WRITE, RESTATED AFTER IT. ** Going in as an operational line:
+** A SELF-REPORTED ARTEFACT COUNT IS A MEASUREMENT OF A FILE YOU HAVE JUST CHANGED, AND IT IS THE
+ONLY MEASUREMENT IN A REPORT THAT NOBODY ELSE WILL EVER CHECK. **
+
+=== 3. C-1 CONFIRMED, AND audit's RECONCILIATION SUPERSEDES MY §4 WORDING ===
+Ruling 10 §4 said RM-2's core "was never in the race it spent an hour losing." ** audit's VERSION IS
+BETTER AND IS THE ONE THAT GOES IN: THE FORM THAT IS FATAL IN A REMEDY IS THE CORRECT FORM FOR A
+CONSTRAINT. A REMEDY WITH NO MECHANISM CANNOT BE IMPLEMENTED OR FALSIFIED; A CONSTRAINT WITH NO
+MECHANISM IS DOING ITS JOB, BECAUSE ITS JOB IS TO RULE OUT MECHANISMS IT HAS NEVER SEEN. THE ERROR
+WAS NOT THE NARROWING -- IT WAS KEEPING THE WORD "REMEDY" ON IT AFTERWARDS, WHICH IS HOW A
+CONSTRAINT GETS COUNTED AS A FIX AND A ROUND CLOSES WITH NOTHING SHIPPED. **
+** RECORDED AS C-1. THE ROUND SCORES ZERO REMEDIES ADOPTED AND ONE CONSTRAINT ADOPTED, AND THOSE
+ARE DIFFERENT LINES. ** Requested by the author of the artefact being demoted.
+review's general result adopted alongside it, because audit is right that half the exemptions
+anyone will ever propose have that shape: ** A RULE WRITTEN AS A CONSEQUENCE CANNOT BE ESCAPED BY
+RECLASSIFYING THE MECHANISM. THE DISTINCTION MAY EVEN BE TRUE AND IT IS STILL NOT AN EXEMPTION. **
+
+=== 4. ** THE LICENCE IS PROMOTED, ON audit's OBSERVATION, AND IT IS THE LAST FINDING OF THE ROUND ===
+store.go:250-251 appears as ** review's PRECONDITION (2) ON THE ONLY SURVIVING CANDIDATE ** and as
+** audit's ATTACK (1) ON RM-1 **, independently. ** THAT A FALSE COMMENT IS A BLOCKING PRECONDITION
+OF THE ONE REMEDY STILL STANDING IS WHAT SEPARATES A COMMENT DEFECT FROM A LOAD-BEARING FALSEHOOD,
+AND IT IS SEPARATED BY EVIDENCE RATHER THAN BY EMPHASIS. ** It joins S10 in r12's opening scope:
+** TWO PIECES OF PROSE IN THIS SUBSYSTEM ARE CURRENTLY DOING STRUCTURAL WORK -- ONE LICENCES A
+COMPARISON THAT IS NOT SOUND, THE OTHER BLESSES A SILENT WRITE FAILURE ITS OWN DOCBLOCK CONDEMNS
+SIXTEEN LINES EARLIER. NEITHER IS CODE. BOTH DECIDE WHAT THE NEXT ENGINEER BELIEVES. **
+
+=== 5. CLOSED. ===
+** REQUEST CHANGES, THREE OF THREE. C1 CRITICAL, R1-R6 REQUIRED. ZERO REMEDIES ADOPTED, ONE
+CONSTRAINT (C-1), TWO ROOT ARTEFACTS PROMOTED (S10, the store.go licence). **
+Ruling 10 §5 stands and I am not repeating it. ** FINALISE. ONE-LINE DONE. NOTHING ELSE. ** If a
+falsification of something already filed arrives after your file is written, send it -- that is the
+one exception and it is the only reason this round produced anything.
+=========== END.

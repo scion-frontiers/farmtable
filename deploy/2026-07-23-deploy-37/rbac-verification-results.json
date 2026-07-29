@@ -1,0 +1,64 @@
+[
+  {
+    "check": "b/a1",
+    "action": "ListTasks with existing (pre-Stage4) token — backward compat read",
+    "pass": true,
+    "detail": "ListTasks returned 50 tasks — existing token read works"
+  },
+  {
+    "check": "b/a2",
+    "action": "CreateTask with existing token — backward compat write",
+    "pass": true,
+    "detail": "CreateTask returned id=2ff01fb4-bc7c-4c9d-8cc1-dec14080881c — existing token write works (cleaned up)"
+  },
+  {
+    "check": "b/a3",
+    "action": "ListCollections with existing token",
+    "pass": true,
+    "detail": "ListCollections returned 21 — existing token collection access works"
+  },
+  {
+    "check": "b.i",
+    "action": "ListTasks in allowed collection with task:read scope",
+    "pass": true,
+    "detail": "ListTasks returned 36 tasks — scoped read works"
+  },
+  {
+    "check": "b.ii",
+    "action": "CreateTask WITHOUT task:write scope — should be REJECTED",
+    "pass": true,
+    "detail": "Correctly rejected: code=PermissionDenied msg=\"missing required scope \\\"task:write\\\"\"",
+    "grpc_code": "PermissionDenied"
+  },
+  {
+    "check": "b.iii",
+    "action": "ListTasks in DIFFERENT collection — should be REJECTED",
+    "pass": true,
+    "detail": "Correctly rejected: code=PermissionDenied msg=\"token not authorized for collection 2c78db91-d17f-4d8b-9d62-29a7b1d409fd\"",
+    "grpc_code": "PermissionDenied"
+  },
+  {
+    "check": "d1",
+    "action": "GetVersion with IAP only (no ft token) — exempt RPC",
+    "pass": true,
+    "detail": "GetVersion returned server_version=\"dev\" — exempt RPC works"
+  },
+  {
+    "check": "d2",
+    "action": "GetStatus with IAP only (no ft token) — exempt RPC",
+    "pass": true,
+    "detail": "GetStatus returned server_mode=\"dev\" uptime_seconds=170 — exempt RPC works"
+  },
+  {
+    "check": "b/e1",
+    "action": "ListTasks via dual-header auth (ft CLI pattern)",
+    "pass": true,
+    "detail": "ListTasks returned 50 tasks — dual-header works"
+  },
+  {
+    "check": "b/e2",
+    "action": "CreateTask via dual-header auth (mutating RPC)",
+    "pass": true,
+    "detail": "CreateTask returned id=ca97bf18-93ae-49c7-8efd-58d3d64dfce1 — dual-header mutation works (cleaned up)"
+  }
+]

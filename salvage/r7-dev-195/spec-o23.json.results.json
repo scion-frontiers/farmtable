@@ -1,0 +1,92 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 75,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 75 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:3072\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 75 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 75 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:3072:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:3077:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T6-floor-lowered",
+    "desc": "T-6: loosen the dompurify floor to ^3.0.0, the realistic way it would regress. Round 6 logged this as uncovered and unable to be covered.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "dompurify declares a floor at or above the advisory line: dompurify is declared as \"^3.0.0\", expected \"^3.4.12"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:3072\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 75 markdown sanitizer checks failed:\n  - dompurify declares a floor at or above the advisory line: dompurify is declared as \"^3.0.0\", expected \"^3.4.12\". The floor is a security boundary, not a preference: releases below it carry known mXSS bypasses of the sanitize() call this module depends on. Raising the floor is fine \u2014 update this string in the same commit. Lowering or widening it needs a reason on the record. WHAT THIS DOES NOT COVER: the installed artifact. This reads package.json only, so a lockfile or a patched node_modules below the floor passes here.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:3072:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:3077:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T6-floor-raised",
+    "desc": "FALSE-POSITIVE CONTROL for T-6: raising the floor must ALSO be red (it is an exact pin, and the message says to update the string). Confirms the rule reads the value rather than merely checking the key exists.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "dompurify declares a floor at or above the advisory line: dompurify is declared as \"^3.9.0\", expected \"^3.4.12"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:3072\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 75 markdown sanitizer checks failed:\n  - dompurify declares a floor at or above the advisory line: dompurify is declared as \"^3.9.0\", expected \"^3.4.12\". The floor is a security boundary, not a preference: releases below it carry known mXSS bypasses of the sanitize() call this module depends on. Raising the floor is fine \u2014 update this string in the same commit. Lowering or widening it needs a reason on the record. WHAT THIS DOES NOT COVER: the installed artifact. This reads package.json only, so a lockfile or a patched node_modules below the floor passes here.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:3072:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:3077:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "O3-sunset-fires",
+    "desc": "O3: the sunset clause fired on nothing. Declare typescript-eslint \u2014 the observable precondition for #204 \u2014 and it must now fire.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "sunset clause: #204 tooling absent, tokenizer subset still earns its place: typescript-eslint tooling is now d"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:3072\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 75 markdown sanitizer checks failed:\n  - sunset clause: #204 tooling absent, tokenizer subset still earns its place: typescript-eslint tooling is now declared (typescript-eslint), which is the sunset condition in the mechanism (b) note above. THIS IS NOT A DEFECT \u2014 it is the clause firing as designed, and it is the only thing that will ever fire it. Confirm #204 is enforcing in CI, then DELETE the tokenizer-dependent subset: stripInertText, stripImportStatements, R3, R4, R7, directiveIndirectionOffenders, BANNED_SINKS and their fixture tables. Keep the behavioural half and R1/R2/R5/R6/R8/R9. Then delete this check. If #204 is NOT what added this dependency, the clause has not been met: say so here and narrow the condition, rather than deleting the check to get to green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:3072:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:3077:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "O3-unrelated-dep",
+    "desc": "FALSE-POSITIVE CONTROL for O3: an unrelated new devDependency must NOT trip the sunset clause. Otherwise it is a rule against adding dependencies, which nobody would keep.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 75,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "O2-revert-lineno",
+    "desc": "O2 PIN IS LOAD-BEARING: revert the 'renamed with as' branch to reporting no line number. The new assertion in the INDIRECTION_EVASIONS fixture must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: offender"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:3072\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 75 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: offender has no line number: <fixture>: unsafeHTML renamed with 'as' in an import/export clause | offender has no line number: <fixture>: unsafeHTML renamed with 'as' in an import/export clause | offender has no line number: <fixture>: unsafeSVG renamed with 'as' in an import/export clause | offender has no line number: <fixture>: unsafeStatic renamed with 'as' in an import/export clause\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:3072:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:3077:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "O2-ablate-pin",
+    "desc": "ABLATION: neuter the O2 assertion itself and revert the same branch. GREEN confirms the pin \u2014 not something else \u2014 is what catches the revert above.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 75,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  }
+]

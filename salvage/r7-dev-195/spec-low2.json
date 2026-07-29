@@ -1,0 +1,91 @@
+{
+  "note": "Audit LOW-2. web/index.html ships, carries an inline <script>, and was invisible to every tree-wide rule twice over (.html inert AND the walk starts at src/). Counting it is not the same as scanning it, so each case puts a real sink in the inline script block.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 72;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "LOW2-innerHTML",
+      "desc": "innerHTML sink in index.html's inline script — was GREEN at 69 (file not scanned at all)",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        var stored = localStorage.getItem('ft-theme');\n        document.body.innerHTML = location.hash;"
+        }
+      ]
+    },
+    {
+      "id": "LOW2-docwrite",
+      "desc": "document.write in index.html's inline script",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        var stored = localStorage.getItem('ft-theme');\n        document.write(location.hash);"
+        }
+      ]
+    },
+    {
+      "id": "LOW2-escape",
+      "desc": "the promoted R7 must reach index.html too",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        var stored = localStorage.getItem('ft-theme');\n        var \\u0075nsafe = 1;"
+        }
+      ]
+    },
+    {
+      "id": "LOW2-delete",
+      "desc": "delete index.html entirely. Read by explicit path, so this must throw rather than silently shorten the scanned set.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "<!DOCTYPE html>",
+          "replace": "<!DOCTYPE html>"
+        }
+      ]
+    },
+    {
+      "id": "LOW2-benign",
+      "desc": "FALSE-POSITIVE CONTROL: index.html as it ships must stay GREEN, and a benign edit to its inline script must too. Bringing a file into the scanned set is only useful if the file can live there.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        // theme preference; see https://example.com/docs\n        var stored = localStorage.getItem('ft-theme');\n        document.documentElement.textContent === '' ;"
+        }
+      ]
+    }
+  ]
+}

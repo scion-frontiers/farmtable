@@ -1,0 +1,230 @@
+[
+ {
+  "id": "CFG-tag-drop-form",
+  "expect": "red",
+  "what": "drop 'form' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-input",
+  "expect": "red",
+  "what": "drop 'input' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'button', 'select', 'textarea', 'option', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-button",
+  "expect": "red",
+  "what": "drop 'button' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'select', 'textarea', 'option', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-select",
+  "expect": "red",
+  "what": "drop 'select' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'button', 'textarea', 'option', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-textarea",
+  "expect": "red",
+  "what": "drop 'textarea' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'button', 'select', 'option', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-option",
+  "expect": "red",
+  "what": "drop 'option' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'button', 'select', 'textarea', 'dialog', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-dialog",
+  "expect": "red",
+  "what": "drop 'dialog' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'style',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tag-drop-style",
+  "expect": "red",
+  "what": "drop 'style' from FORBID_TAGS",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog',"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-drop-style",
+  "expect": "red",
+  "what": "drop 'style' from FORBID_ATTR",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR = ['class', 'formaction', 'action', 'download'];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-drop-class",
+  "expect": "red",
+  "what": "drop 'class' from FORBID_ATTR",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR = ['style', 'formaction', 'action', 'download'];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-drop-formaction",
+  "expect": "red",
+  "what": "drop 'formaction' from FORBID_ATTR",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR = ['style', 'class', 'action', 'download'];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-drop-action",
+  "expect": "red",
+  "what": "drop 'action' from FORBID_ATTR",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR = ['style', 'class', 'formaction', 'download'];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-drop-download",
+  "expect": "red",
+  "what": "drop 'download' from FORBID_ATTR",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action'];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-attr-empty",
+  "expect": "red",
+  "what": "FORBID_ATTR emptied entirely",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+    "replace": "const FORBID_ATTR: string[] = [];"
+   }
+  ]
+ },
+ {
+  "id": "CFG-tags-empty",
+  "expect": "red",
+  "what": "FORBID_TAGS emptied entirely",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',",
+    "replace": ""
+   }
+  ]
+ },
+ {
+  "id": "CFG-checkbox-default",
+  "expect": "red",
+  "what": "custom checkbox renderer removed (marked default <input> returns)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const parser = new Marked({\n  renderer: {\n    checkbox: ({ checked }: Tokens.Checkbox): string =>\n      checked\n        ? '<span role=\"img\" aria-label=\"Completed\">\u2611\\uFE0E</span>'\n        : '<span role=\"img\" aria-label=\"Not completed\">\u2610\\uFE0E</span>',\n  },\n});",
+    "replace": "const parser = new Marked({});"
+   }
+  ]
+ },
+ {
+  "id": "CFG-shared-marked",
+  "expect": "red",
+  "what": "private Marked instance replaced by the shared singleton (the hazard markdown.ts documents)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "const parser = new Marked({",
+    "replace": "const parser: Marked = (globalThis as any).__sharedMarked ??= new Marked({"
+   }
+  ]
+ },
+ {
+  "id": "CFG-no-sanitize",
+  "expect": "red",
+  "what": "DOMPurify.sanitize dropped entirely (control: must be red)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "replace": "  return parser.parse(md) as string;"
+   }
+  ]
+ },
+ {
+  "id": "CFG-config-dropped",
+  "expect": "red",
+  "what": "sanitize() called with DOMPurify defaults only (config object dropped)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "replace": "  return DOMPurify.sanitize(parser.parse(md) as string);"
+   }
+  ]
+ }
+]

@@ -1,0 +1,112 @@
+[
+ {
+  "id": "K1 outerHTML assignment in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { el.outerHTML = s; }"
+   }
+  ]
+ },
+ {
+  "id": "K2 innerHTML indexed assignment in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { (el as unknown as Record<string,string>)['innerHTML'] = s; }"
+   }
+  ]
+ },
+ {
+  "id": "K3 innerHTML ||= compound assignment in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { el.innerHTML ||= s; }"
+   }
+  ]
+ },
+ {
+  "id": "K4 insertAdjacentHTML in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { el.insertAdjacentHTML('beforeend', s); }"
+   }
+  ]
+ },
+ {
+  "id": "K5 setHTMLUnsafe in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { (el as unknown as { setHTMLUnsafe(x: string): void }).setHTMLUnsafe(s); }"
+   }
+  ]
+ },
+ {
+  "id": "K6 createContextualFragment in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(r: Range, s: string): DocumentFragment { return r.createContextualFragment(s); }"
+   }
+  ]
+ },
+ {
+  "id": "K7 unsafeSVG directive in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(s: string): unknown { return unsafeSVG(s); }\ndeclare function unsafeSVG(s: string): unknown;"
+   }
+  ]
+ },
+ {
+  "id": "K8 unsafeStatic directive in a scanned component",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(s: string): unknown { return unsafeStatic(s); }\ndeclare function unsafeStatic(s: string): unknown;"
+   }
+  ]
+ },
+ {
+  "id": "K9 innerHTML sink inside web/index.html inline script (audit LOW-2)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "index.html",
+    "anchor": "      (function() {",
+    "repl": "      (function() {\n        document.body.innerHTML = location.hash;"
+   }
+  ]
+ },
+ {
+  "id": "K10 document.write inside web/index.html inline script",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "index.html",
+    "anchor": "      (function() {",
+    "repl": "      (function() {\n        document.write(location.hash);"
+   }
+  ]
+ }
+]

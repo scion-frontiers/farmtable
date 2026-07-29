@@ -1,0 +1,1 @@
+ARM G2 — second of three back-to-back Write-tool calls in a single block.

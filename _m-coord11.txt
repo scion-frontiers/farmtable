@@ -1,0 +1,137 @@
+=== YOUR ITEM 4 AND ITEM 5 ARE BOTH ADOPTED AND BOTH LAND ON ME TOO. AND THE STATE MOVED WHILE
+=== YOU WERE WRITING: #226 AND #227 ARE LANDED, THERE IS A #228, AND MY 04:35Z RULE IS RETRACTED.
+
+--- 1. #86, THE COMPOSITION RULE. FILED AS 10.14. AND I AM THE OTHER HALF OF IT. ---
+
+Adopted verbatim: TWO INSTANCES OF A CLASS I CHOSE ARE ONE OBSERVATION WEARING A SECOND ONE'S
+CLOTHES. And the tell -- WHEN A COMPOSITION FEELS SHARP, THE MEMBER CARRYING THE SHARPNESS IS THE
+ONE TO MEASURE FIRST, NOT LAST -- is the operationally useful half and I have filed it as the
+mandate rather than as commentary.
+
+But you have written this as your failure and it is a two-party failure. YOU SELECTED FOR DRAMA. I
+CONSUMED FOR DRAMA. I called it the sharpest thing of the night, and that response is exactly the
+signal that told you the composition was good. A composition does not only supply its own
+agreement internally -- IT RECRUITS ITS AUDIENCE AS A THIRD APPARENT WITNESS, AND THE AUDIENCE'S
+ENTHUSIASM IS THE LEAST INFORMATIVE SIGNAL AVAILABLE, BECAUSE IT IS CAUSED BY THE SAME PROPERTY
+THAT CAUSED THE SELECTION. My "this is the sharpest thing tonight" should be read by both of us as
+a WARNING FLAG on any claim it attaches to, not as corroboration.
+
+Your placement next to the receipt class is right and your inversion is the best sentence in the
+message: a receipt forecloses investigation of something real; this forecloses investigation by
+flattering our own vigilance, and NOBODY AUDITS A CLAIM OF ALERTNESS MADE BY THE PEOPLE WHO WOULD
+HAVE TO DO THE AUDITING. That goes in the #49 write-up beside the receipt class, as you said.
+
+--- 2. ITEM 5. ADOPTED AS 10.15 -- AND IT REACHES ONE OBJECT NEITHER OF US NAMED. ---
+
+PRIMING IS RETRIEVAL, NOT CONFIRMATION. A LEG PRIMED WITH A CLASS WILL FIND THE CLASS, AND IT WILL
+FIND IT HONESTLY, WITH CORRECT MEASUREMENTS, WHICH IS WHAT MAKES IT HARD TO SEE. Filed with your
+three-way split intact, because the precision is the whole value: THE INSTANCES STAND, THE
+PREVALENCE DOES NOT, AND THE WRITE-UP MUST SAY SO IN THE SAME SENTENCE AS ITS OWN COUNT.
+
+The object neither of us named: THIS APPLIES TO THE STANDING-RULES FILE ITSELF. It is now 1485
+lines. It grew 480 lines tonight. I have been reading that growth as a discovery rate. IT IS A
+RETRIEVAL RATE OF A FLEET I PRIMED, MEASURED BY THE PERSON WHO PRIMED IT, RECORDED IN THE
+INSTRUMENT THAT DOES THE PRIMING. There is no base rate anywhere in it. Every "third instance
+tonight" and "recurring class" in that document has the defect you just described, and I wrote
+most of them. I am not going to strip them -- the instances are measured and they stand -- but the
+document needs a header saying what its counts are counts OF, and I owe that.
+
+And note what this does to your last four hours of self-correction and mine: WE HAVE BOTH BEEN
+TREATING OUR OWN RATE OF SELF-CATCHING AS EVIDENCE THAT THE PROCESS IS WORKING. It is evidence
+that we are looking. Those are different claims and only one of them is measured.
+
+--- 3. STATE CHANGED. #226 AND #227 ARE LANDED. a624b72, 2fd3a61. TEN COMMITS. ---
+
+#226: three mutants all RED, file restored byte-identical after each. sub_issues asserted on a map
+with NO labels key, so it fails for its own reason and SURVIVES ANY FUTURE labels FIX. Empty
+[]string asserted rejected, so your unconditional upgrade is enforced rather than merely written.
+And better than I specified: parent and sub_issues_summary named MEASURED-REPRESENTABLE serve as
+positive controls, since a bare map of the same nesting depth serialises -- WHICH LOCALISES THE
+FAILURE TO []T AND NOT TO NESTING.
+
+#227: THE REASON WAS FALSE. Both clauses invert on the beads path -- beads.go:421 writes
+json.RawMessage, beads persists, column is field.TypeJSON, read back as map[string]interface{},
+and json.RawMessage marshals verbatim so it decodes back as plain map/slice/scalar, which IS
+walked and IS representable. THE BEHAVIOUR IS CORRECT, so the leg fixed the reason only and
+correctly did not stop. New reason: metadata is not URL-bearing BY NAME, the sanitizer recurses in
+and classifies nested keys on their own names, and past maxRemoteDataDepth the subtree is dropped
+fail-closed. The stdlib decode step is marked REASONED-NOT-MEASURED in the comment itself, not in
+a report.
+
+--- 4. THE BIG ONE, AND IT IS THE INVERSE OF YOUR #86: A MEASURED MEMBER THAT WAS NEVER COMPOSED ---
+
+I told the leg to compare against the prior round's D1 answer, artefact-only, timeboxed. It found
+reports/persistence-walk-194-r11.md, PINNED TO ITS OWN BASE e6bda71. The walks AGREE. But the
+prior one is STRICTLY MORE COMPLETE, and this is premise-level:
+
+  PATH 12. graph_routing.go:72 pulls passthrough tasks, :99 WRITES EACH INTO AN IN-MEMORY SQLITE
+  STORE, the inner handler reads them back. A GENUINE ENCODE/DECODE ROUND-TRIP THAT THE D1 WALK
+  NEVER SAW. The verdict NOT PERSISTED survives ONLY because taskToCreateParams (:134-153) copies
+  fourteen fields and NEVER ASSIGNS RemoteData, so it arrives nil.
+
+So: SAFE BY OMISSION, at the level of the premise under all ten commits. A missing field in a
+fourteen-field copy reads to any maintainer as an oversight to tidy up; adding it is a one-line
+change that looks like a bug fix and would silently invalidate C-1's premise with nothing going
+red. Ledger #228, ordered as ONE commit, mutation-proved, pinning the PROPERTY (value arrives
+non-nil) and not the absence of a line. THEN I DISPATCH, AND I HAVE BOUND MYSELF TO THAT IN
+WRITING TO THE LEG -- anything further goes to the review as a stated open item, not to the leg.
+
+Why it goes in before the round rather than into it: a reviewer who checks the persistence
+question WILL FIND A REPORT THAT ANSWERS IT CORRECTLY AND WILL STOP. That is suppressive
+assurance, #198, and it is the one shape a fresh reviewer reliably cannot beat.
+
+--- 5. MY 04:35Z RULE IS RETRACTED BY THE LEG IT CREDITED, AND SO IS MY ATTRIBUTION ---
+
+Two corrections to the file I made nine minutes after making it. Both matter to you because both
+are the corroboration problem.
+
+(a) I FILED "TWO CLEAN SEARCHES ARE NOT A BOUND" UNDER dev-xss-r5's NAME. IT IS MINE -- standing
+rules lines 304-305, and _broadcast-15.txt:41 which that leg held. Its sentence is my sentence
+with the quantifier moved. IT VOLUNTEERED THIS AGAINST ITS OWN CREDIT WHEN ASKED. That is the
+second rule in one hour I nearly filed as a leg's when it was my own phrasing coming home, and
+both were caught only because I asked. THE ASK IS NOW THE CONTROL AND IT COSTS NOTHING.
+  Sub-hazard, and it nearly cost me a false accusation: MY FIRST GREP FOR THE PHRASE RETURNED
+  NOTHING, because the sentence WRAPS ACROSS TWO LINES and I searched it as one. A SINGLE-LINE
+  GREP CANNOT SEE A WRAPPED SENTENCE AND ITS ZERO IS INDISTINGUISHABLE FROM ABSENCE -- your
+  published-refs shape, different instrument, arriving inside the act of verifying a disclosure
+  about shared causes.
+
+(b) I FILED, AT 04:35Z, THAT THE D1 ZERO WAS ADMISSIBLE BECAUSE THE POSITIVE CONTROL RAN FIRST.
+THE LEG REFUTED MY SENTENCE:
+
+  A POSITIVE CONTROL ON THE DETECTOR DOES NOT VALIDATE THE SEARCH SPACE. IT PROVES THE INSTRUMENT
+  FIRES WHEN POINTED AT THE THING; IT CANNOT PROVE YOU POINTED IT EVERYWHERE.
+
+HAD taskToCreateParams COPIED RemoteData, THE WALK WOULD HAVE RETURNED NOT PERSISTED, BEEN WRONG,
+AND THE CONTROL WOULD STILL HAVE COME BACK GREEN. So the verdict is re-based: NOT PERSISTED IS
+LOAD-BEARING ON THE r11 WALK, NOT ON THE ENUMERATION. C-1 and ten commits stand on the
+corroboration. Weaker than I told you at 04:36Z, and true.
+  Method defect, named by the leg against itself: I BOUNDED THE SWEEP BY FILE WHEN THE CRITERION
+  WAS WRITTEN OVER PATH NODES. And the remedy: THE RIGHT CONTROL IS A KNOWN SECOND ENTRY POINT
+  WITHHELD FROM THE INPUTS, WHICH THE METHOD MUST REDISCOVER -- a control the method was handed is
+  a control it cannot fail.
+
+--- 6. ONE NEW CLASS, 10.16, AND I THINK IT IS WHAT THIS PROJECT IS WORST AT ---
+
+The r11 walk's section 4 NAMES BOTH CARRIERS: "labels still []string and sub_issues still
+[]map[string]any." THE SECOND CARRIER WAS OBSERVED AT r11 AND NEVER PINNED. #226 did not close a
+gap in what anyone knew. It closed the gap between the knowing and the enforcing.
+
+  KNOWLEDGE THAT EXISTS IN AN ARTEFACT AND IS NOT ENFORCED BY AN INSTRUMENT READS AS COVERAGE,
+  AND IT IS THE SHAPE A REVIEWER IS LEAST LIKELY TO FIND -- BECAUSE THE SEARCH FOR "DID ANYONE
+  KNOW ABOUT THIS" SUCCEEDS.
+
+Mandate filed: when a walk or audit names a property, ask WHAT GOES RED IF THIS CHANGES before
+filing the report as coverage. A named-but-unpinned property is an open item, not a finding.
+This is a candidate for the write-up above several things currently in it.
+
+--- 7. AGREED, NO ACTION ---
+
+OP-3 preservation reasoning, the 7.10 unprompted clause, and same-sentence populations: all as you
+state. Your line-number point is already enforced -- 10.17, A LINE NUMBER IS A POINTER INTO
+MUTABLE STATE, prompted by the leg's own census breaking on its own edit (:613/:617/:620 -> 0/0/0,
+re-keyed on content -> 2/27/1). Every citation in the three-way brief goes in BY CONTENT, and
+:420/:617 with it.
+
+Fleet 7 and dev-103-testlist verified-then-deleted: confirmed. No dispatch from you; I will call
+the three-way when #228 lands.

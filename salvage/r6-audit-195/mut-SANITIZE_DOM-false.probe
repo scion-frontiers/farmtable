@@ -1,0 +1,106 @@
+DENIED   A1 iframe srcdoc
+DENIED   A3 object data js
+DENIED   A4 embed src js
+DENIED   A5 base href hijack
+DENIED   A6 meta refresh
+DENIED   A7 script tag
+DENIED   A8 script src remote
+DENIED   A9 link stylesheet
+DENIED   B1 img onerror
+DENIED   B2 body onload
+DENIED   B3 onfocus autofocus
+DENIED   B4 onpointerover
+DENIED   B5 ontoggle details
+DENIED   B6 onanimationstart
+DENIED   B7 mixed-case OnErRoR
+ALLOWED  B8 svg onload  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+DENIED   B9 onbeforetoggle popover
+DENIED   C1 md link javascript:
+DENIED   C2 raw a javascript:
+DENIED   C3 js tab obfuscation
+DENIED   C4 js newline obfuscation
+DENIED   C5 entity-encoded js
+DENIED   C5b entity js hex
+DENIED   C5c entity js semicolonless
+DENIED   C6 data:text/html a
+ALLOWED  C7 md image data uri  ARTIF=[scheme:data:text/html,%3Cscript] EXEC=[]
+      out="<p><img src=\"data:text/html,%3Cscript%3Ealert(1)%3C/script%3E\" alt=\"x\"></p>\n"
+DENIED   C8 vbscript:
+DENIED   C9 leading-space js
+DENIED   C10 NUL-in-scheme
+DENIED   C11 blob: href
+DENIED   C12 filesystem: href
+ALLOWED  C13 protocol-relative a  ARTIF=[protocol-relative:href] EXEC=[]
+      out="<p><a href=\"//evil.example/x\">x</a></p>\n"
+ALLOWED  C14 protocol-relative img  ARTIF=[protocol-relative:src] EXEC=[]
+      out="<p><img src=\"//evil.example/track.png\" alt=\"x\"></p>\n"
+DENIED   C15 protocol-relative bslash
+ALLOWED  C16 data: svg+xml img  ARTIF=[scheme:data:image/svg+xml,<svg,rawtext:on-handler] EXEC=[]
+      out="<img src=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>\">"
+ALLOWED  C17 data: svg+xml base64  ARTIF=[scheme:data:image/svg+xml;base6] EXEC=[]
+      out="<img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIG9ubG9hZD0iYWxlcnQoMSkiLz4=\">"
+DENIED   C18 unknown scheme evilproto
+DENIED   C19 uppercase JAVASCRIPT:
+DENIED   C20 js: in md autolink
+ALLOWED  D1 svg style  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+ALLOWED  D2 svg script  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+ALLOWED  D3 svg animate href  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><a></a></svg></p>\n"
+ALLOWED  D4 svg set attributeName  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+ALLOWED  D5 svg foreignObject script  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+ALLOWED  D6 svg use external  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p>\n"
+ALLOWED  D7 math annotation-xml  ARTIF=[tag:math] EXEC=[]
+      out="<p><math></math></p>\n"
+ALLOWED  D8 math mtext style  ARTIF=[tag:math] EXEC=[]
+      out="<p><math><mtext></mtext></math></p>\n"
+ALLOWED  D9 svg handler attr  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><circle></circle></svg></p>\n"
+ALLOWED  E1 style-in-svg mXSS  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p><img src=\"1\">\"&gt;<p></p>\n"
+DENIED   E2 noscript mXSS
+ALLOWED  E3 form nesting mXSS  ARTIF=[tag:math] EXEC=[]
+      out="<math><mtext></mtext></math>"
+ALLOWED  E4 template mXSS  ARTIF=[tag:template] EXEC=[]
+      out="<p><template></template></p>\n"
+DENIED   E5 textarea escape
+ALLOWED  E6 nested svg/p mutation  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg></svg></p><p></p><p></p>\n"
+ALLOWED  E7 mglyph table mXSS  ARTIF=[tag:math] EXEC=[]
+      out="<p><math><mtext><table></table></mtext></math></p>"
+DENIED   E8 select mXSS
+DENIED   E9 xmp escape
+ALLOWED  E10 svg desc mXSS  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><desc>]]&gt;</desc></svg></p>\n"
+DENIED   F1 form credential phish
+DENIED   F2 input password
+DENIED   F3 button formaction
+DENIED   F4 dialog overlay
+DENIED   F5 style tag html ns
+DENIED   F6 style attr
+DENIED   F7 class forgery
+DENIED   F8 download rename
+DENIED   F9 action attr
+DENIED   S1 slot bare
+DENIED   S2 slot mixed case
+DENIED   S3 slot on div nested
+ALLOWED  S4 slot inside template  ARTIF=[tag:template] EXEC=[]
+      out="<p><template><p>y</p></template></p>\n"
+DENIED   S5 slot element itself
+ALLOWED  S6 slot in svg ns  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><text>y</text></svg></p>\n"
+DENIED   S7 slot entity-encoded name
+DENIED   S8 slotchange handler
+ALLOWED  T1 shadowroot declarative  ARTIF=[tag:template] EXEC=[]
+      out="<div><template></template></div>"
+ALLOWED  T2 shadowroot legacy attr  ARTIF=[tag:template] EXEC=[]
+      out="<div><template><slot name=\"x\"></slot></template></div>"
+ALLOWED  T3 template with img onerror  ARTIF=[tag:template] EXEC=[]
+      out="<p><template><img src=\"x\"></template></p>\n"
+
+PROBE-COMPLETE module=/scion-volumes/scratchpad/projects/farmtable/salvage/r6-audit-195/mod-head.mjs vectors=78 allowed=26 denied=52 threw=0

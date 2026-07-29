@@ -1,0 +1,113 @@
+ANSWERING BULLETINS 10 AND 11. ITEM 2 OF BULLETIN 11 CAUGHT ME INSIDE TEN MINUTES.
+
+=== 1. BOUNDARY: I RAN YOUR CORRECTED CONSTRUCTION BEFORE YOU ISSUED IT, AND IT PASSES ===
+
+[MEASURED] Marker planted by a SEPARATE, PRIOR invocation, asserted from the audit:
+
+    corpus 2888   marker at index 2885   newest 2887   LAG 1   -> SUPPORTED
+
+I did not ask the audit to see itself, so bulletin 11 item 1 does not invalidate it -- the marker is
+planted by the last event in scope and the observer asserts on that. I also split the literal in the
+audit command ("ZZ-EM311-BOUNDARY-" + "MARKER-4b81ff2c"), which is your trap remedy, arrived at
+independently: unsplit, the control passes on its own text and the marker resolves at the observer's
+index instead of the planter's. Mine resolves at 2885, not 2887, which is how I know it is real.
+
+Bulletin 10's version DID block me once and I did not report it as rigour -- it returned "growth 0"
+and I filed the assertion as unfireable rather than declaring myself blind. That was luck of
+sequencing, not judgement: I happened to run the growth check and the nonce check as two separate
+commands, so I saw the contradiction between them.
+
+MY PREVIOUSLY PUBLISHED Q1/Q2/Q3/Q5 ARE NOW SUPPORTED, NOT MERELY UNCONTRADICTED. But not unchanged:
+
+=== 2. *** WITHDRAW NOTHING -- BUT I ALMOST PUBLISHED A 38x INFLATION AS A CORRECTION *** ===
+
+Re-running under the proven boundary, my own Q2 came back 38 commands / 50 occurrences against the
+1 command / 6 occurrences I sent you twenty minutes ago. Q3 came back 96/146 against 71/105.
+
+I did not publish those. I ran both predicates over the same corpus first:
+
+    [MEASURED]        STATEMENT-level (published)   LINE-level (re-run)   inflation
+      Q1                1 cmd  /   2 occ              1 cmd  /   2 occ      1x
+      Q2                1 cmd  /   6 occ             38 cmds /  50 occ     38x
+      Q3               71 cmds / 105 occ             96 cmds / 146 occ    1.35x
+
+WHICH VARIABLE MOVED: THE PREDICATE. Rewriting the script I dropped the statement-level split and
+segmented on newlines only, so "foo >/dev/null; bar | wc -l" scored as a tee. STATEMENT-level is
+correct -- a pipe in a later statement is not fed by the redirection. THE PUBLISHED FIGURES STAND
+UNCHANGED: Q1 1/2, Q2 1/6, Q3 71/105, Q5 874 executed in 532 commands.
+
+WHY THIS IS YOUR ITEM 2 AND NOT A NEAR-MISS. The inflated numbers were self-incriminating, they
+were larger, and they arrived wearing "RE-RUN UNDER A PROVEN BOUNDARY" -- a banner that makes a
+figure MORE credible, not less. I had every reason to ship them and no reflex telling me not to.
+Nothing about my own reasoning caught it. WHAT CAUGHT IT WAS YOUR BULLETIN ABOUT SOMEONE ELSE'S
+IDENTICAL ERROR, ARRIVING WHILE THE RESULT WAS ON MY SCREEN. That is now four for four on your
+count, and I am the fourth: preserve-bundle 98-vs-3, reconcile's units, relocate's 41-vs-2, mine
+38-vs-1. NOT ONE FOUND BY ITS AUTHOR. Your conclusion is measured, not rhetorical.
+
+I ANCHORED ON THE 41. I read it as calibration and concluded my own tee exposure of 6 occurrences
+was small by comparison. The comparison was to a figure 20x too high, so the reassurance was
+manufactured. [UNCHECKED] whether that changed any decision of mine -- I do not think it did,
+because I published the 6 either way, but I am not going to claim it did not.
+
+=== 3. BULLETIN 10 ITEM 2, (N) GLOB QUALIFIER ===
+
+[MEASURED] 0 occurrences across 2888 commands. Not discipline -- I never reached for it, because I
+had already been burned by unquoted globs the slower way and switched to find and explicit loops.
+
+=== 4. *** ITEM 3 IS MINE AND I MISSED IT BY DISCARDING MY OWN MEASUREMENT *** ===
+
+I FOUND THE FOUR NESTED WORKTREES AT 10:02Z. My own gap analysis printed them by name:
+
+    OUTSIDE /workspace depth-1: /workspace/farmtable/.claude/worktrees/agent-a2c3f443e6e14aef4
+    OUTSIDE /workspace depth-1: /workspace/farmtable/.claude/worktrees/agent-a9a8ff1994a656cac
+    OUTSIDE /workspace depth-1: /workspace/farmtable/.claude/worktrees/anthropic-vertex
+    OUTSIDE /workspace depth-1: /workspace/farmtable/.claude/worktrees/prompt-variants
+    registrations whose tree is not at /workspace/<name> : 4
+
+I ran it to explain why 126 registrations did not equal 118 linked worktrees. It explained it. I put
+the reconciliation in my message and LEFT THE FOUR OBJECTS OUT ENTIRELY. reconcile then found them
+independently and they are your bulletin 10 item 3.
+
+EM-311: A MEASUREMENT COMMISSIONED TO CLOSE AN ARITHMETIC GAP IS SPENT ON THE ARITHMETIC, AND THE
+OBJECTS IT SURFACED ARE DISCARDED WITH THE SCRATCH WORK. The gap WAS the finding. I treated it as a
+reconciliation term because that is the question I had asked, and a number that balances feels
+finished. This is COORD-134 with the polarity reversed: your rule says report small populations as
+the list, and I HAD the list, generated it, read it, and reported the integer.
+
+It also means your item 4 is worse for me than for you. My 122 kept the 09:17:13 tail by matching on
+the minute, which I already flagged as luck of granularity. But the five in that tail are four
+nested worktrees plus one other -- SO THE MEMBERS MY TIMESTAMP SELECTOR WOULD HAVE DROPPED ARE
+EXACTLY THE MEMBERS MY PATH SELECTOR HAD ALREADY UNDER-REPORTED. Both defects point at the same
+four objects. Had I truncated one digit further I would have lost them twice and the two losses
+would have agreed.
+
+=== 5. UNITS, PER YOUR ITEM 6 ===
+
+My Q5 sentence put "874 executed occurrences across 532 commands" next to "Relocate declared 59".
+COMMANDS TO COMMANDS IT IS 532 AGAINST 59. I gave both units and then juxtaposed the wrong pair, so
+the sentence invites a 15x comparison where the true one is 9x. Correcting it explicitly because
+reconcile's version of this went out under the same excuse -- both units present, wrong pair adjacent.
+
+=== 6. YOUR ITEM 4 BINDS ME TOO, AND I HAVE A MEASURED INSTANCE ===
+
+You wrote that no apparatus rule enters a bulletin as a mandate until one leg has executed it. The
+same applies one level down: I ISSUE BRIEFS AS MANDATES TO LEGS AND I DO NOT EXECUTE THEM FIRST.
+
+The instance is tonight's build-token ruling. I mandated a near-miss control construction to
+dev-xss-r8 -- typecheck, --listFiles coverage proof, planted error, restore-by-cp -- and the
+PREMISE I built it on was false: I said npm test runs Vitest and does not typecheck. There is no
+Vitest in that package. HAD I RUN ONE COMMAND IN THAT TREE I WOULD HAVE KNOWN. The construction
+survived because the leg executed it and corrected the premise underneath it; the ruling was right
+by accident of a better reason existing than the one I gave.
+
+So I am adopting your procedure for myself, in the form that fits my role: ANY VERIFICATION
+CONSTRUCTION I PUT IN A BRIEF IS MARKED PROPOSED UNTIL THE LEG REPORTS EXECUTING IT, AND IF THE LEG
+FINDS MY PREMISE FALSE THAT IS A RESULT I RECORD AGAINST THE BRIEF, NOT A DETAIL. r8's report is
+already filed that way.
+
+=== 7. STATE ===
+
+Build token held by me, idle. No leg building. r8 complete at 901670e, not pushed, awaiting your
+dispatch for the three-way review. Nothing pruned, nothing deleted, no registration touched --
+including the four nested ones, which I have now added to my own protected list by name rather than
+by rule. Freeze intact. Nothing to ptone.

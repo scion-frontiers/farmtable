@@ -1,0 +1,36 @@
+{
+  "ok": false,
+  "dashboard": {
+    "hasApp": true,
+    "currentView": "dashboard",
+    "hasAvailableText": false,
+    "hasReadyQueueText": false,
+    "textSnippet": "\n      \n\n      \n\n      \n        \n          \n          \n        \n          \n        \n\n        \n      \n\n      \n      \n    "
+  },
+  "availableQueue": {
+    "hasApp": true,
+    "currentView": "ready-queue",
+    "hasReadyQueueView": true,
+    "hasAvailableQueueLabel": true,
+    "hasReadyQueueLabel": false,
+    "hasOldNativeStageLabels": false,
+    "textSnippet": "\n      \n        Available Queue (6)\n        \n          \n      \n        No priority\n\n        \n\n        ...aad5f0\n\n        Ready-01\n\n        \n\n        Blocks 1\n\n        \n          \n          Accepted\n        \n      \n    \n      \n        No priority\n\n        \n\n        ...d484e6\n\n        Ready-02\n\n        \n\n        \n\n        \n          \n          Accepted\n        \n      \n    \n      \n        No priority\n\n        \n\n        ...5136d9\n\n        Ready-03\n\n        \n\n        Blocks 2\n\n        \n          \n          Accepted\n        \n      \n    \n      \n        No priority\n\n        \n\n        ...5d4e96\n\n        Ready-14\n\n        \n\n        \n\n        \n          \n          Accepted\n        \n      \n    \n      \n        No priority\n\n        \n\n        ...036b46\n\n        Ready-15\n\n        \n\n        Blocks 5\n\n        \n          \n          Accepted\n        \n      \n    \n      \n        No priority\n\n        \n\n        ...82330f\n\n        smoke-test-1784467180\n\n        \n\n        Blocks 1\n\n        \n          \n          Accepted\n        \n      \n    \n        \n      \n    "
+  },
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 401 ()",
+      "location": {
+        "url": "https://farmtable-486315127503.us-central1.run.app/api/auth/session",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "timestamp": "2026-07-27T07:08:37.096Z"
+    }
+  ],
+  "screenshots": [
+    "/scion-volumes/scratchpad/projects/farmtable/deploy/2026-07-27-task-state-phase1-live/dashboard-post-task-state.png",
+    "/scion-volumes/scratchpad/projects/farmtable/deploy/2026-07-27-task-state-phase1-live/available-queue-post-task-state.png"
+  ]
+}

@@ -1,0 +1,1231 @@
+=== RUN   TestPassThroughClaimTask_ClosedIssueIsNotClaimable
+--- PASS: TestPassThroughClaimTask_ClosedIssueIsNotClaimable (0.00s)
+=== RUN   TestPassThroughClaimTask_ListsOnlyOpenIssues
+--- PASS: TestPassThroughClaimTask_ListsOnlyOpenIssues (0.00s)
+=== RUN   TestPassThroughCloseTask_ClaimedThenClosedIsUnavailable
+    close_label_swap_test.go:332: issue still carries ft:stage/working after close; labels = [ft:stage/working ft:stage/completed]
+    close_label_swap_test.go:338: CloseTask returned stage working, want completed
+--- FAIL: TestPassThroughCloseTask_ClaimedThenClosedIsUnavailable (0.00s)
+=== RUN   TestPassThroughCloseTask_WontFixSwapsToWontFixLabel
+    close_label_swap_test.go:370: labels after wont_fix close = [ft:stage/working ft:stage/wont_fix], want ft:stage/wont_fix only
+--- FAIL: TestPassThroughCloseTask_WontFixSwapsToWontFixLabel (0.00s)
+=== RUN   TestPassThroughCloseTask_LabelWriteFailureStillCloses
+2026/07/28 06:04:52 github passthrough: close acme/repo#1: adding stage label [ft:stage/completed] failed, issue is closed but is not labelled completed: label write rejected
+--- PASS: TestPassThroughCloseTask_LabelWriteFailureStillCloses (0.00s)
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/accepted
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/working
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/in_review
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/in_qa
+=== RUN   TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/deploying
+--- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/accepted (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/working (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/in_review (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/in_qa (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_ClosedAtOverridesStaleLabel/deploying (0.00s)
+=== RUN   TestPassThroughComputeAvailability_ClosedAtDoesNotDuplicateTerminalReason
+--- PASS: TestPassThroughComputeAvailability_ClosedAtDoesNotDuplicateTerminalReason (0.00s)
+=== RUN   TestPassThroughIssueToTask_ClosedWithNullClosedAtStillTerminal
+--- PASS: TestPassThroughIssueToTask_ClosedWithNullClosedAtStillTerminal (0.00s)
+=== RUN   TestPassThroughComputeAvailability_OpenTaskStillAvailable
+--- PASS: TestPassThroughComputeAvailability_OpenTaskStillAvailable (0.00s)
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/triage
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/accepted
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/working
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/in_review
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/in_qa
+=== RUN   TestPassThroughGetTask_OpenIssueStaysAvailable/deploying
+--- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/triage (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/accepted (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/working (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/in_review (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/in_qa (0.00s)
+    --- PASS: TestPassThroughGetTask_OpenIssueStaysAvailable/deploying (0.00s)
+=== RUN   TestPassThroughCloseTask_ReReadFailureStillReportsClosed
+2026/07/28 06:04:52 github passthrough: close acme/repo#1: post-close re-read failed, reporting the pre-swap close payload instead: graphql get issue #1: issue read rejected
+--- PASS: TestPassThroughCloseTask_ReReadFailureStillReportsClosed (0.00s)
+=== RUN   TestPassThroughCloseTask_LabelIndexFailureStillCloses
+2026/07/28 06:04:52 github passthrough: close acme/repo#1: label index unavailable, issue is closed but its stage label was not swapped to completed: graphql list labels: label index read rejected
+--- PASS: TestPassThroughCloseTask_LabelIndexFailureStillCloses (0.00s)
+=== RUN   TestPassThroughCloseTask_CloseFailureTouchesNoLabel
+--- PASS: TestPassThroughCloseTask_CloseFailureTouchesNoLabel (0.00s)
+=== RUN   TestPassThroughCloseTask_BestEffortFailuresAreLogged
+=== RUN   TestPassThroughCloseTask_BestEffortFailuresAreLogged/label_index
+=== RUN   TestPassThroughCloseTask_BestEffortFailuresAreLogged/label_writes
+    close_label_swap_test.go:738: log output "github passthrough: close acme/repo#1: adding stage label [ft:stage/completed] failed, issue is closed but is not labelled completed: label write rejected\n" does not mention "removing stage labels"; the swallowed error left no trace
+=== RUN   TestPassThroughCloseTask_BestEffortFailuresAreLogged/post-close_re-read
+=== RUN   TestPassThroughCloseTask_BestEffortFailuresAreLogged/add_label
+--- FAIL: TestPassThroughCloseTask_BestEffortFailuresAreLogged (0.01s)
+    --- PASS: TestPassThroughCloseTask_BestEffortFailuresAreLogged/label_index (0.00s)
+    --- FAIL: TestPassThroughCloseTask_BestEffortFailuresAreLogged/label_writes (0.00s)
+    --- PASS: TestPassThroughCloseTask_BestEffortFailuresAreLogged/post-close_re-read (0.00s)
+    --- PASS: TestPassThroughCloseTask_BestEffortFailuresAreLogged/add_label (0.00s)
+=== RUN   TestPassThroughCloseTask_ConcurrentClosesDoNotRaceLabelIndex
+--- PASS: TestPassThroughCloseTask_ConcurrentClosesDoNotRaceLabelIndex (0.01s)
+=== RUN   TestPassThroughEnsureRepoID_ConcurrentUseDoesNotRace
+--- PASS: TestPassThroughEnsureRepoID_ConcurrentUseDoesNotRace (0.00s)
+=== RUN   TestLoadConfig_ValidYAML
+--- PASS: TestLoadConfig_ValidYAML (0.00s)
+=== RUN   TestLoadConfig_MinimalConfig
+--- PASS: TestLoadConfig_MinimalConfig (0.00s)
+=== RUN   TestLoadConfig_DisabledMode
+--- PASS: TestLoadConfig_DisabledMode (0.00s)
+=== RUN   TestLoadConfig_MissingFile
+--- PASS: TestLoadConfig_MissingFile (0.00s)
+=== RUN   TestLoadConfig_EnvVarOverride
+--- PASS: TestLoadConfig_EnvVarOverride (0.00s)
+=== RUN   TestDefaultConfig
+--- PASS: TestDefaultConfig (0.00s)
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/add_and_remove_the_same
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/no_delta
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/remove_all_stage_labels
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/add_terminal
+=== RUN   TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/add_and_remove_the_same
+--- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/nil_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/empty_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/one_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/two_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/non_stage_labels/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/foreign_prefix/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/stock_bare_duplicate/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/default/no_labels/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/nil_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/empty_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/one_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/two_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/non_stage_labels/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/foreign_prefix/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/stock_bare_duplicate/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/mapping_disabled/no_labels/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/foreign_prefix/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/stock_bare_duplicate/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/no_labels/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/nil_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/empty_label_slice/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/one_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/two_terminal/add_and_remove_the_same (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/no_delta (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/remove_all_stage_labels (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/add_terminal (0.00s)
+    --- PASS: TestLifecycleStageSetStager_NeverReturnsAnEmptySide/custom_prefix/non_stage_labels/add_and_remove_the_same (0.00s)
+=== RUN   TestLifecycleStageSetStager_NilMapperStillAnswers
+--- PASS: TestLifecycleStageSetStager_NilMapperStillAnswers (0.00s)
+=== RUN   TestLifecycleStageSetStager_EmptySideIsDetectable
+--- PASS: TestLifecycleStageSetStager_EmptySideIsDetectable (0.00s)
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_prefixed
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_stage_path
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/bare
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefixed
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_stage_path
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefix_uppercase_label
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefix_uppercase_config
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_prefix_still_honoured_under_custom
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/unrelated_label
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/similar_but_not_a_hold
+=== RUN   TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/prefix_only_no_reason
+--- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_prefixed (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_stage_path (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/bare (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefixed (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_stage_path (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefix_uppercase_label (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/custom_prefix_uppercase_config (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/default_prefix_still_honoured_under_custom (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/unrelated_label (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/similar_but_not_a_hold (0.00s)
+    --- PASS: TestHasExternalUnavailableLabel_HonoursTheConfiguredPrefix/prefix_only_no_reason (0.00s)
+=== RUN   TestHasExternalUnavailableLabel_NilMapperKeepsThePreRoundSixSpellings
+--- PASS: TestHasExternalUnavailableLabel_NilMapperKeepsThePreRoundSixSpellings (0.00s)
+=== RUN   TestExternalUnavailableLabel_ReachesBothPrivilegePathsUnderACustomPrefix
+--- PASS: TestExternalUnavailableLabel_ReachesBothPrivilegePathsUnderACustomPrefix (0.00s)
+=== RUN   TestComputeReadyAndBlocked_HonourTheConfiguredHoldPrefix
+--- PASS: TestComputeReadyAndBlocked_HonourTheConfiguredHoldPrefix (0.00s)
+=== RUN   TestIssueToCreateParams_OpenIssue
+--- PASS: TestIssueToCreateParams_OpenIssue (0.00s)
+=== RUN   TestIssueToCreateParams_ClosedIssue
+--- PASS: TestIssueToCreateParams_ClosedIssue (0.00s)
+=== RUN   TestIssueToCreateParams_NoLabelsNoMilestone
+--- PASS: TestIssueToCreateParams_NoLabelsNoMilestone (0.00s)
+=== RUN   TestIssueToUpdateParams
+--- PASS: TestIssueToUpdateParams (0.00s)
+=== RUN   TestIssueToUpdateParams_WithAssignee
+--- PASS: TestIssueToUpdateParams_WithAssignee (0.00s)
+=== RUN   TestTaskToIssueRequest_OpenTask
+--- PASS: TestTaskToIssueRequest_OpenTask (0.00s)
+=== RUN   TestTaskToIssueRequest_ClosedTask
+--- PASS: TestTaskToIssueRequest_ClosedTask (0.00s)
+=== RUN   TestTaskToIssueRequest_InProgressIsMappedToOpen
+--- PASS: TestTaskToIssueRequest_InProgressIsMappedToOpen (0.00s)
+=== RUN   TestTaskToIssueRequest_OnHoldIsMappedToOpen
+--- PASS: TestTaskToIssueRequest_OnHoldIsMappedToOpen (0.00s)
+=== RUN   TestSyncSubIssueLinksPaginatesAllTasks
+--- PASS: TestSyncSubIssueLinksPaginatesAllTasks (0.00s)
+=== RUN   TestExtractIssueNumber
+=== RUN   TestExtractIssueNumber/int_value
+=== RUN   TestExtractIssueNumber/float64_value
+=== RUN   TestExtractIssueNumber/nil_map
+=== RUN   TestExtractIssueNumber/missing_key
+=== RUN   TestExtractIssueNumber/wrong_type
+--- PASS: TestExtractIssueNumber (0.00s)
+    --- PASS: TestExtractIssueNumber/int_value (0.00s)
+    --- PASS: TestExtractIssueNumber/float64_value (0.00s)
+    --- PASS: TestExtractIssueNumber/nil_map (0.00s)
+    --- PASS: TestExtractIssueNumber/missing_key (0.00s)
+    --- PASS: TestExtractIssueNumber/wrong_type (0.00s)
+=== RUN   TestDeterministicUUID
+--- PASS: TestDeterministicUUID (0.00s)
+=== RUN   TestExtractLabels
+=== RUN   TestExtractLabels/string_slice
+=== RUN   TestExtractLabels/any_slice
+=== RUN   TestExtractLabels/nil_map
+=== RUN   TestExtractLabels/no_labels_key
+--- PASS: TestExtractLabels (0.00s)
+    --- PASS: TestExtractLabels/string_slice (0.00s)
+    --- PASS: TestExtractLabels/any_slice (0.00s)
+    --- PASS: TestExtractLabels/nil_map (0.00s)
+    --- PASS: TestExtractLabels/no_labels_key (0.00s)
+=== RUN   TestNewGraphQLClient
+--- PASS: TestNewGraphQLClient (0.00s)
+=== RUN   TestNewWithConfig_WithConfig
+--- PASS: TestNewWithConfig_WithConfig (0.00s)
+=== RUN   TestNewWithConfig_NilConfig
+--- PASS: TestNewWithConfig_NilConfig (0.00s)
+=== RUN   TestGraphQLClient_AddAndRemoveSubIssue
+--- PASS: TestGraphQLClient_AddAndRemoveSubIssue (0.00s)
+=== RUN   TestStripForMatchSegments_MatchTheNormaliser
+--- PASS: TestStripForMatchSegments_MatchTheNormaliser (0.00s)
+=== RUN   TestDefaultConfig_AdmitsTwoDistinctLabelsForOneStage
+    label_stage_collision_test.go:127: CONTROL BROKEN: 0 of 10 stages are reachable at all under the default config; the corpus is not exercising what it claims to
+--- FAIL: TestDefaultConfig_AdmitsTwoDistinctLabelsForOneStage (0.00s)
+=== RUN   TestDefaultConfig_ShipsNoConfiguredStageAliases
+--- PASS: TestDefaultConfig_ShipsNoConfiguredStageAliases (0.00s)
+=== RUN   TestSpellingCollision_IsInvisibleToTheStageSetGate
+    label_stage_collision_test.go:196: setup: authorizationStage("ft:completed") = ("", false), want (completed, true)
+--- FAIL: TestSpellingCollision_IsInvisibleToTheStageSetGate (0.00s)
+=== RUN   TestAliasKeyNormalisation_CollapsesDistinctKeys
+=== RUN   TestAliasKeyNormalisation_CollapsesDistinctKeys/same_target_is_a_harmless_dedup
+    label_stage_collision_test.go:292: authorizationStage(ft:shipped) = ("", false), want (completed, true)
+=== RUN   TestAliasKeyNormalisation_CollapsesDistinctKeys/conflicting_targets_collapse_to_one_entry
+    label_stage_collision_test.go:322: 500 mappers from ONE unchanged config: ft:shipped resolved as map[]
+    label_stage_collision_test.go:325: NONDETERMINISTIC: map[]. Sorted-key iteration in NewLabelMapper is supposed to make the arbitrary winner at least reproducible.
+=== RUN   TestAliasKeyNormalisation_CollapsesDistinctKeys/control_distinct_aliases_are_untouched
+    label_stage_collision_test.go:358: ft:shipped = ("", false), want completed
+    label_stage_collision_test.go:361: ft:binned = ("", false), want wont_fix
+--- FAIL: TestAliasKeyNormalisation_CollapsesDistinctKeys (0.00s)
+    --- FAIL: TestAliasKeyNormalisation_CollapsesDistinctKeys/same_target_is_a_harmless_dedup (0.00s)
+    --- FAIL: TestAliasKeyNormalisation_CollapsesDistinctKeys/conflicting_targets_collapse_to_one_entry (0.00s)
+    --- FAIL: TestAliasKeyNormalisation_CollapsesDistinctKeys/control_distinct_aliases_are_untouched (0.00s)
+=== RUN   TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly
+=== RUN   TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly/bare_key
+    label_stage_collision_test.go:437: pre-A3 replica: alias "ft:shipped" with key "shipped" live = false, want true. The replica no longer models ea8ac39, so the comparison below is not a measurement of the change.
+=== RUN   TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly/prefixed_key
+    label_stage_collision_test.go:445: post-A3: alias "ft:shipped" with key "ft:shipped" = ("", false), want (completed, true); A3's whole point is that both key spellings work
+--- FAIL: TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly (0.00s)
+    --- FAIL: TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly/bare_key (0.00s)
+    --- FAIL: TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly/prefixed_key (0.00s)
+=== RUN   TestMapLabelsToStage_ExactMatch
+=== RUN   TestMapLabelsToStage_ExactMatch/working
+=== RUN   TestMapLabelsToStage_ExactMatch/triage
+=== RUN   TestMapLabelsToStage_ExactMatch/in_review
+=== RUN   TestMapLabelsToStage_ExactMatch/in_qa
+=== RUN   TestMapLabelsToStage_ExactMatch/deploying
+=== RUN   TestMapLabelsToStage_ExactMatch/completed
+=== RUN   TestMapLabelsToStage_ExactMatch/wont_fix
+=== RUN   TestMapLabelsToStage_ExactMatch/duplicate
+=== RUN   TestMapLabelsToStage_ExactMatch/cancelled
+--- PASS: TestMapLabelsToStage_ExactMatch (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/working (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/triage (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/in_review (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/in_qa (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/deploying (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/completed (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/wont_fix (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/duplicate (0.00s)
+    --- PASS: TestMapLabelsToStage_ExactMatch/cancelled (0.00s)
+=== RUN   TestMapLabelsToStage_CaseInsensitive
+=== RUN   TestMapLabelsToStage_CaseInsensitive/Working
+=== RUN   TestMapLabelsToStage_CaseInsensitive/WORKING
+=== RUN   TestMapLabelsToStage_CaseInsensitive/Accepted
+=== RUN   TestMapLabelsToStage_CaseInsensitive/IN_REVIEW
+=== RUN   TestMapLabelsToStage_CaseInsensitive/Triage
+--- PASS: TestMapLabelsToStage_CaseInsensitive (0.00s)
+    --- PASS: TestMapLabelsToStage_CaseInsensitive/Working (0.00s)
+    --- PASS: TestMapLabelsToStage_CaseInsensitive/WORKING (0.00s)
+    --- PASS: TestMapLabelsToStage_CaseInsensitive/Accepted (0.00s)
+    --- PASS: TestMapLabelsToStage_CaseInsensitive/IN_REVIEW (0.00s)
+    --- PASS: TestMapLabelsToStage_CaseInsensitive/Triage (0.00s)
+=== RUN   TestMapLabelsToStage_CustomMapping
+--- PASS: TestMapLabelsToStage_CustomMapping (0.00s)
+=== RUN   TestMapLabelsToStage_Precedence
+--- PASS: TestMapLabelsToStage_Precedence (0.00s)
+=== RUN   TestMapLabelsToStage_NoMatch
+--- PASS: TestMapLabelsToStage_NoMatch (0.00s)
+=== RUN   TestMapLabelsToPriority
+=== RUN   TestMapLabelsToPriority/urgent
+=== RUN   TestMapLabelsToPriority/high
+=== RUN   TestMapLabelsToPriority/normal
+=== RUN   TestMapLabelsToPriority/low
+=== RUN   TestMapLabelsToPriority/Urgent
+=== RUN   TestMapLabelsToPriority/HIGH
+--- PASS: TestMapLabelsToPriority (0.00s)
+    --- PASS: TestMapLabelsToPriority/urgent (0.00s)
+    --- PASS: TestMapLabelsToPriority/high (0.00s)
+    --- PASS: TestMapLabelsToPriority/normal (0.00s)
+    --- PASS: TestMapLabelsToPriority/low (0.00s)
+    --- PASS: TestMapLabelsToPriority/Urgent (0.00s)
+    --- PASS: TestMapLabelsToPriority/HIGH (0.00s)
+=== RUN   TestMapLabelsToPriority_CustomMapping
+--- PASS: TestMapLabelsToPriority_CustomMapping (0.00s)
+=== RUN   TestMapLabelsToType
+=== RUN   TestMapLabelsToType/bug
+=== RUN   TestMapLabelsToType/feature
+=== RUN   TestMapLabelsToType/task
+=== RUN   TestMapLabelsToType/design
+=== RUN   TestMapLabelsToType/Bug
+=== RUN   TestMapLabelsToType/FEATURE
+--- PASS: TestMapLabelsToType (0.00s)
+    --- PASS: TestMapLabelsToType/bug (0.00s)
+    --- PASS: TestMapLabelsToType/feature (0.00s)
+    --- PASS: TestMapLabelsToType/task (0.00s)
+    --- PASS: TestMapLabelsToType/design (0.00s)
+    --- PASS: TestMapLabelsToType/Bug (0.00s)
+    --- PASS: TestMapLabelsToType/FEATURE (0.00s)
+=== RUN   TestMapLabelsToType_CustomMapping
+--- PASS: TestMapLabelsToType_CustomMapping (0.00s)
+=== RUN   TestStageToLabel
+=== RUN   TestStageToLabel/working
+=== RUN   TestStageToLabel/triage
+=== RUN   TestStageToLabel/accepted
+=== RUN   TestStageToLabel/completed
+=== RUN   TestStageToLabel/in_review
+--- PASS: TestStageToLabel (0.00s)
+    --- PASS: TestStageToLabel/working (0.00s)
+    --- PASS: TestStageToLabel/triage (0.00s)
+    --- PASS: TestStageToLabel/accepted (0.00s)
+    --- PASS: TestStageToLabel/completed (0.00s)
+    --- PASS: TestStageToLabel/in_review (0.00s)
+=== RUN   TestStageToLabel_CustomPrefix
+--- PASS: TestStageToLabel_CustomPrefix (0.00s)
+=== RUN   TestPriorityToLabel
+=== RUN   TestPriorityToLabel/urgent
+=== RUN   TestPriorityToLabel/high
+=== RUN   TestPriorityToLabel/normal
+=== RUN   TestPriorityToLabel/low
+--- PASS: TestPriorityToLabel (0.00s)
+    --- PASS: TestPriorityToLabel/urgent (0.00s)
+    --- PASS: TestPriorityToLabel/high (0.00s)
+    --- PASS: TestPriorityToLabel/normal (0.00s)
+    --- PASS: TestPriorityToLabel/low (0.00s)
+=== RUN   TestStageLabelSwap
+    labels_test.go:317: remove = [], want [ft:stage/working]
+--- FAIL: TestStageLabelSwap (0.00s)
+=== RUN   TestStageLabelSwap_NoExistingStage
+--- PASS: TestStageLabelSwap_NoExistingStage (0.00s)
+=== RUN   TestStageLabelSwap_AlreadyPresent
+--- PASS: TestStageLabelSwap_AlreadyPresent (0.00s)
+=== RUN   TestPriorityLabelSwap
+--- PASS: TestPriorityLabelSwap (0.00s)
+=== RUN   TestLabelMapper_Disabled
+--- PASS: TestLabelMapper_Disabled (0.00s)
+=== RUN   TestIssueToPhaseStage_ClosedNotPlanned
+--- PASS: TestIssueToPhaseStage_ClosedNotPlanned (0.00s)
+=== RUN   TestIssueToPhaseStage_ClosedCompleted
+--- PASS: TestIssueToPhaseStage_ClosedCompleted (0.00s)
+=== RUN   TestIssueToPhaseStage_LabelsOverride
+--- PASS: TestIssueToPhaseStage_LabelsOverride (0.00s)
+=== RUN   TestIssueToPhaseStage_Fallback
+--- PASS: TestIssueToPhaseStage_Fallback (0.00s)
+=== RUN   TestIssueToPhaseStage_OpenBlocked
+--- PASS: TestIssueToPhaseStage_OpenBlocked (0.00s)
+=== RUN   TestPrefixStripping
+--- PASS: TestPrefixStripping (0.00s)
+=== RUN   TestTypeToLabel
+=== RUN   TestTypeToLabel/bug
+=== RUN   TestTypeToLabel/feature
+=== RUN   TestTypeToLabel/task
+=== RUN   TestTypeToLabel/design
+--- PASS: TestTypeToLabel (0.00s)
+    --- PASS: TestTypeToLabel/bug (0.00s)
+    --- PASS: TestTypeToLabel/feature (0.00s)
+    --- PASS: TestTypeToLabel/task (0.00s)
+    --- PASS: TestTypeToLabel/design (0.00s)
+=== RUN   TestTypeToLabel_UnknownType
+--- PASS: TestTypeToLabel_UnknownType (0.00s)
+=== RUN   TestTypeToLabel_CustomMapping
+--- PASS: TestTypeToLabel_CustomMapping (0.00s)
+=== RUN   TestTypeToLabel_Disabled
+--- PASS: TestTypeToLabel_Disabled (0.00s)
+=== RUN   TestTypeLabelSwap
+--- PASS: TestTypeLabelSwap (0.00s)
+=== RUN   TestTypeLabelSwap_NoExistingType
+--- PASS: TestTypeLabelSwap_NoExistingType (0.00s)
+=== RUN   TestTypeLabelSwap_AlreadyPresent
+--- PASS: TestTypeLabelSwap_AlreadyPresent (0.00s)
+=== RUN   TestTypeLabelSwap_Disabled
+--- PASS: TestTypeLabelSwap_Disabled (0.00s)
+=== RUN   TestPrefixStripping_CustomPrefix
+--- PASS: TestPrefixStripping_CustomPrefix (0.00s)
+=== RUN   TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer
+    lifecycle_stage_consumers_test.go:138: BASELINE BROKEN: LifecycleStage for "ft:stage/completed" = "accepted", want "completed"; the fixture is not presenting the stage this row is meant to vary
+--- FAIL: TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer (0.00s)
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/wont_fix
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/completed ft:stage/wont_fix]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/duplicate
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/completed ft:stage/duplicate]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/cancelled
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/completed ft:stage/cancelled]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/completed
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/wont_fix ft:stage/completed]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/duplicate
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/wont_fix ft:stage/duplicate]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/cancelled
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/wont_fix ft:stage/cancelled]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/completed
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/duplicate ft:stage/completed]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/wont_fix
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/duplicate ft:stage/wont_fix]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/cancelled
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/duplicate ft:stage/cancelled]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/completed
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/cancelled ft:stage/completed]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/wont_fix
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/cancelled ft:stage/wont_fix]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/duplicate
+    lifecycle_stage_consumers_test.go:266: BASELINE BROKEN: AllTerminalLabelStages([ft:stage/cancelled ft:stage/duplicate]) = [], want 2 distinct terminal stages. Without two, the tiebreak is not exercised and this test does not test what it says
+=== NAME  TestSingularSinksAreBlindToTheTerminalTiebreak
+    lifecycle_stage_consumers_test.go:331: terminal stage "completed" never won a tiebreak across all 12 ordered pairs, so no assertion above exercised it as the selected stage. Either the precedence order changed or the pair enumeration stopped being total
+    lifecycle_stage_consumers_test.go:331: terminal stage "wont_fix" never won a tiebreak across all 12 ordered pairs, so no assertion above exercised it as the selected stage. Either the precedence order changed or the pair enumeration stopped being total
+    lifecycle_stage_consumers_test.go:331: terminal stage "duplicate" never won a tiebreak across all 12 ordered pairs, so no assertion above exercised it as the selected stage. Either the precedence order changed or the pair enumeration stopped being total
+--- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/wont_fix (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/duplicate (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/completed+ft:stage/cancelled (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/completed (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/duplicate (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/wont_fix+ft:stage/cancelled (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/completed (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/wont_fix (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/duplicate+ft:stage/cancelled (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/completed (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/wont_fix (0.00s)
+    --- FAIL: TestSingularSinksAreBlindToTheTerminalTiebreak/ft:stage/cancelled+ft:stage/duplicate (0.00s)
+=== RUN   TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl
+--- PASS: TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl (0.00s)
+=== RUN   TestPassThroughStore_CheckSubIssueLimits_CountExceeded
+--- PASS: TestPassThroughStore_CheckSubIssueLimits_CountExceeded (0.00s)
+=== RUN   TestPassThroughStore_IssueDepth
+--- PASS: TestPassThroughStore_IssueDepth (0.00s)
+=== RUN   TestPassThroughStore_CreateTaskWithParentAddsSubIssue
+--- PASS: TestPassThroughStore_CreateTaskWithParentAddsSubIssue (0.00s)
+=== RUN   TestComputeBlocked_DoesNotTreatAcceptedAsBlocked
+--- PASS: TestComputeBlocked_DoesNotTreatAcceptedAsBlocked (0.00s)
+=== RUN   TestComputeBlocked_ExternalUnavailableLabelAndOpenChildren
+--- PASS: TestComputeBlocked_ExternalUnavailableLabelAndOpenChildren (0.00s)
+=== RUN   TestIssueUnavailableForClaim
+=== RUN   TestIssueUnavailableForClaim/accepted
+=== RUN   TestIssueUnavailableForClaim/triage
+=== RUN   TestIssueUnavailableForClaim/legacy_blocked_label
+=== RUN   TestIssueUnavailableForClaim/legacy_deferred_label
+=== RUN   TestIssueUnavailableForClaim/open_child
+=== RUN   TestIssueUnavailableForClaim/closed
+=== RUN   TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_wont_fix
+=== RUN   TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_duplicate
+=== RUN   TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_cancelled
+=== RUN   TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_completed
+--- PASS: TestIssueUnavailableForClaim (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/accepted (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/triage (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/legacy_blocked_label (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/legacy_deferred_label (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/open_child (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/closed (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_wont_fix (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_duplicate (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_cancelled (0.00s)
+    --- PASS: TestIssueUnavailableForClaim/terminal_label,_demoted_display_stage:_completed (0.00s)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/default
+    push_prefix_resolution_test.go:81: push_prefix="ft:": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (the shipped default)
+    push_prefix_resolution_test.go:81: push_prefix="ft:": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (the shipped default)
+    push_prefix_resolution_test.go:81: push_prefix="ft:": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (the shipped default)
+    push_prefix_resolution_test.go:81: push_prefix="ft:": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (the shipped default)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/empty_means_default
+    push_prefix_resolution_test.go:81: push_prefix="": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (documented: empty is the default, not 'no prefix required')
+    push_prefix_resolution_test.go:81: push_prefix="": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (documented: empty is the default, not 'no prefix required')
+    push_prefix_resolution_test.go:81: push_prefix="": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (documented: empty is the default, not 'no prefix required')
+    push_prefix_resolution_test.go:81: push_prefix="": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (documented: empty is the default, not 'no prefix required')
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/custom
+    push_prefix_resolution_test.go:81: push_prefix="acme:": the deployment's OWN label "acme:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (proves the config is read rather than a second hardcoded string)
+    push_prefix_resolution_test.go:81: push_prefix="acme:": the deployment's OWN label "acme:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (proves the config is read rather than a second hardcoded string)
+    push_prefix_resolution_test.go:81: push_prefix="acme:": the deployment's OWN label "acme:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (proves the config is read rather than a second hardcoded string)
+    push_prefix_resolution_test.go:81: push_prefix="acme:": the deployment's OWN label "acme:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (proves the config is read rather than a second hardcoded string)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/uppercase
+    push_prefix_resolution_test.go:81: push_prefix="FT:": the deployment's OWN label "FT:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (writer preserves case, reader lowercases; must still agree)
+    push_prefix_resolution_test.go:81: push_prefix="FT:": the deployment's OWN label "FT:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (writer preserves case, reader lowercases; must still agree)
+    push_prefix_resolution_test.go:81: push_prefix="FT:": the deployment's OWN label "FT:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (writer preserves case, reader lowercases; must still agree)
+    push_prefix_resolution_test.go:81: push_prefix="FT:": the deployment's OWN label "FT:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (writer preserves case, reader lowercases; must still agree)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/mixed_case_custom
+    push_prefix_resolution_test.go:81: push_prefix="AcMe:": the deployment's OWN label "AcMe:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (same, on a custom prefix)
+    push_prefix_resolution_test.go:81: push_prefix="AcMe:": the deployment's OWN label "AcMe:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (same, on a custom prefix)
+    push_prefix_resolution_test.go:81: push_prefix="AcMe:": the deployment's OWN label "AcMe:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (same, on a custom prefix)
+    push_prefix_resolution_test.go:81: push_prefix="AcMe:": the deployment's OWN label "AcMe:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (same, on a custom prefix)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/no_punctuation
+    push_prefix_resolution_test.go:81: push_prefix="ft": the deployment's OWN label "ftstage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (a prefix need not end in a colon)
+    push_prefix_resolution_test.go:81: push_prefix="ft": the deployment's OWN label "ftstage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (a prefix need not end in a colon)
+    push_prefix_resolution_test.go:81: push_prefix="ft": the deployment's OWN label "ftstage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (a prefix need not end in a colon)
+    push_prefix_resolution_test.go:81: push_prefix="ft": the deployment's OWN label "ftstage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (a prefix need not end in a colon)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/space
+    push_prefix_resolution_test.go:81: push_prefix=" ": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unusable prefix must fall back, writer included)
+    push_prefix_resolution_test.go:81: push_prefix=" ": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unusable prefix must fall back, writer included)
+    push_prefix_resolution_test.go:81: push_prefix=" ": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unusable prefix must fall back, writer included)
+    push_prefix_resolution_test.go:81: push_prefix=" ": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unusable prefix must fall back, writer included)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/two_spaces
+    push_prefix_resolution_test.go:81: push_prefix="  ": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="  ": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="  ": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="  ": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/tab
+    push_prefix_resolution_test.go:81: push_prefix="\t": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\t": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\t": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\t": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/newline
+    push_prefix_resolution_test.go:81: push_prefix="\n": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\n": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\n": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix="\n": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/nbsp
+    push_prefix_resolution_test.go:81: push_prefix="\u00a0": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: TrimSpace is unicode-aware — verified, not assumed)
+    push_prefix_resolution_test.go:81: push_prefix="\u00a0": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: TrimSpace is unicode-aware — verified, not assumed)
+    push_prefix_resolution_test.go:81: push_prefix="\u00a0": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: TrimSpace is unicode-aware — verified, not assumed)
+    push_prefix_resolution_test.go:81: push_prefix="\u00a0": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: TrimSpace is unicode-aware — verified, not assumed)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/ogham_space
+    push_prefix_resolution_test.go:81: push_prefix="\u1680": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u1680": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u1680": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u1680": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/ideographic_space
+    push_prefix_resolution_test.go:81: push_prefix="\u3000": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u3000": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u3000": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+    push_prefix_resolution_test.go:81: push_prefix="\u3000": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2: unicode space)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/mixed_whitespace
+    push_prefix_resolution_test.go:81: push_prefix=" \t\u00a0 ": the deployment's OWN label "ft:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix=" \t\u00a0 ": the deployment's OWN label "ft:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix=" \t\u00a0 ": the deployment's OWN label "ft:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+    push_prefix_resolution_test.go:81: push_prefix=" \t\u00a0 ": the deployment's OWN label "ft:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (A-2)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/padded_custom
+    push_prefix_resolution_test.go:81: push_prefix=" acme: ": the deployment's OWN label "acme:stage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (padded prefixes must normalise, not disarm)
+    push_prefix_resolution_test.go:81: push_prefix=" acme: ": the deployment's OWN label "acme:stage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (padded prefixes must normalise, not disarm)
+    push_prefix_resolution_test.go:81: push_prefix=" acme: ": the deployment's OWN label "acme:stage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (padded prefixes must normalise, not disarm)
+    push_prefix_resolution_test.go:81: push_prefix=" acme: ": the deployment's OWN label "acme:stage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (padded prefixes must normalise, not disarm)
+=== RUN   TestPushPrefix_ResolutionIsSharedByReaderAndWriter/zero_width_space
+    push_prefix_resolution_test.go:81: push_prefix="\u200b": the deployment's OWN label "\u200bstage/completed" reads back as ("", false), want ("completed", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (not TrimSpace-whitespace: usable, must NOT be defaulted)
+    push_prefix_resolution_test.go:81: push_prefix="\u200b": the deployment's OWN label "\u200bstage/wont_fix" reads back as ("", false), want ("wont_fix", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (not TrimSpace-whitespace: usable, must NOT be defaulted)
+    push_prefix_resolution_test.go:81: push_prefix="\u200b": the deployment's OWN label "\u200bstage/duplicate" reads back as ("", false), want ("duplicate", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (not TrimSpace-whitespace: usable, must NOT be defaulted)
+    push_prefix_resolution_test.go:81: push_prefix="\u200b": the deployment's OWN label "\u200bstage/cancelled" reads back as ("", false), want ("cancelled", true). Reader and writer disagree about the prefix, which leaves B1, B5 and B6 inert for this configuration (not TrimSpace-whitespace: usable, must NOT be defaulted)
+--- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/default (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/empty_means_default (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/custom (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/uppercase (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/mixed_case_custom (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/no_punctuation (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/space (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/two_spaces (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/tab (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/newline (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/nbsp (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/ogham_space (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/ideographic_space (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/mixed_whitespace (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/padded_custom (0.00s)
+    --- FAIL: TestPushPrefix_ResolutionIsSharedByReaderAndWriter/zero_width_space (0.00s)
+=== RUN   TestPushPrefix_TheHarnessCanSeeADisagreement
+    push_prefix_resolution_test.go:104: CONTROL BROKEN: own label "acme:stage/completed" does not authorize under acme:; got ("", false). The negative below proves nothing until this holds
+--- FAIL: TestPushPrefix_TheHarnessCanSeeADisagreement (0.00s)
+=== RUN   TestPushPrefix_DefaultIsSpelledOnce
+--- PASS: TestPushPrefix_DefaultIsSpelledOnce (0.00s)
+=== RUN   TestValidate_RejectsWhitespaceOnlyPushPrefix
+=== RUN   TestValidate_RejectsWhitespaceOnlyPushPrefix/rejected
+=== RUN   TestValidate_RejectsWhitespaceOnlyPushPrefix/accepted
+--- PASS: TestValidate_RejectsWhitespaceOnlyPushPrefix (0.00s)
+    --- PASS: TestValidate_RejectsWhitespaceOnlyPushPrefix/rejected (0.00s)
+    --- PASS: TestValidate_RejectsWhitespaceOnlyPushPrefix/accepted (0.00s)
+=== RUN   TestRateLimitTransport_RetriesOn5xx
+--- PASS: TestRateLimitTransport_RetriesOn5xx (0.00s)
+=== RUN   TestRateLimitTransport_RetriesRequestBody
+--- PASS: TestRateLimitTransport_RetriesRequestBody (0.00s)
+=== RUN   TestRateLimitTransport_ExhaustsRetries
+--- PASS: TestRateLimitTransport_ExhaustsRetries (0.00s)
+=== RUN   TestRateLimitTransport_429RespectsRetryAfter
+--- PASS: TestRateLimitTransport_429RespectsRetryAfter (0.00s)
+=== RUN   TestRateLimitTransport_SecondaryRateLimit
+--- PASS: TestRateLimitTransport_SecondaryRateLimit (0.00s)
+=== RUN   TestRateLimitTransport_PreemptiveSleepOnLowRemaining
+--- PASS: TestRateLimitTransport_PreemptiveSleepOnLowRemaining (0.00s)
+=== RUN   TestRateLimitTransport_403WithoutSecondaryIsNotRetried
+--- PASS: TestRateLimitTransport_403WithoutSecondaryIsNotRetried (0.00s)
+=== RUN   TestRateLimitTransport_LogsOnRateLimit
+--- PASS: TestRateLimitTransport_LogsOnRateLimit (0.00s)
+=== RUN   TestRetryAfterDelay
+=== RUN   TestRetryAfterDelay/header="10"
+=== RUN   TestRetryAfterDelay/header=""
+=== RUN   TestRetryAfterDelay/header="not-a-number"
+--- PASS: TestRetryAfterDelay (0.00s)
+    --- PASS: TestRetryAfterDelay/header="10" (0.00s)
+    --- PASS: TestRetryAfterDelay/header="" (0.00s)
+    --- PASS: TestRetryAfterDelay/header="not-a-number" (0.00s)
+=== RUN   TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled
+    reopen_test.go:76: reopened issue reports stage = working, want accepted (the F2 demotion is a display decision and still stands)
+    reopen_test.go:80: reopened issue reports phase = in_progress, want open
+    reopen_test.go:89: an OPEN issue still carrying a terminal stage label is offered as available work; the demotion must not reach computed availability, or a maintainer's wont_fix is laundered into claimable work (stage = working, reasons = [])
+--- FAIL: TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled (0.00s)
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/completed/ft:stage/completed
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/completed/completed
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/wont_fix/ft:stage/wont_fix
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/wont_fix/wont_fix
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/duplicate/ft:stage/duplicate
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/duplicate/duplicate
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/cancelled/ft:stage/cancelled
+=== RUN   TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/cancelled/cancelled
+--- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/completed/ft:stage/completed (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/completed/completed (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/wont_fix/ft:stage/wont_fix (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/wont_fix/wont_fix (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/duplicate/ft:stage/duplicate (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/duplicate/duplicate (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/cancelled/ft:stage/cancelled (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueMayNotHoldTerminalStage/cancelled/cancelled (0.00s)
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/triage
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/accepted
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/working
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/in_review
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/in_qa
+=== RUN   TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/deploying
+--- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/triage (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/accepted (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/working (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/in_review (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/in_qa (0.00s)
+    --- PASS: TestIssueToPhaseStage_OpenIssueKeepsNonTerminalStage/deploying (0.00s)
+=== RUN   TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage
+=== RUN   TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/completed
+=== RUN   TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/wont_fix
+=== RUN   TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/duplicate
+=== RUN   TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/cancelled
+--- PASS: TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage (0.00s)
+    --- PASS: TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/completed (0.00s)
+    --- PASS: TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/wont_fix (0.00s)
+    --- PASS: TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/duplicate (0.00s)
+    --- PASS: TestIssueToPhaseStage_ClosedIssueKeepsTerminalStage/cancelled (0.00s)
+=== RUN   TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable
+=== RUN   TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/completed
+    reopen_test.go:214: ClaimTask on an OPEN issue labelled ft:stage/completed returned <nil>, want task unavailable; the claim gate must read the lifecycle stage, not the demoted display stage
+=== RUN   TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/wont_fix
+    reopen_test.go:214: ClaimTask on an OPEN issue labelled ft:stage/wont_fix returned <nil>, want task unavailable; the claim gate must read the lifecycle stage, not the demoted display stage
+=== RUN   TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/duplicate
+    reopen_test.go:214: ClaimTask on an OPEN issue labelled ft:stage/duplicate returned <nil>, want task unavailable; the claim gate must read the lifecycle stage, not the demoted display stage
+=== RUN   TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/cancelled
+    reopen_test.go:214: ClaimTask on an OPEN issue labelled ft:stage/cancelled returned <nil>, want task unavailable; the claim gate must read the lifecycle stage, not the demoted display stage
+--- FAIL: TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable (0.01s)
+    --- FAIL: TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/completed (0.00s)
+    --- FAIL: TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/wont_fix (0.00s)
+    --- FAIL: TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/duplicate (0.00s)
+    --- FAIL: TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable/ft:stage/cancelled (0.00s)
+=== RUN   TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal
+--- PASS: TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal (0.00s)
+=== RUN   TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability
+--- PASS: TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability (0.00s)
+=== RUN   TestComputeReady_OpenTerminalLabelledIssueIsNotReady
+=== RUN   TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/completed
+=== RUN   TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/wont_fix
+=== RUN   TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/duplicate
+=== RUN   TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/cancelled
+--- PASS: TestComputeReady_OpenTerminalLabelledIssueIsNotReady (0.00s)
+    --- PASS: TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/completed (0.00s)
+    --- PASS: TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/wont_fix (0.00s)
+    --- PASS: TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/duplicate (0.00s)
+    --- PASS: TestComputeReady_OpenTerminalLabelledIssueIsNotReady/ft:stage/cancelled (0.00s)
+=== RUN   TestComputeReady_OpenNonTerminalLabelledIssueIsReady
+--- PASS: TestComputeReady_OpenNonTerminalLabelledIssueIsReady (0.00s)
+=== RUN   TestPassThroughStore_OpenTerminalLabelledIssueIsDisplayedOpenButNotScheduled
+    reopen_test.go:418: open terminal-labelled issue reports available=true; reasons = []
+--- FAIL: TestPassThroughStore_OpenTerminalLabelledIssueIsDisplayedOpenButNotScheduled (0.00s)
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/custom_prefix_honours_the_operators_label
+    resolver_test.go:116: label "acme:stage/completed" through the resolver: stages [accepted] (terminal=false), want terminal=true. this is M-1 itself: with a hardcoded nil config the store runs DefaultConfig, the operator's own terminal label is not recognised as a lifecycle label, and every edit to it reads as 'no transition' and is charged nothing
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/custom_prefix_rejects_the_default_spelling
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/default_config_honours_the_default_spelling
+    resolver_test.go:116: label "ft:stage/completed" through the resolver: stages [accepted] (terminal=false), want terminal=true. positive control: the assertion can report terminal at all
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/default_config_rejects_a_custom_spelling
+=== RUN   TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/nil_config_still_means_the_defaults
+    resolver_test.go:116: label "ft:stage/completed" through the resolver: stages [accepted] (terminal=false), want terminal=true. nil is now something a caller asks for rather than the only option, and it must keep meaning DefaultConfig rather than an empty config that matches nothing
+--- FAIL: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore (0.00s)
+    --- FAIL: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/custom_prefix_honours_the_operators_label (0.00s)
+    --- PASS: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/custom_prefix_rejects_the_default_spelling (0.00s)
+    --- FAIL: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/default_config_honours_the_default_spelling (0.00s)
+    --- PASS: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/default_config_rejects_a_custom_spelling (0.00s)
+    --- FAIL: TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore/nil_config_still_means_the_defaults (0.00s)
+=== RUN   TestNewPlatformResolver_DeclinesNonGitHubPlatforms
+--- PASS: TestNewPlatformResolver_DeclinesNonGitHubPlatforms (0.00s)
+=== RUN   TestNewPlatformResolver_RejectsAMalformedRemoteID
+--- PASS: TestNewPlatformResolver_RejectsAMalformedRemoteID (0.00s)
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/bare_key_bare_label
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/bare_key_prefixed_label
+    stage_alias_config_test.go:116: LifecycleStage = "accepted", want "completed"
+        key="shipped" label="ft:shipped"
+        why: the intended-working cell, and the one with NO coverage at all before round 6. This is the spelling round 5's remediation meant.
+    stage_alias_config_test.go:125: available = true, want false (reasons [])
+        key="shipped" label="ft:shipped"
+        why: the intended-working cell, and the one with NO coverage at all before round 6. This is the spelling round 5's remediation meant.
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/prefixed_key_prefixed_label
+    stage_alias_config_test.go:116: LifecycleStage = "accepted", want "completed"
+        key="ft:shipped" label="ft:shipped"
+        why: WAS ROW 3, the fully-dead alias. The key is now normalised the same way the lookup normalises, so it behaves as the bare key does.
+    stage_alias_config_test.go:125: available = true, want false (reasons [])
+        key="ft:shipped" label="ft:shipped"
+        why: WAS ROW 3, the fully-dead alias. The key is now normalised the same way the lookup normalises, so it behaves as the bare key does.
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/prefixed_key_bare_label
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/stage_path_key
+    stage_alias_config_test.go:116: LifecycleStage = "accepted", want "completed"
+        key="ft:stage/shipped" label="ft:shipped"
+        why: the fullest spelling an operator might copy from a written label
+    stage_alias_config_test.go:125: available = true, want false (reasons [])
+        key="ft:stage/shipped" label="ft:shipped"
+        why: the fullest spelling an operator might copy from a written label
+=== RUN   TestConfiguredStageAliases_KeySpellingIsNormalised/uppercase_key
+    stage_alias_config_test.go:116: LifecycleStage = "accepted", want "completed"
+        key="FT:Shipped" label="ft:shipped"
+        why: keys were already case-folded; normalisation must not lose that
+    stage_alias_config_test.go:125: available = true, want false (reasons [])
+        key="FT:Shipped" label="ft:shipped"
+        why: keys were already case-folded; normalisation must not lose that
+--- FAIL: TestConfiguredStageAliases_KeySpellingIsNormalised (0.00s)
+    --- PASS: TestConfiguredStageAliases_KeySpellingIsNormalised/bare_key_bare_label (0.00s)
+    --- FAIL: TestConfiguredStageAliases_KeySpellingIsNormalised/bare_key_prefixed_label (0.00s)
+    --- FAIL: TestConfiguredStageAliases_KeySpellingIsNormalised/prefixed_key_prefixed_label (0.00s)
+    --- PASS: TestConfiguredStageAliases_KeySpellingIsNormalised/prefixed_key_bare_label (0.00s)
+    --- FAIL: TestConfiguredStageAliases_KeySpellingIsNormalised/stage_path_key (0.00s)
+    --- FAIL: TestConfiguredStageAliases_KeySpellingIsNormalised/uppercase_key (0.00s)
+=== RUN   TestConfiguredStageAliases_DoublePrefixIsNotAWayIn
+=== RUN   TestConfiguredStageAliases_DoublePrefixIsNotAWayIn/key=shipped
+    stage_alias_config_test.go:159: CONTROL BROKEN: single-prefixed "ft:shipped" reads as "accepted", want "completed"; the negative below proves nothing
+=== RUN   TestConfiguredStageAliases_DoublePrefixIsNotAWayIn/key=ft:shipped
+    stage_alias_config_test.go:159: CONTROL BROKEN: single-prefixed "ft:shipped" reads as "accepted", want "completed"; the negative below proves nothing
+--- FAIL: TestConfiguredStageAliases_DoublePrefixIsNotAWayIn (0.00s)
+    --- FAIL: TestConfiguredStageAliases_DoublePrefixIsNotAWayIn/key=shipped (0.00s)
+    --- FAIL: TestConfiguredStageAliases_DoublePrefixIsNotAWayIn/key=ft:shipped (0.00s)
+=== RUN   TestConfiguredStageAliases_UnderACustomPushPrefix
+    stage_alias_config_test.go:195: LifecycleStage = "accepted", want "wont_fix": a prefixed alias key must normalise against the CONFIGURED prefix, not a hardcoded ft:
+    stage_alias_config_test.go:203: available = true for a configured terminal alias, want false (reasons [])
+--- FAIL: TestConfiguredStageAliases_UnderACustomPushPrefix (0.00s)
+=== RUN   TestConfiguredStageAliases_DoNotBypassTheTerminalPredicate
+--- PASS: TestConfiguredStageAliases_DoNotBypassTheTerminalPredicate (0.00s)
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/f7_exact_case
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/stock_label_survives_a_real_stage_change
+    stage_label_swap_scope_test.go:143: remove = [], want [ft:stage/accepted]
+        why: our own label is swapped, the human's stock one is left alone. This is the row that shows the fix is a narrowing and not a disabling.
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/our_own_terminal_label_is_still_swappable
+    stage_label_swap_scope_test.go:143: remove = [], want [ft:stage/wont_fix]
+        why: CONTROL. If this stopped removing, the fix would have broken the swap outright and every other row would pass vacuously. Whether this transition is PERMITTED is the delta gate's question, not this function's; StageLabelSwap only computes the edit.
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/bare_stage_name_is_not_ours_to_delete
+    stage_label_swap_scope_test.go:143: remove = [], want [ft:stage/accepted]
+        why: a bare stage name does not authorize (B6), so it must not be deletable either. Read and write have to answer ownership the same way or one of them is lying.
+=== RUN   TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/unrelated_labels_were_never_at_risk
+    stage_label_swap_scope_test.go:143: remove = [], want [ft:stage/accepted]
+        why: BASELINE: labels that map to no stage at all were already safe. Included so a regression there is visible here too.
+--- FAIL: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn (0.00s)
+    --- PASS: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/f7_exact_case (0.00s)
+    --- FAIL: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/stock_label_survives_a_real_stage_change (0.00s)
+    --- FAIL: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/our_own_terminal_label_is_still_swappable (0.00s)
+    --- FAIL: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/bare_stage_name_is_not_ours_to_delete (0.00s)
+    --- FAIL: TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn/unrelated_labels_were_never_at_risk (0.00s)
+=== RUN   TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/triage") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/triage"] -> "accepted") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/accepted") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/accepted"] -> "working") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/working") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/working"] -> "in_review") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/in_review") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/in_review"] -> "in_qa") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/in_qa") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/in_qa"] -> "deploying") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/deploying") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/deploying"] -> "completed") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/completed") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/completed"] -> "wont_fix") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/wont_fix") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/wont_fix"] -> "duplicate") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/duplicate") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/duplicate"] -> "cancelled") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+    stage_label_swap_scope_test.go:319: READER: authorizationStage("ft:stage/cancelled") ours = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+    stage_label_swap_scope_test.go:327: WRITER: StageLabelSwap(["ft:stage/cancelled"] -> "triage") removes = false, want true.
+        
+        why: carries the configured push prefix, so Farm Table wrote it (or someone deliberately impersonated it) and it is ours to read and ours to remove
+        
+        remove-but-not-trust destroys third-party data (review F7); trust-but-not-remove leaves a label that authorizes and can never be cleared.
+--- FAIL: TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader (0.00s)
+=== RUN   TestStageLabelSwap_UnderACustomPushPrefix
+    stage_label_swap_scope_test.go:362: remove = [], want exactly [acme:stage/accepted]: under push_prefix acme:, ft:stage/accepted belongs to some other deployment and duplicate belongs to a human
+--- FAIL: TestStageLabelSwap_UnderACustomPushPrefix (0.00s)
+=== RUN   TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel
+--- PASS: TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel (0.00s)
+=== RUN   TestF7Cell_IsNonEmptyOnBothSidesSoTheEmptySetGuardCannotFire
+    stage_label_swap_scope_test.go:449: LifecycleStages = [accepted], want exactly [wont_fix]: the bare stock "duplicate" must contribute nothing (B6), and ft:stage/wont_fix must contribute exactly itself
+--- FAIL: TestF7Cell_IsNonEmptyOnBothSidesSoTheEmptySetGuardCannotFire (0.00s)
+=== RUN   TestIssueStateHelpers_Casing
+=== RUN   TestIssueStateHelpers_Casing/CLOSED
+=== RUN   TestIssueStateHelpers_Casing/closed
+=== RUN   TestIssueStateHelpers_Casing/Closed
+=== RUN   TestIssueStateHelpers_Casing/cLoSeD
+=== RUN   TestIssueStateHelpers_Casing/OPEN
+=== RUN   TestIssueStateHelpers_Casing/open
+=== RUN   TestIssueStateHelpers_Casing/Open
+=== RUN   TestIssueStateHelpers_Casing/#00
+=== RUN   TestIssueStateHelpers_Casing/MERGED
+=== RUN   TestIssueStateHelpers_Casing/closed_
+--- PASS: TestIssueStateHelpers_Casing (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/CLOSED (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/closed (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/Closed (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/cLoSeD (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/OPEN (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/open (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/Open (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/#00 (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/MERGED (0.00s)
+    --- PASS: TestIssueStateHelpers_Casing/closed_ (0.00s)
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/CLOSED
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/CLOSED/null-closedAt
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/closed
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/closed/null-closedAt
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/Closed
+=== RUN   TestAudit_LowercaseClosedStateDefeatsFix/Closed/null-closedAt
+--- PASS: TestAudit_LowercaseClosedStateDefeatsFix (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/CLOSED (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/CLOSED/null-closedAt (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/closed (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/closed/null-closedAt (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/Closed (0.00s)
+    --- PASS: TestAudit_LowercaseClosedStateDefeatsFix/Closed/null-closedAt (0.00s)
+=== RUN   TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed
+=== RUN   TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed/state=
+=== RUN   TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed/state=MERGED
+--- PASS: TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed (0.00s)
+    --- PASS: TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed/state= (0.00s)
+    --- PASS: TestPassThroughIssueToTask_UnrecognisedStateIsNotClosed/state=MERGED (0.00s)
+=== RUN   TestComputeReady_StateCasingIsIgnored
+=== RUN   TestComputeReady_StateCasingIsIgnored/lowercase_open_parent_is_still_walked
+=== RUN   TestComputeReady_StateCasingIsIgnored/lowercase_open_child_still_blocks
+--- PASS: TestComputeReady_StateCasingIsIgnored (0.00s)
+    --- PASS: TestComputeReady_StateCasingIsIgnored/lowercase_open_parent_is_still_walked (0.00s)
+    --- PASS: TestComputeReady_StateCasingIsIgnored/lowercase_open_child_still_blocks (0.00s)
+=== RUN   TestComputeBlocked_StateCasingIsIgnored
+--- PASS: TestComputeBlocked_StateCasingIsIgnored (0.00s)
+=== RUN   TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim
+=== RUN   TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/completed
+=== RUN   TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix
+=== RUN   TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/duplicate
+=== RUN   TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/cancelled
+--- PASS: TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/completed (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/duplicate (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_OwnTerminalStageBlocksClaim/cancelled (0.00s)
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/accepted
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/working
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/in_review
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/in_qa
+=== RUN   TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/deploying
+--- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/accepted (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/working (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/in_review (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/in_qa (0.00s)
+    --- PASS: TestPassThroughComputeAvailability_NonTerminalStagesAreNotTerminal/deploying (0.00s)
+=== RUN   TestTerminalLabelStage_MaskedByEveryNonTerminalLabel
+    terminal_label_stage_test.go:98: CONTROL BROKEN: TerminalLabelStage([ft:stage/completed]) = ("", false), want ("completed", true). The single-label case must hold or the masked rows below prove nothing
+--- FAIL: TestTerminalLabelStage_MaskedByEveryNonTerminalLabel (0.00s)
+=== RUN   TestTerminalLabelStage_Cardinality
+=== RUN   TestTerminalLabelStage_Cardinality/zero/nil
+=== RUN   TestTerminalLabelStage_Cardinality/zero/empty
+=== RUN   TestTerminalLabelStage_Cardinality/one/non-stage
+=== RUN   TestTerminalLabelStage_Cardinality/one/non-terminal
+=== RUN   TestTerminalLabelStage_Cardinality/one/terminal
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/wont_fix]) = ("", false), want ("wont_fix", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/terminal+mask
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/wont_fix ft:stage/accepted]) = ("", false), want ("wont_fix", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/mask+terminal
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/accepted ft:stage/wont_fix]) = ("", false), want ("wont_fix", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/non-stage+terminal
+    terminal_label_stage_test.go:178: TerminalLabelStage([bug ft:stage/cancelled]) = ("", false), want ("cancelled", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/terminals
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/wont_fix ft:stage/cancelled]) = ("", false), want ("wont_fix", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/terminals/reversed
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/cancelled ft:stage/wont_fix]) = ("", false), want ("wont_fix", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/terminals/completed-wins
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/cancelled ft:stage/completed]) = ("", false), want ("completed", true)
+=== RUN   TestTerminalLabelStage_Cardinality/two/terminals/completed-wins-reversed
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/completed ft:stage/cancelled]) = ("", false), want ("completed", true)
+=== RUN   TestTerminalLabelStage_Cardinality/four/all-terminals
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/duplicate ft:stage/wont_fix ft:stage/completed ft:stage/cancelled]) = ("", false), want ("completed", true)
+=== RUN   TestTerminalLabelStage_Cardinality/many/all-stages
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/triage ft:stage/accepted ft:stage/working ft:stage/in_review ft:stage/in_qa ft:stage/deploying ft:stage/cancelled]) = ("", false), want ("cancelled", true)
+=== RUN   TestTerminalLabelStage_Cardinality/duplicates/same-label-twice
+    terminal_label_stage_test.go:178: TerminalLabelStage([ft:stage/wont_fix ft:stage/wont_fix]) = ("", false), want ("wont_fix", true)
+--- FAIL: TestTerminalLabelStage_Cardinality (0.00s)
+    --- PASS: TestTerminalLabelStage_Cardinality/zero/nil (0.00s)
+    --- PASS: TestTerminalLabelStage_Cardinality/zero/empty (0.00s)
+    --- PASS: TestTerminalLabelStage_Cardinality/one/non-stage (0.00s)
+    --- PASS: TestTerminalLabelStage_Cardinality/one/non-terminal (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/one/terminal (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/terminal+mask (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/mask+terminal (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/non-stage+terminal (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/terminals (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/terminals/reversed (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/terminals/completed-wins (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/two/terminals/completed-wins-reversed (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/four/all-terminals (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/many/all-stages (0.00s)
+    --- FAIL: TestTerminalLabelStage_Cardinality/duplicates/same-label-twice (0.00s)
+=== RUN   TestTerminalLabelStage_DisabledMapperDeclines
+    terminal_label_stage_test.go:221: CONTROL BROKEN: enabled mapper returned ("", false) for [ft:stage/wont_fix ft:stage/accepted], want (wont_fix, true)
+--- FAIL: TestTerminalLabelStage_DisabledMapperDeclines (0.00s)
+=== RUN   TestTerminalLabelStage_NilReceiver
+--- PASS: TestTerminalLabelStage_NilReceiver (0.00s)
+=== RUN   TestStagePrecedence_IsADisplayRuleTerminalStagesRankLast
+--- PASS: TestStagePrecedence_IsADisplayRuleTerminalStagesRankLast (0.00s)
+=== RUN   TestTerminalStagePrecedence_CoversEveryTerminalStage
+--- PASS: TestTerminalStagePrecedence_CoversEveryTerminalStage (0.00s)
+=== RUN   TestStageLabelSwap_DoesNotDeleteAHumansStockLabel
+--- PASS: TestStageLabelSwap_DoesNotDeleteAHumansStockLabel (0.00s)
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/none
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/one
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([ft:stage/wont_fix]) = [], want [wont_fix]
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/two_in_either_input_order
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([ft:stage/wont_fix ft:stage/completed]) = [], want [completed wont_fix]
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/reversed_input_gives_the_same_answer
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([ft:stage/completed ft:stage/wont_fix]) = [], want [completed wont_fix]
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/all_four_masked_by_a_non_terminal_label
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([ft:stage/cancelled ft:stage/working ft:stage/duplicate ft:stage/completed ft:stage/wont_fix]) = [], want [cancelled completed duplicate wont_fix]
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/duplicated_label_is_reported_once
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([ft:stage/completed FT:STAGE/COMPLETED]) = [], want [completed]
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/bare_stock_label_alone
+=== RUN   TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/bare_label_beside_a_prefixed_one
+    terminal_label_stages_test.go:120: AllTerminalLabelStages([duplicate ft:stage/wont_fix]) = [], want [wont_fix]
+--- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically (0.00s)
+    --- PASS: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/none (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/one (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/two_in_either_input_order (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/reversed_input_gives_the_same_answer (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/all_four_masked_by_a_non_terminal_label (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/duplicated_label_is_reported_once (0.00s)
+    --- PASS: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/bare_stock_label_alone (0.00s)
+    --- FAIL: TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically/bare_label_beside_a_prefixed_one (0.00s)
+=== RUN   TestAllTerminalLabelStages_IsSilentWhenLabelMappingIsOff
+--- PASS: TestAllTerminalLabelStages_IsSilentWhenLabelMappingIsOff (0.00s)
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/completed/bare_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/completed working]) = [], want [completed]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/completed/prefixed_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/completed ft:stage/accepted]) = [], want [completed]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/wont_fix/bare_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/wont_fix working]) = [], want [wont_fix]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/wont_fix/prefixed_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/wont_fix ft:stage/accepted]) = [], want [wont_fix]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/duplicate/bare_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/duplicate working]) = [], want [duplicate]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/duplicate/prefixed_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/duplicate ft:stage/accepted]) = [], want [duplicate]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/cancelled/bare_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/cancelled working]) = [], want [cancelled]
+=== RUN   TestComputeReady_IsNotBlindedByAMaskingLabel/cancelled/prefixed_masking_label
+    treewalk_terminal_sink_test.go:80: PRECONDITION FAILED: AllTerminalLabelStages([ft:stage/cancelled ft:stage/accepted]) = [], want [cancelled]
+--- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/completed/bare_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/completed/prefixed_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/wont_fix/bare_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/wont_fix/prefixed_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/duplicate/bare_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/duplicate/prefixed_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/cancelled/bare_masking_label (0.00s)
+    --- FAIL: TestComputeReady_IsNotBlindedByAMaskingLabel/cancelled/prefixed_masking_label (0.00s)
+=== RUN   TestComputeReady_StillOffersRealWork
+=== RUN   TestComputeReady_StillOffersRealWork/accepted_with_no_labels
+=== RUN   TestComputeReady_StillOffersRealWork/accepted_with_its_own_label
+=== RUN   TestComputeReady_StillOffersRealWork/accepted_with_unrelated_labels
+=== RUN   TestComputeReady_StillOffersRealWork/unblocked_candidate
+=== RUN   TestComputeReady_StillOffersRealWork/bare_terminal_label_does_not_withhold
+--- PASS: TestComputeReady_StillOffersRealWork (0.00s)
+    --- PASS: TestComputeReady_StillOffersRealWork/accepted_with_no_labels (0.00s)
+    --- PASS: TestComputeReady_StillOffersRealWork/accepted_with_its_own_label (0.00s)
+    --- PASS: TestComputeReady_StillOffersRealWork/accepted_with_unrelated_labels (0.00s)
+    --- PASS: TestComputeReady_StillOffersRealWork/unblocked_candidate (0.00s)
+    --- PASS: TestComputeReady_StillOffersRealWork/bare_terminal_label_does_not_withhold (0.00s)
+=== RUN   TestComputeReady_TerminalWithholdIsPrefixGated
+    treewalk_terminal_sink_test.go:185: computeReady = [1], want none: the withhold does not fire on the configured prefix, so the assertion above passes for the wrong reason
+--- FAIL: TestComputeReady_TerminalWithholdIsPrefixGated (0.00s)
+=== RUN   TestComputeReady_TerminalParentIsNotReady
+=== RUN   TestComputeReady_TerminalParentIsNotReady/completed
+=== RUN   TestComputeReady_TerminalParentIsNotReady/wont_fix
+=== RUN   TestComputeReady_TerminalParentIsNotReady/duplicate
+=== RUN   TestComputeReady_TerminalParentIsNotReady/cancelled
+--- PASS: TestComputeReady_TerminalParentIsNotReady (0.00s)
+    --- PASS: TestComputeReady_TerminalParentIsNotReady/completed (0.00s)
+    --- PASS: TestComputeReady_TerminalParentIsNotReady/wont_fix (0.00s)
+    --- PASS: TestComputeReady_TerminalParentIsNotReady/duplicate (0.00s)
+    --- PASS: TestComputeReady_TerminalParentIsNotReady/cancelled (0.00s)
+=== RUN   TestComputeReady_NonTerminalParentIsReady
+=== RUN   TestComputeReady_NonTerminalParentIsReady/triage
+=== RUN   TestComputeReady_NonTerminalParentIsReady/working
+=== RUN   TestComputeReady_NonTerminalParentIsReady/in_review
+=== RUN   TestComputeReady_NonTerminalParentIsReady/in_qa
+=== RUN   TestComputeReady_NonTerminalParentIsReady/deploying
+--- PASS: TestComputeReady_NonTerminalParentIsReady (0.00s)
+    --- PASS: TestComputeReady_NonTerminalParentIsReady/triage (0.00s)
+    --- PASS: TestComputeReady_NonTerminalParentIsReady/working (0.00s)
+    --- PASS: TestComputeReady_NonTerminalParentIsReady/in_review (0.00s)
+    --- PASS: TestComputeReady_NonTerminalParentIsReady/in_qa (0.00s)
+    --- PASS: TestComputeReady_NonTerminalParentIsReady/deploying (0.00s)
+=== RUN   TestComputeReady_AcceptedTakesTheAcceptedBranch
+--- PASS: TestComputeReady_AcceptedTakesTheAcceptedBranch (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/platform/github	0.078s
+FAIL

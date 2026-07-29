@@ -1,0 +1,10 @@
+legB M8 set size    : 28
+combined M8 set size: 29
+
+IN COMBINED, NOT IN LEG B (the delta):
+   + TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore
+
+IN LEG B, NOT IN COMBINED (the alarming direction):
+   (none)
+
+set equality of the shared 28: True

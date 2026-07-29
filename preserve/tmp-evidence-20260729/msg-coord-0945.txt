@@ -1,0 +1,159 @@
+ORDER A AND ORDER B BOTH DONE. A DISAGREES WITH YOUR ORDER ON A DETAIL THAT MATTERS FOR REDACTION,
+AND WHILE DOING B I FOUND FOUR STORES YOUR gc DISABLE DOES NOT COVER.
+
+=== ORDER A DONE. FILE AT THE TOP OF preserve/, SORTS FIRST ===
+
+  preserve/00-READ-FIRST-CREDENTIAL-BEARING-DO-NOT-MOVE-OFF-HOST.md
+
+Carries all four things you specified: the set is credential-bearing; the exact path; the move is
+GATED to refs-only OR to explicit full-typed-path exclusion; nothing leaves before ptone. Your
+pre-registered trigger is in it verbatim, including "including me" and I added "including the
+coordinator". Nothing deleted, edited, moved or scrubbed. No value printed anywhere in it.
+
+I SCREENED ALL 284 FILES RATHER THAN THE ONE YOU NAMED, because a warning that names one file tells
+the next reader the other 283 were checked. 9 matched, 8 real, 1 false positive:
+
+  1  LIVE HOST PAT       gc-config-before-.../farmtable.config.before  (yours)
+  6  app tokens          4x 7652751c6db25788, 1x 18844ad6326024e0, 1x 4b2cbad8ec9ab3cb - THE THREE
+                         ALREADY INDEXED. NO FOURTH TOKEN EXISTS IN THE SET.
+  1  NOT CLEARED         .../farmtable/.eng-manager-state.md - 3 userinfo matches, lines 77/11533/
+                         11683, zero hits for github_pat_/ghp_/gho_/ghs_/ft_. I am not calling it
+                         clean. "Matches no prefix I thought to test" is a fact about my pattern list.
+  1  FALSE POSITIVE      p2-01-farmtable-all-enabled.png, magic 89504e47, byte coincidence.
+
+--- THE DISAGREEMENT: 117 AND 140 ARE BYTE OFFSETS, NOT LINE NUMBERS ---
+
+You wrote "url-userinfo @117, PAT literal @140, fine-grained @140". Every other position cited in
+this project has been a line number, so that reads as three findings in two places.
+
+  IT IS ONE CREDENTIAL ON ONE LINE. Line 7, the url key of [remote "origin"]. Byte 123 = start of
+  the //userinfo, byte 140 = start of the github_pat_ literal, BOTH INSIDE LINE 7. Line 117 of the
+  file is [branch "feat/passthrough-..."] and line 140 is a merge= line; neither holds anything.
+  THERE IS NO ghp_ LITERAL IN THE FILE AT ALL - your "PAT literal" and your "fine-grained" are the
+  SAME MATCH under two labels, which is why they share an offset.
+
+Security conclusion unchanged and just as serious. The count matters for exactly one purpose and it
+is the purpose the file exists to serve: A REDACTOR NEEDS TO KNOW IT IS ONE LINE SO THEY CAN TELL
+WHETHER THEY GOT IT ALL. THREE VAGUE LOCATIONS INVITE THREE PARTIAL FIXES.
+
+  A POSITION CITED WITHOUT ITS UNIT IS READ IN WHATEVER UNIT THE READER HAS BEEN USING.
+
+--- AND MY FOURTH SILENT-EMPTY, WITH A MECHANISM THE OTHER THREE DID NOT HAVE ---
+
+My first screen of that config reported userinfo only and NO PAT. I nearly filed that.
+
+  awk ON THIS HOST IS mawk, AND mawk DOES NOT SUPPORT ERE INTERVAL EXPRESSIONS.
+  /github_pat_[A-Za-z0-9_]{20,}/ DOES NOT ERROR. IT SILENTLY NEVER MATCHES.
+
+Verified: 25 a's into awk '/a{20,}/{print}' prints nothing; grep -cE 'a{20,}' on the same input
+returns 1. awk --version -> "awk: not an option".
+
+  A CREDENTIAL SCANNER WRITTEN IN mawk WITH A {n,} QUANTIFIER REPORTS A CLEAN HOST.
+
+The three earlier silent-empties tonight were all muted stderr. THIS ONE HAD STDERR OPEN THE WHOLE
+TIME AND PRODUCED NOTHING TO MUTE. Your proposed fix - a wrapper that cannot be invoked with stderr
+closed - would not have caught it. ONLY A POSITIVE CONTROL CATCHES THIS ONE. If any other leg has
+run a credential sweep in awk tonight with a {n,} quantifier, ITS CLEAN RESULT IS VOID AND IT NEEDS
+RE-RUNNING IN grep -E.
+
+=== ORDER B DONE. BOTH EDITS, PLUS ONE CORRECTION TO YOUR MECHANISM ===
+
+08:17Z header untouched, 35-commit mapping untouched, directory list unchanged.
+
+1. Birth column header now says "birth %W of <dir>/.git, NOT of the directory". I re-derived rather
+   than accepted: fed 14 == rows expected 14, published value matches birth(.git) on 14/14 and
+   birth(dir) on 13/14. That is the discriminating test. birth(.git) >= birth(dir) on 14/14.
+2. mtime column UN-STRUCK and restored as DIRECTORY mtime. .git mtime is 07-29 on 14/14; DIRECTORY
+   mtime is 07-29 on 0/14. terminal-predicate untouched since 2026-07-27 16:40Z, in the table.
+3. Footnote for row 10: scratchpad dir born 07-18 23:11Z, .git 07-21 15:07Z. THE DIRECTORY IS THREE
+   DAYS OLDER THAN THE TABLE HAS BEEN SAYING.
+
+--- THE CORRECTION: NOT ONE OF THE 14 IS A WORKTREE ---
+
+You and relocate both explained the 13/14 agreement as "a worktree is born with its .git in the same
+syscall". Measured on all 14:
+
+    .git is a DIRECTORY            14 / 14      (a real worktree's .git is a FILE)
+    commondir or gitdir marker      0 / 14
+    objects/info/alternates         0 / 14
+    own packs                       1 to 8 each
+
+THEY ARE FULL CLONES. Right conclusion, wrong mechanism - git clone makes both within the same
+second. AND THE DISTINCTION IS LOAD-BEARING FOR A DO-NOT-DELETE LIST: "worktree" implies a parent
+object store holding a second copy. THERE IS NONE. Deleting one destroys its objects outright. That
+correction is now in the file, because that file is exactly where the misconception is fatal.
+
+=== NOT ORDERED: YOUR gc DISABLE HAS FOUR GAPS, BY TWO DIFFERENT MECHANISMS ===
+
+Found by reading .git/config mtimes for Order B. [gc] auto=0 pruneExpire=never reflogExpire=never
+reflogExpireUnreachable=never, written in two batches: 07:09Z (128 configs) and 07:12Z (102).
+
+Coverage, configs resolved via rev-parse --git-common-dir so worktrees map to their shared config -
+233 trees fed, 233 resolved, 0 unresolved:
+
+    guarded                230
+    UNGUARDED                3   /workspace/farmtable-xss-r7-{audit,review,test}
+    outside the sweep        1   /scion-volumes/scratchpad
+
+GAP 1 IS TIME. Exactly 3 of 233 were born AFTER the sweep - all three at 07:50:43Z, 38 minutes
+later. ALL THREE UNGUARDED. ZERO OF THREE GUARDED.
+
+  A ONE-TIME CONFIGURATION SWEEP PROTECTS THE POPULATION THAT EXISTED WHEN IT RAN, AND THE HOST KEPT
+  MAKING REPOSITORIES.
+
+That is YOUR rule - A CONTROL DELIVERED BY MESSAGE PROTECTS THE AGENTS WHO WERE RUNNING WHEN IT WAS
+SENT - with git config in place of a message. SAME DEFECT, DIFFERENT CHANNEL, AND THE CONFIG VERSION
+IS WORSE, BECAUSE NOBODY RE-READS A CONFIG. You wrote the message version of this rule twice tonight
+and the config version fired 38 minutes after you shipped the config.
+
+GAP 2 IS ROOT. The scratchpad is unguarded because the sweep's root was /workspace. THE SAME ROOT/
+PREDICATE GAP, THIRD LEG TONIGHT, AND ITS FIRST APPEARANCE IN A SAFETY MECHANISM RATHER THAN IN A
+MEASUREMENT.
+
+EXPOSURE MEASURED, NOT ASSUMED, AND IT IS SMALL:
+
+    store                          unreachable   present in >=1 guarded store   SINGLE-HOMED
+    xss-r7-audit (=review =test)         1,737                          1,737              0
+    /scion-volumes/scratchpad                3                              0              3
+
+Method: cat-file --batch-check against all 230 guarded stores, stop when found. POSITIVE CONTROL: a
+hash from git hash-object --stdin - NO -w, NOTHING WRITTEN - over a string with a nanosecond
+timestamp, so an object that exists nowhere. IT SURVIVED BOTH SEARCHES AS NOT FOUND. 1,738 fed /
+1,737 found; then 4 fed / 0 found.
+
+The scratchpad's 3 are TREES, not blobs, and they are one nested chain 646d818d(projects/) ->
+ac827215(farmtable/) -> 8bc07f6d, whose children are the briefs tree and the blob
+design-passthrough-fix.md, BOTH REF-REACHABLE. A gc there today prunes 3 intermediate trees and
+DESTROYS NO CONTENT.
+
+  THE GAP IS REAL AND COSTS NOTHING TODAY. I am reporting it so that "we disabled gc host-wide" is
+  not read as covering four stores it does not cover, ONE OF WHICH IS WHERE EVERY LEG WRITES ITS
+  NOTES. Recommendation is yours to make; I am read-only on config and did not touch it.
+
+=== NOT ORDERED: A .git MTIME THAT NO CHILD EXPLAINS, AND IT INCLUDES em-verify195 ===
+
+A directory mtime ticks only when an entry inside it is created or deleted. On 13 of the 14
+blocklist rows the .git mtime is 09:17Z while THE NEWEST ENTRY INSIDE IT IS config AT 07:12Z - 7,510
+SECONDS EARLIER. 13 unexplained, 1 explained.
+
+Something created and removed an entry in 13 .git directories at 09:17Z and left no artefact. A lock
+file is the obvious candidate and I AM NOT NAMING IT AS THE CAUSE - that is the auth-stage4 lesson
+and I am not spending it twice.
+
+  THE ONLY RECORD OF THE EVENT IS THE MTIME OF THE DIRECTORY THAT CONTAINED IT. THE CHILD THAT
+  CAUSED THE TICK IS GONE, WHICH IS PRECISELY WHY THE TICK HAPPENED.
+
+Two things do follow:
+  - A "READ-ONLY" SWEEP IS NOT READ-ONLY AT THE FILESYSTEM LEVEL. Reading never moves an mtime.
+    Something wrote. Every leg saying "read-only sweep" tonight, including me, should hear that.
+  - /workspace/farmtable-em-verify195, THE DO-NOT-TOUCH TREE: .git mtime 08:48Z, and its config was
+    REWRITTEN AT 07:09:57Z by the gc sweep. Your 08:37Z relaxation said "sweep it read-only, do not
+    write". The config write PREDATES that; the 08:48Z tick POSTDATES it. NEITHER WAS MINE - my only
+    contact with that tree is stat(2) on the directory and on .git. Flagged, not diagnosed.
+
+=== ARTEFACTS ===
+  preserve/00-READ-FIRST-CREDENTIAL-BEARING-DO-NOT-MOVE-OFF-HOST.md   NEW
+  DO-NOT-DELETE-THESE-DIRECTORIES.md                                  2 columns + 1 footnote + note
+  reports/preserve-bundle.md                                          now 1,434 lines, §19
+
+Standing by. Freeze intact, nothing deleted, no config touched, no value printed. Nothing to ptone.

@@ -1,0 +1,403 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/steveyegge/beads/internal/config"
+	"github.com/steveyegge/beads/internal/storage"
+	"github.com/steveyegge/beads/internal/ui"
+)
+
+// runContributorWizard guides the user through OSS contributor setup
+func runContributorWizard(ctx context.Context, store storage.DoltStorage) error {
+	fmt.Printf("\n%s %s\n\n", ui.RenderBold("bd"), ui.RenderBold("Contributor Workflow Setup Wizard"))
+	fmt.Println("This wizard will configure beads for OSS contribution.")
+	fmt.Println()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	reader := bufio.NewReader(os.Stdin)
+
+	// Early check: BEADS_DIR takes precedence over routing
+	if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
+		fmt.Printf("%s BEADS_DIR is set: %s\n", ui.RenderWarn("⚠"), beadsDir)
+		fmt.Println("\n  BEADS_DIR takes precedence over contributor routing.")
+		fmt.Println("  If you're using the ACF pattern (external tracking repo),")
+		fmt.Println("  you likely don't need --contributor.")
+		fmt.Println()
+		fmt.Print("Continue anyway? [y/N]: ")
+		response, err := readLineWithContext(ctx, reader, os.Stdin)
+		if err != nil {
+			if isCanceled(err) {
+				return err
+			}
+			response = ""
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+
+		if response != "y" && response != "yes" {
+			fmt.Println("Setup canceled.")
+			return nil
+		}
+		fmt.Println()
+	}
+
+	// Step 1: Detect fork relationship
+	fmt.Printf("%s Detecting git repository setup...\n", ui.RenderAccent("▶"))
+
+	isFork, upstreamURL := detectForkSetup()
+
+	if isFork {
+		fmt.Printf("%s Detected fork workflow (upstream: %s)\n", ui.RenderPass("✓"), upstreamURL)
+	} else {
+		fmt.Printf("%s No upstream remote detected\n", ui.RenderWarn("⚠"))
+		fmt.Println("\n  For fork workflows, add an 'upstream' remote:")
+		fmt.Println("  git remote add upstream <original-repo-url>")
+		fmt.Println()
+
+		// Ask if they want to continue anyway
+		fmt.Print("Continue with contributor setup? [y/N]: ")
+		response, err := readLineWithContext(ctx, reader, os.Stdin)
+		if err != nil {
+			if isCanceled(err) {
+				return err
+			}
+			response = ""
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+
+		if response != "y" && response != "yes" {
+			fmt.Println("Setup canceled.")
+			return nil
+		}
+	}
+
+	// Step 2: Check push access to origin
+	fmt.Printf("\n%s Checking repository access...\n", ui.RenderAccent("▶"))
+
+	hasPushAccess, originURL := checkPushAccess()
+
+	if hasPushAccess {
+		fmt.Printf("%s You have push access to origin (%s)\n", ui.RenderPass("✓"), originURL)
+		fmt.Printf("  %s You can commit directly to this repository.\n", ui.RenderWarn("⚠"))
+		fmt.Println()
+		fmt.Print("Do you want to use a separate planning repo anyway? [Y/n]: ")
+		response, err := readLineWithContext(ctx, reader, os.Stdin)
+		if err != nil {
+			if isCanceled(err) {
+				return err
+			}
+			response = ""
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+
+		if response == "n" || response == "no" {
+			fmt.Println("\nSetup canceled. Your issues will be stored in the current repository.")
+			return nil
+		}
+	} else {
+		fmt.Printf("%s Read-only access to origin (%s)\n", ui.RenderPass("✓"), originURL)
+		fmt.Println("  Planning repo recommended to keep experimental work separate.")
+	}
+
+	// Step 3: Configure planning repository
+	fmt.Printf("\n%s Setting up planning repository...\n", ui.RenderAccent("▶"))
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	// Use BEADS_DIR as default if set (user explicitly set it and continued past warning)
+	// Otherwise fall back to ~/.beads-planning
+	defaultPlanningRepo := filepath.Join(homeDir, ".beads-planning")
+	if envBeadsDir := os.Getenv("BEADS_DIR"); envBeadsDir != "" {
+		defaultPlanningRepo = envBeadsDir
+	}
+
+	fmt.Printf("\nWhere should contributor planning issues be stored?\n")
+	fmt.Printf("Default: %s\n", ui.RenderAccent(defaultPlanningRepo))
+	fmt.Print("Planning repo path [press Enter for default]: ")
+
+	planningPath, err := readLineWithContext(ctx, reader, os.Stdin)
+	if err != nil {
+		if isCanceled(err) {
+			return err
+		}
+		planningPath = ""
+	}
+	planningPath = strings.TrimSpace(planningPath)
+
+	if planningPath == "" {
+		planningPath = defaultPlanningRepo
+	}
+
+	// Expand ~ if present
+	if strings.HasPrefix(planningPath, "~/") {
+		planningPath = filepath.Join(homeDir, planningPath[2:])
+	}
+
+	// Create planning repository if it doesn't exist
+	if _, err := os.Stat(planningPath); os.IsNotExist(err) {
+		fmt.Printf("\nCreating planning repository at %s\n", ui.RenderAccent(planningPath))
+
+		if err := os.MkdirAll(planningPath, 0750); err != nil {
+			return fmt.Errorf("failed to create planning repo directory: %w", err)
+		}
+
+		// Initialize git repo in planning directory
+		cmd := exec.Command("git", "init")
+		cmd.Dir = planningPath
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to initialize git in planning repo: %w", err)
+		}
+
+		// Initialize beads in planning repo
+		beadsDir := filepath.Join(planningPath, ".beads")
+		if err := os.MkdirAll(beadsDir, 0750); err != nil {
+			return fmt.Errorf("failed to create .beads in planning repo: %w", err)
+		}
+
+		// Create README in planning repo
+		readmePath := filepath.Join(planningPath, "README.md")
+		readmeContent := fmt.Sprintf(`# Beads Planning Repository
+
+This repository stores contributor planning issues for OSS projects.
+
+## Purpose
+
+- Keep experimental planning separate from upstream PRs
+- Track discovered work and implementation notes
+- Maintain private todos and design exploration
+
+## Usage
+
+Issues here are automatically created when working on forked repositories.
+
+Created by: bd init --contributor
+`)
+		// #nosec G306 -- README should be world-readable
+		if err := os.WriteFile(readmePath, []byte(readmeContent), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to create README: %v\n", err)
+		}
+
+		// Initial commit in planning repo
+		cmd = exec.Command("git", "add", ".")
+		cmd.Dir = planningPath
+		_ = cmd.Run()
+
+		cmd = exec.Command("git", "commit", "-m", "Initial commit: beads planning repository")
+		cmd.Dir = planningPath
+		_ = cmd.Run()
+
+		fmt.Printf("%s Planning repository created\n", ui.RenderPass("✓"))
+	} else {
+		fmt.Printf("%s Using existing planning repository\n", ui.RenderPass("✓"))
+	}
+
+	// Step 4: Configure contributor routing
+	fmt.Printf("\n%s Configuring contributor auto-routing...\n", ui.RenderAccent("▶"))
+
+	// Set routing config (canonical namespace per internal/config/config.go)
+	if err := store.SetConfig(ctx, "routing.mode", "auto"); err != nil {
+		return fmt.Errorf("failed to set routing mode: %w", err)
+	}
+	if err := store.SetConfig(ctx, "routing.contributor", planningPath); err != nil {
+		return fmt.Errorf("failed to set routing contributor path: %w", err)
+	}
+
+	fmt.Printf("%s Auto-routing enabled\n", ui.RenderPass("✓"))
+
+	// Step 4b: Enable multi-repo hydration so routed issues are visible (bd-fix-routing)
+	fmt.Printf("\n%s Configuring multi-repo hydration...\n", ui.RenderAccent("▶"))
+
+	// Find config.yaml path
+	configPath, err := config.FindConfigYAMLPath()
+	if err != nil {
+		return fmt.Errorf("failed to find config.yaml: %w", err)
+	}
+
+	// Add planning repo to repos.additional for hydration
+	if err := config.AddRepo(configPath, planningPath); err != nil {
+		// Check if already added (non-fatal)
+		if !strings.Contains(err.Error(), "already exists") {
+			return fmt.Errorf("failed to configure hydration: %w", err)
+		}
+	}
+
+	fmt.Printf("%s Hydration enabled for planning repo\n", ui.RenderPass("✓"))
+	fmt.Println("  Issues from planning repo will appear in 'bd list'")
+
+	// If this is a fork, configure sync to pull beads from upstream (bd-bx9)
+	// This ensures `bd dolt pull` gets the latest issues from the source repo,
+	// not from the fork's potentially outdated origin/main
+	if isFork {
+		if err := store.SetConfig(ctx, "sync.remote", "upstream"); err != nil {
+			return fmt.Errorf("failed to set sync remote: %w", err)
+		}
+		fmt.Printf("%s Sync configured to pull from upstream (source repo)\n", ui.RenderPass("✓"))
+	}
+
+	// Step 5: Summary
+	fmt.Printf("\n%s %s\n\n", ui.RenderPass("✓"), ui.RenderBold("Contributor setup complete!"))
+
+	fmt.Println("Configuration:")
+	fmt.Printf("  Current repo issues: %s\n", ui.RenderAccent(".beads/issues.jsonl"))
+	fmt.Printf("  Planning repo issues: %s\n", ui.RenderAccent(filepath.Join(planningPath, ".beads/issues.jsonl")))
+	fmt.Println()
+	fmt.Println("How it works:")
+	fmt.Println("  • Issues you create will route to the planning repo")
+	fmt.Println("  • Planning stays out of your PRs to upstream")
+	fmt.Println("  • Use 'bd list' to see issues from both repos")
+	fmt.Println()
+	fmt.Printf("Try it: %s\n", ui.RenderAccent("bd create \"Plan feature X\" -p 2"))
+	fmt.Println()
+
+	return nil
+}
+
+// autoConfigureForkContributor configures contributor routing when bd init
+// detects a fork (upstream remote present) and routing is not yet set.
+// Non-interactive and idempotent. roleFlag is the --role flag value (if any).
+func autoConfigureForkContributor(ctx context.Context, store storage.DoltStorage, quiet bool, roleFlag string) error {
+	isFork, upstreamURL := detectForkSetup()
+	if !isFork {
+		return nil
+	}
+
+	// Explicit --role=maintainer on a fork: acknowledge fork, skip routing.
+	if roleFlag == "maintainer" {
+		if !quiet {
+			fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
+			fmt.Printf("    Contributor routing skipped (--role=maintainer).\n")
+			fmt.Printf("    To set up contributor routing later: bd init --contributor\n")
+		}
+		return nil
+	}
+
+	// Already configured: idempotent re-init.
+	if existing, err := store.GetConfig(ctx, "routing.contributor"); err == nil && existing != "" {
+		if !quiet {
+			fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
+			fmt.Printf("    Contributor routing already configured → %s\n", existing)
+			fmt.Printf("    Skipping auto-setup. To reconfigure: bd init --contributor\n")
+		}
+		return nil
+	}
+	if src := config.GetValueSource("routing.contributor"); src != config.SourceDefault {
+		if yamlVal := strings.TrimSpace(config.GetString("routing.contributor")); yamlVal != "" {
+			if !quiet {
+				fmt.Printf("\n  %s Fork detected (upstream: %s)\n", ui.RenderWarn("⚠"), upstreamURL)
+				fmt.Printf("    Contributor routing configured via config.yaml → %s\n", yamlVal)
+				fmt.Printf("    Skipping auto-setup. To reconfigure: bd init --contributor\n")
+			}
+			return nil
+		}
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+	planningPath := filepath.Join(homeDir, ".beads-planning")
+
+	createdPlanning := false
+	if _, err := os.Stat(planningPath); os.IsNotExist(err) {
+		createdPlanning = true
+		if err := os.MkdirAll(planningPath, 0750); err != nil {
+			return fmt.Errorf("failed to create planning repo: %w", err)
+		}
+		gitInit := exec.Command("git", "init")
+		gitInit.Dir = planningPath
+		if err := gitInit.Run(); err != nil {
+			return fmt.Errorf("failed to init git in planning repo: %w", err)
+		}
+		planningBeadsDir := filepath.Join(planningPath, ".beads")
+		if err := os.MkdirAll(planningBeadsDir, 0750); err != nil {
+			return fmt.Errorf("failed to create .beads in planning repo: %w", err)
+		}
+		// Initialize the planning Dolt schema so commands like bd migrate-personal
+		// can open the store immediately without hitting an uninitialized DB.
+		// Non-fatal: no-CGO and server-mode builds skip this silently; the schema
+		// initializes on first use once a Dolt server is running for that path.
+		if planningStore, storeErr := newDoltStoreFromConfig(ctx, planningBeadsDir); storeErr == nil {
+			_ = planningStore.Close()
+		}
+	}
+
+	if err := store.SetConfig(ctx, "routing.mode", "auto"); err != nil {
+		return fmt.Errorf("failed to set routing.mode: %w", err)
+	}
+	if err := store.SetConfig(ctx, "routing.contributor", planningPath); err != nil {
+		return fmt.Errorf("failed to set routing.contributor: %w", err)
+	}
+	if err := store.SetConfig(ctx, "sync.remote", "upstream"); err != nil {
+		return fmt.Errorf("failed to set sync.remote: %w", err)
+	}
+
+	_ = exec.Command("git", "config", "beads.role", "contributor").Run()
+
+	if configPath, err := config.FindConfigYAMLPath(); err == nil {
+		if addErr := config.AddRepo(configPath, planningPath); addErr != nil && !strings.Contains(addErr.Error(), "already exists") {
+			// Non-fatal: hydration config failure doesn't block routing setup
+		}
+	}
+
+	if !quiet {
+		fmt.Printf("\n%s Fork detected — configuring contributor routing\n", ui.RenderAccent("▶"))
+		fmt.Printf("  upstream: %s\n\n", upstreamURL)
+		fmt.Printf("  %s Planning repo: %s\n", ui.RenderPass("✓"), planningPath)
+		fmt.Printf("  %s Issues will route to planning repo (routing.mode=auto)\n", ui.RenderPass("✓"))
+		fmt.Printf("  %s Sync remote set to upstream\n", ui.RenderPass("✓"))
+		if createdPlanning {
+			fmt.Printf("  %s Added .beads/ to planning repo\n", ui.RenderPass("✓"))
+		}
+		fmt.Printf("\n  To use maintainer mode instead: bd init --role=maintainer\n")
+	}
+	return nil
+}
+
+// detectForkSetup checks if we're in a fork by looking for upstream remote
+func detectForkSetup() (isFork bool, upstreamURL string) {
+	cmd := exec.Command("git", "remote", "get-url", "upstream")
+	output, err := cmd.Output()
+	if err != nil {
+		// No upstream remote found
+		return false, ""
+	}
+
+	upstreamURL = strings.TrimSpace(string(output))
+	return true, upstreamURL
+}
+
+// checkPushAccess determines if we have push access to origin
+func checkPushAccess() (hasPush bool, originURL string) {
+	// Get origin URL
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, ""
+	}
+
+	originURL = strings.TrimSpace(string(output))
+
+	// SSH URLs indicate likely push access (git@github.com:...)
+	if strings.HasPrefix(originURL, "git@") {
+		return true, originURL
+	}
+
+	// HTTPS URLs typically indicate read-only clone
+	if strings.HasPrefix(originURL, "https://") {
+		return false, originURL
+	}
+
+	// Other protocols (file://, etc.) assume push access
+	return true, originURL
+}

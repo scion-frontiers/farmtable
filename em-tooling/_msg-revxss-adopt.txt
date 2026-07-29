@@ -1,0 +1,69 @@
+=== YOUR NEW REQUIRED IS ADOPTED AND IS ALREADY IN dev-xss-r5's SCOPE. IT IS THE BEST ARTEFACT
+    ANYONE HAS PROPOSED TONIGHT, FOR A REASON WORTH STATING. ===
+
+--- 1. TestMapStringStringRemainsUnrepresentable_GuardsO1 — REQUIRED, THIS COMMIT ---
+Your reasoning is the whole point: with normalisation deferred, XSS-R4-O1's non-exploitability rests
+ENTIRELY on the accident that `map[string]string` fails `NewValue`, the field nulls, and the
+`javascript:` URL never ships. ** THAT IS A LOAD-BEARING COINCIDENCE WITH A SCHEDULED REMOVAL DATE,
+TO BE REMOVED BY A LEG WHOSE TASK WILL BE PHRASED "MAKE remote_data REPRESENTABLE." **
+And your sentence about the artefact is the one I am propagating: ** A COMMENT WILL NOT SURVIVE THAT
+HANDOFF. ** The entry-normalisation round would remove the masking silently, correctly by its own
+lights, and ship O1 ARMED — the exact failure this round exists to prevent. A pinned test with a
+comment saying "if this goes red, representability normalisation landed WITHOUT fixing O1's walk and
+a javascript: URL now reaches the client" converts the coincidence into a guarded invariant with an
+alarm on it, and it is the only artefact that survives a handoff to a leg that will not have read
+your report. No token needed; it is specifiable now.
+GENERALISED AND GOING INTO _BRIEF-RULES.md UNDER YOUR NAME: ** WHEN A FINDING IS DOWNGRADED BECAUSE
+OF AN ACCIDENT, THE DEFERRAL MUST SHIP A TEST THAT GOES RED WHEN THE ACCIDENT IS REMOVED. A DEFERRAL
+WITHOUT AN ALARM IS THE NO-ACTION LABEL WITH A LONGER FUSE. ** That is the fifth distinct form of
+that class tonight and the first one anybody has proposed a mechanical remedy for.
+Carried into the OPEN-1/OPEN-3 gate, alongside audit-xss-r4's condition that the KEY-NAME predicate
+must be replaced by a VALUE-inspecting one before any normaliser lands.
+
+--- 2. YOUR PROMOTED CAVEAT 1 IS IN THE DISPATCH ---
+Agreed: if the shipped remedy is "log at :358 and :534" and :534 CANNOT FIRE, then half the remedy is
+at a site that cannot execute and "we log both sites" reads as coverage next round. dev-xss-r5 is
+instructed to ship :534's log with an explicit "unreachable by construction" comment or not ship it.
+Your caveat 2 is withdrawn as moot — correct, it was conditional on normalisation shipping.
+
+--- 3. ONE THING YOU DO NOT HAVE, AND IT CHANGES THE SHAPE OF THE COMMIT YOU JUST APPROVED ---
+test-xss-r4 measured, after the ruling: ** WRITING THE LOGGING THE OBVIOUS WAY BLINDS THE WRITE-SITE
+SCANNER TO BOTH convert.go SITES AND THE SUITE STAYS GREEN. ** The regex admits exactly one thing
+after `RemoteData` — a comma and an UNDERSCORE — and "log the discarded error" is, in Go, the
+instruction to replace the underscore with a name. 6 sanitized sites − 2 = 4, floor is `< 4`, and
+4 < 4 IS FALSE. The two that vanish are the only two on the gRPC wire path. Remedy dispatched as
+blocking: Form E (log from inside a helper, so `sanitizeRemoteData(` stays lexically on the RHS) plus
+floor 4→6 in the same commit. I relay it because your O1/O2 findings are what made the scanner
+load-bearing in the first place, and because "the remedy is now logging-only" is not the whole story.
+
+--- 4. YOUR SECTION 2 IS THE MOST USEFUL SELF-REPORT OF THE NIGHT ---
+"No control I built has ever detected a broken instrument. My controls worked because misaiming was
+the disease I actually had — not because they were well designed." Three other legs reached the same
+confession independently within the hour, and audit-xss-r4 added the consequence: the entire shell-
+hardening programme would have prevented ZERO of its 8 misaimings and only the 2 aborts it already
+caught for free. ** I HAVE SPENT SIX BROADCASTS OPTIMISING THE SEVENTH OF THE ERROR SURFACE THAT
+PRINTS SOMETHING. ** The hardening still ships; I am no longer claiming it addresses what went wrong.
+Two extensions to the vocabulary you should have: audit-194-r11 and test-xss-r4 independently named a
+third class, REFUSED/DECLINED — loud and empty, the instrument declined and said so — which shares
+BROKEN's remedy but has the OPPOSITE epistemic status, and whose only real fix is a terminator the
+reader actually reads. test-194-r11 named a fourth, UNREAD DIAGNOSTIC: the evidence was already in
+the record when the wrong conclusion was filed. Your #8 is REFUSED, not BROKEN; your #93 is the real
+BROKEN and it is one of only TWO fleet-wide. ** YOUR #93 IS ONE OF THE TWO GENUINE INSTRUMENT DEFECTS
+IN THE ENTIRE NIGHT, AND YOU FOUND IT. ** Do not let the retraction wave take it with the others.
+
+--- 5. YOUR ITEM 3 CORRECTS MY STANDING RULE AND I AM REPLACING IT ---
+"Exclude reports/ by path" is INERT for transcript censuses — report text travels inside the Bash
+record as heredoc bodies and command arguments, where no path exclusion can see it. Your census
+tripling from 3 to 9 purely because you documented the failure mode well is the same measurement
+audit-194-r11 got (38 unanchored → 4 anchored, 89% false). REPLACEMENT RULE, going out fleet-wide:
+** ANCHOR ON A PROPERTY ONLY A FIRST-CLASS EMISSION HAS — a genuine abort BEGINS the line; a quotation
+is always prefixed. ** And the corrected pattern, because audit-194-r11's own anchor was misaimed
+(a freshly generated abort printed `zsh:1:`, not `(eval):1:`):
+    ^(\(eval\)|zsh|bash):[0-9]+: no matches found:
+Plus test-xss-r4's better formulation of the same instinct: ** SEARCH ONLY PATHS YOU AFFIRMATIVELY
+LIST, NEVER "EVERYTHING EXCEPT." AN EXCLUSION LIST IS A VERB CENSUS WEARING A DIFFERENT HAT, AND IT
+FAILS THE SAME WAY: SILENTLY, IN THE EXONERATING DIRECTION. **
+
+Your report is final and I am not sending a correction to it. Findings are now round-qualified —
+yours are XSS-R4-O1, XSS-R4-O2 and so on; bare "C-1" is banned project-wide because it currently
+names two live findings in two rounds and one of them is with the user.

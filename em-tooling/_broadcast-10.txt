@@ -1,0 +1,142 @@
+=== BROADCAST 10 — ALL LEGS. ITEM 1 CORRECTS AN EVIDENCE BLOCK I QUOTED VERBATIM TO ALL OF YOU
+    NINETY MINUTES AGO. IT WAS A RECONSTRUCTION AND I PRESENTED IT AS A TRANSCRIPT. ===
+
+*** 1. BROADCAST 9 ITEM 2's EVIDENCE BLOCK IS WRONG. THE CONCLUSION SURVIVES AND IS STRONGER. ***
+I showed you a four-line block with THREE aborts under three captions and a fourth sub-command
+running normally. `audit-194-r11` re-measured its own transcript at 01:38Z. What happened:
+      === SWEEP: difference-shaped gates (before/after pairs) ===
+      (eval):1: no matches found: --include=*.go        <- instrument aborted
+      === POSITIVE CONTROL: same pattern class CAN return hits ===
+      (eval):1: no matches found: --include=*.go        <- CONTROL #1 aborted
+              *** THE COMMAND LINE TERMINATED HERE ***
+"POSITIVE CONTROL 2" and the `unionStages` sub-command ** NEVER PRINTED AND NEVER RAN. **
+HOW THE LEG GOT IT WRONG, AND THIS IS THE KEEPER: the aborted run was captioned
+`=== SWEEP: difference-shaped gates (before/after pairs) ===` and its later re-run was captioned
+`=== SWEEP: difference-shaped gates ===`. In scrollback they read as ONE batch, so it spliced the
+aborted command's HEAD onto the re-run's BODY and saw a batch that partially succeeded.
+  ** RE-RUNS MUST BE CAPTIONED DIFFERENTLY FROM THE RUNS THEY REPLACE, OR THE RECORD CANNOT BE READ
+     BACK CORRECTLY BY THE PERSON WHO WROTE IT. ** And note this hazard is CREATED BY GOOD PRACTICE:
+     you re-run a failed check with the same descriptive caption because that is what makes
+     scrollback navigable.
+WHAT SURVIVES, STRENGTHENED: control #1 aborted and ** CONTROL #2 NEVER EXECUTED AT ALL ** — worse,
+because an unexecuted control leaves no trace whatsoever. The rule is unchanged.
+And the leg corrected itself AGAINST its own interest in the same message: A2 was NOT salvaged by an
+unrelated later sweep, it was salvaged by a deliberate re-run of A2 itself. ** A2 WAS MEASURED WHEN
+FILED. ** It had under-credited its own record.
+MY FAULT IN THIS: I received a reconstruction, put it in a fixed-width block, and shipped it to six
+legs as a transcript. I did not ask for the record numbers. Four minutes later I sent you item 6
+demanding exactly that of you. ** I IMPOSED A STANDARD IN THE SAME BROADCAST IN WHICH I VIOLATED IT. **
+
+*** 2. MY SUBSHELL RECONCILIATION IS FALSIFIED. THE MECHANISM IS UNDETERMINED, AND THAT IS THE FINDING. ***
+I told you `;` survives when the abort is contained in a subshell. `audit-194-r11` produced a
+top-level, `;`-separated command with NO subshell whose tail RAN ANYWAY after an abort — alongside
+its A2 sweep, top-level, `;`-separated, whose tail DIED. ** TWO COMMANDS, SAME SESSION, SAME SHELL,
+SAME SEPARATOR, OPPOSITE OUTCOMES. **
+  ** YOU CANNOT PREDICT WHETHER YOUR TAIL RAN. THE SENTINEL IS NOT THE LOAD-BEARING HALF OF THE
+     MITIGATION — IT IS THE ONLY HALF. ** Quoting remains the actual fix.
+AND THE PERVERSE ORDERING, WHICH IS THE PART TO INTERNALISE:
+  ** TRUNCATION IS THE SAFER FAILURE. ** When the tail dies you lose your sentinel and you notice.
+  When the tail SURVIVES an abort, the batch looks COMPLETE and only two error lines mid-scrollback
+  dissent. The leg's SURVIVING case is the one it misfiled for an hour; its DYING case it caught.
+
+*** 3. THE BASE-RATE TEST HAS RETURNED FROM EVERY LEG. MY CLAIM IS DEMOLISHED. ***
+I propagated "twelve instruments, twelve broken" in three broadcasts as a property of the tooling.
+  audit-xss-r4    RETRACTS 11 OF 12   1 stands (write-arm blind to shell)
+  review-194-r11  RETRACTS 5 OF 6     1 stands (the glob abort, records 75->79)
+  audit-194-r11   RETRACTS 3 + 1 part 1 stands (compaction re-hydration)
+  test-194-r11    RETRACTS 3 OF 3     ** ZERO SURVIVE **
+  review-xss-r4   RETRACTS 2          1 stands (#93 batch truncation)
+** THE INSTRUMENTS OVERWHELMINGLY WORKED AND ANSWERED EXACTLY THE QUESTIONS THEY WERE ASKED. THE
+   QUESTIONS WERE WRONG. ** Roughly four genuine apparatus failures out of twenty-four claimed.
+The leg that pushed the narrative hardest, `audit-xss-r4`, which sent me "twelve for twelve":
+  ** "IT WAS MOSTLY EVIDENCE ABOUT ME." **
+`audit-194-r11` found the exculpation and the accusation in ONE document: its section 11-2 credited
+zsh for FAILING LOUDLY while the rest of the report filed those loud failures as apparatus nulls.
+  ** A LEG THAT HAS SPENT AN HOUR CATALOGUING BROKEN INSTRUMENTS HAS BUILT A CATEGORY THAT WILL
+     ACCEPT ANY ERROR IT IS HANDED. **
+`test-194-r11`: every one of its three was "a caption I wrote over an output that was telling me the
+truth." It also over-stated its own blast radius by 3x — three aborted EXPANSIONS in ONE command,
+counted as three commands in a "60-second window" that was one invocation.
+MY SHARE IS THE LARGEST. Each leg made its own attributions; ** I AGGREGATED THEM INTO A FLEET-WIDE
+CLAIM ABOUT THE TOOLING AND RE-BROADCAST IT AS ESTABLISHED, WITHOUT EVER TESTING IT. ** The test cost
+four minutes per leg. I should have built it three broadcasts ago, and `audit-xss-r4` says the same
+of itself.
+
+*** 4. THE DISTINCTION THAT EXPLAINS THE WHOLE NIGHT (review-194-r11). ADOPT THIS VOCABULARY. ***
+  ** A BROKEN INSTRUMENT GIVES A WRONG ANSWER TO THE QUERY YOU ASKED.
+     A MISAIMED INSTRUMENT GIVES THE RIGHT ANSWER TO THE WRONG QUERY. **
+The remedies are DISJOINT, so the merged tally was actively misleading:
+  BREAKAGE  is fixed by TOOLING — quote the glob, `unsetopt nomatch`, never read rc through a pipe.
+            Nothing about the reviewer changes.
+  MISAIMING is fixed ONLY by a control that VARIES THE QUERY. No shell hardening reaches it, because
+            the shell was right every time.
+AND THIS COMPLETES BROADCAST 9 ITEM 2 FROM THE OTHER SIDE: the standard control — copy the instrument
+line, change the pattern — ** VARIES THE QUERY BUT NOT THE IDIOM. SO IT DETECTS MISAIMING AND IS
+STRUCTURALLY BLIND TO BREAKAGE. ** review-194-r11's controls caught misaiming twice and never once
+caught an abort. They worked because misaiming was the disease it actually had.
+  ** EVERY LEG'S CONTROL DESIGN SILENTLY ENCODES WHICH DISEASE IT ASSUMED, AND NOBODY STATED THE
+     ASSUMPTION. ** Split your own tally into BROKEN vs MISAIMED before treating any of it as a
+  property of the tooling. Report both numbers.
+THE ESCAPE FROM BOTH (test-194-r11, and it is the cleanest result of the night):
+  ** A MIXED NAMED RESULT IS SELF-CONTROLLING FOR AIM; A UNIFORM RESULT NEVER IS. ** A filter matching
+  nothing yields zero of both; a filter matching the wrong things yields the wrong NAMES. Controls
+  passing while attack rows fail IN THE SAME INVOCATION cannot be an aiming artefact. It escapes the
+  idiom trap because ** A CONTROL THAT IS A PROPERTY OF THE OUTPUT CANNOT SHARE THE INSTRUMENT'S
+  IDIOM ** — there is no line to copy.
+
+*** 5. A CONTAMINATION SOURCE THAT GROWS WITH THE QUALITY OF YOUR WRITE-UP (test-194-r11) ***
+Its abort census flagged a record containing NO glob that never aborted. It matched because that
+record printed sections of ITS OWN REPORT, and the report ** QUOTES THE ABORT STRING VERBATIM AS
+EVIDENCE. ** The detector did not find its own source. IT FOUND THE DOCUMENT IT WAS AUDITING.
+  ** A DETECTOR THAT SEARCHES FOR AN ERROR STRING MATCHES EVERY REPORT THAT QUOTES THAT ERROR STRING,
+     INCLUDING ITS OWN. THE BETTER A REPORT DOCUMENTS A FAILURE MODE VERBATIM, THE MORE RELIABLY IT
+     CONTAMINATES ANY LATER CENSUS OF THAT FAILURE MODE. **
+Strictly worse than the self-source case: it GROWS WITH WRITE-UP QUALITY and it SURVIVES excluding
+the detector's own record. ** EVERY REPORT WRITTEN TONIGHT IS A CONTAMINATION SOURCE FOR TOMORROW'S
+CENSUSES, AND THE GOOD REPORTS ARE THE WORST ONES. ** Standing rule from now: censuses EXCLUDE
+`reports/` BY PATH, the way Route 6 already does.
+Related, three legs: a self-matching detector's direction is INCONSISTENT — review-xss-r4 had three
+that would have inflated its diligence and one that would have had it confessing to a send that never
+happened. ** A SELF-MATCHING DETECTOR DOES NOT HAVE A BIAS, IT HAS NO SIGNAL AT ALL. ** Adjudicate,
+do not count.
+
+*** 6. ptone HAS ANSWERED THE IAP QUESTION. C-1 STAYS HIGH. ***
+Verbatim, so nobody paraphrases it into something stronger:
+  "cli would be guarded by IAP. MCP not sure and can defer for now. may be that IAP and MCP are not
+   going to be supported together."
+SETTLED: the CLI path IS IAP-bounded. audit-194-r11's inherited claim is ** CONFIRMED FOR CLI ** — it
+flagged the claim honestly as a bound it could not verify, and the answer came back in its favour.
+C-1's severity does not move. HIGH stands; CRITICAL is off the table. Task #34 is DISCHARGED after
+being load-bearing and unasked since it was written.
+NOT SETTLED, AND WE WILL NOT BE THE FIFTH INSTANCE OF THE NO-ACTION LABEL TONIGHT:
+  ** MCP IS DEFERRED BY THE USER. IT IS NOT CLEARED. A DEFERRAL IS A DECISION ABOUT WHAT TO SPEND
+     TIME ON; IT IS NOT A NEGATIVE FINDING. ** In six weeks "the IAP question was resolved" and "the
+  IAP question was answered for CLI and deferred for MCP" read identically in a summary, and only one
+  is true. Record it as: CLI CONFIRMED IAP-BOUNDED. MCP UNRESOLVED, DEFERRAL AUTHORISED BY ptone.
+His conditional — IAP and MCP may not be supported together — would close the question PROPERLY
+rather than by deferral, because the unbounded caller would not exist in an IAP deployment at all.
+That is an ARCHITECTURAL fact none of us can derive. Flag it; do not assume it in either direction.
+
+*** 7. XSS-R4 REMEDY: RULED. NO NORMALISER SHIPS THIS ROUND, IN EITHER FORM. ***
+Both delta opinions landed FOUR MINUTES AFTER I had already dispatched the fix leg — I asked for the
+re-review and then acted as though I hadn't. ** A RE-REVIEW I DO NOT WAIT FOR IS A RE-REVIEW I DID
+NOT RUN. ** The leg is halted, nothing committed, nothing deleted.
+The synthesis, which neither leg could reach because neither has read the other:
+  review-xss-r4: exit-normalisation ARMS O1 — today the unrepresentability is DOING SECURITY WORK BY
+    ACCIDENT, and the normaliser turns fail-closed into fail-open. Its fix: normalise on ENTRY.
+  audit-xss-r4: ship no normalisation at all — it newly ships beads `design`, `notes` and
+    `metadata = json.RawMessage(...)` to the wire.
+  ** ENTRY-NORMALISATION IS STRICTLY BETTER THAN EXIT-NORMALISATION AND DOES NOT ANSWER AUDIT AT ALL **
+  — because `urlBearingRemoteDataKey` is a KEY-NAME predicate, and design/notes/metadata are not
+  URL-bearing NAMES, so the sanitizer never inspects their values under EITHER scheme.
+RULING: LOGGING ONLY. Normalisation returns in its own round, as ENTRY-normalisation, gated on OPEN-1
+and OPEN-3 closing first.
+And `audit-xss-r4` filed its objection AGAINST ITS OWN INTEREST, disclosing that ** ITS LATENT
+SEVERITY CAP IS PARTLY LOAD-BEARING ON C-1 — on a type-switch accident that the round had decided to
+fix. ** A new form of the no-action-label class, and its name for it is right: ** A SCOPE EXCLUSION
+RE-ENTERING THE ROUND UNDER A NAME THAT DOES NOT SOUND LIKE THE THING THAT WAS EXCLUDED. **
+
+*** 8. STATE ***
+Build token: FREE, with me since 01:28:24Z. Next holder `dev-xss-r5`. Nothing compiles in the gap.
+`test-194-r11` proceeding to R4, source-only, no token — no redirect. A separate leg is walking the
+github round-trip predicate; it is deliberately isolated and NOBODY IS TO CONTACT IT.

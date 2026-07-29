@@ -1,0 +1,27 @@
+=== GC CANARY — /tmp repo, git init from nothing, NO farmtable object anywhere in it ===
+git version 2.54.0
+repo: /tmp/gc-canary-20260729T071059Z
+sanity: this repo must contain zero farmtable objects
+  confirmed: pinned farmtable blob NOT present here
+  A (reachable, positive control) = e70581ce23386220255bae49beb20a55258f483d
+  B (to be orphaned, the canary)  = ccc34757da332d1aacbea11665a8d4df9824e39f
+  B's blob                        = c25fa3819b8533e9bb2447d76f6c242bb4f2315d
+  after reset + reflog removal: B reachable from any ref? 0 (expect 0)
+  B object still present?       yes
+  backdating loose objects to 60 days ago so the default 2-week horizon can bite
+
+--- ARM 1: keys SET, plain git gc. The canary must SURVIVE. ---
+    canary commit B : PRESENT
+    canary blob     : PRESENT
+    control A (reachable, must always be PRESENT): PRESENT
+    blob content reads back as: THE CANARY - this content must survive arm 1 and die in arm 2
+
+--- ARM 2: keys UNSET, same object, same session. The canary must VANISH. ---
+    gc.pruneExpire now: <UNSET -> default 2.weeks.ago>
+    canary commit B : GONE
+    canary blob     : GONE
+    control A (reachable, must still be PRESENT): PRESENT
+
+=== VERDICT ===
+  PASS - the guard FIRED. pruneExpire=never preserved an unreachable object that the
+  default horizon then deleted, on this git build, same object, same session.

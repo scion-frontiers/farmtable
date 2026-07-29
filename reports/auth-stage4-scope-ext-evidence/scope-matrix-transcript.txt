@@ -1,0 +1,36 @@
+=== RUN   TestEvidence_Stage4ScopeMatrix
+    lifecycle_evidence_test.go:41: token role=agent         scopes=[task:read task:write task:claim collection:read]
+    lifecycle_evidence_test.go:41: token role=reviewer      scopes=[task:read task:write task:claim task:accept task:close collection:read]
+    lifecycle_evidence_test.go:41: token role=orchestrator  scopes=[task:read task:write task:claim task:accept task:close collection:read]
+=== RUN   TestEvidence_Stage4ScopeMatrix/a_agent_cannot_accept_or_close
+    lifecycle_evidence_test.go:68: agent  UpdateTask triage→ready       (needs task:accept)   => PermissionDenied msg=missing required scope "task:accept"
+    lifecycle_evidence_test.go:74: agent  UpdateTask triage→working     (needs task:accept)   => PermissionDenied msg=missing required scope "task:accept"
+    lifecycle_evidence_test.go:83: agent  CloseTask                     (needs task:close)    => PermissionDenied msg=missing required scope "task:close"
+    lifecycle_evidence_test.go:87: agent  UpdateTask working→completed  (needs task:close)    => PermissionDenied msg=missing required scope "task:close"
+=== RUN   TestEvidence_Stage4ScopeMatrix/b_lifecycle_roles_full_authority
+    lifecycle_evidence_test.go:100: reviewer UpdateTask triage→ready       (task:accept)       => OK
+    lifecycle_evidence_test.go:106: reviewer ClaimTask ready→working       (task:claim)        => OK
+    lifecycle_evidence_test.go:110: reviewer UpdateTask working→in_review  (task:write)        => OK
+    lifecycle_evidence_test.go:116: reviewer CloseTask  in_review→completed (task:close)       => OK
+    lifecycle_evidence_test.go:120: reviewer UpdateTask completed→backlog  (task:accept)       => OK
+    lifecycle_evidence_test.go:100: orchestrator UpdateTask triage→ready       (task:accept)   => OK
+    lifecycle_evidence_test.go:106: orchestrator ClaimTask ready→working       (task:claim)    => OK
+    lifecycle_evidence_test.go:110: orchestrator UpdateTask working→in_review  (task:write)    => OK
+    lifecycle_evidence_test.go:116: orchestrator CloseTask  in_review→completed (task:close)   => OK
+    lifecycle_evidence_test.go:120: orchestrator UpdateTask completed→backlog  (task:accept)   => OK
+=== RUN   TestEvidence_Stage4ScopeMatrix/c_agent_can_still_claim_accepted_task
+    lifecycle_evidence_test.go:134: agent  ClaimTask ready→working       (task:claim)          => OK
+    lifecycle_evidence_test.go:138: agent  UpdateTask working→in_review  (task:write)          => OK
+    lifecycle_evidence_test.go:144: agent  UpdateTask working→blocked    (task:write)          => OK
+=== RUN   TestEvidence_Stage4ScopeMatrix/d_claim_from_triage_rejected_for_every_role
+    lifecycle_evidence_test.go:160: agent ClaimTask from triage         (precondition)         => FailedPrecondition msg=task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first
+    lifecycle_evidence_test.go:160: reviewer ClaimTask from triage         (precondition)      => FailedPrecondition msg=task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first
+    lifecycle_evidence_test.go:160: orchestrator ClaimTask from triage         (precondition)  => FailedPrecondition msg=task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first
+    lifecycle_evidence_test.go:160: admin ClaimTask from triage         (precondition)         => FailedPrecondition msg=task must be accepted before it can be claimed — use UpdateTask to move from triage to accepted first
+--- PASS: TestEvidence_Stage4ScopeMatrix (0.03s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/a_agent_cannot_accept_or_close (0.00s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/b_lifecycle_roles_full_authority (0.01s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/c_agent_can_still_claim_accepted_task (0.00s)
+    --- PASS: TestEvidence_Stage4ScopeMatrix/d_claim_from_triage_rejected_for_every_role (0.01s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.038s

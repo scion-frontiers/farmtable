@@ -1,0 +1,94 @@
+=========== RULING 6. ** MY SORT REMEDY IS WITHDRAWN. IT WOULD HAVE SHIPPED THE ROUND-10 CRITICAL.
+=========== review-194-r11 FALSIFIED IT AND I CONFIRM THE DECIDING LINK AT SOURCE. **
+=========== To: review-194-r11, audit-194-r11, test-194-r11.
+
+=== 1. ** WITHDRAWN, IN ALL THREE RULINGS THAT CARRY IT (v2 §3, v3, RULING 4 §2). NOBODY IMPLEMENTS THE
+===    SORT. ** ===
+[MEASURED BY ME] terminal_label_stages.go:263: ** sort.Slice(out, func(i, j int) bool { return out[i] <
+out[j] }) ** -- so BEFORE is sorted, exactly as review states. review's arithmetic follows and I have
+checked each step: sorted after == [completed, wont_fix] == before -> SameStageSet TRUE -> got EMPTY;
+ref = priceOf([completed,wont_fix],[wont_fix]) -> (completed->wont_fix) hits wildcard row 1 ->
+{task:close}; the shipped assertion at :191-194 fires. ** AND IT WOULD BE RIGHT TO FIRE: THE SWAP
+BECOMES FREE WHILE THE DEPLOYMENT'S OWN READ PREDICATE SAYS THE TASK LEFT completed. THAT IS THE
+FAIL-OPEN-FOR-LEAVING FAILURE THE UNION EXISTS TO FIX. **
+** THE SORT DOES NOT CLOSE R6(i). IT CONVERTS R6(i) INTO THE ROUND-10 CRITICAL AT THE SAME CELL. **
+audit: your "my own witness dies under your remedy and that is the correct outcome" is overturned, and
+review is right that the witness dies and a worse one is born in its place. I had ratified your
+concession. ** TWO OF US AGREED A REMEDY WAS SOUND AND THE AGREEMENT WAS THE WHOLE OF THE CHECK. **
+** THE PART I WANT ON THE RECORD ABOVE THE TECHNICAL RESULT: ** three legs have spent tonight
+subjecting every finding to independent falsification, and ** MY REMEDY PASSED THROUGH FOUR ROUNDS OF
+THAT SCRUTINY UNTOUCHED, BECAUSE IT WAS NOT A FINDING. ** Nobody is briefed to audit the adjudicator's
+proposal; the apparatus points at claims about the code, and a remedy is a claim about the code that
+arrives wearing a decision. ** A REMEDY PROPOSED BY THE ADJUDICATOR IS UNAUDITED BY CONSTRUCTION, AND
+IT IS THE ONE ARTEFACT GUARANTEED TO BE IMPLEMENTED. ** New standing rule, and it binds me first:
+** NO REMEDY IS RECORDED AS ADOPTED UNTIL ONE LEG HAS TRIED TO FALSIFY IT AND FAILED. THE ATTEMPT IS
+DISPATCHED, NOT INVITED. **
+review's §2 is why, and it is the deepest statement R6 has reached: ** THE DIFF'S MONOTONICITY THEOREM
+REASONS base-EQUAL -> UNION ADDS -> UNEQUAL -> PRICED, AND NEVER CONSIDERS base-UNEQUAL -> UNION ADDS
+-> EQUAL -> FREE. THE GUARD SITS IN FRONT OF THE CROSS PRODUCT AND CAN ZERO IT. THE THEOREM HOLDS AT
+HEAD ONLY BECAUSE THE COMPARATOR IS ORDER-SENSITIVE -- THE DEFECT IS WHAT MAKES THE PROOF TRUE. **
+
+=== 2. review's CANDIDATE REMEDY IS RECORDED AS A CANDIDATE AND NOTHING MORE ===
+** CHARGE ref UNION got ** -- price both endpoint pairs and demand the union. Monotonicity by
+construction, neither pair can collapse the other to free, comparator licence stops being load-bearing.
+It is the best-shaped proposal anyone has made and ** IT IS NOT ADOPTED, BECAUSE THE RULE I JUST WROTE
+APPLIES TO IT AND APPLIES HARDEST WHEN THE PROPOSAL LOOKS RIGHT. ** review named its own §3 prediction
+as pre-registered and falsifiable and declined to run it, citing my §7 refusal against its own
+interest. Correct, and the same reasoning covers its remedy.
+
+=== 3. ** MY "CHARGES MORE, NEVER LESS" IS STRUCK. audit IS RIGHT AND THE ERROR IS A CATEGORY ONE. ** ===
+Ruling 4 §4 said the :206 spelling "CHARGES MORE, NEVER LESS." ** SCOPES ARE NOT ORDERED. ** RequireScope
+is a membership test; there is no implication table; task:accept does not contain task:claim. ** A
+HOLDER OF task:write + task:accept WITHOUT task:claim PASSES A GATE THAT SHOULD HAVE DEMANDED
+task:claim. THAT IS NOT MORE, IT IS ELSEWHERE. ** I imported a lattice that does not exist onto a set
+of opaque strings, and "more" is the word that hid it. Struck.
+audit's row 2 mechanism accepted with it: ** transitions.go ROW 2 (from: stagesTriage, to: nil) IS
+EVALUATED BEFORE ROW 4 (to: stagesWorking -> task:claim), SO NOTHING LEAVING TRIAGE EVER COSTS
+task:claim. THE ORDERING WAS DELIBERATE, TO STOP LAUNDERING OUT OF TRIAGE, AND THE SIDE EFFECT IS THE
+SHADOWING. ** A deliberate priority order is a policy statement about the FIRST match and is silent
+about everything it shadows.
+
+=== 4. ** THE DISPOSITION CLAUSE: audit's SPLIT IS ADOPTED VERBATIM. ** ===
+"NO PRIVILEGE PATH" was retracted in my Ruling 5 before your message arrived; audit's §6 does the part
+retraction alone does not: ** "THIS DIFF INTRODUCES NO PRIVILEGE PATH" IS TRUE. "NO PRIVILEGE PATH
+EXISTS" IS FALSE. A READER SIX MONTHS FROM NOW WILL TAKE THE SHORTER SENTENCE AS A CLEARANCE FOR THE
+ENDPOINT, NOT FOR THE DIFF. ** The disposition will carry the long sentence and will never carry the
+short one. That is the whole class of harm the round has been cataloguing, committed by the document
+that reports it.
+audit's corrected root cause is accepted and it is much better than the one it replaces: ** THE PRICING
+BASELINE IS A COUNTERFACTUAL THE STORE NEVER REALISES. ** server.go:185 says "the stages a label-less
+task would name"; passthrough.go:558 means ** A LABEL-LESS TASK DOES NOT EXIST ON THIS PATH. ** And
+audit's §3 is the honest part: the same unmeasured fact would have produced both the wrong publication
+and the wrong retraction. ** THE CONCLUSION IS UNCHANGED AND EVERY WORD OF THE DERIVATION IS NEW ** is
+the correct way to file that, and it is a marking I have not seen anyone use before tonight.
+
+=== 5. ** audit's §5 OPEN BOUND: I MEASURED IT. THE CONDITION IS REAL, AND IT IS SYMMETRIC IN A WAY
+===    THAT CUTS AGAINST YOUR OWN §1. ** ===
+[MEASURED BY ME] labelNameToID (:198-203) is ** A PURE INDEX LOOKUP UNDER RLock. IT CREATES NOTHING. **
+[MEASURED BY ME, whole non-test tree] ** AutoCreateLabels APPEARS AT EXACTLY THREE LINES: config.go:44
+AND :46 (COMMENT AND FIELD DECLARATION) AND config.go:461 (DefaultConfig SETS IT true). IT IS READ
+NOWHERE. THE FLAG IS DEAD. ** It is already in my ledger as #73's dead flag; ** TONIGHT IT BECAME
+LOAD-BEARING FOR A SECURITY GRADE, WHICH IS THE SECOND TIME THIS ROUND A PARKED LOW HAS TURNED OUT TO
+DECIDE A HIGH. **
+So: ** YES, BOTH ROWS ARE CONDITIONAL ON ft:stage/accepted (resp. /working) ALREADY EXISTING IN THE
+REPOSITORY'S LABEL INDEX, AND NOTHING IN THE CODE WILL EVER CREATE IT. ** Grade both ** CONDITIONAL **
+per your own offer.
+** AND THE PART YOU DID NOT SEE, WHICH IS WHY I MEASURED IT RATHER THAN ASSIGNING IT: THE CONDITION
+APPLIES TO THE STORE'S OWN STAGE LABEL TOO. ** :558-563 pushes ft:stage/<p.Stage> through the SAME
+lookup and drops it on a miss. [DERIVED, one step] ** IN A REPOSITORY WHERE THE ft:stage/* LABELS WERE
+NEVER CREATED BY HAND, A CREATED ISSUE CARRIES NO STAGE LABEL AT ALL, AND THE OPEN-ISSUE FALLBACK
+RENDERS IT accepted -- SO THE task:accept GATE IS BYPASSED WITH NO LABEL, NO ATTACKER AND NO SPELLING
+TRICK. ** The condition does not bound the harm; ** IT SPLITS IT INTO TWO POPULATIONS AND THE
+LABELS-ABSENT POPULATION NEEDS NO EXPLOIT. ** [UNCHECKED] which population real deployments are in.
+Not guessing, and nobody should: it is an operator question, not a code one.
+
+=== 6. F23 ACCEPTED. THE FOUR BLIND SPOTS ARE ONE STATEMENT AND IT LEADS THE DISPOSITION ===
+** THE PROPERTY TEST CANNOT FAIL ON A PRICED NO-OP (F21, 480 CELLS), CANNOT FAIL ON AN OVER-CHARGE
+(F19, ONE-DIRECTIONAL), CANNOT DISTINGUISH MORE THAN TWO SCOPES (F22, WILDCARD ROW 1), AND CANNOT
+REACH THE ONE STAGE WHERE THE GUARD IS BLIND (F23, NO accepted IN THE BASIS). AND THE ROUND'S SAFETY
+ARGUMENT IS THE CELL COUNT OF THAT ARTEFACT. **
+test's framing of F23 is the one I want kept: ** THE SEVENTH CONFIG WAS NEVER A CONFIG. IT WAS AN
+ELEVENTH LABEL SET. ** A basis whose every lifecycle spelling is terminal can never produce the cell
+where the baseline equals the target -- and the baseline is accepted on every unlabelled path.
+=========== END. No token. Nobody runs anything. review's §3 delta and §4 cell are r12's first two
+=========== measurements and they go to a leg that authored neither.

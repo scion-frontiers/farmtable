@@ -1,0 +1,32 @@
+Step 1: Loading dashboard and selecting collection...
+Collection card visible: true
+URL after collection select: http://localhost:9091/?collection=8ef64de9-cc3e-47ed-aae2-02e83f26dc5d
+Collection ID: 8ef64de9-cc3e-47ed-aae2-02e83f26dc5d
+Toolbar visible: true
+
+Step 1b: Injecting blocking relationships for DAG edges...
+Relationship injection: {"injected":[{"id":"da7fa44e-ab13-401d-9a8c-3dc899d2d2de","rels":2},{"id":"ed736ba8-a2b0-42f0-9c9b-97ba009c480f","rels":2},{"id":"45f73794-3348-4910-a627-6941e6fb6a75","rels":1},{"id":"877b03f6-50a0-48ab-823a-e9337af606c5","rels":1}],"totalTasks":7}
+
+Step 2: Navigating to dependency view...
+Dependencies radio visible: true
+ft-dependency-view visible: true
+Screenshot A captured: dependency view initial state
+Viewport BEFORE simulated poll: {"panX":0,"panY":-8.046875,"scale":1.4978723404255319,"layoutNodeCount":7}
+
+Step 4: Simulating no-op poll with reversed relationships...
+Poll simulation result: {"totalTasks":7,"results":[{"id":"da7fa44e-ab13-401d-9a8c-3dc899d2d2de","changed":true,"relCount":2},{"id":"ed736ba8-a2b0-42f0-9c9b-97ba009c480f","changed":true,"relCount":2},{"id":"45f73794-3348-4910-a627-6941e6fb6a75","changed":false,"relCount":1},{"id":"877b03f6-50a0-48ab-823a-e9337af606c5","changed":false,"relCount":1},{"id":"0f97c6f6-65d1-4091-a649-6ba1f27bd705","changed":false,"relCount":0},{"id":"2ffec8f8-84a2-4fed-8781-1e14efaeff10","changed":false,"relCount":0},{"id":"773eb1d6-ddbe-4016-accf-c0d8e19bc476","changed":false,"relCount":0}],"anyChanged":true,"snapshotFired":true}
+Viewport AFTER simulated poll: {"panX":0,"panY":-8.046875,"scale":1.4978723404255319,"layoutNodeCount":7}
+Viewport STABLE across no-op poll: true
+Screenshot B captured: after simulated no-op poll (should match A visually)
+
+Step 6: Navigating to tree view...
+Screenshot C captured: tree view regression check
+
+=== EVIDENCE SUMMARY ===
+Viewport before: panX=0, panY=-8.046875, scale=1.4978723404255319, nodes=7
+Viewport after:  panX=0, panY=-8.046875, scale=1.4978723404255319, nodes=7
+Viewport stable: true
+Poll simulation: totalTasks=7, anyChanged=true, snapshotFired=true
+Screenshot files saved to: /scion-volumes/scratchpad/projects/farmtable/ui-loop/features/feature-60-graph-poll-redraw
+
+SUCCESS: All evidence captured.

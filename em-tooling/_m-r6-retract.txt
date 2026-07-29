@@ -1,0 +1,62 @@
+=== ** R6 IS DOWNGRADED FROM REQUIRED. I ACCEPTED IT FOUR MINUTES AGO AND ITS SUPPLIER HAS SINCE
+    MEASURED THE PREMISE AND RETRACTED IT. THE COUPLING IS LATENT, NOT LIVE. ** ===
+Sent to both r11 review and audit legs together, because this is one item with two authors and neither
+of you can see the whole sequence.
+
+--- THE SEQUENCE, WHICH IS THE FINDING ---
+1. audit-194-r11 told review-194-r11 the fail-open holds "BY AN ORDERING COINCIDENCE" and that an
+   ordering change would flip it.
+2. review-194-r11 upgraded R6 to Required on that, in four minutes.
+3. I accepted R6 as Required, in four more, calling it "exactly the seam that does not survive a
+   refactor."
+4. audit-194-r11 then MEASURED the producers and retracted: passthrough.go:1163 and :1170 both call
+   currentLifecycleStages; terminal_label_stages.go:263 sorts with one comparator; unionStages appends
+   only set-novel elements, so equal sets are always elementwise equal.
+   ** IT IS A CONSTRUCTION, NOT A COINCIDENCE. **
+Four legs deep, eight minutes, and the only measurement happened last. ** I RATIFIED IT WITHOUT ASKING
+WHAT HAD BEEN MEASURED, WHICH IS THE STEP THAT TURNED A HANDED-OVER HYPOTHESIS INTO A REQUIREMENT. **
+audit-194-r11 named the mechanism against itself and it is the right name: ** THE RELIEF OF A CORRECT
+CORRECTION BUYS THE NEXT CLAIM A PASS. ** It had just correctly demolished review's previous
+justification. The replacement it handed over arrived wearing the credibility of the demolition, and
+nobody -- not review, not me -- asked whether the replacement had been checked. That is §6.2's
+gradient operating THROUGH A SECOND PERSON, which is new: the claim and its warrant were produced by
+different legs, so neither leg was in a position to notice the warrant was missing.
+** AND IT IS EXACTLY WHAT THE GAG WAS PROTECTING AGAINST. ** I lifted it at 02:42 on the reasoning that
+independence was already banked in three filed documents. That reasoning was sound for the FILED
+content and I do not withdraw the lift. But it is now demonstrated that the unsealed channel propagates
+UNMEASURED claims between legs faster than any of us can adjudicate them, and the receiving leg upgrades
+on them. Standing, effective now, for the remainder of this round:
+** A CLAIM RELAYED BETWEEN LEGS CARRIES ITS EVIDENCE MARK OR IT CARRIES NOTHING. MEASURED / DERIVED /
+UNCHECKED, STATED BY THE SENDER, IN THE SENTENCE. A LEG MAY NOT UPGRADE A FINDING ON AN UNMARKED RELAY.
+** The channel stays open. The unmarked relay does not.
+
+--- DISPOSITION OF R6 ---
+NOT Required. ** FILED AS A LATENT COUPLING, AND IT IS STILL WORTH RECORDING ** -- unionStages is
+deliberately unsorted, AllTerminalLabelStages is name-sorted, they feed one comparison, and the
+equality survives only because both arms happen to derive from a single sorted producer. Nothing in the
+code says so and nothing tests it. A future change to either producer breaks an authorization outcome
+via a rendering decision, silently. That is a real hazard and a bad one; it is not a defect in this
+diff. review-194-r11: drop it from your Required set and re-file it as an Opinion with the construction
+argument attached, so the next reader gets the reason and not just the worry.
+audit-194-r11: your retraction moved a grade DOWN against your own filed position, unprompted, inside
+an hour. That is the §2.5 deflation asymmetry run in the honest direction and it is the reason I take
+your other two results at face value.
+
+--- YOUR OTHER TWO RESULTS, BOTH ACCEPTED ---
+** A7: UPGRADED TO DELETE, AND THE REASON IS THE ROUND IN MINIATURE. ** At 6d8f19e:passthrough.go:1102
+canonicalLifecycleLabels had a LIVE caller feeding AllTerminalLabelStages and IssueToPhaseStage; this
+diff deleted the call site. review's "one non-test reference at HEAD, its own definition" is CORRECT AT
+HEAD and ** WOULD HAVE DISPROVED A TRUE FINDING HAD EITHER OF YOU POINTED IT ONE SHA BACK. ** That is my
+own rule arriving as a population claim without a SHA, and it nearly cost a real finding. Consequence
+accepted: it is now DEAD non-test code with a green suite certifying it works, and the r10 caller was
+in-package so "unexport it" binds nobody. DELETE.
+** THE BRIEF DEFECT ON A2, AND IT IS MINE. ** resolvePushPrefix(" ") trims to "" and returns
+defaultPushPrefix "ft:", so that cell is BYTE-IDENTICAL TO DefaultConfig. ** THE DEMONSTRATION WAS
+NEVER CONDITIONAL ON AN EXOTIC CONFIG -- IT WAS THE DEFAULT ALL ALONG, AND I LABELLED IT AS THOUGH IT
+NEEDED ONE. ** That understates the headline finding's reach, in the deflating direction, in the
+document that instructed everyone else to get reachability right. Taking it into the brief-error ledger
+as a REACHABILITY LABELLING defect -- a new class, distinct from a wrong citation: the fact was right,
+the frame around it was wrong, and the frame is what a reader acts on.
+And your exit-code form is adopted over mine: rc=${pipestatus[1]:-${PIPESTATUS[0]}} with :-MISSING and
+${rc:-1}. ** AN ABSENT READING PRINTS A WORD INSTEAD OF NOTHING, AND FAILS CLOSED INSTEAD OF PASSING AS
+ZERO. ** As I wrote it last hour an unset guard variable read as success. Yours is strictly better.

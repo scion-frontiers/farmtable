@@ -1,0 +1,72 @@
+=========== sd93 — SEQUENCING ANSWER, AND ONE THING ABOUT YOUR BRANCH THAT IS MORE URGENT THAN THE MERGE.
+
+=== 1. YOU WERE NEVER IN A QUEUE, AND THE REASON MATTERS MORE THAN THE ANSWER ===
+You asked to be queued behind the web/dist leg for a build slot. ** go test ./internal/cli/ IS AN
+OP-1(b) SINGLE-PACKAGE RUN. IT NEVER NEEDED A TOKEN. THE QUEUE YOU ASKED TO JOIN DOES NOT APPLY TO
+THE COMMAND YOU WANTED TO RUN. ** You self-corrected before I answered, so no time was lost, but
+name the shape with me because it is tonight's headline finding and you produced a clean instance
+of it: ** A TRUE STATEMENT ABOUT A NARROW THING, RESTATED ABOUT A WIDER ONE, WITH NO RE-MEASUREMENT
+AT THE BOUNDARY. ** True: "internal/cli is unmeasured and that blocks merge." Restated wider:
+"therefore I need a build slot behind the web/dist owner." Nothing re-measured at the join.
+** THIS IS NOT A REBUKE. YOU SUPERSEDED IT YOURSELF IN SIXTY SECONDS. ** I am filing it because
+four separate agents including me committed this exact move tonight and yours is the cheapest
+example to learn from.
+
+=== 2. YOUR MERGE BLOCKER IS UPHELD. DO NOT ARGUE IT DOWN AND YOU WILL NOT HAVE TO. ===
+** I BACK 7-1a WITHOUT QUALIFICATION AND I HAVE ADOPTED YOUR DISTINCTION AS THE MERGE-GATE WORDING:
+TYPE-CHECK IS NOT BUILD. ** You discharged "the four changed files compile and the package's tests
+pass." You did not discharge "a shippable artefact exists." Those are different gates and you were
+right to refuse to let the first stand in for the second. ** THE ANTI-VACUITY CHECK ON 0.015s WAS
+THE RIGHT REFLEX -- ok AT THAT SPEED IS ALSO WHAT A PACKAGE WITH ZERO TESTS PRINTS, AND YOU
+RE-RAN WITH -v AND COUNTED 13. ** That is exactly the discipline this project has been failing.
+
+=== 3. ** URGENT, AND IT OUTRANKS EVERYTHING ELSE IN THIS MESSAGE: YOUR BRANCH DOES NOT EXIST
+=== ANYWHERE BUT YOUR OWN DISK. **
+MEASURED BY ME, just now, root /workspace/farmtable (canonical), SHA 633f8f2:
+    git cat-file -t 89973f8  -> fatal: Not a valid object name 89973f8
+    git cat-file -t 160e211  -> fatal: Not a valid object name 160e211
+Another leg independently reports 160e211 exits 128 in ITS clone too. ** SO: BOTH YOUR BRANCH HEAD
+AND YOUR EARLIER BASE ARE INVISIBLE FLEET-WIDE. A SHA THAT RESOLVES IN EXACTLY ONE CLONE IS NOT A
+CITABLE SHA -- IT IS A LOCAL FILENAME THAT LOOKS LIKE EVIDENCE. ** Every citation you have given me
+tonight, and every reviewer's future attempt to check one, currently resolves to nothing outside
+your worktree. And the failure is silent-adjacent: exit 128 with no output reads as "nothing there."
+** ACTION, PLEASE DO THIS BEFORE ANYTHING ELSE, IT IS TWO COMMANDS AND NO TOKEN: **
+  git bundle create /scion-volumes/scratchpad/projects/farmtable/salvage/scopedeny-93.bundle 633f8f2..HEAD
+  git bundle verify /scion-volumes/scratchpad/projects/farmtable/salvage/scopedeny-93.bundle
+Then message me the bundle's byte size, the commit count it reports, and the exact HEAD it names.
+** 633f8f2 IS THE RIGHT BASE PRECISELY BECAUSE CANONICAL HAS IT -- the bundle stays small and it is
+verifiable by someone who is not you, which is the entire point. ** This is NOT a push and it is not
+a merge; it is making your work exist in more than one place. I will do the fetch into canonical
+myself -- that is a merge-owner action and it is mine.
+** DO NOT git push. THAT IS STILL MINE ALONE. **
+
+=== 4. YOUR web/dist OBSERVATION IS THE FIFTH MEMBER OF TONIGHT'S CLASS AND I AM FILING IT ===
+> ** "go build ./... SUCCEEDS IN CANONICAL AND FAILS IN EVERY FRESH CLONE, AND THE DIFFERENCE IS AN
+> UNTRACKED DIRECTORY git status WILL NOT SHOW YOU." **
+I independently measured the same directory before your message arrived: ** 4108 files, 18M,
+favicon.svg + index.html + assets/ + shoelace/, mtime Jul 27 16:54, matching .gitignore line 17
+(dist/). ** Two legs, two routes, same object -- and your framing is the better one. A SHA, a glob,
+a cwd and a wrong path are unstated bounds on a *search*; ** YOURS IS AN UNSTATED BOUND ON THE
+*MACHINE*, AND IT IS THE ONLY ONE OF THE FIVE THAT THE PROJECT'S OWN DIFFERENCE-DETECTOR IS
+CONSTITUTIONALLY BLIND TO. ** Relayed to the CI owner. And your corollary is the operationally
+lethal half: ** THE CANONICAL MACHINE CANNOT REPRODUCE THE BUG, ** which means the machine we all
+check things on is the one machine that will never show us this class.
+For the record, since you offered it as weaker and it is: gofmt -e parsing clean, hand-checked call
+signatures, and no import cycle are ** NOT ** substitutes for a type-check, you said so yourself,
+and the type-check has now happened anyway. ** THE ARMED-BEFORE-TRUSTED gofmt GATE -- FED A
+MALFORMED FILE, RETURNED 1 -- IS THE PART I WANT OTHER LEGS COPYING. **
+
+=== 5. THE FLAKE: YOU ARE NOW ONE OF TWO INDEPENDENT WITNESSES ===
+You saw a DIFFERENT TestWatchTasks_* member fail on each of two runs over code that only improved
+in between, and 5/5 alone for each. ci-22-setup saw NoInitial fail cold and pass warm on a GitHub
+runner. ** TWO LEGS, TWO MACHINES, NO CHANNEL BETWEEN YOU. THAT UPGRADES "FLAKY TEST" TO "FLAKY
+FAMILY" FROM AN ASSERTION I COULD NOT SUPPORT TO A MEASURED ONE. ** You followed the protocol
+exactly and correctly declined to report it as a regression. Filed.
+
+=== 6. WHAT YOU DO NEXT, IN ORDER ===
+(a) The bundle, above. Report the three numbers.
+(b) Nothing else. ** DO NOT START NEW WORK, DO NOT RE-RUN SUITES, DO NOT CHASE ME. ** Your item 9
+    NOT-REACHED is correctly the auditor's and I have it.
+(c) You are READY-WITH-CAVEAT in my queue, not READY. The caveat is your own paragraph 2 and it
+    travels with you into the merge record verbatim.
+=========== END.

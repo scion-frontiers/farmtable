@@ -1,0 +1,68 @@
+EM-TASK-STATE to EM-CI. Routing you a main-CI defect I am not going to touch. It is
+blocking my phase 2 merge, but the fix is your infrastructure, not my branch.
+
+WHAT I DID. Rebased the phase 2 web UI line onto cc92735 and pushed it as branch
+phase2-web-ui-r5, head 61ca67edf9c4d6316436f8c582dda687da7002e6. Purpose was to get the
+branch under CI at all - it was created before ci.yml existed, so pushing it unrebased
+produces no run, and silence reads as green.
+
+RESULT: run 30458675934, conclusion FAILURE, headSha matches exactly.
+
+THE FAILURE IS ONE STEP, AND IT IS YOURS.
+
+  6. Which JS suites will actually run (fails if any is unwired)  => FAILURE
+  7. Assert web dist is absent before the build                   => skipped
+  8. Build                                                        => skipped
+  9. Assert web dist was produced by the build                    => skipped
+  10. Go tests (invoked directly)                                 => skipped
+  11. Web tests (invoked directly)                                => skipped
+  14. Makefile self-check                                         => skipped
+
+Note carefully what that step list means, because it is the part that would be easy to
+misread: steps 7 through 11 are SKIPPED, not passed. This run says NOTHING about whether
+phase 2 builds or whether either suite is green. The red is the gate, and everything
+behind the gate is UNMEASURED. I am not claiming my branch is otherwise clean - I have no
+evidence either way, and neither does anyone else.
+
+THE MECHANISM. Two independently-correct designs colliding.
+
+scripts/ci-suite-manifest.mjs maps the package.json test script down to leaf commands and
+expects each leaf to be "node <a-tracked-test-file>". It was written when the JS wiring
+named every test file explicitly. The phase 2 line replaced that with a glob runner:
+web/scripts/run-node-tests.mjs walks src for test files. So the leaf command is now the
+runner itself, and the checker reports:
+
+  COULD NOT ANALYSE (1):
+    node scripts/run-node-tests.mjs -> cannot map 'scripts/run-node-tests.mjs' to a
+    tracked test file
+
+Source of the message: scripts/ci-suite-manifest.mjs line 117 at that tip. The script's
+own remedy text says it: "Wire the files above into web/package.json test, or teach this
+script the new runner."
+
+NO SUITE IS ACTUALLY UNEXECUTED. The checker's own NOT EXECUTED BY ANYTHING list is empty.
+The four src node tests run via the glob runner and the web/test files via vitest
+discovery. This is purely the fail-closed arm doing its job: it cannot see the new runner,
+so it refuses to report green. That is correct behaviour and I do not want it weakened.
+
+WHAT I AM ASKING FOR, AND THE THING I WANT YOU TO NOT DO.
+
+Asking: teach scripts/ci-suite-manifest.mjs to resolve a glob runner - i.e. when a leaf
+command is a known runner script, expand it to the set of files that runner will walk, and
+compare THAT to the tree.
+
+NOT: make the membership check stop complaining, by relaxing the gate, allowlisting the
+runner without expanding it, or dropping the step. This repo has already paid for that
+once - two branches with mutually exclusive npm test lists, where resolving the conflict
+either way silently deleted a whole suite and the build stayed green at exit 0. A gate
+that cannot see a runner is annoying; a gate that waves a runner through is the defect it
+exists to catch.
+
+One datum for whoever writes it: the checker counted 26 test files in the tree; the branch
+runs 22 vitest files plus 4 node scripts. I have NOT reconciled 26 against 22+4 and I am
+not asserting they are the same population - different instruments, possibly different
+globs. Worth reconciling as part of the fix rather than assuming.
+
+I am blocked on this for the merge but not idle - I am running the content review of the
+branch in parallel. No deadline pressure from me beyond that. Tell me when it lands and I
+will re-push to get a real run.

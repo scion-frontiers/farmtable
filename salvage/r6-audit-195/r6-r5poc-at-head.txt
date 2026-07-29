@@ -1,0 +1,137 @@
+=== HARNESS CAPABILITY SELF-CHECK (must all be FIRE) ===
+  FIRE  hasEventHandler  <- <img src=x onerror=alert(1)>
+  FIRE  hasScriptUrl  <- <a href="javascript:alert(1)">x</a>
+  FIRE  hasTag(script)  <- <script>alert(1)</script>
+  FIRE  hasTag(iframe)  <- <iframe srcdoc="x"></iframe>
+  FIRE  hasAttr(srcdoc)  <- <iframe srcdoc="x"></iframe>
+  FIRE  hasAttr(style)  <- <p style="color:red">x</p>
+  FIRE  hasAttr(class)  <- <p class="comment">x</p>
+  FIRE  hasAttr(id)  <- <p id="x">x</p>
+  FIRE  hasTag(style)  <- <style>a{}</style>
+  FIRE  hasTag(form)  <- <form></form>
+  FIRE  hasText  <- xx alert(1) xx
+  all detectors demonstrably fire.
+
+=== VECTOR RESULTS ===
+[BLOCKED-BY-DEFAULTS] A1   iframe srcdoc
+[BLOCKED-BY-DEFAULTS] A2   iframe srcdoc attr present
+[BLOCKED-BY-DEFAULTS] A3   object data
+[BLOCKED-BY-DEFAULTS] A4   embed src
+[BLOCKED-BY-DEFAULTS] A5   base href hijack
+[BLOCKED-BY-DEFAULTS] A6   meta refresh
+[BLOCKED-BY-DEFAULTS] A7   script tag
+[BLOCKED-BY-DEFAULTS] B1   img onerror
+[INCONCLUSIVE       ] B2   body onload
+                      real: ""
+                      raw : "<body onload=alert(1)>"
+[BLOCKED-BY-DEFAULTS] B3   onfocus autofocus
+[BLOCKED-BY-DEFAULTS] B4   onpointerover
+[BLOCKED-BY-DEFAULTS] B5   ontoggle details
+[BLOCKED-BY-DEFAULTS] B6   onanimationstart
+[BLOCKED-BY-DEFAULTS] B7   mixed-case OnErRoR
+[BLOCKED-BY-DEFAULTS] B8   svg onload
+[BLOCKED-BY-DEFAULTS] B9   onbeforetoggle popover
+[BLOCKED-BY-DEFAULTS] C1   md link javascript:
+[BLOCKED-BY-DEFAULTS] C2   raw a javascript:
+[BLOCKED-BY-DEFAULTS] C3   js with tab obfuscation
+[BLOCKED-BY-DEFAULTS] C4   js with newline
+[BLOCKED-BY-DEFAULTS] C5   entity-encoded js
+[BLOCKED-BY-DEFAULTS] C6   data:text/html link
+[SURVIVES           ] C7   md image data uri
+                      real: "<p><img src=\"data:text/html,%3Cscript%3Ealert(1)%3C/script%3E\" alt=\"x\"></p>\n"
+                      raw : "<p><img src=\"data:text/html,%3Cscript%3Ealert(1)%3C/script%3E\" alt=\"x\"></p>\n"
+[BLOCKED-BY-DEFAULTS] C8   vbscript:
+[BLOCKED-BY-DEFAULTS] C9   leading-space javascript:
+[BLOCKED-BY-CONFIG  ] D1   svg style
+[BLOCKED-BY-DEFAULTS] D2   svg script
+[BLOCKED-BY-DEFAULTS] D3   svg animate href
+[BLOCKED-BY-DEFAULTS] D4   svg set attributeName
+[BLOCKED-BY-DEFAULTS] D5   svg foreignObject script
+[BLOCKED-BY-DEFAULTS] D6   svg use external
+[BLOCKED-BY-DEFAULTS] D7   math annotation-xml html
+[BLOCKED-BY-CONFIG  ] D8   math mtext style
+[BLOCKED-BY-DEFAULTS] D9   svg handler attr
+[BLOCKED-BY-DEFAULTS] E1   classic style-in-noscript mXSS
+[INCONCLUSIVE       ] E2   noscript mXSS
+                      real: "<p></p><p></p>\n"
+                      raw : "<p><noscript><p title=\"</noscript><img src=x onerror=alert(1)>\"></p>\n"
+[INCONCLUSIVE       ] E3   form nesting mXSS
+                      real: "<math><mtext></mtext></math>"
+                      raw : "<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>"
+[INCONCLUSIVE       ] E4   template mXSS
+                      real: "<p><template></template></p>\n"
+                      raw : "<p><template><script>alert(1)</script></template></p>\n"
+[BLOCKED-BY-DEFAULTS] E5   textarea escape
+[INCONCLUSIVE       ] E6   nested svg/p mutation
+                      real: "<p><svg></svg></p><p></p><p></p>\n"
+                      raw : "<p><svg><p><style><img src=1 onerror=alert(1)></style></p></svg></p>\n"
+[BLOCKED-BY-CONFIG  ] F1   form credential phish
+[BLOCKED-BY-CONFIG  ] F2   input
+[BLOCKED-BY-CONFIG  ] F3   button formaction
+[BLOCKED-BY-CONFIG  ] F4   dialog overlay
+[BLOCKED-BY-DEFAULTS] F5   style tag html ns
+[BLOCKED-BY-CONFIG  ] F6   style attr
+[BLOCKED-BY-CONFIG  ] F7   class forgery
+[BLOCKED-BY-CONFIG  ] F8   download rename
+[BLOCKED-BY-CONFIG  ] F9   action attr
+[SURVIVES           ] G1   id attribute survives?
+                      real: "<p id=\"section-title\">x</p>"
+                      raw : "<p id=\"section-title\">x</p>"
+[SURVIVES           ] G2   name attribute survives?
+                      real: "<p><a name=\"x\">y</a></p>\n"
+                      raw : "<p><a name=\"x\">y</a></p>\n"
+[BLOCKED-BY-DEFAULTS] G3   target=_blank survives?
+[SURVIVES           ] G4   rel controllable?
+                      real: "<p><a href=\"https://e.example\" rel=\"opener\">x</a></p>\n"
+                      raw : "<p><a href=\"https://e.example\" target=\"_blank\" rel=\"opener\">x</a></p>\n"
+[SURVIVES           ] G5   width/height layout
+                      real: "<img src=\"https://evil.example/p.png\" width=\"9999\" height=\"9999\">"
+                      raw : "<img src=\"https://evil.example/p.png\" width=\"9999\" height=\"9999\">"
+[INCONCLUSIVE       ] G6   bgcolor presentational
+                      real: "x"
+                      raw : "<td bgcolor=\"red\">x</td>"
+[SURVIVES           ] G7   background attr url
+                      real: "<table background=\"https://evil.example/p.png\"><tbody><tr><td>x</td></tr></tbody></table>"
+                      raw : "<table background=\"https://evil.example/p.png\"><tr><td>x</td></tr></table>"
+[SURVIVES           ] G8   align presentational
+                      real: "<p align=\"center\">x</p>"
+                      raw : "<p align=\"center\">x</p>"
+[SURVIVES           ] G9   hidden attr
+                      real: "<p hidden=\"\">x</p>"
+                      raw : "<p hidden>x</p>"
+[SURVIVES           ] G10  popover attr
+                      real: "<div popover=\"manual\">x</div>"
+                      raw : "<div popover=\"manual\">x</div>"
+[SURVIVES           ] G11  external img beacon
+                      real: "<p><img src=\"https://evil.example/track.png\" alt=\"x\"></p>\n"
+                      raw : "<p><img src=\"https://evil.example/track.png\" alt=\"x\"></p>\n"
+[SURVIVES           ] G12  srcset beacon
+                      real: "<img src=\"a\" srcset=\"https://evil.example/t.png 1x\">"
+                      raw : "<img src=\"a\" srcset=\"https://evil.example/t.png 1x\">"
+[SURVIVES           ] G13  loading=eager
+                      real: "<img src=\"https://evil.example/t.png\" loading=\"eager\">"
+                      raw : "<img src=\"https://evil.example/t.png\" loading=\"eager\">"
+[SURVIVES           ] G14  is= custom element
+                      real: "<p is=\"\">x</p>"
+                      raw : "<p is=\"evil-el\">x</p>"
+[BLOCKED-BY-CONFIG  ] G15  slot attr shadow
+[BLOCKED-BY-DEFAULTS] G16  contenteditable
+[SURVIVES           ] G17  draggable+ondragstart
+                      real: "<p draggable=\"true\">x</p>"
+                      raw : "<p draggable=\"true\">x</p>"
+[BLOCKED-BY-DEFAULTS] G18  autofocus
+[SURVIVES           ] G19  tabindex
+                      real: "<p tabindex=\"0\">x</p>"
+                      raw : "<p tabindex=\"0\">x</p>"
+[SURVIVES           ] G20  aria-* spoof
+                      real: "<p role=\"button\" aria-label=\"Approve\">x</p>"
+                      raw : "<p role=\"button\" aria-label=\"Approve\">x</p>"
+
+=== SUMMARY ===
+SURVIVES            : 16
+BLOCKED-BY-CONFIG   : 11   <- FORBID_TAGS/FORBID_ATTR did this. The reviewed config's own contribution.
+BLOCKED-BY-DEFAULTS : 36   <- DOMPurify's built-in allow-list did this. Config was NOT load-bearing.
+INCONCLUSIVE        : 6   <- payload absent even UNSANITIZED. Nothing was blocked; do not claim a pass.
+total               : 69
+
+EXIT 1: at least one vector survived or could not be expressed.

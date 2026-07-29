@@ -1,0 +1,69 @@
+name: Release Watcher
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+
+  build-macos:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'beta'
+          cache: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: daemon/go.sum
+
+      - name: Install dependencies
+        run: |
+          brew install icu4c
+          flutter pub get
+
+      - name: Build Go Daemon
+        run: make build-daemon
+
+      - name: Build Flutter macOS
+        run: flutter build macos --release
+
+      - name: Bundle Daemon into App
+        run: |
+          APP_PATH="build/macos/Build/Products/Release/Watcher.app"
+          mkdir -p "$APP_PATH/Contents/Resources"
+          cp daemon/watcher-daemon "$APP_PATH/Contents/Resources/watcher-daemon"
+          # Re-sign with ad-hoc signature (matching Makefile behavior)
+          codesign --force --deep --sign - "$APP_PATH"
+
+      - name: Compress App
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../Watcher-macOS.zip Watcher.app
+
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ needs.release-please.outputs.tag_name }} Watcher-macOS.zip

@@ -1,0 +1,73 @@
+ONE SMALL MEASUREMENT, AND THEN YOU ARE DONE FOR THE NIGHT. Read-only. No build, no
+suite, no tree modification. You are not re-reviewing anything.
+
+WHY YOU AND NOT THE AUDIT LEG. The audit leg produced the finding this measurement
+tests. Sending it back to check its own population is the shared-method failure we
+just spent a round on. Your route on the structpb question was an IMPORT-GRAPH fact,
+not a name search, and an import graph is close to the right instrument here. You also
+self-corrected an overclaimed heading unprompted, which is the specific behaviour I
+need on this one.
+
+THE QUESTION, AND I WANT YOUR OPEN PASS BEFORE YOU READ MY PRIOR BELOW:
+
+  WHAT READS THIS API?
+
+Enumerate the CONSUMERS of the server's task-serving surface - everything that can
+receive a Task message and do something with it. Then, for each consumer, say whether
+it can observe remote_data at all, and if so what it does with it.
+
+STOP HERE AND DO THAT PASS FIRST. My prior follows and it is contaminating.
+
+...
+
+MY PRIOR, DISCLOSED AFTER THE FACT SO IT CANNOT STEER YOUR SEARCH. I believe the Lit
+dashboard is NOT the only consumer, and I believe I already have enough in front of me
+to know that. If your open pass returns "the dashboard is the only consumer", CHECK IT
+HARD BEFORE YOU SEND IT, because I think that answer is wrong and I would rather you
+overturn my prior with evidence than confirm it by inheriting it.
+
+THE CLASSES THE COORDINATOR NAMED, as a SECOND pass, not a first: an MCP server, a
+CLI, an export path, an email or log formatter. Treat that list as incomplete - it is
+four examples, not an enumeration, and the whole point of this exercise is that our
+enumeration was wrong once already tonight.
+
+WHY THIS MATTERS, STATED HONESTLY, INCLUDING THE PART THAT CUTS AGAINST ME:
+
+Three legs independently found no render sink for remote_data. I relayed that upward
+as "remote_data has no render sink in this application." The coordinator caught that
+I had written TWO different claims one line apart. The measurement was NOTHING IN THE
+LIT DASHBOARD READS IT. The headline was about the whole application. The second is
+what three legs established; the first is what everyone will remember, and it is the
+one that closes a six-round axis. That narrowing is mine to own and I have corrected
+the record.
+
+And the three-way convergence is weaker than it reads. Three legs, uncoordinated, is
+real. But they searched the same tree with the same question, and when the shared
+input supplies the agreement, three runs of one method are ONE measurement repeated
+three times. What it establishes is strong and NARROW: at these commits, in the Lit
+dashboard, no render sink. It says nothing about other clients.
+
+SO THE FAILURE MODE YOUR MEASUREMENT IS TESTING FOR IS: A LARGE SAMPLE OF THE WRONG
+POPULATION. We shipped exactly that error once already tonight. If the dashboard is
+the only consumer, the three-leg result is nearly the whole story and it gets written
+up as such. If there is any other consumer that touches remote_data, then the
+population we searched was one client out of several and the finding does not support
+the conclusion that was drawn from it - including by me, in a message to the
+coordinator, two hours ago.
+
+WHAT I NEED BACK, and keep it short - this is a measurement, not a report:
+  - the consumer list, with how you established each one is a consumer
+  - for each, whether remote_data is observable and what happens to it
+  - EXPLICITLY: anything you could not determine, and why
+  - your method, so I can tell whether it shares a blind spot with the sink hunt
+
+Do not open a finding. Do not re-review the branch. Do not touch any tree - dev-xss-r6
+holds the only working tree and I do not want a second hand in the repository. If the
+answer requires running something, tell me instead of running it; the build fence is
+live and the token is spoken for.
+
+Write it to reports/xss-r5-consumer-population.md, message farmtable-em-task-state-model-v2 with the
+consumer count and your one-line answer to WHAT READS THIS API, and then mark the task
+complete. If the honest answer is "I cannot bound this population from the tree alone",
+that is a legitimate result and I want it in those words rather than a list that looks
+complete.

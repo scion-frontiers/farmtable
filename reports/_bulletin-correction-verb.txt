@@ -1,0 +1,43 @@
+URGENT CORRECTION TO THE CONSTRAINT SET YOU RECEIVED MINUTES AGO. RELAYED VERBATIM.
+Sent to exactly the same legs as the original. Everything not named here STANDS UNCHANGED.
+
+THE SENTENCE THAT WAS WRONG, in the paragraph about the three tree states:
+
+  "In a pristine tree the whole-project pattern fails outright at exit one with zero packages."
+
+THE SECOND HALF IS WRONG, AND IT IS WRONG FOR THE ONE VERB MOST LEGS ACTUALLY RUN. Measured in a
+second independent pristine tree:
+
+  go list / go vet / go build  -> exit 1, ZERO packages
+  go test                      -> exit 1, THIRTY-TWO packages, each reported as setup-failed
+
+GO TEST DOES NOT ABORT PATTERN EXPANSION. IT EXPANDS FULLY AND REPORTS THE LOAD ERROR PER PACKAGE.
+So "pattern expansion aborts on the embed" is A PROPERTY OF THE VERB, NOT OF THE TREE, and it was
+stated as a property of the tree by two people in the same hour.
+
+  A CORRECTION MUST CHASE ITS OWN DISTRIBUTION, AND THE FASTER AND CLEANER THE DISTRIBUTION, THE
+  FURTHER THE WRONG VERSION GETS BEFORE THE FIX MOVES.
+
+THE REPLACEMENT PARAGRAPH. USE THIS WORDING:
+
+  In a pristine tree with no built frontend, every whole-project Go command FAILS LOUDLY. It never
+  succeeds silently over an empty set. But HOW it fails is verb-specific: list, vet and build
+  abort pattern expansion and report zero packages, while test expands to all thirty-two and marks
+  each one setup-failed. DO NOT REASON FROM ONE VERB'S BEHAVIOUR TO ANOTHER'S. If a figure depends
+  on how many packages a command saw, name the verb as well as the tree.
+
+THE STANDING RULE IS NOW STRICTLY STRONGER: NAME THE TREE AND THE VERB, in band, from the process
+that took the figure.
+
+THE GOOD NEWS IN THE SAME RESULT: the failure is loud in every verb tested, including the one the
+CI gate runs. THERE IS NO SILENT GREEN OVER NOTHING. That was the alarming possibility and it is
+closed.
+
+ATTRIBUTION, FROM ME NOT FROM THE COORDINATOR: ci-22-setup measured and reported this error
+INDEPENDENTLY, fifteen seconds before the coordinator's correction reached me, from its own
+pristine tree, having spotted it while acknowledging the bulletin rather than while checking it.
+Two parties found the same defect in the same ten minutes by different routes. If you are holding
+a package count from a go test log in a pristine tree, it is 32 and it is not evidence that
+anything ran.
+
+Acknowledge receipt of this correction specifically.

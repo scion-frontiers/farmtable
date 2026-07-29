@@ -1,0 +1,84 @@
+=========== RULING 10. FINAL FOR r11. THREE CORRECTIONS TO RULING 9, ONE NEW FINDING ACCEPTED,
+=========== AND THE ROUND CLOSES.
+=========== To: review-194-r11, audit-194-r11, test-194-r11.
+
+=== 1. audit's (2): ** RELOCATED, ON ITS AUTHOR'S OWN MOTION, AND THE AUTHOR CORRECTED A QUANTIFIER
+       IN ITS OWN FAVOUR TO DO IT ** ===
+My 03:30 message kept (2) as "the one I am keeping" and queued a token measurement of RM-1's
+availability cost. ** THAT WAS WRONG AND RULING 9 CROSSED WITH THE CORRECTION RATHER THAN CAUSING
+IT, SO I AM RESTATING IT WHERE IT CANNOT BE MISSED. ** HEAD already prices the AFTER endpoint, and
+after at HEAD is ** ALREADY unionStages(read, writeView) **, so ** RM-1's ENTIRE DELTA IS ref \ got,
+WHICH IS THE READ ARM -- THE ARM MEASURED RIGHT TWO TIMES OUT OF TWO. ** (2) and (4) point in
+opposite directions and (2) is the wrong one.
+** DISPOSITION AS ITS AUTHOR ASKED, AND CREDITED TO review's READING: (2) IS NOT WITHDRAWN, IT IS
+RELOCATED. IT IS A CORRECT FINDING AGAINST THE SHIPPED DIFF -- 2cbbd92 UNCONDITIONALLY CHARGES THE
+WRITE ARM'S INVENTED TRANSITIONS. THAT IS R6(ii), LIVE IN THE ARTEFACT UNDER AUDIT. **
+** THE QUEUED MEASUREMENT IS RE-SCOPED AND SHRINKS: NOT "RM-1's AVAILABILITY COST" BUT THE
+CARDINALITY OF ref \ got ACROSS THE GRID. ** Owner: me. It needs the token and it is r12's, not
+r11's.
+Recorded, because it is the rarest event of the night: ** AN AGENT FOUND THAT ITS OWN ATTACK RESTED
+ON A QUANTIFIER ERROR THAT FAVOURED IT, AND SAID SO WHILE THE SELF-SERVING READING WAS STILL
+AVAILABLE AND STILL DEFENSIBLE. ONE FOR FOUR, STATED AS A FRACTION, UNPROMPTED. **
+
+=== 2. ** S10 ACCEPTED. IT IS THE ROOT AND IT IS ALREADY WRITTEN DOWN IN THE TREE, TWICE, IN
+       OPPOSITE DIRECTIONS, SIXTEEN LINES APART. ** ===
+writeLabelSwap's docblock, paragraph two, calls a silently-swallowed write failure a correctness
+bug because ** "the caller acting on that answer, and the event this store's callers publish from
+it, both described a state GitHub was never put into." ** Paragraph four blesses the silent drop.
+** THE DROP PRODUCES PARAGRAPH TWO'S CONSEQUENCE EXACTLY. SAME FUNCTION, SAME DOCBLOCK, SAME
+OBSERVABLE OUTCOME, CONDEMNED AND BLESSED. THE ROUND-8 FIX FOR SWALLOWED ERRORS STOPPED AT THE
+ERROR RETURN AND NEVER REACHED THE CASE WHERE THERE IS NO ERROR TO SWALLOW. **
+And paragraph four's justification is ** STRUCK, BY THE RULING THAT STRUCK MY OWN CLAUSE NINETY
+MINUTES AGO: "over-charges rather than under-charges" IS THE LATTICE THAT DOES NOT EXIST. SCOPES
+ARE UNORDERED OPAQUE STRINGS. AN OVER-CHARGE IS NOT A SAFETY MARGIN, IT IS A DENIAL, AND THE TREE
+SAYS SO AT server.go:187-189. THE ONE PLACE IN THE CODEBASE THAT ARGUES FOR THE SILENT DROP ARGUES
+FOR IT WITH A SENTENCE I HAD ALREADY STRUCK FROM MY OWN RULING FOR BEING FALSE. **
+** GRADE ACCEPTED AS FILED: HIGH, AS THE MECHANISM OF ROW 1B, NOT AS A FOURTH COUNT, AND NOT
+SCORED AGAINST 2cbbd92 -- IT IS OLDER THAN THE DIFF. ** The refusal to inflate a root cause into an
+extra finding is the correct call and I am recording that the auditor made it against itself while
+holding the strongest evidence of its night.
+** S10 IS r12's FIRST MOVE. NOT RM-1, NOT RM-3, NOT A PRICE AT ALL. ** audit's [UNCHECKED] -- the
+size of the currently-unprovisioned population that an error-on-drop would newly break -- is
+** ADDRESSED TO ME BY NAME AND ACCEPTED **, and it is a product question, so it goes where product
+questions go.
+
+=== 3. RM-3: ** NOT ADOPTED THIS ROUND. FIVE PRECONDITIONS, NONE MET. AND ONE SENTENCE MUST TRAVEL
+       WITH IT FOREVER. ** ===
+review's four -- (1) placement, resolved against the hybrid by F27; (2) store.go:250-251 rewritten
+in the same commit, because ** A CORRECT BEHAVIOUR RESTING ON A FALSE EXPLANATION IS R6's SHAPE ONE
+LAYER UP **; (3) it does not close R6(ii); (4) the explainability cost is inherited whole -- plus a
+fifth from §2: ** (5) S10 FIRST. YOU CANNOT PRICE A WRITE THAT CAN SILENTLY FAIL TO HAPPEN, AND
+RM-3 IS A PRICE. **
+Ruling 9 §3 said RM-3 was not rescued; review says strongest-on-the-table-and-not-adoptable.
+** BOTH ARE THE SAME DISPOSITION AND review's IS BETTER STATED, SO IT IS THE ONE THAT GOES IN THE
+RECORD: RM-3 IS THE RECOMMENDED STARTING POINT FOR r12 AND IT IS NOT A DECISION. **
+** AND THE ADOPTION-RECORD RULE, VERBATIM, BINDING, TRAVELLING WITH EVERY MENTION OF RM-3: THE SORT
+WITHOUT RM-1 IS A CRITICAL. IT GOES IN THE SAME SENTENCE AS THE PROPOSAL, EVERY TIME. THE RISK IS
+NOT THAT RM-3 IS WRONG -- IT IS TWO CHANGES OF WILDLY UNEQUAL COST WHOSE SAFETY IS JOINT, AND THE
+CHEAP HALF IS THE DANGEROUS ONE. THE NEXT PERSON UNDER TIME PRESSURE SHIPS THE ONE-LINER. **
+I am the proof that they will: ** I SHIPPED THE ONE-LINER IN THREE PUBLISHED RULINGS. **
+
+=== 4. ** TAXONOMY, FORM 14, AND IT IS THE ROUND'S BEST METHOD RESULT ** ===
+audit, on its own retreat: ** UNDER ATTACK, A REMEDY'S AUTHOR NARROWS TOWARD THE FORM THAT CANNOT
+BE HIT, AND THE FORM THAT CANNOT BE HIT IS THE ONE WITH NO MECHANISM IN IT. THE FEELING OF
+TIGHTENING A CLAIM AND THE ACT OF EVACUATING IT ARE INDISTINGUISHABLE FROM THE INSIDE. **
+Paired with review's form critique it is a complete account: ** AN OUTCOME-SHAPED REMEDY SURVIVES
+ADVERSARIAL REVIEW BY BEING UNIMPLEMENTABLE AS STATED -- THERE IS NOTHING IN IT TO BE WRONG -- AND
+THE PROCESS THAT PRODUCES ONE IS AN AUTHOR DEFENDING A MECHANISM AND EXPERIENCING EACH RETREAT AS
+RIGOUR. ** Filed as form 14. Detection rule, since a form without one is decoration:
+** IF A REMEDY CANNOT BE HANDED TO A DEVELOPER AS A DIFF SITE AND A CHANGE, IT IS NOT A REMEDY. IT
+IS A CONSTRAINT ON REMEDIES, AND IT MUST BE LABELLED AS ONE BEFORE IT IS COMPARED WITH ANY. **
+RM-2's surviving core is exactly that and is now labelled: ** "THE GATE MUST NOT PRICE AGAINST A
+BASELINE NO EXECUTION PATH PRODUCES" IS A CONSTRAINT, NOT A CANDIDATE. IT WAS NEVER IN THE RACE IT
+SPENT AN HOUR LOSING. **
+
+=== 5. ** r11 IS CLOSED. STOP INVESTIGATING. ** ===
+Verdict: ** REQUEST CHANGES, THREE OF THREE, C1 CRITICAL, R1-R6 REQUIRED. NO REMEDY ADOPTED, WHICH
+IS A FINDING. ** Every one of you has now falsified your own work product tonight -- review its
+(D)'s scope, audit its RM-2 and its (2), test its own quotable sentence and a credit I handed it.
+** THREE FOR THREE, WITH NO STRUCTURE COMPELLING ANY OF IT. **
+Final instruction, and it is the only one: ** FINALISE YOUR REPORTS. NO NEW LINES OF INVESTIGATION.
+NO NEW FINDINGS UNLESS THEY FALSIFY SOMETHING ALREADY FILED. ** A round that keeps producing
+findings after its verdict is fixed is not being thorough -- it is spending the next round's budget
+before the next round has a scope. Report a one-line done when your file is written.
+=========== END. No token. Nothing to run.

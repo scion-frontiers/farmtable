@@ -1,0 +1,152 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"regexp"
+
+	"github.com/spf13/cobra"
+	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/steveyegge/beads/internal/storage"
+	"github.com/steveyegge/beads/internal/types"
+	"github.com/steveyegge/beads/internal/ui"
+)
+
+var renameCmd = &cobra.Command{
+	Use:   "rename <old-id> <new-id>",
+	Short: "Rename an issue ID",
+	Long: `Rename an issue from one ID to another.
+
+This updates:
+- The issue's primary ID
+- All references in other issues (descriptions, titles, notes, etc.)
+- Dependencies pointing to/from this issue
+- Labels, comments, and events
+
+Examples:
+  bd rename bd-w382l bd-dolt     # Rename to memorable ID
+  bd rename gt-abc123 gt-auth    # Use descriptive ID
+
+Note: The new ID must use a valid prefix for this database.`,
+	Args:          cobra.ExactArgs(2),
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runRename,
+}
+
+func init() {
+	rootCmd.AddCommand(renameCmd)
+}
+
+func runRename(cmd *cobra.Command, args []string) error {
+	if usesProxiedServer() {
+		return HandleErrorRespectJSON("rename is not supported in proxied-server mode")
+	}
+	evt := metrics.NewCommandEvent("rename")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	oldID := args[0]
+	newID := args[1]
+
+	if oldID == newID {
+		return HandleError("old and new IDs are the same")
+	}
+
+	idPattern := regexp.MustCompile(`^[a-z]+-[a-zA-Z0-9._-]+$`)
+	if !idPattern.MatchString(newID) {
+		return HandleError("invalid new ID format %q: must be prefix-suffix (e.g., bd-dolt)", newID)
+	}
+
+	ctx := context.Background()
+	if err := ensureStoreActive(); err != nil {
+		return HandleError("failed to get storage: %v", err)
+	}
+
+	oldIssue, err := store.GetIssue(ctx, oldID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return HandleError("issue %s not found", oldID)
+		}
+		return HandleError("failed to get issue %s: %v", oldID, err)
+	}
+
+	_, err = store.GetIssue(ctx, newID)
+	if err == nil {
+		return HandleError("issue %s already exists", newID)
+	}
+	if !errors.Is(err, storage.ErrNotFound) {
+		return HandleError("failed to check for existing issue: %v", err)
+	}
+
+	oldIssue.ID = newID
+	actor := getActorWithGit()
+	if err := store.UpdateIssueID(ctx, oldID, newID, oldIssue, actor); err != nil {
+		return HandleError("failed to rename issue: %v", err)
+	}
+
+	if err := updateReferencesInAllIssues(ctx, store, oldID, newID, actor); err != nil {
+		fmt.Printf("Warning: failed to update some references: %v\n", err)
+	}
+
+	fmt.Printf("Renamed %s -> %s\n", ui.RenderWarn(oldID), ui.RenderAccent(newID))
+
+	commandDidWrite.Store(true)
+
+	return nil
+}
+
+// updateReferencesInAllIssues updates text references to the old ID in all issues
+func updateReferencesInAllIssues(ctx context.Context, store storage.DoltStorage, oldID, newID, actor string) error {
+	// Get all issues
+	issues, err := store.SearchIssues(ctx, "", types.IssueFilter{})
+	if err != nil {
+		return fmt.Errorf("failed to list issues: %w", err)
+	}
+
+	// Pattern to match the old ID as a word boundary
+	oldPattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(oldID) + `\b`)
+
+	for _, issue := range issues {
+		if issue.ID == newID {
+			continue // Skip the renamed issue itself
+		}
+
+		updated := false
+		updates := make(map[string]interface{})
+
+		// Check and update each text field
+		if oldPattern.MatchString(issue.Title) {
+			updates["title"] = oldPattern.ReplaceAllString(issue.Title, newID)
+			updated = true
+		}
+		if oldPattern.MatchString(issue.Description) {
+			updates["description"] = oldPattern.ReplaceAllString(issue.Description, newID)
+			updated = true
+		}
+		if oldPattern.MatchString(issue.Design) {
+			updates["design"] = oldPattern.ReplaceAllString(issue.Design, newID)
+			updated = true
+		}
+		if oldPattern.MatchString(issue.Notes) {
+			updates["notes"] = oldPattern.ReplaceAllString(issue.Notes, newID)
+			updated = true
+		}
+		if oldPattern.MatchString(issue.AcceptanceCriteria) {
+			updates["acceptance_criteria"] = oldPattern.ReplaceAllString(issue.AcceptanceCriteria, newID)
+			updated = true
+		}
+
+		if updated {
+			if err := store.UpdateIssue(ctx, issue.ID, updates, actor); err != nil {
+				return fmt.Errorf("failed to update references in %s: %w", issue.ID, err)
+			}
+		}
+	}
+
+	return nil
+}

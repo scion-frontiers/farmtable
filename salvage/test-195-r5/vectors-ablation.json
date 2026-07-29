@@ -1,0 +1,101 @@
+[
+{"id":"ABL-R1","expect":"red","what":"Ablate R1 (the required literal unsafeHTML(renderMarkdown( ) in sinkBindingViolations",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  if (!/unsafeHTML\\s*\\(\\s*renderMarkdown\\s*\\(/.test(code)) {",
+  "replace":"  if (false) {"}]},
+
+{"id":"ABL-R2","expect":"red","what":"Ablate R2 (unaliased value import from the one permitted module)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (!bound) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-R3","expect":"red","what":"Ablate R3 (local const/let/var/function/class re-bind)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (rebindLines.length > 0) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-R4","expect":"red","what":"Ablate R4 (identifier only in immediately-called position) in sinkBindingViolations",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (nonCallLines.length > 0) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-R5","expect":"red","what":"Ablate R5 (per-file: every unsafeHTML arg is a bare renderMarkdown call)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (!sinkArgumentIsSanitized(arg)) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-R6","expect":"red","what":"Ablate R6 (relative imports in a sink file must resolve into the scanned set)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  for (const [, spec] of withStrings.matchAll(new RegExp(RELATIVE_SPECIFIER))) {\n    if (!importResolvesIntoScannedSet(rel, spec, scanned)) {",
+  "replace":"  for (const [, spec] of withStrings.matchAll(new RegExp(RELATIVE_SPECIFIER))) {\n    if (false) {"}]},
+
+{"id":"ABL-R6b","expect":"red","what":"Ablate R6b (dynamic import specifier must be a plain quoted literal)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (!/^\\s*['\"][^'\"]*['\"]\\s*$/.test(arg)) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-R7","expect":"red","what":"Ablate R7 (no unicode/hex escape outside a string literal)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  if (escapeLines.length > 0) {",
+  "replace":"  if (false) {"}]},
+
+{"id":"ABL-R8","expect":"red","what":"Ablate R8 (only the sanitizer may name dompurify/marked)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  if (rel === SANITIZER_OWNER) return out;",
+  "replace":"  return out;"}]},
+
+{"id":"ABL-R9","expect":"red","what":"Ablate R9 (no scanned file may import from outside the scanned set)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  for (const [, spec] of code.matchAll(new RegExp(RELATIVE_SPECIFIER))) {\n    if (!importResolvesIntoScannedSet(rel, spec, scanned)) {",
+  "replace":"  for (const [, spec] of code.matchAll(new RegExp(RELATIVE_SPECIFIER))) {\n    if (false) {"}]},
+
+{"id":"ABL-TREE-filecount","expect":"red","what":"Ablate the EXPECTED_SOURCE_FILES pin",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (files.length !== EXPECTED_SOURCE_FILES) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-TREE-sinkcount","expect":"red","what":"Ablate the unsafeHTML call-site count pin",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (sinks.length !== REQUIRED_SINKS.length) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-TREE-tripwire","expect":"red","what":"Ablate the tree-wide directive-indirection tripwire (mechanism b)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"function directiveIndirectionOffenders(rel: string, code: string): string[] {\n  const offenders: string[] = [];",
+  "replace":"function directiveIndirectionOffenders(rel: string, code: string): string[] {\n  const offenders: string[] = [];\n  if (rel !== '<<never>>') return offenders;"}]},
+
+{"id":"ABL-TREE-banned","expect":"red","what":"Ablate the BANNED_SINKS tree-wide tripwire",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"        if (pattern.test(code)) {\n          offenders.push(`${rel} (${name})`);",
+  "replace":"        if (false) {\n          offenders.push(`${rel} (${name})`);"}]},
+
+{"id":"ABL-TREE-argcheck","expect":"red","what":"Ablate the tree-wide 'nothing but renderMarkdown output' check",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    const unbound = sinks.filter((s) => !sinkArgumentIsSanitized(s.arg));",
+  "replace":"    const unbound = sinks.filter(() => false);"}]},
+
+{"id":"ABL-STRIP-regex","expect":"red","what":"Ablate regex-literal tracking in stripInertText (the V7/V7b defence)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (c === '/' && regexMayStart()) {",
+  "replace":"    if (false) {"}]},
+
+{"id":"ABL-STRIP-strings","expect":"red","what":"Ablate string blanking (opts.strings) — the R3/R4 false-positive defence",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"      if (opts.strings) blank(i + 1, j);",
+  "replace":"      if (false) blank(i + 1, j);"}]},
+
+{"id":"ABL-STRIP-comments","expect":"red","what":"Ablate line-comment stripping entirely (P4: prose fixture must catch it)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"    if (c === '/' && d === '/') {",
+  "replace":"    if (false && d === '/') {"}]},
+
+{"id":"ABL-IGNORE","expect":"red","what":"Ablate the ignore-line marker (stripIgnoredLines becomes identity)",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  if (!src.includes(IGNORE_MARKER)) return src;",
+  "replace":"  return src;"}]},
+
+{"id":"ABL-IMPORTSTRIP","expect":"red","what":"Ablate stripImportStatements (becomes identity) — should red via FP on the real imports",
+ "steps":[{"file":"web/src/util/markdown.test.ts",
+  "anchor":"  const wipe = (m: string): string => m.replace(/[^\\n]/g, ' ');",
+  "replace":"  const wipe = (m: string): string => m;"}]}
+]

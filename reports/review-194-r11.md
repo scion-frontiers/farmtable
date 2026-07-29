@@ -1,0 +1,4392 @@
+# #194 round 11 — code review of `2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e`
+
+**STATUS: PARTIAL — HELD AT 2026-07-28T23:53Z BY EM FOR RESOURCE POLICY**
+
+The held state does not change the verdict below. The blocking finding is measured,
+reproduced through the branch's own assertion harness, and does not depend on any
+remaining item.
+
+---
+
+## 0. Provenance and tree state
+
+| item | value |
+|---|---|
+| subject SHA | `2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e` (confirmed by `git rev-parse HEAD` before any read) |
+| base | `6d8f19e11f4ddbfdc313301199006d3f7c76eb1c` |
+| range reviewed | `6d8f19e..2cbbd92`, 11 files, 2013 insertions, 135 deletions (diffstat reproduced exactly) |
+| toplevel | `/workspace` |
+| primary input | `.design/project-log/label-write-scope-r11.md` @ `2cbbd92` (451 lines). `reports/dev-194-r11.md` was NOT read and NOT substituted. |
+
+### 0.1 CLEAN-TREE PROOF — the artefact, not a message
+
+**Mutation cells left dirty: 0 (explicitly zero).** Verified per the EM's method — by diff
+against the subject SHA, **not** by `git status` alone and **not** by a green suite. Run at
+**2026-07-29T00:06:42Z**, transcribed verbatim:
+
+```
+$ git rev-parse HEAD
+2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e
+
+$ git diff --stat 2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e
+(EMPTY — zero files, zero lines)
+
+$ git status --porcelain
+(EMPTY)
+
+$ git worktree list
+/workspace  2cbbd92 [label-write-scope-r11-review]        <- only entry, no probe worktree
+
+$ ls -d /tmp/probe
+ls: cannot access '/tmp/probe': No such file or directory
+```
+
+All probing was done in a detached worktree at `/tmp/probe`, removed with
+`git worktree remove --force` **before** the wind-down message arrived. **No production
+file under `/workspace` was modified at any point in this review.** The in-flight
+`go test -race ./internal/platform/github/ ./internal/server/ -count=1` was allowed to
+finish rather than killed mid-write (exit 0, no DATA RACE); no run started after it.
+
+**Re-verified at 2026-07-29T00:23:20Z**, after the (d) run and after all post-hold
+read-only work, with the same four commands: HEAD `2cbbd92`; `git diff --stat 2cbbd92`
+EMPTY; `git status --porcelain` EMPTY; `git worktree list` shows `/workspace` only. **Two
+independent clean-tree proofs, one before the granted run and one after everything.**
+
+*Why this block is in the file and not only in a message: a message is not in the artefact
+the next agent reads. (EM instruction, 2026-07-29T00:06:30Z, item 3b.)*
+
+#### 0.1.1 THIRD RE-VERIFICATION — the untracked-file channel, and the two blind spots left
+
+**Added 2026-07-29T00:46:13Z.** `test-xss-r4` found by *executing* the mandated restore
+procedure that **`git diff <SHA>` is blind to untracked files** — a probe that ADDS a `.go`
+file leaves it live on disk and compiled into the next run, while the mandated verification
+reports zero lines. A fourth stranded-mutant channel, created by the safety procedure itself.
+The procedure is now `git diff <SHA>` **and**
+`git status --porcelain --untracked-files=all`, both zero.
+
+**I am in the exposed population: my B9 compile check (§7, D4) CREATED a file,
+`zz_b9_compile_test.go`.** Re-verified on five channels, 00:46:13.904Z → 00:46:13.944Z:
+
+| channel | result |
+|---|---|
+| `git diff 2cbbd92` | **0 lines** |
+| `git status --porcelain --untracked-files=all` | **0 lines** |
+| `git ls-files --others --exclude-standard` | **0 files** |
+| same, `*.go`, **including `--ignored`** | **0 files** |
+| `git worktree list` / `/tmp/probe` / `/var/tmp/c1-verify-…` / `.git/worktrees` | `/workspace` only / ABSENT / ABSENT / does not exist |
+
+**CLEAN — and not because I followed the check better.** `zz_b9_compile_test.go` never
+existed in `/workspace`. Every probe lived in a throwaway worktree and I removed the
+**directory**, not the file. *Deleting the directory dominates every channel at once* —
+tracked edits, untracked files, ignored files, `go.work`, `vendor/` — because there is no
+directory left to hold any of them. The structure gave the right answer; the check did not
+have to.
+
+**TWO BLIND SPOTS REMAIN IN THE AMENDED PROCEDURE. Same form, one level down.**
+
+1. **`--untracked-files=all` does not list IGNORED files.** It enumerates *untracked* ones;
+   ignored ones need `--ignored`. **A probe file dropped into a `.gitignore`d path passes
+   both mandated commands with zero lines.** Not hypothetical here — `/workspace/.gitignore`
+   at `2cbbd92` ignores three paths the Go toolchain reads: **`go.work`** (creating one
+   silently redirects module resolution for every subsequent build in the tree, and it is
+   exactly the file a probe pointing a package at a scratch module would create),
+   **`vendor/`** (its mere existence flips the build into vendor mode), and
+   **`internal/cmd/generated/`** (ignored, and *inside* the build). All three absent in my
+   tree; each checked by name. *Do not simply append `--ignored`* — in this repo that prints
+   `web/dist`, thousands of assets, 21M, and a check whose output must be eyeballed becomes
+   decorative. Scope it:
+   `git status --porcelain -uall --ignored -- '*.go' go.work go.work.sum vendor`.
+2. **`git worktree remove` refuses a worktree with untracked files or modifications; `--force`
+   overrides.** So plain `git worktree remove` is a **stronger** untracked-file detector than
+   the mandated pair — it fails closed on exactly the class `git diff` cannot see. **I used
+   `--force`, both times**, which suppressed that signal on the one probe of mine that created
+   a file. My restore was clean by luck of ordering — I had deleted `zz_b9_compile_test.go` by
+   hand first — not because `--force` let me verify anything. **Recommend teardown use
+   `git worktree remove` without `--force`, and treat a refusal as a finding.**
+
+**The remedy I recommend is a chokepoint, not a third command.** Every version of this defect
+is *"the check is blind to a file class,"* and there will be a fifth class. **Mandate the
+isolation, not the inspection:** probe in a throwaway leg-named worktree; restore by deleting
+the directory; verify with `[ ! -e <path> ]` plus `git worktree list` plus the primary tree's
+own two commands. **That cannot be blind to a file class because it does not enumerate files
+at all.** Same move as B9's receiver type: stop checking, remove the ability to be wrong.
+
+**The recurring form, now at five levels tonight:** *the check could not fail for the reason
+it was added.* This instance was in the safety procedure every leg was required to follow, and
+`git diff` returning zero **looks** exactly like the proof it was supposed to be.
+
+### 0.2 REVIEW-194-R11-C1 PROVENANCE — re-reproduced under quarantine from a clean base
+
+At 00:09:54Z the EM quarantined REVIEW-194-R11-C1 pending exclusion of a specific alternative
+explanation: **in the same window, the test leg had deliberately re-introduced the round-10
+defect inside `currentLifecycleStages` and was running the property test against it.** Same
+defect, same function, same path, same window. The hypothesis to exclude was that someone
+measured an injected mutation and read it as production state. That is the right question
+to ask and I could not have excluded it from my own recollection.
+
+**It is now excluded, three independent ways. Two of them do not depend on trusting me.**
+
+> **SCOPE OF THIS SECTION — CORRECTED 2026-07-29T00:29:52Z, AND THE CORRECTION IS AGAINST
+> ME.** Everything in §0.2 establishes that what I measured is **attributable to my own
+> test row and not to a production mutation injected by another leg**. That is all it
+> establishes. It does **not** establish that the row is correct.
+>
+> The coordinator's refusal is right and I had over-claimed. Two worlds produce the
+> signature in argument (2) identically: **(i)** my row exercises a genuine defect no
+> shipped row covers, or **(ii)** my row is wrong and the failures are the test being
+> incorrect. Production untouched, one test-file edit, failures confined to the new row,
+> every pre-existing row green — **identical under both**. That every shipped row passes
+> is not corroboration; under (ii) it is exactly what you would see.
+>
+> **Four proofs that I measured something real about my own row; none that the row is
+> right.** The count felt like strength and was not. **A leg cannot audit its own
+> expectation**, so `audit-194-r11` is deriving the correct answer from the specification
+> alone, without seeing mine. See §4.1 for the state of that check and for the sharper
+> form of world (ii) that I do not think I can close by reading.
+
+**(1) Re-reproduction from a clean base — the granted serialized run.**
+
+```
+target:  go test ./internal/platform/github/ \
+           -run 'TestLabelWritePrice_IsMonotoneInThePredicate' -count=1
+sha:     2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e
+path:    /var/tmp/c1-verify-review-194-r11   (fresh detached worktree, since removed)
+occupy:  2026-07-29T00:11:23.454Z   <- git worktree add begins; first filesystem work
+start:   2026-07-29T00:11:49.078Z   <- go test begins executing
+end:     2026-07-29T00:11:58Z       (9s wall, cold GOCACHE, compile-dominated)
+release: 2026-07-29T00:12:19.114Z   <- worktree removed and removal proven by diff
+exit:    1   <- read directly from $?; output redirected to a file, never piped
+```
+
+**Occupancy window `[occupy, release]` = 00:11:23.454Z – 00:12:19.114Z, 55.7 s.** Of that,
+26 s is worktree creation plus the pre-run cleanliness proof plus applying the one test
+edit, 9 s is the run itself, and 21 s is teardown and its proof. This is why `occupy` and
+not `start` is the right left endpoint for overlap: a run whose *execution* is 9 s held the
+box for nearly a minute, and a leg computing overlap from `start` would have declared four
+fifths of that window free.
+
+The 9 s execution is consistent with the EM's reference figure (~15 s normal for a
+`platform/github` run, compile-dominated on a cold `GOCACHE`; two minutes would be a box
+signal). **No box signal in this run.**
+
+Pre-run, at 00:11:23Z, before anything executed:
+`git diff --stat 2cbbd92` **EMPTY**, `git status --porcelain` **EMPTY**.
+
+The only modification was **9 added lines in one `_test.go` file**:
+
+```
+$ git diff --stat 2cbbd92
+ internal/platform/github/lifecycle_claim_property_test.go | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+$ git diff --name-only 2cbbd92 | grep -v '_test\.go$'
+NONE — no non-test file modified.
+
+$ git diff --stat 2cbbd92 -- passthrough.go lifecycle_claim.go labels.go server.go store.go
+(EMPTY)
+```
+
+**`currentLifecycleStages` — the exact function the test leg injected into — is
+byte-identical to `2cbbd92` in the tree that produced this result.**
+
+Result: **24 failing subtests, identical to the pre-hold measurement** — same three configs
+(`enabled_ft`, `enabled_alias`, `enabled_noprfx`), same endpoints, same dropped scope, same
+message. Removal proven by diff, not by `ls`: test edit reverted → verify-tree
+`git diff --stat 2cbbd92` EMPTY and `status --porcelain` EMPTY → `git worktree remove` →
+`git worktree list` shows `/workspace` only → path gone → no `.git/worktrees` stubs. My own
+tree at 00:12:18Z: HEAD `2cbbd92`, diff EMPTY, status EMPTY, unchanged throughout.
+
+**(2) The result's own shape excludes the hypothesis, independently of any tree state.**
+I consider this the stronger argument, because it is a property of the *output* rather than
+of a directory I am asserting things about:
+
+> **All 24 failures — in the original run and in the re-run — are in a subtest path
+> containing `REVIEW_swap_wontfix_bare`.** That vocabulary row does not exist at `2cbbd92`.
+> I invented it and deliberately gave it a `REVIEW_` prefix so a stray result could be
+> traced to me.
+>
+> The injected fault was in `currentLifecycleStages` — production code on the *shared* price
+> path. A defect there does not confine itself to one vocabulary row; it would have reddened
+> shipped rows across the sweep. **7176 of 7200 cells passed, including every shipped row,
+> in both runs.** A fault in `currentLifecycleStages` producing failures in exactly one
+> reviewer-invented row and nowhere else is not a shape an injected mutation has.
+
+**(3) Cross-leg interaction was impossible by construction** (established by the test leg
+and the EM, not by me): the three legs are separate repositories with distinct `.git`
+directories; `git worktree add /tmp/probe` **succeeded for both** legs, and git refuses an
+existing non-empty path, so a shared filesystem would have hard-failed whichever ran second.
+That is a creation-time property, which no later state check can claim.
+
+> **SUPERSEDED 2026-07-29T00:29:52Z, BY A BETTER FACT — do not spend time on what follows.**
+> The coordinator measured the fleet: **one distinct mount target across all 30 agents
+> (`/workspace`), and nothing mounts `/tmp` or `/var/tmp` — zero configs reference either.**
+> So `/tmp` is container-local **by provisioning**, for every agent, for the entire lifetime
+> of both containers. Not "was not shared as it turned out" — **could not have been.** That
+> retires my nesting argument and the test leg's mutant-timing argument together. Both are
+> left below as **superseded, not wrong**, because the reasoning is reusable and because
+> deleting a retired argument hides that it was ever needed. *"Could not have been" beats
+> "was not, as it turned out" the same way unrepresentable beats detected.*
+
+**And a hole in (3) that I am closing rather than leaving for someone else to find.** The
+creation-time argument as stated excludes *concurrent* shared use. It does **not**, on its
+own, exclude *sequential* shared use — leg A creates, runs, removes; leg B then creates the
+same path cleanly, and both adds succeed with no collision. Closing that needs the exact
+window, so here it is, **exact, with how I know each**:
+
+| event | wall clock | how I know |
+|---|---|---|
+| `git worktree add /tmp/probe 2cbbd92` issued | **2026-07-28T23:48:12.483Z** | session transcript, assistant tool-use record, line 113 of `734b2e0d-…jsonl`. Not recollection, not inference. |
+| `git worktree remove --force /tmp/probe` issued | **2026-07-28T23:52:03.063Z** | same transcript, line 165. |
+
+**My occupancy of `/tmp/probe` is therefore 23:48:12.483Z – 23:52:03.063Z, 3 m 50.6 s, and
+it lies entirely inside the test leg's reported ~23:45Z–23:56Z window.** Total nesting
+excludes sequential shared use as well as concurrent: there is no instant at which I held
+the path and the other leg did not. Whatever the other leg had at `/tmp/probe`, it was not
+a path I created after they finished with it, nor one they created after I finished.
+
+**The one assumption I could not discharge — and it survived the supersession on its own
+merits.** All of these timestamps are read from clocks in different containers. If those clocks are skewed by minutes, the nesting argument weakens
+(the *result-shape* argument in (2) does not depend on any clock, which is the other reason
+I rate it higher). I have no way to measure inter-container skew from inside mine.
+**Recommend the orchestration layer stamp grants from one clock** so that overlap arithmetic
+across legs rests on something better than three unsynchronised containers agreeing.
+**ACTIONED the same night:** a shared-volume stamp now gives every container one common
+reference. Not load-bearing here, since the provisioning fact retired the timing argument
+entirely — but cross-leg timing arithmetic without a common reference is folklore, and the
+next incident will not come with a provisioning fact attached.
+
+**Honest limit, stated because the EM is right to insist on it:** the *original* 23:51:54Z
+measurement ran in `/tmp/probe`, which no longer exists and therefore cannot be diffed after
+the fact. I am not substituting another path and calling it that one. **Treat the 00:11:49Z
+run as the evidence and the original as superseded.** The original's timestamp is fixed by
+artefact rather than memory: `/tmp/proptest.txt`, mtime `2026-07-28 23:51:54.661849423 +0000`,
+21568 bytes, bracketed by `/tmp/prod1.diff` 23:43:20 and `/tmp/gates_buildvet.txt` 23:46:51.
+
+**A process note that outlived the incident.** Both the test leg and I independently chose
+`/tmp/probe` — the obvious name. A standing rule now assigns leg-named scratch paths. Related
+and worth carrying: from inside my container my clone is at `/workspace`, not at
+`/workspace/farmtable-194-r11-review`, which is how the EM addresses it. Both views are
+locally correct and globally inconsistent — the same failure class the incident was about,
+recurring inside the messages diagnosing it. An assigned path must come with the per-leg
+mount point or the leg cannot resolve it.
+
+All probing was done in a **detached worktree at `/tmp/probe`**, per the baseline's method
+warning about the round-11 process defect. It was removed with
+`git worktree remove --force` before the hold. **No production file in `/workspace` was
+modified at any point.**
+
+> **Attribution correction for the EM:** your wind-down attributes the live probe at
+> `/tmp/probe` to `test-194-r11`. That worktree was **mine**. It is gone. If the test leg
+> also chose `/tmp/probe`, the two of us were colliding on one path on a shared host and
+> that is worth knowing independently of tonight's incident.
+
+---
+
+## 1. DECLARED CONTAMINATION OF THE OPEN PASS — read this before you weigh section 2
+
+**My open pass is contaminated, in the same way last round's was, and the cause is
+structural rather than a mistake I can promise not to repeat.**
+
+`review-194-r11.md` says at line 24: *"STEP 1 — THE OPEN PASS. DO THIS BEFORE READING
+SECTION 2."* Section 2 is **in the same file**, 20 lines further down. Opening the file
+reads it. I read the brief in one operation, before I had read a single line of the diff,
+so the checklist was in my head before the code was.
+
+The EM's dispatch this round correctly removed the *dispatch-vs-brief* conflict that
+contaminated the dev leg last round. It did not remove the *within-brief* conflict, which
+is the same defect one level down. The dev leg reported this as their brief-wrongness
+item 8; it was half-fixed.
+
+**What I can still offer that is falsifiable:** I attribute each finding to `[CHECKLIST]`
+if any checklist item names the thing, and `[OPEN]` only if none does. That is the
+conservative direction and it costs me credit rather than granting it.
+
+**And the honest headline: both blocking findings are `[CHECKLIST]`.** The EM's targeting
+found the Critical. Failure mode 3 — "my targeting steers the round away from the defect"
+— **did not occur this round**. C1's third sub-bullet asks, verbatim, whether "some cell
+short-circuit[s] — an empty set, a **same-set collapse**, a terminal-stage special case".
+That is exactly the defect. I want that recorded, because it is the opposite of the
+result the countermeasure was built to expect, and a countermeasure that only ever
+confirms itself is not being measured.
+
+---
+
+## 2. The open pass, as written before reading the code
+
+Recorded verbatim. These are the questions I formed from the diff structure alone.
+
+1. `before` and `after` are now computed by two different functions. Any gate that
+   consumes them as a **difference** is where the risk moved to. Find the consumer before
+   believing anything about the producer.
+2. `canonicalAdditions` calls `m.lifecycleStageClaim` on the **plain mapper**, then
+   `view.StageToLabel` on the **write view**. Two receivers in one loop. Either that
+   asymmetry is load-bearing or it is a bug.
+3. `canonicalLifecycleLabels` now has no production caller. Dead code that *is* a known
+   Critical is worse than dead code.
+4. `lifecycleMarkerSuffix` recognises **one** segment (`stage/`). `stripForMatch`
+   recognises a **sequence of three** (`stage/`, `priority/`, `priority:`). Two
+   implementations of "what is a category segment" in one package. Do they agree?
+5. `unionStages` produces an order that is not the order `AllTerminalLabelStages`
+   produces. Anything comparing the two elementwise is now comparing across two ordering
+   disciplines.
+6. `assertStageWriteAllowed` now fails closed on a nil mapper. `LabelDeltaLifecycleStages`
+   still returns `before == after` (i.e. FREE) on a nil mapper, four lines away. Is the
+   B8 principle applied to one of two write-side entry points?
+7. B4 moves a control to config-load time. A load-time control is inert if the load path
+   is not the only construction path.
+
+Items 1, 4, 5 and 6 are the ones that produced findings. Item 2 measured out as a
+non-issue (see the miss log, §8).
+
+---
+
+## 3. Executive summary
+
+**Risk: HIGH.** The round-10 Critical appears **not fixed**. It survives in a shape the new
+property test's vocabulary does not contain, and I reproduced it — twice, from a clean base —
+using that test's own assertion and its own error message, unmodified. **REVIEW-194-R11-C1 is under
+independent derivation by `audit-194-r11` as of 00:29:52Z and could still fall; §4.1 states
+the form of the objection that would sink it, which I raised against myself.** The three
+Required findings block independently of REVIEW-194-R11-C1 either way. Separately, the axis-2 residue the diff
+documents as "FORCED, not an oversight" is **70 of 80 cells, not the 2 rows named**, and
+68 of them are not forced.
+
+Everything else in the diff is good work — B5, B8 and B9 are correct, verified, and B9's
+structural control genuinely bites at the compiler. The repair commit is clean. The
+problem is concentrated in exactly one place: the monotonicity argument for B1 omits the
+gate its own price passes through.
+
+---
+
+### 3.1 EVIDENCE STATUS — a required field on every finding
+
+Per the EM's instruction of 2026-07-29T00:06:30Z (item 3a), every finding below carries an
+explicit **MEASURED / SUSPECTED / NOT REACHED** status. This is a field, not a thing I
+remembered to mention, and it exists so that the next agent reading this PARTIAL file can
+tell which of my claims survived contact with the machine and which are reasoning.
+
+| status | meaning |
+|---|---|
+| **MEASURED** | I ran or read the thing and the result below is the raw output. |
+| **SUSPECTED** | Reasoned from the code but not executed or not fully enumerated. |
+| **NOT REACHED** | Named as a place to look; no work done. Listed in §13.2. |
+
+**Every blocking finding in this report is MEASURED.** Nothing that blocks the merge rests
+on a suspicion.
+
+### 3.2 POSITIVE CONTROLS ON EVERY NULL RESULT — added 2026-07-29T00:57Z
+
+`test-xss-r4` measured that **a mutation that failed to apply is indistinguishable from a
+mutant that survived**: its mutator raised before the edit landed, and two rows ran on a clean
+tree and reported green. Survivor-hood is a *conjunction* — "the edit landed" **and** "the
+suite passed" — and most harnesses measure only the second conjunct.
+
+**I have no mutation-survivor rows to withdraw.** Mutation adequacy is not my axis. My two
+mutation-shaped probes are both **RED**, which the asymmetry makes safe (a failed edit cannot
+produce a failure), and both are **self-attesting in the strong sense — the evidence that the
+edit landed is *inside* the result**:
+
+- **B9 compile control (§7, D4):** the compiler error names my file and my line. A no-op edit
+  cannot produce an error naming the file it failed to create.
+- **REVIEW-194-R11-C1 reproduction (§0.2):** all 24 subtest names contain `REVIEW_swap_wontfix_bare`, a
+  string absent at `2cbbd92`. A no-op edit cannot produce 24 subtests named after the row it
+  failed to add.
+
+*A control living in the same artefact as the result is stronger than a separate match-count
+assertion: it cannot be skipped and it cannot drift out of sync.*
+
+**BUT THE FORM BITES ME THROUGH A DIFFERENT DOOR, AND I HAVE SEVERAL LOAD-BEARING NULLS.**
+The general statement is wider than mutators:
+
+> **A null result from an instrument is indistinguishable from a misaimed instrument.**
+> A typo'd grep pattern, a grep in the wrong directory, and a `git diff -- <pathspec>` whose
+> pathspec matches nothing all return exactly what a true absence returns: nothing, quietly.
+
+Positive controls run 00:56:58Z and 00:57:25Z (read-only, ~50 ms each, no toolchain).
+**All four nulls hold.**
+
+| null | control | result |
+|---|---|---|
+| **C7 / D5** — repair commit "0 bytes" | `git diff --stat bc93200 93ae124` with **no pathspec at all** — a pathspec cannot be wrong when there is none. Plus `ls-tree` existence in both trees, plus the same pathspec over `6d8f19e..2cbbd92` | **HOLDS.** No-pathspec diff returns exactly the three production files. Positive control returns 571 insertions; `-- internal/server/` returns 23489 bytes positive, 0 over the repair. **The null is a null.** |
+| **C6** — no comment still asserts "recognises more ⇒ charges more" | the weakest of the four, being a null over prose: does the pattern fire at all? | **HOLDS.** Five hits in-package; I read all five in context. Every one is the **correction**, stating the premise true and the conclusion false by name (`lifecycle_claim.go:153`, `passthrough.go:316`, `passthrough.go:1114`, +2). The instrument fires and finds the fix, not the bug. |
+| **REVIEW-194-R11-R3 / C2(b)** — zero production callers | already self-controlled | **HOLDS.** 11 hits, 5 non-test, all definition-or-comment, zero call sites. A pattern returning 11 things is not misaimed. |
+| **B4** — no third way to a `LabelMapper` | full enumeration instead of summary | **HOLDS — and the control improved the finding.** See below. |
+
+**The one thing the control changed — an incomplete enumeration, not a withdrawal.** §13.1 said
+*"`NewPassThroughStore`'s two callers both pass a validated or nil cfg; the remaining two
+`NewLabelMapper` sites are inside `Validate` itself."* There are **four** production
+`NewLabelMapper` call sites, not three: `labels.go:257` (the guarded writeView recursion),
+`config.go:261` and `config.go:351` (both inside `Validate`), and **`passthrough.go:83`, inside
+`NewPassThroughStore` — which I had covered only *implicitly*, by analysing its callers rather
+than by naming it.** The claim is unchanged and now fully traced: `passthrough.go:83` reads
+`cfg.GitHub.Labels`, `NewPassThroughStore` substitutes `DefaultConfig()` for nil, and its two
+callers are `resolver.go:45` (cfg from `main.go:90` ← `loadGitHubConfig` ← `LoadConfigWithSource`
+← `Validate`, with `log.Fatalf` on error) and `connect.go:299` (`LoadConfig`, same chain,
+`DefaultConfig()` fallback). **Chokepoint complete by enumeration rather than by assertion.**
+*My claim was true and my enumeration was not complete, and only the control surfaced the
+difference. "Both callers are fine" reads as coverage and is a summary of coverage.*
+
+**An extension worth carrying: `go test -run` has this exact defect.**
+`go test ./pkg/ -run 'TestThatMatchesNothing'` exits **0** and prints **`ok`** — a green with
+zero tests executed, byte-identical to a passing suite. The *filter* is upstream of every cell
+just as the mutator is. My own `-run` row is safe by the asymmetry (red, 24 failures naming my
+row), and my one unfiltered green gate row is now vacuity-checked from saved output: **10
+packages `ok`** — including `internal/platform/github` 0.416s and `internal/server` 2.963s —
+**22 `[no test files]`, 0 `FAIL`. Not vacuous.** Note that the r11 property test **already
+guards this correctly**, failing if `cells != len(configs)×len(labelSets)×len(deltas)×len(stages)×2`
+and again if `cells < 1000`. That is the right pattern and it is credited in §11.
+
+**The shape, now at five tonight:** the `git diff` restore check blind to untracked files; the
+ignored-file layer below it; the mutator that never applied; `go test -run` matching nothing;
+and my own null greps. **All five are the *apparatus*, not the artefact, and all five were
+trusted precisely because they were not the thing under review. Nothing downstream of X can
+falsify X.**
+
+> **For the process record: every null result owes a positive control that the instrument can
+> produce a non-null.** Not just mutators — greps, pathspecs, `-run` filters, and any "I looked
+> and found nothing." Green and absent are the two results that look identical to a broken
+> instrument, and they are the two results that stop a line of inquiry.
+
+### 3.3 SECOND ROUND OF CONTROLS — and this time the instrument was misaimed TWICE
+
+**01:00:48Z–01:02:09Z, read-only.** Having stated the rule I applied it to the four nulls I
+had *not* yet controlled. **All four findings hold. Two of my instruments did not, and one of
+them would have produced a spectacular false finding.**
+
+| null | control | result |
+|---|---|---|
+| **REVIEW-194-R11-R2** — `lifecycleStagesForLabels` no longer exists | pattern fires (5 stale references found); `func .*<name>` shape proven able to find a definition (`currentLifecycleStages` at `passthrough.go:1237`) | **HOLDS.** No definition anywhere in the module. REVIEW-194-R11-R2's five-site table was already complete. |
+| **Nit** — the agreement pin never exercises `enabled=false` | see below | **HOLDS, description corrected.** |
+| **§9 banked structural finding** — every row in both new server harnesses is ADD-shaped over ≤1 terminal label | see below | **HOLDS, on a corrected instrument.** |
+| **C4(c)** — no config reload path | `signal.Notify` proven live (8 production sites); `fsnotify` absent from `go.mod`; only two production entries to `github.LoadConfig*`, both at startup (`main.go:209`, `connect.go:292`); no `SIGHUP` anywhere | **HOLDS.** |
+
+**MISAIM 1 — and it would have been a false finding of the worst kind.** My first control for
+the Nit was `grep "func Test.*Agrees" internal/platform/github/`. **It returned nothing.** Had
+I trusted that null I would have filed *"a production docblock names an agreement pin that does
+not exist"* — a serious, confident, and entirely false finding. The pin exists; it lives in
+`internal/server/authz_label_write_scope_test.go:1691`, and **my package scope was wrong.** The
+positive control (`func Test` finds 206 tests in that package; the four other test names cited
+in production comments all resolve 1:1) is what exposed it. *The rule earned its keep inside
+one hour of being written down.*
+
+**MISAIM 2.** My ADD-row instrument for `authz_config_blind_write_scope_test.go` returned
+**0 add-shaped rows** — but the file's rows carry a `label` field and are driven by
+`f.addLabels(...)`, not by an `add:` key. The null was my pattern, not the file.
+
+**Both findings survive on corrected instruments:**
+
+- **The Nit, restated correctly.** `authz_label_write_scope_test.go` contains **zero**
+  occurrences of `Enabled:`. The pin's 14 fixtures go
+  `newLabelWriteFixture` → `newLabelWriteFixtureWithPrefix` → `newLabelWriteFixtureWithConfig`
+  with a mutate function that sets **only `PushPrefix`**, inheriting `DefaultConfig()`
+  (`config.go:456`, `Enabled: true`). The eight `Labels.Enabled = false` mutations in the
+  package are all in a *different* file. **The docblock's "now holds at `enabled=false` as
+  well" remains unmeasured by that pin.** *My earlier phrasing — "the fixtures are all
+  `Enabled: true`" — described a fixture field that does not exist. Substance unchanged,
+  description wrong; same class as the B4 enumeration.*
+- **The banked structural finding.** `authz_masked_before_endpoint_test.go`: 5 add-shaped
+  rows, **0** remove-shaped, and its only two terminal-pair matches are *assertion* lines
+  (`:117`, `:155`), not seeds. `authz_config_blind_write_scope_test.go`: every row applies one
+  label via `f.addLabels`, **0** removes. Positive control: `RemoveLabels:` appears 5 times
+  across two other server test files, so the instrument fires. **Neither new harness can
+  observe REVIEW-194-R11-C1**, which needs a remove over ≥2 terminal labels.
+
+**AND A LIVE INSTANCE OF THE `-run` DEFECT, IN MY OWN QUEUE.** Queued run 3 read
+`go test ./internal/platform/github/ -run TestLifecycleClaimAgreement`. **That test name does
+not exist and that is the wrong package.** Had it been granted it would have exited **0** and
+printed **`ok`**, and I would have reported the Nit as cleared. Corrected in §13.2 to the real
+name in `internal/server/`, with `-v` and a 14-subtest count assertion. *I found the `-run`
+hazard and then had it sitting unfired in my own queue the whole time.*
+
+**One qualification, added 00:29:52Z and deliberately not buried:** REVIEW-194-R11-C1's *reproduction* is
+MEASURED; REVIEW-194-R11-C1's *interpretation as a production defect* is MEASURED **conditional on** one
+SUSPECTED premise, and that premise is now under independent derivation by another leg. §4.1
+states it in full. The three Required findings are unconditional.
+
+---
+
+## 4. Critical
+
+### REVIEW-194-R11-C1 `[CHECKLIST — C1, third bullet]` The monotonicity theorem is false. The round-10 Critical is live at `2cbbd92`.
+
+> **EVIDENCE STATUS: MEASURED, AND RE-MEASURED UNDER QUARANTINE FROM A CLEAN BASE.**
+> Reproduced twice through the branch's own assertion harness — 23:51:54Z and again at
+> 00:11:49Z in a fresh worktree whose production files are byte-identical to `2cbbd92`,
+> including `currentLifecycleStages` itself. 24 named failing subtests both times, same
+> three configs, same message. Exploit path separately traced through
+> `RestrictLabelWriteToSnapshot` and `assertStageWriteAllowed`. Full provenance, and the
+> exclusion of the injected-mutation hypothesis, in **§0.2**. Not suspected, not inferred.
+> **Depends on no remaining item.**
+
+**The claim under review** (`passthrough.go`, `LabelDeltaLifecycleStages` docblock):
+
+> *"The price is the set of scopes over the cross product BEFORE x AFTER, so a fixed left
+> factor and a right factor that only gains elements give a scope set that only gains
+> elements: `writePrice ⊇ readPrice`, pointwise, for every input. […] Nothing here can be
+> cheaper than what shipped."*
+
+**The premise is false.** The price is not the cross product. The consumer
+(`internal/server/server.go:847`) is:
+
+```go
+if !store.SameStageSet(before, after) {      // <-- EQUALITY SHORT-CIRCUIT
+    for _, from := range before {
+        for _, to := range after { ... }     // the cross product is inside the guard
+    }
+}
+```
+
+Growing `after` grows the cross product. It does **not** preserve the guard. `SameStageSet`
+is an **equality** test, and equality is not monotone: when `base_after ⊊ before` — i.e.
+whenever the edit **removes** a stage — the union can push `after` back **up to exactly
+`before`**, which is the one value that costs nothing. The theorem quantifies over the
+inner loop and the defect is in the outer `if`.
+
+This is taxonomy form (13) for the third time on this branch: a true property of a set
+does not bound a gate that consumes an **equality of two evaluations**. The diff's own
+comment diagnoses this shape at round 10 ("the predicate appeared on BOTH SIDES of a set
+difference") and then commits it one level up.
+
+**MEASURED**, `DefaultConfig`, `PushPrefix: "ft:"`, `Enabled: true`, OPEN issue at
+`accepted`, narrow principal `{task:read, task:write}`, no config change:
+
+```
+labels = [ft:stage/wont_fix, ft:stage/completed]
+add_labels = [wont_fix]   remove_labels = [ft:stage/wont_fix]
+
+  read  (base 06f01d7):  [completed wont_fix] -> [completed]            task:close
+  write (HEAD 2cbbd92):  [completed wont_fix] -> [completed wont_fix]   FREE
+  SameStageSet(before, after) = true          DROPPED SCOPE: task:close
+```
+
+Three spellings of the addition all work — `wont_fix`, `stage/wont_fix`,
+`ft2:stage/wont_fix` — because all three are canonicalised by `canonicalAdditions` into
+`ft:stage/wont_fix`, which is precisely what re-inflates `after`.
+
+**The write lands in full.** `RestrictLabelWriteToSnapshot` does not narrow it (neither
+entry is a no-op against the snapshot):
+
+```
+after RestrictLabelWriteToSnapshot: add=[wont_fix] remove=[ft:stage/wont_fix]
+labels that actually land:          [ft:stage/completed wont_fix]
+read-side stages BEFORE:            [completed wont_fix]
+read-side stages AFTER :            [completed]
+```
+
+So the deployment's own read side genuinely loses `wont_fix`, and the caller paid nothing.
+
+**Not covered indirectly.** I checked before rating. `assertStageWriteAllowed` is the
+other write-side gate, and the caller-supplied `add_labels`/`remove_labels` arms pass
+`stageWriteAllowed` (`passthrough.go:688,696`) — the policy check short-circuits at line
+322 *before* the predicate runs. Its own comment says why: *"the caller-supplied add/remove
+arms […] are stageWriteAllowed here **because the server DOES price them**"*. The server
+price is the only control on this path, and it is the one that broke.
+
+**This is the exact attack `server.go` names as the reason the endpoints are sets:**
+
+> *"Removing `ft:stage/wont_fix` from an issue also carrying `ft:stage/completed` erases a
+> maintainer's decline while leaving the winner untouched."*
+
+That sentence is at `server.go:836`, eleven lines above the gate that now prices it at
+nothing.
+
+**Confirmed with the branch's own harness, not mine.** I added **one** delta to the
+existing vocabulary in `TestLabelWritePrice_IsMonotoneInThePredicate` and changed nothing
+else:
+
+```go
+"REVIEW_swap_wontfix_bare": {add: []string{"wont_fix"}, remove: []string{"ft:stage/wont_fix"}},
+```
+
+**24 cells fail**, across 3 of the 6 configs (`enabled_ft`, `enabled_alias`,
+`enabled_noprfx`), with the test's own message:
+
+```
+WRITE PRICE IS CHEAPER THAN THE READ PRICE — the round-10 Critical, reopened.
+  dropped scope: task:close
+  read  price task:close from [completed wont_fix] -> [completed]
+  write price FREE        from [completed wont_fix] -> [completed wont_fix]
+```
+
+The test is correct. The **vocabulary** is one row short. Its two hand-reasoned
+"most likely to break monotonicity" deltas (`swap_local_for_markerless`,
+`swap_local_for_foreign`) both swap `ft:stage/**completed**`. Applied to the
+`two_terminal` set they produce `after = [wont_fix, completed]` against
+`before = [completed, wont_fix]` — **the same set in a different order** — and
+`SameStageSet` compares elementwise, so they are charged. **Those cells pass on
+alphabetical luck.** Swap the *later*-sorting stage instead and the union lands in sorted
+order, the elementwise comparison succeeds, and the price collapses. The leg reasoned its
+way to within one character of the defect.
+
+**Preconditions:** `enabled=true`, and the task carries **≥2 terminal labels**. A single
+terminal label cannot collapse (the fallback arm always yields a 1-element set of a
+different stage). The 2-label state is not attacker-manufactured — `AllTerminalLabelStages`'
+own docblock says it arises when *"a maintainer applies wont_fix, an automation applies
+completed, or an independently created label produces the second without anyone attacking
+anything."*
+
+**Required fix — the durable one.** Do not try to make the union safe. The union is
+another over-claiming move on an endpoint, which is the family of error that produced
+round 10 and this. Make the price carry the read price as a *term* rather than hoping a
+set relation implies it:
+
+> Have the seam return both endpoint pairs — the read pair and the claim pair — and have
+> the consumer charge `price(readBefore, readAfter) ∪ price(readBefore, claimAfter)`.
+> Monotonicity is then true by construction and needs no argument, because the read price
+> is literally one of the operands. It cannot be broken by a future change to the guard,
+> because there is no guard between the two prices.
+
+### FINDING P-1 — the durable remedy was in the brief; the round refuted one disjunct and discarded both
+
+*Filed as its own numbered item per EM instruction 2026-07-29T00:16:11Z. Kept inside REVIEW-194-R11-C1
+because it is the remedy analysis for REVIEW-194-R11-C1, not a separate defect.*
+**(MEASURED, post-hold. Severity: not a code defect — a process finding, and the strongest
+single piece of evidence for the C8 convergence recommendation.)**
+
+The brief offered **two** shapes for B1 (quoted in the leg's own D8, log lines 382-388):
+
+> *"Floor the BEFORE endpoint at the read side's answer, **or** charge
+> `max(readPrice, writePrice)`. Either is monotone by construction."*
+
+The leg's D8 item 3 rejects that sentence and ships the union. Read what it actually
+refutes:
+
+> *"**The first half is not sufficient on its own.** Flooring BEFORE while leaving AFTER as
+> the claim answer alone is not monotone — measured above, `push_prefix " "`, an
+> `accept`-priced reopen going FREE […] The union is required. The brief's 'either is
+> monotone by construction' is the same premise-true/conclusion-false step it correctly
+> diagnoses in B7.1."*
+
+**The counter-measurement refutes option A and is silent on option B.** Flooring BEFORE
+alone leaves AFTER over-claimed — true, measured, and a real finding. `max(readPrice,
+writePrice)` has nothing to do with that: it does not touch the endpoints at all, it
+charges **two prices and unions the results**. It is immune to the very defect REVIEW-194-R11-C1
+describes, because each price computes its own `SameStageSet` guard over its own endpoint
+pair, and the read price appears in the answer as a literal operand. **No guard sits
+between the two prices, so there is nothing for the non-monotone step to happen in.**
+
+So the shipped fix was chosen over the correct one by a refutation that landed on the
+other option, and the sentence "either is monotone by construction" was discarded whole
+when only its first disjunct was false.
+
+**Two things follow, and I want both recorded:**
+
+1. **For the EM's failure-mode ledger:** this is failure mode 3 *inverted*. The brief did
+   not steer the round away from the defect — the brief contained the durable remedy, and
+   the round reasoned its way past it. A brief can be right and still lose the argument.
+   Whatever process credit C1's third sub-bullet earns for finding this Critical, the
+   `max(readPrice, writePrice)` half of B1 earns the same credit for having pre-empted it.
+2. **For the leg, and said without irony:** D8 item 3 is itself an instance of the
+   non-sequitur it names in the same sentence. *"Premise true, conclusion false"* — the
+   premise (option A is insufficient) is true and measured; the conclusion (therefore the
+   brief's disjunction is wrong and the union is required) does not follow. This is the
+   fourth appearance of taxonomy form (13)-adjacent reasoning on this branch and the first
+   one inside a *deliverable about* that form. It is not a gotcha: it is the strongest
+   available evidence for the C8 recommendation, because it shows the error surviving
+   direct, competent, self-aware scrutiny. **Structure, not attention, is the remedy.**
+
+The leg also considered this shape at log lines 166-173 (*"Not `max(readPrice,
+writePrice)` […] the endpoint split makes the invariant a property of the seam"*). **That
+reasoning is sound and the conclusion is still wrong**, for the reason the leg itself keeps
+finding: a property of the seam only transfers to the caller if the caller's function is
+monotone, and this caller's is not. Making it a property of the seam is precisely what hid
+the guard from the argument — the guard lives in the caller, and the seam cannot see it.
+
+**Minimal fix if the interface change is too large for this round** — acceptable, but say
+so explicitly as a stopgap:
+
+```go
+readAfter := s.currentLifecycleStages(t, rawAfter)
+after = unionStages(readAfter, claimed)
+// The union may only ADD price. If it has restored equality that the read arm
+// did not have, it has subtracted price, and the read arm wins.
+if store.SameStageSet(before, after) && !store.SameStageSet(before, readAfter) {
+    after = readAfter
+}
+```
+
+**Required regression pin:** add the `remove-and-respell-the-later-sorting-terminal-stage`
+delta to `TestLabelWritePrice_IsMonotoneInThePredicate`'s vocabulary. One line; it is
+already proven to fire.
+
+---
+
+## 4.1 REVIEW-194-R11-C1 IS UNDER INDEPENDENT DERIVATION. THE PART THAT COULD STILL SINK IT.
+
+**Opened 2026-07-29T00:29:52Z at the coordinator's direction. This section is written
+against my own finding and is the one a reader should weigh hardest.**
+
+Everything in §0.2 proves the 24 failures are **mine and not a contaminant**. Nobody has yet
+checked whether **the row is right** — and I am not permitted to check it, correctly, because
+*a leg cannot audit its own expectation.* `audit-194-r11` is deriving the answer from the
+specification alone, without sight of mine. If it derives my value, REVIEW-194-R11-C1 is ratified. If it
+derives a different one, **REVIEW-194-R11-C1 evaporates and this report loses its Critical.**
+
+**Two facts that reshape the question rather than settle it:**
+
+1. **I authored no expected value.** My edit added **one entry to a `deltas` vocabulary map**
+   in a *property* test, plus seven comment lines. The harness computes **both** compared
+   values at runtime from production code. So the literal form of "his expected value is
+   wrong" does not apply — which is *not* a defence, it just relocates what must be checked.
+2. **The seven comment lines were the real hazard.** They contain my complete derivation in
+   plain English. Handing audit "the row as I wrote it" would have handed over the whole
+   answer while looking like handing over an input. The forwarded block carries the bare map
+   entry, stripped. Recording this because the near-miss is the reusable part: **a payload
+   can hide inside an artefact that is nominally an input.**
+
+**THE FORM OF THE OBJECTION THAT I THINK COULD ACTUALLY SINK REVIEW-194-R11-C1, stated by me, before
+audit reaches it:**
+
+> The harness's **reference arm** is computed by `currentLifecycleStages`
+> (`passthrough.go:1237`) — **a function this very diff introduces** — whose docblock asserts
+> it is base `06f01d7`'s read arm *verbatim*. **I have not verified that assertion.** If it is
+> false, and the reference arm over-reports what base charged, then what I measured is the
+> harness disagreeing with itself, REVIEW-194-R11-C1 is not a production defect, and I filed a Critical on a
+> test-harness artefact.
+
+I rate this **unlikely but not negligible**, and I **cannot close it by reading**, because the
+claim is about behavioural equivalence to a commit I have not executed. This is exactly what
+the ungranted run 4 (§13.2 — price this input at base `6d8f19e`) settles, and it is why §4A's
+"not introduced by r11" carries the report's only **SUSPECTED** marker. I put this question
+into audit's brief myself, deliberately, as their Q2.
+
+**EVIDENCE STATUS of REVIEW-194-R11-C1, restated honestly:** the *reproduction* is **MEASURED** and
+re-measured. The *interpretation* — that the reproduced behaviour is a production defect
+rather than a harness artefact — is **MEASURED conditional on the reference arm's documented
+equivalence to base, which is SUSPECTED.** The verdict below still holds, because REVIEW-194-R11-R1, REVIEW-194-R11-R2 and
+REVIEW-194-R11-R3 block independently of REVIEW-194-R11-C1; but **if audit answers Q2 against me, the Critical falls and
+the verdict drops to REQUEST CHANGES on the three Required findings alone.**
+
+*That is the correct outcome if it happens, it is cheaply obtained, and it costs the project
+far less than a ratified Critical that was a test bug.*
+
+---
+
+## 4A. SCOPE OF REVIEW-194-R11-C1 — answered separately from the reproduction, and not fused with it
+
+*Per EM instruction 2026-07-29T00:14:25Z item 2. A clean re-reproduction establishes that
+the behaviour is real at `2cbbd92`. It does not by itself say whether the defect is r11's to
+answer for. That is a different question with different consequences, so here it is on its
+own evidence.*
+
+**MEASURED:**
+
+```
+$ git diff --stat 6d8f19e..2cbbd92 --name-only
+   -> internal/server/server.go IS NOT IN THE DIFF.  Neither is internal/store/store.go.
+$ git diff 6d8f19e..2cbbd92 -- internal/server/server.go internal/store/store.go
+   -> EMPTY
+$ git log --oneline -S "SameStageSet" -- internal/server/server.go internal/store/store.go
+   -> a98d162, 1a73f3b, 6e98097, 9b52260   (all PRE-r11)
+```
+
+**The guard that defeats the theorem is pre-existing, and r11 never touched it.** r11 changed
+the **producer** (`LabelDeltaLifecycleStages`) and left the **consumer** untouched — and wrote
+its correctness argument about the producer.
+
+### Classification: **chartered to close, and did not.**
+
+Not "introduced by r11", and not "a pre-existing defect on an adjacent path r11 never claimed".
+
+- **NOT INTRODUCED BY r11.** At `6d8f19e` both endpoints were computed by the same claim
+  predicate, so this input collapsed to equality there too and was already free. The union did
+  not create the symptom — it **changed the mechanism while preserving the symptom**. At r10
+  the endpoints collapse because one predicate computes both; at r11 they collapse because the
+  union re-inflates AFTER back onto BEFORE. Same free write, different route.
+  **EVIDENCE STATUS: SUSPECTED.** I have not checked out `6d8f19e` and priced this input there.
+  A ~15s targeted run would convert it to MEASURED; it is listed in §15 and it changes no
+  verdict either way.
+- **NOT ADJACENT.** It is squarely inside B1's charter, and the diff does not merely fail to
+  cover it — it **affirmatively claims to**. The docblock asserts `writePrice ⊇ readPrice`
+  *"pointwise, for every input"* and *"nothing here can be cheaper than what shipped"*. The
+  shipped property test is named `IsMonotoneInThePredicate`. The failing cells are inside the
+  scope of the claim.
+- **It is a regression against pre-round-10 behaviour** that round 11 existed to repair,
+  repaired for the shapes it tested, and left live wherever BEFORE has **two or more** elements.
+
+### What this should and should not be read to mean
+
+Stated so the decision-maker can weigh it rather than inherit my framing:
+
+- **r11 did not make things worse.** If the question is whether this diff regresses the branch,
+  the answer is no.
+- **r11 did not discharge B1** — and the docblock says it did. **That** is the part that must
+  not ship. An incomplete repair is an ordinary outcome; an incomplete repair whose
+  completeness is asserted as a theorem in a comment is how the next round inherits a false
+  premise, which is the documented history of this branch.
+
+The two remedies differ accordingly. If the coordinator decides the residual risk is
+acceptable for now, the **minimum** action is still to correct the docblock and add the
+regression row — because leaving the claim standing is what converts this from a known gap
+into a future false negative.
+
+---
+
+## 4A.2 THE §4.1 OBJECTION, MEASURED — AND IT DOES NOT SINK REVIEW-194-R11-C1, BUT IT CORRECTS §13.2 AND UPGRADES REVIEW-194-R11-R2
+
+**Added 01:15Z.** §4.1 nominated this as the one thing that could sink REVIEW-194-R11-C1: *the harness's
+reference arm is `currentLifecycleStages`, a function this diff introduces, and I have not
+verified it is the base read predicate.* Measured, by diffing the two bodies with the name
+normalised away:
+
+```
+base 6d8f19e  lifecycleStagesForLabels     HEAD 2cbbd92  currentLifecycleStages
+  view := s.mapper.writeViewMapper()   |
+  canonical := canonicalLifecycleLabels(labels)  |
+  view.AllTerminalLabelStages(canonical)         →  s.mapper.AllTerminalLabelStages(labels)
+  view.IssueToPhaseStage(…, canonical)           →  s.mapper.IssueToPhaseStage(…, labels)
+```
+
+**IT IS NOT A RENAME. It is a rename plus a semantic change**: the base read arm ran through
+the **write view** on **canonicalised** labels; the r11 arm runs the **plain, config-obeying
+mapper** on **raw** labels.
+
+Three consequences, and I got the first one wrong an hour ago:
+
+1. **The change is almost certainly CORRECT and intentional.** A read predicate that consults
+   the write view is precisely the read/write conflation rounds 10–11 exist to undo. I am not
+   filing it.
+2. **It does not sink REVIEW-194-R11-C1.** The harness's reference arm is the *same function production uses
+   for `before`*, so the harness compares production against production and the gap it reports
+   is internal to the shipped code. The §4B.4 derivation is independent of the read arm
+   entirely. **§4.1's nominated failure mode is now closed.**
+3. **It upgrades REVIEW-194-R11-R2 and refutes my own 01:12Z framing of it.** I told the EM the five stale
+   `lifecycleStagesForLabels` references were *"rename residue, not invention."* **That was too
+   generous.** They point at a name whose function had **materially different semantics** — it
+   consulted the write view. A reader who follows `passthrough.go:1065` or `:1070` to reconstruct
+   what the endpoints agree on reconstructs the **pre-partition** behaviour. REVIEW-194-R11-R2 is not
+   cosmetic. It is a stale comment that teaches the reader the exact model this round was built
+   to destroy.
+
+Third time tonight: the conclusion held and my stated reason was wrong, in the direction that
+understated the finding.
+
+---
+
+## 4D. THE APPARATUS-ATTRIBUTION FALSIFICATION TEST — I RETRACT FOUR OF FIVE, AND THE TALLY HAS BEEN MERGING TWO DIFFERENT DISEASES
+
+**Added 01:36Z, answering the EM's broadcast 9 item 6: *for every error you attributed to
+apparatus tonight, produce the record number where the instrument gave the wrong answer.
+If you cannot, it was yours.***
+
+> **BLANKET SHA PIN, governing every `file:line` in this report.** Unless a citation names
+> its own revision explicitly, it resolves against
+> **`2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e`** (HEAD of `label-write-scope-r11`), with the
+> review base **`6d8f19e11f4ddbfdc313301199006d3f7c76eb1c`**. Citations into
+> `.design/project-log/` and into any sibling leg's artefacts are **not** pinned and are
+> marked inline where they occur, because those live on a shared mutable volume — per
+> broadcast 7, the governing text for those is quoted verbatim rather than pointed at.
+
+| # | what I called it | did the instrument give a **wrong answer to the query I asked**? | verdict |
+|---|---|---|---|
+| MISAIM 1 | `grep "func Test.*Agrees" internal/platform/github/` → null | **No.** The pin is in `internal/server/`. grep answered my query correctly; my query named the wrong package. | **MINE** |
+| MISAIM 2 | `add:` pattern → 0 rows in the config-blind file | **No.** Those rows carry a `label` field. Correct answer. | **MINE** |
+| MISAIM 3 | `open\(["']…` → 0 while `open(` occurred 16× | **No.** The paths were variables (`open(p)`). Correct answer. | **MINE** |
+| MISAIM 4 | `git grep … \| head; echo $?` read `head`'s status | **No.** POSIX-correct behaviour. I wrote the pipe. | **MINE** |
+| the zsh glob abort | `--include=*.go` destroyed three sub-commands | **YES — records 75 → 79.** A genuine environment defect. | **APPARATUS** |
+| the single-consumer error | I had attributed it to the abort | **No — record 84** re-ran quoted one call later and printed all three. | **MINE** (retracted 01:24Z) |
+
+**I RETRACT FIVE OF SIX APPARATUS ATTRIBUTIONS. Exactly one genuine apparatus failure, and
+its consequence for every filed finding in this report is ZERO.**
+
+### 4D.1 The distinction the fleet tally is missing, and why it changes the remedy
+
+A **broken** instrument gives a **wrong answer to the query you asked.**
+A **misaimed** instrument gives the **right answer to the wrong query.**
+
+These are different diseases and I have been reporting mine under the first label all night
+while suffering the second. It matters because the remedies are disjoint:
+
+- **Breakage is fixed by tooling** — quote the glob, `unsetopt nomatch`, `zsh -c` isolation,
+  never read an exit code through a pipe. Nothing about the reviewer changes.
+- **Misaiming is fixed only by a control that varies the QUERY.** No amount of shell hardening
+  reaches it, because the shell was right every time.
+
+And this explains the EM's broadcast 9 item 2 from the other side. A control built the usual
+way — *copy the instrument line, change the pattern* — **varies the query but not the idiom.**
+So it detects misaiming and is structurally blind to breakage. **My controls caught misaiming
+twice and never once caught the abort, because misaiming is what I actually had.** A leg's
+control design silently encodes which disease it assumed, and nobody has been stating the
+assumption.
+
+**Recommendation:** split the fleet's 24 fabricated-detector tally into *broken* and *misaimed*
+before treating any of it as a property of the tooling. On this leg the split is 1 / 5.
+
+### 4D.2 Own-tooling exclusion (broadcast 9 item 7), by record
+
+Every detector I built tonight, with its own source excluded and the count restated:
+
+| detector | raw hits | own-tooling hits | real |
+|---|---|---|---|
+| backtick-in-message | 1 | 1 (my own audit line) | **0** |
+| unquoted-glob-in-flag | 2 | 1 (my own `printf` control) | **1** |
+| pipe-laundered `&&` | 7 | 2 (my own report read/edit commands) | **5** |
+
+### 4D.3 A REAL ONE THE PIPE DETECTOR FOUND, AND IT WAS IN MY RESTORE PROOF
+
+Broadcast 9 item 4 made me run the detector, and it hit the most-repeated claim in this report:
+
+```
+git rev-parse --show-toplevel && git status --porcelain | wc -l && …
+```
+
+**`wc` always exits 0.** Had `git status` itself failed, `wc -l` prints `0` and I read
+**"0 lines dirty" as CLEAN** — a fabricated zero, in the restore proof, in exactly the shape
+this round has been chasing all night.
+
+Re-verified **unpiped**, every exit code read directly from the command that produced it, at
+`HEAD = 2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e`:
+
+| channel | rc | lines |
+|---|---|---|
+| `git status --porcelain --untracked-files=all` | 0 | **0** |
+| `git diff 2cbbd92…` | 0 | **0** |
+| `git worktree list` | 0 | **1** (`/workspace` only — the eighth channel, clean) |
+| `git clean -nxd -- internal/ cmd/ api/ proto/ .design/` | 0 | **0** |
+| `find /workspace -type d -empty` (sixth channel) | — | **0** |
+| `/workspace/.git/worktrees/` | — | **does not exist** |
+
+Negative control that the unpiped form can surface a failure: `git status --porcelain
+/nonexistent-path-review194r11` → **rc=128**. The instrument can report a nonzero status, so
+the zeros above are answers rather than silence.
+
+**The restore is now certified on seven channels, none of them piped, plus the causal
+write-arm census in §4C.1.** The conclusion never changed; the proof of it was laundered
+until now.
+
+### 4D.4 MY OWN REPORT CONTAMINATES MY OWN CENSUS — MEASURED (broadcast 10 item 5)
+
+**§4D.2's glob row is SUPERSEDED. It said 2 raw hits. Re-measured over the full transcript,
+the needle `--include=*.go` appears in NINE Bash records and FOUR report-write records:**
+
+| record class | records | what they are |
+|---|---|---|
+| **live unquoted glob** | **74** | **the one genuine apparatus failure. ONE.** |
+| audit tooling (mine) | 812, 816, 906 | detectors that print the needle as data |
+| **message prose (mine)** | **856, 890, 917, 958** | messages to the EM **quoting the abort verbatim as evidence** |
+| **report prose (mine)** | **847, 885, 915, 934** | this document, **quoting the abort verbatim as evidence** |
+
+A census of this needle run tomorrow returns **13** and **12 of them are prose about the
+failure, not the failure.** The abort string `no matches found` behaves identically: 4 Bash
+records, 2 report-write records, and **one of the "hits" is this very section.**
+
+**My filed count of 2 was not clean by design. It was clean because those detectors happened
+to be scoped to live command text, and because most of the prose did not exist yet when they
+ran.** Records 847/885/915/934 all post-date the census. The EM's formulation is exactly
+right and I can now put a number on it: **the better this report documents the failure mode,
+the more reliably it poisons any later census of that failure mode.** Adopting the standing
+rule: censuses exclude `reports/` by path, and exclude message-composition records by record
+number.
+
+### 4D.5 TAIL-SURVIVAL: I HAVE TWO CASES, BOTH SURVIVED, ZERO TRUNCATIONS
+
+Broadcast 10 item 2 asks whether my tails ran. Measured:
+
+| record | separator | abort | tail | sound? |
+|---|---|---|---|---|
+| 78 | `;` on one line | `(eval):1:` **×3** | **RAN** — all three captions printed | no |
+| 354 | newlines | `(eval):6:` ×1 | **RAN** — everything after printed | **YES** — see below |
+
+**I have zero truncation cases.** Every abort I suffered left a batch that *looked complete*.
+This is the EM's inverted risk exactly: truncation is the failure you notice.
+
+**Record 354 is a SOUND abort** under broadcast 7's rule — the glob was
+`/workspace/farmtable-194-r11-*` and the proposition under test was *"no sibling leg's clone
+is visible to me."* The non-match **is** the finding. That check is not retracted; it is
+confirmed, and it is one of the supports for §1's contamination declaration.
+
+**A discriminator worth testing, offered as HYPOTHESIS ONLY:** zsh printed `(eval):1:` for the
+batch whose commands were `;`-separated on a single logical line, and `(eval):6:` for the
+multi-line batch. If the unit of death is the *physical line* rather than the command or the
+subshell, both of the EM's contradictory data points reconcile. **I cannot test this — I hold
+no build token and this needs a run.** Do not treat it as established. Quoting remains the
+fix and the sentinel remains mandatory either way.
+
+### 4D.6 A RE-ATTRIBUTION I AM REFUSING
+
+Broadcast 10 hands me a mechanism — *the surviving tail makes an aborted batch look
+complete* — that would partially excuse the worst error I made tonight (§4B.1, filing "one
+consumer" when there are three). Record 78 fits it perfectly: three captions, three aborts,
+structurally complete, and I read it as a sweep that ran.
+
+**I am not taking it.** The completeness illusion explains why I did not *re-run* record 78.
+It does not explain why I filed against **record 84**, which had already printed all three
+consumers before I wrote a word. The retraction stands unchanged and the attribution stays
+**MINE**.
+
+Broadcast 10 item 3 warns that a leg which has spent an hour cataloguing broken instruments
+builds a category that will accept any error handed to it. **I am the leg most exposed to
+that right now, having just been credited with the vocabulary in item 4.** Recording the
+refusal so the credit does not quietly buy back the retraction.
+
+### 4D.7 IAP: CLI CONFIRMED BOUNDED, MCP UNRESOLVED — NOT CLEARED
+
+ptone, verbatim: *"cli would be guarded by IAP. MCP not sure and can defer for now. may be
+that IAP and MCP are not going to be supported together."*
+
+Recorded as: **CLI CONFIRMED IAP-BOUNDED. MCP UNRESOLVED, DEFERRAL AUTHORISED BY ptone.** A
+deferral is a decision about what to spend time on, not a negative finding. The conditional —
+that IAP and MCP may not be supported together — would close the question properly rather
+than by deferral, and is an architectural fact no reviewer here can derive. Flagged, not
+assumed in either direction. **See §4D.8 for why none of this moves REVIEW-194-R11-C1 on my axis.**
+
+### 4D.8 REVIEW-194-R11-C1 REMAINS **Critical** — ESCALATED, AND RULED IN MY FAVOUR
+
+Broadcast 10 item 6 stated, and this is a **VERBATIM QUOTATION AND IS EXEMPT FROM THE ID
+REWRITE BELOW**: *"C-1's severity does not move. HIGH stands; CRITICAL is off the table."*
+
+**Two live findings carried the bare name `C-1`** — `audit-194-r11`'s, rated HIGH, and mine
+in §4, rated **Critical**. Item 6's surrounding text is entirely about the other leg's
+inherited IAP claim, so I read it as governing that leg and **asked the EM to confirm rather
+than resolving the collision myself.**
+
+**RULED, 01:49Z: *"NO. BROADCAST 10 ITEM 6 DOES NOT TOUCH YOUR SECTION 4. YOUR C-1 STANDS AT
+CRITICAL."*** The EM confirmed the collision was its own — it wrote an unqualified ID into a
+six-leg broadcast while two findings bore it — and generalised the protocol: **no severity
+moves by inference from a document addressed to someone else.** Finding IDs are now round- and
+leg-qualified project-wide; mine is **REVIEW-194-R11-C1**, the other is AUDIT-194-R11-C1.
+
+The three reasons I gave, all of which the EM adopted on the merits:
+
+1. **IAP is not responsive to my REVIEW-194-R11-C1.** IAP bounds *who may call*; REVIEW-194-R11-C1 is about *what the
+   system records when an authorised caller does*. The population IAP admits — authenticated
+   maintainers — is precisely the population that edits lifecycle labels. The bound removes
+   approximately none of REVIEW-194-R11-C1's exposure.
+2. **The harm is unauthenticated-attacker-free by construction.** Removing
+   `ft:stage/wont_fix` from an issue also carrying `ft:stage/completed` erases a maintainer's
+   decline while `SameStageSet` reports *nothing changed* and the write is priced at nothing.
+   That is silent data loss plus a false audit record, produced by a legitimate user on the
+   happy path. The `code-review` severity table defines **Critical** as *"security
+   vulnerability, **data loss**, broken functionality."* It qualifies on the second clause
+   without touching the first.
+3. **"Critical → HIGH" is not a severity restatement, it is a merge-gate change.** `HIGH` is
+   not in the `code-review` severity vocabulary at all — that vocabulary is
+   Critical/Required/Nit/Optional/FYI, and LOW/MEDIUM/HIGH/CRITICAL is the *Executive Summary
+   risk level*, which gates nothing. **Critical blocks merge; "HIGH risk" does not.** So the
+   relabel reads as a lateral move and functions as an un-gating.
+
+**Adopted as a standing project rule at 01:49Z: NO FINDING MOVES BETWEEN THE TWO
+VOCABULARIES.** If a risk level and a review severity must both be stated, they are stated as
+two fields, never as a translation.
+
+### 4D.9 THE ID REWRITE ALTERED A VERBATIM QUOTATION. CAUGHT, REVERTED, DISCLOSED.
+
+Complying with the round-qualification ruling, I rewrote **110 bare finding IDs** in this
+document by script. The script skipped lines mentioning other legs, and I reviewed the one
+line it flagged — but it did **not** know to skip *quotations*, and it silently rewrote the
+EM's own broadcast text from `C-1` to `REVIEW-194-R11-C1` **inside quotation marks.**
+
+**An automated correctness fix that edits evidence to match the corrected world is the
+night's own theme, executed by me, ninety seconds after being praised for spotting it.** The
+quotation above is restored verbatim and marked exempt. **Rule for anyone else doing this
+rewrite: quoted spans are not part of your record and must be excluded from ID
+normalisation** — otherwise the archive stops being able to show what was actually said.
+
+### 4D.10 ANCHORING IS NECESSARY AND **INSUFFICIENT** — A CORRECTION TO BROADCAST 10 ITEM 5(b)
+
+Re-ran the abort census with the EM's corrected pattern,
+`^(\(eval\)|zsh|bash):[0-9]+: no matches found:`, over live command output only:
+
+| class | records | aborts |
+|---|---|---|
+| **LIVE** | 74→78, 353→354 | **4** (3 + 1) |
+| **PROSE** | 816→818, 906→907, 984→985 | 7 — my own audit tools **printing transcript data** |
+
+Two results, and the second one matters more:
+
+1. **All 11 aborts in my transcript use the `(eval)` form; zero use `zsh:`/`bash:`.** The
+   corrected pattern does not change my count. §4D.5's "two live aborts" is **confirmed under
+   the anchored pattern.**
+2. **ANCHORING WOULD NOT HAVE SAVED ME. Three of the five anchored-matching records are
+   false.** The EM's item 5(b) says anchoring rather than path exclusion is the fix. On my
+   transcript that is not sufficient, and the reason is structural: **a verbatim quotation of
+   an abort is anchored too.** Records 816/906/984 match `^\(eval\):1: no matches found:`
+   perfectly — because they faithfully reproduce a real abort.
+
+   **The discriminator is SOURCE, not SHAPE: whose output is this line?** I separated live
+   from prose by asking whether the *command* read the transcript, not by how the *line*
+   looked. Anchoring fixes malformed-pattern false positives; only source-classification
+   fixes quotation contamination, which is the class that grows with write-up quality.
+
+### 4D.11 I REUSED EIGHT SENTINELS (broadcast 10 item 5(c)). DISCLOSED.
+
+| sentinel | records |
+|---|---|
+| `SENTINEL_rc` | **973, 977, 984** |
+| `SENTINEL-A`, `SENTINEL-B` | 906, 931 |
+| `SENTINEL-3`, `SENTINEL-4` | 900, 928 |
+| `SENTINEL`, `SENTINEL_send_rc`, `SENTINEL_status_rc` | 2 records each |
+
+**8 reused of 22 distinct.** `SENTINEL_rc` appeared three times, all within tonight's
+broadcast work. The hazard is exactly as described: a later record's copy sits in scrollback
+available to be read as an earlier truncated batch's completion.
+
+**Did it materialise? No — and only by luck.** The only live aborts are records 74 and 353,
+neither of which carries a reused sentinel. But the risk was live across 8 tokens for the
+whole session. **Sentinels from this point are session-unique;** the two commands producing
+this section used `SENTINEL_b10_followup_unique_01_done` and
+`SENTINEL_b10_idrename_unique_02_done`.
+
+### 4D.12 THE QUOTE AUDIT FOUND A **SECOND** CORRUPTION. READ-BACK CAUGHT ONE OF TWO.
+
+Broadcast 11 item 1 ordered every leg that ran the ID rewrite to check every quoted span. I
+ran it and found a second violation I had missed:
+
+| line | span | verdict |
+|---|---|---|
+| 744 | blockquote | **legitimate** — my own authored objection, explicitly *"stated by me"* |
+| 1406 | blockquote + inner quotes | **legitimate** — a cross-reference to a §13.1 row name |
+| **1280** | italic quotation | **VIOLATION — reverted.** A verbatim quote of my own retracted §4B.1 wording. The rewrite changed the evidence of the error into the corrected form, destroying the point of quoting it. |
+
+**My read-back caught 1 of 2. The systematic audit was necessary, and the EM was right to
+make it mandatory.** Ratio for anyone else running it: **2 quotation corruptions per 110
+rewritten IDs**, and the one that survived read-back was the *self*-quotation — the kind you
+skim because you recognise your own words.
+
+### 4D.13 MY SCRATCH DIRECTORY IS THE SECOND CONTAMINATION CORPUS, AND BROADCAST 8 CREATED IT
+
+Broadcast 11 item 4(b) predicted this; measured on affirmatively-listed paths only:
+
+**8 message-composition files** (`/tmp/b45.txt`, `/tmp/b67.txt`, `/tmp/b8.txt`,
+`/tmp/blockmsg.txt`, `/var/tmp/msg-review-194-r11-b{9,10,11}.txt`), **6 of which quote the
+abort strings verbatim.** They exist because Broadcast 8 mandated the
+`cat > /path <<'ENDOFMSG'` idiom to defeat backtick execution. **The mitigation for one
+hazard manufactured the corpus for another**, in a directory no exclusion rule names — the
+night's recurring shape, now in the tooling advice itself.
+
+Also noted per the hand-adjudicate rule: my own enumerator double-counted
+`/tmp/blockmsg.txt` because two of my globs overlapped. One entry, listed twice, in a census
+of contamination sources. **The count is not the finding.**
+
+### 4D.14 RESIDUAL-ID COUNT: **0 TRUE, 37 DETECTOR HITS, AND THE REPAIR WOULD HAVE BEEN THE DAMAGE
+
+Broadcast 12 item 5 orders a residual bare-ID count. Run with a **control that fails the
+command** (item 6 idiom) — a synthetic string carrying plain, bold, italic, en-dash and
+unhyphenated forms; the scan is void unless the control detects them. Control passed **6/6**,
+so bold and italic were reachable and I did not repeat `audit-xss-r4`'s shape-exclusion bug
+(I excluded by *source* — lines naming another leg — not by typography).
+
+**Detector returned 37. True residuals: ZERO.** Adjudicated:
+
+| class | count | verdict |
+|---|---|---|
+| **brief checklist items `C1`–`C8`** (`C4(b)`, `C2(b)`, `C6`…) | **34** | **A DIFFERENT NAMESPACE.** These are the dispatching brief's checklist, not findings. Rewriting them would have been vandalism. |
+| verbatim EM quotations (lines 1036, 1043) | 2 | correctly **EXEMPT** |
+| verbatim self-quotation (line 1312) | 1 | correctly **EXEMPT** — the one I reverted |
+
+**This is Broadcast 12 item 4, live.** An over-broad integrity check returned 37 "problems"
+whose natural repair was to rewrite them — and the repair would have **silently destroyed
+every reference to the brief's own checklist.** The null-repair rule generalises: *no repair
+may be triggered by a detector result, null **or non-null**, until the result has been
+adjudicated.* A misaimed check is dangerous in both directions, and the non-null direction
+feels even more like diligence because there is a list to work through.
+
+**RECOMMENDATION (process, FYI):** this project now has **two ID namespaces that collide in
+shape** — brief checklist `C1`–`C8` and findings `C-1`… — separated by a single hyphen. The
+round-qualification ruling fixed the findings namespace and left the other one bare. The
+brief's items should be qualified too (`BRIEF-194-R11-C6`), for exactly the reason bare `C-1`
+was banned.
+
+**Item 7 compliance verified:** the struck price/ranking vocabulary is **still present in this
+report** — 88 `price`, 36 `monoton*` — deliberately **not swept.** §4E.1 marks the superseded
+phrasing at point of use and preserves the original. **Item 8:** zero occurrences of `beads`
+in this report; no finding of mine rests on that adapter's reachability.
+
+### 4D.15 TALLY RE-PRESENTED PER BROADCAST 12 ITEM 1 — INCIDENTS FIRST, CLASSES AS PAIRS
+
+The EM retracted the summable four-way table. Re-presented, not re-analysed:
+
+**DISTINCT INCIDENTS: 6 that produced a wrong filing, plus 1 caught before filing.**
+
+| # | incident | instrument axis | investigator axis |
+|---|---|---|---|
+| A | unquoted `--include=*.go` (rec 74→78), then filing "one consumer" against rec 84 | **BROKEN** | **UNREAD DIAGNOSTIC** |
+| B | test-name grep in the wrong package | clean | **MISAIMED** |
+| C | table-row grep on the wrong field | clean | **MISAIMED** |
+| D | `open\(["']` vs `open(p)` variable | clean | **MISAIMED** |
+| E | exit status read through `\| head` | clean | **MISAIMED** |
+| F | ID rewrite corrupting 2 quotations | clean — the script did what I told it | **MISAIMED** (excluded by leg-name, not by quotation) |
+| G | this residual detector's 37 false hits | clean | **MISAIMED — adjudicated before any repair, cost zero** |
+
+**One incident carries BROKEN. Six carry an investigator-axis fault.** Incident A is the
+class-pair case the EM credits to `audit-xss-r4`: one causal chain, two errors, two owners —
+the abort was the apparatus's, the filing was mine. **Note that F and G are errors I committed
+*while executing tonight's remedies*.** The rate at which compliance work generates new
+incidents is not zero, and it is not being tracked anywhere.
+
+### 4D.16 I APPLIED BROADCAST 13's RULE TO MY OWN R3. IT SURVIVES, AND NOW FOR A STATED REASON.
+
+Broadcast 13: *"A NEGATIVE REACHABILITY CLAIM IS NOT ESTABLISHED BY AN ABSENCE OF DIRECT
+REFERENCES."* **REVIEW-194-R11-R3 rests on exactly such a claim** — `canonicalLifecycleLabels`
+has zero production callers — established by grep. Nothing of mine re-rated against `beads`
+(zero occurrences), so I have nothing to mark provisional; but the rule reaches my own work
+and I applied it before anyone asked.
+
+Mechanisms enumerated **by name** in `internal/platform/github/`, controls failing the command:
+
+| indirect-dispatch mechanism | result |
+|---|---|
+| blank-identifier import `_ "…"` | **0** |
+| `reflect.*` | **0** — and reflection cannot reach *unexported* methods in any case |
+| interface declarations in the package | **0** — so no interface dispatch |
+| build-tagged files | 1, `integration_test.go` — **test only** |
+| string-keyed factory / registry | 22 hits, **all test scaffolding** (`registerLabel` on a fake repo) |
+| method-value use (symbol not followed by `(`) | 1 candidate, adjudicated **not** one — a string inside a `t.Errorf` format |
+
+**Non-test `.go` references: 1 — the definition itself.** Zero production callers confirmed.
+
+**R3's basis is UPGRADED: from "zero callers by grep" to "zero reachable callers by enumerated
+mechanism check."** Severity unchanged; the factual floor under it is now solid.
+
+**And the addition the rule needs, which matters for the live `beads` question I am not
+working on:** enumerating mechanisms is necessary but does not close a negative reachability
+claim on its own — *the list itself must be argued complete.* For `canonicalLifecycleLabels`
+the list **is** provably complete, by a language-level fact: it is an **unexported Go method**,
+Go has no string-keyed dispatch to unexported methods, and `reflect` cannot access them. That
+argument is what makes the check sound, not the six clean rows. **A package-level adapter
+selected at runtime has no such closing argument available**, which is precisely why `beads` is
+the hard case and this one is the easy one. Four clean mechanism checks would not settle it;
+only an argument for why the list of mechanisms is exhaustive would.
+
+### 4D.17 A REFUSAL CAUGHT IN FLIGHT — THE FIRST TONIGHT
+
+The interface check in my first pass **exited 128** — a git error, printing nothing. Read as a
+number it says *zero interfaces*, which was the answer I wanted and would have supported my
+own conclusion. **It is a REFUSAL, not a zero.** I caught it because I have been reading exit
+codes on every command since the pipeline-laundering self-catch, re-ran it with `-F`, and got
+the real answer (which happened to also be 0).
+
+**Every previous refusal tonight was found in the transcript afterwards. This one was caught
+before it entered a finding** — and only because the remedy that caught it (read the rc, never
+through a pipe) was already habitual. Also logged: incident **H**, my first method-value
+detector matched 9 comment lines, misaimed and adjudicated out before use.
+
+That third point is the EM's own item 7 class: **a scope exclusion re-entering the round
+under a name that does not sound like the thing that was excluded.** The round has spent the
+night finding four of these. I am not going to author the fifth against my own Critical
+finding, and I would be doing exactly that if I accepted a cross-vocabulary relabel without
+the EM confirming it was aimed at me.
+
+---
+
+## 4C. THE INHERITED-PROSE CLAIM, THE WRITE-ARM RESTORE PROOF, AND ONE FINDING IN THE DIFF I HAD NOT FILED
+
+**Added 01:16Z, answering the EM's broadcasts 6 and 7.**
+
+### 4C.1 The write arm as a CAUSAL restore proof — and the channel it cannot see
+
+Every `Write`/`Edit` tool call this leg has ever issued, from `tool_use` records via `jq`
+(not `grep` over raw JSONL — 2247 of my 2316 commands contain literal newlines and a
+line-oriented tool would clip almost all of them):
+
+| n | path |
+|---|---|
+| 27 | `reports/review-194-r11.md` — my own deliverable |
+| 1 | `/tmp/probe/internal/platform/github/zz_reviewprobe_test.go` — disclosed probe, worktree removed |
+| 1 | `/var/tmp/c1-verify-review-194-r11/…/lifecycle_claim_property_test.go` — disclosed, worktree removed |
+
+**ZERO `Write`/`Edit` calls into `/workspace` at any point.** That is stronger than "the tree
+is clean now": there was never anything in `/workspace` for a tool write to have left behind.
+
+**AND HERE IS THE ARM THAT ENUMERATION DOES NOT COVER, which I am reporting because the whole
+lesson tonight is that an unexamined arm is not a clean arm:** `Bash` writes too, and it is not
+in the `Write`/`Edit` census. Enumerated separately — redirects, `mkdir`, `cp`, `mv`, `tee`,
+`git worktree` — the only filesystem-mutating Bash commands I issued are `>/dev/null` (35×,
+mutates nothing), writes to `/tmp/*.txt` scratch files, and **two `git worktree add`** /
+**three `git worktree remove`** against `/var/tmp/c1-verify-review-194-r11` and `/tmp/probe`.
+`git worktree add` **does** write into `/workspace/.git/worktrees/`, so the causal claim is
+precisely: *no tool write and no Bash write ever targeted a tracked path in `/workspace`; the
+only `/workspace` mutation was git's own worktree bookkeeping, created and removed under the
+records above.*
+
+### 4C.2 Glob classification, not blanket retraction
+
+Per the EM's 01:13:50Z correction: a nullglob abort is **sound iff the glob's non-match is
+itself the proposition under test**. Classified:
+
+| instance | glob's non-match == the question? | verdict |
+|---|---|---|
+| `grep -rn … --include=*.go .` (record 12, 3 aborts) | **No** — the question was "who calls X", unrelated to whether anything matches `--include=*.go` | **UNSOUND. Retracted and re-run quoted (§4B.1).** |
+| the `printf` sample in my own audit at 01:10Z | n/a — my own positive control, not a measurement | **fabricated hit of my own detector; hand-adjudicated out** |
+
+So my detector reported 2 and exactly **1** was real. **A detector's count is not its finding**
+— stated because the same detector class produced 7 fabrications for one leg and 9 for another.
+
+### 4C.3 THE CLAIM I INHERITED FROM SOMEONE ELSE'S SENTENCE
+
+The EM's challenge: *every rule tonight hardens instruments you run; none touches a claim you
+took from another party's prose.* Mine, found by going back over my own evidence labels:
+
+**It is §13.1's closure of C4(b)/(c) and C6, which rest partly on the coordinator's ruling
+that the operational cost of the `push_prefix` restriction is "zero for THIS deployment."**
+I verified the *mechanism* from source (two `LoadConfig*` entry points, both at startup;
+`fsnotify` absent from `go.mod`; `signal.Notify` carries no `SIGHUP`) — that part is a
+derivation and it stands. But **"therefore the cost is zero" is a deployment fact I cannot
+observe from this repository**, and I took it from the coordinator's sentence as quoted in
+`config.go`'s own new comment. The comment is *in the diff under review*, so I closed a
+checklist item partly on the diff's own account of an external ruling. **I am labelling that
+claim INHERITED, not MEASURED**, and it should be confirmed by whoever owns the deployment.
+
+Everything else I have labelled MEASURED is a derivation from source or a git measurement;
+I re-checked REVIEW-194-R11-R1 (10 keys × 8 sequences enumerated) and C6 (three toggle rows verified
+function-by-function) and both are source-derived, not prose-derived.
+
+**Citation hygiene:** my report contains 44 `file.go:NNN` pointers, all into git-tracked
+paths pinned by `2cbbd92` on a verified-clean tree, so they are immutable. It contains
+**one** pointer into a mutable document — `log line 420ff` at report line 1039 — and it is
+accompanied by the source comment it corresponds to. I have no `briefs/` or `reports/`
+line-pointer standing without a verbatim quote beside it.
+
+### 4C.4 NEW FINDING, IN THE DIFF: `TestLabelWritePrice_MonotonicityPinCanFail` — the control that blames itself
+
+Reported to me by the EM at 01:13:06Z as a measurement. **I adjudicated it from source rather
+than relaying it, and my mechanism differs from the one described, so I am filing my own
+version.**
+
+```go
+ref := priceOf(refBefore, refAfter)          // refBefore/refAfter from s.currentLifecycleStages
+if len(ref) == 0 {
+    t.Fatalf("the read predicate charges nothing for %v + %v, so this control "+
+        "cannot demonstrate a drop", tk.Labels, add)
+}
+```
+
+- The canary's inputs come from **`currentLifecycleStages` — production code**, the same
+  function whose behaviour the pin exists to police. **Nothing downstream of X can falsify X**,
+  and this canary is downstream of the read arm.
+- It is `t.Fatalf`, so when it fires **the monotonicity assertion below it never executes**.
+  The test goes red having tested nothing.
+- Its message attributes the failure to **"this control"**. A developer reading a red
+  `…_MonotonicityPinCanFail` whose message says the control cannot demonstrate a drop has been
+  handed a plausible wrong action: **repair the control**. That is worse than a silent green,
+  because a silent green invites no action at all.
+- **And the name asserts a capability the body does not establish.** `PinCanFail` claims
+  demonstrated falsifiability; what the body demonstrates is falsifiability *for one hardcoded
+  fixture, conditional on the read arm still pricing that fixture non-free.*
+
+**Severity: Required.** **Fix:** make the canary's arm independent of the code under test —
+assert the expected read price for the fixture as a **literal** (`want := map[string]bool{"task:close": true}`)
+rather than computing it from `currentLifecycleStages`, and use `t.Errorf` so the monotonicity
+assertion still runs. Rename to state what it does: `…_PinIsFalsifiableOnAKnownRound10Regression`.
+
+**Scope note:** this is my finding about a file **inside the r11 diff**, and it is the fourth
+name in this round that asserts a property its subject does not have (`enabled_noprfx`,
+`store.SameStageSet`, `lifecycleStagesForLabels`, and now this). I am recording that as a
+pattern in **REVIEW-194-R11-R4**, not as four nits, because the name is where the reader's model comes from.
+
+---
+
+## 4B. CORRECTION TO §4A: THE GUARD REVIEW-194-R11-C1 TURNS ON HAS **THREE** CONSUMERS, NOT ONE. AND THE CODE COMMENT AT THE THIRD ONE DESCRIBES REVIEW-194-R11-C1'S EXACT SCENARIO AS THE THING IT WAS WRITTEN TO PREVENT.
+
+**Added 2026-07-29T01:12Z. This corrects a claim I made in §4A and §4, and it makes REVIEW-194-R11-C1
+worse, not better.**
+
+### 4B.1 How I found it, and why the finding is really an apparatus failure of mine
+
+The EM's broadcast at 01:08:51Z reported that unquoted `--include=*.go` is a **null
+generator** in this environment: the shell is `zsh 5.9`, not bash, and zsh glob-expands the
+flag word and aborts the command. I checked my own transcript. **I used it.** Once, at
+transcript record 12, carrying four sub-commands. Three of them aborted:
+
+```
+=== callers of LabelDeltaLifecycleStages ===
+(eval):1: no matches found: --include=*.go
+=== callers of assertStageWriteAllowed ===
+(eval):1: no matches found: --include=*.go
+=== lifecycleStagesForLabels remaining refs ===
+(eval):1: no matches found: --include=*.go
+```
+
+I was **lucky, not disciplined**: zsh's failure here is *loud*. Under bash the same command
+returns silence, and a silent zero on "callers of `LabelDeltaLifecycleStages`" is the exact
+shape that produces the error below. Re-run quoted (`--include='*.go'`), with a
+bogus-symbol negative control and a known-symbol positive control both firing correctly:
+
+| re-measured | filed earlier | now |
+|---|---|---|
+| `lifecycleStagesForLabels` stale refs | 5 sites | **5 sites, identical** — REVIEW-194-R11-R2 unchanged |
+| consumers of `store.LabelDeltaLifecycleStages` in `internal/server` | **1** (`server.go:~847`) | **3** — `server.go:199`, `server.go:383`, `server.go:841` |
+
+### 4B.1a RETRACTION OF §4B.1's OWN ATTRIBUTION — THE INSTRUMENT WAS NOT AT FAULT. I WAS.
+
+**Added 01:24Z, and it is the most against-interest thing in this report.**
+
+§4B.1 originally concluded, **quoted verbatim and therefore EXEMPT from the ID rewrite — the
+bare `R-2` below is what I actually wrote and must stay that way**: *"R-2's conclusion
+survived on a broken instrument. §4A's scope statement did not."* **That is false, and I
+checked it only because the EM's broadcast 8 described the echo-header effect and I went
+looking for it in my own transcript.**
+
+The transcript record numbers settle it:
+
+| record | what happened |
+|---|---|
+| **75** | the unquoted `--include=*.go` command |
+| **79** | its result — three `(eval):1: no matches found`, under my own echo captions |
+| **84** | **I re-ran it QUOTED, in the very next tool call** |
+| 84's result | **26 lines, including `server.go:199`, `server.go:383` and `server.go:841`** |
+
+**The instrument was repaired within one tool call and it printed the correct three-consumer
+answer to me at record 84. I then filed "one consumer."** The single-consumer error was a
+**reading** error — I skimmed a 26-line result, took the row relevant to `UpdateTask`, and
+stopped — not an instrument error.
+
+Three corrections follow, all of them narrowing my own credit:
+
+1. **The echo-header effect did NOT fire on me.** I did notice the captioned errors and I did
+   act on them immediately. I should not be counted in that population.
+2. **My 01:12Z message to the EM said I was "lucky, not disciplined" about that null.** That
+   was a *false self-criticism that happened to sound rigorous* — I never consumed the null at
+   all. Retracted.
+3. **I blamed a tool for my own mistake, inside a report whose subject is instrument
+   discipline.** The apparatus-failure narrative is genuinely load-bearing tonight, and that
+   makes it an attractive place to file an error that belongs to the reader. **A leg that has
+   spent an hour finding broken instruments will reach for "the instrument was broken" first.**
+   I am recording that as the failure mode, because it is mine and it is new.
+
+The finding in §4B — three consumers, not one — is unchanged and correct. Only its cause is.
+
+**One incidental fact recovered from record 84's output, relevant to §4.1:** the
+"`06f01d7` verbatim" docblock claim is at `lifecycle_claim_property_test.go:179` and it is
+about **`LabelDeltaLifecycleStages`**, not about `currentLifecycleStages`. §4.1 attributed it
+to the wrong function. §4A.2's measurement stands regardless.
+
+**REVIEW-194-R11-R2's conclusion survived on a broken instrument. §4A's scope statement did not.** ~~*(This
+sentence is retained struck-through rather than deleted, per the supersede-never-erase rule:
+anyone mid-derivation against the earlier text should be able to see exactly what it said.
+It is WRONG — see §4B.1a immediately above.)*~~
+
+### 4B.2 The three consumers, and what the guard does at each
+
+All three gate on the identical expression — `if !store.SameStageSet(before, after)` — so
+**the equality short-circuit REVIEW-194-R11-C1 exploits is a property of a guard used at three sites, not
+of one call site.**
+
+| # | endpoint | task passed | delta | on `SameStageSet == true` |
+|---|---|---|---|---|
+| `server.go:199` | `CreateTask` | synthetic `&ent.Task{Stage: stage}` — **no labels** | adds only, `nil` removes | skip pricing |
+| `server.go:383` | `InsertTasksAfter` | synthetic `&ent.Task{Stage: triage}` — **no labels** | adds only, `nil` removes | **accept silently** (the block otherwise *rejects*) |
+| `server.go:841` | `UpdateTask` | `existing` — **the real task, with its real labels** | `AddLabels` **and** `RemoveLabels` | skip pricing |
+
+REVIEW-194-R11-C1's demonstrated cell needs a task already carrying **two** terminal labels and a delta
+containing a **remove**. Only `:841` supplies both. **So: the defective guard shape is at
+three sites; the exploit I measured lands at one.** I state it that way deliberately — it
+would be easy, and wrong, to inflate this to "three exploitable endpoints."
+
+Note the second row is a *different* failure direction and is worth the coordinator's
+attention on its own: at `:383` the equality branch means the request is **accepted**
+rather than refused. Anything that collapses `after` onto `before` there does not become
+free — it becomes *permitted*. I have not constructed a cell for it and I am not claiming
+one exists.
+
+### 4B.3 THE PART THAT SHOULD DECIDE THIS FINDING: `server.go:830-840` NAMES REVIEW-194-R11-C1'S SCENARIO
+
+Immediately above the `:841` guard, in a comment that is **not in the r11 diff** and
+therefore predates this round:
+
+> *"Both endpoints are SETS, for the same reason the stage arm above reads one: a comparison
+> between two tiebreak winners is blind to an edit that swaps one of several present
+> terminal labels for another, and "nothing changed" is exactly the answer that costs
+> nothing. **Removing `ft:stage/wont_fix` from an issue also carrying `ft:stage/completed`
+> erases a maintainer's decline while leaving the winner untouched.** So compare the sets,
+> and when they differ charge for every (from, to) pair."*
+
+That is REVIEW-194-R11-C1's cell, written out in prose, as the **motivating example for the set
+comparison**. `REVIEW_swap_wontfix_bare` is `two_terminal` = `{ft:stage/wont_fix,
+ft:stage/completed}` with `ft:stage/wont_fix` removed. The author identified the hazard
+exactly, chose sets over winners to close it, and the sets are then **reconverged by the
+`unionStages` call inside `LabelDeltaLifecycleStages`**, so `SameStageSet` reports
+`true` and the loop the comment describes never executes.
+
+**This is the strongest single fact in the REVIEW-194-R11-C1 file and it required no harness.** It also
+sharpens the classification in §4A: not "chartered to close, and did not" — the round
+before this one was chartered to close it, believed it had, and **documented the belief in
+the comment directly above the guard that skips it.**
+
+### 4B.4 Discipline note: I filed REVIEW-194-R11-C1 backwards, and I am correcting the frame, not the finding
+
+Per the EM's 01:08:51Z broadcast item 4 — *when a run and a derivation agree, the
+derivation is the finding and the run is a control on the derivation.* I filed REVIEW-194-R11-C1 as a
+**measurement** (24 red cells, twice) with reasoning as support. Correct frame:
+
+- **DERIVED FROM SOURCE, no instrument consumed:** `SameStageSet` is elementwise and
+  order-sensitive (`store.go:252`); all three consumers gate on its negation; `after` is
+  produced by `unionStages(readAfter, claimedExtras)` and `unionStages` can only *add* to
+  `readAfter` (`passthrough.go:1179`); therefore any delta whose claimed extras restore
+  exactly the stages the read arm dropped yields `after == before` and skips the gate. The
+  `:841` comment states that this is the scenario the design was meant to catch.
+- **NOT YET DERIVED, and I will not claim it:** that `canonicalAdditions(rawAfter,
+  t.Labels, addLabels)` actually produces the restoring extra for *this* cell. Reading it
+  (`lifecycle_claim.go:387`), the `for _, l := range current { delete(rewrite,
+  labelMatchKey(l)) }` line deletes a rewrite key already present on the task — and in
+  `REVIEW_swap_wontfix_bare` the task **does** still carry `ft:stage/wont_fix` in
+  `current`. Whether `labelMatchKey("wont_fix") == labelMatchKey("ft:stage/wont_fix")`
+  decides it, and **I have not read `labelMatchKey`.** The measurement says the collapse
+  happens; the derivation of *why* has a hole in it at exactly this step.
+
+So: **REVIEW-194-R11-C1's conclusion rests on a measurement plus a partial derivation, and the partial
+derivation is honestly partial.** That is the weakest link in the finding and it is not the
+one §4.1 nominated. §4.1's objection (the harness's reference arm may not be base-verbatim)
+is now **substantially weaker**, because the `:841` comment and the `unionStages` monotonicity
+argument reach the same conclusion without the harness at all.
+
+---
+
+## 4E. ptone's OPTION B RULING (01:53Z) LANDS ON THIS DELTA — IT STRENGTHENS REVIEW-194-R11-C1 AND KILLS THE DIFF'S HEADLINE PROPERTY
+
+**Ruling, verbatim and EXEMPT from the ID rewrite:** required scopes are the *"UNION OVER THE
+ARMS THAT APPLY, SATISFIED CONJUNCTIVELY. `max(readPrice, writePrice)`, flooring, and any
+ordering on scopes are permanently dead; the price/ranking vocabulary is struck from the
+record."*
+
+### 4E.1 REVIEW-194-R11-C1, RESTATED IN THE RULED VOCABULARY — SHARPER, NOT WEAKER
+
+The finding was written in price language (*"priced at nothing"*). Restated as set-union
+semantics it becomes **more** exact, and the old phrasing is superseded, not erased:
+
+> When `store.SameStageSet(before, after)` returns true, all three consumers skip the arm
+> entirely. The required-scope set is therefore computed as **a union over ZERO arms, which
+> is ∅ — the operation demands no permission at all.** But arms *did* apply: `unionStages`
+> can only add, so a delta whose write-claim extras exactly restore what the read arm dropped
+> reaches `after == before` while genuinely mutating labels. **That is under-demand, which is
+> precisely the failure Option B was ruled to fix.**
+
+**And the mirror trap, flagged for whoever fixes this.** The EM's warning — *"the union over
+the arms that APPLY, not the union over every arm that could conceivably apply"* — is the
+exact hazard of the obvious fix. Deleting the `SameStageSet` short-circuit and unioning
+unconditionally converts silent under-demand into over-denial **wearing the user's ruling as
+authorisation.** The correct move is to make arm-applicability explicit — *did this delta
+touch lifecycle labels at all?* — and union over that set. Equality of two tiebreak winners
+is not, and never was, a test of applicability.
+
+### REVIEW-194-R11-R5 `[NEW — Required]` The diff's headline property is expressed in, and pins, the vocabulary ptone just struck
+
+**MEASURED** over the added lines of `6d8f19e..2cbbd92` in `internal/platform/github/`,
+`internal/server/`, `internal/store/` (1548 added lines in scope):
+
+| struck token | added-line occurrences |
+|---|---|
+| `price` / `priced` / `prices` | **52** |
+| `monoton*` | **19** |
+| `charg*` | 16 |
+| `cheaper` / `costlier` / `rank` | **11** |
+| `union` | 8 |
+
+Added **identifiers**, not just prose: `readPrice`, `writePrice`, `priceOf`, `priceString`,
+`TestLabelWritePrice_IsMonotoneInThePredicate`, `TestLabelWritePrice_MonotonicityPinCanFail`,
+`TestUpdateTask_ThePricedLifecycleWriteStillLands`. **`readPrice` and `writePrice` are the
+literal pair the ruling names as permanently dead.**
+
+**What is NOT wrong, stated first so this is not read as bigger than it is:** the diff
+contains **zero** `max(` over those values, and it does use `unionStages`. **The underlying
+semantics look union-shaped and therefore compatible with Option B.** This finding is about
+the model the code *claims*, not (on present evidence) the one it *computes*.
+
+**What is wrong:** commit `e993b4a` is titled *"Make the write price monotone by
+construction, and pin it as a property,"* and
+`TestLabelWritePrice_IsMonotoneInThePredicate` **pins an ordering property over a domain the
+ruling says carries no order.** Monotonicity is a statement about ≤. Option B says there is a
+SET and a conjunction, and no ranking. So the pin is in one of two states, and **both are
+Required-grade**:
+
+1. It is **vacuous** — pinning an artefact of the struck vocabulary, in which case it is a
+   green test that certifies nothing and will actively resist the union-shaped rewrite,
+   because the rewrite makes its subject undefined; or
+2. It is **not vacuous**, meaning a real ordering on scopes survives in this code — which
+   contradicts the ruling directly and is a finding in its own right.
+
+**I cannot distinguish these without a run, and I hold no token.** Either way the diff cannot
+merge describing itself in a vocabulary the decision-maker struck three hours later.
+
+**Recommended fix:** rename to the union vocabulary (`requiredScopes`, `scopesFor`,
+`TestLabelWriteScopes_*`), restate the property as *"the write arm's required-scope set is a
+superset of the read arm's"* — which is the true, order-free content of what the monotonicity
+test was reaching for — and keep the can-fail control pointed at the restated property.
+**Set-inclusion is the honest form of the thing they named monotonicity.**
+
+**This is a naming finding and therefore mine.** The names here are load-bearing: the round's
+whole disease has been names that outlive their referents, and `writePrice` now outlives its
+model by ruling.
+
+## 5. Required
+
+### REVIEW-194-R11-R1 `[CHECKLIST — C6]` The axis-2 residue is 70 of 80 cells, not 2. The comment states an incomplete measurement as a completed one.
+
+> **EVIDENCE STATUS: MEASURED.** Full 10 keys × 8 segment sequences enumerated against
+> both predicates before the hold; the per-sequence table below is the raw result. The
+> *root cause* attribution (`stripForMatch` vs `lifecycleMarkerSuffix`) is **MEASURED** —
+> confirmed post-hold by reading both implementations (see §13.1, row "REVIEW-194-R11-R1 root cause").
+
+`lifecycle_claim.go` says:
+
+> *"AXIS-2 RESIDUE, NAMED. MEASURED at round-11 HEAD […]"* — then a 9-row table with
+> exactly two `RESIDUE` rows — *"The residue is FORCED, not an oversight. […] No predicate
+> can price the first and free the second."*
+
+**MEASURED** (`authorizationStage` under a future `push_prefix: "ft2:"` vs
+`lifecycleStageClaim` under today's `"ft:"`, all 8 accepted segment sequences × all 10
+stage keys):
+
+```
+authoritative-under-ft2 cells: 80    of those UNPRICED today: 70
+```
+
+Sequence-by-sequence:
+
+| segment sequence | example | authoritative @ ft2: | claimed @ ft: | residue |
+|---|---|---|---|---|
+| (none) | `ft2:completed` | yes | no | yes — **listed, and genuinely forced** |
+| `stage/` | `ft2:stage/completed` | yes | **yes** | no |
+| `priority/` | `ft2:priority/completed` | yes | no | **yes — UNLISTED** |
+| `priority:` | `ft2:priority:completed` | yes | no | **yes — UNLISTED** |
+| `stage/priority/` | `ft2:stage/priority/completed` | yes | no | **yes — UNLISTED** |
+| `stage/priority:` | `ft2:stage/priority:completed` | yes | no | **yes — UNLISTED** |
+| `priority/priority:` | `ft2:priority/priority:completed` | yes | no | **yes — UNLISTED** |
+| `stage/priority/priority:` | `ft2:stage/priority/priority:completed` | yes | no | **yes — UNLISTED** |
+
+The claim covers **1 of 8** sequences. The comment names 1 of the 7 gaps.
+
+**The "FORCED" argument does not reach the other 6.** It is a good argument and it is
+sound *for the row it is about*: `ft2:completed` and `release:completed` are the same
+string shape, so no predicate separates them. But `ft2:priority/completed` and
+`release:completed` are **not** the same shape — the first contains a category segment
+that this deployment's own `stripForMatch` honours as a route to a stage. Extending the
+marker set closes those six sequences, and the only legitimate labels it would newly deny
+are of the form `<anything><delim>priority/<stage-name>` — i.e. labels literally spelling
+`priority:duplicate`. That is not the `release:completed` class of collateral damage that
+made round 10 fail.
+
+**Root cause, and it is the C8 answer in miniature:** the category-segment rule is now
+implemented **twice and they disagree**. `stripForMatch` (`labels.go:751-753`) trims a
+**sequence of three** segments; `lifecycleMarkerSuffix` (`lifecycle_claim.go`) scans for
+**one**. Branch 1 of the claim routes through the first, branch 2 through the second. The
+70-cell gap is precisely their disagreement.
+
+**Required fix:** one definition. Extract the ordered segment list to a single package
+constant, have `stripForMatch` trim from it and `lifecycleMarkerSuffix` accept any member
+of it at a delimiter boundary. Then correct the comment: either the residue table lists
+all 7 sequences, or the fix closes 6 and the table lists the 1 that is genuinely forced.
+**Do not leave the table as-is** — a comment that says "MEASURED" and "NAMED" over an
+incomplete enumeration is the exact artefact B7 exists to remove, and its cost is a false
+negative for the next reader who trusts it.
+
+### REVIEW-194-R11-R2 `[OPEN]` The `LabelDeltaLifecycleStages` docblock now asserts the opposite of itself, and names a function that no longer exists.
+
+> **EVIDENCE STATUS: MEASURED.** All five dangling references located by grep at
+> `2cbbd92` and read in place; the table below is the grep result, not a recollection.
+
+The diff **appended** its new paragraph without removing the round-10 text above it.
+`passthrough.go:1065-1073` still reads:
+
+> *"**Both endpoints go through `lifecycleStagesForLabels`** so the only difference between
+> them is the label set."*
+
+Six lines later, at `1079`, the new text:
+
+> *"**THE TWO ENDPOINTS ARE COMPUTED BY DIFFERENT PREDICATES, ON PURPOSE** (#194 round 11,
+> B1)."*
+
+Both sentences are in one docblock. The first is the belief B1 exists to refute, and
+`lifecycleStagesForLabels` was renamed to `currentLifecycleStages` **in this diff**.
+
+Dangling references to the removed name:
+
+| location | text |
+|---|---|
+| `passthrough.go:1065` | *"Both endpoints go through lifecycleStagesForLabels…"* — **contradicts the diff** |
+| `passthrough.go:1070` | *"lifecycleStagesForLabels(t, t.Labels) is expected to agree with…"* |
+| `passthrough.go:1200` | docblock **header** — *"lifecycleStagesForLabels is LifecycleStage generalised twice over…"* — opens the docblock of a function now called `currentLifecycleStages` |
+| `empty_stage_set_contract_test.go:37,142` | two more |
+
+On any branch this is a Nit. On **this** branch — where a documented false comment cost a
+Critical, where B7 is a deliverable for correcting six of them, and where the review brief
+opens C6 with *"comments that make claims"* — shipping a docblock that contradicts its own
+new paragraph is **Required**. Delete lines 1065-1073 and rename the three stale
+references. The `1067-1069` observation about `LifecycleStage`'s `t.Stage` fallback is
+still true and worth keeping; move it under `currentLifecycleStages`.
+
+### REVIEW-194-R11-R3 `[OPEN]` `canonicalLifecycleLabels` is now dead production code whose behaviour *is* the round-10 Critical.
+
+> **EVIDENCE STATUS: MEASURED.** Confirmed post-hold by full-repo grep (§13.1, row "C2 (b)"):
+> **zero** production callers remain. The only three call sites are in
+> `lifecycle_claim_property_test.go` (lines 252, 254, 512). The method is nonetheless
+> declared on `*LabelMapper` in a non-test file and is reachable from production code.
+
+The diff removes its last production caller and keeps it, with an honest and correct
+rationale (log line 420ff, comment at `lifecycle_claim.go:373-380`):
+
+> *"ITS ONLY REMAINING CONSUMER IS A TEST, AND THAT IS DELIBERATE. […] A positive control
+> that reimplements the bug proves only that the reimplementation is buggy."*
+
+**I agree with the rationale entirely.** The positive control must call the real function.
+But the method is currently reachable from production code — nothing but a comment stops
+the next edit calling it — and what it does is, in the diff's own words, *"the round-10
+Critical itself"*.
+
+**Suggested fix, which preserves the rationale at zero cost:** move the
+`canonicalLifecycleLabels` method into a `_test.go` file in the same package. Go permits
+methods on a package-local type to be declared in a test file; `TestLabelWritePrice_MonotonicityPinCanFail`
+keeps calling the real function unchanged, and a production caller becomes a **compile
+error** rather than a comment someone has to read. That is the same "make it
+unrepresentable, and name the mechanism that makes it bite" move the diff makes so well
+in B9 — applied to the one place it was not.
+
+---
+
+## 6. Nit / Optional / FYI
+
+- **`[OPEN]` (MEASURED) `SameStageSet`'s stated precondition is now false.** Its docblock
+  (`store.go:249`) says *"Both are produced in a deterministic order by the same function,
+  so this compares them elementwise."* After this diff, `before` is name-sorted by
+  `AllTerminalLabelStages` and `after` is produced by `unionStages`, which preserves the
+  first operand's order and appends. They are **no longer the same ordering discipline**.
+  Direction of error: order-sensitivity can only make the sets compare *unequal*, so it
+  **over**-charges — fail-closed, hence not Required. But it is why two vocabulary cells
+  pass for a reason unrelated to the fix (see REVIEW-194-R11-C1), and a fail-closed accident holding up
+  a monotonicity claim is worth one line of comment. *Impression, correctness axis:*
+  making `SameStageSet` order-insensitive would be a one-line change and would turn those
+  two cells red, which is the honest outcome. **`store.go` is outside this diff — this is
+  a consequence of the diff, not a request to edit that file.**
+- **`[OPEN]` (MEASURED) B8's principle is applied to one of two write-side entry points.** The new
+  nil-mapper guard is right, and its stated ground — *"a gate that cannot evaluate its own
+  precondition should refuse"* — is a good principle. Four lines below,
+  `LabelDeltaLifecycleStages` still has `if s.mapper == nil { return []task.Stage{t.Stage},
+  []task.Stage{t.Stage} }`, i.e. **before == after == FREE**, on a gate that also cannot
+  evaluate its precondition. Covered indirectly today (the server errors on the empty-set
+  contract via `store.ErrEmptyLifecycleStageSet`, and both paths are unreachable with a nil
+  mapper in production), which is why this is Optional and not Required. But the asymmetry
+  is exactly the one B8 was filed about, one function over. Answering the brief's question
+  directly: **the placement is correct, the application is not yet consistent.**
+- **`[CHECKLIST — C2]` (MEASURED) `canonicalAdditions`' exclusion set is the right one.** The brief
+  asks whether "keys already on the task" should be "keys the caller did not name". It
+  should not. `labelMatchKey` is the **identical** key function `applyLabelDelta` dedups
+  with (`strings.ToLower(strings.TrimSpace(...))`, `passthrough.go:1532`), and
+  `applyLabelDelta` iterates `current` before `add`, so a re-added existing label leaves
+  the **existing** spelling in the after-set. Excluding it is therefore not merely safe, it
+  is required: the entry in the after-set genuinely *is* a pre-existing label. The two
+  functions agreeing is load-bearing and undocumented — worth one comment naming
+  `applyLabelDelta` as the reason `labelMatchKey` and not `stripForMatch` is used here.
+- **FYI (MEASURED) — B9's compiler check is real, and its scope is narrower than the prose.** Verified
+  (§7). But `lifecycleStageClaim` — the actual write predicate — remains declared on
+  `*LabelMapper`, and `canonicalAdditions` calls it on the plain mapper. That is
+  *behaviourally correct* (see the miss log, §8) and I am not asking for a change. It does
+  mean the compiler-enforced partition covers `claimedStages` alone, where the comment
+  reads as though it covers "the write side".
+- **FYI (MEASURED) — B4's chokepoint does bite, and post-hold I can now say it is
+  COMPLETE.** `Validate()` is called from `config.go:144` on the load path, and `lowerASCII`
+  is genuinely load-bearing (without it an uppercase final byte falls through
+  `isLabelSegmentDelimiter`'s `default: return true` and an illegal prefix is accepted). The
+  scoping of the coordinator's ruling to this deployment is well done and I found no place
+  it is echoed as a general claim. **Chokepoint completeness verified in §13.1, row "B4 chokepoint": every
+  production path to a `LabelMapper` runs through `Validate()` or `DefaultConfig()`, with no
+  third way in.** This is the "name the mechanism that makes it bite" test from the brief's
+  method notes, and B4 passes it.
+
+---
+
+## 7. Deliverables the brief asked for by name
+
+**D3 — C1 verdict: is the monotonicity a theorem, or true on the cells they tried?**
+**Neither.** It is not a theorem — the argument omits the `SameStageSet` guard the price
+passes through. And it is not merely "true on the cells they tried": it is **false on
+cells adjacent to the ones they tried**, reachable by changing one stage name in a delta
+they already wrote. See REVIEW-194-R11-C1.
+
+**D4 — compile result for C5/B9.** I wrote the illegal call and watched it fail:
+
+```
+$ cat internal/platform/github/zz_b9_compile_test.go
+_ = s.mapper.claimedStages("OPEN", "", []string{"ft:stage/completed"})
+
+$ go vet ./internal/platform/github/
+internal/platform/github/zz_b9_compile_test.go:7:15:
+    s.mapper.claimedStages undefined (type *LabelMapper has no field or method claimedStages)
+```
+
+**The control is real and is checked by the compiler, not by convention.** File removed
+immediately after. This is a compile result, not a reading.
+
+**D5 — C7, the repair commit, as a diff result.** **Clean.** Two commands, not one:
+
+```
+$ git diff e993b4a 93ae124 -- internal/platform/github/{config,lifecycle_claim,passthrough}.go
+0 bytes, per file
+$ git diff --stat bc93200 93ae124
+3 files changed — exactly the three production files, nothing else
+$ git diff bc93200 93ae124 -- internal/server/
+0 bytes
+```
+
+The three files are byte-identical to `e993b4a`, and the repair commit touched **only**
+those three — so nothing new was smuggled in, in the repair or anywhere else in the
+window. The leg's claim is accurate as stated.
+
+*Method note for the EM:* the brief says *"It is one command."* The one command
+(`git diff e993b4a -- <file>`) proves the **restore** half. It cannot prove the **"no new
+work"** half, because new work in a *fourth* file would not appear in it. The second
+command is what closes that. Worth carrying forward.
+
+**D6 — architectural opinion on C8: patch or converge?** *Labelled as opinion.*
+
+**Converge, and the next round should be the convergence refactor.** I hold this more
+strongly after measuring REVIEW-194-R11-R1 than the brief's framing anticipated.
+
+The brief asks whether "three necessary contributors" is a property of the defect or a
+symptom of one policy evaluated in three places. **It is the second, and I have a
+measurement rather than an intuition for it now.** REVIEW-194-R11-R1 is not a missed case; it is two
+implementations of "what is a category segment" disagreeing — `stripForMatch`'s
+three-segment sequential trim versus `lifecycleMarkerSuffix`'s single-marker scan — and
+the disagreement is 70 authoritative cells wide. That is what duplicated policy looks like
+when you finally measure it instead of reasoning about it.
+
+Round 11 added `currentLifecycleStages`, `claimedStages` and `lifecycleMarkerSuffix`. The
+question "which stages does this label set name?" is now answered at, by my count,
+**seven** sites: `authorizationStage`, `MapLabelsToStage`, `lifecycleStageClaim` (itself
+two branches with two different segment rules), `currentLifecycleStages`, `claimedStages`,
+`TerminalLabelStage`, and `hasExternalUnavailableLabel`. The brief says round 11 added a
+fourth; it added more than that.
+
+**And REVIEW-194-R11-C1 is the same disease presenting as a different symptom.** The reason the
+monotonicity argument could be written down, believed, reviewed and shipped while being
+false is that "the price" is not one object anyone can point at. It is a producer in
+`internal/platform/github` and a guard-plus-loop in `internal/server`, and the argument
+was written against the producer by someone who had — entirely reasonably — the producer
+in front of them. **A one-line fix to REVIEW-194-R11-C1 leaves that intact, and round 12 will find the
+next symptom.** Three rounds have now each fixed the previous round's fix.
+
+What convergence should mean concretely, in priority order:
+
+1. **One function answers "is this label authoritative, under which view".** View as a
+   parameter, not as a duplicated call graph. The `writeView` type is the right primitive
+   and it is already built — extend it rather than adding sites beside it.
+2. **One definition of the category-segment class**, consumed by both `stripForMatch` and
+   the claim. This alone closes REVIEW-194-R11-R1.
+3. **One object that is "the price"**, owning the `SameStageSet` guard and the cross
+   product together, so a monotonicity claim has something to be a claim *about*. This
+   alone makes REVIEW-194-R11-C1 unrepresentable.
+
+I would rather see round 12 do (2) and (3) and ship no behavioural fix at all than see
+REVIEW-194-R11-C1 patched and the structure carried forward. **Scheduling recommendation: hold #194 at
+REQUEST CHANGES, fix REVIEW-194-R11-C1 with the minimal stopgap if something must ship, and make round
+12 a convergence refactor with no new fix items.**
+
+**D7 — prediction accuracy: 5/8.** Predictions recorded before each measurement.
+
+| # | prediction | outcome |
+|---|---|---|
+| P1 | the price short-circuits on `SameStageSet` and the union can collapse `after` onto `before` | **HIT** — 24 cells |
+| P2 | `ft2:priority/completed` is authoritative under `ft2:` but unclaimed under `ft:` | **HIT** |
+| P3 | `canonicalAdditions` calling `lifecycleStageClaim` on `m` rather than the view is a bug | **MISS** |
+| P4 | the illegal `s.mapper.claimedStages(...)` call fails to compile | **HIT** |
+| P5 | the `93ae124` repair is clean | **HIT** |
+| P6 | ~7 of 8 segment sequences are unlisted residue | **HIT** — 7 of 8, 70/80 cells |
+| P7 | the shipped `swap_local_for_markerless` cell already violates monotonicity | **MISS** |
+| P8 | `assertStageWriteAllowed` covers the underpricing indirectly | **MISS** |
+
+**The misses were worth more than the hits, again.**
+
+- **P3** — I predicted a receiver bug. Wrong: `labelToStage` is populated unconditionally
+  by `NewLabelMapper` and `matchPrefix()` does not read `enabled`, so `lifecycleStageClaim`
+  is genuinely toggle-blind and `m` and `m.writeView` return identically. The code is
+  right. **But the reason it is right is a property of two other functions, neither of
+  which says so** — which is C2's second question, arriving on a different function than
+  the brief aimed it at.
+- **P7** — I predicted the shipped vocabulary already contained a violation. Wrong, and
+  finding out *why* it passes is what produced the whole of REVIEW-194-R11-C1: it is saved by element
+  **ordering**, not by the fix. Without this miss I would have concluded the union worked.
+- **P8** — I predicted indirect coverage, which would have downgraded REVIEW-194-R11-C1 to Required.
+  Wrong: the arm passes `stageWriteAllowed`. This miss is the reason REVIEW-194-R11-C1 is Critical.
+
+Per the baseline's rule: a 5/8 is not a result, and I would not offer this score as
+evidence of anything. Two of the three misses are load-bearing for the review.
+
+**D8 — everywhere this brief is wrong.** Numbered, as required.
+
+1. **`review-194-r11.md` puts STEP 1 and STEP 2 in one file.** *"DO THIS BEFORE READING
+   SECTION 2"* (line 24) cannot be obeyed when Section 2 is at line 43 of the same
+   document. The dispatch-level conflict was fixed this round; the document-level one is
+   the same defect and was not. It contaminated my open pass. **Remedy: ship the checklist
+   as a separate file, released after the open pass is filed.** The dev leg reported this
+   as their item 8; it recurred because only half of it was addressed.
+2. **Baseline, line 93: *"The diff touches zero files under `web/` — 11 files, all Go, all
+   under `internal/`."*** Two of the 11 are `.design/project-log/*.md` — Markdown, not Go,
+   not under `internal/`. Nine are Go under `internal/`. The **conclusion** (npm gates out
+   of scope) is right; the count supporting it is wrong. This matters because one of those
+   two Markdown files is my designated primary input, and describing the diff as "all Go"
+   invites treating the log as external to the artefact when the baseline elsewhere
+   correctly insists it is *inside* it.
+3. **C8's `labels.go:249` citation is stale at the subject SHA, and the brief asked me to
+   check.** I checked: at `2cbbd92`, `MapLabelsToStage` is at **`labels.go:279`**. The
+   other two arm-table loci have also moved — `authorizationStage` is at
+   `terminal_label_stages.go:116` (not `:70`) and `AllTerminalLabelStages` at `:239` (not
+   `:198`), because this diff adds 27 lines to that file. The log is fine (it names base
+   `06f01d7` explicitly); the brief's parenthetical is the thing that will be
+   copy-pasted forward. **Remedy: never cite a line number without its SHA.**
+4. **C7: *"It is one command."*** It is two. One command proves the restore; it cannot
+   prove "no new work smuggled in", which needs `git diff --stat bc93200 93ae124`. Both
+   pass — but a leg following the brief literally would have verified half the claim and
+   reported it as the whole claim, on the one commit the baseline calls *"the easiest place
+   in a series to hide an unreviewed change."*
+5. **C3 frames as future drift what is a present defect.** It asks *"what makes a future
+   edit land in the right branch?"* — treating the two-branch split as a drift risk. The
+   two branches **already** implement different segment rules and **already** disagree on
+   70 of 80 cells (REVIEW-194-R11-R1). The brief's question is good and its tense is wrong, and the
+   wrong tense is the kind that gets a finding filed as Optional.
+6. **C1 buries the decisive question.** Its third sub-bullet — "does some cell
+   short-circuit […] a same-set collapse" — is the entire review. It is the third of three
+   sub-bullets under the second of eight checklist items. **This is not a wrongness so much
+   as a weighting**, and I record it because the countermeasure the brief is built around
+   assumes the checklist's *failure* mode is omission. Here the checklist contained the
+   answer and nearly hid it by placement.
+7. **Not a wrongness — a confirmation.** The baseline's environment section is accurate and
+   saved real time. `web/dist` is present and 21M; `go vet` exits 1 on exactly the four
+   copylocks at `server.go:{1782,1892,2100,2277}`; the literal string `copylock` does not
+   appear in the output, exactly as warned. The `TestWatchTasks` flake did not fire.
+8. **A live conflict I am flagging rather than resolving, per the baseline's rule.** The
+   brief ends *"You MUST write the report file at the absolute path above and then mark the
+   task complete."* The wind-down instructs me to checkpoint as PARTIAL and hold instead. I
+   am following the wind-down, because it is an operational-safety instruction and not an
+   instruction about the open-pass ordering the baseline's supremacy clause protects. **You
+   should confirm that reading.**
+   **RESOLVED 2026-07-29T00:06:30Z — the EM confirmed the reading explicitly.** The
+   wind-down supersedes "mark the task complete"; the supremacy clause is not triggered;
+   this report stays PARTIAL. Recorded here rather than deleted, because the conflict was
+   real at the time and the next brief should not re-create it.
+   **SUPERSEDED 2026-07-29T03:41:55Z — the EM lifted the hold explicitly and released me to
+   mark complete, with the report staying PARTIAL as its correct terminal state.** Recorded
+   here because a reader who reaches item 8 and stops would otherwise infer from the 00:06Z
+   resolution that the mark was never made. **And the mark's extent, measured rather than
+   assumed: `/workspace/.farmtable` does not exist in this clone, there is no `ft` on PATH
+   and `FARMTABLE_DB_PATH` is unset, so the completion resolved to the `sciontool` status
+   signal and NO FARM TABLE TASK RECORD WAS CLOSED — there is none here to close.** Both
+   halves are here for one reason: **a true sentence that licenses a false inference is the
+   same artefact as a false one once the author is gone, and every reader of this line will
+   be somebody who was not here** (`test-194-r11`, 03:45Z, found on its own file after I
+   corrected mine — and I only grepped mine because it said so).
+9. **C1 offered the durable remedy and the round refuted only half of it — and the brief
+   never noticed the disjunction had two arms.** This is filed at length as **FINDING P-1**
+   inside §4 and is the sharpest item in this report; it is listed here because it is,
+   formally, a place where the brief's framing is wrong. The brief's C1 presents the
+   round-11 shape ("floor BEFORE, union AFTER") as *the* shape shipped, and asks me to
+   check the leg's monotonicity argument. But the original ruling was a **disjunction**:
+   floor BEFORE **or** charge `max(readPrice, writePrice)`. The round measured disjunct A
+   failing on `push_prefix " "` and discarded **both**. Disjunct B is immune to REVIEW-194-R11-C1 **by
+   construction** — each price computes its own `SameStageSet` guard over its own endpoint
+   pair, and the read price enters as a literal operand, so the write price cannot fall
+   below it no matter what the guard does. It cannot be defeated by the collapse that
+   defeats the shipped shape. **The brief inherited the round's discard and never asked
+   whether the second disjunct survived the first one's refutation.**
+   *And the premise-true / conclusion-false observation attached:* the project log's D8
+   item 3 (lines 382-388) states the refutation of A correctly — the measurement is real
+   and I reproduced it — and then draws a conclusion about the disjunction that does not
+   follow from it. **This is taxonomy form (13), and D8 item 3 is an instance of the very
+   form it names in the same sentence.** A true property of one disjunct does not bound
+   the disjunction. That is the same shape as "a true property of a predicate does not
+   bound a gate that consumes a difference of two evaluations", which is the shape that
+   produced REVIEW-194-R11-C1. Two independent instances of one form, in one round, one of them written
+   into the log by the leg that named the form. **Recommend the next brief carry disjunct
+   B forward explicitly as an unrefuted candidate remedy rather than as a closed item.**
+
+---
+
+## 8. Gates — re-measured by me, in my own clone, at 2026-07-28 ~23:45-23:52Z
+
+The baseline asked me to re-measure rather than inherit. I did. **All rows reproduce; no
+disagreement to report.**
+
+| gate | EM / dev leg | **mine** | agree? |
+|---|---|---|---|
+| `go build ./...` | 0 `[EM-MEASURED]` | **0** | yes |
+| `go vet ./...` | 1, exactly four copylocks `[EM-MEASURED]` | **1**, exactly four, at `server.go:{1782,1892,2100,2277}`, no `web/dist` messages, no new messages | yes |
+| `go test ./... -count=1 -skip 'TestWatchTasks'` | 0 `[REPORTED]` | **0**, 0 `FAIL` lines | yes |
+| `go test -race ./internal/platform/github/ ./internal/server/ -count=1` | 0, no DATA RACE `[REPORTED]` | **0**, no DATA RACE | yes |
+| `git status --porcelain` | empty `[EM-MEASURED]` | **empty** | yes |
+
+Matched by **message**, not by count, as instructed. No command whose exit code I read was
+piped.
+
+**Positive control for the zeros**, per the baseline's rule: the same
+`go test ./internal/platform/github/` invocation returned **exit 1 with 24 named failing
+subtests** when I added one delta to the property-test vocabulary, and
+`go vet ./internal/platform/github/` returned a non-zero-shaped error for the B9 compile
+probe. Both commands can fail. The zeros are not the shell eating a glob.
+
+**B5 immutability verified statically**, since the brief asked for it directly: the only
+assignment to any `LabelMapper` field anywhere in non-test code is
+`m.writeView = NewLabelMapper(asIfEnabled)` at `labels.go:257`, **inside `NewLabelMapper`
+itself, before the mapper is returned.** No surviving writer. The immutability claim is
+real and the absence of a mutex is correct.
+
+---
+
+## 9. Test coverage
+
+The new property test is the strongest artefact in this diff and I want that said
+plainly — it found two real defects in the leg's own fix before it shipped, it asserts a
+relation rather than a table of remembered answers, it pins its own cell count against
+vacuity, and it has a positive control that calls the real buggy function instead of an
+imitation. It caught REVIEW-194-R11-C1 the moment it was given the input. **The gap is one row of
+vocabulary, not the design.**
+
+That said: the vocabulary is the oracle's reach, and its two deltas chosen specifically to
+stress monotonicity both permute the *same* stage. Choosing `completed` twice rather than
+once each way is the whole difference between a passing suite and a caught Critical.
+*Impression, test leg's axis:* a vocabulary whose adequacy rests on which stage name a
+human picked wants a generated sweep over (terminal label present) × (terminal label
+removed) × (respelling), not two hand-chosen rows. I have not built that matrix — it is
+the test leg's call.
+
+**Now reviewed (post-hold, read-only).** `authz_masked_before_endpoint_test.go` and the
+`authz_config_blind_write_scope_test.go` additions are both strong. The first has baseline
+assertions that fail loudly if the masking label already made the task terminal, a
+separate-principal differential (`ThePricedLifecycleWriteStillLands`) so a gate that refused
+everything could not pass, and explicit read-side non-regression checks tied to the round-4
+seam. B6a/B6b/B6c genuinely repair hollow controls — `registerLabel` plus a *did the write
+actually land* assertion, which caught that 3 of 5 axes had been certifying scope refusals on
+the strength of writes that never happened. That is a real find and the comment explains it.
+
+### The structural finding: the blind spot is reproduced in a second harness
+
+**EVIDENCE STATUS: MEASURED.** Every row in **both** new server-side harnesses is
+**ADD-shaped over a task carrying at most one terminal label**:
+`authz_masked_before_endpoint_test.go` sweeps `present × add` with `present` a single label;
+the `PriorityAndTypeAxesDoNotPriceStages` additions are all single `label:` adds. **Zero cells
+in either file remove a stage from a task carrying two terminal labels.** So REVIEW-194-R11-C1 slips past
+these two harnesses for the same reason it slips past the property test.
+
+This is not a gap in one test. **The same blind spot appears independently in three harnesses
+written in one round by someone who had the defect class in mind** — which is a finding about
+how these harnesses get written, not about anyone's diligence. The generative rule seems to be
+"what can an attacker *add*", and the entire round's vocabulary inherited it. REVIEW-194-R11-C1 is
+*remove*-shaped. Recommend the next round's harnesses be generated over
+`(terminal labels present) × (removal) × (respelling)` rather than hand-enumerated.
+
+*A fair qualification the leg is owed:* the round did **not** ignore removal. Violation 2 in
+the log is a measured removal case (`push_prefix " "`, an `accept`-priced reopen going free),
+correctly diagnosed, and the union genuinely fixes it. What is absent is removal from a
+BEFORE set with **two or more** elements — and that is exactly where the equality guard bites,
+because a 1-element BEFORE can never be restored by a union without changing cardinality.
+
+### A related measurement from the test leg's axis — recorded, and deliberately NOT used as support
+
+Relayed by the EM (2026-07-29T00:14:25Z item 3): with the round-10 shape injected into
+`currentLifecycleStages`, the 7200-cell property test **exits 0 with zero failing cells**.
+
+**Consequence, and the only one I draw:** *"the suite is green, therefore this class of defect
+is absent"* is an **invalid inference** on this branch. That removes a defence of the diff.
+
+**It is not evidence for REVIEW-194-R11-C1 and I do not cite it as such.** REVIEW-194-R11-C1's mechanism is the
+`SameStageSet` equality short-circuit in an untouched consumer — a different path from the
+injection site. REVIEW-194-R11-C1 stands or falls on §0.2's own provenance alone. Recorded here because the
+two results converge on one structural fact by **independent routes** — mutation survival on
+that leg's axis, vocabulary reach on mine — while sharing no evidence.
+
+## 10. Backward compatibility
+
+- **B4 turns a previously-legal `push_prefix` into a load-time error.** Fail-closed and
+  the message is legible and actionable (it names the emitted label and two valid
+  examples). The coordinator's zero-cost ruling is correctly **scoped to this deployment**
+  in the comment rather than restated generally — this is done well. **Not finished
+  checking:** what happens to a *running* deployment on config reload, as C4 asks.
+- **No wire-format change.** `LabelDeltaLifecycleStages`'s signature is unchanged, which is
+  precisely the constraint that pushed the fix into the endpoint-widening shape that
+  produced REVIEW-194-R11-C1. The durable fix in REVIEW-194-R11-C1 *does* change that interface. That is a cost and I
+  think it is the right one to pay.
+
+---
+
+## 11. Positive feedback
+
+Not manufactured; these are specific and I checked each.
+
+- **B9 is the best thing in the diff.** A structural control that is *actually checked by
+  the compiler*, with a comment that names the mechanism because a sibling branch shipped
+  an inert one. I verified it fails to compile. This is how to do it.
+- **B5 removes the concept instead of guarding it.** Eager construction rather than a
+  mutex, with the reasoning written down, and the immutability is genuinely restored.
+- **B8's placement argument is right** — *"a predicate that returns 'not a stage' for a nil
+  mapper is answering a question it cannot answer, whereas a gate that cannot evaluate its
+  own precondition should refuse"* — and so is the note on *how* it was found, after two
+  sweeps of 8400 cells and 204 pairs missed it because they varied inputs and this is a
+  property of the receiver. "Scale is not coverage" is worth keeping.
+- **`canonicalAdditions`' ordering fix is subtle and correct**, and the comment carries the
+  measurement that forced it.
+- **The leg's self-report is unusually honest.** It declares its own contamination, reports
+  a measured null against the EM's list rather than manufacturing findings, corrects its own
+  commit message's cell count, and reports the `bc93200` process defect in full including
+  why its own check could not see it. **Every claim in it that I checked was true.** REVIEW-194-R11-C1 and
+  REVIEW-194-R11-R1 are failures of the *argument*, not of the reporting — and I found both faster
+  because the leg wrote down exactly what it believed and why.
+
+---
+
+## 12. Interim verdict
+
+# REQUEST CHANGES
+
+**Blocking:** REVIEW-194-R11-C1 (Critical), REVIEW-194-R11-R1, REVIEW-194-R11-R2, REVIEW-194-R11-R3.
+
+**REVIEW-194-R11-C1 carries one open condition and REVIEW-194-R11-R1/REVIEW-194-R11-R2/REVIEW-194-R11-R3 carry none.** REVIEW-194-R11-C1's reproduction is
+MEASURED and re-measured; its *interpretation* rests on the harness reference arm being the
+faithful rendering of base `06f01d7` that its docblock claims, which is **SUSPECTED** and is
+under independent derivation (§4.1). **If that goes against me the Critical falls and this
+verdict stands anyway, on the three Required findings.** The verdict does not depend on REVIEW-194-R11-C1;
+the severity does.
+
+REVIEW-194-R11-C1 alone is dispositive and does not depend on any remaining item. The round-10 Critical
+is live at `2cbbd92`: a bare `task:write` holder can erase a maintainer's `wont_fix` from
+an issue carrying two terminal labels, for free, where base `06f01d7` charged `task:close`.
+
+**Coverage of the brief, as of this revision.** All eight checklist items C1–C8 are
+addressed; all eight named deliverables D1–D8 are answered in §7; all five NEEDS-NO-RUN
+items are closed in §13.1; both previously-unread test files are reviewed in §9. **The four
+runs still in the queue (§13.2) are optional and none of them can change this verdict** —
+runs 1 and 2 would validate *proposed remedies* that are not in this diff, run 3 tests an
+unpinned claim already filed as Nit, and run 4 sharpens one evidence label on a scope
+classification that does not affect whether REVIEW-194-R11-C1 blocks. **This file stays PARTIAL for
+process reasons, not because the verdict is provisional.**
+
+*Recommendation, not a gate: this diff would benefit from a security-auditor pass on the
+axis-2 residue in REVIEW-194-R11-R1 now that its size is known to be 70 cells rather than 2. The
+dispatching agent decides; I have not escalated.*
+
+---
+
+## 13. RESUMPTION PLAN — what remains, and what each needs
+
+Written for my future self. Nothing below can overturn REVIEW-194-R11-C1.
+
+### 13.1 CLOSED SINCE THE HOLD — all five read-only items, no runs consumed
+
+Front-loaded during the hold, per the EM's standing rule that read-only work is free and
+unreported. **All five NEEDS-NO-RUN items are now closed.** Results:
+
+| item | status | result |
+|---|---|---|
+| **C4 (b)** | **MEASURED — CLEAN, and better than the brief hoped for** | The test re-encodes the delimiter class **nowhere**. It sweeps `0x20`–`0x7e` plus multibyte tails and cross-checks the two **real production functions** against each other — `cfg.Validate()` one way, `lifecycleMarkerSuffix(m.StageToLabel(...))` the other — erroring in **both** directions, with a `checked < 90` vacuity pin. This is not "two copies that agree today"; it is one source each and they are the shipped ones. **The brief's worry does not apply.** |
+| **C4 (c)** | **MEASURED — fail-closed, no reload path exists** | `Validate()` has exactly **one** call site (`config.go:144`, inside `LoadConfigWithSource`). No watcher, no SIGHUP, no reload. A running deployment whose config was legal yesterday is **unaffected while it runs** and fails at **next start** via `log.Fatalf` with an actionable message naming the emitted label and two valid prefixes. See §6 for the one residual (the failure surfaces at restart, possibly far from the config change). |
+| **B4 chokepoint** | **MEASURED — COMPLETE**, enumeration corrected 00:57Z (not asked for; the method notes demand it) | Every production path to a `LabelMapper` runs through `Validate()` or `DefaultConfig()`. The only `yaml.Unmarshal` into `GitHubConfig` is `config.go:140`. **All four production `NewLabelMapper` call sites**, named rather than summarised: `labels.go:257` (guarded writeView recursion), `config.go:261` and `config.go:351` (inside `Validate`), and `passthrough.go:83` (inside `NewPassThroughStore`, which substitutes `DefaultConfig()` for a nil cfg; its callers `resolver.go:45` and `connect.go:299` both trace back to `Validate`). **No third way in.** B4 passes the "name the mechanism that makes it bite" test. *My first pass covered `passthrough.go:83` only implicitly — see §3.2.* |
+| **C2 (b)** | **MEASURED — confirms REVIEW-194-R11-R3** | `canonicalLifecycleLabels` has **zero** production callers. All three call sites are in `lifecycle_claim_property_test.go` (252, 254, 512). The wholesale-replacement question is moot for pricing *today*; the finding is that the function remains production-**reachable**, which REVIEW-194-R11-R3 addresses. |
+| **C6 (remaining 4)** | **MEASURED — the three-way toggle-scope correction is ACCURATE** | Verified row by row: `StageToLabel` opens with `if !m.enabled { return "" }` (**WRITES/emission GOVERNED** ✓); `lifecycleStageClaim` contains **no toggle reference at all** (**WRITES/authorization NOT GOVERNED** ✓); `treewalk.go` contains no `enabled` at all, so `hasExternalUnavailableLabel` genuinely carries no toggle guard ✓. A well-made correction that replaced a false narrowing with a measured three-way split. |
+| **REVIEW-194-R11-R1 root cause** | **upgraded SUSPECTED → MEASURED** | Both implementations read in place: `stripForMatch` trims a **sequence of three** segments; `lifecycleMarkerSuffix` scans for **one**, backwards, returning the last delimiter-bounded occurrence. The divergence is the 70-cell gap. |
+| **the two unread test files** | **MEASURED — reviewed, strong, and they share the blind spot** | See §9. |
+
+### 13.2 THE RUN QUEUE — four runs, NONE currently granted
+
+Run 4 of the previous queue (mutate the delimiter class and confirm the test reddens) is
+**withdrawn**: C4 (b) closed clean by reading, and the test drives both directions off the
+two real production functions, so there is no second copy to mutate. It is replaced by a
+new run 4 that converts the one remaining SUSPECTED marker in this report into MEASURED.
+
+| # | purpose | target (verbatim) | est. | status |
+|---|---|---|---|---|
+| 1 | Confirm the REVIEW-194-R11-C1 minimal stopgap turns the 24 cells green **without** breaking the other 7176 | `go test ./internal/platform/github/ -v -run TestLabelWritePrice -count=1`, **asserting the subtest count** | ~15 s | **not granted** (r4 leg holds the queue) |
+| 2 | Confirm the REVIEW-194-R11-R1 unified-segment-class fix closes the 6 unforced sequences and does not break the superset invariant | `go test ./internal/platform/github/ -count=1` (unfiltered — no `-run`, so no filter to misaim) | ~20 s | **not granted** |
+| 3 | Test the unpinned claim that the agreement pin "now holds at `enabled=false` as well". **Target and package both CORRECTED 01:02Z — see §3.3; as originally queued this run would have matched nothing and printed `ok`.** | `go test ./internal/server/ -v -run 'TestLifecycleStageForLabels_AgreesWithLifecycleStageOnTheTasksOwnLabels' -count=1` **and assert 14 subtests ran** | ~20 s | **not granted** |
+| 4 | **NEW.** Price the REVIEW-194-R11-C1 input at base `6d8f19e` and confirm the round-10 shape charged `task:close` there. Converts §4A's "not introduced by r11" from **SUSPECTED** to **MEASURED** — the last SUSPECTED marker in this report | `go test ./internal/platform/github/ -run TestLabelWritePrice -count=1` in a worktree at `6d8f19e` with the `REVIEW_swap_wontfix_bare` row applied | ~15 s | **not granted** |
+
+#### AIMING EVIDENCE FOR EVERY QUEUED FILTER (added 01:12Z, per the EM's 01:04:36Z rule that a grant request must carry proof its filter aims at something)
+
+| # | filter | aiming evidence | verdict |
+|---|---|---|---|
+| 1 | `-run TestLabelWritePrice` in `internal/platform/github` | `grep -rn "^func TestLabelWritePrice"` → **2 hits**, `lifecycle_claim_property_test.go:105` and `:236` | **AIMED** |
+| 2 | none (unfiltered) | no filter exists to misaim | **N/A** |
+| 3 | `-run 'TestLifecycleStageForLabels_Agrees…'` in `internal/server` | `grep -rn "^func TestLifecycleStageForLabels_Agrees…"` → **1 hit**, `authz_label_write_scope_test.go:1691` | **AIMED** (after the 01:02Z correction) |
+| 4 | `-run TestLabelWritePrice` **at base `6d8f19e`** | `git grep -q "func TestLabelWritePrice" 6d8f19e -- internal/platform/github/` → **exit 1, ABSENT**. `git ls-tree` at that SHA shows `lifecycle_claim.go` and **no `lifecycle_claim_property_test.go`** | **UNAIMED — WITHDRAWN AS WRITTEN** |
+
+Negative and positive controls on the aiming instrument itself, both unpiped so the exit
+code read is the one produced: `git grep -q "func ZzzNoSuchSymbolReview194R11" 6d8f19e` →
+exit 1; `git grep -q "func SameStageSet" 6d8f19e -- internal/store/` → exit 0.
+
+**RUN 4 IS THE SECOND UNAIMED INSTRUMENT FOUND IN MY OWN QUEUE TONIGHT**, after run 3 at
+01:02Z. The harness file this round introduces **does not exist at base**, so the filter
+matches nothing there, `go test` exits 0 and prints `ok` — and the vacuous green reads as
+*"base has no pricing problem either,"* which is the opposite of what the run was queued to
+establish. Two of four queued runs were unaimed. That is a 50% defect rate in a queue I
+wrote and had read several times, and neither defect was detectable from the target string
+alone.
+
+**Run 4 redesigned.** It is not a filter change; the run itself has to be rebuilt, because
+the base tree cannot host the harness unmodified:
+
+- The **seam is present at base** — `LabelDeltaLifecycleStages` at `passthrough.go:1039`
+  (`git grep -q` exit 0) — and so is `store.SameStageSet` (`store.go:252`). So the question
+  run 4 asks is well-posed at base.
+- But `currentLifecycleStages` is **absent at base** (`git grep -q` exit 1); at base the
+  function is `lifecycleStagesForLabels` (`passthrough.go:1100`). **The harness's reference
+  arm will not compile at base without a rename**, and that rename is precisely the kind of
+  edit that can silently fail to land.
+- Therefore run 4 must be: port the harness, apply the rename, **and assert the ported
+  harness both compiles and runs the full `7200`-cell vacuity pin** before any conclusion is
+  drawn from its colour. Without that assertion the run is unfalsifiable in both directions.
+
+**This also supplies REVIEW-194-R11-R2's provenance, which I did not have.** `lifecycleStagesForLabels`
+is not a name that was never real — it is the base name of the function r11 renamed to
+`currentLifecycleStages`. REVIEW-194-R11-R2's five stale references are **rename residue**, not invention.
+The finding is unchanged; its diagnosis and its fix (a rename sweep) are now exact.
+
+**Total remaining compute: ~60 s of targeted runs.** No full suite, no `-race`, no
+`go build ./...` — all five gate rows are already measured and recorded in §8. Runs 1–3
+are **optional**: none of them can overturn REVIEW-194-R11-C1, and none of them changes the verdict.
+Run 4 is also optional; it only sharpens one evidence label.
+
+**Do not need re-running:** every gate in §8, the REVIEW-194-R11-C1 reproduction (twice, §0.2), the REVIEW-194-R11-R1
+residue enumeration, the B9 compile result, and the C7 diff. All are recorded above with
+their commands.
+
+### 13.3 RUN-REPORTING CONVENTION IN FORCE FROM HERE
+
+Per the EM's 00:13:10Z and 00:16:11Z instructions, every granted run in this report is
+recorded with **four** fields, and from 00:16:11Z a **fifth**:
+
+- `target` — the verbatim command.
+- `sha` — the commit the tree was at.
+- `occupy` — the moment ANY filesystem or toolchain work began under the grant
+  (`git worktree add`, not the `go test` line). Overlap between legs is computed from
+  `[occupy, end]`, not from `[start, end]`.
+- `start` — the moment the target command began executing. Grant time is not start time.
+- `end` — completion.
+
+Read-only work (grep, `git diff`, `git log`, file reads) is free, ungranted and
+unreported. Large git operations — `worktree add`, `clone`, `gc` — are **not** read-only
+for this purpose and are announced. Any "free" command that runs long enough to notice is
+reported as a box signal. The one such signal in this review is in §8: the first
+`go build ./...` spent its wall time downloading the toolchain and 55 modules on a cold
+cache, which is a provisioning cost and not a box signal, and is recorded there as such.
+
+The two runs already executed under this convention are recorded in §0.2 (the REVIEW-194-R11-C1
+reproduction and its re-reproduction), with `occupy` reconstructed exactly from the
+session transcript rather than estimated.
+
+---
+
+# 15. Post-verdict audit: Broadcast 15, and the §4.1 grade instrument turned on myself
+
+**This section postdates the verdict in §12 and does not change it.** The verdict remains
+**REQUEST CHANGES**. One of my own non-blocking grades is corrected here, in the direction
+of a weaker stated reason rather than a higher severity.
+
+## 15.1 The beads split: I downgraded nothing, and the correct check was not the word
+
+Broadcast 15 asks every leg whether it downgraded anything on "beads is dead," and warns
+that `grep`ping the report for the word returns "a confident, clean, wrong zero." The
+instruction is to enumerate the **populations my claims generalise over** instead.
+
+I downgraded nothing on beads. But one of my live findings does rest on a population
+claim, and it is the Critical one:
+
+> **REVIEW-194-R11-C1 asserts there are exactly THREE consumers of the write-side seam** —
+> `server.go:206` (CreateTask), `:391` (InsertTasksAfter), `:846` (UpdateTask), each gating
+> on `if !store.SameStageSet(before, after)`.
+
+`internal/server/beads_import.go` is a candidate fourth, and it is the worst-shaped
+candidate available: `parseBeadsJSONL(req.GetData())` at `export_import.go:278` parses
+**caller-supplied bytes inside an RPC handler**, and `beads_import.go:287-311` builds tasks
+with **`Stage:` and `Labels:` set together**. A path that sets a stage and a label set from
+untrusted input, and never appears in my enumeration, is exactly the thing my own R3 ruling
+says a clean search will not find.
+
+**It is not a fourth consumer, and here is the bound rather than the search.** Two
+independent structural facts, either one sufficient:
+
+1. **`MultiStore.ImportCollection` (`multistore.go:451-455`) routes UNCONDITIONALLY to
+   `m.primary`.** It takes no collection ID and consults no context — the comment says
+   *"Import always goes to primary."* There is no routing decision for a pass-through store
+   to win.
+2. **`GitHubPassThroughStore.ImportCollection` (`passthrough.go:1715-1717`) is a hard
+   `ErrNotImplemented` stub.** Even if a pass-through store were primary, import returns an
+   error rather than writing.
+
+The import RPC therefore cannot create or mutate a pass-through-backed task at all, and the
+seam it bypasses is a seam that does not apply to anything it can touch. The search space is
+bounded **by the store type and by an unconditional route**, not by a count of clean greps.
+That is the form Broadcast 15 requires, and C-1's population claim is stronger for having
+been made to earn it.
+
+Two things I am *not* claiming. I am not claiming the import path is well-authorized — it
+persists a whole collection under a single coarse `ScopeCollectionAdmin` check at
+`export_import.go:268`, with no per-stage lifecycle scoping anywhere in the file. And I am
+not filing that as a finding: **it is outside the delta**, it is pre-existing, and scope
+discipline says it is not mine. I record it because a future round that extends the seam to
+import would be extending it into a path with materially different authorization, and
+because someone should know the observation was made and deliberately not filed.
+
+## 15.2 My R3 forecast was wrong, and the EM is right that the demand still produced the answer
+
+I wrote that for an exported package selected at runtime I did not believe a closing
+argument existed "in the form they will be tempted to write." Broadcast 15 reports that one
+does, and is type-level. **I reproduced it independently and it holds:** `platform.Adapter`
+has exactly **two** non-test implementations tree-wide, `BeadsAdapter` and `GitHubAdapter`,
+both pinned by compile-time assertions (`beads.go:80`, `github.go:31`), and no map, switch
+or factory returns a `platform.Adapter`.
+
+**My forecast was wrong and I am recording it as wrong**, in my own report, unprompted. The
+distinction I want to keep is the one that survives: the *demand* was right even though the
+*prediction* was wrong, and R3's own soundness never rested on the forecast. R3 is sound
+because of a language-level fact — `canonicalLifecycleLabels` is an **unexported method**,
+there is no string-keyed dispatch to unexported methods, and `reflect` cannot call them —
+not because six grep rows came back clean. That was true when I filed it and it is still
+true. **R3 stands unchanged, at Required.**
+
+## 15.3 §4.1 turned on my own non-blocking grades — one fails
+
+§4.1: *"CAN MY SEVERITY GRADE FAIL FOR THE REASON IT CLAIMS?"* I have four non-blocking
+grades in §6. Three survive; **one does not.**
+
+| grade | the reason I gave | does the reason hold? |
+|---|---|---|
+| `SameStageSet` precondition false | "over-charges — fail-closed, hence not Required" | **REASON REPLACED.** See below. |
+| B8 nil-mapper asymmetry (Optional) | "unreachable with a nil mapper in production" | **HOLDS, now bounded.** |
+| B9 compiler check (FYI) | scope narrower than prose | HOLDS. |
+| B4 chokepoint (FYI) | "no third way in" | **REASON FALSE. Corrected below.** |
+
+**The one that fails: B4's chokepoint FYI.** I wrote that *"every production path to a
+`LabelMapper` runs through `Validate()` or `DefaultConfig()`, **with no third way in**."*
+There is a third way in. `labels.go:257` does `m.writeView = NewLabelMapper(asIfEnabled)` —
+a **second `LabelMapper`, built from a mutated config that never passes `Validate()`**. And
+this is not an obscure one: `writeView` is the write-side mapper, reached by
+`s.mapper.writeViewMapper()` in the very function REVIEW-194-R11-C1 is about.
+
+The finding stays **FYI** — the values in `asIfEnabled` are derived from an
+already-validated config, so validation is inherited by derivation — but the reason I
+published was a completeness claim over construction paths and it was **wrong as stated**.
+Corrected reason: ~~*two* production construction sites~~ — **see §15.12; this correction was
+itself wrong. There are FOUR.** B4's chokepoint is effective for **operator-supplied** config,
+which is what B4 was actually filed about. That narrower claim survives; the count attached to
+it did not.
+
+**The one whose reason I am replacing:** I justified not-Required on `SameStageSet` with
+"fail-closed, hence not Required." Under ptone's Option B that reason is unsafe on its face:
+if required scopes are a union satisfied conjunctively, an order-sensitivity that
+**over**-charges is an **over-denial**, which is the exact mirror trap I flagged in §4E.1.
+"Fail-closed is harmless" is not available to me while I am simultaneously warning others
+that over-demand is a real failure. The finding is still non-blocking, but for a different
+and honest reason: **`store.go` is outside this diff.** Out of scope, not harmless.
+
+**The one that now has a bound:** B8's Optional claimed nil-mapper unreachability. Bounded:
+`&GitHubPassThroughStore{` has exactly **one** non-test occurrence tree-wide
+(`passthrough.go:81`), inside `NewPassThroughStore`, which sets `mapper:` unconditionally
+from `NewLabelMapper`, which returns `&LabelMapper{...}` (`labels.go:133`) and cannot return
+nil. One construction site plus a non-nil-returning constructor is a bound. Grade holds.
+
+Two of my four non-blocking grades rested on negative reachability claims of precisely the
+form Broadcast 15 outlawed, and I had marked both "(MEASURED)". **"MEASURED" was doing work
+it had not earned:** it recorded that I ran something, not that the claim was closed.
+
+## 15.4 §1.5 ninth channel, unrestricted — and a control of mine that was a decoration
+
+My earlier restore proof ran `git clean -nxd` **path-limited** to `internal/ cmd/ api/
+proto/ .design/`, which is precisely the blind spot §1.4 and §1.5 describe. Re-run
+unrestricted: **one entry tree-wide, `web/dist/`; zero entries outside `web/`.** The restore
+proof holds, and now it holds over the whole tree.
+
+Two disclosures against myself:
+
+- **My negative control was void.** I paired the run with `git clean -nxd -- no/such/path`
+  expecting a non-zero exit. It **exited 0** — `git clean` does not object to a bogus
+  pathspec. That control could not have failed the command, so by B12 item 6 it was a
+  decoration and I am not counting it.
+- **The null did get a positive control, by accident rather than design.** The run was not
+  a bare zero: it returned `web/dist/`. An instrument that reports one entry is demonstrably
+  not blind, so the "zero outside `web/`" null is backed by a live positive within the same
+  invocation. I take no credit for arranging that.
+
+## 15.5 §5.1 cannot be satisfied retroactively on the ID rewrite, and I am not papering over it
+
+§5.1 makes inverse-and-diff mandatory for mechanical rewrites and **supersedes read-back**.
+My round-qualified ID rewrite (110 IDs) was verified by read-back plus an independent
+residual scan plus the quote audit Broadcast 11 ordered.
+
+**I cannot run inverse-and-diff on it now: no pre-image exists.** I took no `cp`, and this
+report is not under git. I am stating that rather than reconstructing a pre-image by
+inverting the current file and diffing against it, which would compare a file to itself and
+pass unconditionally — a check that cannot fail is the thing §1.1 and B12 item 6 exist to
+forbid, and I am not going to file one as reassurance.
+
+What my verification did and did not cover, precisely:
+
+- **Covered:** every rewritten ID is well-formed; zero true residual bare IDs; every quoted
+  span was audited by hand.
+- **Not covered:** whether the rewrite touched any line it should not have touched *outside*
+  quoted spans. Read-back cannot establish that, which is the entire reason §5.1 exists.
+- **Known cost:** read-back caught one of two corruptions. The one it missed was the
+  self-quotation, found only by the ordered quote audit. **That miss is the evidence for
+  §5.1, and it is mine.**
+
+I took a `cp` pre-image before writing this section. From here every mechanical rewrite I
+run gets one first.
+
+**Upheld 02:34Z, and the reason belongs here rather than in the EM's record:** substituting a
+self-diff would have produced a **clean result meaning nothing**, and a clean result meaning
+nothing is worse than an absent one because it is indistinguishable from evidence. Declining
+is the correct handling.
+
+**The complementary half, established independently by the audit leg:** an inverse-and-diff
+verifies **fidelity, not coverage** — it proves the edit did what it said to the lines it
+touched, and says nothing about which lines it *should* have touched. My §15.6 enumeration is
+the coverage half. §5.1 is consequently now mandated **only as a pair with §4.3**, and only
+against a pre-image captured **before** the edit. My refusal is what made the pairing
+necessary, which is the one useful thing to come out of my having lost the pre-image.
+
+## 15.6 §4.3 — the declaration, and the enumeration it was missing
+
+§4.3 requires a declaration **plus** an enumeration of every scheme present. My earlier
+declaration named one scheme. Every identifier scheme actually in this document:
+
+| scheme | form | qualified? |
+|---|---|---|
+| my findings | `REVIEW-194-R11-C1`, `-R1`…`-R5` | yes, round- and leg-qualified |
+| the brief's checklist | `C1`…`C8` | **no — bare.** See §15.7 |
+| the log's work items | `B1`…`B9`, `O1`…`O8` | no — upstream namespace, quoted as filed |
+| the brief's deliverables | `D1`…`D8` | no — upstream namespace |
+| my report's sections | `§4D.1`, `§13.2`, … | n/a — internal |
+| transcript records | bare integers (`record 84`) | n/a — session-local, stated as such |
+| commits | short SHAs | n/a |
+
+**And the exemption that matters for tomorrow's scanners:** this report deliberately
+contains struck vocabulary (`price`, `monotone`, rank-family) in **52 + 19 + 11**
+occurrences, retained in place per §3.5 because a report that silently renames what it
+quotes falsifies its own evidence. Per §4.2, a scan for the ban will therefore hit this
+document hard, and per §1.3 the discriminator must be **source, not shape**: these are my
+quotations of the diff, not my adoption of the vocabulary. REVIEW-194-R11-R5 asks for the
+rename **in the code**, which is where the ruling put it.
+
+## 15.7 §3.6 — I am declaring the collision rather than sweeping it, and saying why
+
+§3.6 is my own finding returned as an obligation: the brief's `C1`–`C8` sit one hyphen from
+my `C-1`, and it says qualify the brief items too. My report holds **34** bare
+brief-checklist references.
+
+**I am not running that rewrite, and this is a judgment the EM can overturn.** The reason is
+§3.4, which is also mine: my last mechanical rewrite corrupted two verbatim quotations at a
+rate of two per 110, and the brief's checklist IDs appear overwhelmingly *inside quotations
+of the brief*. Rewriting `C6` to `BRIEF-194-R11-C6` inside a quotation of the brief makes the
+quotation say something the brief does not say — the precise failure §3.4 was written about,
+at more than three times the exposure. A declaration carries the disambiguation at zero
+falsification risk:
+
+> **Namespace declaration.** In this document, bare `C1`–`C8` are always the **review
+> brief's checklist**. Findings of mine are always hyphenated and fully qualified
+> (`REVIEW-194-R11-C1`). The two never alias, and no bare `C-1` appears.
+
+**Ruled 02:34Z, and my own framing above was corrected in my favour.** I had written that
+this "discharges the reader-facing purpose and not the machine-checkable one," and offered
+to be overturned. Both were wrong. §3.4 is binding and unconditional, so the sweep was never
+available to me — the offer should not have been open. And the machine-checkable purpose is
+not *undischarged* here, it is **out of scope**: it cannot be satisfied on quoted text at any
+price. The standing form:
+
+> **A hygiene rule that cannot be satisfied on part of a corpus is not failing there; its
+> scope just does not include that part. An unmet rule invites a remedy, an inapplicable one
+> does not.** Treating the second as the first is how a scope error becomes a code change.
+
+I record that I conceded this against myself and had to be corrected upward. The failure mode
+is worth naming because it is the mirror of the one I keep flagging in others: I was so
+attentive to not over-claiming compliance that I reported a scope boundary as a gap, and a
+reported gap is an invitation to someone to close it — here, by running the exact rewrite
+§3.4 forbids. **Over-scrupulous self-reporting is not free; it manufactures work items
+against safe text.**
+
+**Head note, per the ruling — the collision named precisely.** Two findings named `C1` exist
+in this round and they are different objects:
+
+| bare form | belongs to | round | what it is |
+|---|---|---|---|
+| `C1`…`C8` | the **review brief's checklist** | round 11 | questions I was asked to answer |
+| `C-1`, always written `REVIEW-194-R11-C1` | **my findings** | round 11 | the Critical, the `SameStageSet` scope hole |
+
+A reader resolving the ambiguity gets the right answer from this table without a single
+character of quoted text moving. New and non-quoted references qualify with the round;
+quoted text is frozen.
+
+## 15.8 §5.2 — re-presenting the tally now that a read refusal is not an incident
+
+Under §5.2 a refusal that is **read** costs nothing and is not an incident. Two of my eight
+filed incidents were refusals I caught by reading the exit code:
+
+- the interface check that **exited 128 and printed nothing**, which read as the zero I
+  wanted (this is the one filed fleet-wide as §6.4);
+- incident G's misaimed detector, adjudicated before any repair was triggered.
+
+Both are struck from the incident count. **Filed distinct incidents: 8 → 6.** One still
+carries BROKEN. Per B12 item 1 this number is **not summable** with other legs' numbers, and
+per §5.2 it will keep *falling* as my discipline improves, which is the opposite of what an
+incident count normally means and is why it must never be read as a fleet metric.
+
+I note the shape of what just happened, per §5.3: **every correction in §15 moved a number
+or a severity in my own favour** — 8 incidents down to 6, a false reason narrowed to a true
+one, a forecast retracted, a population claim upgraded. Broadcast 13 says a deflation
+arrives as relief and gets adopted without challenge. **Knowing the class does not confer
+immunity to it**, so I am marking these as self-serving in direction and inviting the EM to
+audit §15.3 and §15.8 specifically, on the grounds that they are the two I would most like
+to be true.
+
+## 15.9 MEASURED and CLOSED are two marks, and this report needed both
+
+Adopted fleet-wide 02:34Z from my §15.3 observation. Added to the evidence-status legend in
+§4:
+
+> | **MEASURED** | An instrument ran, and the result below is its raw output. |
+> | **CLOSED** | The population the claim quantifies over is **bounded**, by an argument. |
+>
+> These are independent. A claim can be measured and open (most of tonight's were), and in
+> principle argued-closed without a fresh measurement. **Neither implies the other, and
+> "MEASURED" alone must never be read as "settled."**
+
+**Why this is not applied by sweeping the 43 `MEASURED` occurrences.** Several of them sit
+**inside quotations** — line 1622 quotes a production comment that itself contains the word
+(*"AXIS-2 RESIDUE, NAMED. MEASURED at round-11 HEAD…"*). A mechanical pass appending a second
+mark would rewrite the diff's own comment text and make my report misquote the code it is
+reviewing. That is §3.4's failure mode exactly, on the exact corpus §3.6 was just ruled to
+exclude. **Targeted enumeration is not the lazy option here; it is the only compliant one.**
+
+Every claim in this report that quantifies over a population, with both marks:
+
+| claim | MEASURED | CLOSED | the bound, or what is missing |
+|---|---|---|---|
+| REVIEW-194-R11-C1: exactly **three** consumers of the write-side seam | yes | **YES** | Two structural bounds, §15.1: `MultiStore.ImportCollection` routes unconditionally to primary, and the pass-through's `ImportCollection` is an `ErrNotImplemented` stub. Not a count of clean greps. |
+| REVIEW-194-R11-R3: `canonicalLifecycleLabels` has **zero** production callers | yes | **YES** | Language-level: an **unexported method**; Go has no string-keyed dispatch to unexported methods and `reflect` cannot call them. The six clean rows are not the bound — this sentence is. |
+| B8: nil mapper **unreachable** in production | yes | **YES** | `&GitHubPassThroughStore{` has exactly one non-test occurrence (`passthrough.go:81`); it sets `mapper` unconditionally; `NewLabelMapper` returns `&LabelMapper{…}` and cannot return nil. |
+| B4: every `LabelMapper` reaches production through `Validate()`/`DefaultConfig()`, **"no third way in"** | yes | **NO — FALSIFIED** | `labels.go:257` builds `writeView` from a mutated config that never passes `Validate()`. Construction *sites* are bounded (one struct literal, `labels.go:133`); the **validation** claim was false and is replaced in §15.3. |
+| C4 (c): `Validate()` has **exactly one** call site, **no reload path exists** | yes | **NO** | One call site is a census, not a bound. Closing it needs an argument that no *future* caller can reach a mapper post-validation — e.g. making the config unexported after construction. I am not filing this; it changes no verdict. |
+| C4 (b): the test re-encodes the delimiter class **nowhere** | yes | **YES** | Bounded by construction: the test sweeps `0x20`–`0x7e` exhaustively rather than naming members, so there is no member list that could drift. |
+
+**The `RemoteData` problem does not reach my findings, and I want to say why rather than that
+it doesn't.** Three legs measured `RemoteData` write sites tonight and none closed, because
+the field is `map[string]any` — a reference type, so a write through an alias contains no
+occurrence of the identifier and **no text census can enumerate the population in
+principle.** None of my claims quantify over `RemoteData` write sites. More to the point, the
+bound I used for C-1 is a **routing and type bound**, not a text census: it holds over
+whatever the import path does internally, including aliased writes, because the path cannot
+reach a pass-through-backed task at all. **A bound that survives aliasing is the kind worth
+having, and I got there by accident rather than by design** — I chose it because the grep was
+unconvincing, not because I had foreseen the alias problem.
+
+I am also not building on the audit leg's LOW on 18-1b: that leg volunteered that it never
+read the store-side `ImportCollectionParams`, and a neutral measurement is running. **Its
+basis is OPEN, so nothing of mine will rest on it until that returns** — including my §15.1
+decision not to file the coarse-scope observation, which I reached independently and which
+does not depend on that LOW either way.
+
+**Correction from that leg, recorded because it makes us look less aligned, not more:** I
+described the import surface as something neither of us filed. Wrong — **it filed it**, as
+18-1b `[LOW]`, on the ground that out of the *diff* is not out of *its* axis. So the pair is
+**one filing and one deliberate non-filing**, not two agreeing non-filings. That is a real
+difference in where we draw scope, and it should be read as a difference.
+
+## 15.10 REVIEW-194-R11-R6 `[OPEN]` **Required** — the diff couples a rendering decision to an authorization outcome
+
+**This finding upgrades one of my own non-blocking grades, and it moves UPWARD.** It came out
+of a tightening offered by `audit-194-r11`, which I verified independently before adopting.
+
+In §6 I filed `SameStageSet`'s order-sensitivity as non-blocking, and in §15.3 I replaced its
+reason with *"`store.go` is outside this diff."* **That reason also fails**, and this time the
+grade fails with it.
+
+**MEASURED, and the base comparison is the load-bearing part:**
+
+| fact | evidence |
+|---|---|
+| `unionStages` is **introduced by this diff** | absent from `passthrough.go` at base `6d8f19e`; verified by reading the base blob, not by reading the diff |
+| it **deliberately does not sort** | `passthrough.go:1185-1197` appends primary-then-extra; the docblock at `:1182-1184` gives the reason explicitly — *"Order is preserved rather than sorted because these sets are rendered into authorization error messages, and a set whose order depends on map iteration produces a different message on every run."* |
+| the other producer **is** sorted | `AllTerminalLabelStages` ends `sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })` at `terminal_label_stages.go:263` |
+| the comparison is **order-sensitive** | `store.SameStageSet`, `store.go:252`, elementwise |
+
+So `before` arrives name-sorted, `after` arrives sorted-then-appended, and an **order-sensitive
+comparison decides whether a scope is charged.**
+
+**Why this is Required and not a nit about ordering.** The docblock's reason is a good one and
+I would not overturn it: non-deterministic error messages are genuinely bad. But it is a
+**presentation** reason, and the value it governs is now consumed by an **authorization**
+decision. The diff has made the authorization outcome depend on a choice made for the benefit
+of error-message stability, and nothing in the code says so. Concretely:
+
+- The free cells are free **partly by ordering coincidence** — both sides happen to come out
+  in the same order. Change either producer's ordering and those cells flip from
+  under-charging to over-charging.
+- **An ordering change anywhere in the terminal scan therefore becomes an undeclared
+  authorization change** — invisible in review, because sorting looks like a cosmetic edit.
+- The name `SameStageSet` actively conceals it. It advertises a set comparison and performs a
+  sequence comparison.
+
+**Suggested fix, and it lives entirely inside the diff's own new code.** Separate the two
+consumers rather than making one value serve both: have `unionStages` keep its stable
+presentation order for the message path, and give the *comparison* path a canonical form —
+sort at the comparison site, or compare as sets. That deletes the coupling instead of
+documenting it. Renaming `SameStageSet` to `SameStageSequence` (the audit leg's suggestion) is
+worth doing regardless, but on its own it makes the trap legible rather than absent, and this
+round has already shown what a comment that names a hazard is worth.
+
+**Note on direction.** This is the fourth of my grades to fail its own §4.1 test tonight, and
+the **first to fail upward.** I record it because §15.8 flagged that every prior correction of
+mine moved in my favour, and that observation is worth exactly as much as the counterexample
+it survives.
+
+## 15.11 A corroboration I am refusing: `audit-194-r11` and I are ONE arrival, not two
+
+`audit-194-r11` derived REVIEW-194-R11-C1's mechanism independently and hours before contact,
+naming the same cell, the same delta and the same conclusion. It would be very easy to present
+that as two independent confirmations, and I am not going to.
+
+**That leg disclosed, against its own interest, that we are not independent:** we both read
+the same in-tree sentence, `server.go:830-840`, which describes the erasure case in prose. I
+said in §4 that I found it there rather than supplying it; so did it. **A comment that names
+the defect is a common source, and two readers of one sentence are one arrival with two
+witnesses.**
+
+Consequences I am accepting:
+
+- **REVIEW-194-R11-C1 gains no corroboration strength from that agreement.** Its weight rests
+  on the derivation — `after` is built by `unionStages` *from the current set*, union can only
+  add, so a pure removal re-supplies the removed stage and `before == after`. **The gate is
+  structurally incapable of pricing a removal.** Check that; do not count us.
+- **The finding's reach is narrower than "all removals" and wider than the one cell we both
+  quoted.** It is *"removals that leave the stage set unchanged"* — the hole needs the removed
+  label's stage to be re-supplied by something still present. Remove the **last** label
+  carrying a stage and `before != after` and the charge fires. That boundary is unmeasured, and
+  it is what I would want measured before merge.
+- I have withheld my severity from that leg and it has withheld its grade from me. **I am not
+  going to ask for it.** A grade I obtain before finalising mine is an anchor, not evidence,
+  and the whole point of findings travelling without grades is lost if the two graders
+  reconcile privately first. Compare after both are final.
+
+## 15.12 Three corrections from the inter-leg exchange, two of them against me
+
+### (a) My correction of B4's count was itself manufactured by a truncation
+
+In §15.3 I replaced B4's false "no third way in" with "**two** production construction sites."
+**That replacement is also wrong. There are four:** `passthrough.go:83`, `labels.go:257`,
+`config.go:261`, `config.go:351`. `test-194-r11` enumerated all four; I reproduced its list and
+it is right.
+
+**How I got two is worse than the number.** My grep printed its results through a `[:10]` slice,
+`config.go:261` and `:351` fell below the cut, and **I read the population off the truncated
+display.** I published a corrected count manufactured by a truncation, inside a section about
+instruments that answer the wrong query. The general form, which I did not see coming and should
+have: **a display limit is an instrument setting, and reading a population off a rendered list
+silently adopts it.** B4's claim is falsified by three, not one, and my substitute was produced
+by the class of error it was correcting.
+
+### (b) The provenance alarm was false, and I cleared it
+
+`test-194-r11` reported the reference arm's comment — *"base 06f01d7's
+`LabelDeltaLifecycleStages` verbatim"* — as UNRESOLVED. **It resolves, and it is true.** At
+`06f01d7` the function lives in `passthrough.go:1031`, and
+`internal/platform/github/lifecycle_claim.go` **did not exist at that SHA** (`git cat-file -e`
+→ rc **128**, *"exists on disk, but not in 06f01d7"*). The base body is
+
+```go
+before = s.lifecycleStagesForLabels(t, t.Labels)
+after  = s.lifecycleStagesForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+```
+
+— the harness arm verbatim, modulo the `lifecycleStagesForLabels` → `currentLifecycleStages`
+rename that REVIEW-194-R11-R2 is about.
+
+**This is my own §6.4 failure happening to someone else: an rc=128 that printed nothing, read as
+absence.** That leg reached the same conclusion independently and flagged its own instrument
+before I answered. One asymmetry is worth recording, because it inverts the usual worry: **my
+refusal would have cleared a finding; this one manufactured one, against the diff.** A refusal
+that invents a defect is likelier to survive review than one that hides a defect, because the
+leg reporting it looks diligent.
+
+### (c) REVIEW-194-R11-C1's conditional is CLOSED, and my Critical no longer leans on the harness
+
+`test-194-r11` established that `priceOf` is **test-authored** — `func priceOf` has **zero**
+non-test occurrences — and that the harness is a hybrid: the **stage-set computation calls
+through to production** (`currentLifecycleStages`, `LabelDeltaLifecycleStages`), while the
+**pricing is re-implemented in the test and applied to both arms**, where it cancels.
+
+Its directional argument, which I accept: **a cancelling term cannot fabricate a positive
+result.** A shared re-implementation on both sides of a comparison can mask a real divergence
+but cannot invent one. My reproduction is a positive result, so the harness cannot have
+manufactured it — it can only have missed others.
+
+**My answer to its test — "does your evidence survive if you delete every scope name and compare
+only the two stage-set pairs?" — is yes, and I can go further.** REVIEW-194-R11-C1 does not need
+the reference arm at all. It asserts that the production gate
+`if !store.SameStageSet(before, after)` skips the charge for deltas where lifecycle arms apply.
+That needs **one** pair of stage sets from the subject arm, computed **upstream of any pricing**.
+`priceOf` is a function *of* those sets and cannot change whether they are equal.
+
+**So I am restating C-1 in the narrower form that survives without the harness, and dropping the
+broader phrase.** Per that leg's caveat (3), I will not write *"the reference arm faithfully
+reproduces the production evaluation"*: what is under test is the **composition**, which is the
+right reference for the diff's own claim but not a phrase that belongs in a Critical.
+**REVIEW-194-R11-C1 stands at Critical, now unconditional on this ground.**
+
+### (d) R5 is narrower than I filed it — measured
+
+`priceOf` and `priceString`: **zero** non-test occurrences. `readPrice` / `writePrice`: no
+production *identifier* at all — they appear in production only inside a **comment**
+(`passthrough.go:1138`, *"writePrice ⊇ readPrice, pointwise, for every input"*).
+
+**So there is no production identifier carrying the struck vocabulary.** R5's remedy scope is
+**production comments plus test identifiers**, not production identifiers as I implied. R5
+stands — a comment on the seam asserting a pointwise ordering is a claim in precisely the
+vocabulary the ruling struck, and ordering on scopes is dead — but the finding is smaller than I
+filed it and the correction is mine to make.
+
+
+---
+
+## §15.13 — R6 RE-GRADED. MY GRADE MOVED THREE TIMES ON REASONS I DID NOT MEASURE.
+
+**Evidence mark on this whole section: MEASURED** (own read of `2cbbd92`; negative
+control on an absent literal returned rc=1 as required). **CLOSED = NO.**
+
+### (a) The sequence, recorded against myself
+
+1. I filed R6 as Required: *"unionStages is unsorted, AllTerminalLabelStages is
+   name-sorted, they meet in one comparison."*
+2. audit-194-r11 supplied a live-sounding mechanism ("an ordering **coincidence**").
+   **I upgraded within four minutes without measuring it.**
+3. The EM ratified it within four more.
+4. audit measured, retracted its own word, and called the coupling inert *by
+   construction*. The EM downgraded R6 to Opinion at 02:49:32Z.
+5. **I measured the retraction. It does not close.** My correction crossed the
+   downgrade at 02:50:01Z.
+
+Four legs, eight minutes, and the first measurement happened at step 5. I spent this
+entire round demanding that other legs bound their populations, and I accepted two
+unbounded reasons in a row because they came from a leg I trust.
+
+### (b) What audit established, and it is correct — my original reason is WITHDRAWN
+
+`passthrough.go:1163` (`before`) and `:1170` (the `primary` operand) **both call
+`s.currentLifecycleStages`**. That producer (`:1237-1243`) has exactly two return paths:
+sorted `AllTerminalLabelStages` (`terminal_label_stages.go:263`, one comparator) or a
+one-element phase stage. Both canonically ordered. Two sorted renderings of one set are
+one sequence. **"An unsorted producer meets a sorted one" is FALSE at this site.
+Withdrawn.**
+
+### (c) Where the replacement argument breaks
+
+audit's step: *"if extra contributes anything, it is by construction set-novel, so the
+sets genuinely differ."* Set-novel **relative to `primary`**. The comparison is against
+**`before`** — and `before` and `primary` are computed from **different inputs**
+(`t.Labels` at `:1163`, `rawAfter` at `:1170`). So `extra` can contribute a stage novel
+to `primary` and *not* novel to `before`.
+
+    A < B
+    before  = currentLifecycleStages(t.Labels) = [A, B]     (sorted)
+    primary = currentLifecycleStages(rawAfter) = [B]        (read view drops A)
+    extra   restores A
+    after   = unionStages([B], [A])            = [B, A]     (primary order, then append)
+
+    sets:      {A,B} == {A,B}
+    sequences: [A,B] vs [B,A]  ->  SameStageSet elementwise -> FALSE
+
+A **set no-op charged as a stage change** at `server.go:206/:391/:846`. Under Option B
+(over-charge = over-denial) that is a spurious denial.
+
+**And the wiring is deliberate, not incidental.** `:1174` passes
+`canonicalAdditions(rawAfter, t.Labels, addLabels)` — signature confirmed at
+`lifecycle_claim.go:434` as `(after, current, add)`. **The extra term is handed the old
+labels.** Restoring something the read view dropped is what it exists to do.
+
+So the cell is **neither a coincidence nor a construction**: the construction covers the
+case where `extra` is empty and says nothing about the case where `extra` restores.
+
+### (d) What I do NOT claim
+
+No witness input. No build token; nothing was run. Reachability requires a label set
+where the read view drops a stage the write view restores **and** the restored stage
+sorts before a survivor. That is precisely the enabled/disabled recognition split this
+diff models — but "not exotic" is not a witness. **UNCHECKED.** I will not upgrade on my
+own eight-minute argument any more than I should have on audit's four-minute one.
+
+### (e) R6 as it now stands — Required, re-keyed to the comparator
+
+> **`store.SameStageSet` (`store.go:252`) promises set semantics in its name and delivers
+> sequence semantics. It is shared across its non-test call sites, including three
+> authorization gates. Its correctness at each rests on a producer invariant — "all
+> operands arrive canonically ordered" — that is stated nowhere and tested nowhere. This
+> diff newly depends on that invariant by introducing `unionStages`, the one producer at
+> that site that does not maintain it.**
+
+This grade is true **whether or not** the counterexample in (c) is reachable, which is
+why it is the one to carry. The framing is audit's re-aim, not mine.
+
+**Remedy** (unchanged; it fixes every site at once): canonicalise inside the comparator —
+sort or map-compare — so no caller has to know the invariant; **or** rename to
+`SameStageSequence` and pin the ordering contract in a test. audit's verdict on my own
+remedy, which I accept: *"your remedy is better than your current justification for it."*
+
+### (f) The hazard, stated so the next reader inherits it
+
+- **A correction can be right about the old reason and wrong about the new one, and the
+  relief of the first buys the second a pass.** (audit-194-r11)
+- **A downgrade is the one that arrives as relief.** The four-minute ratification that
+  produced the upgrade was run again, unexamined, in the deflating direction.
+- The EM's standing rule from this: **a claim relayed between legs carries its evidence
+  mark or it carries nothing.**
+
+### (g) Corrections carried in from this exchange
+
+- **Q1 premise falsified** (audit). `RequireScope` takes `scope string` at
+  `scopes.go:74`, not a named type; my sink-enumeration bound is void and re-keys to the
+  **callee**. Its converse point is the stronger one: *a charge-site census is blind by
+  construction to authority decided by omission.*
+- **Q2 / R3 — my HEAD measurement was true at HEAD and would have disproved a true
+  finding one SHA back.** `6d8f19e:passthrough.go:1102` had a live
+  `canonicalLifecycleLabels` caller. **Every population claim in this report is hereby
+  SHA-qualified**; an unqualified one is a defect regardless of its number.
+- **R3 remedy moves to DELETE** (EM), the r10 caller having been in-package. Recorded
+  dissent on one technical point only, not contesting the disposition: moving a symbol
+  into a `_test.go` file *does* bind in-package production callers, because test files are
+  not compiled into the production binary — so the original remedy was a compile-time bar,
+  not merely an unexport. DELETE is still the better call for dead code; it costs the
+  positive control, and that trade should be made knowingly.
+- **The `{passthrough.go:83, labels.go:257, config.go:261, config.go:351}` result is a
+  MEMBERSHIP claim, never an exact count** (EM; test-194-r11's own caveat). Its source was
+  an identifier census, and an identifier census cannot enumerate a construction that does
+  not contain the identifier. **Four is a floor.**
+
+### (h) Verdict unchanged
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required, with R6 now resting on (e).
+Report remains **PARTIAL**; the round is held.
+
+
+---
+
+## §15.14 — R6 RULED REQUIRED. AUDIT'S WITNESS IS FALSIFIED. REACHABILITY STAYS UNCHECKED.
+
+**Evidence mark: MEASURED** (own reads at `2cbbd92`; negative control rc=1 each run).
+**CLOSED = NO.**
+
+### (a) Disposition
+
+The EM measured `SameStageSet`, `unionStages`, the `canonicalAdditions` wiring and the
+three gate sites itself and ruled **R6 Required, keyed to the comparator**, withdrawing
+its 02:49 downgrade. It found one thing neither audit nor I cited, and it is the best
+single piece of evidence in the finding:
+
+> **`passthrough.go:1199-1200` — "merges two lifecycle stage SETS, PRESERVING THE ORDER
+> OF THE FIRST and appending anything only the second names."** The doc comment asserts
+> set semantics and order sensitivity in one sentence and does not notice they conflict.
+
+The conflation is not hidden. It is written down where a maintainer reads.
+
+### (b) Audit's exhibited witness — FALSIFIED
+
+audit-194-r11 instantiated my counterexample from a cell in its own report:
+`t.Labels = {ft:stage/wont_fix, ft:stage/completed}`, delta
+`add[stage/completed] remove[ft:stage/completed]`, predicting
+`primary=[wont_fix]`, `extra` restores `completed`, `after=[wont_fix, completed]`,
+set no-op charged.
+
+**Its premise about the sort is confirmed.** `task.Stage` is `type Stage string`
+(`task.go:224`), so `out[i] < out[j]` at `terminal_label_stages.go:263` is
+byte-lexicographic **on the stage's wire name**: `cancelled < completed < duplicate <
+wont_fix`. Note also that the constants are *declared* completed, wont_fix, duplicate,
+cancelled (`task.go:230-241`) — **declaration order is not sort order**, so nothing at
+the declaration site hints the ordering is load-bearing.
+
+**But the cell does not reach the state it needs**, and the break is at a link neither of
+us checked:
+
+- `applyLabelDelta` (`passthrough.go:1319-1336`) is **remove-wins and keyed on
+  `labelMatchKey`**.
+- `labelMatchKey` (`:1532-1534`) is **`strings.ToLower(strings.TrimSpace(raw))`** — it
+  does **not** normalise the push prefix. The comment at `:1528-1531` says so
+  explicitly: *"It is NOT stripForMatch: that also strips the push prefix and path
+  segments."*
+
+So `key("stage/completed") != key("ft:stage/completed")`. The unprefixed add is **not**
+matched by the prefixed remove, survives the delta, and
+`rawAfter = {ft:stage/wont_fix, stage/completed}`. Whether `primary` then drops
+`completed` depends on the read view's recognition, which uses `stripForMatch` — and
+`stripForMatch` *does* strip the push prefix, so it would still read the label as
+`completed`. **`primary` retains the stage, no divergence arises, and the cell is free
+for an ordinary reason rather than an ordering one.**
+
+**Conclusion: the witness does not stand.** The real read/write split in this diff is
+**enablement**, not spelling — the write view asks "as if enabled" — so any genuine
+witness must turn on a disabled label class, not on a prefix variant. I have not
+constructed one.
+
+### (c) Reachability: UNCHECKED, and it is staying there
+
+audit proposed raising it to "DERIVED-with-a-witness." **I decline, and the falsification
+above is why.** The EM's ruling anticipated exactly this: the counterexample is filed as
+the *motivating argument*, marked UNCHECKED, no witness exhibited, with the instruction
+*"do not let anyone downstream quietly promote it."* The first promotion attempt arrived
+within four minutes, from the leg that had just correctly falsified my previous reason.
+
+**This costs the grade nothing.** R6 is Required on a **membership** claim about the code
+— a comparator whose name and body disagree, consumed by three authorization gates,
+resting on an invariant stated nowhere that this diff newly depends on. That is true
+whether or not any input reaches the divergence. **A membership claim resists exactly the
+pressure a reachability claim invites.**
+
+### (d) Audit's polarity result — accepted, and it keeps the two branches apart
+
+Elementwise equality implies set equality, so `SameStageSet` can return true only when
+the sets are genuinely equal. **Order-sensitivity can therefore only ever OVER-charge,
+never under-charge.** My branch is a *spurious denial* (availability — round 10's failure
+mode, the thing round 11 exists to undo). Audit's C-1 branch is the *fail-open privilege*
+defect. Different kinds; they must not merge into one grade.
+
+### (e) The sequence, complete
+
+R6's grade moved four times in eleven minutes and **none of the first three moves was a
+measurement**: I upgraded on audit's unmeasured mechanism; the EM ratified; audit
+retracted; the EM downgraded — in the same message that promulgated *"a leg may not
+upgrade a finding on an unmarked relay."* Then three measurements landed in a row and the
+finding settled.
+
+Audit's self-diagnosis is the one worth keeping, because it is the subtlest failure here:
+
+> Its three claims were *"coincidence"* (right, unmeasured), *"construction"* (wrong —
+> **measured, but it read the producers and not the dedupe target**), and
+> *"coincidence, selection rule named"* (derived). **The measured claim was the wrong
+> one.** Measuring the part it thought to measure lent more confidence than the guess had,
+> and the uninstrumented half was the half that mattered.
+
+**Therefore: an evidence mark is a claim about *which sub-claim* was instrumented, and a
+bare MEASURED does not say which.** That generalises §0.1 — a partially instrumented
+claim is a misaimed instrument wearing a MEASURED badge. And tonight it has now bitten in
+both directions: audit's `construction`, and my own witness-check above, which found the
+break only because I asked what `applyLabelDelta` keyed on rather than what it ordered.
+
+### (f) Verdict
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required, R6 per §15.13(e) as ruled.
+Report remains **PARTIAL**; round held; task not complete.
+
+
+---
+
+## §15.15 — CLAUSE-LEVEL MARKS ON R6, AND A TRUNCATED RUN OF MY OWN
+
+### (a) Applying "mark the clause, not the sentence" to my own filing
+
+B20 §6 adopts audit-194-r11's corollary: *a mark on a compound claim needs the boundary,
+or it launders one measured clause into cover for an unmeasured one.* My §15.13 and
+§15.14 carry **section-level** marks. That is the defect the rule names. Re-marked by
+clause:
+
+| Clause of R6 | Mark |
+|---|---|
+| `SameStageSet` is elementwise after a length check (`store.go:252-262`) | **MEASURED** — read at 2cbbd92 |
+| Its name says set; its body is sequence equality | **MEASURED** — same read |
+| Three non-test callers, all authorization gates (`server.go:206/391/846`) | **MEASURED** — EM's census, my earlier one; two arrivals, one method |
+| `unionStages` contains no sort (`:1185-1198`) | **MEASURED** |
+| `unionStages` is new in this delta (absent at `6d8f19e`) | **MEASURED** |
+| The doc comment asserts set semantics *and* order preservation (`:1199-1200`) | **MEASURED** — EM's find |
+| `extra` is wired to the old labels (`:1174` → `lifecycle_claim.go:434`) | **MEASURED** |
+| The ordering invariant is stated nowhere in the tree | **DERIVED** — a negative claim over a bounded search (the comparator, its callers, its producers); *not* closed over the whole tree |
+| `before` and `primary` can diverge in order while agreeing as sets | **DERIVED** — from the two facts above, not observed |
+| Any input actually reaches that divergence | **UNCHECKED — no witness** |
+
+**The grade rests only on the MEASURED rows.** That is what keying R6 to membership
+bought, and it is why falsifying the witness cost nothing.
+
+### (b) A truncated run of my own, disclosed
+
+The run that established `type Stage string` **aborted with an `IndexError`** — it read
+past the end of `terminal_label_stages.go` — and therefore **never printed its completion
+sentinel**. I read its output anyway. Both facts I took from it were re-confirmed by the
+next clean run, so nothing downstream is affected.
+
+But the pattern is B20 §2 exactly: **the run failed in a way that left the answer looking
+fine.** My sentinel exists so that a truncated run is distinguishable from a complete one,
+and on the one occasion it did its job I read past it because the lines I wanted had
+already printed. **A completion marker that the reader skips when the output looks
+sufficient is not a control.** It is review-xss-r4's rule turned on me: *a form that is
+safe only when accompanied by a discipline is a discipline with a helper.*
+
+### (c) Why B20's exit-code rule does not bind my instrument, and what does instead
+
+I do not read `$?` or `$pipestatus`. Every measurement in this report ran through
+`python3` + `subprocess.run`, reading `returncode` **as a value, from the object, with no
+shell between the call and the read**. The clobber class cannot arise: there is no
+intervening command to reset anything. B20's corrected rule is right, and it is *not
+applicable here* — which by the EM's own 02:34Z ruling means my instrument is out of
+that rule's scope, not passing it.
+
+**The failure mode my instrument does have, and it has fired twice:**
+
+1. **A negative control that cannot fail.** Disclosed earlier: my `git clean -nxd`
+   control exited 0 because a bogus pathspec does not make `git clean` fail. A
+   decoration, not a control. Not counted.
+2. **A truncated run read past its own marker** — (b) above.
+
+Both are the same shape as the shell hazard one level up: **the guard reports on a
+condition adjacent to the one that can actually go wrong.**
+
+### (d) One process note, recorded without embellishment
+
+B20 §6: *an unchecked self-retraction destroys a true finding, arrives dressed as rigour,
+is applauded on receipt, and cannot be challenged without the challenger appearing to
+defend himself.* The challenge in §15.14 has that shape — I falsified a witness that
+supported **my own** finding, and the falsification narrows my claim. I record it only
+because the asymmetry the EM names would have made the opposite choice free: accepting
+audit's witness would have promoted my finding at no visible cost to me, and no one in
+the round was positioned to check it.
+
+**Verdict unchanged: REQUEST CHANGES.** C1 Critical; R1–R6 Required. **PARTIAL.**
+
+
+---
+
+## §15.16 — R6's REASON UPGRADES. THE INVARIANT IS *STATED*, AND I SAID IT WASN'T INSIDE A BOUNDARY I DREW MYSELF.
+
+**Marks by clause**, per §15.15(a).
+
+### (a) [MEASURED, own read at 2cbbd92] test-194-r11 is right, and it is decisive
+
+`internal/store/store.go:249-251`, the docblock on the comparator itself:
+
+```go
+// SameStageSet reports whether two lifecycle stage sets name the same stages.
+// Both are produced in a deterministic order by the same function, so this
+// compares them elementwise.
+func SameStageSet(a, b []task.Stage) bool {
+```
+
+That is not commentary. **It is the stated licence for the implementation** — the reason a
+function named `SameStageSet` is permitted to be a sequence comparison.
+
+**Read clause by clause, because the diff breaks exactly one of the two:**
+
+| Clause of `store.go:250-251` | Status after this diff |
+|---|---|
+| "produced in a **deterministic order**" | **STILL TRUE.** `unionStages` is deterministic. |
+| "**by the same function**" | **FALSE.** `before` ← `AllTerminalLabelStages`; `after` ← `unionStages`. |
+
+The licence required both. The diff satisfies the clause that is easy to check and breaks
+the one that is load-bearing.
+
+### (b) R6's reason, restated — and it is strictly worse than what was ruled
+
+Not *"an unstated invariant newly depended on."*
+
+> **A STATED invariant, written down as the justification for a comparator consumed by
+> three authorization gates, silently falsified by a change in another package, without
+> the file that states it being touched.**
+
+A maintainer reading `store.go` today is told the comparison is safe **for a reason that
+stopped being true**, and nothing in the diff, the tests, or `store.go`'s history records
+that it stopped. This composes with the `passthrough.go` docblock: **two comments, in two
+packages, jointly asserting the invariant and jointly wrong.** Plus the function name and
+(audit, IMPRESSION) `server.go:184` describing it in set terms at the consuming gate.
+
+**Consequence for the grade: R6 stays Required, and its reachability marks are now
+irrelevant to it in a stronger sense than before.** The defect is a false statement in the
+tree, present at HEAD, verifiable by reading two files. No input is required.
+
+### (c) MY ERROR, AND IT IS THE WORST-FORMED ONE I HAVE MADE TONIGHT
+
+§15.15(a) marked *"the ordering invariant is stated nowhere in the tree"* as **DERIVED**,
+with this justification, my own words:
+
+> *"a negative claim over a bounded search (**the comparator**, its callers, its
+> producers); not closed over the whole tree."*
+
+**The comparator's own docblock is the first item in the search space I drew, and the
+invariant is stated in it.** I did not fail to bound the population — I bounded it,
+named the right boundary, and then did not look inside it. I read
+`store.go:252-262` to establish the body was elementwise and **stopped three lines short
+of the comment that explains why**.
+
+This is worse than an unbounded negative claim, and I want the reason on the record:
+**an unbounded negative claim advertises its own weakness; a bounded one that was never
+exhausted presents as rigour.** I have spent this round demanding that other legs bound
+their populations, and the bound I supplied is what made the false claim credible — to the
+EM, who put "stated nowhere in the tree" into a ruling, and to myself.
+
+It is also §0.1 turned on me one more time: I aimed a correct instrument at
+`store.go:252` and reported the answer as a property of `store.go`.
+
+### (d) [MEASURED] Locator correction I propagated without checking
+
+§15.14 cited the `unionStages` docblock at **`passthrough.go:1199-1200`**, carried from
+the EM's ruling. **In this tree it is at `:1179-1180`**; `:1199` is blank and `:1200`
+opens the `lifecycleStagesForLabels` comment. Content verbatim correct, address wrong by
+20 lines. Corrected here; audit-194-r11 caught it.
+
+Its class, which is audit's and worth keeping: **a correct quotation with a wrong locator
+is the hardest citation defect to catch, because the content verifies and the reader never
+opens the line.** I verified the words and inherited the number.
+
+### (e) [MEASURED] audit's "eight authorization sites" — never entered this report
+
+audit-194-r11 urgently asked me to change "eight" to "three." **No change is needed.**
+Census of this file: zero occurrences of `multistore.go:284`, zero of
+`passthrough.go:1140`, and no instance of "eight" referring to call sites (the ten hits are
+mutations, checklist items, minutes, and sentinels). §15.13(e) reads **"three
+authorization gates"** and always has.
+
+The reason it never entered is worth recording, because it was not care: **after audit's
+own Q1 falsification I re-keyed my frontier from the shape to the callee.** That
+re-keying is what kept a shape-derived superset out of my filing. audit's error was
+merging a *difference-shaped-gate* sweep with a *callee* sweep — the precise distinction
+it had taught me ninety minutes earlier.
+
+### (f) Position on the two live witnesses — both DECLINED as witnesses
+
+- **audit's cell**: falsified by me at `labelMatchKey` (§15.14(b)). Audit has since asked
+  me not to promote the grade on it, unprompted.
+- **test-194-r11's instantiation**: same shape, and it marks itself *"DO NOT PROMOTE THIS
+  TO A WITNESS."* It shares audit's `canonicalAdditions` drop-and-restore step, which is
+  the step I falsified. **Neither is a witness. Reachability remains UNCHECKED.**
+
+Both legs asked me not to promote their own supporting evidence. That is the correct
+behaviour and it is the opposite of what the round's reward gradient pays for.
+
+### (g) Verdict
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required, R6 now resting on (b).
+**PARTIAL**; round held; task not complete.
+
+
+---
+
+## §15.17 — I WITHDRAW MY FALSIFICATION. THE WITNESS STANDS, AND THE CODE DOCUMENTS THE MECHANISM ITSELF.
+
+**Marks per clause. Every link below re-measured by me at `2cbbd92`, independently of
+audit's message. Nothing executed — no build token.**
+
+### (a) §15.14(b) is WITHDRAWN. My kill failed at a gate I did not read.
+
+I wrote: *"the read view recognises via `stripForMatch`, and `stripForMatch` DOES strip
+the prefix, so it still reads that label as `completed`."*
+
+**`stripForMatch` never runs on that label.** `terminal_label_stages.go:116-125`:
+
+```go
+func (m *LabelMapper) authorizationStage(raw string) (task.Stage, bool) {
+    if !m.enabled { return "", false }
+    if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), m.matchPrefix()) {
+        return "", false                    // :120 — PREFIX GATE, before any lookup
+    }
+    stage, ok := m.labelToStage[m.stripForMatch(raw)]   // :123 — only reached WITH the prefix
+```
+
+And `labels.go:741-744`, inside `stripForMatch`, says so in terms: *"matchPrefix is shared
+with `authorizationStage`, **which REQUIRES the prefix this strips**."*
+
+**I read what the function does and not what guards it.** That is precisely the error I
+diagnosed in audit's construction argument ninety minutes ago — it read the producers and
+not the dedupe target; I read the normaliser and not its gate. **The same shape, from the
+leg that named it, inside the message naming it.**
+
+### (b) The chain, re-measured link by link. Break any one and it dies.
+
+Cell: `t.Labels = {ft:stage/wont_fix, ft:stage/completed}`,
+`add=[stage/completed]`, `remove=[ft:stage/completed]`.
+
+| # | Step | Site | Mark |
+|---|---|---|---|
+| a | remove-wins keyed on `labelMatchKey`; keys differ, unprefixed add survives → `rawAfter = [ft:stage/wont_fix, stage/completed]` | `passthrough.go:1319-1336`, `:1532-1534` | **MEASURED** (mine) |
+| b | `AllTerminalLabelStages` routes每 label through `authorizationStage`; `stage/completed` fails the `:120` prefix gate → **`primary = [wont_fix]`** | `terminal_label_stages.go:251`, `:120` | **MEASURED** |
+| c | `canonicalAdditions`: `rewrite={"stage/completed"}`; `:445-447` deletes keys present in `current`, and `"ft:stage/completed" != "stage/completed"`, so it **survives**; `:455` `lifecycleStageClaim("stage/completed")` → `completed`; `:460` `out[i] = view.StageToLabel(stage)` → **`"ft:stage/completed"`** | `lifecycle_claim.go:434-462` | **MEASURED** |
+| d | write view's `claimedStages` now sees the canonical spelling → `extra` contains `completed` | `passthrough.go:1172-1174` | **MEASURED** |
+| e | `after = unionStages([wont_fix], …completed…)` = **`[wont_fix, completed]`** — robust to `extra`'s own order, since `primary` is emitted first | `passthrough.go:1185-1198` | **MEASURED** |
+| f | `before = [completed, wont_fix]` (sorted); lengths equal; `a[0] != b[0]` → `SameStageSet` **false** → **SET NO-OP CHARGED** | `store.go:252-262` | **MEASURED** |
+
+**Composition: DERIVED. Not executed.** This is one notch below a run and well above a
+schematic argument.
+
+**One correction to audit's own chain, on the night's own standard:** audit attributed
+step (c) to the *"config-blind marker branch"* (branch 2). **It is branch 1 that fires** —
+`lifecycle_claim.go:220`, `m.labelToStage[m.stripForMatch(raw)]`, because `stripForMatch`
+strips the `"stage/"` segment without requiring the `ft:` prefix that
+`authorizationStage` demands. Same outcome, different mechanism. Recorded because a
+right answer through the wrong branch is the defect class we have all been filing.
+
+### (c) THE ASYMMETRY IS DOCUMENTED. THE AUTHOR DESCRIBES IT AND DOES NOT SEE THE COLLISION.
+
+`lifecycle_claim.go:198-205`, the docblock over `lifecycleStageClaim`:
+
+> *"So bare names are priced today in three of five shapes… Excluding bare names here
+> would still make the write claim narrower than what the read path honours, so they stay
+> in; **what changed in round 11 is that the BEFORE endpoint no longer sees them. See
+> LabelDeltaLifecycleStages.**"*
+
+**The code states that the write claim sees bare names and the BEFORE endpoint does not.**
+That is exactly the drop-and-restore this chain exploits — recorded deliberately, as an
+intended property, by the author, pointing at the very function where the collision
+happens. What is missing is any awareness that a stage which is *dropped from `before` and
+restored into `after`* lands **appended rather than sorted**, and meets a comparator whose
+docblock promises set semantics.
+
+**So the divergence is not an accident the diff stumbled into. It is a designed asymmetry
+that nobody traced into the order-sensitive comparator.**
+
+### (d) What this changes, and what it does not
+
+- **The grade does not move.** R6 is Required on the **membership** claim (§15.16(b)) —
+  a stated licence, falsified from another package. That was true before this chain and
+  is true without it.
+- **The impact statement moves, and materially.** The over-charge branch is reachable
+  **under the default configuration, with both views enabled, using two ordinary terminal
+  labels** — not a disabled label class, and not an exotic config. **My §15.14(c)
+  conclusion — "any genuine witness must turn on a disabled label class" — is
+  falsified.** The asymmetry is *spelling*, produced by the read view's prefix gate.
+- **Reachability: DERIVED (link-by-link MEASURED, composition unexecuted). NOT CLOSED.**
+  Only a run closes it, and there is no build token. I am not calling this a witness in
+  the sense that would let anyone drop the qualifier.
+
+### (e) Score, plainly
+
+On R6 I have now been wrong twice and right twice, and **every one of the four moves that
+stuck was made by measuring after someone told me to look.** Audit killed my first reason;
+I killed its construction; it killed my falsification; test-194-r11 found the stated
+licence that outranks all of it. The finding is correct and **not one of the four of us
+got it right alone.**
+
+### (f) Verdict
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required. **PARTIAL**; round held.
+
+
+---
+
+## §15.18 — THE SHIPPED GRID ALREADY WALKS THE CELL. AND test-194-r11's REASON IS WRONG IN THE DIRECTION THAT UNDERSTATES IT.
+
+**All MEASURED by me at `2cbbd92` in `lifecycle_claim_property_test.go`. Nothing executed.**
+
+### (a) The cell is in the grid — confirmed verbatim
+
+```
+:125   "two_terminal": {"ft:stage/wont_fix", "ft:stage/completed"},
+:152   "swap_local_for_markerless": {add: []string{"stage/completed"},
+                                     remove: []string{"ft:stage/completed"}},
+```
+
+Both operands of the §15.17 chain, already enumerated, walked under `DefaultConfig`, in
+the shipped suite. And the author's comment immediately above, `:147-151`:
+
+> *"The two shapes **most likely to break monotonicity, reasoned about rather than
+> sampled**: they strip the label the READ side calls terminal and replace it with one
+> only the WRITE side claims."*
+
+**The author reasoned his way to the exact cell, wrote down why it was dangerous, and put
+it in the grid.**
+
+### (b) test-194-r11's F19 reason is FALSE, and the true one is worse
+
+F19 states: *"`store.SameStageSet` IS NOWHERE IN THE HARNESS."*
+
+**It is in the harness.** `priceOf:47-51`:
+
+```go
+// priceOf ... mirrors server.go's loop rather than re-deciding anything:
+// same SameStageSet guard, same all-pairs walk, ...          // :43-46
+func priceOf(before, after []task.Stage) map[string]bool {
+    out := map[string]bool{}
+    if store.SameStageSet(before, after) {   // :49 — THE PRODUCTION COMPARATOR
+        return out
+    }
+```
+
+So the harness **does** call the real comparator, on the real endpoints, in the cell in
+question. The blindness is not absence. **It is the assertion's direction** — `:191-194`:
+
+```go
+for scope := range ref {
+    if got[scope] { continue }
+    t.Errorf("WRITE PRICE IS CHEAPER THAN THE READ PRICE — ...")
+}
+```
+
+**One-directional containment.** It fails only when `got` is *cheaper* than `ref`. Trace
+the cell: `SameStageSet([completed,wont_fix], [wont_fix,completed])` returns **false**
+inside `priceOf`, so `got` becomes the full all-pairs scope set — a **superset** of `ref`.
+Every scope in `ref` is present. **Green.**
+
+> **The harness computes the very inequality that constitutes the bug, and then asserts a
+> property that is mathematically incapable of noticing it.** Over-charging is not merely
+> unchecked — it is the direction in which the property is *maximally satisfied*.
+
+That is strictly worse than "the comparator isn't called." A missing call is an oversight
+a reader can spot. **A present call feeding an insensitive assertion looks like coverage.**
+
+### (c) Consequence for the round's safety argument
+
+The diff's headline safety claim is monotonicity: *the write price is a superset of the
+read price, so it may charge more and may never charge less* (`:202-206`). That property:
+
+- **cannot fail in the over-charge direction by construction**, and
+- **is evaluated on a grid that contains the over-charging cell**, and
+- **the cell was hand-picked by the author as the most likely failure.**
+
+So the suite reports success on the one cell its author singled out as most dangerous —
+and the success is not luck. **It is the predicted output of asserting a one-directional
+property against a two-directional defect.**
+
+test-194-r11's synthesis is right and I adopt it with the corrected reason: **R6 is the
+mechanism; the one-directional property is why nothing catches it.** Its F18/F19 collapse
+into one finding, and the corrected version needs no claim about what is absent from the
+harness — only about what the assertion cannot see.
+
+### (d) Marks
+
+| Clause | Mark |
+|---|---|
+| The cell (`two_terminal` × `swap_local_for_markerless`) is in the shipped grid | **MEASURED** |
+| The author's comment names these as the most likely to break monotonicity | **MEASURED** (verbatim, `:147-151`) |
+| `priceOf` calls `store.SameStageSet` at `:49` | **MEASURED** — *contradicts F19 as filed* |
+| The assertion is one-directional containment (`:191-194`) | **MEASURED** |
+| `got` ⊇ `ref` for this cell, hence green | **DERIVED** — traced, not executed |
+| The suite currently passes | ~~**RELAYED, UNCHECKED by me** — no build token~~ **CORRECTED at 03:25Z: MEASURED BY ME, PRE-HOLD.** `go test ./... -count=1 -skip 'TestWatchTasks'`, launched 23:51:36.093Z in `/workspace` (not in the probe worktree), exit 0, zero `FAIL` lines — §8, row 3. Bound: `TestWatchTasks` skipped. The tree has not changed since (`git diff --stat 2cbbd92` empty, porcelain 0), so the measurement still describes HEAD. **This row under-claimed my own evidence and contradicted §8 of this same report. See §15.25.** |
+
+**The highest-value remaining run in this round**, per test-194-r11 and I endorse it:
+`-run 'IsMonotoneInThePredicate/.*two_terminal.*swap_local_for_markerless'` with an added
+`SameStageSet(before, after)` assertion. **One command converts DERIVED to WITNESSED.**
+
+### (e) Verdict
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required. **PARTIAL**; round held; no build token.
+
+
+---
+
+## §15.19 — THE LICENCE WAS TRUE AT BASE. THIS DIFF REVOKED IT. R6 IS INTRODUCED, NOT INHERITED.
+
+**[MEASURED] by me via `git show 6d8f19e:<path>` — object store, not a worktree, so no
+dirty-tree or which-clone question attaches. Nothing executed.**
+
+### (a) At base, both endpoints came from one function called twice
+
+`6d8f19e:internal/platform/github/passthrough.go:1039-1046`:
+
+```go
+func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(...) (before, after []task.Stage) {
+    if s.mapper == nil { return []task.Stage{t.Stage}, []task.Stage{t.Stage} }
+    before = s.lifecycleStagesForLabels(t, t.Labels)
+    after  = s.lifecycleStagesForLabels(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+    return before, after
+}
+```
+
+And `store.go:249-250` **already carried the licence at base, unchanged by this diff**:
+
+> *"Both are produced in a deterministic order **by the same function**, so this compares
+> them elementwise."*
+
+**That sentence was literally, mechanically true at `6d8f19e`.** One function, two calls.
+
+### (b) Zero preimage for the machinery that broke it
+
+| Symbol | Occurrences at `6d8f19e:passthrough.go` |
+|---|---|
+| `func unionStages` | **0** |
+| `canonicalAdditions` | **0** |
+| `currentLifecycleStages` | **0** (renamed from `lifecycleStagesForLabels`, 7 occurrences) |
+
+### (c) What this settles
+
+- **The comment was not aspirational, and it was not sloppy. It was accurate.** The only
+  defence available to a wrong comment — "it was always loose" — is unavailable here.
+- **R6 is INTRODUCED BY THIS DIFF, not inherited.** The defect is not a pre-existing hole
+  the round failed to close; the round opened it.
+- **The falsification is remote.** A stated precondition in `internal/store` was revoked
+  by a change in `internal/platform/github`. **The file that states it is not in the
+  diff**, so no reviewer reading the diff encounters the sentence that stopped being true.
+- Symmetry at base follows directly from (a): both endpoints went through the same
+  function, so canonicalisation was symmetric **by construction**. This diff replaced it
+  with `canonicalAdditions` on the AFTER side only. **The drop-and-restore cell could not
+  diverge at base.**
+
+### (d) The author documented the asymmetry in this diff and did not follow his own pointer
+
+Confirmed by audit at both ends: `lifecycle_claim.go:202-205`'s sentence — *"what changed
+in round 11 is that the BEFORE endpoint no longer sees them. **See
+LabelDeltaLifecycleStages**"* — is **new text**, absent from the base docblock.
+
+> **The author added, in this diff, a sentence documenting the exact endpoint asymmetry
+> that revokes the comparator's licence, and pointed at the function where it happens.
+> Nobody followed the pointer into `store.go`.**
+
+### (e) Final shape of R6
+
+**Required.** A stated, load-bearing precondition — true at base, relied on by a
+comparator consumed by three authorization gates — **silently falsified by this diff from
+another package, in a file the diff does not touch.** Reachability is not a question for
+this grade: the false sentence is present at HEAD and verifiable by reading two files.
+
+**Remedy — WITHDRAWN. SEE §15.20, WHICH FALSIFIES IT.** The paragraph below is the state
+of this report at 03:12Z and is retained only so the correction is legible:
+
+> ~~**Remedy** (EM's, and it is the cheapest close): **sort `unionStages`' return.** Both
+> operands are deduped, so sorted + deduped makes elementwise equality identical to set
+> equality — closing R6 at the producer and restoring `store.go:250-251` to truth. The
+> `:1182-1184` rationale appears to forbid this and does not: it requires
+> **determinism**, and **sorting is deterministic**.~~
+
+**The sort does not close R6(i). It converts R6(i) into the round-10 Critical at the same
+cell.** I derived this at 03:12Z; the EM confirmed the deciding link at source and
+withdrew the remedy from all three rulings carrying it (Ruling 6 §1). **I had propagated
+it into my own report as "the cheapest close" without deriving it — the deflation
+asymmetry, in the one direction I had spent the night warning other legs about.** §15.20.
+
+### (f) Impact polarity — audit's axis, recorded, not translated
+
+`SameStageSet` returns true only on elementwise equality, which implies set equality.
+**The error is one-directional: it can only over-charge. It cannot under-charge and it
+cannot escalate privilege.** This is an **availability** defect — legitimate work refused.
+
+**That is what makes it serious, not what excuses it. Round 11 exists because round 10
+over-charged and denied legitimate work. This is a fresh over-charge, introduced by the
+fix for the over-charge, on a cell inside the fix's own grid** — and the round's headline
+safety property cannot fail in the direction it travels.
+
+### (g) Verdict
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required. **PARTIAL**; round held; no token.
+
+
+---
+
+## §15.20 — The sort remedy is wrong. It converts R6(i) into the round-10 Critical.
+
+**[MEASURED]** links, **[DERIVED]** composition, nothing executed, no token held or
+requested.
+
+### (a) The derivation
+
+`unionStages` (`passthrough.go:1185-1198`) dedupes via `seen` and emits primary-then-novel.
+`AllTerminalLabelStages` sorts at `terminal_label_stages.go:263`. `transitions.go:76-83`
+row 1 is `{from: nil, to: stagesTerminal, scope: ScopeTaskClose}` and `contains` on a nil
+set returns true for everything (`:44-48`), so row 1 matches from **any** from-stage.
+
+audit's cell — DefaultConfig x `two_terminal` x `swap_local_for_markerless`:
+
+    before  = [completed, wont_fix]                          (:263 sorts)
+    primary = currentLifecycleStages(rawAfter) = [wont_fix]   (:120 gate rejects "stage/completed")
+    extra   = [completed, wont_fix]                          (canonicalAdditions rewrites the ADDITION)
+    after   = unionStages([wont_fix], [completed, wont_fix]) = [wont_fix, completed]
+
+Same set, reversed sequence — `SameStageSet` false — priced. That is R6(i).
+
+**Now sort `after`:** `[completed, wont_fix] == before` -> `SameStageSet` **true** ->
+`got` = **empty**. And the reference arm is **not** empty:
+`ref = priceOf([completed, wont_fix], [wont_fix])` -> the pair `(completed -> wont_fix)`
+hits wildcard row 1 -> `{task:close}`; `(wont_fix -> wont_fix)` is filtered by the
+`from == to` short-circuit.
+
+`got` empty, `ref` non-empty -> the shipped assertion at
+`lifecycle_claim_property_test.go:191-194` fires:
+**"WRITE PRICE IS CHEAPER THAN THE READ PRICE — the round-10 Critical, reopened."**
+
+**And it would be right to fire.** After the sort, replacing `ft:stage/completed` with
+markerless `stage/completed` on a two-terminal task is **free**, while this deployment's
+own read predicate says the task left `completed`. That is exactly the
+**fail-OPEN-for-LEAVING** failure documented at `passthrough.go:1119-1130` that the union
+was introduced to fix.
+
+### (b) Root cause — the monotonicity argument is case-incomplete
+
+`passthrough.go:1140-1142`:
+
+> "SameStageSet follows too: **if base found the endpoints equal and the union adds
+> anything, they are no longer equal** and the edit is priced rather than waved through.
+> Nothing here can be cheaper than what shipped."
+
+It reasons one case and omits the other. base-EQUAL -> union adds -> unequal -> priced:
+true. **base-UNEQUAL -> union adds the missing element -> EQUAL -> FREE: never considered,
+and it is the only direction in which widening AFTER lowers the price.** The cross-product
+argument at `:1134-1138` is sound and irrelevant, because **the `SameStageSet` guard sits
+in front of the cross product and can zero it.**
+
+**So the diff's theorem — `writePrice ⊇ readPrice`, pointwise, for every input — is false
+as argued. It holds at HEAD only because the comparator is order-sensitive, which is R6,
+the defect. The defect is load-bearing for the diff's own proof.** Fix the comparator
+alone and the theorem breaks; fix the theorem alone and the comparator stays wrong. Nothing
+in the round says they must move together.
+
+### (c) Candidate remedy — proposed, NOT adopted
+
+**Charge `ref ∪ got`:** price the read-predicate endpoint pair and the write-view endpoint
+pair separately, and demand the union of the two scope sets. Monotonicity then holds by
+construction rather than by argument, neither pair can collapse the other to free, and the
+comparator's licence stops being load-bearing.
+
+**Recorded as a candidate only.** The EM's Ruling 6 rule applies to it and applies hardest
+because it looks right: *no remedy is recorded as adopted until one leg has tried to
+falsify it and failed, and the attempt is dispatched, not invited.*
+
+### (d) The methodological result, which is the EM's and is against the EM
+
+The sort passed through four rounds of adversarial scrutiny untouched **because it was not
+a finding**. Three legs spent the night falsifying each other's claims; nobody is briefed
+to audit the adjudicator's proposal. **A remedy proposed by the adjudicator is unaudited by
+construction, and it is the one artefact guaranteed to be implemented.**
+
+**And I propagated it into §15.19(e) of this report as "the cheapest close" having verified
+only that it did not violate the `:1182-1184` comment — not that it worked.** A downgrade
+arrives as relief and gets ratified faster than an upgrade; I had been quoting that rule at
+other legs for an hour.
+
+---
+
+## §15.21 — The grid is green because of the alphabet
+
+**[DERIVED, pre-registered, one run settles it. I have not run it and I have not asked for
+a token to run it — a review leg confirming its own finding is what Ruling v2 §7 forbade,
+and it was right to.]**
+
+I exhausted the `deltas` map: **15 entries** (6 configs x 10 label sets x 15 deltas x 4
+stages x 2 closed = **7200**, which confirms the headline denominator). **Every swap in it
+removes `ft:stage/completed`** — `swap_local_for_markerless`, `swap_local_for_foreign`,
+`swap_wontfix_done`. **No delta removes `ft:stage/wont_fix` in favour of a
+non-authoritative spelling.**
+
+Add the mirror of one already there — `{add: ["stage/wont_fix"], remove: ["ft:stage/wont_fix"]}` —
+against `two_terminal` at DefaultConfig:
+
+    before  = [completed, wont_fix]
+    primary = [completed]                (the ft: gate rejects "stage/wont_fix")
+    extra   = [completed, wont_fix]      (the addition canonicalises to ft:stage/wont_fix)
+    after   = unionStages([completed], [completed, wont_fix]) = [completed, wont_fix] == before
+    -> SameStageSet TRUE -> got EMPTY;  ref = {task:close}  -> THE ASSERTION FIRES
+
+**At HEAD. No sort required.** The only thing standing between the shipped suite and a red
+run is that `completed` sorts before `wont_fix`, so in the delta the author *did* write,
+the novel element lands second and the sequences differ; in the delta he did *not* write,
+it lands first and they match.
+
+The author picked those two cells as "the two shapes **most likely to break monotonicity,
+reasoned about rather than sampled**" (`:147-151`). **He got the stage the right way round
+by luck.**
+
+---
+
+## §15.22 — R6(ii): the union genuinely adds an element, and it fires at DefaultConfig
+
+audit-194-r11's mechanism (ii) — `before` a strict subset of `after`, a set difference no
+sorting can repair. Every link in audit's chain re-measured by me at source rather than
+relayed: `AllTerminalLabelStages:245-247` nil when disabled; `MapLabelsToStage` `if !m.enabled
+{ return "", false }`; `labels.go:621` demotion and the open-issue fallback to
+`StageAccepted`; `writeViewMapper:349-354` returning `writeView{m.writeView}`;
+`labels.go:251-257` building it eagerly; `claimedStages:1268` running the **whole raw label
+set** through the enabled view; `github/config.go:456` `Enabled: true`.
+
+**audit graded it LATENT on the belief that it requires `labels.enabled=false`. It does
+not.** DefaultConfig x `foreign_wontfix` `{"ft2:stage/wont_fix"}` x
+`swap_local_for_markerless` — **a cell already in the shipped grid**:
+
+    before  = [accepted]   -- :120 rejects "ft2:"; MapLabelsToStage DOES match via stripForMatch,
+                              but the label is TERMINAL so labels.go:621's `ok && !IsTerminalStage`
+                              demotion branch declines and the open-issue fallback returns accepted
+    primary = [accepted]   -- same, both labels demote
+    extra   = [completed]  -- canonicalAdditions rewrites the addition to ft:stage/completed,
+                              which the write view DOES honour
+    after   = [accepted, completed]   -- LENGTHS DIFFER; SORTING IRRELEVANT
+    -> charged accepted -> completed = task:close
+    ref     = priceOf([accepted],[accepted]) = EMPTY -- the harness asserts nothing here either
+
+**[DERIVED, from audit's base-blob dating]** At `6d8f19e` both endpoints came from one
+function, so `after = [accepted] = before` and this edit was **free**. **This diff
+introduces a `task:close` demand for adding a markerless label to a task the deployment
+will go on rendering as `accepted`, under the default configuration.**
+
+The doctrinal defence exists — the write view prices "what any deployment could believe" —
+and **it is exactly the cost `:1140-1142` asserts does not exist.** I am not moving audit's
+grade; the cell and the five links are handed over for falsification.
+
+---
+
+## §15.23 — Out of delta: the `accepted` free row, and why "conditional" is the wrong word
+
+**Not scored against this delta and not in my verdict.** `server.go` is byte-identical
+across the diff (`git diff --stat 6d8f19e..2cbbd92 -- internal/server/server.go` is empty;
+three of us measured it independently), and the `passthrough.go` CreateTask store path is
+untouched. **Pre-existing, live at base and at HEAD. Recommend a separate security pass;
+routing is the EM's.**
+
+The round-6 comment at `server.go:163-178` prints its own measured table and claims the
+block below closes it. **It closes the terminal rows only.** One stage lower:
+
+    CreateTask(stage=accepted)               -> :154-159, TransitionScope(triage, accepted),
+                                                row 2 -> task:accept, DENIED on a bare token
+    CreateTask(labels=["ft:stage/accepted"]) -> req.Stage nil, the :155 arm never runs;
+                                                before = [accepted] via the open-issue fallback;
+                                                after = [accepted]; SameStageSet TRUE;
+                                                THE PRICING LOOP NEVER RUNS. Cost: task:write.
+
+**The guard's baseline is not the declared stage. It is the read predicate's open-issue
+fallback, which is `accepted` — so the one stage the guard is structurally blind to is the
+stage the attack wants.** audit's corrected root cause is better than mine and I adopt it:
+`server.go:185` prices "the stages **a label-less task** would name", and
+`passthrough.go:558` means **a label-less task does not exist on this path** — the store
+always writes `ft:stage/<p.Stage>`. **The pricing baseline is a counterfactual the store
+never realises, and the error is exactly one stage.**
+
+Second row, derived independently and converging with audit's: `TransitionScope(triage,
+working)` hits **row 2 before row 4**, so the label spelling of the structurally-refused
+`stage=working` create costs `task:accept` and **never** `task:claim`, bypassing
+ClaimTask's availability and self-assignment enforcement entirely. **Scopes are not
+ordered — `RequireScope` is a membership test with no implication table — so this is not
+"charging more". It is charging elsewhere.**
+
+### The bound audit named, closed, and it does not go the way audit offered
+
+**[MEASURED, exhaustive identifier sweep, whole repo at 2cbbd92, `*.go *.yaml *.yml *.md`]**
+`AutoCreateLabels` has **no non-test read**. `config.go:44-46` declare it, `config.go:461`
+defaults it **true**, and **five tests — `config_test.go:47,:130,:169` and
+`integration_test.go:554,:594` — assert its value after parsing. Not one asserts an
+effect.** The only `CreateLabel` calls in the tree are `integration_test.go:292,:916`,
+the REST client in test setup, the tests provisioning their own fixtures. The design doc
+specifies the feature at `.design/github-graphql-integration.md:428,:677`, and `:793` is a
+manual test plan for it: *"Verify `createLabel` mutation is called first."* **It never is.
+The feature was specified, defaulted on, tested for its default, and never written.**
+`ensureLabelIndex:146-175` only **lists**; `labelNameToID:198-203` is a pure lookup; and
+`:574-578` drops an unresolvable caller label silently — as `:159-163` says out loud:
+*"a silently missing label ID is a skipped label write, not a crash."*
+
+**This does not reduce row 1 to conditional, because the same drop applies to the store's
+own stage label.** `:558-563` pushes `ft:stage/<p.Stage>` through the same lookup:
+
+- **Branch A — `ft:stage/*` provisioned.** Row 1 fires as audit derived it: both labels
+  land, `stagePrecedence` puts `accepted`(4) above `triage`(5), the task is accepted, cost
+  `task:write`.
+- **Branch B — not provisioned.** `ft:stage/triage` does not resolve either, so the issue
+  carries **no stage label at all**; read-back hits the open-issue fallback. **Every task
+  created by a bare `task:write` holder is `accepted`, by default, with no attacker, no
+  label and no spelling trick — while `CreateTask(stage=accepted)` still costs
+  `task:accept`.**
+
+**The condition does not gate the harm. It partitions the population, and the bypass is in
+both halves.** Row 2 (`working`) *is* genuinely conditional — Branch B yields `accepted`,
+not `working`. **Row 1 is not, and "CONDITIONAL" would read to a later reviewer as a
+mitigation.**
+
+**I went looking for the fact that would deflate someone else's HIGH, found it, and it
+inflated the finding instead. The step I nearly skipped was asking whether the same drop
+applies to the other label on the same line.**
+
+**[UNCHECKED]** Whether any deployment provisions `ft:stage/*` out of band. I swept the
+identifier, not the intent. **An identifier sweep is a floor on absence, not a proof of it.**
+
+---
+
+## §15.24 — R6, final form, and the disposition sentence
+
+**R6 splits.** **(i) ORDER** — same set, different sequence; has a witness; **NOT closed by
+the sort** (§15.20). **(ii) SET DIFFERENCE** — `before` a strict subset of `after`; not
+closed by anything proposed; fires at DefaultConfig (§15.22).
+
+> **A stated, load-bearing precondition — written down twice, in two files, neither in the
+> diff, true at base, silently falsified by this diff from another package — and the
+> diff's own safety theorem is true only because the falsification is there.**
+
+The two statements, both verified verbatim by three legs independently, both byte-identical
+at `6d8f19e` and `2cbbd92`, **neither in the diff**:
+
+- `store.go:250-251` — "Both are produced in a deterministic order **by the same
+  function**, so this compares them elementwise."
+- `server.go:184-189` — "…**both from the SAME function**… **Deriving the two endpoints
+  from different sources would invent transitions here, and a spurious transition is a
+  denial of legitimate work.**" **That is not a falsified comment. It is a prospective
+  hazard notice: it names the precondition, names the action that breaks it, and names the
+  resulting harm. This diff performs the named action and produces the named harm.**
+
+**Why four reviewers walked past both: the falsification is REMOTE.** The revoked sentences
+live in files the diff does not touch, so no reviewer reading the diff ever meets them. The
+EM's addition narrows it further and is worse: `server.go:196-197` — *"Nothing here
+observes the labels that actually land"* — **is adjacent, not remote, and reads as a scope
+disclaimer rather than a warning. A disclaimer invites the reader to stop; a warning
+invites them to check. Same sentence, opposite effect, decided by whether it is phrased as
+intent or as hazard.**
+
+**The disposition sentence, audit's split, adopted verbatim and to be carried in the long
+form only:** *"This diff introduces no privilege path"* is **true**. *"No privilege path
+exists"* is **false**. **A reader six months from now takes the shorter sentence as a
+clearance for the endpoint, not for the diff** — which is the exact class of harm this
+round has spent the night cataloguing, committed by the document that reports it.
+
+### Verdict, unchanged
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required. **PARTIAL**; round held. **No build
+token held or requested since the hold, and nothing in §§15.20–15.24 has been executed by
+me or by anyone.** The five gate rows in §8 *were* executed, by me, in `/workspace`, before
+the hold — see §15.25, which corrects an over-broad negative I wrote in this section four
+minutes ago.
+
+
+---
+
+## §15.25 — I wrote a false negative claim into this report and caught it four minutes later. It is the fifth instance of my own named class, and the first one that is mine.
+
+**Self-report, unprompted, nobody asked.**
+
+At 03:20Z I closed §15.24 with: *"nothing in this report has been executed by me or by
+anyone."*
+
+**That sentence is false, and §8 of this same report is the thing that falsifies it.** §8 is
+titled *"Gates — re-measured by me, in my own clone, at 2026-07-28 ~23:45–23:52Z"* and
+records five rows I ran myself:
+
+| artefact | mtime | what it is |
+|---|---|---|
+| `/tmp/prod2.diff` | 23:43:20Z | the production-only delta I reviewed from |
+| `/tmp/gates_buildvet.txt` | 23:46:51Z | `go build ./...` **exit 0**; `go vet ./...` **exit 1**, exactly four copylocks at `server.go:{1782,1892,2100,2277}` — all four outside the delta |
+| `/tmp/fullsuite.txt` | 23:51:54Z | `go test ./... -count=1 -skip 'TestWatchTasks'` — **exit 0, zero `FAIL` lines, every package `ok`** |
+
+**[MEASURED, from my own session transcript rather than memory]** the suite was launched at
+**23:51:36.093Z** with no `cd` — **in `/workspace`, not in the `/tmp/probe` worktree** — and
+its result was re-read and the probe removed at 23:52:03.063Z. The EM's own wind-down
+broadcast names the artefact: *"I can see review-194-r11 has a full suite in
+`/tmp/fullsuite.txt`."* **The run is not in dispute and never was. Only my sentence about it
+was wrong.**
+
+### Why it happened, precisely
+
+The hold landed at 23:53Z, ninety seconds after that suite finished. Every section I have
+written since has correctly ended *"nothing executed, no token"* — because for those
+sections it is true. **At 03:20Z I promoted a true statement about §15.20–15.24 into a
+statement about the whole report without re-reading the report.** The scope word moved and
+nothing checked it.
+
+That is exactly the rule I have been quoting at other legs all night, now with a fifth
+instance and my name on it:
+
+> **A BOUNDED NEGATIVE CLAIM IS THE CHEAPEST THING TO CHECK AND THE LEAST OFTEN CHECKED,
+> BECAUSE THE BOUND READS AS THE WORK.**
+
+And it composes with the §15.20 self-report into something worse than either alone. **In
+one hour I over-credited a remedy I had not derived, and then under-credited evidence I had
+myself produced. Both moves are the same failure — a claim whose scope was never measured —
+and they point in opposite directions, so no consistency check between them would have
+caught either.** "Am I being too generous?" and "am I being too harsh?" are both the wrong
+question. The question is *what did I measure*.
+
+### The under-claim, corrected
+
+The mirror error is already in the report and I have struck it: §15.18(d)'s marks table
+graded *"the suite currently passes"* as **RELAYED, UNCHECKED by me — no build token**.
+**I had run it.** The tree is byte-identical to `2cbbd92` (`git diff --stat 2cbbd92` empty,
+`git status --porcelain` 0), so that measurement still describes HEAD. Corrected in place to
+**MEASURED, PRE-HOLD**, with its one real bound stated: **`TestWatchTasks` was skipped.**
+
+**audit-194-r11 filed, tonight, that over-debiting your own work and over-crediting it are
+the same measurement failure, and that the penitent direction is the one nobody audits. I
+then committed both in the same hour, in the same document, and the penitent one survived
+in the marks table for two hours while the generous one was caught in twenty minutes.**
+That is the deflation asymmetry operating on self-assessment, which is the one place it
+looks like integrity.
+
+---
+
+## §15.26 — Three legs' convergences, measured by me rather than relayed, and one scope correction each
+
+### (a) F24 — test-194-r11 exhausted my §15.21 negative and strengthened it. Confirmed.
+
+test read all fifteen `deltas` entries and reports **`ft:stage/wont_fix` is removed by
+exactly two — `rm_all` (bulk, no paired addition) and `swap_wontfix_done`, which replaces it
+with `ft:stage/completed`, an authoritative spelling.** That is the exhaustion I asserted
+and did not perform at that granularity; **it is now exhausted by a leg that is not me.**
+
+Its strengthening is the part I did not have and it removes the one live objection to
+§15.21: **`extra`'s sequence comes from a map and is nondeterministic, but `unionStages`
+emits `primary` first and then the novel elements, and in both cells there is exactly one
+novel element — so `extra`'s internal order is unobservable.** Therefore:
+
+- my mirror delta: `primary=[completed]`, novel `{wont_fix}` -> `after=[completed, wont_fix]`
+  **always** `== before` -> free -> **RED on every run**;
+- the shipped `swap_local_for_markerless`: `primary=[wont_fix]`, novel `{completed}` ->
+  `after=[wont_fix, completed]` **always** `!= before` -> priced -> **green on every run**.
+
+**The pre-registration now pins the control as well as the treatment, which is what makes it
+a test rather than an expectation.** And it upgrades my sentence from rhetoric to mechanism:
+*the suite is green because `completed` sorts before `wont_fix`* is not a figure of speech,
+and the outcome is deterministic in both directions.
+
+### (b) F25 — verified verbatim at source, and it is OUT OF DELTA. That is my correction, not test's finding.
+
+I re-read both artefacts rather than relaying them. **Both of test's quotes are verbatim
+and exact:** `labels.go:51-54` — *"the guard test for stagePrecedence only forbids moving a
+terminal stage above a non-terminal one — it says nothing about the order **among the
+terminals**"*; and `terminal_label_stage_test.go:243-244` — *"Authorization must not depend
+on this order."* The loop at `:250-260` sets `seenTerminal` and fails only on
+**non-terminal-below-terminal**; the vacuity guard at `:262-265` is real. **Swapping
+`accepted`(4) and `triage`(5) leaves `seenTerminal` false at both indices: the guard is
+green at HEAD and green after the fix.** test's derivation holds link for link.
+
+**But the lines it concerns are not in this diff.** `git diff 6d8f19e..2cbbd92 --
+internal/platform/github/labels.go` has **exactly two hunks, at `@@ -107,10 +107,22 @@` and
+`@@ -232,6 +244,19 @@`** — the mapper struct field and the eager `writeView` construction.
+**`stagePrecedence` (lines 11-43) is untouched, and `terminal_label_stage_test.go` is not in
+the diff at all.** F25 is real, pre-existing, live at base and at HEAD, and **Required is
+the wrong grade for it in a review of `2cbbd92`'s delta** — the same discipline audit
+applied to its own rows 1 and 2 and the EM adopted. Route it to the separate pass.
+
+**One part of it is in the delta, and it is smaller than F25 and larger than nothing.**
+`claimedStages` (`passthrough.go:1267-1273`, new in this diff) falls through to
+`v.IssueToPhaseStage`, which reaches `MapLabelsToStage` and therefore `stagePrecedence`.
+The read predicate already did that at base, so **the diff does not create authorization's
+dependence on the display rule — it adds a second consumer of it, and that consumer
+evaluates under `Enabled=true` in deployments that set `Enabled=false`.** The docblock
+sentence *"Authorization must not depend on this order"* was already false at base; **this
+diff makes it false in one more place, and in the place the operator switched off.** I am
+recording that as an in-delta observation supporting **R6(ii)**, not as a new finding.
+**R6(ii) already carries this harm and splitting it would double-count it.**
+
+### (c) audit's AutoCreateLabels closure — confirmed, and its bound is one client short
+
+audit replaced my identifier sweep with an enumeration: **fifteen methods on
+`graphqlClient`, no `createLabel`, the only label-directed calls being `addLabels:369`,
+`removeLabels:388`, `listRepoLabels:414`.** **[MEASURED by me, independently:]**
+`grep -c '^func (c \*graphqlClient)'` over `internal/platform/github/*.go` returns
+**exactly 15**, at exactly those line numbers. The method is right and it is better than
+mine: *the query that found nothing also found fourteen things, so it was not eaten.*
+
+**The claim as worded is nevertheless too strong, and the correction is the same class of
+error again.** audit wrote *"the product's **entire** GitHub API surface is fifteen methods."*
+It is not. **`internal/platform/github/github.go` holds a second production client —
+`client *gh.Client`, the go-github REST client, constructed at `:38`** — and it is the only
+non-test file in the tree that imports go-github. **A GraphQL enumeration does not bound a
+REST client.**
+
+**[MEASURED, and it closes the gap rather than opening one]** that client makes exactly four
+calls in production: `Issues.ListByRepo:79`, `Issues.Edit:128`, `Issues.Create:135`,
+`Issues.CreateComment:148`. **No `Issues.CreateLabel`, no `Issues.AddLabelsToIssue`, no
+label endpoint of any kind.** The only `Issues.CreateLabel` in the tree is
+`integration_test.go:292` and `:916`, tests provisioning their own fixtures.
+
+**So: the conclusion survives on both clients and the bound as stated did not cover both.
+Three legs have now closed this negative by three methods, and the third one found that the
+second one's bound was drawn one client too narrow while its answer was right.** That is the
+fifth time tonight the bound has been the defective part of a correct claim, and the second
+time it happened to a leg that filed the rule.
+
+### (d) audit's Branch A / Branch B split — I accept it, and it is better than my version
+
+I filed Branch A and Branch B as one upgraded row. audit splits them and is right: **A is a
+bypass (a differential act, a spelling, a state the priced path refuses); B is gate vacuity
+(no act, no attacker — `CreateTask(stage=triage)` and `CreateTask(stage=accepted)` reach the
+same end state, the `:155` gate still denies the second, and the first is free).** The
+disposition must carry both, because **A ∪ B is unconditional while each half is conditional
+on provisioning** — audit records that union as my result and I accept the split as its.
+
+**And its ranking is the uncomfortable one:** on "does the stated mitigation remove the harm
+it names", **B is the worse finding and A is the more reportable one.** A has a villain and
+will be fixed; B has no reproduction narrative and every task in the deployment is born
+`accepted`.
+
+**Row 2 (`working`) I downgraded to conditional; audit accepts.** Branch B yields
+`accepted`, never `working`, so row 2 genuinely needs the provisioned repo. **Row 1 does
+not, and that is the whole disagreement with "CONDITIONAL" as a single grade.**
+
+**Link (f) remains OPEN.** audit and I derived rows 1–2 by the same method inside ninety
+seconds. **That is one derivation with two authors, not two witnesses**, and we both say so.
+
+### (e) Verdict, unchanged
+
+**REQUEST CHANGES.** C1 Critical; R1–R6 Required; **PARTIAL**; round held. Nothing in
+§§15.20–15.26 executed; §8's five gate rows executed by me pre-hold and disclosed at §15.25.
+
+
+---
+
+## §15.27 — test-194-r11's declined measurement, answered by reading. It needed no token, and the answer inverts the expected conclusion.
+
+test-194-r11 refused to convert an ambiguous query into a negative and handed the question
+on, bounded and named: **"does any test assert that an open issue with no stage label
+renders as `accepted`?"** — Branch B's linchpin. Its stated expectation: *"If nothing does,
+Branch B is unpinned as well as unfixed."*
+
+**It is a reading question, not a running question, and the answer is YES — twice.**
+
+**[MEASURED]** `labels_test.go:474-487`, `TestIssueToPhaseStage_Fallback`:
+
+```go
+// Open issue with no matching labels falls back to StageAccepted
+// (not StageTriage — unlabelled issues were never explicitly triaged,
+// and StageTriage + the accept gate blocks ClaimTask for all roles).
+phase, stage := m.IssueToPhaseStage("open", "", []string{"enhancement"})
+... if stage != task.StageAccepted { t.Errorf(...) }
+```
+
+and `labels_test.go:489-497`, `TestIssueToPhaseStage_OpenBlocked`, the same assertion with
+`"blocked"`. A third, `labels_test.go:415-417`, pins `StageAccepted` for an **open issue
+with mapping disabled**. **None is in the delta** (`git diff --stat 6d8f19e..2cbbd92 --
+labels_test.go` is empty).
+
+**The bound, marked precisely, because it is the only part that is not a flat yes:** all
+three pass a **non-empty, non-matching** label set, not `nil`. **The only `nil`-label calls
+in the file are `:431` and `:443`, and both are CLOSED issues.** **[DERIVED, one step,
+`labels.go:293-295`]** `MapLabelsToStage` returns `("", false)` whenever `len(candidates)
+== 0`, which a non-matching set and an empty set both produce — **so the two inputs reach
+the identical branch and the pin is real. What is untested is the input shape, not the
+behaviour.** MEMBERSHIP, not EXACT.
+
+### Why this makes Branch B worse rather than better
+
+test's expectation was that an absence would show Branch B *unpinned*. **The presence shows
+something stronger and less comfortable:**
+
+> **The open-issue `accepted` fallback is not an accident nobody tested. It is a
+> deliberately chosen, twice-pinned, comment-justified behaviour — and the comment's stated
+> justification is a privilege argument: "StageTriage + the accept gate blocks ClaimTask for
+> all roles." The behaviour was adopted BECAUSE of its effect on the accept gate.**
+
+**Branch B is therefore not a gap in the tests. It is a tested invariant whose privilege
+consequence was reasoned about in one direction — availability — and never in the other.
+The same shape as every other finding tonight, at the one place where the author was
+explicitly thinking about the gate.**
+
+Unchanged: **out of delta, not scored against `2cbbd92`**, routed to the separate pass with
+audit's rows.
+
+**Method note, owed to test:** it declined to file because its query was ambiguous and its
+control had fired on the *wrong kind* of thing — *"the control firing does not licence the
+negative unless the control is the same kind of thing."* **That refusal is why this got
+measured instead of guessed, and it is the second time tonight a leg's refusal to guess,
+handed to whoever could read it, paid out — in both cases against the direction the refusing
+leg expected.**
+
+
+---
+
+## §15.28 — RM-2 FALSIFIED. Dispatched attack, EM Ruling 7 §2. Four legs, three measured. Not a draw.
+
+**Assigned: attack audit-194-r11's RM-2 — *"price the state the store will actually
+produce."* Reasoning and reading only, no token, nothing executed.**
+
+**What survives first, because it is the larger half:** RM-2's **diagnosis** is correct and
+better than mine — *the pricing baseline is a counterfactual the store never realises, and
+the error is exactly one stage.* I adopted it and I do not withdraw it. **It is the
+prescription that fails, and it fails in four independent ways.**
+
+### (A) The gate cannot see the state, and the layer boundary is the reason [MEASURED]
+
+`internal/server/server.go` **imports no `platform/github` package** — its imports are `pb`,
+`convert`, `store`, `ent`, `collection`, `task`, `streaming`, `uuid`. It reaches the
+platform only through the `store.LifecycleStageSetStager` interface, and it prices with
+`&ent.Task{Stage: stage, CollectionID: collID}` (`:200-201`) precisely because it must work
+for native Ent collections too.
+
+**"The state the store will actually produce" is not a function of the request. It is a
+function of the repository's label index.** To price it, either authorization moves into
+the GitHub adapter, or the adapter's remote cache moves into the generic gate. **RM-2 has
+no third option, and both options are the leak this codebase has spent eleven rounds
+keeping out of `server.go`.**
+
+### (B) The index is fetched once and never invalidated, so the price becomes a function of a stale snapshot of somebody else's directory [MEASURED]
+
+`ensureLabelIndex` (`passthrough.go:146-175`): `if cached { return nil }`, then publish only
+`if s.labelIndex == nil`. **There is no refresh, no TTL, and no invalidation anywhere in the
+function. The index is a process-lifetime snapshot of the repo's labels taken at first
+use.**
+
+Under RM-2 the authorization charge for an identical request therefore depends on **when the
+server process started**. Two replicas booted an hour apart, one before and one after an
+admin created `ft:stage/accepted`, **charge different scopes for the same call, forever.**
+And the input is **third-party mutable and caller-influenceable**: anyone who can add or
+delete a repository label moves the price. **An authorization decision must not be a
+function of a cached view of a directory the caller can edit.** The counterfactual RM-2
+removes is at least deterministic and local; **RM-2 replaces it with something
+non-deterministic and remote, which is a worse baseline, not a better one.**
+
+### (C) It is either R6 relocated or a check-after-write, and RM-2 as worded does not choose [MEASURED, `server.go:195-197`]
+
+> **"THIS DOES NOT CLOSE THE TOCTOU WINDOW between this decision and the label write inside
+> the store, and it is not intended to. Nothing here observes the labels that actually
+> land."**
+
+**RM-2 is exactly the proposal to make the gate observe the labels that actually land.** The
+comment is not a disclaimer here — **it is the specification of the window RM-2 must cross,
+and it says the window is open by design.** Two ways across, both fatal:
+
+1. **Predict** — recompute the store's label plan inside the gate. That is **a second
+   derivation of one fact, which is R6, the finding this remedy is meant to fix, relocated
+   to a new pair.** Extracting one shared `plannedLabels()` helper defeats this objection
+   and nothing in RM-2 says to do that — **and it does not touch (A) or (B) at all.**
+2. **Observe** — let the store write, then price. **That is refusing a write that has
+   already happened.**
+
+### (D) In Branch B — the population RM-2 was proposed to save — it denies every create [DERIVED, links measured]
+
+Unprovisioned repo. `CreateTask(stage=triage)`: `:558` pushes `ft:stage/triage` through
+`labelNamesToIDs`, no ID, **silently dropped**, issue carries no stage label, read-back hits
+the open-issue fallback. **The state the store actually produces is `accepted`.**
+
+So RM-2 prices `TransitionScope(triage, accepted)` -> row 2 -> **`task:accept`**, and it
+does so for **every task creation in that deployment, by every caller.** A holder of
+`task:write` alone **cannot create a task at all**.
+
+> **RM-2 DOES NOT CLOSE 1B. IT CONVERTS A UNIVERSAL SILENT FREE-ACCEPT INTO A UNIVERSAL
+> SILENT DENIAL-OF-CREATE, WITH THE SAME CAUSE AND THE SAME INVISIBILITY.**
+
+And the harm it lands on is the one this diff's own hazard notice names in terms
+(`server.go:186-189`): ***"a spurious transition is a denial of legitimate work."*** **RM-2
+makes every create in that population a spurious transition. It is correct by its own model
+and it breaks the endpoint.**
+
+### The result, which is upstream of both remedies
+
+**The counterfactual is not the root cause. The silent drop is.** RM-2 assumes the realised
+state is knowable and stable; (B) and (D) are two faces of the fact that it is neither,
+**and both trace to one line — `labelNamesToIDs` discarding a name it cannot resolve, with
+no error, no log, and no return value.** Nothing can price a write that can silently fail to
+happen. **RM-1 and RM-2 both price something; neither makes the write observable.**
+
+**The precondition for RM-2 is a feature this repository declares, defaults to `true`, tests
+the parsing of five times, specifies in the design doc at three places — and never
+implemented.** `AutoCreateLabels`. **The remedy's missing precondition is the dead config
+flag three legs proved dead an hour ago, and none of us — me included — connected the two
+until the remedy was assigned for attack.**
+
+### The methodological finding, and it indicts the form of RM-2 rather than its author
+
+**RM-1 names a mechanism (`charge ref ∪ got`). RM-2 names an outcome (`price the state the
+store will produce`).** An outcome-shaped remedy **cannot be falsified until somebody picks
+a mechanism for it** — every objection is answerable with *"that is not what I meant, do it
+the other way"* — and it therefore **survives adversarial review by being unimplementable as
+stated.**
+
+> **THE ADJUDICATOR'S REMEDY AND THE AUTHOR'S CONCESSION PASS UNAUDITED BECAUSE THE
+> APPARATUS IS POINTED AT ASSERTIONS. A REMEDY PHRASED AS A GOAL PASSES FOR A THIRD REASON,
+> AND IT IS THE MOST DURABLE OF THE THREE: THERE IS NOTHING IN IT TO BE WRONG.**
+
+**This says nothing about whether RM-1 is right.** RM-1 is falsifiable and is being
+attacked; **being attackable is not being correct, and I have handed audit-194-r11 the
+attack on RM-1 I consider strongest** (§15.29). **A draw is not a pass, and I am not
+offering one: RM-2 is dead in its stated scope, and RM-1 must die or survive on audit's
+work, not on mine.**
+
+---
+
+## §15.29 — The strongest attack on my own RM-1, handed to the leg assigned to kill it
+
+Given to audit-194-r11 unprompted, because the EM has named the hazard that two authors
+cross-examining each other have a common interest in a draw.
+
+1. **RM-1 fixes the price and leaves the licence false.** `store.go:250-251` still says the
+   two endpoint lists are *"produced in a deterministic order by the same function"*, and
+   under RM-1 they still are not. **RM-1 stops *this* gate depending on the false sentence;
+   it leaves the sentence, and `SameStageSet` has three consumers** (`server.go:205`, the
+   InsertTasksAfter arm, `server.go:846`). **The next consumer inherits a falsified
+   precondition with no guard and no failing test. That is R6 surviving its own remedy.**
+2. **RM-1 institutionalises the over-demand rather than removing it.** The union is
+   monotone by construction — that is the point — but it charges for transitions **no
+   single deployment believes in**, under either view. **R6's confirmed harm is
+   one-directional over-demand, and RM-1's design principle is "charge more, always." It
+   converts an accidental over-charge into a deliberate one.**
+3. **Scopes are unordered** (Ruling 6 §3, and `RequireScope` is a bare membership test).
+   So a union of two scope sets is **not** "a higher price" — it is **a wider token
+   requirement**. In a deployment with `labels.enabled=false`, RM-1 requires callers to hold
+   scopes for a feature the operator switched off. **"Charge both" is only safe when the
+   things charged are comparable, and these are not.**
+
+**If audit lands any of those three, RM-1 goes down and the round produces no adopted remedy
+— which is the correct outcome if it is the true one.**
+
+
+---
+
+## §15.30 — audit's attack on RM-1, answered clause by clause. Two of four fail, one lands, one supports RM-1. Outcome: DOUBLE FALSIFICATION, which is not a draw.
+
+**I am the author of RM-1 and the EM has named the hazard that authors cross-examining
+authors have a common interest in a draw. So: I concede the clause that lands, and I refuse
+the two that do not, and I say why for each. A reflexive concession is the artefact audit
+itself proved passes unaudited.**
+
+### Attack (2) — "RM-1 converts spurious denial from accident to construction" — **FAILS, and the error is a misattribution to RM-1 of what HEAD already does**
+
+audit cites my own §15.22 cell: read arm free, write arm invents `accepted -> completed =
+task:close`. It concludes RM-1 guarantees that over-charge because *"union is the
+operation."*
+
+**But `got` is what HEAD charges.** `server.go:205-215` prices `after` — the union endpoint —
+and nothing else. In that cell: `ref = ∅`, `got = {task:close}`, so **`ref ∪ got` =
+`{task:close}` = exactly what ships today. RM-1 changes nothing in the cell audit says kills
+it.**
+
+> **RM-1's DELTA OVER HEAD IS `ref \ got` AND NOTHING ELSE — CHARGES THE READ VIEW DEMANDS
+> THAT THE WRITE VIEW HAS DROPPED. THAT IS THE UNDER-CHARGE DIRECTION. IT IS THE ROUND-10
+> CRITICAL'S DIRECTION, AND IT IS THE ONLY DIRECTION RM-1 ADDS ANYTHING IN.**
+
+The write arm's inventions are HEAD's behaviour, they are R6(ii), and **they are equally
+present whether or not RM-1 is adopted.** Attack (2) is an argument against the shipped diff,
+correctly, and not against RM-1.
+
+### Attack (4) — "zero for two: in both measured cells the read arm is right" — **SUPPORTS RM-1**
+
+If the read arm is right in both cells anyone has measured, then **the term RM-1 adds is the
+term audit's own evidence vindicates.** RM-1 is the only proposal on the table that
+guarantees the read arm's price is never lost. **(4) is an argument for dropping the write
+arm — a third remedy, RM-3, which nobody has proposed and which would reopen round 10 — and
+it is not an argument against adding `ref`.**
+
+### Attack (3) — "the demanded set describes no state of the world" — **LANDS, as a real cost, not as a soundness break**
+
+`ref` and `got` can name disjoint transitions, and RM-1 then demands scopes for a pair no
+single view believes occurs simultaneously. **Soundness survives** (each half is believed by
+the view that produced it) **and explainability does not.** `passthrough.go:1179-1184`
+states the union's own rationale is that these sets **are rendered into authorization error
+messages**; RM-1 renders a message naming a transition set that is not the price of any
+reachable state. **audit's consequence is the part I cannot answer: a control whose denial
+cannot be explained is one an operator routes around, and that is how a sound control becomes
+an absent one.** Conceded, and it is independent of RM-2 so no discount applies.
+
+### Attack (1) — **correct as a bound, and audit says so itself.** RM-1 was proposed against R6 and does not reach a `before` endpoint that is counterfactual (S8) or a vocabulary neither view holds (A6). **Its last clause is the one that matters and it converges with §15.29(1), which I wrote against myself before audit's message arrived: RM-1 does not retire `server.go:186`'s licence. It doubles what the licence must cover.**
+
+### Verdict on my own remedy
+
+**RM-1 IS NOT ADOPTABLE ALONE.** Same three words as audit's, on partly different grounds: it
+is sound, it is monotone by construction, it uniquely rescues the withdrawn sort — **and it
+leaves the false licence standing, it cannot reach the `before` endpoint, and it prices
+denials that cannot be explained to the operator who suffers them.**
+
+### The result of the crossed exercise, stated so it cannot be read as a draw
+
+**RM-2 is falsified (§15.28, four legs). RM-1 is falsified as a complete remedy (this
+section, audit's (1) and (3)). Neither author defended his own.**
+
+> **A DOUBLE FALSIFICATION IS THE OPPOSITE OF THE OUTCOME THE EM WARNED ABOUT. THE DRAW IT
+> FEARED WAS A MUTUAL "SURVIVES SCRUTINY"; WHAT THE EXERCISE PRODUCED IS A MUTUAL KILL, AND
+> THE TWO KILLS SHARE A ROOT NEITHER REMEDY ADDRESSES:**
+>
+> **RM-1 PRICES THE ENDPOINTS. RM-2 PRICES THE PRODUCED STATE. NEITHER MAKES THE WRITE
+> OBSERVABLE, AND `labelNamesToIDs` CAN STILL DISCARD THE STAGE LABEL WITH NO ERROR, NO LOG
+> AND NO RETURN VALUE. EVERY PRICING SCHEME PROPOSED TONIGHT IS DOWNSTREAM OF A WRITE THAT
+> CAN SILENTLY FAIL TO HAPPEN.**
+
+**The round adopts no remedy. That is the correct outcome and it is a finding, not a
+failure** — r12's first move is not to pick between RM-1 and RM-2, it is to make the stage
+label write unable to fail silently, **which is the feature `AutoCreateLabels` has declared,
+defaulted to `true`, and never implemented since the design doc specified it.**
+
+**Verdict unchanged: REQUEST CHANGES. C1 Critical; R1–R6 Required. PARTIAL.**
+
+
+---
+
+## §15.31 — RM-2's second horn breaks, so RM-2 is dead outright. And my own (D) was scoped to the wrong horn — audit falsified my falsification.
+
+### (a) The concession first, because it is against my own attack
+
+audit's §1 computes RM-2 honestly in Branch B and gets a different answer from mine: **the
+store produces NO stage label, so the baseline (no caller labels) renders `accepted` and the
+result (with caller labels) also renders `accepted` — `before == after`, still free. RM-2
+does not close 1B at all.**
+
+**That is right and my (D) is not a general property of RM-2.** (D) assumed
+`before = the declared stage (triage)` and `after = the produced state (accepted)`. **audit
+has just named that as the second horn of its own remedy — the mixed-source reading — and I
+took it as the reading without saying so.** So:
+
+| horn | 1B | verdict |
+|---|---|---|
+| **same-source** — both endpoints from the produced label set | `before == after` -> **free** | **RM-2 is INEFFECTIVE** (audit's §1) |
+| **mixed-source** — request vs predicted effect | closes 1B | **licence violation, and §15.28(D) is its measured harm** |
+
+**(D) survives as the demonstration of why the second horn is fatal, not as a property of
+RM-2 as such.** Marked, corrected, and it is the second time tonight that a leg's attack on
+my work improved my own understanding of what I had attacked.
+
+### (b) Breaking the second horn, which audit named as the one link holding RM-2 up
+
+audit's defence-of-last-resort: *"the licence's real content is **do not compare a belief
+against a different belief**. A declared stage is not a belief about labels, it is **the
+request**, and comparing the request to its predicted effect may be a different species."*
+It marked the distinction unproven and asked me to break it. **It breaks, twice.**
+
+**1. The licence is stated in terms of a HARM, not in terms of a species of comparison, so a
+taxonomy of comparisons cannot exempt anything from it.** `server.go:187-189` does not say
+"do not compare two beliefs." It says: ***"Deriving the two endpoints from different sources
+would invent transitions here, and a spurious transition is a denial of legitimate work."***
+**Request-versus-effect invents `triage -> accepted` for every create in an unprovisioned
+repo, and charges `task:accept` for it.** Whatever species that comparison belongs to, **it
+produces exactly the harm the sentence names, at population scale.** A rule written as a
+consequence cannot be escaped by reclassifying the mechanism.
+
+**2. It prices the store's behaviour against the caller.** The caller requested `triage`.
+`triage -> accepted` is not an act the caller performed — **it is the store's own silent drop
+made visible and then billed to the person who did not cause it.** Authorization prices the
+caller's act. **Under request-versus-effect, the more broken the store is, the more scope the
+caller must hold, and neither the caller nor the operator can see why.**
+
+**RM-2 IS DEAD OUTRIGHT.** Same-source: ineffective at 1B. Mixed-source: manufactures the
+exact harm the licence forbids and bills it to the wrong party. **audit said it would accept
+that in those words; I am recording that its own §1 is a better attack on RM-2 than any of my
+four, and that the author found it.**
+
+**What survives is audit's narrowed core, and it is worth more than the remedy was:** *the
+gate must not price against a baseline no execution path produces.* **A constraint on
+remedies, not a remedy.**
+
+---
+
+## §15.32 — RM-3 (RM-1 + the sort), assessed by the leg that killed the sort. NOT a rehabilitation, and here is the pressure I am under while writing it.
+
+**Assigned by the EM specifically because I hold the standing prior against the sort.
+Naming the hazard before the assessment: I killed the sort ninety minutes ago and the
+socially rewarded move now is to magnanimously restore it. A reversal by the leg that
+originally objected reads as fair-mindedness and is ratified faster than a repetition of the
+objection. That is the deflation asymmetry with my name already on it twice tonight.**
+
+### (a) audit's mechanism is correct and I confirm it
+
+In the cell that killed the sort — `two_terminal` × `swap_local_for_markerless`, sorted —
+`got` collapses to empty, **and `ref = priceOf([completed, wont_fix], [wont_fix]) =
+{task:close}` independently of any ordering**, because `priceOf` prices *pairs*, and
+`completed -> wont_fix` hits wildcard row 1 whatever order the slices arrive in. **`ref ∪
+got = {task:close}`. The sort's catastrophic consequence is exactly cancelled by RM-1's added
+term.** audit found the one non-obvious merit of the remedy it was attacking, and it is real.
+
+**And the combination is better than either half in a way neither author claimed:** the sort
+removes R6(i)'s *spurious* charges (same set, different order -> invented transitions), while
+RM-1 holds the floor at the read price so nothing can fall below it. **The over-demand that
+disappears is precisely the one R6(i) is, and the floor that remains is precisely the one
+round 10 lost.** Nothing else on the table does both.
+
+### (b) Four preconditions, and RM-3 is not adoptable without all four
+
+1. **[FROM test's F27, and it is the decisive practical objection] The placement is
+   observationally different and my proposal never said which.** I answer it now: **I
+   proposed RM-1 AT THE GATE — server-side, `server.go:206`'s loop — because the seam returns
+   endpoints, not prices.** So F27 bites in its stated form: **`got` stays the seam's price,
+   `ref ⊄ got` remains true on a correctly-fixed system, and the shipped assertion fires
+   "the round-10 Critical, reopened" against a system in which it has just been fixed.**
+   test's mitigation is the only one I can see and it costs one commit: **the oracle change
+   lands FIRST, as its own commit, demonstrated RED against unfixed production, and the
+   behaviour change lands second.** Any other ordering produces a green obtained by editing
+   the assertion alongside the code it asserts on — **the single result this entire round has
+   been cataloguing.**
+2. **`store.go:250-251` must be rewritten in the same commit.** The sort makes
+   `SameStageSet`'s elementwise implementation *sound* — both sides sorted — **but it does not
+   make the stated precondition true.** "Produced in a deterministic order **by the same
+   function**" stays false, and the next consumer inherits a comment that licences elementwise
+   comparison for a reason that no longer obtains. **The remedy would leave a correct
+   behaviour resting on a false explanation, which is R6's exact shape one layer up.**
+3. **RM-3 does not close R6(ii).** Set difference (`before ⊊ after`) is untouched by sorting
+   and preserved by union. **The DefaultConfig over-demand of §15.22 survives RM-3
+   unchanged.** RM-3 is a remedy for R6(i) and the Critical direction, and for nothing else.
+4. **audit's explainability cost is inherited whole.** `ref ∪ got` can still name a
+   transition set that is not the price of any reachable state, and that set is still rendered
+   into the operator's error message.
+
+### (c) Verdict
+
+**RM-3 IS THE STRONGEST CANDIDATE ON THE TABLE AND IT IS NOT ADOPTABLE AS IT STANDS.** It is
+the only proposal that closes R6(i) and the Critical direction together; it closes neither
+R6(ii) nor S8 nor A6; and **it cannot be validated by the suite this diff ships, in either
+placement (F27).**
+
+**I am not withdrawing the kill on the sort.** §15.20 stands exactly as written: **the sort
+ALONE converts R6(i) into the round-10 Critical.** What audit found is that RM-1 supplies
+the floor the sort removes. **That is a statement about the pair. The sort is still lethal on
+its own, and it is the half of RM-3 most likely to be shipped alone, because it is one line
+and the other half is a design change.**
+
+> **THE RISK IN RM-3 IS NOT THAT IT IS WRONG. IT IS THAT IT IS TWO CHANGES OF WILDLY UNEQUAL
+> COST WHOSE SAFETY IS JOINT, AND THE CHEAP HALF IS THE DANGEROUS ONE. IF ANYTHING ADOPTS
+> RM-3, THE ADOPTION RECORD MUST SAY THAT THE SORT WITHOUT RM-1 IS A CRITICAL, IN THE SAME
+> SENTENCE, OR THE NEXT PERSON UNDER TIME PRESSURE WILL SHIP THE ONE-LINER.**
+
+
+### (d) Amendment to (b)(1), from test-194-r11's F27 extension, verified against my own derivation
+
+**The placement fork does not exist for RM-3, and that is worse than a fork.** **The sort is
+necessarily SEAM-side** — it changes what `unionStages`/`AllTerminalLabelStages` return —
+**while the union is SERVER-side. RM-3 is the hybrid, and the hybrid takes the bad horn of
+both:** `got` moves down with the sort while the oracle still compares `ref ⊆ got`, so the
+assertion fires on a correctly-fixed system; and no part of the union is visible to the
+oracle at all.
+
+**The aggravation is exactly the sort's purpose.** The sort exists to make more `after` sets
+compare equal to `before`. **Every cell it newly collapses is a cell where `got` becomes
+empty while `ref` is unchanged — which is precisely the shape that fires `:187-190`.**
+
+> **THE COMPONENT ADDED TO RESCUE THE PRICE IS THE COMPONENT THAT BREAKS THE ORACLE, CELL FOR
+> CELL, IN PROPORTION TO HOW WELL IT WORKS.**
+
+**[UNCHECKED, and neither test nor I will estimate it]** how many of the 7200 cells. Needs
+the token; it is the same measurement the EM has queued for RM-1's availability cost. **The
+direction is not uncertain and the direction is the decision-relevant part.**
+
+**Consequence for (b)(1), which I am hardening rather than restating:** the oracle commit is
+**not optional and cannot ship second**. Otherwise the first thing r12 sees after landing
+RM-3 is a red suite telling it, **in the diff's own words, that it has reopened the
+Critical** — and **the engineer who reverts on that evidence is behaving correctly. That is
+F26's inverted pin arriving at the remedy instead of at the defect.**
+
+
+---
+
+## §15.33 — Close-out under Rulings 9 and 10. Two corrections, both to things already filed; one confirmation; no new findings.
+
+Ruling 10 permits nothing but falsifications of filed material. Everything below is one of
+those, or housekeeping on a name.
+
+### (a) S10 confirmed at source, and its central measurement is wrong in the direction that understates it
+
+I read the docblock rather than accept it relayed. **Both quoted paragraphs are verbatim.**
+`passthrough.go` at `2cbbd92`:
+
+- **`:380-384`**, the condemnation: *"A silently-swallowed write failure is also a
+  correctness bug in its own right — UpdateTask returned the issue as if the swap had
+  landed, so a caller acting on that answer, and the event this store's callers publish from
+  it, both described a state GitHub was never put into."*
+- **`:391-394`**, the blessing: *"Names that the repository has no label for are dropped by
+  labelNamesToIDs and are NOT an error here … it fails closed for the gate, which models such
+  a label as applied and so over-charges rather than under-charges."*
+
+**"Sixteen lines apart" is the distance from the docblock's FIRST line (`:375`) to the
+blessing. The distance between the two sentences themselves is SEVEN LINES — `:384` to
+`:391`.** The figure entered Ruling 10 verbatim, so I correct it where it will be read:
+
+> **THE CONDEMNATION AND THE BLESSING ARE SEVEN LINES APART, NOT SIXTEEN, AND THE SMALLER
+> NUMBER IS THE WORSE ONE. SIXTEEN LINES IS A DOCBLOCK YOU MIGHT LOSE YOUR PLACE IN. SEVEN IS
+> ONE SCREEN, ONE PARAGRAPH BREAK, AND THE SAME SITTING.**
+
+### (b) S10's scoping independently confirmed — audit's refusal to score it against this diff is correct
+
+`git diff 6d8f19e…2cbbd92 -- internal/platform/github/passthrough.go` matched **zero** `+`/`-`
+lines for either paragraph, and **both are present at BASE** (`:344`, `:351`, `:354`).
+Positive control: the same grep found four lines at BASE and four at HEAD, so it was not
+eaten. **S10 is pre-existing. NOT SCOREABLE AGAINST `2cbbd92`, and the auditor holding its
+strongest evidence of the night graded it down itself.**
+
+### (c) audit's relocated (2) maps onto R6(ii) — checked against my own text, not assumed
+
+Both audit and the EM attributed the promotion to my reading, so I owe a check that my R6(ii)
+actually bears it. §15.22 states R6(ii) as `before ⊊ after` — a set difference introduced by
+`unionStages(read, writeView)` and unrepairable by sorting; §15.29 (line 4096, written before
+the relocation was requested) already says *"the write arm's inventions are HEAD's behaviour,
+they are R6(ii)."* **The mapping holds. The relocated (2) is a restatement of R6(ii) from the
+availability side, not a sixth Required finding, and I am not counting it twice.**
+
+### (d) HOUSEKEEPING, AND IT IS A REAL COLLISION: `C-1` IS ALREADY TAKEN IN THIS REPORT
+
+audit asks that the surviving constraint be recorded as **C-1**. **In this report `C1` is the
+Critical finding, and my brief already uses `C-1` for it by name.** Two artefacts of opposite
+force one hyphen apart, in a record that will be read by someone who was not here.
+
+> **RENAME REQUESTED: THE CONSTRAINT IS `CON-1`, OR ANY TOKEN THAT IS NOT A NEAR-MISS OF A
+> CRITICAL. A ROUND WHOSE ENTIRE SUBJECT IS TWO SENTENCES SEVEN LINES APART SAYING OPPOSITE
+> THINGS SHOULD NOT SHIP TWO IDENTIFIERS ONE CHARACTER APART MEANING OPPOSITE THINGS.**
+
+**GRANTED, 03:40Z, Ruling 11 errata (4): the rename to `CON-1` is ORDERED, everywhere,
+immediately.** Scope of that order inside this file, checked rather than assumed: **all 15
+occurrences of `C-1` in this report denote MY Critical finding or the earlier collision
+discussion about it. None names audit's constraint except the request above.** So the order
+requires **no rewrite here** — the identifier it retires was never adopted in this file, and
+the reason to say so explicitly is that *"complied, no changes needed"* and *"ignored the
+order"* produce byte-identical files.
+
+Its content I accept unchanged and it is audit's: **the gate must not price against a
+baseline no execution path produces** — a constraint on remedies, adopted as none of RM-1,
+RM-2 or RM-3, and **the round adopts zero remedies.**
+
+### (e) Final state
+
+Nothing in (a)–(d) moves the verdict. **REQUEST CHANGES. C1 Critical; R1–R6 Required.**
+Report remains **PARTIAL** for the reason it has been partial since 23:53Z: **the round is
+held, I have had no build token since, and §§15.20–15.33 are reasoning and reads only.** The
+one outstanding [UNCHECKED] on my axis — whether any deployment provisions `ft:stage/*` out of
+band — is **owned by the EM by name**, not marked and abandoned.
+
+> **THE ROUND'S RESULT IN ONE SENTENCE, AND IT IS NOT THE VERDICT: THREE REVIEWERS PROPOSED
+> THREE PRICES FOR A WRITE THAT CANNOT BE OBSERVED, ARGUED FOR AN HOUR, AND THE THING THAT
+> ENDED IT WAS ALREADY WRITTEN IN THE FUNCTION'S OWN DOCBLOCK, SEVEN LINES ABOVE THE SENTENCE
+> THAT CONTRADICTS IT.**

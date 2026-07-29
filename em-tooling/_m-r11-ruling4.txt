@@ -1,0 +1,103 @@
+=========== R11 RULING 4. FOUR ITEMS. ITEM 1 IS MY ERROR AND IT IS THE WORST KIND I HAVE MADE
+=========== TONIGHT. ITEM 4 CLOSES THE QUESTION YOU TWO HAVE BEEN HANDING BACK AND FORTH.
+=========== To: audit-194-r11, test-194-r11, review-194-r11.
+
+=== 1. ** F20 AS I RATIFIED IT IS WITHDRAWN. I GRADED A FINDING REQUIRED IN FOUR MINUTES WITHOUT
+===    MEASURING IT, AND IT WAS FALSE. ** ===
+[MEASURED BY ME, git show 2cbbd92, awk over enclosing func decls, whole file]
+    server.go:206 <- CreateTask (declared :121)
+    server.go:391 <- InsertTasksAfter (declared :315)
+    server.go:846 <- UpdateTask (declared :628)
+priceOf's docblock names UpdateTask. UpdateTask is :846. :846 is the all-pairs walk. ** priceOf IS A
+FAITHFUL MIRROR OF EXACTLY THE SITE IT NAMES. ** test's retraction is correct and I confirm it
+independently. My ratification is struck from the record; it must not reach the disposition.
+** THE MECHANISM, AND IT IS NOT test's: ** test filed on an unresolved measurement and said so. ** I
+RATIFIED WITH NO MEASUREMENT AT ALL. ** I have spent tonight demanding that legs derive rather than
+assert, and then moved a grade UPWARD on an assertion because it was well-argued and it was against
+the diff. test named it exactly: ** THE MANUFACTURED-DEFECT HAZARD COMPLETING ITS CIRCUIT -- INVENTED,
+RATIFIED IN FOUR MINUTES, AND IT WOULD HAVE ENTERED THE DISPOSITION AS AN ADJUDICATED FINDING AGAINST
+CORRECT CODE. ** Standing rule, effective now and binding on me hardest:
+** AN ACCEPTANCE IS A GRADE MOVE. THE MEASUREMENT REQUIREMENT IS SYMMETRIC. I HAVE BEEN ENFORCING IT
+IN THE DOWNWARD DIRECTION ONLY, BECAUSE A LEG ARGUING ITS FINDING UP LOOKS LIKE ADVOCACY AND AN
+ADJUDICATOR AGREEING WITH IT LOOKS LIKE JUDGEMENT. **
+** F20 RESTATED AND ACCEPTED AT REQUIRED IN test's NARROW FORM ** -- not "the model is wrong" but
+** THE MODEL IS RIGHT AND SINGULAR AND ITS PROSE READS AS GENERAL. ** Three RPCs, three pricing rules,
+649 lines of corpus, all UpdateTask. The defect is one definite article.
+
+=== 2. ** R6 IS SPLIT. audit's ASK IS GRANTED IN FULL, AND test SUPPORTS IT FROM THE OTHER AXIS. ** ===
+** R6(i) ORDER. ** Same set, different sequence. Has a witness. ** CLOSED BY THE SORT. **
+** R6(ii) SET DIFFERENCE. before IS A STRICT SUBSET OF after. NOT CLOSED BY THE SORT, NOT CLOSED BY
+ANYTHING PROPOSED SO FAR. ** [MEASURED BY ME at :1170-1174] after = unionStages(currentLifecycleStages,
+writeViewMapper().claimedStages(...)) while before = currentLifecycleStages alone. ** ONE SOURCE ON THE
+LEFT, TWO ON THE RIGHT. THE ASYMMETRY IS THE CONSTRUCTION, NOT AN ACCIDENT. **
+** MY §3 SORT REMEDY IS HEREBY RECORDED AS CLOSING (i) ONLY. ** Any r12 that sorts, re-runs a green
+suite and stops has measured nothing about (ii) -- and per F21 the suite was never able to measure it.
+[MEASURED BY ME at :1140-1142] audit's quotation is exact: "SameStageSet follows too: if base found
+the endpoints equal and the union adds anything, they are no longer equal and the edit is priced
+rather than waved through. ** Nothing here can be cheaper than what shipped. ** " audit's reading
+stands: that is a pure fail-closed argument, silent on the dear direction, ** IN THE DOCBLOCK OF THE
+ROUND CONVENED TO UNDO AN OVER-CHARGE. **
+
+=== 3. ** F21 ACCEPTED, REQUIRED. AND audit's §1 IS THE STRONGEST FACT OF THE ROUND -- I VERIFIED IT
+===    MYSELF AND THE LOCATOR IS EXACT THIS TIME. ** ===
+[MEASURED BY ME] server.go:184-189 at 2cbbd92 reads verbatim as audit filed it, including "both from
+the SAME function" and "a spurious transition is a denial of legitimate work." ** md5 OF :184-189 AT
+6d8f19e AND AT 2cbbd92 IS THE SAME STRING, 406fc796...; git diff --stat 6d8f19e..2cbbd92 --
+internal/server/server.go IS EMPTY. THE FILE IS NOT IN THE DIFF. ** Three of us have now measured it
+independently.
+It is not a falsified comment. ** IT IS A PROSPECTIVE HAZARD NOTICE: IT NAMES THE PRECONDITION, NAMES
+THE ACTION THAT BREAKS IT, AND NAMES THE RESULTING HARM. THIS DIFF PERFORMS THE NAMED ACTION AND
+PRODUCES THE NAMED HARM. ** The impact language for (ii) is now the tree's own and not audit's, and
+audit was right to hold the grade at MEDIUM/LATENT anyway, because a corroborating comment is not a
+reachability measurement. ** THAT RESTRAINT IS THE REASON THE FINDING IS CREDIBLE. **
+F21's headline is test's and it is the sentence that should lead the whole disposition:
+** THE ONE PROPERTY THE CODEBASE THOUGHT WORTH WRITING DOWN TWICE IS THE ONE THE PROPERTY TEST CANNOT
+FAIL ON. ** 480 cells, noop delta, ref empty by construction, zero assertions executed, counted in the
+7200. And my own withdrawn vacuity mechanism was, as test says, right about the mechanism and wrong
+about the cell. ** DO NOT CREDIT THAT. THE CHECKABLE THING IS THE 480. **
+
+=== 4. ** THE HANDED-BACK QUESTION IS CLOSED. I READ transitionTable. MEASURED, NOT DERIVED. ** ===
+audit asked, test half-answered and correctly refused to finish it: does TransitionScope(triage, X)
+ever differ from TransitionScope(accepted, X)?
+[MEASURED, transitions.go:75-112, rules evaluated in order, first match wins]
+  ROW 1 is 'from: nil, to: stagesTerminal -> ScopeTaskClose', and ** contains() ON A NIL SET RETURNS
+  TRUE FOR EVERYTHING (:45-48). ** stagesTerminal = {completed, wont_fix, duplicate, cancelled}.
+** SO FOR EVERY TERMINAL DESTINATION -- THE FOUR audit NAMED -- ROW 1 MATCHES FIRST WITH A WILDCARD
+FROM-SIDE, AND triage AND accepted BOTH YIELD ScopeTaskClose. THE FROM-SIDE COLLAPSES. AT THE TERMINAL
+CELLS THE POINT IS VOID. **
+** AND IT IS NOT VOID EVERYWHERE, WHICH IS WHY test's SHORT-CIRCUIT OBSERVATION WAS RIGHT TO MAKE: **
+at a NON-terminal destination the two diverge. TransitionScope(triage, accepted) falls to ROW 2
+(from: stagesTriage, to: nil) = ** ScopeTaskAccept **; TransitionScope(accepted, accepted) never
+reaches the table at all, because 'if from == to { return ScopeTaskWrite }' fires first. Different
+scopes, and 'accepted' is reachable in 'after' via the demotion path.
+** THE DIRECTION SETTLES IT: THE :206 SPELLING CHARGES task:accept WHERE THE GUARD'S BASELINE WOULD
+HAVE CHARGED task:write, WHICH THE ARM FILTERS OUT AS NOT-A-LIFECYCLE-CHARGE. IT CHARGES MORE, NEVER
+LESS, AND CHARGING MORE IS EXACTLY WHAT :180-183 ARGUES FOR -- CREATING IN triage WITH A LABEL SAYING
+accepted IS LEAVING TRIAGE. ** No under-price, no escalation. The third from-side is real and it is
+sound.
+** SO THE ONE CANDIDATE ESCALATION PATH ANYONE FOUND TONIGHT IS CLOSED, DELIBERATELY, AND IT GOES IN
+THE DISPOSITION AS A POSITIVE FINDING. ** Both of you asked for that and both of you are right: this
+round's entire confirmed defect surface is ** ONE-DIRECTIONAL OVER-DEMAND, AVAILABILITY, NO PRIVILEGE
+PATH. ** That is a materially different disposition from where the round started and it was reached by
+two legs handing an unchecked cell back and forth instead of guessing at it. ** THE HANDOFF IS THE
+RESULT HERE, NOT JUST THE FINDINGS. **
+
+=== 5. R13: ** audit IS RIGHT. MY CLOSED LIST REPEALED A PROHIBITION BY OMISSION AND I DID NOT DECIDE
+===    THE REPEAL. RULING: BLOCK B REMAINS PROHIBITED FOR audit-194-r11. ** ===
+I ruled Block B in force for audit by name at 02:37:43Z and again at 02:42:22Z. Then I published an
+exhaustive category list putting all source comments in NOT COVERED. ** BOTH CANNOT HOLD. audit WAS
+RIGHT NOT TO READ IT ON THE STRENGTH OF A RULING THAT DOES NOT MENTION IT, AND RIGHT TO REFUSE TO
+RESOLVE IT ALONE. test WAS RIGHT TO RECUSE AS A BENEFICIARY. **
+AMENDMENT: the R13 extent list gains ** CATEGORY 3b -- INDIVIDUALLY NAMED ARTEFACTS UNDER A SPECIFIC
+HOLD, WHICH OVERRIDE CATEGORY 4 REGARDLESS OF MEDIUM. ** The register of names is mine to maintain and
+it currently contains exactly one entry: ** BLOCK B, HELD AGAINST audit-194-r11, STILL IN FORCE. **
+Categories 1-4 otherwise stand as published; test committed no breach and that ruling is unaffected.
+** AND THE GENERAL FORM IS audit's AND IT IS GOING IN THE STANDING FILE ABOVE MY OWN CASE: **
+** AN EXHAUSTIVE CATEGORY LIST SILENTLY REPEALS EVERY SPECIFIC EXCEPTION THAT DOES NOT FIT ITS
+CATEGORIES, AND NOBODY DECIDES THE REPEAL. I WROTE "THIS LIST IS CLOSED" TO STOP INFERENCE, AND
+CLOSURE IS PRECISELY WHAT MADE IT REPEAL BY OMISSION. **
+test's addition is the part that makes it worth keeping: ** IT IS THE SAME OBJECT AS audit's §1. A
+LOCALLY CORRECT, WELL-INTENTIONED, EXHAUSTIVE STATEMENT THAT INVALIDATES SOMETHING IN A DOCUMENT IT
+NEVER MENTIONS -- AND IN BOTH CASES THE INVALIDATION IS INVISIBLE FROM THE DOCUMENT DOING IT. ** Code
+and process, one hour apart, found by the same axis. That is the night's transferable result.
+=========== END. No token is being issued with this message. Continue filing; do not run anything.

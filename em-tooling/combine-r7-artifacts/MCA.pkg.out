@@ -1,0 +1,369 @@
+=== RUN   TestCredentialEncryptor_RoundTrip
+=== RUN   TestCredentialEncryptor_RoundTrip/simple_token
+=== RUN   TestCredentialEncryptor_RoundTrip/long_token
+=== RUN   TestCredentialEncryptor_RoundTrip/unicode
+=== RUN   TestCredentialEncryptor_RoundTrip/empty
+--- PASS: TestCredentialEncryptor_RoundTrip (0.00s)
+    --- PASS: TestCredentialEncryptor_RoundTrip/simple_token (0.00s)
+    --- PASS: TestCredentialEncryptor_RoundTrip/long_token (0.00s)
+    --- PASS: TestCredentialEncryptor_RoundTrip/unicode (0.00s)
+    --- PASS: TestCredentialEncryptor_RoundTrip/empty (0.00s)
+=== RUN   TestCredentialEncryptor_DoubleEncrypt
+--- PASS: TestCredentialEncryptor_DoubleEncrypt (0.00s)
+=== RUN   TestCredentialEncryptor_DecryptPlaintext
+--- PASS: TestCredentialEncryptor_DecryptPlaintext (0.00s)
+=== RUN   TestCredentialEncryptor_WrongKey
+--- PASS: TestCredentialEncryptor_WrongKey (0.00s)
+=== RUN   TestCredentialEncryptor_KeyRotation
+--- PASS: TestCredentialEncryptor_KeyRotation (0.00s)
+=== RUN   TestCredentialEncryptor_PlaintextMigration
+--- PASS: TestCredentialEncryptor_PlaintextMigration (0.00s)
+=== RUN   TestCredentialEncryptor_EmptyValues
+--- PASS: TestCredentialEncryptor_EmptyValues (0.00s)
+=== RUN   TestNewCredentialEncryptor_InvalidKey
+=== RUN   TestNewCredentialEncryptor_InvalidKey/valid_key
+=== RUN   TestNewCredentialEncryptor_InvalidKey/too_short
+=== RUN   TestNewCredentialEncryptor_InvalidKey/too_long
+=== RUN   TestNewCredentialEncryptor_InvalidKey/invalid_base64
+--- PASS: TestNewCredentialEncryptor_InvalidKey (0.00s)
+    --- PASS: TestNewCredentialEncryptor_InvalidKey/valid_key (0.00s)
+    --- PASS: TestNewCredentialEncryptor_InvalidKey/too_short (0.00s)
+    --- PASS: TestNewCredentialEncryptor_InvalidKey/too_long (0.00s)
+    --- PASS: TestNewCredentialEncryptor_InvalidKey/invalid_base64 (0.00s)
+=== RUN   TestIsEncrypted
+--- PASS: TestIsEncrypted (0.00s)
+=== RUN   TestCredentialEncryptor_UniqueNonces
+--- PASS: TestCredentialEncryptor_UniqueNonces (0.00s)
+=== RUN   TestStartupMigration_StaleReplayDoesNotOverwritePostMigrationClaim
+--- PASS: TestStartupMigration_StaleReplayDoesNotOverwritePostMigrationClaim (0.02s)
+=== RUN   TestStartupMigration_ConditionalWriteNotesOnlyActuallyUpdatedRows
+--- PASS: TestStartupMigration_ConditionalWriteNotesOnlyActuallyUpdatedRows (0.01s)
+=== RUN   TestStartupMigration_DoesNotDuplicateExistingMigrationNote
+--- PASS: TestStartupMigration_DoesNotDuplicateExistingMigrationNote (0.01s)
+=== RUN   TestCreateAndGetTask
+--- PASS: TestCreateAndGetTask (0.00s)
+=== RUN   TestGetTask_NotFound
+--- PASS: TestGetTask_NotFound (0.00s)
+=== RUN   TestStartupMigration_PersistedOldTaskStates
+--- PASS: TestStartupMigration_PersistedOldTaskStates (0.05s)
+=== RUN   TestListTasks_Filters
+=== RUN   TestListTasks_Filters/filter_by_collection
+=== RUN   TestListTasks_Filters/filter_by_phase
+=== RUN   TestListTasks_Filters/filter_by_stage
+=== RUN   TestListTasks_Filters/filter_by_collection_and_phase
+--- PASS: TestListTasks_Filters (0.00s)
+    --- PASS: TestListTasks_Filters/filter_by_collection (0.00s)
+    --- PASS: TestListTasks_Filters/filter_by_phase (0.00s)
+    --- PASS: TestListTasks_Filters/filter_by_stage (0.00s)
+    --- PASS: TestListTasks_Filters/filter_by_collection_and_phase (0.00s)
+=== RUN   TestUpdateTask_CAS
+=== RUN   TestUpdateTask_CAS/correct_version_succeeds
+=== RUN   TestUpdateTask_CAS/wrong_version_returns_conflict
+=== RUN   TestUpdateTask_CAS/empty_version_does_unconditional_update
+--- PASS: TestUpdateTask_CAS (0.00s)
+    --- PASS: TestUpdateTask_CAS/correct_version_succeeds (0.00s)
+    --- PASS: TestUpdateTask_CAS/wrong_version_returns_conflict (0.00s)
+    --- PASS: TestUpdateTask_CAS/empty_version_does_unconditional_update (0.00s)
+=== RUN   TestClaimTask
+=== RUN   TestClaimTask/already_claimed_returns_error
+--- PASS: TestClaimTask (0.00s)
+    --- PASS: TestClaimTask/already_claimed_returns_error (0.00s)
+=== RUN   TestClaimTask_ClosedTask
+--- PASS: TestClaimTask_ClosedTask (0.00s)
+=== RUN   TestComputeAvailability_ReasonsAndTerminalDependencies
+=== RUN   TestComputeAvailability_ReasonsAndTerminalDependencies/triage
+=== RUN   TestComputeAvailability_ReasonsAndTerminalDependencies/held
+=== RUN   TestComputeAvailability_ReasonsAndTerminalDependencies/future
+=== RUN   TestComputeAvailability_ReasonsAndTerminalDependencies/dependency
+--- PASS: TestComputeAvailability_ReasonsAndTerminalDependencies (0.00s)
+    --- PASS: TestComputeAvailability_ReasonsAndTerminalDependencies/triage (0.00s)
+    --- PASS: TestComputeAvailability_ReasonsAndTerminalDependencies/held (0.00s)
+    --- PASS: TestComputeAvailability_ReasonsAndTerminalDependencies/future (0.00s)
+    --- PASS: TestComputeAvailability_ReasonsAndTerminalDependencies/dependency (0.00s)
+=== RUN   TestComputeAvailability_TerminalDependencyMatrix
+=== RUN   TestComputeAvailability_TerminalDependencyMatrix/completed
+=== RUN   TestComputeAvailability_TerminalDependencyMatrix/wont_fix
+=== RUN   TestComputeAvailability_TerminalDependencyMatrix/cancelled
+=== RUN   TestComputeAvailability_TerminalDependencyMatrix/duplicate
+--- PASS: TestComputeAvailability_TerminalDependencyMatrix (0.01s)
+    --- PASS: TestComputeAvailability_TerminalDependencyMatrix/completed (0.00s)
+    --- PASS: TestComputeAvailability_TerminalDependencyMatrix/wont_fix (0.00s)
+    --- PASS: TestComputeAvailability_TerminalDependencyMatrix/cancelled (0.00s)
+    --- PASS: TestComputeAvailability_TerminalDependencyMatrix/duplicate (0.00s)
+=== RUN   TestGetBlockedTasks_TerminalDependencyMatrix
+=== RUN   TestGetBlockedTasks_TerminalDependencyMatrix/completed
+=== RUN   TestGetBlockedTasks_TerminalDependencyMatrix/wont_fix
+=== RUN   TestGetBlockedTasks_TerminalDependencyMatrix/cancelled
+=== RUN   TestGetBlockedTasks_TerminalDependencyMatrix/duplicate
+--- PASS: TestGetBlockedTasks_TerminalDependencyMatrix (0.01s)
+    --- PASS: TestGetBlockedTasks_TerminalDependencyMatrix/completed (0.00s)
+    --- PASS: TestGetBlockedTasks_TerminalDependencyMatrix/wont_fix (0.00s)
+    --- PASS: TestGetBlockedTasks_TerminalDependencyMatrix/cancelled (0.00s)
+    --- PASS: TestGetBlockedTasks_TerminalDependencyMatrix/duplicate (0.00s)
+=== RUN   TestTaskStateValidation_HoldReasonRules
+--- PASS: TestTaskStateValidation_HoldReasonRules (0.00s)
+=== RUN   TestVersionIncrement_WithoutHook
+--- PASS: TestVersionIncrement_WithoutHook (0.00s)
+=== RUN   TestCloseTask
+=== RUN   TestCloseTask/close_with_valid_stage
+=== RUN   TestCloseTask/close_with_wont_fix
+=== RUN   TestCloseTask/close_with_invalid_stage_returns_error
+--- PASS: TestCloseTask (0.00s)
+    --- PASS: TestCloseTask/close_with_valid_stage (0.00s)
+    --- PASS: TestCloseTask/close_with_wont_fix (0.00s)
+    --- PASS: TestCloseTask/close_with_invalid_stage_returns_error (0.00s)
+=== RUN   TestCreateTask_WithLabelsAndDates
+--- PASS: TestCreateTask_WithLabelsAndDates (0.00s)
+=== RUN   TestUpdateTask_Labels
+--- PASS: TestUpdateTask_Labels (0.00s)
+=== RUN   TestUpdateTask_Dates
+--- PASS: TestUpdateTask_Dates (0.00s)
+=== RUN   TestUpdateTask_Relationships
+--- PASS: TestUpdateTask_Relationships (0.00s)
+=== RUN   TestInsertTasksAfter
+--- PASS: TestInsertTasksAfter (0.00s)
+=== RUN   TestInsertTasksAfter_NoDownstream
+--- PASS: TestInsertTasksAfter_NoDownstream (0.00s)
+=== RUN   TestInsertTasksAfter_AnchorNotFound
+--- PASS: TestInsertTasksAfter_AnchorNotFound (0.00s)
+=== RUN   TestInsertTasksAfter_EmptySteps
+--- PASS: TestInsertTasksAfter_EmptySteps (0.00s)
+=== RUN   TestInsertTasksAfter_RollsBackOnFailure
+--- PASS: TestInsertTasksAfter_RollsBackOnFailure (0.00s)
+=== RUN   TestListTasks_FilterByPriority
+--- PASS: TestListTasks_FilterByPriority (0.00s)
+=== RUN   TestListTasks_FilterByType
+--- PASS: TestListTasks_FilterByType (0.00s)
+=== RUN   TestListTasks_FilterByLabels
+--- PASS: TestListTasks_FilterByLabels (0.00s)
+=== RUN   TestListTasks_FilterByParent
+--- PASS: TestListTasks_FilterByParent (0.00s)
+=== RUN   TestListTasks_Sort
+=== RUN   TestListTasks_Sort/created_asc
+=== RUN   TestListTasks_Sort/created_desc
+--- PASS: TestListTasks_Sort (0.00s)
+    --- PASS: TestListTasks_Sort/created_asc (0.00s)
+    --- PASS: TestListTasks_Sort/created_desc (0.00s)
+=== RUN   TestUpdateTask_ChangesRecorded
+--- PASS: TestUpdateTask_ChangesRecorded (0.00s)
+=== RUN   TestClaimTask_ChangesRecorded
+--- PASS: TestClaimTask_ChangesRecorded (0.00s)
+=== RUN   TestCloseTask_ChangesRecorded
+--- PASS: TestCloseTask_ChangesRecorded (0.00s)
+=== RUN   TestListChanges_FieldFilter
+--- PASS: TestListChanges_FieldFilter (0.00s)
+=== RUN   TestCreateTask_WithRelationships
+--- PASS: TestCreateTask_WithRelationships (0.00s)
+=== RUN   TestCloseTask_AlreadyClosed
+--- PASS: TestCloseTask_AlreadyClosed (0.00s)
+=== RUN   TestRelationship_DuplicateIgnored
+--- PASS: TestRelationship_DuplicateIgnored (0.00s)
+=== RUN   TestUpdateTask_LabelsChangeRecorded
+--- PASS: TestUpdateTask_LabelsChangeRecorded (0.00s)
+=== RUN   TestListTasks_DefaultSort
+--- PASS: TestListTasks_DefaultSort (0.00s)
+=== RUN   TestTruncate
+--- PASS: TestTruncate (0.00s)
+=== RUN   TestEphemeralStorePool_GetAndReturn
+--- PASS: TestEphemeralStorePool_GetAndReturn (0.00s)
+=== RUN   TestEphemeralStorePool_ExceedsMaxSize
+--- PASS: TestEphemeralStorePool_ExceedsMaxSize (0.00s)
+=== RUN   TestEphemeralStorePool_Close
+--- PASS: TestEphemeralStorePool_Close (0.00s)
+=== RUN   TestCreateUser
+--- PASS: TestCreateUser (0.00s)
+=== RUN   TestGetUser
+--- PASS: TestGetUser (0.00s)
+=== RUN   TestGetUser_NotFound
+--- PASS: TestGetUser_NotFound (0.00s)
+=== RUN   TestGetUserByName
+--- PASS: TestGetUserByName (0.00s)
+=== RUN   TestListUsers
+--- PASS: TestListUsers (0.00s)
+=== RUN   TestCreateAPIToken_HashRoundTrip
+--- PASS: TestCreateAPIToken_HashRoundTrip (0.00s)
+=== RUN   TestLookupToken_NotFound
+--- PASS: TestLookupToken_NotFound (0.00s)
+=== RUN   TestCreateAPIToken_WithExpiry
+--- PASS: TestCreateAPIToken_WithExpiry (0.00s)
+=== RUN   TestListAPITokens
+--- PASS: TestListAPITokens (0.00s)
+=== RUN   TestRevokeAPIToken
+--- PASS: TestRevokeAPIToken (0.00s)
+=== RUN   TestUpdateTokenLastUsed
+--- PASS: TestUpdateTokenLastUsed (0.00s)
+=== RUN   TestGetAPIToken
+--- PASS: TestGetAPIToken (0.00s)
+=== RUN   TestUpdateAPITokenScopes
+--- PASS: TestUpdateAPITokenScopes (0.00s)
+=== RUN   TestLabelDeltaLifecycleStages_EmptySideFailsClosed
+=== RUN   TestLabelDeltaLifecycleStages_EmptySideFailsClosed/positive_control:_a_healthy_implementer_is_passed_through
+=== RUN   TestLabelDeltaLifecycleStages_EmptySideFailsClosed/both_empty
+=== RUN   TestLabelDeltaLifecycleStages_EmptySideFailsClosed/before_empty
+=== RUN   TestLabelDeltaLifecycleStages_EmptySideFailsClosed/after_empty
+--- PASS: TestLabelDeltaLifecycleStages_EmptySideFailsClosed (0.00s)
+    --- PASS: TestLabelDeltaLifecycleStages_EmptySideFailsClosed/positive_control:_a_healthy_implementer_is_passed_through (0.00s)
+    --- PASS: TestLabelDeltaLifecycleStages_EmptySideFailsClosed/both_empty (0.00s)
+    --- PASS: TestLabelDeltaLifecycleStages_EmptySideFailsClosed/before_empty (0.00s)
+    --- PASS: TestLabelDeltaLifecycleStages_EmptySideFailsClosed/after_empty (0.00s)
+=== RUN   TestLifecycleStages_EmptyResultFailsClosed
+=== RUN   TestLifecycleStages_EmptyResultFailsClosed/positive_control:_a_healthy_implementer_is_passed_through
+=== RUN   TestLifecycleStages_EmptyResultFailsClosed/an_empty_set_is_an_error,_not_a_substituted_t.Stage
+--- PASS: TestLifecycleStages_EmptyResultFailsClosed (0.00s)
+    --- PASS: TestLifecycleStages_EmptyResultFailsClosed/positive_control:_a_healthy_implementer_is_passed_through (0.00s)
+    --- PASS: TestLifecycleStages_EmptyResultFailsClosed/an_empty_set_is_an_error,_not_a_substituted_t.Stage (0.00s)
+=== RUN   TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected
+    lifecycle_stage_set_test.go:205: before = [cancelled], want [accepted]: the task's own stage column is the answer
+    lifecycle_stage_set_test.go:208: after = [cancelled], want [accepted]: no label can move a stage that lives in its own column, so adding ft:stage/completed must induce no transition
+--- FAIL: TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected (0.00s)
+=== RUN   TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim
+--- PASS: TestMultiStore_PropagatesAnEmptyInnerAnswerVerbatim (0.00s)
+=== RUN   TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer
+--- PASS: TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer (0.00s)
+=== RUN   TestCreateAndGetLinkedAccount
+--- PASS: TestCreateAndGetLinkedAccount (0.00s)
+=== RUN   TestCreateLinkedAccount_WithExpiresAt
+--- PASS: TestCreateLinkedAccount_WithExpiresAt (0.00s)
+=== RUN   TestCreateLinkedAccount_MinimalFields
+--- PASS: TestCreateLinkedAccount_MinimalFields (0.00s)
+=== RUN   TestGetLinkedAccount_NotFound
+--- PASS: TestGetLinkedAccount_NotFound (0.00s)
+=== RUN   TestDeleteLinkedAccount
+--- PASS: TestDeleteLinkedAccount (0.00s)
+=== RUN   TestDeleteLinkedAccount_NotFound
+--- PASS: TestDeleteLinkedAccount_NotFound (0.00s)
+=== RUN   TestListLinkedAccounts_NoFilter
+--- PASS: TestListLinkedAccounts_NoFilter (0.00s)
+=== RUN   TestListLinkedAccounts_FilterByCollection
+--- PASS: TestListLinkedAccounts_FilterByCollection (0.00s)
+=== RUN   TestListLinkedAccounts_FilterByPlatform
+--- PASS: TestListLinkedAccounts_FilterByPlatform (0.00s)
+=== RUN   TestListLinkedAccounts_FilterByStatus
+--- PASS: TestListLinkedAccounts_FilterByStatus (0.00s)
+=== RUN   TestListLinkedAccounts_Pagination
+--- PASS: TestListLinkedAccounts_Pagination (0.00s)
+=== RUN   TestListLinkedAccounts_AuthTokenRetrievable
+--- PASS: TestListLinkedAccounts_AuthTokenRetrievable (0.00s)
+=== RUN   TestMultiStore_ImplementsStore
+--- PASS: TestMultiStore_ImplementsStore (0.00s)
+=== RUN   TestMultiStore_CreateTask_RoutesToPlatform
+--- PASS: TestMultiStore_CreateTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_CreateTask_RoutesToPrimary
+--- PASS: TestMultiStore_CreateTask_RoutesToPrimary (0.00s)
+=== RUN   TestMultiStore_GetTask_RoutesToPlatform
+--- PASS: TestMultiStore_GetTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_GetTask_NotFound
+--- PASS: TestMultiStore_GetTask_NotFound (0.00s)
+=== RUN   TestMultiStore_UpdateTask_RoutesToPlatform
+--- PASS: TestMultiStore_UpdateTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_ClaimTask_RoutesToPlatform
+--- PASS: TestMultiStore_ClaimTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_CloseTask_RoutesToPlatform
+--- PASS: TestMultiStore_CloseTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_DeleteTask_RoutesToPlatform
+--- PASS: TestMultiStore_DeleteTask_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_ListTasks_RoutesToPlatform
+--- PASS: TestMultiStore_ListTasks_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_ListTasks_NoCollectionUsesPrimary
+--- PASS: TestMultiStore_ListTasks_NoCollectionUsesPrimary (0.00s)
+=== RUN   TestMultiStore_ListAllTasksForCollection
+--- PASS: TestMultiStore_ListAllTasksForCollection (0.00s)
+=== RUN   TestMultiStore_AddComment_RoutesToPlatform
+--- PASS: TestMultiStore_AddComment_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_GetComment_Fallback
+--- PASS: TestMultiStore_GetComment_Fallback (0.00s)
+=== RUN   TestMultiStore_ListComments_RoutesToPlatform
+--- PASS: TestMultiStore_ListComments_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_CollectionOps_AlwaysPrimary
+--- PASS: TestMultiStore_CollectionOps_AlwaysPrimary (0.00s)
+=== RUN   TestMultiStore_UserOps_AlwaysPrimary
+--- PASS: TestMultiStore_UserOps_AlwaysPrimary (0.00s)
+=== RUN   TestMultiStore_TokenOps_AlwaysPrimary
+--- PASS: TestMultiStore_TokenOps_AlwaysPrimary (0.00s)
+=== RUN   TestMultiStore_GetReadyTasks_RoutesToPlatform
+--- PASS: TestMultiStore_GetReadyTasks_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_GetBlockedTasks_RoutesToPlatform
+--- PASS: TestMultiStore_GetBlockedTasks_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_InsertTasksAfter_RoutesToPlatform
+--- PASS: TestMultiStore_InsertTasksAfter_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_ListChanges_RoutesToPlatform
+--- PASS: TestMultiStore_ListChanges_RoutesToPlatform (0.00s)
+=== RUN   TestMultiStore_ListAllRelationshipsForCollection
+--- PASS: TestMultiStore_ListAllRelationshipsForCollection (0.00s)
+=== RUN   TestMultiStore_UnregisteredCollection_FallsToPrimary
+--- PASS: TestMultiStore_UnregisteredCollection_FallsToPrimary (0.00s)
+=== RUN   TestMultiStore_Close
+--- PASS: TestMultiStore_Close (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_CreatesStoreOnFirstRequest
+--- PASS: TestMultiStore_LazyRegistration_CreatesStoreOnFirstRequest (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_CachesOnSecondRequest
+--- PASS: TestMultiStore_LazyRegistration_CachesOnSecondRequest (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_NoLinkedAccountFallsToPrimary
+--- PASS: TestMultiStore_LazyRegistration_NoLinkedAccountFallsToPrimary (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_FarmtableSkipsResolver
+--- PASS: TestMultiStore_LazyRegistration_FarmtableSkipsResolver (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_UnsupportedPlatformFallsToPrimary
+--- PASS: TestMultiStore_LazyRegistration_UnsupportedPlatformFallsToPrimary (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_NoResolverFallsToPrimary
+--- PASS: TestMultiStore_LazyRegistration_NoResolverFallsToPrimary (0.00s)
+=== RUN   TestMultiStore_LazyRegistration_ConcurrentSafety
+--- PASS: TestMultiStore_LazyRegistration_ConcurrentSafety (0.03s)
+=== RUN   TestParseOwnerRepo
+--- PASS: TestParseOwnerRepo (0.00s)
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/triage
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/accepted
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/working
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/in_review
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/in_qa
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/deploying
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/completed
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/wont_fix
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/duplicate
+=== RUN   TestIsTerminalStage_ClassifiesEveryStage/cancelled
+--- PASS: TestIsTerminalStage_ClassifiesEveryStage (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/triage (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/accepted (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/working (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/in_review (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/in_qa (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/deploying (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/completed (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/wont_fix (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/duplicate (0.00s)
+    --- PASS: TestIsTerminalStage_ClassifiesEveryStage/cancelled (0.00s)
+=== RUN   TestComputeAvailability_OwnTerminalStageBlocksClaim
+=== RUN   TestComputeAvailability_OwnTerminalStageBlocksClaim/completed
+=== RUN   TestComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix
+=== RUN   TestComputeAvailability_OwnTerminalStageBlocksClaim/duplicate
+=== RUN   TestComputeAvailability_OwnTerminalStageBlocksClaim/cancelled
+--- PASS: TestComputeAvailability_OwnTerminalStageBlocksClaim (0.01s)
+    --- PASS: TestComputeAvailability_OwnTerminalStageBlocksClaim/completed (0.00s)
+    --- PASS: TestComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix (0.00s)
+    --- PASS: TestComputeAvailability_OwnTerminalStageBlocksClaim/duplicate (0.00s)
+    --- PASS: TestComputeAvailability_OwnTerminalStageBlocksClaim/cancelled (0.00s)
+=== RUN   TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim
+=== RUN   TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/completed
+=== RUN   TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix
+=== RUN   TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/duplicate
+=== RUN   TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/cancelled
+--- PASS: TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/completed (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/wont_fix (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/duplicate (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_OwnTerminalStageBlocksClaim/cancelled (0.00s)
+=== RUN   TestMultiStoreComputeAvailability_ClosedPhaseIsTerminal
+--- PASS: TestMultiStoreComputeAvailability_ClosedPhaseIsTerminal (0.00s)
+=== RUN   TestMultiStoreComputeAvailability_RequiresOpenAccepted
+=== RUN   TestMultiStoreComputeAvailability_RequiresOpenAccepted/open_accepted_is_available
+=== RUN   TestMultiStoreComputeAvailability_RequiresOpenAccepted/in_progress_working_is_not_available
+=== RUN   TestMultiStoreComputeAvailability_RequiresOpenAccepted/open_working_is_not_available
+=== RUN   TestMultiStoreComputeAvailability_RequiresOpenAccepted/in_progress_accepted_is_not_available
+--- PASS: TestMultiStoreComputeAvailability_RequiresOpenAccepted (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_RequiresOpenAccepted/open_accepted_is_available (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_RequiresOpenAccepted/in_progress_working_is_not_available (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_RequiresOpenAccepted/open_working_is_not_available (0.00s)
+    --- PASS: TestMultiStoreComputeAvailability_RequiresOpenAccepted/in_progress_accepted_is_not_available (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/store	0.384s
+FAIL

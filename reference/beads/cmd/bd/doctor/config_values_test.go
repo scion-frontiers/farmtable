@@ -1,0 +1,641 @@
+package doctor
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+)
+
+func setupDoctorSharedWorktree(t *testing.T) (mainRepoDir, worktreeDir string) {
+	t.Helper()
+
+	tmpDir := t.TempDir()
+	mainRepoDir = filepath.Join(tmpDir, "main-repo")
+	if err := os.MkdirAll(mainRepoDir, 0o755); err != nil {
+		t.Fatalf("failed to create main repo dir: %v", err)
+	}
+
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	run(mainRepoDir, "init")
+	run(mainRepoDir, "config", "user.email", "test@example.com")
+	run(mainRepoDir, "config", "user.name", "Test User")
+
+	readmePath := filepath.Join(mainRepoDir, "README.md")
+	if err := os.WriteFile(readmePath, []byte("# Test\n"), 0o644); err != nil {
+		t.Fatalf("failed to write README.md: %v", err)
+	}
+	run(mainRepoDir, "add", "README.md")
+	run(mainRepoDir, "commit", "-m", "Initial commit")
+
+	worktreeDir = filepath.Join(tmpDir, "worktree")
+	addWorktree := exec.Command("git", "worktree", "add", worktreeDir, "HEAD")
+	addWorktree.Dir = mainRepoDir
+	if out, err := addWorktree.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %v\n%s", err, out)
+	}
+	t.Cleanup(func() {
+		removeWorktree := exec.Command("git", "worktree", "remove", "--force", worktreeDir)
+		removeWorktree.Dir = mainRepoDir
+		_ = removeWorktree.Run()
+	})
+
+	return mainRepoDir, worktreeDir
+}
+
+func TestCheckConfigValues(t *testing.T) {
+	// Create a temporary directory for testing
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Test with valid config
+	t.Run("valid config", func(t *testing.T) {
+		configContent := `issue-prefix: "test"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+
+	// Test with invalid issue-prefix
+	t.Run("invalid issue-prefix", func(t *testing.T) {
+		configContent := `issue-prefix: "123-invalid"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "issue-prefix") {
+			t.Errorf("expected detail to mention issue-prefix, got: %s", check.Detail)
+		}
+	})
+
+	// Test with invalid routing.mode
+	t.Run("invalid routing.mode", func(t *testing.T) {
+		configContent := `routing:
+  mode: "invalid-mode"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "routing.mode") {
+			t.Errorf("expected detail to mention routing.mode, got: %s", check.Detail)
+		}
+	})
+
+	// Test with too long issue-prefix
+	t.Run("too long issue-prefix", func(t *testing.T) {
+		configContent := `issue-prefix: "thisprefiswaytooolongtobevalid"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "too long") {
+			t.Errorf("expected detail to mention too long, got: %s", check.Detail)
+		}
+	})
+}
+
+func TestCheckConfigValues_WorktreeFallbackUsesSharedConfig(t *testing.T) {
+	mainRepoDir, worktreeDir := setupDoctorSharedWorktree(t)
+	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
+	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .beads dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainBeadsDir, "config.yaml"), []byte("issue-prefix: \"123-invalid\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config.yaml: %v", err)
+	}
+
+	clearResolveBeadsDirCache()
+
+	check := CheckConfigValues(worktreeDir)
+	if check.Status != "warning" {
+		t.Fatalf("expected warning status, got %s: %s", check.Status, check.Detail)
+	}
+	if check.Detail == "" || !contains(check.Detail, "issue-prefix") {
+		t.Fatalf("expected detail to mention issue-prefix, got: %s", check.Detail)
+	}
+}
+
+func TestCheckMetadataConfigValues(t *testing.T) {
+	// Create a temporary directory for testing
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Test with valid metadata (Dolt backend)
+	t.Run("valid metadata", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		if len(issues) > 0 {
+			t.Errorf("expected no issues, got: %v", issues)
+		}
+	})
+
+	// GH#3231: hyphenated dolt_database in embedded mode
+	t.Run("hyphenated dolt_database embedded mode", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt",
+  "dolt_database": "my-cool-project",
+  "dolt_mode": "embedded"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		found := false
+		for _, issue := range issues {
+			if contains(issue, "invalid in embedded") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected invalid-chars warning for embedded mode, got: %v", issues)
+		}
+	})
+
+	// GH#3231: dotted dolt_database in embedded mode
+	t.Run("dotted dolt_database embedded mode", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt",
+  "dolt_database": "my.project",
+  "dolt_mode": "embedded"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		found := false
+		for _, issue := range issues {
+			if contains(issue, "invalid in embedded") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected invalid-chars warning for dotted name in embedded mode, got: %v", issues)
+		}
+	})
+
+	// GH#3231: hyphenated dolt_database is OK in server mode
+	t.Run("hyphenated dolt_database server mode", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt",
+  "dolt_database": "my-cool-project",
+  "dolt_mode": "server"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		for _, issue := range issues {
+			if contains(issue, "invalid in embedded") {
+				t.Errorf("should not warn about invalid chars in server mode, got: %s", issue)
+			}
+		}
+	})
+
+	// GH#3231: no dolt_mode defaults to embedded, hyphens should warn
+	t.Run("hyphenated dolt_database default mode", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt",
+  "dolt_database": "my-project"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		found := false
+		for _, issue := range issues {
+			if contains(issue, "invalid in embedded") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected invalid-chars warning when dolt_mode is unset (defaults to embedded), got: %v", issues)
+		}
+	})
+
+	t.Run("valid dolt metadata", func(t *testing.T) {
+		metadataContent := `{
+  "database": "dolt",
+  "backend": "dolt"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		if len(issues) > 0 {
+			t.Errorf("expected no issues, got: %v", issues)
+		}
+	})
+
+	// Test with path in database field
+	t.Run("path in database field", func(t *testing.T) {
+		metadataContent := `{
+  "database": "/path/to/beads.db"
+}`
+		if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
+			t.Fatalf("failed to write metadata.json: %v", err)
+		}
+
+		issues := checkMetadataConfigValues(tmpDir)
+		if len(issues) == 0 {
+			t.Error("expected issues for path in database field")
+		}
+	})
+}
+
+func TestCheckMetadataConfigValues_WorktreeFallbackUsesSharedMetadata(t *testing.T) {
+	mainRepoDir, worktreeDir := setupDoctorSharedWorktree(t)
+	mainBeadsDir := filepath.Join(mainRepoDir, ".beads")
+	if err := os.MkdirAll(mainBeadsDir, 0o755); err != nil {
+		t.Fatalf("failed to create main .beads dir: %v", err)
+	}
+	metadataContent := `{
+  "database": "/path/to/beads.db"
+}`
+	if err := os.WriteFile(filepath.Join(mainBeadsDir, "metadata.json"), []byte(metadataContent), 0o644); err != nil {
+		t.Fatalf("failed to write metadata.json: %v", err)
+	}
+
+	clearResolveBeadsDirCache()
+
+	issues := checkMetadataConfigValues(worktreeDir)
+	if len(issues) == 0 {
+		t.Fatal("expected metadata validation issues from shared worktree metadata")
+	}
+	if !contains(issues[0], "should be a filename") {
+		t.Fatalf("expected shared metadata issue, got: %v", issues)
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+func TestIsValidBoolString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"true", "true", true},
+		{"false", "false", true},
+		{"True uppercase", "True", true},
+		{"FALSE uppercase", "FALSE", true},
+		{"yes", "yes", true},
+		{"no", "no", true},
+		{"1", "1", true},
+		{"0", "0", true},
+		{"on", "on", true},
+		{"off", "off", true},
+		{"t", "t", true},
+		{"f", "f", true},
+		{"y", "y", true},
+		{"n", "n", true},
+
+		{"invalid string", "invalid", false},
+		{"maybe", "maybe", false},
+		{"2", "2", false},
+		{"empty", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isValidBoolString(tt.input)
+			if got != tt.expected {
+				t.Errorf("isValidBoolString(%q) = %v, want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExpandPath(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("Cannot get home directory")
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"tilde only", "~", filepath.Clean(homeDir)},
+		{"tilde path", "~/foo/bar", filepath.Join(homeDir, "foo/bar")},
+		{"no tilde", "/absolute/path", "/absolute/path"},
+		{"relative", "relative/path", "relative/path"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := expandPath(tt.input)
+			if got != tt.expected {
+				t.Errorf("expandPath(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestValidActorRegex(t *testing.T) {
+	tests := []struct {
+		name     string
+		actor    string
+		expected bool
+	}{
+		{"simple name", "alice", true},
+		{"with numbers", "user123", true},
+		{"with dash", "alice-bob", true},
+		{"with underscore", "alice_bob", true},
+		{"with dot", "alice.bob", true},
+		{"email", "alice@example.com", true},
+		{"starts with number", "123user", true},
+
+		{"empty", "", false},
+		{"starts with dash", "-user", false},
+		{"starts with dot", ".user", false},
+		{"starts with at", "@user", false},
+		{"contains space", "alice bob", false},
+		{"contains special", "alice$bob", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validActorRegex.MatchString(tt.actor)
+			if got != tt.expected {
+				t.Errorf("validActorRegex.MatchString(%q) = %v, want %v", tt.actor, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestValidCustomStatusRegex(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   string
+		expected bool
+	}{
+		{"simple", "awaiting_review", true},
+		{"with numbers", "stage1", true},
+		{"lowercase only", "testing", true},
+		{"underscore prefix", "a_test", true},
+
+		{"uppercase", "Awaiting_Review", false},
+		{"starts with number", "1stage", false},
+		{"starts with underscore", "_test", false},
+		{"contains dash", "awaiting-review", false},
+		{"empty", "", false},
+		{"space", "awaiting review", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validCustomStatusRegex.MatchString(tt.status)
+			if got != tt.expected {
+				t.Errorf("validCustomStatusRegex.MatchString(%q) = %v, want %v", tt.status, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCheckConfigValuesActor(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	t.Run("invalid actor", func(t *testing.T) {
+		configContent := `actor: "@invalid-actor"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "actor") {
+			t.Errorf("expected detail to mention actor, got: %s", check.Detail)
+		}
+	})
+
+	t.Run("valid actor", func(t *testing.T) {
+		configContent := `actor: "alice@example.com"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+}
+
+func TestCheckConfigValuesDbPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	t.Run("unusual db extension", func(t *testing.T) {
+		configContent := `db: "/path/to/database.txt"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		// Dolt backend doesn't validate db file extension (it's directory-based)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status (db extension not validated for Dolt), got %s: %s", check.Status, check.Detail)
+		}
+	})
+
+	t.Run("valid db path", func(t *testing.T) {
+		configContent := `db: "/path/to/database.db"
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+
+	// Test routing + hydration consistency (bd-fix-routing)
+	t.Run("routing.mode=auto without hydration", func(t *testing.T) {
+		configContent := `routing:
+  mode: auto
+  contributor: ~/planning-repo
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "repos.additional not configured") {
+			t.Errorf("expected detail to mention repos.additional, got: %s", check.Detail)
+		}
+	})
+
+	t.Run("routing.mode=auto with hydration configured correctly", func(t *testing.T) {
+		// Create the planning repo directory so path validation passes
+		home, err := os.UserHomeDir()
+		if err != nil {
+			t.Fatalf("failed to get home dir: %v", err)
+		}
+		planningRepo := filepath.Join(home, "planning-repo")
+		if err := os.MkdirAll(planningRepo, 0755); err != nil {
+			t.Fatalf("failed to create planning repo: %v", err)
+		}
+		defer os.RemoveAll(planningRepo)
+
+		configContent := `routing:
+  mode: auto
+  contributor: ~/planning-repo
+repos:
+  additional:
+    - ~/planning-repo
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+
+	t.Run("routing.mode=auto with routing target not in hydration list", func(t *testing.T) {
+		configContent := `routing:
+  mode: auto
+  contributor: ~/planning-repo
+repos:
+  additional:
+    - ~/other-repo
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "warning" {
+			t.Errorf("expected warning status, got %s", check.Status)
+		}
+		if check.Detail == "" || !contains(check.Detail, "not in repos.additional") {
+			t.Errorf("expected detail to mention routing target not in repos.additional, got: %s", check.Detail)
+		}
+	})
+
+	t.Run("routing.mode=auto with maintainer routing", func(t *testing.T) {
+		// Create the maintainer repo directory so path validation passes
+		home, err := os.UserHomeDir()
+		if err != nil {
+			t.Fatalf("failed to get home dir: %v", err)
+		}
+		maintainerRepo := filepath.Join(home, "maintainer-repo")
+		if err := os.MkdirAll(maintainerRepo, 0755); err != nil {
+			t.Fatalf("failed to create maintainer repo: %v", err)
+		}
+		defer os.RemoveAll(maintainerRepo)
+
+		configContent := `routing:
+  mode: auto
+  maintainer: ~/maintainer-repo
+repos:
+  additional:
+    - ~/maintainer-repo
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+
+	t.Run("routing.mode=auto with maintainer='.' (current repo)", func(t *testing.T) {
+		// maintainer="." means current repo, which should not require hydration
+		configContent := `routing:
+  mode: auto
+  maintainer: "."
+`
+		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config.yaml: %v", err)
+		}
+
+		check := CheckConfigValues(tmpDir)
+		// Should be OK because maintainer="." doesn't need hydration
+		if check.Status != "ok" {
+			t.Errorf("expected ok status, got %s: %s", check.Status, check.Detail)
+		}
+	})
+}

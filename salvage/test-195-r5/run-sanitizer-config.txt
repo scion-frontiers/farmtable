@@ -1,0 +1,63 @@
+[self-check] broken tree -> exit 1 OK
+CFG-tag-drop-form            exit=1   red   expect=red   OK 
+    what: drop 'form' from FORBID_TAGS
+    last: - form tag stripped: credential-phishing form survived: found <form> in "<form>Sign in</form>"
+CFG-tag-drop-input           exit=1   red   expect=red   OK 
+    what: drop 'input' from FORBID_TAGS
+    last: - password input stripped: password field survived: found <input> in "<input name=\"token\" type=\"password\">Sign in"
+CFG-tag-drop-button          exit=1   red   expect=red   OK 
+    what: drop 'button' from FORBID_TAGS
+    last: - submit button stripped: submit button survived: found <button> in "<button>Sign in</button>"
+CFG-tag-drop-select          exit=1   red   expect=red   OK 
+    what: drop 'select' from FORBID_TAGS
+    last: - select and option stripped: select survived: found <select> in "<p><select>a</select></p>\n"
+CFG-tag-drop-textarea        exit=1   red   expect=red   OK 
+    what: drop 'textarea' from FORBID_TAGS
+    last: - textarea stripped: textarea survived: found <textarea> in "<textarea>x</textarea>"
+CFG-tag-drop-option          exit=1   red   expect=red   OK 
+    what: drop 'option' from FORBID_TAGS
+    last: - select and option stripped: option survived: found "<option" in "<p><option>a</option></p>\n"
+CFG-tag-drop-dialog          exit=1   red   expect=red   OK 
+    what: drop 'dialog' from FORBID_TAGS
+    last: - dialog stripped (no fake modal): dialog survived: found <dialog> in "<dialog open=\"\">Enter your password</dialog>"
+CFG-tag-drop-style           exit=1   red   expect=red   OK 
+    what: drop 'style' from FORBID_TAGS
+    last: - svg style element stripped (no CSS injection into the shadow root): style element survived inside svg: found <style> in "<p><svg><style>:host{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999}</style></svg></p>\n" ;; - svg style cannot reach an attacker origin: style element survived: found <style> in "<p><svg><style>@import url(<a href=\"https://evil.example/x.cs
+CFG-attr-drop-style          exit=1   red   expect=red   OK 
+    what: drop 'style' from FORBID_ATTR
+    last: - style attribute stripped: inline style survived: found "style=" in "<div style=\"position:fixed;top:0;left:0;width:100vw;height:100vh\">overlay</div>"
+CFG-attr-drop-class          exit=1   red   expect=red   OK 
+    what: drop 'class' from FORBID_ATTR
+    last: - class attribute stripped (no CSS-reuse forgery): class attribute survived: found "class=" in "<div class=\"comment\"><div class=\"comment-header\"><span class=\"comment-author\">farmtable-admin</span><span class=\"comment-time\">2 minutes ago</span></div><div class=\"comment-body\">Your session expired.</div></div>" ;; - code blocks render: code block changed: expected "<pre><code>const a = 1;\n
+CFG-attr-drop-formaction     exit=0   green expect=red   !! MISMATCH
+    what: drop 'formaction' from FORBID_ATTR
+    last: markdown sanitizer: 61 checks passed
+CFG-attr-drop-action         exit=0   green expect=red   !! MISMATCH
+    what: drop 'action' from FORBID_ATTR
+    last: markdown sanitizer: 61 checks passed
+CFG-attr-drop-download       exit=1   red   expect=red   OK 
+    what: drop 'download' from FORBID_ATTR
+    last: - download attribute stripped: download attribute survived: found "download" in "<p><a href=\"https://x.example/f\" download=\"invoice.pdf\">dl</a></p>\n"
+CFG-attr-empty               exit=1   red   expect=red   OK 
+    what: FORBID_ATTR emptied entirely
+    last: - style attribute stripped: inline style survived: found "style=" in "<div style=\"position:fixed;top:0;left:0;width:100vw;height:100vh\">overlay</div>" ;; - download attribute stripped: download attribute survived: found "download" in "<p><a href=\"https://x.example/f\" download=\"invoice.pdf\">dl</a></p>\n" ;; - class attribute stripped (no CSS-reuse forgery): class attribute survived: found "cl
+CFG-tags-empty               exit=2   red   expect=red   OK 
+    what: FORBID_TAGS emptied entirely
+    last: src/util/markdown.ts(68,5): error TS7005: Variable 'FORBID_TAGS' implicitly has an 'any[]' type.
+CFG-checkbox-default         exit=1   red   expect=red   OK 
+    what: custom checkbox renderer removed (marked default <input> returns)
+    last: - task list state survives without an input element: unchecked state lost: missing "☐︎" in "<ul>\n<li> todo</li>\n<li> done</li>\n</ul>\n" ;; - task list state is exposed to assistive technology: checked label lost: no <span[role="img"][aria-label="Completed"]> in "<ul>\n<li> todo</li>\n<li> done</li>\n</ul>\n" ;; - nested task lists keep their state: outer state lost: missing "☑︎</span> outer" in
+CFG-shared-marked            exit=0   green expect=red   !! MISMATCH
+    what: private Marked instance replaced by the shared singleton (the hazard markdown.ts documents)
+    last: markdown sanitizer: 61 checks passed
+CFG-no-sanitize              exit=1   red   expect=red   OK 
+    what: DOMPurify.sanitize dropped entirely (control: must be red)
+    last: - form tag stripped: credential-phishing form survived: found <form> in "<form action=\"https://evil.example\"><input name=token type=password><button>Sign in</button></form>" ;; - form action attribute stripped: attacker origin survived: found "evil.example" in "<form action=\"https://evil.example\"><input name=token type=password><button>Sign in</button></form>" ;; - password input stripped: pas
+CFG-config-dropped           exit=1   red   expect=red   OK 
+    what: sanitize() called with DOMPurify defaults only (config object dropped)
+    last: - form tag stripped: credential-phishing form survived: found <form> in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>" ;; - form action attribute stripped: attacker origin survived: found "evil.example" in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>" ;; - password inp
+
+=== MISMATCHES ===
+  CFG-attr-drop-formaction: got green, expected red :: markdown sanitizer: 61 checks passed
+  CFG-attr-drop-action: got green, expected red :: markdown sanitizer: 61 checks passed
+  CFG-shared-marked: got green, expected red :: markdown sanitizer: 61 checks passed

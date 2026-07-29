@@ -1,0 +1,416 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { TaskPriority, RelationshipType } from '../../gen/types.js';
+const PRIORITY_VARIANT = {
+    [TaskPriority.UNSPECIFIED]: 'neutral',
+    [TaskPriority.URGENT]: 'danger',
+    [TaskPriority.HIGH]: 'warning',
+    [TaskPriority.NORMAL]: 'primary',
+    [TaskPriority.LOW]: 'neutral',
+};
+const PRIORITY_LABEL = {
+    [TaskPriority.UNSPECIFIED]: 'No priority',
+    [TaskPriority.URGENT]: 'Urgent',
+    [TaskPriority.HIGH]: 'High',
+    [TaskPriority.NORMAL]: 'Normal',
+    [TaskPriority.LOW]: 'Low',
+};
+const PRIORITY_OPTIONS = [
+    TaskPriority.UNSPECIFIED,
+    TaskPriority.URGENT,
+    TaskPriority.HIGH,
+    TaskPriority.NORMAL,
+    TaskPriority.LOW,
+];
+const MAX_LABELS = 3;
+const MAX_TITLE_LEN = 80;
+let FtTaskCard = class FtTaskCard extends LitElement {
+    constructor() {
+        super(...arguments);
+        this.selected = false;
+        this.readOnly = false;
+        this.cardTabIndex = 0;
+        this.isEditingTitle = false;
+        this.isEditingPriority = false;
+        this.titleDraft = '';
+    }
+    get isBlocked() {
+        return this.task.relationships.some((r) => r.type === RelationshipType.BLOCKED_BY);
+    }
+    onDragStart(e) {
+        if (this.readOnly || this.isEditingTitle || this.isEditingPriority) {
+            e.preventDefault();
+            return;
+        }
+        e.dataTransfer.setData('text/plain', this.task.id);
+        e.dataTransfer.effectAllowed = 'move';
+        this.setAttribute('dragging', '');
+    }
+    onDragEnd() {
+        this.removeAttribute('dragging');
+    }
+    onClick() {
+        this.dispatchTaskSelect();
+    }
+    onKeyDown(e) {
+        if (e.target !== e.currentTarget)
+            return;
+        if (e.key !== 'Enter' && e.key !== ' ')
+            return;
+        e.preventDefault();
+        this.dispatchTaskSelect();
+    }
+    dispatchTaskSelect() {
+        this.dispatchEvent(new CustomEvent('task-select', {
+            detail: { taskId: this.task.id },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    focusCard() {
+        this.renderRoot.querySelector('.card-shell')?.focus();
+    }
+    stopCardInteraction(e) {
+        e.stopPropagation();
+    }
+    async startTitleEdit(e) {
+        if (this.readOnly)
+            return;
+        e?.stopPropagation();
+        this.titleDraft = this.task.name;
+        this.isEditingTitle = true;
+        await this.updateComplete;
+        const input = this.renderRoot.querySelector('sl-input.title-input');
+        input?.focus();
+        input?.select();
+    }
+    saveTitleEdit() {
+        if (!this.isEditingTitle)
+            return;
+        const nextTitle = this.titleDraft.trim();
+        this.isEditingTitle = false;
+        if (!nextTitle || nextTitle === this.task.name)
+            return;
+        this.dispatchTaskUpdate({ name: nextTitle });
+    }
+    cancelTitleEdit(e) {
+        e?.stopPropagation();
+        this.titleDraft = this.task.name;
+        this.isEditingTitle = false;
+    }
+    onTitleInput(e) {
+        this.titleDraft = e.currentTarget.value;
+    }
+    onTitleKeyDown(e) {
+        e.stopPropagation();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.saveTitleEdit();
+        }
+        else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.cancelTitleEdit();
+        }
+    }
+    async startPriorityEdit(e) {
+        if (this.readOnly)
+            return;
+        e.stopPropagation();
+        this.isEditingPriority = true;
+        await this.updateComplete;
+        const select = this.renderRoot.querySelector('sl-select.priority-select');
+        select?.focus();
+        select?.show?.();
+    }
+    onPriorityChange(e) {
+        e.stopPropagation();
+        const raw = Number(e.currentTarget.value);
+        if (Number.isNaN(raw))
+            return;
+        const nextPriority = raw;
+        this.isEditingPriority = false;
+        if (nextPriority === (this.task.priority ?? TaskPriority.UNSPECIFIED))
+            return;
+        this.dispatchTaskUpdate({ priority: nextPriority });
+    }
+    onPriorityBlur() {
+        this.isEditingPriority = false;
+    }
+    dispatchTaskUpdate(fields) {
+        this.dispatchEvent(new CustomEvent('task-update', {
+            detail: { taskId: this.task.id, fields },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+    renderPriorityEditor(priority) {
+        return html `
+      <sl-select
+        class="priority-select"
+        size="small"
+        value=${String(priority)}
+        hoist
+        @mousedown=${this.stopCardInteraction}
+        @click=${this.stopCardInteraction}
+        @sl-change=${this.onPriorityChange}
+        @sl-after-hide=${this.onPriorityBlur}
+      >
+        ${PRIORITY_OPTIONS.map((option) => html `
+            <sl-option value=${String(option)}>${PRIORITY_LABEL[option]}</sl-option>
+          `)}
+      </sl-select>
+    `;
+    }
+    renderPriorityBadge(priority, label, variant) {
+        if (this.readOnly) {
+            return html `<sl-badge variant=${variant} pill>${label}</sl-badge>`;
+        }
+        return html `
+      <button
+        class="priority-button"
+        type="button"
+        title="Edit priority"
+        @mousedown=${this.stopCardInteraction}
+        @click=${this.startPriorityEdit}
+      >
+        <sl-badge variant=${variant} pill>${label}</sl-badge>
+      </button>
+    `;
+    }
+    render() {
+        const t = this.task;
+        const title = t.name.length > MAX_TITLE_LEN
+            ? t.name.slice(0, MAX_TITLE_LEN) + '…'
+            : t.name;
+        const priority = t.priority ?? TaskPriority.UNSPECIFIED;
+        const priorityVariant = PRIORITY_VARIANT[priority] ?? 'neutral';
+        const priorityLabel = PRIORITY_LABEL[priority] ?? 'Unknown';
+        const visibleLabels = t.labels.slice(0, MAX_LABELS);
+        const overflowCount = t.labels.length - MAX_LABELS;
+        const firstAssignee = t.assignees[0];
+        return html `
+      <div
+        class=${classMap({ 'card-shell': true, selected: this.selected })}
+        tabindex=${this.cardTabIndex}
+        role="option"
+        aria-label=${`Task: ${this.task.name}`}
+        aria-selected=${String(this.selected)}
+        draggable=${String(!this.readOnly && !this.isEditingTitle && !this.isEditingPriority)}
+        @dragstart=${this.onDragStart}
+        @dragend=${this.onDragEnd}
+        @click=${this.onClick}
+        @keydown=${this.onKeyDown}
+      >
+        <sl-card>
+          <div class="title" @dblclick=${this.startTitleEdit}>
+            ${this.isEditingTitle
+            ? html `
+                  <sl-input
+                    class="title-input"
+                    size="small"
+                    maxlength="200"
+                    value=${this.titleDraft}
+                    @mousedown=${this.stopCardInteraction}
+                    @click=${this.stopCardInteraction}
+                    @input=${this.onTitleInput}
+                    @keydown=${this.onTitleKeyDown}
+                    @blur=${this.saveTitleEdit}
+                  ></sl-input>
+                `
+            : html `
+                  <span class="title-text">${title}</span>
+                  ${this.readOnly ? nothing : html `<sl-icon-button
+                    class="title-edit-button"
+                    name="pencil"
+                    size="small"
+                    label="Edit title"
+                    @mousedown=${this.stopCardInteraction}
+                    @click=${this.startTitleEdit}
+                  ></sl-icon-button>`}
+                `}
+          </div>
+          <div class="meta">
+            ${this.isEditingPriority
+            ? this.renderPriorityEditor(priority)
+            : this.renderPriorityBadge(priority, priorityLabel, priorityVariant)}
+            ${t.type ? html `<span class="type">${t.type}</span>` : nothing}
+            ${this.isBlocked
+            ? html `<sl-icon name="lock" class="blocked-icon"></sl-icon>`
+            : nothing}
+            ${firstAssignee
+            ? html `<sl-avatar
+                  class="assignee"
+                  initials=${firstAssignee.name.slice(0, 2)}
+                  label=${firstAssignee.name}
+                  style="--size: 1.5rem; font-size: 0.6rem;"
+                ></sl-avatar>`
+            : nothing}
+          </div>
+          ${visibleLabels.length > 0
+            ? html `
+                <div class="labels">
+                  ${visibleLabels.map((l) => html `<sl-tag size="small" variant="neutral">${l}</sl-tag>`)}
+                  ${overflowCount > 0
+                ? html `<span class="overflow-label">+${overflowCount} more</span>`
+                : nothing}
+                </div>
+              `
+            : nothing}
+        </sl-card>
+      </div>
+    `;
+    }
+};
+FtTaskCard.styles = css `
+    :host {
+      display: block;
+    }
+    sl-card {
+      width: 100%;
+      cursor: grab;
+      transition: box-shadow 0.15s, border-color 0.15s;
+      --border-color: var(--sl-color-neutral-200);
+    }
+    sl-card:active {
+      cursor: grabbing;
+    }
+    sl-card::part(base) {
+      background: var(--sl-color-neutral-50);
+    }
+    :host([dragging]) sl-card {
+      opacity: 0.5;
+    }
+    .card-shell {
+      --ft-focus-ring: 2px solid var(--sl-color-primary-500);
+      --ft-focus-ring-offset: 2px;
+    }
+    .card-shell:focus {
+      outline: none;
+    }
+    .card-shell:focus-visible sl-card {
+      outline: var(--ft-focus-ring);
+      outline-offset: var(--ft-focus-ring-offset);
+      border-radius: var(--sl-border-radius-medium);
+    }
+    .selected sl-card,
+    .selected sl-card::part(base) {
+      border-color: var(--sl-color-primary-500);
+      box-shadow: 0 0 0 1px var(--sl-color-primary-500);
+    }
+    .title {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+      word-break: break-word;
+    }
+    .title-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .title-edit-button {
+      flex-shrink: 0;
+      margin-top: -0.25rem;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+      color: var(--sl-color-neutral-500);
+    }
+    .title:hover .title-edit-button,
+    .title-edit-button:focus-visible {
+      opacity: 1;
+    }
+    sl-input.title-input {
+      width: 100%;
+      --sl-input-height-small: 1.75rem;
+      --sl-input-font-size-small: 0.875rem;
+    }
+    .priority-button {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .priority-button:focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: 999px;
+    }
+    sl-select.priority-select {
+      width: 7rem;
+      --sl-input-height-small: 1.5rem;
+      --sl-input-font-size-small: 0.75rem;
+    }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+    .type {
+      color: var(--sl-color-neutral-500);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .assignee {
+      margin-left: auto;
+    }
+    .labels {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-top: 0.375rem;
+    }
+    sl-tag::part(base) {
+      font-size: 0.75rem;
+      padding: 0 0.35rem;
+      height: 1.25rem;
+    }
+    .overflow-label {
+      font-size: 0.75rem;
+      color: var(--sl-color-neutral-500);
+      line-height: 1.25rem;
+    }
+    .blocked-icon {
+      color: var(--ft-stage-blocked);
+    }
+  `;
+__decorate([
+    property({ attribute: false })
+], FtTaskCard.prototype, "task", void 0);
+__decorate([
+    property({ type: Boolean })
+], FtTaskCard.prototype, "selected", void 0);
+__decorate([
+    property({ type: Boolean })
+], FtTaskCard.prototype, "readOnly", void 0);
+__decorate([
+    property({ type: Number, attribute: 'card-tab-index' })
+], FtTaskCard.prototype, "cardTabIndex", void 0);
+__decorate([
+    state()
+], FtTaskCard.prototype, "isEditingTitle", void 0);
+__decorate([
+    state()
+], FtTaskCard.prototype, "isEditingPriority", void 0);
+__decorate([
+    state()
+], FtTaskCard.prototype, "titleDraft", void 0);
+FtTaskCard = __decorate([
+    customElement('ft-task-card')
+], FtTaskCard);
+export { FtTaskCard };
+//# sourceMappingURL=ft-task-card.js.map

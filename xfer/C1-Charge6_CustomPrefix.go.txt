@@ -1,0 +1,81 @@
+			Labels: []string{stageLabel(task.StageCompleted)},
+		}},
+	})
+	t.Logf("MEASURED InsertTasksAfter(labels=[%s]) with task:write only: err=%v labels=%v "+
+		"lifecycle=%v available=%v", stageLabel(task.StageCompleted), err,
+		f.issue.currentLabels(), f.lifecycleStage(t), f.availability(t).Available)
+}
+
+// ── CHARGE 6: does the custom-prefix deployment get the same protection? ──
+
+// TestAuditR5_Charge6_CustomPrefixEndToEnd runs the charge-1 shape A matrix
+// again under a non-default push_prefix. B6 makes push_prefix load-bearing for
+// security for the first time, so a control that only ever holds at "ft:" is
+// a control whose security parameter is untested at every other value.
+func TestAuditR5_Charge6_CustomPrefixEndToEnd(t *testing.T) {
+	const prefix = "acme:"
+	var denied, converted int
+	for _, from := range auditTerminals() {
+		for _, to := range auditTerminals() {
+			if from == to {
+				continue
+			}
+			t.Run(fmt.Sprintf("%s_to_%s", from, to), func(t *testing.T) {
+				f := newLabelWriteFixtureWithPrefix(t, prefix, "OPEN", "",
+					prefixedStageLabel(prefix, from))
+				_, err := f.svc.UpdateTask(scopedCtx(agentScopes()), &pb.UpdateTaskRequest{
+					Id: f.taskID, AddLabels: []string{prefixedStageLabel(prefix, to)},
+				})
+				if err == nil {
+					converted++
+					t.Errorf("CUSTOM-PREFIX CONVERSION OPEN %s->%s: add_labels[%s] allowed "+
+						"with task:write. labels=%v lifecycle=%v", from, to,
+						prefixedStageLabel(prefix, to), f.issue.currentLabels(),
+						f.lifecycleStage(t))
+					return
+				}
+				denied++
+			})
+		}
+	}
+	t.Logf("MEASURED custom prefix %q shape A: %d/12 denied, %d/12 converted",
+		prefix, denied, converted)
+	if denied+converted != 12 {
+		t.Fatalf("PROBE DID NOT COVER 12 CELLS")
+	}
+}
+
+// TestAuditR5_Charge6_DefaultPrefixLabelsAreInertUnderACustomPrefix is the
+// exposure question stated positively: in a deployment configured with
+// push_prefix "acme:", does a label spelled with the SHIPPED "ft:" prefix still
+// feed an authorization answer? It must not -- and, symmetrically, it must not
+// be silently honoured by one path and ignored by another.
+func TestAuditR5_Charge6_DefaultPrefixLabelsAreInertUnderACustomPrefix(t *testing.T) {
+	const prefix = "acme:"
+	f := newLabelWriteFixtureWithPrefix(t, prefix, "OPEN", "",
+		prefixedStageLabel(prefix, task.StageAccepted), "ft:stage/wont_fix")
+
+	lifecycle := f.lifecycleStage(t)
+	avail := f.availability(t)
+	t.Logf("MEASURED deployment push_prefix=%q carrying a foreign \"ft:stage/wont_fix\": "+
+		"labels=%v lifecycle=%v available=%v reasons=%v",
+		prefix, f.issue.currentLabels(), lifecycle, avail.Available, avail.Reasons)
+
+	// Removing the foreign label must not be gated as a lifecycle transition,
+	// because under this configuration it never was one.
+	err := f.removeLabels(agentScopes(), "ft:stage/wont_fix")
+	t.Logf("MEASURED remove_labels[ft:stage/wont_fix] under push_prefix=%q: err=%v", prefix, err)
+}
+
+// mustSingleTask fetches the fixture's one task through the store, the way
+// production readers see it.
+func mustSingleTask(t *testing.T, f *labelWriteFixture) *ent.Task {
+	t.Helper()
+	tasks, _, err := f.ms.ListTasks(context.Background(), store.ListTasksParams{
+		CollectionID: &f.collID,
+	})
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("ListTasks: err=%v n=%d", err, len(tasks))
+	}
+	return tasks[0]
+}

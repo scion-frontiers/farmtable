@@ -1,0 +1,3205 @@
+{
+ "DO-NOT-DELETE-THESE-DIRECTORIES.md": [
+  [
+   9,
+   "git gc",
+   "You do not need `git gc` for this and you do not need a disk failure. An ordinary `rm -rf` of"
+  ]
+ ],
+ "predicate2/PREDICATE-INVERTED.md": [
+  [
+   203,
+   "git add -A",
+   "2. Every backticked literal (`` `git add -A` ``, `` `git worktree remove` ``)."
+  ],
+  [
+   493,
+   "git add -A",
+   "| `TICK` | `{3,60}` | **yes** \u2014 control asserts `` `git add -A` `` extracted |"
+  ]
+ ],
+ "predicate2/FINDINGS.md": [
+  [
+   107,
+   "git gc",
+   "| D \u2014 PROHIBITION OR GUARD | 91 | 74 | Text forbidding or gating the act: \"NO force. NO --delete. NO --mirror. NO --prun"
+  ],
+  [
+   261,
+   "git add -A",
+   "\u2014 this concerns `git add -A`."
+  ],
+  [
+   262,
+   "git add -A",
+   "2. `reports/_msg-exclude-reconcile.txt`, likewise inside a hit window: *\"The git add -A sweep over"
+  ],
+  [
+   266,
+   "git add -A",
+   "So I learned in Phase 2 that the other instrument's second predicate was a `git add -A` command"
+  ],
+  [
+   329,
+   "git add -A",
+   "| | EM sweep 1+2 | EM sweep 3 (`git add -A`) | me |"
+  ],
+  [
+   406,
+   "git add -A",
+   "2. **The `git add -A` capture class, which my predicate has no purchase on whatsoever.** Capturing"
+  ],
+  [
+   408,
+   "git stash -u",
+   "ordering \u2014 yet `git stash -u` \"had already captured agent scratch wholesale three times before"
+  ]
+ ],
+ "em-tooling/snapshot-live-leg.md": [
+  [
+   0,
+   "git add -A",
+   "> # \u26d4 SUSPENDED 2026-07-29 \u2014 THIS RUNBOOK CONTAINS `git add -A`, WHICH IS FORBIDDEN TONIGHT"
+  ],
+  [
+   4,
+   "git add -A",
+   "> FULL.** Covers, non-exhaustively, **and the non-exhaustiveness is the point**: `git add -A`,"
+  ],
+  [
+   5,
+   "git add .",
+   "> `git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   5,
+   "git add -u",
+   "> `git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   5,
+   "git stash -u",
+   "> `git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   5,
+   "git stash -a",
+   "> `git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   6,
+   "git commit -a",
+   "> `git commit -a`, `git commit` with a pathspec broader than one file. **IF YOU CANNOT NAME EVERY"
+  ],
+  [
+   11,
+   "git stash -u",
+   "> NOBODY THOUGHT OF.** `git stash -u` sweeps untracked files into commits and was untouched by"
+  ],
+  [
+   16,
+   "git add -A",
+   "> **THIS FILE IS THE ONLY LIVE `git add -A` INSTRUCTION IN THE CORPUS.** A sweep of"
+  ],
+  [
+   33,
+   "git add -A",
+   "> `git ls-files --others --exclude-standard`. **That predicate and `git add -A` share one"
+  ],
+  [
+   44,
+   "git add -A",
+   "> `git add -A` \u2192 **rc=0, stages nothing, silent**. `git add <explicit path>` \u2192 **rc=1,"
+  ],
+  [
+   82,
+   "git add -A",
+   "git add -A                       # writes objects to the DB; updates ONLY the temp index"
+  ],
+  [
+   108,
+   "git add -A",
+   "`GIT_INDEX_FILE` redirects *only the index*. `git add -A` still writes blob and"
+  ],
+  [
+   114,
+   "git add -A",
+   "`git add -A` **respects `.gitignore`**, so `web/dist` and `node_modules` stay out."
+  ]
+ ],
+ "reports/em-bulkcapture-result.md": [
+  [
+   32,
+   "git add -A",
+   "| `git add -A` | 21 |"
+  ],
+  [
+   33,
+   "git add .",
+   "| `git add .` | 8 |"
+  ],
+  [
+   34,
+   "git add -u",
+   "| `git add -u` | 4 |"
+  ],
+  [
+   36,
+   "git commit -a",
+   "| `git commit -a` | 5 |"
+  ],
+  [
+   70,
+   "git commit -a",
+   "someone's `git commit -a`\" \u2014 a warning, not an instruction. **The four-file landing of"
+  ]
+ ],
+ "reports/_msg-exclude-reconcile.txt": [
+  [
+   11,
+   "git add -A",
+   "git add -A                -> rc=0, stages NOTHING, SILENT"
+  ],
+  [
+   13,
+   "git add .",
+   "git add .                 -> rc=0, stages nothing, silent"
+  ],
+  [
+   19,
+   "git add -A",
+   "5. THE FINDING NOBODY HAS: THE EDIT MOVED THE PRESERVATION PATH TOO. em-tooling/snapshot-live-leg.md is the runbook we u"
+  ],
+  [
+   21,
+   "git add -A",
+   "6. WHAT I DID ABOUT IT. The git add -A sweep over briefs/ reports/ em-tooling/ is the second independent predicate I owe"
+  ]
+ ],
+ "reports/flakepop-81.md": [
+  [
+   992,
+   "git gc",
+   "not read, not fetched, no ref created. **No `git gc` or `git prune` anywhere.** I did not spend the"
+  ],
+  [
+   992,
+   "git prune",
+   "not read, not fetched, no ref created. **No `git gc` or `git prune` anywhere.** I did not spend the"
+  ]
+ ],
+ "reports/audit-194-r11.md": [
+  [
+   73,
+   "worktree prune",
+   "| **Worktrees surviving** | **None.** I created two (`/tmp/audit-r10` @ `6d8f19e`, `/tmp/audit-base` @ `06f01d7`) for th"
+  ],
+  [
+   2252,
+   "worktree prune",
+   "because I ran `git worktree remove --force` on both plus `git worktree prune`."
+  ]
+ ],
+ "reports/preserve-bundle.md": [
+  [
+   297,
+   "reflog expire",
+   "is an undercount twice over: `gc` also runs `reflog expire --expire-unreachable`, which promotes the"
+  ],
+  [
+   414,
+   "git gc",
+   "ran in a `/tmp` repo initialised from nothing: bare `git gc` with default config **killed** the"
+  ],
+  [
+   415,
+   "git gc",
+   "backdated unreachable object, and bare `git gc` with `pruneExpire=never` **preserved** it with its"
+  ],
+  [
+   424,
+   "git gc",
+   "the threat model is a bare `git gc` or auto-maintenance with nobody typing anything. Re-ran strict,"
+  ],
+  [
+   428,
+   "git gc",
+   "`gc.pruneExpire=never` actually preserves an unreachable object requires running `git gc` and"
+  ],
+  [
+   434,
+   "git gc",
+   "**What would settle it, at zero risk:** authorise a single `git gc` inside a throwaway repo under"
+  ],
+  [
+   542,
+   "worktree prune",
+   "**I have not run `git worktree prune` and have touched no registration.** Read-only check only."
+  ]
+ ],
+ "reports/test-194-r11.md": [
+  [
+   2139,
+   "worktree prune",
+   "Teardown used `git worktree remove --force` **and** `git worktree prune`, and I certified with"
+  ]
+ ],
+ "reports/patchid-exposure.md": [
+  [
+   131,
+   "reflog expire",
+   "invocation instead. No `gc`, `prune`, `repack` or `reflog expire` was run. No ref was created,"
+  ],
+  [
+   270,
+   "git add -A",
+   "`/workspace/farmtable/.git/info/exclude` at 09:01:15Z, because that file was one `git add -A`"
+  ],
+  [
+   292,
+   "git add -A",
+   "Standing order noted and complied with: no `git add -A` or `git add .` was run by this leg, and"
+  ],
+  [
+   292,
+   "git add .",
+   "Standing order noted and complied with: no `git add -A` or `git add .` was run by this leg, and"
+  ]
+ ],
+ "reports/scopedeny-93.md": [
+  [
+   187,
+   "git gc",
+   "No `git gc`, no `git prune`, anywhere. `/workspace/farmtable-em-verify195` untouched."
+  ],
+  [
+   187,
+   "git prune",
+   "No `git gc`, no `git prune`, anywhere. `/workspace/farmtable-em-verify195` untouched."
+  ]
+ ],
+ "reports/audit-writable-path.md": [
+  [
+   56,
+   "git add -A",
+   ".git/info/exclude does not protect the credential. It suppresses the file from \"git add -A\", \"git add .\" and from --excl"
+  ],
+  [
+   56,
+   "git add .",
+   ".git/info/exclude does not protect the credential. It suppresses the file from \"git add -A\", \"git add .\" and from --excl"
+  ],
+  [
+   115,
+   "git add -A",
+   "git add -A               ->  rc=0, stages nothing, SILENT"
+  ],
+  [
+   117,
+   "git add .",
+   "git add .                ->  rc=0, stages nothing, silent"
+  ],
+  [
+   123,
+   "git add -A",
+   "`git add -A` succeeds silently. The coordinator reports a second leg reaching the same result"
+  ]
+ ],
+ "reports/audit-xss-r7.md": [
+  [
+   1053,
+   "git add -A",
+   "invisible to `git status` and `git add -A`. The two instruments now disagree about"
+  ]
+ ],
+ "reports/em-bulkcapture-prereg.md": [
+  [
+   19,
+   "git add -A",
+   "`git add -A`, `git add .`, `git add -u`, `git stash`, `git commit -a`, `git commit -am`."
+  ],
+  [
+   19,
+   "git add .",
+   "`git add -A`, `git add .`, `git add -u`, `git stash`, `git commit -a`, `git commit -am`."
+  ],
+  [
+   19,
+   "git add -u",
+   "`git add -A`, `git add .`, `git add -u`, `git stash`, `git commit -a`, `git commit -am`."
+  ],
+  [
+   19,
+   "git commit -a",
+   "`git add -A`, `git add .`, `git add -u`, `git stash`, `git commit -a`, `git commit -am`."
+  ],
+  [
+   45,
+   "git add -A",
+   "Known-positive: `em-tooling/snapshot-live-leg.md` contains `git add -A` in its fenced"
+  ]
+ ],
+ "reports/reconcile-urlbindingscan.md": [
+  [
+   535,
+   "git gc",
+   "**What it protects against: `git gc`. Measured.**"
+  ],
+  [
+   539,
+   "git gc",
+   "roots at them** and a `git gc` will not drop their objects [D, from the fact that they are"
+  ],
+  [
+   743,
+   "worktree prune",
+   "metadata still claims it. **`git worktree prune` reports 0 prunable** \u2014 the paths exist, so git's"
+  ],
+  [
+   911,
+   "git stash -u",
+   "The 09:08Z amendment named `git stash -u` as a bypass of the bulk-capture prohibition, with a live"
+  ]
+ ],
+ "reports/review-xss-r4.md": [
+  [
+   1037,
+   "git commit -a",
+   "gofmt alignment sitting dirty in a dev tree gets swept into someone's `git commit -a` \u2014 which"
+  ]
+ ],
+ "reports/dev-xss-r4.md": [
+  [
+   661,
+   "git gc",
+   "never read or touched** (\u00a70.4). **No `git gc`, no `git prune`, anywhere** (\u00a70.4). **No"
+  ],
+  [
+   661,
+   "git prune",
+   "never read or touched** (\u00a70.4). **No `git gc`, no `git prune`, anywhere** (\u00a70.4). **No"
+  ]
+ ],
+ "reports/relocate-offhost.md": [
+  [
+   45,
+   "worktree prune",
+   "> for three branches (\u00a715). `git worktree prune` reports **0 prunable** and would still not be"
+  ],
+  [
+   46,
+   "reflog expire",
+   "> safe to reason from. No `gc`, `prune`, `repack`, `reflog expire`, or worktree edits."
+  ],
+  [
+   1149,
+   "worktree prune",
+   "pinning a branch**. I did not run `git worktree prune` and have edited no registration."
+  ],
+  [
+   1165,
+   "worktree prune",
+   "**Why the methods disagree, and why that matters:** `git worktree prune` asks *does the path still"
+  ],
+  [
+   1321,
+   "worktree prune",
+   "No `gc`, `prune`, `repack`, `reflog expire`. No `git worktree prune`; nothing under"
+  ],
+  [
+   1321,
+   "reflog expire",
+   "No `gc`, `prune`, `repack`, `reflog expire`. No `git worktree prune`; nothing under"
+  ],
+  [
+   1828,
+   "worktree prune",
+   "construction, *and* it is exactly what `git worktree prune` deletes. Had one of the 8 been"
+  ],
+  [
+   1868,
+   "worktree prune",
+   "precisely the input to `git worktree prune`. The standing freeze on `.git/worktrees/` is the only"
+  ],
+  [
+   1983,
+   "git add -A",
+   "3. **\u26a0\ufe0f THE FILE IS NEITHER TRACKED NOR GITIGNORED.** One ordinary `git add -A && git commit && git"
+  ]
+ ],
+ "reports/_msg-coord-r7-dispatch.txt": [
+  [
+   10,
+   "git add -A",
+   "THE ZERO IS THE FINDING, NOT THE REASSURANCE. It fires the moment anyone creates a file under any path with a dist compo"
+  ]
+ ],
+ "reports/_run-queue-log.md": [
+  [
+   2022,
+   "git add -A",
+   "is invisible to `git status`, invisible to `git add -A`, and invisible in review. The census still"
+  ]
+ ],
+ "reports/_msg-coord-second-phrasing.txt": [
+  [
+   34,
+   "git gc",
+   "rm -rf, git worktree remove, git gc, git prune, git branch -D, --prune."
+  ],
+  [
+   34,
+   "git prune",
+   "rm -rf, git worktree remove, git gc, git prune, git branch -D, --prune."
+  ],
+  [
+   43,
+   "git gc",
+   "\"NO `git gc`, NO `git prune`, anywhere. Measured blast radius in canonical: 57\""
+  ],
+  [
+   43,
+   "git prune",
+   "\"NO `git gc`, NO `git prune`, anywhere. Measured blast radius in canonical: 57\""
+  ],
+  [
+   44,
+   "git gc",
+   "\"NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE\""
+  ],
+  [
+   44,
+   "git prune",
+   "\"NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE\""
+  ],
+  [
+   44,
+   "git repack",
+   "\"NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE\""
+  ],
+  [
+   45,
+   "git gc",
+   "\"DO NOT RUN git gc, git prune, git repack, git reflog expire\""
+  ],
+  [
+   45,
+   "git prune",
+   "\"DO NOT RUN git gc, git prune, git repack, git reflog expire\""
+  ],
+  [
+   45,
+   "git repack",
+   "\"DO NOT RUN git gc, git prune, git repack, git reflog expire\""
+  ],
+  [
+   45,
+   "reflog expire",
+   "\"DO NOT RUN git gc, git prune, git repack, git reflog expire\""
+  ]
+ ],
+ "reports/crash-cleanup-audit.md": [
+  [
+   13,
+   "git gc",
+   "> No `git gc`, no `prune`, no `repack`, no `reflog expire`, no `git worktree prune`, no editing of"
+  ],
+  [
+   13,
+   "worktree prune",
+   "> No `git gc`, no `prune`, no `repack`, no `reflog expire`, no `git worktree prune`, no editing of"
+  ],
+  [
+   13,
+   "reflog expire",
+   "> No `git gc`, no `prune`, no `repack`, no `reflog expire`, no `git worktree prune`, no editing of"
+  ],
+  [
+   83,
+   "git gc",
+   "`git gc`/`prune`/any destructive git. Every git call used `--no-optional-locks`."
+  ],
+  [
+   113,
+   "git gc",
+   "not at risk from container deletion, but it is exactly the material `git gc`"
+  ],
+  [
+   144,
+   "git gc",
+   "(the measured `git gc` blast radius of 57 commits / 256 objects)."
+  ],
+  [
+   403,
+   "git gc",
+   "sitting in the one repo where `git gc` has a measured 57-commit / 256-object"
+  ],
+  [
+   428,
+   "git gc",
+   "verdict. They are flagged for one reason: **they are exactly what `git gc` in"
+  ],
+  [
+   453,
+   "git gc",
+   "`git gc`/branch-prune away from loss and nobody upstream can see them."
+  ]
+ ],
+ "briefs/flakepop-81.md": [
+  [
+   93,
+   "git gc",
+   "Standing coordinator ruling on the second; not even a read. **NO `git gc`, NO `git prune`, ANYWHERE**"
+  ],
+  [
+   93,
+   "git prune",
+   "Standing coordinator ruling on the second; not even a read. **NO `git gc`, NO `git prune`, ANYWHERE**"
+  ]
+ ],
+ "briefs/cleanup-audit.md": [
+  [
+   12,
+   "git gc",
+   "4. **DO NOT RUN git gc, git prune, or any destructive git command anywhere.**"
+  ],
+  [
+   12,
+   "git prune",
+   "4. **DO NOT RUN git gc, git prune, or any destructive git command anywhere.**"
+  ]
+ ],
+ "briefs/preserve-bundle.md": [
+  [
+   7,
+   "git gc",
+   "2. **NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE OF YOUR"
+  ],
+  [
+   7,
+   "git prune",
+   "2. **NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE OF YOUR"
+  ],
+  [
+   7,
+   "git repack",
+   "2. **NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE OF YOUR"
+  ]
+ ],
+ "briefs/_r7-PHASE-TWO.md": [
+  [
+   27,
+   "git add -A",
+   "under any `*/dist/` is invisible to `git status` and `git add -A`. Found by the"
+  ],
+  [
+   30,
+   "git add -A",
+   "authorise the command it names. `git add -A` and every other bulk capture is"
+  ]
+ ],
+ "briefs/scopepath-61.md": [
+  [
+   15,
+   "git gc",
+   "5. **NO `git gc`, NO `git prune`,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ],
+  [
+   15,
+   "git prune",
+   "5. **NO `git gc`, NO `git prune`,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ]
+ ],
+ "briefs/_BRIEF-RULES.md": [
+  [
+   1507,
+   "git add -A",
+   "git add -A              ->  rc=0, stages nothing, SILENT"
+  ],
+  [
+   1509,
+   "git add .",
+   "git add .               ->  rc=0, stages nothing, silent"
+  ],
+  [
+   1556,
+   "git add -A",
+   "> Covers, non-exhaustively, **and the non-exhaustiveness is the point**: `git add -A`, `git add .`,"
+  ],
+  [
+   1556,
+   "git add .",
+   "> Covers, non-exhaustively, **and the non-exhaustiveness is the point**: `git add -A`, `git add .`,"
+  ],
+  [
+   1557,
+   "git add -u",
+   "> `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   1557,
+   "git stash -u",
+   "> `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   1557,
+   "git stash -a",
+   "> `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   1558,
+   "git commit -a",
+   "> `git commit -a`, `git commit` with a pathspec broader than one file."
+  ],
+  [
+   1563,
+   "git add -A",
+   "spellings, `git add -A` and `git add .`, and thereby permitted every construction its author had"
+  ],
+  [
+   1563,
+   "git add .",
+   "spellings, `git add -A` and `git add .`, and thereby permitted every construction its author had"
+  ],
+  [
+   1564,
+   "git stash -u",
+   "not thought of. Within the hour another leg found that **`git stash -u` sweeps untracked files"
+  ],
+  [
+   1573,
+   "git add -A",
+   "git add -A              ->  rc=0, stages nothing, SILENT"
+  ],
+  [
+   1575,
+   "git add .",
+   "git add .               ->  rc=0, stages nothing, silent"
+  ]
+ ],
+ "briefs/patchid-exposure.md": [
+  [
+   9,
+   "git gc",
+   "- DO NOT RUN git gc, git prune, git repack, git reflog expire, or any command that triggers"
+  ],
+  [
+   9,
+   "git prune",
+   "- DO NOT RUN git gc, git prune, git repack, git reflog expire, or any command that triggers"
+  ],
+  [
+   9,
+   "git repack",
+   "- DO NOT RUN git gc, git prune, git repack, git reflog expire, or any command that triggers"
+  ],
+  [
+   9,
+   "reflog expire",
+   "- DO NOT RUN git gc, git prune, git repack, git reflog expire, or any command that triggers"
+  ]
+ ],
+ "briefs/scopedeny-93.md": [
+  [
+   13,
+   "git gc",
+   "3. **No git gc, no git prune,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ],
+  [
+   13,
+   "git prune",
+   "3. **No git gc, no git prune,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ]
+ ],
+ "briefs/ci-22-setup.md": [
+  [
+   33,
+   "git gc",
+   "4. **NO `git gc`, NO `git prune`,** anywhere. Measured blast radius in canonical: 57"
+  ],
+  [
+   33,
+   "git prune",
+   "4. **NO `git gc`, NO `git prune`,** anywhere. Measured blast radius in canonical: 57"
+  ]
+ ],
+ "briefs/importtrust-f7d.md": [
+  [
+   12,
+   "git gc",
+   "4. **No git gc, no git prune,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ],
+  [
+   12,
+   "git prune",
+   "4. **No git gc, no git prune,** anywhere. Measured blast radius 57 commits / 256 objects."
+  ]
+ ],
+ "briefs/reconcile-urlbindingscan.md": [
+  [
+   10,
+   "git gc",
+   "collect** /workspace/farmtable-em-verify195. **No git gc, no git prune, anywhere** \u2014"
+  ],
+  [
+   10,
+   "git prune",
+   "collect** /workspace/farmtable-em-verify195. **No git gc, no git prune, anywhere** \u2014"
+  ]
+ ],
+ "briefs/importparams-194-r11.md": [
+  [
+   12,
+   "git gc",
+   "3. **Do not run git gc, git prune, or any destructive git command anywhere.** In the"
+  ],
+  [
+   12,
+   "git prune",
+   "3. **Do not run git gc, git prune, or any destructive git command anywhere.** In the"
+  ]
+ ],
+ "briefs/linkauth-69.md": [
+  [
+   15,
+   "git gc",
+   "5. **DO NOT TOUCH `/workspace/farmtable-em-verify195`.** No `git gc`, no `git prune`, anywhere."
+  ],
+  [
+   15,
+   "git prune",
+   "5. **DO NOT TOUCH `/workspace/farmtable-em-verify195`.** No `git gc`, no `git prune`, anywhere."
+  ]
+ ],
+ "briefs/xss-r4-reconstruct.md": [
+  [
+   32,
+   "git gc",
+   "**NO `git gc`, NO `git prune`, ANYWHERE.** Measured blast radius 57 commits / 256 objects."
+  ],
+  [
+   32,
+   "git prune",
+   "**NO `git gc`, NO `git prune`, ANYWHERE.** Measured blast radius 57 commits / 256 objects."
+  ]
+ ],
+ "briefs/persist-194-r11.md": [
+  [
+   76,
+   "git gc",
+   "- Canonical repo, READ ONLY, never git gc or git prune: /workspace/farmtable"
+  ],
+  [
+   76,
+   "git prune",
+   "- Canonical repo, READ ONLY, never git gc or git prune: /workspace/farmtable"
+  ]
+ ],
+ "briefs/farmtable-predicate-2.md": [
+  [
+   27,
+   "git gc",
+   "3. **A HOST-WIDE FREEZE IS IN FORCE.** No `git gc`, no `git prune`, no `git repack`, no"
+  ],
+  [
+   27,
+   "git prune",
+   "3. **A HOST-WIDE FREEZE IS IN FORCE.** No `git gc`, no `git prune`, no `git repack`, no"
+  ],
+  [
+   27,
+   "git repack",
+   "3. **A HOST-WIDE FREEZE IS IN FORCE.** No `git gc`, no `git prune`, no `git repack`, no"
+  ],
+  [
+   28,
+   "worktree prune",
+   "`git worktree prune`, no `git reflog expire`, no deletion of any file, tree, worktree or"
+  ],
+  [
+   28,
+   "reflog expire",
+   "`git worktree prune`, no `git reflog expire`, no deletion of any file, tree, worktree or"
+  ],
+  [
+   33,
+   "git add -A",
+   "FULL.** Covers, non-exhaustively, **and the non-exhaustiveness is the point**: `git add -A`,"
+  ],
+  [
+   34,
+   "git add .",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   34,
+   "git add -u",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   34,
+   "git stash -u",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   34,
+   "git stash -a",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   35,
+   "git commit -a",
+   "`git commit -a`, `git commit` with a pathspec broader than one file. **IF YOU CANNOT NAME EVERY"
+  ],
+  [
+   37,
+   "git stash -u",
+   "two-spelling ban that `git stash -u` walked straight through \u2014 it had already captured agent"
+  ]
+ ],
+ "briefs/dev-xss-r8-fix.md": [
+  [
+   116,
+   "git add -A",
+   "FULL.** Covers, non-exhaustively, **and the non-exhaustiveness is the point**: `git add -A`,"
+  ],
+  [
+   117,
+   "git add .",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   117,
+   "git add -u",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   117,
+   "git stash -u",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   117,
+   "git stash -a",
+   "`git add .`, `git add -u`, `git add` with a glob or a directory, `git stash -u`, `git stash -a`,"
+  ],
+  [
+   118,
+   "git commit -a",
+   "`git commit -a`, `git commit` with a pathspec broader than one file. **IF YOU CANNOT NAME EVERY"
+  ],
+  [
+   123,
+   "git add -A",
+   "Measured, so you know it is not superstition: `git add -A` stages ignored files **silently**;"
+  ],
+  [
+   127,
+   "git gc",
+   "3. **DELETE NOTHING.** No `git gc`, no `prune`, no `git worktree remove`, no removing scratch"
+  ]
+ ],
+ "preserve/MANIFEST.md": [
+  [
+   564,
+   "git gc",
+   "`reflogExpireUnreachable=never` mean a **bare `git gc` is now harmless to the 126**. Still **not**"
+  ],
+  [
+   565,
+   "git gc",
+   "blocked: `git gc --prune=now`, `git prune` (which does not consult `gc.pruneExpire`), `git repack`"
+  ],
+  [
+   565,
+   "git prune",
+   "blocked: `git gc --prune=now`, `git prune` (which does not consult `gc.pruneExpire`), `git repack`"
+  ],
+  [
+   565,
+   "git repack",
+   "blocked: `git gc --prune=now`, `git prune` (which does not consult `gc.pruneExpire`), `git repack`"
+  ],
+  [
+   566,
+   "reflog expire",
+   "with unreachable-dropping options, and `git reflog expire --expire-unreachable=now`. Those remain"
+  ],
+  [
+   570,
+   "git gc",
+   "`/tmp` repo `init`-ed from nothing and confirmed to hold no farmtable object. Bare `git gc`, no"
+  ],
+  [
+   597,
+   "git gc",
+   "**These bundles protect against:** container destruction, `git gc`/`prune`, deletion of"
+  ]
+ ],
+ "backups/em-state/_workspace_farmtable_.eng-manager-state.md": [
+  [
+   2748,
+   "git repack",
+   "Fixed: `git repack -a -d` then removed the alternates file, in all three."
+  ],
+  [
+   8279,
+   "git repack",
+   "Repair (all three): `git repack -a -d`, `rm .git/objects/info/alternates`, verify. Control is"
+  ],
+  [
+   10358,
+   "git add -A",
+   "git add -A ; TREE=$(git write-tree) ; SNAP=$(git commit-tree $TREE -p HEAD ...)"
+  ],
+  [
+   10359,
+   "git add -A",
+   "git add -A writes objects into the repo's object DB but updates only the TEMP"
+  ],
+  [
+   10879,
+   "git gc",
+   "**`cat-file -e` cannot distinguish \"safely referenced\" from \"one `git gc` from gone\" \u2014 and"
+  ],
+  [
+   10994,
+   "git gc",
+   "**`git gc` prunes the full unreachable set, not just the roots.** So for the question actually"
+  ],
+  [
+   11007,
+   "git gc",
+   "**And the answer is NOT a note saying \"never run git gc here\"** \u2014 that is the standing-bug"
+  ],
+  [
+   11054,
+   "git prune",
+   "**Gap as stated: \"remove it\" has no mechanism, and the obvious one (`git prune`) is precisely"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0602Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0615Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0157Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0142Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0325Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0058Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0300Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0545Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T083930Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0128Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T092549Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ],
+  [
+   16104,
+   "git add -A",
+   "git add -A / git add .                     -> rc=0, SILENTLY SKIPPED"
+  ],
+  [
+   16104,
+   "git add .",
+   "git add -A / git add .                     -> rc=0, SILENTLY SKIPPED"
+  ],
+  [
+   16166,
+   "git add -A",
+   "--exclude-standard and snapshots with git add -A, so BOTH SIDES SHARE ONE IGNORE MECHANISM. ONE"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T083258Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0638Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0212Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0640Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0415Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0222Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0215Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0442Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0255Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0152Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T082940Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0056Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0930Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T080303Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0028Z.md": [
+  [
+   3258,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9239,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9606,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9653,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9658,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9748,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10305,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0500Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0045Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0330Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0552Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0518Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0052Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0115Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0235Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0355Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0345Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0203Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0635Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0110Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0445Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0134Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0405Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T093359Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ],
+  [
+   16104,
+   "git add -A",
+   "git add -A / git add .                     -> rc=0, SILENTLY SKIPPED"
+  ],
+  [
+   16104,
+   "git add .",
+   "git add -A / git add .                     -> rc=0, SILENTLY SKIPPED"
+  ],
+  [
+   16166,
+   "git add -A",
+   "--exclude-standard and snapshots with git add -A, so BOTH SIDES SHARE ONE IGNORE MECHANISM. ONE"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T084507Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0240Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0345Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0310Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0038Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-20260729T0033Z.md": [
+  [
+   3272,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9253,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9620,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9667,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9672,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9762,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10319,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "backups/coordinator-state/coordinator-state-2026-07-29T0430Z.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ]
+ ],
+ "preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/.coordinator-state.md": [
+  [
+   3296,
+   "git repack",
+   "Fixed properly: stopped all three, ran `git repack -a -d`, removed the alternates,"
+  ],
+  [
+   9277,
+   "git add -A",
+   "`git add -A` \u2014 objects land in the object DB, only the temp index moves. Working"
+  ],
+  [
+   9644,
+   "git gc",
+   "\"safely referenced\" from \"one `git gc` from gone\" \u2014 and GC-able is the entire failure mode"
+  ],
+  [
+   9691,
+   "git gc",
+   "`git gc` in canonical is a known-destructive op with a known blast radius of 30.**"
+  ],
+  [
+   9696,
+   "git gc",
+   "NOT a note saying \"never run git gc here\" \u2014 that is exactly the standing-bug shape the"
+  ],
+  [
+   9786,
+   "git prune",
+   "assert 0.\" **\"Remove it\" had no mechanism, and the obvious one (`git prune`) is precisely"
+  ],
+  [
+   10343,
+   "git gc",
+   "delete, from any build/test, from git gc/prune, and from touching em-verify195"
+  ],
+  [
+   14695,
+   "reflog expire",
+   "blobs = 256 reproduces to the object. But gc also runs reflog expire --expire-unreachable, pulling"
+  ],
+  [
+   14715,
+   "git prune",
+   "STILL NOT BLOCKED, procedural only: gc --prune=now, git prune (does not consult pruneExpire at"
+  ],
+  [
+   14716,
+   "reflog expire",
+   "all), repack with unreachable-dropping options, reflog expire --expire-unreachable=now. THE"
+  ],
+  [
+   14931,
+   "git add -A",
+   "**WHEN IT FIRES IT FIRES SILENTLY:** `git add -A` succeeds, status is clean, review sees nothing,"
+  ],
+  [
+   15416,
+   "worktree prune",
+   "`git worktree prune`. THE FREEZE IS THE ONLY REASON THE MISTAKE COULD NOT HAVE BEEN ACTED ON.**"
+  ],
+  [
+   15421,
+   "worktree prune",
+   "the ones you have not. **Freeze on `worktree prune` and on `.git/worktrees/` records remains in force.**"
+  ],
+  [
+   15576,
+   "worktree prune",
+   "`git worktree prune`."
+  ]
+ ],
+ "preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md": [
+  [
+   2823,
+   "git repack",
+   "Fixed: `git repack -a -d` then removed the alternates file, in all three."
+  ],
+  [
+   8354,
+   "git repack",
+   "Repair (all three): `git repack -a -d`, `rm .git/objects/info/alternates`, verify. Control is"
+  ],
+  [
+   10433,
+   "git add -A",
+   "git add -A ; TREE=$(git write-tree) ; SNAP=$(git commit-tree $TREE -p HEAD ...)"
+  ],
+  [
+   10434,
+   "git add -A",
+   "git add -A writes objects into the repo's object DB but updates only the TEMP"
+  ],
+  [
+   10954,
+   "git gc",
+   "**`cat-file -e` cannot distinguish \"safely referenced\" from \"one `git gc` from gone\" \u2014 and"
+  ],
+  [
+   11069,
+   "git gc",
+   "**`git gc` prunes the full unreachable set, not just the roots.** So for the question actually"
+  ],
+  [
+   11082,
+   "git gc",
+   "**And the answer is NOT a note saying \"never run git gc here\"** \u2014 that is the standing-bug"
+  ],
+  [
+   11129,
+   "git prune",
+   "**Gap as stated: \"remove it\" has no mechanism, and the obvious one (`git prune`) is precisely"
+  ]
+ ]
+}

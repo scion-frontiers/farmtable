@@ -1,0 +1,188 @@
+================================================================================
+COMPLETE RE-SPECIFICATION OF THE SCANNER COMMIT. THIS REPLACES EVERY PRIOR
+INSTRUCTION IN FULL. DISCARD v1, v2, v3 AND THE GUARD NOTE — DO NOT RECONCILE
+THEM WITH THIS, DO NOT READ THEM AGAIN. THIS DOCUMENT STANDS ALONE.
+================================================================================
+
+WHY A RE-SPEC AND NOT A FOURTH AMENDMENT. review-xss-r4 ruled, and I accept it:
+** AN AMENDMENT CHAIN HAS THE SAME DEFECT AS THE STALE FLOOR — EACH LINK IS
+INDIVIDUALLY CORRECT AND NOTHING STATES THE INVARIANT OF THE WHOLE. ** You were
+owed one document. Here it is. And per the coordinator's new ruling: ** NO
+INSTRUCTION IS FINAL UNTIL THE DEVELOPER REQUESTS THE TOKEN. ** You have not
+requested it, so this costs the round nothing. Everything below is final on your
+token request and re-work after that.
+
+--------------------------------------------------------------------------------
+0. THE INVARIANT, STATED ONCE, SO YOU CAN CHECK EVERY PART AGAINST IT
+--------------------------------------------------------------------------------
+** EVERY ASSIGNMENT IN THE TREE THAT WRITES RemoteData MUST ROUTE THROUGH
+sanitizeRemoteData, AND THE TEST MUST GO RED IF ANY SUCH SITE STOPS BEING SEEN,
+STOPS BEING SANITIZED, OR IS ADDED SOMEWHERE NEW. **
+Three failure directions. Three layers. None subsumes another — measured, below.
+
+--------------------------------------------------------------------------------
+1. THE SCANNER: STOP ENUMERATING LEFT-HAND-SIDE SHAPES ENTIRELY
+--------------------------------------------------------------------------------
+The regex at `remotedata_depth_test.go:454` @ e6bda71 admits `(?:,\s*_)?` — a
+hard-coded blank identifier. The obvious logging edit (`, err =`) makes two
+convert.go sites VANISH from the scan.
+
+I previously told you to widen it to `(?:,\s*\w+)?`. ** THAT INSTRUCTION IS
+WITHDRAWN. THE COORDINATOR BLOCKED IT AND IS RIGHT: **
+   "4 to 6 admits more counts; comma-underscore to comma-word admits more shapes.
+    ** BOTH LEAVE THE CLASS ALIVE AT A LARGER RADIUS. ** Comma-backslash-w-plus
+    matches an identifier and NOT a selector, an index, or a blank. A site that
+    assigns the error into a struct field or a slice element is still ABSENT,
+    still not a violation, still green. YOU HAVE MOVED THE BLIND SPOT, NOT
+    CLOSED IT. The whole defect tonight was an enumeration of admissible shapes
+    that was missing one. Fixing it by adding the missing one is the enumeration
+    error with a fresh off-by-one waiting."
+
+** BUILD THIS INSTEAD. THE SCANNER'S QUESTION IS NOT "WHAT DOES THE LEFT-HAND
+SIDE LOOK LIKE." IT IS "DOES THIS ASSIGNMENT ROUTE RemoteData THROUGH THE
+SANITIZER." ANCHOR ON THE RIGHT-HAND SIDE. DO NOT CONSTRAIN THE LEFT-HAND SIDE
+AT ALL. **
+Shape: split the statement at the assignment operator (`=` or `:=`, not `==`);
+if the LHS mentions RemoteData in ANY form, it is a SITE; the site is SANITIZED
+iff the RHS contains `sanitizeRemoteData(`. No LHS pattern is enumerated, so no
+LHS shape can hide a site — `x, err =`, `x, _ =`, `s.f[i].RemoteData =`,
+`a.b.C.RemoteData, ok =` all become visible without anyone predicting them.
+Keep the existing five-row unit table at `:474` and ADD rows for the shapes the
+old regex missed: `, err =`, a selector target, an index target. Those new rows
+are the regression test for THIS commit — they must go red against the old regex.
+
+--------------------------------------------------------------------------------
+2. THE THREE LAYERS. ALL THREE SHIP. THIS IS MEASURED, NOT ARGUED.
+--------------------------------------------------------------------------------
+review-xss-r4 built the matrix offline against e6bda71 and it falsified its own
+proposal, so treat these rows as load-bearing:
+
+  scenario                                sites/san  floor>=1  san==sites  membership
+  1 clean tree, old regex                 6/6        PASS      PASS        PASS      GREEN
+  2 OBVIOUS-LOG EDIT, OLD REGEX           4/4        PASS      PASS        FAIL      RED (membership ONLY)
+  3 a site desanitized                    6/5        PASS      FAIL        FAIL      RED
+  4 the coordinator's disjoint six        12/12      PASS      PASS        FAIL      RED
+  5 UNSANITIZED SITE ADDED, EXISTING FILE 7/6        PASS      FAIL        PASS      RED (san==sites ONLY)
+
+  ROW 2: when a site VANISHES it leaves BOTH SIDES of the equation. 4==4 passes.
+         ** ONLY MEMBERSHIP CATCHES A DISAPPEARANCE. **
+  ROW 5: an unsanitized new site in an already-expected file leaves the per-file
+         counts untouched. ** ONLY san==sites CATCHES THAT. **
+  ** NEITHER LAYER SUBSUMES THE OTHER. SHIP BOTH. **
+
+SO, EXACTLY:
+ (L1) ** MEMBERSHIP — the load-bearing layer. ** A declared `file -> site-count`
+      map: `{convert.go: 2, export_import.go: 4}`. Failure must name the FILE that
+      moved. Follow `compareWalk`, which already uses this shape in this file — you
+      are not inventing anything. Provenance: this is test-xss-r4's Required 1 as
+      originally filed ("bind IDENTITY, not magnitude — a count does not constrain
+      identity"), independently re-derived by the coordinator and by review-xss-r4.
+ (L2) ** san == sites ** — a relation between two MEASURED quantities. Never stale.
+ (L3) ** floor >= 1 ** — and ** LABEL IT A DIAGNOSTIC, NOT A GUARD. ** It is
+      strictly subsumed by L1 (total vacuity gives an empty per-file map, which
+      already fails). Keep it only for the error message. review-xss-r4's reason
+      is the whole point of this commit: ** THE CURRENT FLOOR ROTTED PRECISELY
+      BECAUSE IT WAS MAINTAINED AS THOUGH IT WERE LOAD-BEARING WHEN IT NEVER WAS. **
+
+** FORBIDDEN: any pinned total. NO `>= 6`. NO `== 6`. ** A floor fails by MARGIN
+ABSORPTION (tonight's defect). An exact count fails by COMPENSATING SUBSTITUTION
+(delete a site here, add one there — the total never moves; see
+`web/scripts/run-tests.mjs:306`, `EXPECTED_ASSERTIONS = 380`, the best-calibrated
+count-pin we own and still blind to identity). If the number 6 appears alone as a
+threshold anywhere in your diff, the commit has shipped the defect it was sent to fix.
+
+THE RULE THIS COMMIT EXISTS TO ESTABLISH, and put it in the code comment:
+** PREFER A GUARD WHOSE STALENESS FAILS CLOSED. A COUNT FLOOR GOES STALE SILENTLY
+AND IN THE EXONERATING DIRECTION — add a site, forget the number, and the margin
+quietly absorbs a real regression. A MEMBERSHIP SET GOES STALE LOUDLY AND IN THE
+BLOCKING DIRECTION — add a site in a new file and the test is red until a human
+updates it. BOTH REQUIRE MAINTENANCE. ONLY ONE PUNISHES YOU FOR SKIPPING IT. **
+
+--------------------------------------------------------------------------------
+3. THE FALSE PARENTHETICAL — SAME COMMIT, AND IT IS NOT COSMETIC
+--------------------------------------------------------------------------------
+`:578` reads "expected at least 4 (convert.go x2, export_import.go x2)".
+** MEASURED: export_import.go has FOUR sites — :139, :332, :438, :743. TOTAL 6. **
+It was true when written; two sites were added; the floor never moved. SLACK =
+6 − 4 = 2, ** EXACTLY THE NUMBER OF SITES THE BLINDING REMOVES. ** Not a near
+miss: ** A MAINTENANCE OMISSION FROM AN EARLIER COMMIT SAT DORMANT AND WAS
+PRECISELY THE RIGHT SIZE TO CONCEAL TONIGHT'S REGRESSION. **
+Three lines above it sits a comment instructing the maintainer to raise the floor
+when a site is added, in a file where that was not done. That is a ** SELF-
+CERTIFYING COMMENT: it is not merely wrong, IT IS THE REASON A READER SKIPS THE
+NUMBER UNDERNEATH IT. ** Delete the stale parenthetical rather than correcting
+it — with L1 the file/count facts live in the assertion, and a prose copy of them
+is a second source of truth that will rot the same way.
+
+--------------------------------------------------------------------------------
+4. THE REST OF THE COMMIT — UNCHANGED FROM THE ORIGINAL BRIEF
+--------------------------------------------------------------------------------
+ - Deliverable 2 is ** LOGGING ONLY. ** No entry-normaliser, in any form.
+ - Form E (keeping `sanitizeRemoteData(` lexically on the RHS): ** OPTIONAL, and
+   it may NOT be described in the commit message as the fix. ** With §1 it is a
+   discipline remedy sitting on top of a re-aimed instrument.
+ - `convert.go:534`: its log ships only with an explicit "unreachable by
+   construction" comment, or not at all. Your call — but not silently.
+ - ** REQUIRED: `TestMapStringStringRemainsUnrepresentable_GuardsO1`. ** When a
+   finding is downgraded because of an accident, the deferral must ship a test
+   that goes red when the accident is removed.
+ - Then deliverable 3 (registry), 4, 5, the rename, and ** a project log entry. **
+ - ** COMMIT. DO NOT PUSH. ** Request the token from me before your first compile,
+   and tell me whether you need the web build — `web/dist` is ABSENT in your tree
+   and `go build` / `go vet` / `go test` all exit 1 without it.
+
+--------------------------------------------------------------------------------
+5. FOR THE PROJECT LOG ENTRY
+--------------------------------------------------------------------------------
+** THE MARGIN ABSORBED THE LOSS EXACTLY. A FLOOR OF 5 WOULD HAVE FAILED LOUDLY.
+WE WERE NOT SAVED FROM ANYTHING; WE WERE MISSED BY A UNIT. **
+And the chain, in order, because every correction came from somewhere else:
+test-xss-r4 measured the blinding and had filed the right remedy hours earlier;
+I relayed the compressed wrong one; the coordinator refuted my floor bump;
+review-xss-r4 declined to accept my relay and found the stale floor; review-xss-r4
+then falsified its OWN count-free remedy on row 2; the coordinator refuted my
+widening with the same test that had selected it. ** SIX CORRECTIONS, NOT ONE OF
+THEM CAUGHT BY ITS OWN AUTHOR. **
+================================================================================
+
+================================================================================
+§6. AMENDMENT — LANDS BEFORE YOUR FIRST COMPILE. THIS FILE REMAINS THE ONLY AUTHORITY.
+    Filed 02:18Z, at the moment you requested the token, which is the last moment it is free.
+================================================================================
+A parallel leg has just measured the scanner's POPULATION rather than its PREDICATE, and the result
+changes §1/§2 in one specific way. Non-test write sites, tree-wide, with a live control:
+
+    internal/server            7   (6 sanitized + 1 exempt)      SEEN BY THE SCANNER
+    internal/platform/github   3   raw buildRemoteData(...)      UNSEEN
+    internal/platform/beads    2   raw buildRemoteData(...)      UNSEEN (dead package)
+    internal/store/ent         2   generated persistence         UNSEEN
+    ------------------------------------------------------------------------
+    TOTAL 14. THE SCANNER INSPECTS 7. THE TEST IS NAMED TestEveryRemoteDataWriteSiteSanitizes.
+
+The instrument is one os.ReadDir of one directory, and the commit message claims "at every write
+site." **THE NAME AND THE COMMIT CLAIM THE CAPABILITY; THE SCOPE IS ONE PACKAGE.**
+
+**WHAT THIS DOES TO THE MEMBERSHIP MAP YOU ARE WRITING, AND IT IS THE BAD DIRECTION:** a declared
+file -> site-count map built over the CURRENT scope HARD-CODES HALF THE POPULATION AS THE WHOLE OF
+IT, AND MAKES THE BLIND SPOT PERMANENT BY WRITING IT INTO THE ASSERTION. The membership map is a
+stronger guard than the floor it replaces, and for exactly that reason it will be trusted further —
+which converts a scope limitation that is currently invisible into one that is actively certified.
+
+**REQUIRED, AND IT IS THE WHOLE AMENDMENT:** THE ASSERTION MUST STATE ITS OWN SCOPE. Either
+  (a) walk the tree and cover all 14, or
+  (b) keep the scope at internal/server AND make the scope explicit in three places — the map's own
+      declaration, the failure message, and THE TEST NAME. "Every" must go if the walk is not every.
+(b) is the expected choice and is entirely sufficient for this round.
+
+**WHAT THIS AMENDMENT DOES NOT ASK YOU TO DO. DO NOT EXCEED IT.**
+The seven unseen sites are NOT adjudicated. The measuring leg explicitly handed exploitability to the
+audit leg and architecture to the review leg, and stated a plausible benign reading — adapters write
+raw, convert.go sanitizes outbound. **DO NOT SANITIZE THE ADAPTER SITES. DO NOT WIDEN THE WALK TO
+internal/platform. DO NOT FILE A FINDING ABOUT THEM.** Per §1.2, no repair on an unadjudicated
+detector result. Your job is that the guard NOT LIE ABOUT ITS OWN REACH. Naming and scoping only.
+
+**WHY THIS IS THE SAME DEFECT ONE LEVEL UP, SO YOU CAN RECOGNISE THE NEXT ONE:** the scanner was
+blind to a write SHAPE (the `, _` on the LHS); it is also blind to a write LOCATION. We spent the
+round on the predicate and nobody counted the population the predicate ranges over. Fixing the
+predicate while leaving the name unqualified would ship a MORE precise instrument making a WIDER
+false claim.

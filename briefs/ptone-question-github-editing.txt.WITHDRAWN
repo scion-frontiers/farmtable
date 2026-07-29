@@ -1,0 +1,34 @@
+A question about intent that the code cannot answer.
+
+The dashboard has nine editing actions for work items that live in GitHub: change the
+title, the description, the stage, the priority, the assignee or the parent; add a
+comment; close an item; create a new one. All nine are turned on or off together by a
+single yes-or-no marker stored on the linked board.
+
+Nothing anywhere in the product ever sets that marker. So it is always no, all nine
+actions are unavailable, and every GitHub-backed board is displayed to the user with a
+read-only badge on it.
+
+There are only two explanations, and they call for opposite work.
+
+If two-way editing of GitHub-backed work was never meant to ship, then what users see is
+correct and honestly labelled, and the nine actions and the marker are dead weight that
+should be deleted. That would also remove a body of write-capable code that nothing
+currently exercises.
+
+If two-way editing was meant to work, then it has never worked for anyone, and the way
+it fails is the problem: the product does not error and does not warn, it puts a
+confident read-only badge on the board.
+
+One thing that should not be read either way. Nobody has ever complained about this.
+That is not a sign the feature is unwanted, and it is not a sign it is fine. The badge
+tells a user the limitation is deliberate, so a user who wanted to edit would conclude
+they were never meant to and would say nothing. Both explanations predict exactly the
+silence we have, so the silence tells us nothing about which one is right.
+
+What I cannot get from the code: which of those was intended. There is no comment, no
+test and no note recording a decision either way, so it is not recoverable by reading
+anything we have.
+
+The judgment I need: was editing GitHub-backed work from the dashboard ever intended to
+be available?

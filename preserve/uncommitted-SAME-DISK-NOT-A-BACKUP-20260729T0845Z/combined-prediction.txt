@@ -1,0 +1,19 @@
+PRE-REGISTERED PREDICTION for the #194 combined tree 6ced24e — written BEFORE the gate ran.
+Standing bar adopted from dev-194-fixes-6b: predict the delta BEFORE running the count,
+or label the reconciliation post-hoc. A tally computed after seeing the total cannot be
+refuted by the total.
+
+baseline ea8ac39 (measured by me):        579 top-level / 1544 result lines
+leg A alone 5db3937 (leg A's count):      611 / 1742   => +32 / +198
+leg B alone 089fac7 (MEASURED BY ME):     593 / 1625   => +14 /  +81
+
+PREDICTION if the legs are additive and disjoint:
+  top-level    579 + 32 + 14 = 625
+  result lines 1544 + 198 + 81 = 1823
+
+FALSIFIERS — any of these means the legs are NOT independent and I must find out why:
+  - fewer than predicted  => a test was lost or a duplicate name collided
+  - more than predicted   => the merge produced something neither leg had
+  - vet != 4, or any vet finding outside internal/server/server.go
+  - any panic or setup-failed
+Vet line numbers WILL move again; by-type is the criterion, never by-line.

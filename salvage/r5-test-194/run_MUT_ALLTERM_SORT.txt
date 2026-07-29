@@ -1,0 +1,7 @@
+# github.com/farmtable-io/farmtable/internal/platform/github
+internal/platform/github/terminal_label_stages.go:4:2: "sort" imported and not used
+FAIL	github.com/farmtable-io/farmtable/internal/server [build failed]
+# github.com/farmtable-io/farmtable/internal/platform/github [github.com/farmtable-io/farmtable/internal/platform/github.test]
+internal/platform/github/terminal_label_stages.go:4:2: "sort" imported and not used
+FAIL	github.com/farmtable-io/farmtable/internal/platform/github [build failed]
+FAIL

@@ -1,0 +1,63 @@
+
+===== IDENTITY =====
+ea8ac390dad3d2401d65608684e5d6623ab15ac5
+porcelain_empty=yes
+
+===== PRE-BUILD (no make web) — expect FAILURE, this is the R1 claim under test =====
+GO_BUILD_PRE_EXIT=1
+assets.go:5:12: pattern all:web/dist: no matching files found
+web_dist_exists=no
+web/dist not matched by check-ignore
+
+===== MAKE WEB =====
+MAKE_WEB_EXIT=127
+em-gate-194.sh: line 26: /usr/bin/time: No such file or directory
+web_dist_files=0
+
+===== GO BUILD (post make web) =====
+GO_BUILD_EXIT=1
+assets.go:5:12: pattern all:web/dist: no matching files found
+
+===== GO VET — expect nonzero; I must characterise the findings BY TYPE =====
+GO_VET_EXIT=1
+--- vet finding count:
+1
+--- vet findings verbatim:
+assets.go:5:12: pattern all:web/dist: no matching files found
+--- vet finding TYPES (this is what 'the same four' must mean):
+
+===== GO TEST ./... — count results, and check for panic truncation =====
+GO_TEST_EXIT=1
+PANIC_COUNT=0
+FAIL_LINES=5
+FAIL	github.com/farmtable-io/farmtable [setup failed]
+FAIL	github.com/farmtable-io/farmtable/cmd/farmtable-server [setup failed]
+FAIL	github.com/farmtable-io/farmtable/cmd/ft [setup failed]
+FAIL	github.com/farmtable-io/farmtable/internal/cli [setup failed]
+FAIL
+
+===== GO TEST -v COUNT (top-level + total result lines) =====
+GO_TEST_V_EXIT=1
+TOP_LEVEL_TESTS=561
+TOTAL_RESULT_LINES=1493
+PANIC_COUNT_V=0
+--- any failures under -v:
+
+===== MAKE RACE — note its scope =====
+19:race:
+20-	go test -race ./internal/platform/github/
+21-
+22-lint:
+MAKE_RACE_EXIT=127
+RACE_DETECTED=0
+em-gate-194.sh: line 64: /usr/bin/time: No such file or directory
+
+===== GO TEST -race ./internal/server/ — NEVER race-tested in this repo =====
+RACE_SERVER_EXIT=0
+RACE_SERVER_DATARACE=0
+
+===== FINAL CLEANLINESS =====
+porcelain_empty=yes
+?? _gate/
+
+===== DONE =====

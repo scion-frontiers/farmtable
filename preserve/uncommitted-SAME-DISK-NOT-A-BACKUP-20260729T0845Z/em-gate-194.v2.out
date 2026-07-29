@@ -1,0 +1,87 @@
+
+===== HARNESS SELF-CHECK =====
+go     /usr/local/go/bin/go
+make   /usr/bin/make
+git    /usr/local/bin/git
+npm    /usr/local/bin/npm
+node   /usr/local/bin/node
+make web target:
+26:web:
+27-	cd web && npm ci && npm run build
+28-
+29-web-dev:
+
+===== IDENTITY =====
+ea8ac390dad3d2401d65608684e5d6623ab15ac5
+porcelain_empty=yes
+
+===== PRE-BUILD (no make web) — the R1 claim under test =====
+GO_BUILD_PRE_EXIT=1
+assets.go:5:12: pattern all:web/dist: no matching files found
+web_dist_exists=no
+
+===== MAKE WEB =====
+MAKE_WEB_EXIT=0
+make_web_seconds=7
+dist/assets/index-YVwUln1D.js   824.70 kB │ gzip: 210.55 kB │ map: 2,471.26 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[vite-plugin-static-copy] Copied 2053 items.
+✓ built in 2.95s
+web_dist_files=4109
+
+===== GO BUILD (post make web) =====
+GO_BUILD_EXIT=0
+
+===== GO VET — characterise findings BY TYPE, not by count =====
+GO_VET_EXIT=1
+--- findings verbatim:
+internal/server/server.go:1601:14: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetReadyTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:1711:14: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBlockedTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:1919:13: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetCriticalPathRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+internal/server/server.go:2096:13: assignment copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBottlenecksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+--- count: 4
+--- TYPES (what 'the same four' must actually mean):
+      1 copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBlockedTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+      1 copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetBottlenecksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+      1 copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetCriticalPathRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+      1 copies lock value to ephReq: github.com/farmtable-io/farmtable/api/farmtable/v1.GetReadyTasksRequest contains google.golang.org/protobuf/runtime/protoimpl.MessageState contains sync.Mutex
+--- packages implicated:
+      4 internal/server
+
+===== GO TEST ./... (non-verbose) =====
+GO_TEST_EXIT=0
+PANIC_COUNT=0
+SETUP_FAILED=0
+
+===== GO TEST -v — counts, with panic/setup truncation checks =====
+GO_TEST_V_EXIT=0
+TOP_LEVEL_TESTS=579
+TOTAL_RESULT_LINES=1544
+PANIC_COUNT_V=0
+SETUP_FAILED_V=0
+--- failures:
+
+===== MAKE RACE — scope printed from the Makefile, not asserted =====
+19:race:
+20-	go test -race ./internal/platform/github/
+21-
+22-lint:
+MAKE_RACE_EXIT=0
+make_race_seconds=3
+RACE_DETECTED=0
+go test -race ./internal/platform/github/
+ok  	github.com/farmtable-io/farmtable/internal/platform/github	1.201s
+
+===== GO TEST -race ./internal/server/ x3 — NEVER race-tested in this repo; heartbeat flake is intermittent =====
+RUN1 exit=0 dataraces=0 failures=0
+RUN2 exit=0 dataraces=0 failures=0
+RUN3 exit=0 dataraces=0 failures=0
+
+===== FINAL CLEANLINESS =====
+porcelain_empty_ignoring_gate=yes
+
+===== DONE — all prereq assertions passed, so the numbers above are load-bearing =====

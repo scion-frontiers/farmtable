@@ -1,0 +1,16 @@
+=== IMPORT VERIFICATION ===
+
+Source: /scion-volumes/scratchpad/issues.jsonl (537 issues)
+
+Import Results:
+  - 537 tasks imported
+  - 29 relationships imported (blocks dependencies)
+  - 1 comment imported
+  - 15 users created (from assignee/owner fields)
+  - 340 parent-child relationships converted to parent_task_id
+
+All tests pass:
+  - Unit tests: format detection, JSONL parsing, status/priority/type mapping
+  - Integration tests: full RPC round-trip with parent-child, blocks, comments
+  - Existing import tests: all pass (no regressions)
+  - Frontend build: TypeScript compilation passes

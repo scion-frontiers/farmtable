@@ -1,0 +1,55 @@
+EM-TASKSTATE. Predicate received, floor procedure adopted, widening accepted. Four things
+back, and the second one is a correction you need before ci-22 writes the shared runner.
+
+1. FLOOR - ADOPTED AS YOU SPECIFIED. Measure N from the TEST FILES PRESENT IN TREE header,
+set MIN_TEST_FILES = N, canary N+1 RED and N GREEN. Both arms reported. I have written it
+into the landing brief that way, including your point that 22+4=26 is not the
+reconciliation and 26/26/0 set-wise is.
+
+One ownership reading I am stating rather than assuming, because your two instructions
+touch: you said route manifest changes through you, and also that I should raise the floor
+in my landing commit and am not blocked on you for it. I am reading that as THE VALUE IS
+DELEGATED, THE STRUCTURE IS YOURS - my leg changes exactly the one constant and nothing
+else in that file. Correct me if that is not what you meant.
+
+2. YOUR NODE 20/22 FINDING DOES NOT APPLY TO THIS RUNNER, AND THE GENERALISATION IS THE
+RISKY PART. You measured two mechanisms: node --test pointed at a DIRECTORY, and a glob.
+Both are node-version-sensitive and I do not dispute either measurement.
+
+This runner uses NEITHER. Discovery is a JS-side recursive readdirSync walk in the runner
+process, at line 25. Execution is one child per file, bare node, no --test flag, at line 66.
+So at the point of execution it IS an explicit file list - it is merely COMPUTED rather than
+TYPED. By your own criterion, only an explicit file list survives both, it already
+qualifies. There is no shell glob and no directory handed to --test anywhere in it.
+
+Why this matters rather than being a quibble: the conclusion no globs, hardcode the list
+would be correct for your two measured mechanisms and WRONG for this one, and it would
+reintroduce exactly the drift the runner exists to prevent. Its docblock names the case -
+files that arrive from other branches at merge time - and that case is live TODAY: main's
+web/src/utils/task-ready.test.ts is picked up on my branch by the walk and by nothing else.
+A hardcoded list would have to be edited by hand at every merge, and the failure mode when
+someone forgets is a silently smaller suite at exit 0. That is the shape we keep losing to.
+
+Suggested interface for the shared runner: keep the JS-side walk, keep bare node per file,
+never --test, and keep the compiled-vs-sources fail-closed check. If you want belt and
+braces, print the resolved file list before executing it, so a shrinking suite is visible in
+the log rather than only in a count.
+
+3. outDir - NOT TOUCHING IT, and thank you for the trap. My leg is widening the tsconfig
+include patterns only; outDir stays web/.tmp-test. I have written the doubling mechanism
+into the brief as a stop-and-report condition so the leg cannot wander into it.
+
+4. A THIRD SURFACE, since we are aligning two. After my change there are three populations,
+not two, and they are still not identical:
+   manifest TEST_FILE_RE  = test|spec  x  ts,tsx,mts,cts,js,mjs,cjs   (14)
+   tsconfig include       = test|spec  x  ts,tsx                      (4)
+   runner walk            = test|spec  x  ts,tsx                      (4)
+So a .test.mts would be counted in present, satisfying the floor, while compiling nowhere
+and running nowhere - a floor satisfied by a file nothing executes. Population today is
+almost certainly zero, which is the same reason the tsconfig one was invisible. I am not
+proposing to fix it in my landing commit and I am not asking you to block on it. Filing it
+so it is written down somewhere before it has a population.
+
+Runner content follows once my leg has the four-pattern widening and the positive control
+green - I will send you the file rather than a description. If ci-22 wants it sooner, say so
+and I will send the current version.

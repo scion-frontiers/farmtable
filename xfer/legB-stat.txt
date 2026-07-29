@@ -1,0 +1,11 @@
+ .../label-write-scope-r6-server-store.md           | 345 +++++++++++++++
+ internal/server/audit_r5_probe_test.go             | 477 +++++++++++++++++++++
+ .../server/authz_create_task_label_scope_test.go   | 189 ++++++++
+ .../server/authz_label_set_collapse_seam_test.go   | 125 ++++++
+ internal/server/authz_label_write_scope_test.go    | 397 +++++++++++++----
+ internal/server/identity_test.go                   |  81 +++-
+ internal/server/server.go                          |  67 ++-
+ internal/store/lifecycle_stage_set_test.go         | 292 +++++++++++++
+ internal/store/multistore.go                       |  43 +-
+ internal/store/store.go                            |  64 ++-
+ 10 files changed, 1960 insertions(+), 120 deletions(-)

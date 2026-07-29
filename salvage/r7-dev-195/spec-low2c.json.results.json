@@ -1,0 +1,46 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "SRCHTML-scanned",
+    "desc": "A .html under src/ with an inline sink, count reconciled to 52. With '.html' off the inert list it is walked and scanned: expect RED naming the SINK tripwire (not the count pin).",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: s"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/legacy-widget.html (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "SRCHTML-inert",
+    "desc": "ABLATION: the same file, with '.html' back on the inert list and the count left at 51. If it comes out GREEN, the file vanished before `files` was built \u2014 no sink signal AND no count signal, which is the exact 'no signal of any kind' failure the denylist comment describes. THIS is what the extension removal buys.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  }
+]

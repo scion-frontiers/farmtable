@@ -1,0 +1,43 @@
+{
+  "note": "W3 verification. C2-e (REQUIRED_SINKS shrink + escaped alias + raw render) was GREEN at 68 checks on 86f30bc and must now be RED. It must be red for the RIGHT reason twice over: the scope pin catches the shrink, and the promoted R7 catches the escape independently. Cases C2-e-scope-only and C2-e-escape-only separate those.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment \u2014 MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 70;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "ABL-r7-view",
+      "desc": "ABLATION: run the promoted R7 over the strings-KEPT view. markdown.ts's deliberate \\uFE0E escape must turn the suite red \u2014 that is the false positive the view choice avoids, measured rather than asserted.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    for (const { rel, codeNoStrings } of scanned) {\n      offenders.push(...escapeInCodeOffenders(rel, codeNoStrings));",
+          "replace": "    for (const { rel, code } of scanned) {\n      offenders.push(...escapeInCodeOffenders(rel, code));"
+        }
+      ]
+    }
+  ]
+}

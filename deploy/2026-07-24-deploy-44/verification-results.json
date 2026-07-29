@@ -1,0 +1,55 @@
+{
+  "testDate": "2026-07-24T18:49:04.477Z",
+  "deployRevision": "farmtable-00051-l7d",
+  "commitSha": "e5218539d576be5a8788da9d410aac4ef0b8a134",
+  "feature": "Feature 65 — Dashboard Ready item count (PR #148)",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 6,
+  "failCount": 0,
+  "totalChecks": 6,
+  "checks": [
+    {
+      "check": "a-ready-card-exists",
+      "action": "Ready stat card exists on Dashboard",
+      "pass": true,
+      "detail": "readyCardFound: true, readyCount: 21",
+      "timestamp": "2026-07-24T18:48:46.548Z"
+    },
+    {
+      "check": "a-ready-count-plausible",
+      "action": "Ready count is a plausible number",
+      "pass": true,
+      "detail": "readyCount: 21, totalCount: 37",
+      "timestamp": "2026-07-24T18:48:46.548Z"
+    },
+    {
+      "check": "b-count-cross-check",
+      "action": "Dashboard Ready count matches Ready Queue item count",
+      "pass": true,
+      "detail": "Dashboard Ready: 21, Ready Queue: 21 (dom: 21, header: 21, property: undefined)",
+      "timestamp": "2026-07-24T18:48:51.839Z"
+    },
+    {
+      "check": "c-ready-card-click-navigates",
+      "action": "Clicking Ready card navigates to Ready Queue",
+      "pass": true,
+      "detail": "View before: dashboard, view after: ready-queue",
+      "timestamp": "2026-07-24T18:48:59.138Z"
+    },
+    {
+      "check": "d-other-stats-present",
+      "action": "Other Dashboard stats (phase, total) are present and non-null",
+      "pass": true,
+      "detail": "Phase cards: 4 (all have counts: true). Total card: 37. All stats: [\"Open:29\",\"In Progress:8\",\"On Hold:0\",\"Closed:0\",\"Ready:21\",\"Total:37\"]",
+      "timestamp": "2026-07-24T18:49:04.389Z"
+    },
+    {
+      "check": "d-no-console-errors",
+      "action": "No relevant console errors during entire verification",
+      "pass": true,
+      "detail": "Zero relevant console errors (2 total, all filtered)",
+      "timestamp": "2026-07-24T18:49:04.389Z"
+    }
+  ]
+}

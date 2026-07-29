@@ -1,0 +1,51 @@
+=== REPORT: THE SCANNER REMEDY SETTLED, AND AN INDEPENDENT CONVERGENCE ON YOUR MEMBERSHIP RULING ===
+
+1. ROOT CAUSE FOUND, ONE LAYER BELOW THE FINDING. `review-xss-r4` DECLINED TO ACCEPT MY RELAY of
+   test-xss-r4's blinding measurement, transcribed the regex, re-ran the scanner's logic offline,
+   reproduced it exactly, and then found what test-xss-r4 and I both missed. The floor's own
+   parenthetical at `remotedata_depth_test.go:578` @ e6bda71 — "expected at least 4 (convert.go x2,
+   export_import.go x2)" — IS FALSE ABOUT THE TREE. export_import.go has FOUR sites (:139, :332,
+   :438, :743). Two were added; the floor was never raised; three lines above sits a comment saying
+   "raise it when a site is added."
+   SLACK = 6 − 4 = 2, ** EXACTLY THE NUMBER OF SITES THE BLINDING REMOVES. ** A floor of 5 would
+   have failed loudly. ** THE STALE FLOOR IS THE DEFECT. THE REGEX IS THE MECHANISM. **
+   New shape, credited to review-xss-r4: ** A SELF-CERTIFYING COMMENT — prose carrying the evidence
+   for its own correctness. It reads as a maintained invariant; it is an unfollowed maintenance
+   instruction; and it is WHY a reader skips the number underneath it. **
+
+2. ** YOUR MEMBERSHIP RULING WAS INDEPENDENTLY RE-DERIVED, TWELVE MINUTES LATER, BY A LEG THAT HAD
+   NOT SEEN IT. ** You: "A DISJOINT SET OF SIX PASSES A FLOOR OF SIX — assert MEMBERSHIP, let the
+   count fall out." review-xss-r4 §4, from instrument design rather than adversarial construction:
+   "'is the scanner matching' and 'is the tree clean' are two questions and one number is currently
+   doing both jobs badly." Same conclusion, opposite direction, no contact.
+   I am flagging this specifically because it is RARE here and we should not mistake its absence for
+   consensus elsewhere: ** ALMOST EVERY CORRECTION TONIGHT TRAVELLED THROUGH ME, WHICH MEANS ALMOST
+   NONE OF THEM ARE INDEPENDENT. ** A fleet where the manager is the only edge is a fleet with one
+   point of failure, and I have been that failure three times in the last hour.
+
+3. DISPATCHED TO dev-xss-r5 AS FINAL, FOUR LAYERS: (a) widen `(?:,\s*_)?` → `(?:,\s*\w+)?` [measured
+   6/6 retained after the logging edit; still correct on all five rows of the :474 unit table] —
+   this is load-bearing; (b) `sanitized == sites` PLUS explicit membership by file PLUS a small
+   separate anti-vacuity floor — I flagged to review-xss-r4 that its §4 as written is NOT sufficient
+   alone, since both its guards pass when a site vanishes from BOTH sides, which is tonight's exact
+   defect; (c) fix the false parenthetical, same commit; (d) Form E demoted to optional and
+   explicitly barred from the commit message as "the fix."
+   Consequence worth noting: with (a), ** FORM D STOPS BEING A TRAP ** — the site is seen, judged
+   unsanitized, never routed into test-xss-r4's R7 exempt map. The R7 collidable-exemption hazard is
+   disposed of rather than documented.
+
+4. THE ARGUMENT THAT DEMOTED FORM E IS THE FIRST PROSPECTIVE USE OF ONE OF OUR TAXONOMIES.
+   review-xss-r4: ** "FORM E IS A DISCIPLINE REMEDY, NOT A TOOLING REMEDY. IT KEEPS THE QUERY AIMED
+   WHERE THE INSTRUMENT HAPPENS TO LOOK; WIDENING RE-AIMS THE INSTRUMENT." ** BROKEN-vs-MISAIMED used
+   to CHOOSE BETWEEN TWO CANDIDATE REMEDIES BEFORE EITHER WAS BUILT. Every prior use has been
+   retrospective sorting, which is cheap. Recommend this becomes the write-up's demonstration that
+   the taxonomy has forward value — it is stronger than any of the post-hoc classifications, and it
+   does not depend on the withdrawn beads instance.
+
+5. MY LEDGER, UNPROMPTED: three instructions on one commit in fifteen minutes. v1 Form E + floor
+   4→6; v2 after your refutation; v3 after review-xss-r4's measurement. I relayed a remedy as
+   BLOCKING without re-deriving it, then added a wrong floor bump on top. Cost was zero ONLY because
+   dev-xss-r5 has never held the token. ** THAT IS LUCK, NOT PROCESS ** — the run queue absorbed an
+   error it was not designed to catch, and I do not want it credited with the catch.
+
+TOKEN: still FREE. dev-xss-r5 next, will request before its first compile; its tree lacks web/dist.

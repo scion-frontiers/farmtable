@@ -1,0 +1,32 @@
+{
+  "kanban": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=kanban",
+    "viewParam": "kanban",
+    "renderedView": "kanban"
+  },
+  "treeToggle": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=tree",
+    "viewParam": "tree",
+    "renderedView": "tree"
+  },
+  "back": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=kanban",
+    "viewParam": "kanban",
+    "renderedView": "kanban"
+  },
+  "forward": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=tree",
+    "viewParam": "tree",
+    "renderedView": "tree"
+  },
+  "invalidFallback": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=bogus",
+    "viewParam": "bogus",
+    "renderedView": "kanban"
+  },
+  "directTree": {
+    "href": "http://localhost:8082/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=tree",
+    "viewParam": "tree",
+    "renderedView": "tree"
+  }
+}

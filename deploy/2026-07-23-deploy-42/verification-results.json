@@ -1,0 +1,174 @@
+{
+  "testDate": "2026-07-23T23:56:21.174Z",
+  "deployRevision": "farmtable-00049-4rl",
+  "commitSha": "eef367b29fcca7b224c31184549bc545db3f71fe",
+  "feature": "Feature 63 — Default Dashboard View, reordered switcher, task-deep-link fallback to Kanban",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 23,
+  "failCount": 0,
+  "totalChecks": 23,
+  "checks": [
+    {
+      "check": "a-default-view",
+      "action": "Default view (no ?view=, no ?task=) is Dashboard",
+      "pass": true,
+      "detail": "currentView: \"dashboard\". Dashboard component present: true. URL ?view param: null. URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710",
+      "timestamp": "2026-07-23T23:55:05.065Z"
+    },
+    {
+      "check": "b-dashboard-first",
+      "action": "Dashboard is first (leftmost) in view switcher",
+      "pass": true,
+      "detail": "First view: \"dashboard\". Order: dashboard, kanban, tree, dependencies, ready-queue",
+      "timestamp": "2026-07-23T23:55:05.130Z"
+    },
+    {
+      "check": "b-grid-icon",
+      "action": "Dashboard uses grid icon (not bar-chart-line)",
+      "pass": true,
+      "detail": "First icon: \"grid\". Expected: \"grid\"",
+      "timestamp": "2026-07-23T23:55:05.130Z"
+    },
+    {
+      "check": "b-kanban-second",
+      "action": "Kanban is second in view switcher (after Dashboard)",
+      "pass": true,
+      "detail": "Second view: \"kanban\". Full order: dashboard(grid), kanban(kanban), tree(diagram-3), dependencies(diagram-3), ready-queue(list-check)",
+      "timestamp": "2026-07-23T23:55:05.131Z"
+    },
+    {
+      "check": "b-dashboard-selected",
+      "action": "Dashboard is selected in view switcher for default view",
+      "pass": true,
+      "detail": "Selected value: \"dashboard\". Expected: \"dashboard\"",
+      "timestamp": "2026-07-23T23:55:05.131Z"
+    },
+    {
+      "check": "c-deeplink-kanban",
+      "action": "Task deep-link (no ?view=) lands on KANBAN (not Dashboard)",
+      "pass": true,
+      "detail": "currentView: \"kanban\". Expected: \"kanban\". Kanban component present: true. Dashboard absent: true. URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&task=1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:55:24.489Z"
+    },
+    {
+      "check": "c-deeplink-task-selected",
+      "action": "Task deep-link selects the correct task",
+      "pass": true,
+      "detail": "Selected task: \"1015aab2-d142-4c0e-ae25-8d874a1676ca\". Expected: \"1015aab2-d142-4c0e-ae25-8d874a1676ca\" (\"Test task from real client\")",
+      "timestamp": "2026-07-23T23:55:24.489Z"
+    },
+    {
+      "check": "c-deeplink-inspector-open",
+      "action": "Task deep-link opens Inspector",
+      "pass": true,
+      "detail": "Inspector visible: true. Content: \n      \n        Inspector\n        \n      \n\n      \n\n      \n        General\n        Relationships\n\n        \n          \n            \n              \n     ",
+      "timestamp": "2026-07-23T23:55:24.489Z"
+    },
+    {
+      "check": "c-deeplink-no-dim-overlay",
+      "action": "No dim overlay present on task deep-link",
+      "pass": true,
+      "detail": "Dim overlay found: false. Visible: false",
+      "timestamp": "2026-07-23T23:55:24.490Z"
+    },
+    {
+      "check": "c-deeplink-switcher-kanban",
+      "action": "View switcher shows Kanban selected on task deep-link",
+      "pass": true,
+      "detail": "Switcher value: \"kanban\". Expected: \"kanban\"",
+      "timestamp": "2026-07-23T23:55:24.491Z"
+    },
+    {
+      "check": "d-explicit-kanban",
+      "action": "Explicit ?view=kanban loads correctly",
+      "pass": true,
+      "detail": "currentView: \"kanban\". Expected: \"kanban\"",
+      "timestamp": "2026-07-23T23:55:29.779Z"
+    },
+    {
+      "check": "d-explicit-tree",
+      "action": "Explicit ?view=tree loads correctly",
+      "pass": true,
+      "detail": "currentView: \"tree\". Expected: \"tree\"",
+      "timestamp": "2026-07-23T23:55:35.012Z"
+    },
+    {
+      "check": "d-explicit-dependencies",
+      "action": "Explicit ?view=dependencies loads correctly",
+      "pass": true,
+      "detail": "currentView: \"dependencies\". Expected: \"dependencies\"",
+      "timestamp": "2026-07-23T23:55:40.236Z"
+    },
+    {
+      "check": "d-explicit-dashboard",
+      "action": "Explicit ?view=dashboard loads correctly",
+      "pass": true,
+      "detail": "currentView: \"dashboard\". Expected: \"dashboard\"",
+      "timestamp": "2026-07-23T23:55:45.462Z"
+    },
+    {
+      "check": "d-explicit-dashboard-task",
+      "action": "?view=dashboard with ?task= stays on dashboard",
+      "pass": true,
+      "detail": "currentView: \"dashboard\". Expected: \"dashboard\" (explicit ?view= overrides default fallback)",
+      "timestamp": "2026-07-23T23:55:50.705Z"
+    },
+    {
+      "check": "e-tree-renders",
+      "action": "Tree View renders correctly (regression)",
+      "pass": true,
+      "detail": "SVG present: true, Node count: 37",
+      "timestamp": "2026-07-23T23:55:55.876Z"
+    },
+    {
+      "check": "e-task-select",
+      "action": "Task selection works (click in Tree View)",
+      "pass": true,
+      "detail": "Clicked: true. Selected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:55:57.909Z"
+    },
+    {
+      "check": "e-url-sync",
+      "action": "URL updates with ?task= on task selection (Feature 62)",
+      "pass": true,
+      "detail": "URL ?task param: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:55:57.909Z"
+    },
+    {
+      "check": "e-close-inspector",
+      "action": "Closing Inspector removes ?task= (Feature 62)",
+      "pass": true,
+      "detail": "?task param after close: null. Expected: null",
+      "timestamp": "2026-07-23T23:55:59.417Z"
+    },
+    {
+      "check": "e-deeplink-tree",
+      "action": "Feature 62 tree deep-link still works (regression)",
+      "pass": true,
+      "detail": "View: tree, Selected: 1015aab2-d142-4c0e-ae25-8d874a1676ca, Inspector: true",
+      "timestamp": "2026-07-23T23:56:10.672Z"
+    },
+    {
+      "check": "e-kanban-renders",
+      "action": "Kanban View renders correctly (regression)",
+      "pass": true,
+      "detail": "Columns: 8, Cards: 0",
+      "timestamp": "2026-07-23T23:56:15.946Z"
+    },
+    {
+      "check": "e-dep-renders",
+      "action": "Dependency View renders correctly (regression)",
+      "pass": true,
+      "detail": "Node count: 37",
+      "timestamp": "2026-07-23T23:56:21.109Z"
+    },
+    {
+      "check": "e-console",
+      "action": "No relevant console errors during all checks",
+      "pass": true,
+      "detail": "Zero relevant console errors (11 filtered)",
+      "timestamp": "2026-07-23T23:56:21.109Z"
+    }
+  ]
+}

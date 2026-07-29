@@ -1,0 +1,54 @@
+{
+  "feature43": {
+    "hierarchyEdgeCount": 5,
+    "dependencyEdgeCount": 0,
+    "dashedPaths": [],
+    "blocksRelationshipInData": true,
+    "blockedTask": "smoke-test-1784467180",
+    "blockerTask": "Test task from real client",
+    "pass": true
+  },
+  "feature41": {
+    "transformBefore": null,
+    "transformAfter": null,
+    "pass": false
+  },
+  "inspectorContent": {
+    "sections": [
+      {
+        "label": "Parent",
+        "entries": [],
+        "none": "None"
+      },
+      {
+        "label": "Children",
+        "entries": [
+          "foobar"
+        ],
+        "none": ""
+      },
+      {
+        "label": "Blocked by",
+        "entries": [
+          "Test task from real client"
+        ],
+        "none": ""
+      },
+      {
+        "label": "Blocks",
+        "entries": [],
+        "none": "None"
+      },
+      {
+        "label": "Related",
+        "entries": [],
+        "none": "None"
+      },
+      {
+        "label": "Duplicate of",
+        "entries": [],
+        "none": "None"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+REVIEW LEG - THREE ANSWERS. Your hypothesis 3 is DEAD, killed by a measurement I already had, and you told me exactly what would kill it.
+
+HYPOTHESIS 3: DISCARDED. You said: if the fixture has no sub-issues, my hypothesis is wrong and you should discard it. THE FIXTURE HAS NO SUB-ISSUES. I read issueNodeJSON in passthrough_url_test.go before dispatching the arbitration:
+
+  "labels": {"nodes": []},
+  "subIssues": {"nodes": [], "totalCount": 0},
+
+sub_issues is written only under len(SubIssues.Nodes) greater than zero, so against this fixture it is NOT SET. There is no second carrier standing in for the deleted first one. Your condition is not met and the hypothesis is out.
+
+I want to be clear that this is a GOOD contribution and not a wasted one. You stated a precise discriminating check, named the observation that would refute it, tagged it REASONED NOT MEASURED, and declined to run it yourself on the grounds that you would be a fourth uncontrolled hand on the same question. That is the whole protocol executed correctly, and it cost me one lookup to close. A hypothesis that dies in one measurement because its author said what would kill it is worth more than a vague suspicion that survives forever.
+
+Also note what it was: the two-carrier structure reappearing at the MUTATION layer rather than the ASSERTION layer. Even refuted here, that shape is real and I am keeping it - a mutant that fixes one of N carriers of a property leaves the property dead and the suite green, and our mutation tables have no rule against it. It joins the hazard the auditor found, that a mutant deleting code the fixture never executes is indistinguishable from a surviving mutant. Both are ways a mutation table reports SURVIVED when nothing was tested.
+
+YOUR POINT 2 IS THE KEEPER FROM R3 AND IT CHANGES MY ADJUDICATION.
+
+You declared your route honestly and split it, which is exactly what I asked for. The name-search half is shared with the test leg and you conceded it fully - two legs, one piece of evidence. But the other half is NOT shared and NOT a name search:
+
+INTERNAL/PLATFORM/GITHUB NEVER IMPORTS STRUCTPB. That is an IMPORT-GRAPH measurement. It survives the arbitration in every outcome, because it does not depend on what any test is named or which tests a -run filter selected.
+
+And your formulation of what it means is the sharpest sentence anyone has produced tonight: THE AUDITOR'S TEST CAN PROVE THE CONSEQUENCE AT RUNTIME; IT CANNOT LOCALISE THE CAUSE. A red field-count assertion in internal/server tells the next engineer that something broke somewhere upstream. It does not tell them that issueLabels changed type, and it does not fail in the package where the fix belongs. So even if the arbitration comes back RED and the end-to-end pin is real, THE PRODUCER IS STILL UNPINNED, and your remedy - one test in internal/platform/github asserting NewStruct over the real builder output errors - is required either way. I am putting it in the fix scope now rather than waiting for the run.
+
+YOUR POINT 1: CORRECTION ACCEPTED AND RECORDED AGAINST YOU, AND IT IS THE BEST KIND.
+
+Your R3 heading said the property is pinned by a test that never TOUCHES the code that produces it. You measured that no test NAMES it. NAMING IS NOT TOUCHING, and the auditor proved the gap is real - the builder executes at runtime through a mock GraphQL server without appearing in any test file. You caught that this is precisely the defect class you filed R1 and R2 against: a true measurement carrying a false sentence, in the finding that exists to eliminate them. You also caught that you should have flagged it in WHAT I DID NOT CHECK and did not.
+
+Recorded. And recorded next to the fact that YOU found it, unprompted, after submitting, against your own headline, while three other people were arguing about it. That is the same move the auditor made twice tonight and it is becoming the most reliable signal I have.
+
+YOUR R4 NOTE IS ADOPTED INTO THE FIX SCOPE VERBATIM. The four shapes you measured as silent misses become the first four rows of the new scanner's table and must go from MISS to SEEN. THAT GIVES THE AST REWRITE A RED-TO-GREEN TARGET INSTEAD OF A REFACTOR WITH NO FAILING TEST - which is the difference between a rewrite that is verified and a rewrite that is merely believed. It also means the fix leg cannot declare victory by producing a scanner that compiles.
+
+TOKEN: noted. If I spend it on the web half you will get the result even though it lands outside your delta.
+
+Stay blocked. Nothing further from you until I adjudicate.

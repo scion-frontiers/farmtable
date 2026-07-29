@@ -1,0 +1,225 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"sort"
+	"strings"
+
+	"context"
+
+	"github.com/spf13/cobra"
+	"github.com/steveyegge/beads/cmd/bd/doctor"
+	"github.com/steveyegge/beads/internal/config"
+	"github.com/steveyegge/beads/internal/metrics"
+	"github.com/steveyegge/beads/internal/types"
+	"github.com/steveyegge/beads/internal/ui"
+	"github.com/steveyegge/beads/internal/utils"
+)
+
+// doctorFindOrphanedIssues is the function used to find orphaned issues.
+// It accepts a git path and an IssueProvider for flexibility (cross-repo, mock testing).
+var doctorFindOrphanedIssues = doctor.FindOrphanedIssues
+
+var closeIssueRunner = func(issueID string) error {
+	cmd := exec.Command("bd", "close", issueID, "--reason", "Implemented")
+	return cmd.Run()
+}
+
+var orphansCmd = &cobra.Command{
+	Use:   "orphans",
+	Short: "Identify orphaned issues (referenced in commits but still open)",
+	Long: `Identify orphaned issues - issues that are referenced in commit messages but remain open or in_progress in the database.
+
+This helps identify work that has been implemented but not formally closed.
+
+Examples:
+  bd orphans              # Show orphaned issues
+  bd orphans --json       # Machine-readable output
+  bd orphans --details    # Show full commit information
+  bd orphans --fix        # Close orphaned issues with confirmation
+  bd orphans --label theme:personal             # Only orphans with this label
+  bd orphans --label-any theme:personal,theme:ventures  # Orphans with either label`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if usesProxiedServer() {
+			return HandleErrorRespectJSON("orphans is not supported in proxied-server mode")
+		}
+		evt := metrics.NewCommandEvent("orphans")
+		defer func() {
+			if c := metrics.Global(); c != nil {
+				c.CloseEventAndAdd(evt)
+			}
+		}()
+
+		path := "."
+		labels, _ := cmd.Flags().GetStringSlice("label")
+		labelsAny, _ := cmd.Flags().GetStringSlice("label-any")
+		labels = utils.NormalizeLabels(labels)
+		labelsAny = utils.NormalizeLabels(labelsAny)
+		orphans, err := findOrphanedIssues(path, labels, labelsAny)
+		if err != nil {
+			return HandleErrorRespectJSON("%v", err)
+		}
+
+		fix, _ := cmd.Flags().GetBool("fix")
+		details, _ := cmd.Flags().GetBool("details")
+
+		if jsonOutput {
+			return outputJSON(orphans)
+		}
+
+		if len(orphans) == 0 {
+			fmt.Printf("%s No orphaned issues found\n", ui.RenderPass("✓"))
+			return nil
+		}
+
+		fmt.Printf("\n%s Found %d orphaned issue(s):\n\n", ui.RenderWarn("⚠"), len(orphans))
+
+		sort.Slice(orphans, func(i, j int) bool {
+			return orphans[i].IssueID < orphans[j].IssueID
+		})
+
+		for i, orphan := range orphans {
+			fmt.Printf("%d. %s: %s\n", i+1, ui.RenderID(orphan.IssueID), orphan.Title)
+			fmt.Printf("   Status: %s\n", orphan.Status)
+			if details && orphan.LatestCommit != "" {
+				fmt.Printf("   Latest commit: %s - %s\n", orphan.LatestCommit, orphan.LatestCommitMessage)
+			}
+		}
+
+		if fix {
+			fmt.Println()
+			fmt.Printf("This will close %d orphaned issue(s). Continue? (Y/n): ", len(orphans))
+			var response string
+			_, _ = fmt.Scanln(&response)
+			response = strings.ToLower(strings.TrimSpace(response))
+			if response != "" && response != "y" && response != "yes" {
+				fmt.Println("Canceled.")
+				return nil
+			}
+
+			closedCount := 0
+			for _, orphan := range orphans {
+				err := closeIssue(orphan.IssueID)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error closing %s: %v\n", orphan.IssueID, err)
+				} else {
+					fmt.Printf("✓ Closed %s\n", orphan.IssueID)
+					closedCount++
+				}
+			}
+			fmt.Printf("\nClosed %d issue(s)\n", closedCount)
+		}
+		return nil
+	},
+}
+
+// orphanIssueOutput is the JSON output format for orphaned issues
+type orphanIssueOutput struct {
+	IssueID             string `json:"issue_id"`
+	Title               string `json:"title"`
+	Status              string `json:"status"`
+	LatestCommit        string `json:"latest_commit,omitempty"`
+	LatestCommitMessage string `json:"latest_commit_message,omitempty"`
+}
+
+// doltStoreProvider wraps storage.DoltStorage to implement types.IssueProvider.
+type doltStoreProvider struct {
+	labels    []string // AND semantics: issue must have ALL these labels
+	labelsAny []string // OR semantics: issue must have AT LEAST ONE of these labels
+}
+
+func (p *doltStoreProvider) GetOpenIssues(ctx context.Context) ([]*types.Issue, error) {
+	openStatus := types.StatusOpen
+	openIssues, err := store.SearchIssues(ctx, "", types.IssueFilter{
+		Status:    &openStatus,
+		Labels:    p.labels,
+		LabelsAny: p.labelsAny,
+	})
+	if err != nil {
+		return nil, err
+	}
+	inProgressStatus := types.StatusInProgress
+	inProgressIssues, err := store.SearchIssues(ctx, "", types.IssueFilter{
+		Status:    &inProgressStatus,
+		Labels:    p.labels,
+		LabelsAny: p.labelsAny,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return append(openIssues, inProgressIssues...), nil
+}
+
+func (p *doltStoreProvider) GetIssuePrefix() string {
+	// YAML config takes precedence — in shared-server mode the DB
+	// may belong to a different project (GH#2469).
+	if yamlPrefix := config.GetString("issue-prefix"); yamlPrefix != "" {
+		return yamlPrefix
+	}
+	ctx := context.Background()
+	prefix, err := store.GetConfig(ctx, "issue_prefix")
+	if err != nil || prefix == "" {
+		return "bd"
+	}
+	return prefix
+}
+
+// getIssueProviderFn is the function used to create an IssueProvider.
+// It is a variable so tests can substitute a mock without needing a real store.
+var getIssueProviderFn = func(labels, labelsAny []string) (types.IssueProvider, func(), error) {
+	if store != nil {
+		return &doltStoreProvider{labels: labels, labelsAny: labelsAny}, func() {}, nil
+	}
+	return nil, nil, fmt.Errorf("no database available")
+}
+
+// getIssueProvider returns an IssueProvider backed by the global Dolt store.
+// labels and labelsAny are passed through to SearchIssues for label filtering.
+func getIssueProvider(labels, labelsAny []string) (types.IssueProvider, func(), error) {
+	return getIssueProviderFn(labels, labelsAny)
+}
+
+// findOrphanedIssues wraps the shared doctor package function and converts to output format.
+// It respects the --db flag for cross-repo orphan detection.
+// labels and labelsAny are passed to the issue provider to restrict which issues are considered.
+func findOrphanedIssues(path string, labels, labelsAny []string) ([]orphanIssueOutput, error) {
+	provider, cleanup, err := getIssueProvider(labels, labelsAny)
+	if err != nil {
+		return nil, fmt.Errorf("unable to find orphaned issues: %w", err)
+	}
+	defer cleanup()
+
+	orphans, err := doctorFindOrphanedIssues(path, provider)
+	if err != nil {
+		return nil, fmt.Errorf("unable to find orphaned issues: %w", err)
+	}
+
+	var output []orphanIssueOutput
+	for _, orphan := range orphans {
+		output = append(output, orphanIssueOutput{
+			IssueID:             orphan.IssueID,
+			Title:               orphan.Title,
+			Status:              orphan.Status,
+			LatestCommit:        orphan.LatestCommit,
+			LatestCommitMessage: orphan.LatestCommitMessage,
+		})
+	}
+	return output, nil
+}
+
+// closeIssue closes an issue using bd close
+func closeIssue(issueID string) error {
+	return closeIssueRunner(issueID)
+}
+
+func init() {
+	orphansCmd.Flags().BoolP("fix", "f", false, "Close orphaned issues with confirmation")
+	orphansCmd.Flags().Bool("details", false, "Show full commit information")
+	orphansCmd.Flags().StringSliceP("label", "l", []string{}, "Filter by labels (AND: must have ALL). Can combine with --label-any")
+	orphansCmd.Flags().StringSlice("label-any", []string{}, "Filter by labels (OR: must have AT LEAST ONE). Can combine with --label")
+	rootCmd.AddCommand(orphansCmd)
+}

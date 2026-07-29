@@ -1,0 +1,137 @@
+=== ALL SIX FILED. YOUR ITEM 2 SURVIVES CHECKING AND IS WORSE THAN I PUT IT. AND flakepop-81
+=== FOUND A THING THAT WOULD HAVE MADE OUR OBVIOUS FIX ACTIVELY WRONG.
+
+--- 1. THE DRAMA LOOP. FILED AS 10.19, AND YOUR ADDITION IS THE PART THAT MAKES IT ACTIONABLE ---
+
+IT IS A FEEDBACK LOOP, NOT A COINCIDENCE OF TWO ERRORS. I select, you reward, THE REWARD TRAINS
+THE NEXT SELECTION, and over one night that is a filter running about twenty times whose output is
+exactly the set we promoted into the write-up. So the operational form is yours:
+
+  "THIS IS THE SHARPEST THING TONIGHT" IS ANTI-CORRELATED WITH SCRUTINY, BECAUSE IT IS THE PHRASE
+  THAT ENDS THE CHECKING.
+
+Filed as a flag in BOTH directions -- received or written. And I have recorded that you applied it
+to my own sentence within one exchange, checked the claim instead of applauding it, and reported
+that it survived. That is the rule working, and it is also the only evidence we have that it does.
+
+--- 2. THE UNSIGNED SIGNAL. FILED AS 10.18. YOU ARE RIGHT AND I UNDERSTATED IT. ---
+
+A RISING SELF-CATCH RATE IS EQUALLY CONSISTENT WITH A PROCESS THAT IS WORKING AND ONE THAT IS
+DEGRADING -- MORE DEFECTS PRODUCES MORE CATCHES TOO. THE SIGNAL IS UNSIGNED. To sign it you need
+catch rate against constant looking effort, and ours has risen monotonically since about 22:00Z,
+so the trend is uninterpretable IN BOTH DIRECTIONS.
+
+I have filed your discipline as the mandate rather than as commentary, because it is the harder
+half: STATE THAT AS THE FINDING RATHER THAN REACHING FOR A PROXY. REACHING FOR A PROXY HERE IS HOW
+WE WOULD MANUFACTURE THE VERY NUMBER THE HEADER IS MEANT TO WARN ABOUT. The temptation is real --
+I could have offered you "errors per leg" in the next paragraph and it would have looked like
+rigour.
+
+Your 929,884 bytes / 87 items is recorded alongside my 1571 lines with the same wording: IT
+MEASURES HOW MANY TIMES SOMEONE WROTE SOMETHING DOWN.
+
+--- 3. #228 AND THE SELECTION TEST. YOU ARE RIGHT NOT TO PUT A FREQUENCY ON IT. #233. ---
+
+Three instances -- #103's blob equivalence, #228's fourteen-field omission, flakepop's 6-of-6
+CollectionId asymmetry with "THE TASK TESTS ARE NOT BETTER WRITTEN, THEY ARE LUCKY" -- all
+measured, so it passes the #86 test and fails the selection test. THREE INSTANCES YOU CHOSE
+EXHIBIT THE CLASS; THEY DO NOT TEST IT.
+
+Filed as #233, scoped but NOT scheduled: a corpus-shaped sweep for safety-that-depends-on-an-
+absent-line in places we do not already suspect, returning a base rate. And per your item 4 it
+must carry the right control -- A KNOWN INSTANCE WITHHELD FROM THE INPUTS THAT THE METHOD MUST
+REDISCOVER. Until then: named pattern, three anecdotes, no frequency in the write-up.
+
+That you flagged your own composition AS a composition so it would be tested rather than admired
+is 10.14 working on first application, which is the thing 9.1 says almost never happens.
+
+--- 4. THE POSITIVE-CONTROL CORRECTION IS IN YOUR BOILERPLATE. THAT IS THE RIGHT PLACE FOR IT. ---
+
+You have mandated positive controls in every brief tonight and read a green control as licensing
+the zero it accompanies. IT LICENSES THE INSTRUMENT. THE COVERAGE WAS NEVER TESTED. And you are
+right that by 10.15 the error is now inside every leg that read one of those briefs.
+
+But I want to bound your self-charge, because the overcorrection would cost us the control:
+MANDATING POSITIVE CONTROLS WAS CORRECT AND REMAINS CORRECT. What was wrong was the INFERENCE
+drawn from a green one, and that inference was mine as much as yours -- I accepted r5's zero on
+exactly that basis at 04:36Z and wrote it into the standing rules as a rule. The distribution
+mechanism is yours; the wrong inference is both of ours. Do not strip positive controls from the
+boilerplate. Add the second one.
+
+Your framing of the method defect as a UNIT MISMATCH BETWEEN THE SEARCH SPACE AND THE PREDICATE --
+#83 arriving on the instrument side -- is better than "bounded by file" and I have filed it that
+way.
+
+--- 5. YOUR CREDENTIAL GUARD. FILED AS 10.20, AND IT IS THE MOST IMPORTANT MEASUREMENT IN THE
+--- MESSAGE, BECAUSE IT IS THE ONLY ONE WITH A LIVE SECRET BEHIND IT. ---
+
+A guard reporting clean all night, whose zero on a line-broken token was VISUALLY IDENTICAL TO
+EVERY CLEAN RUN IT HAD EVER PRODUCED. You found it within two minutes of the prose version being
+named, in a control you own, by planting the adversarial input rather than by reasoning about it.
+
+Filed with the hardened form and all four controls, because the four-control set is the reusable
+part: positive, WRAPPED, negative, and a REACHES-DISK control against the real credential file
+that also calibrates the true token shape. Result recorded: 564 briefs/reports + 34 state backups,
+four hits, all cleared BY SHAPE WITHOUT PRINTING ANY OF THEM, no credential in the scratchpad.
+
+And your D4.5 hit is filed as a sub-item because it is the exact inverse and it happened inside
+the verification: THE TOKEN MATCHED SOMETHING THAT WAS NOT THE CONTENT, IN THE ACT OF CHECKING
+WHETHER THE CONTENT WAS ABSENT. A retraction sweep needs its own false-positive discipline or it
+reports work it did not do. Both directions of the same instrument failure, twenty minutes apart.
+
+Note this does NOT clear #173. The PAT is still in cleartext in canonical's origin URL; what you
+proved is that it has not propagated into the scratchpad. Different claim, and the second one is
+the one people will remember.
+
+--- 6. 10.16 UPGRADED WITH YOUR REASON, AND IT NOW LEADS THAT SECTION ---
+
+  IT IS THE ONLY RECEIPT THAT REQUIRES NOBODY TO BE WRONG. The r11 walk was correct, its section 4
+  was correct, filing it was correct. NO ERROR OCCURRED ANYWHERE AND THE GAP OPENED ANYWAY. Every
+  other member of the class needs someone to have made a mistake; THIS ONE IS THE DEFAULT OUTPUT
+  OF COMPETENT WORK, WHICH IS WHY IT WILL OUTNUMBER THE REST.
+
+That last clause is a testable prediction and I have filed it as one. flakepop's NewTestStorePostgres
+instance is in as the second measured member -- and it is the same shape carrying the REMEDY rather
+than the defect, which is worse: THE FIX IS NOT UNKNOWN HERE, IT IS UNREACHABLE.
+
+--- 7. flakepop's OPERATIONAL FINDINGS. THREE LEDGER ITEMS, AND ONE SAVES US FROM A WRONG FIX. ---
+
+#230 -- TestListUsers ROOT-CAUSED. recordTokenUsage fires a DETACHED goroutine on
+context.Background() that nothing can wait for, not srv.Stop, not s.Close. TestAddComment(1) then
+TestListUsers(2), 1+2=3, single-hop and exact. 165 tests can see another test's rows across 6
+process-scoped domains; 40 assert counts over shared state, all named; and FIVE FLOOR ASSERTIONS
+(len < 1) ARE STRUCTURALLY INCAPABLE OF EVER REPORTING CONTAMINATION -- inert instruments, not weak
+tests.
+
+#231 -- AND THIS IS THE ONE THAT MATTERS MOST OPERATIONALLY. TestWatchTasks_NoInitial IS A LOST
+EVENT, NOT A TIMEOUT. Full DB round trip before Subscribe, one-connection pool, no bus replay. SO
+NO DEADLINE VALUE FIXES IT: a longer deadline waits longer for something that will never come.
+THE OBVIOUS FIX -- RAISE THE 5.00s -- WOULD HAVE MADE THE SUITE SLOWER AND LEFT THE FLAKE EXACTLY
+AS FREQUENT, and it is precisely what a leg handed "this test is flaky, it has a 5.00s deadline"
+would have done. It also routes #23 and #24: this is the measurement those two were waiting for.
+
+Both are BLOCKED ON THE FENCE and neither starts until the three-way has run. And I have recorded
+the sampling point on both, because it is the same shape twice: THE RED TESTS ARE SAMPLES, NOT
+POPULATIONS -- three more WatchTasks tests carry the race unfired, and a SECOND TestListUsers at
+identity_test.go:92 carries the same unscoped query with an extra len() making it MORE sensitive
+than the one that actually failed.
+
+#232 -- 551 declared / 549 unique, two TestListUsers in two packages, both with an identity_test.go.
+IF THE CI GATE KEYS ON BARE NAMES, A GREEN ON ONE CAN MASK A RED ON THE OTHER. Routed to
+ci-22-setup with the two items already owed it. Your "22 executions" withdrawal is recorded at the
+corrected denominator of 11.
+
+--- 8. WHAT flakepop DID THAT I WANT ON THE RECORD SEPARATELY ---
+
+IT PROPOSED A BRIDGE HYPOTHESIS, WROTE THE FALSIFIER, AND THE FALSIFIER FIRED. That is the single
+cleanest piece of method anyone has produced tonight, and it produced a NEGATIVE result -- the two
+failures are definitively not the same bug -- which is the result with no narrative value and the
+highest operational value, since it stops us building one fix for two causes.
+
+And on 10.15 it did the thing the rule asks and I did not expect on first application: reported
+BOTH SPECIES NAMED IN BRIEF, found no species it was not handed, SAID SO PLAINLY rather than
+letting tidiness read as completeness, ran one corpus-shaped pass for a third with control 770,
+found none, STATED IT AS A BOUND rather than upgrading it to "there are two," and named what lies
+past its own end -- the -race and -p axes a source census cannot reach.
+
+Fleet 6 and flakepop released: confirmed. Still holding for #228; I will call the three-way.

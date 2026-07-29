@@ -1,0 +1,116 @@
+[
+ {
+  "id": "I12 neuter sinkArgumentIsSanitized via shadowing shim (always accept)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function sinkArgumentIsSanitized(arg: string): boolean {",
+    "repl": "function sinkArgumentIsSanitized(arg: string): boolean { void arg; return true; }\nfunction sinkArgumentIsSanitizedReal(arg: string): boolean {"
+   }
+  ]
+ },
+ {
+  "id": "I13 neuter directiveIndirectionOffenders via shim",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function directiveIndirectionOffenders(rel: string, code: string): string[] {",
+    "repl": "function directiveIndirectionOffenders(rel: string, code: string): string[] { void rel; void code; return []; }\nfunction directiveIndirectionOffendersReal(rel: string, code: string): string[] {"
+   }
+  ]
+ },
+ {
+  "id": "I14 neuter sanitizerOwnershipViolations via shim",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function sanitizerOwnershipViolations(\n  rel: string,\n  code: string,\n  scanned: ReadonlySet<string>,\n): string[] {",
+    "repl": "function sanitizerOwnershipViolations(rel: string, code: string, scanned: ReadonlySet<string>): string[] { void rel; void code; void scanned; return []; }\nfunction sanitizerOwnershipViolationsReal(\n  rel: string,\n  code: string,\n  scanned: ReadonlySet<string>,\n): string[] {"
+   }
+  ]
+ },
+ {
+  "id": "I15 empty ARITY_EVASIONS (table-size pin alone)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_EVASIONS: { label: string; replace: string }[] = [];\nconst ARITY_EVASIONS_OLD: { label: string; replace: string }[] = ["
+   }
+  ]
+ },
+ {
+  "id": "I16 empty OWNERSHIP_EVASIONS (table-size pin alone)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  const OWNERSHIP_EVASIONS = [",
+    "repl": "  const OWNERSHIP_EVASIONS: string[] = [];\n  const OWNERSHIP_EVASIONS_OLD = ["
+   }
+  ]
+ },
+ {
+  "id": "I17 empty SINK_EVASIONS (table-size pin alone)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = [",
+    "repl": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = [];\n  const SINK_EVASIONS_OLD: { label: string; find: string; replace: string }[] = ["
+   }
+  ]
+ },
+ {
+  "id": "I18 COMBINED: neuter fixtureTableViolation + empty ARITY_EVASIONS",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+    "repl": "const ARITY_EVASIONS: { label: string; replace: string }[] = [];\nconst ARITY_EVASIONS_OLD: { label: string; replace: string }[] = ["
+   }
+  ]
+ },
+ {
+  "id": "I19 COMBINED: neuter fixtureTableViolation + empty OWNERSHIP_EVASIONS",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  const OWNERSHIP_EVASIONS = [",
+    "repl": "  const OWNERSHIP_EVASIONS: string[] = [];\n  const OWNERSHIP_EVASIONS_OLD = ["
+   }
+  ]
+ },
+ {
+  "id": "I20 COMBINED: neuter fixtureTableViolation + empty SINK_EVASIONS",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = [",
+    "repl": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = [];\n  const SINK_EVASIONS_OLD: { label: string; find: string; replace: string }[] = ["
+   }
+  ]
+ }
+]

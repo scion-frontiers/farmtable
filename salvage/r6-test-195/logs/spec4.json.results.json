@@ -1,0 +1,80 @@
+[
+ {
+  "label": "A21+C7b decl-scan ablated + (md, ...rest)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "A21+C7c decl-scan ablated + (md, {inline} = {})",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "A21+C7d decl-scan ablated + REQUIRED second parameter",
+  "exit": 2,
+  "verdict": "RED",
+  "tail": "src/util/markdown.test.ts(463,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(468,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(475,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(481,19): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(489,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(496,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(503,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(510,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(517,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(524,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(580,15): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(601,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(613,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(625,17): error TS2554: Expected 2 arguments, but got 1."
+ },
+ {
+  "label": "A21+A22 BOTH halves of the arity pin ablated + (md, opts = {}) [control: must be GREEN]",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "CFG-1 ADD_ATTR onerror",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - inline event handler stripped: event handler survived: IMG has onerror in \"<img src=\\\"x\\\" onerror=\\\"alert(1)\\\">\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "CFG-2 ALLOWED_URI_REGEXP widened to /^.+$/",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 5 of 69 markdown sanitizer checks failed:\n  - javascript: href stripped: javascript: URL survived: found \"javascript:\" in \"<p><a href=\\\"javascript:alert(1)\\\">click</a></p>\\n\"\n  - data: html href stripped: data: HTML URL survived: found \"data:text/html\" in \"<p><a href=\\\"data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==\\\">click</a></p>\\n\"\n  - unknown URL schemes are dropped: unknown protocol survived \u2014 has ALLOW_UNKNOWN_PROTOCOLS been enabled?: found \"evilproto:\" in \"<p><a href=\\\"evilproto:payload\\\">x</a></p>\\n\"\n  - svg xlink:href javascript URL stripped: xlink javascript: URL survived: found \"javascript:\" in \"<p><svg><a xlink:href=\\\"javascript:alert(1)\\\"><text y=\\\"20\\\">click</text></a></svg></p>\\n\"\n  - svg image javascript URL stripped: image javascript: URL survived: found \"javascript:\" in \"<p><svg><image href=\\\"javascript:alert(1)\\\"></image></svg></p>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "CFG-3 SANITIZE_DOM false",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "CFG-4 ADD_TAGS iframe",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - iframe srcdoc stripped: iframe survived: found <iframe> in \"<iframe></iframe>\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "CFG-5 config object dropped entirely (bare sanitize)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "  - slot attribute stripped (no projection into the host UI): slot attribute survived: found \"slot\" in \"<div slot=\\\"footer\\\">x</div>\"\n  - style attribute stripped: inline style survived: found \"style=\" in \"<div style=\\\"position:fixed;top:0;left:0;width:100vw;height:100vh\\\">overlay</div>\"\n  - download attribute stripped: download attribute survived: found \"download\" in \"<p><a href=\\\"https://x.example/f\\\" download=\\\"invoice.pdf\\\">dl</a></p>\\n\"\n  - dialog stripped (no fake modal): dialog survived: found <dialog> in \"<dialog open=\\\"\\\">Enter your password</dialog>\"\n  - class attribute stripped (no CSS-reuse forgery): class attribute survived: found \"class=\" in \"<div class=\\\"comment\\\"><div class=\\\"comment-header\\\"><span class=\\\"comment-author\\\">farmtable-admin</span><span class=\\\"comment-time\\\">2 minutes ago</span></div><div class=\\\"comment-body\\\">Your session expired.</div></div>\"\n  - svg style element stripped (no CSS injection into the shadow root): style element survived inside svg: found <style> in \"<p><svg><style>:host{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999}</style></svg></p>\\n\"\n  - svg style cannot reach an attacker origin: style element survived: found <style> in \"<p><svg><style>@import url(<a href=\\\"https://evil.example/x.css\\\">https://evil.example/x.css</a>);</style></svg></p>\\n\"\n  - svg style stripped inside a markdown list: style survived in \"- <svg><style>*{display:none}</style></svg>\": found <style> in \"<ul>\\n<li><svg><style>*{display:none}</style></svg></li>\\n</ul>\\n\"\n  - svg style stripped inside a blockquote: style survived in \"> <svg><style>*{display:none}</style></svg>\": found <style> in \"<blockquote>\\n<p><svg><style>*{display:none}</style></svg></p>\\n</blockquote>\\n\"\n  - svg style stripped inside a table cell: style survived in \"| a |\\n| - |\\n| <svg><style>*{display:none}</style></svg> |\": found <style> in \"<table>\\n<thead>\\n<tr>\\n<th>a</th>\\n</tr>\\n</thead>\\n<tbody><tr>\\n<td><svg><style>*{display:none}</style></svg></td>\\n</tr>\\n</tbody></table>\\n\"\n  - code blocks render: code block changed: expected \"<pre><code>const a = 1;\\n</code></pre>\\n\", got \"<pre><code class=\\\"language-js\\\">const a = 1;\\n</code></pre>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "CFG-6 renderMarkdown returns unsanitized parser output",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "  - svg event handler stripped: svg event handler survived: svg has onload in \"<p><svg onload=alert(1)><circle onclick=alert(2)></circle></svg></p>\\n\"\n  - svg animation elements stripped: animate survived: found <animate> in \"<p><svg><animate attributeName=\\\"href\\\" values=\\\"javascript:alert(1)\\\"></animate></svg></p>\\n\"\n  - svg xlink:href javascript URL stripped: xlink javascript: URL survived: found \"javascript:\" in \"<p><svg><a xlink:href=\\\"javascript:alert(1)\\\"><text y=\\\"20\\\">click</text></a></svg></p>\\n\"\n  - svg use element stripped: use survived: found <use> in \"<p><svg><use href=\\\"#x\\\"></use><use xlink:href=\\\"data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=\\\"></use></svg></p>\\n\"\n  - svg image javascript URL stripped: image javascript: URL survived: found \"javascript:\" in \"<p><svg><image href=\\\"javascript:alert(1)\\\"></image></svg></p>\\n\"\n  - svg style element stripped (no CSS injection into the shadow root): style element survived inside svg: found <style> in \"<p><svg><style>:host{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999}</style></svg></p>\\n\"\n  - svg style cannot reach an attacker origin: style element survived: found <style> in \"<p><svg><style>@import url(<a href=\\\"https://evil.example/x.css\\\">https://evil.example/x.css</a>);</style></svg></p>\\n\"\n  - svg style stripped inside a markdown list: style survived in \"- <svg><style>*{display:none}</style></svg>\": found <style> in \"<ul>\\n<li><svg><style>*{display:none}</style></svg></li>\\n</ul>\\n\"\n  - svg style stripped inside a blockquote: style survived in \"> <svg><style>*{display:none}</style></svg>\": found <style> in \"<blockquote>\\n<p><svg><style>*{display:none}</style></svg></p>\\n</blockquote>\\n\"\n  - svg style stripped inside a table cell: style survived in \"| a |\\n| - |\\n| <svg><style>*{display:none}</style></svg> |\": found <style> in \"<table>\\n<thead>\\n<tr>\\n<th>a</th>\\n</tr>\\n</thead>\\n<tbody><tr>\\n<td><svg><style>*{display:none}</style></svg></td>\\n</tr>\\n</tbody></table>\\n\"\n  - code blocks render: code block changed: expected \"<pre><code>const a = 1;\\n</code></pre>\\n\", got \"<pre><code class=\\\"language-js\\\">const a = 1;\\n</code></pre>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "S1 second RAW unsafeHTML call added to desc.ts (two sinks, one file)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 3 of 69 markdown sanitizer checks failed:\n  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(this.description) \u2014 the argument is not a bare renderMarkdown(\u2026) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.\n  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 3 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(this.description)\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "S2 sink swapped for a nested arrow IIFE, still sanitized [false-positive control]",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed\n[tsc --noEmit exit=0]"
+ },
+ {
+  "label": "S3 sanitizer output routed through a local variable first",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed\n[tsc --noEmit exit=0]"
+ }
+]

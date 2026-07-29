@@ -1,0 +1,74 @@
+ROUND 5 THREE-WAY INDEPENDENT REVIEW - YOU ARE THE CODE REVIEW LEG.
+
+READ THE BRIEF FIRST AND IN FULL:
+  /scion-volumes/scratchpad/projects/farmtable/briefs/xss-r5-review.md
+
+It is short. It contains the tree table, how to work, the hard constraints, what
+the change does, a disclosed list of known weaknesses, and your deliverable
+format. Everything below is only the part that is yours alone.
+
+YOUR SCRATCH PATH - NOBODY ELSE HAS IT:
+  /workspace/farmtable-xss-r5-review
+Create it yourself as a git worktree or clone of the repo. It does not exist yet.
+NO TWO LEGS MAY EVER SHARE A SCRATCH PATH. If you find another agent's files
+there, STOP AND MESSAGE ME - do not clean it and continue.
+
+YOUR REPORT PATH:
+  /scion-volumes/scratchpad/projects/farmtable/reports/xss-r5-review.md
+
+YOUR PROJECT LOG ENTRY:
+  .design/project-log/2026-07-29-review-xss-r5.md
+
+THE SHA: d305391 on branch url-scheme-validation-r5, base e6bda71, 13 commits.
+Open your report by naming your working tree and the output of git rev-parse HEAD.
+Nothing is pushed. That branch exists only in the author's worktree at
+/workspace/farmtable-dev-xss-r5 - fetch from there, DO NOT WRITE TO IT.
+
+YOUR ANGLE. The other two legs are a security auditor and a test engineer. Do not
+duplicate them. Yours is correctness, architecture, readability, and whether the
+change means what it says.
+
+The single highest-value thing you can do is section 4 item 1 of the brief:
+THE PERSISTENCE PREMISE. The whole round rests on the claim that remote_data
+does not survive a round trip. The author's own enumeration of the paths MISSED
+ONE, and the verdict is currently propped up by an earlier report rather than by
+this round's work. Go and enumerate the paths yourself, from scratch, your own
+way. Do not start from the author's list. If you find a third path, that is the
+finding of the night.
+
+Second: item 2. A shipped comment justified an exemption with a reason that was
+FALSE. It was found and repaired. Reason strings of that shape are exactly what
+stops a careful reader looking further. Read every justification comment in the
+diff as a claim to be checked, not as context.
+
+WHAT I WANT FROM YOU THAT I CANNOT GET ELSEWHERE: tell me whether a competent
+engineer reading this code in six months, with none of tonight's context, would
+draw a TRUE conclusion from it. The comments, the names, the structure. Half the
+defects tonight have been correct code with a wrong explanation attached.
+
+TWO THINGS THE BRIEF SAYS THAT I WILL REPEAT BECAUSE THEY ARE THE ONES LEGS SKIP:
+
+PASS 1 IS OPEN AND UNSCOPED AND YOU DO NOT READ SECTION 4 UNTIL IT IS DONE.
+Tag every finding PASS-1 or PASS-2. I have been priming legs with defect classes
+all night and getting those classes back. A report that is all PASS-2 tells me
+about my own brief and nothing about the code.
+
+PRE-COMMIT TO YOUR FALSIFIER. Before you look, write down what would refute your
+hypothesis. Then report the result whichever way it came out. A negative result
+is worth more to me than a confirmation, and it is the thing that gets silently
+dropped because it makes no story.
+
+THE BUILD FENCE IS LIVE AND PROJECT-WIDE. Full builds, full suites, go vet,
+npm test, make anything: TOKEN REQUIRED, EXACTLY ONE EXISTS, I HOLD IT, ASK ME
+AND WAIT. Three of you are running and I grant it SERIALLY, so expect to queue.
+Single-package runs of the form go test ./internal/pkg/ -run TestName -count=1
+need no token but MUST be logged to reports/_run-queue-log.md BEFORE you run
+them, ROOT and DIST columns filled in even on passing lines.
+
+DO NOT PUSH. DO NOT MODIFY PRODUCTION CODE. Report to eng-manager only - not the
+coordinator, not ptone. No backticks in scion messages, they execute.
+
+TERMINATION: YOU MUST WRITE YOUR REPORT FILE AND YOUR PROJECT-LOG ENTRY TO DISK,
+MESSAGE eng-manager WITH YOUR VERDICT PLUS THE REPORT BYTE SIZE AND FIRST LINE,
+AND THEN MARK THE TASK COMPLETE. A finding that exists only in your context is a
+finding that does not exist.

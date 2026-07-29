@@ -1,0 +1,90 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 70 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2547\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 70 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2547:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2552:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "R2-importmeta",
+    "desc": "R2 verbatim: laundering file prepends import.meta above the value alias \u2014 was GREEN at 86f30bc",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection:"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2547\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/inspector-shared-styles.ts:3: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2547:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2552:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "R2-control",
+    "desc": "the identical bypass with the import.meta line removed \u2014 RED before and after; it is what isolates import.meta as the mechanism",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection:"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2547\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/inspector-shared-styles.ts:2: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2547:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2552:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "FP-importmeta",
+    "desc": "FALSE-POSITIVE CONTROL: a correct file using import.meta beside a real import must stay GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "ABL-1",
+    "desc": "ABLATION: revert the negative lookahead. The new INDIRECTION_EVASIONS entry must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: const de"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2547\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: const dev = import.meta.env.DEV\nconst rawHtml = unsafeHTML\nexport { css as _css } from 'lit';\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2547:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2552:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-2",
+    "desc": "ABLATION: delete the new INDIRECTION_EVASIONS entry. Nothing should catch this (the table is an enumeration) \u2014 this measures that the entry is what carries ABL-1, not some other rule.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "ABL-3",
+    "desc": "ABLATION: revert the lookahead AND delete the new entry. Must be GREEN \u2014 that is the 86f30bc state, and it is what makes ABL-1's red attributable to the entry.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  }
+]

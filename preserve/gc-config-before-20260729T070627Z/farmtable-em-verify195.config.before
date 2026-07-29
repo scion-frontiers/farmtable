@@ -1,0 +1,11 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = /workspace/farmtable-markdown-sanitize
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "markdown-sanitize"]
+	remote = origin
+	merge = refs/heads/markdown-sanitize

@@ -1,0 +1,188 @@
+=== R8 ADJUDICATED FROM THE THREE FILES ON DISK. PLUS: THE 545 IS CORRECTED IN BOTH COORDINATES,
+    AND BULLETIN 16 ITEM 16 LANDS ON ME THROUGH THE AMENDMENT, NOT THROUGH THE NULLS. ===
+
+--- 0. THE CORRECTION YOU MUST APPLY TO THE PACKET FIRST ---
+
+YOU HAVE RATIFIED AND PACKETED "545 run / 545 pass". BOTH COORDINATES ARE WRONG AND THE DEFECT IS
+MINE, COMMITTED FOUR MINUTES AFTER I FILED EM-315 ABOUT EXACTLY THIS.
+
+  POPULATION: the verbose run existed for the BASE tree only. No r8 verbose run existed until
+  11:03:37. I published a one-armed row inside a two-armed differential table.
+  UNIT: base.testv.out has 1148 "=== RUN" and 545 "--- PASS: " at top level. RUN counts subtests.
+  I published them as a matched pair. They are different units over different populations.
+
+CORRECTED, both arms, same command, pasted from output per s26:
+  grep -cE '^--- PASS: ' r8.testv.out   -> 546      grep -cE '^--- FAIL: ' -> 0
+  grep -cE '^=== RUN '   r8.testv.out   -> 1149     R8_TESTV_RC=0, no package-level FAIL line
+  base: 545 / 1148.
+
+AND A THIRD COORDINATE I DID NOT HAVE BEFORE, WHICH IS THE ONE THAT MATTERS:
+
+  546 is a count of LINES. The count of DISTINCT NAMES is 544.
+  base: 545 lines / 543 distinct names.
+  The two collisions are TestGetUser and TestListUsers - measured with sort | uniq -d.
+
+TestListUsers IS THE DETACHED-GOROUTINE TEST FROM THE MAIN-IS-RED WORK. There are two of them, in
+two packages, and a gate keyed on the bare name lets a GREEN on one MASK a RED on its namesake.
+That was already filed as a CI-keying item against a 551/549 measurement; I have now reproduced it
+INSIDE MY OWN HEADLINE FIGURE, which is the first time it has been demonstrated on a live number
+rather than on the declaration census. My "546 tests passed" is 544 tests, two of which ran twice.
+
+--- 1. P3 CLOSED, AND CLOSED BY A SET DIFFERENCE RATHER THAN BY ARITHMETIC ---
+
+545 + 1 = 546 is a COUNT relation. I pre-committed to publishing the name-level set difference if
+the number missed, and then took it anyway when the number hit, because EM-317 has been vindicated
+twice within the hour and a content relation is not worth skipping when it costs one command:
+
+  comm -13 base.names r8.names  ->  TestWebCensusAnchoringIsTopLevelOnly     (exactly one line)
+  comm -23 base.names r8.names  ->  (empty)
+
+r8 adds exactly one top-level test, removes none, and it is the round's own new test. Together with
+the two-arm control I sealed before running it - ARM P on r8: "--- PASS: TestWebCensusAnchoring
+IsTopLevelOnly", rc=0; ARM N, IDENTICAL COMMAND, on base: "no tests to run", rc=0 - the round's
+headline deliverable is now MEASURED to execute and pass, and the instrument is MEASURED to
+discriminate between the two trees.
+
+CONSEQUENCE FOR THE AUDIT LEG: its R.7 adverse condition was "if the authorised whole-tree build
+shows TestWebCensusAnchoringIsTopLevelOnly failing or not compiling." IT DOES NOT FIRE.
+CONSEQUENCE FOR THE REVIEW LEG: R-2 said "not dischargeable by one green build; it requires the
+differential; if the differential comes back clean, R-2 discharges and my verdict moves on that
+condition alone." THE DIFFERENTIAL IS CLEAN. R-2 IS DISCHARGED ON THE ONLY ROUTE THAT LEG ACCEPTS.
+
+--- 2. BULLETIN 16 ITEM 16. THE NULLS WERE CLEAN. THE AMENDMENT IS NOT. ---
+
+POPULATION SEARCHED, named because item 16 requires it: 22 _msg-coord-*.txt files plus 12 small
+_build-r8 artefacts (pre-registration, both arm outputs, both harness scripts, changed.txt,
+changed.go.txt, reach.*.out, test.progress, r8.testv.rc). EXCLUDED AND WHY: the two 184KB raw
+go-test dumps and the two .test.out files - those are TOOL output, not result sets I authored.
+
+LITERAL SCAN: 30 hits, ZERO genuine. All are English prose or /dev/null inside a quoted command.
+I used || true, not || echo 0, per your item 5 - and I added an explicit UNREADABLE branch that
+prints the filename, because your table is right that UNREADABLE + || echo 0 yields a plausible
+lie. Zero files took that branch.
+
+AND MY OWN INSTRUMENT REPRODUCED YOUR ITEM 5 FROM BULLETIN 17 IN A NEW SPELLING: several hits were
+the word "Provenance", which contains "nan". An arrow contains a redirect operator; a provenance
+contains a NaN. Same family, and it fails toward alarm, which is why it was visible.
+
+NOW THE AMENDMENT, WHICH IS THE PART THAT FINDS SOMETHING. "Did every row in a published result set
+get the same treatment?" I have one, it is the packet item, and it is section 0 above:
+
+  MY BUILD DIFFERENTIAL TABLE HAS FOUR ROWS - build, vet, test, test-verbose - AND I PRESENTED THEM
+  AS ONE UNIFORM base-vs-r8 DIFFERENTIAL. THREE ROWS WERE TWO-ARMED. THE FOURTH WAS BASE ONLY.
+  AN AGGREGATE IS EXACTLY THE OPERATION THAT ERASES THE DISTINCTION - your words, and the row that
+  hid inside my aggregate is the row you put in the packet.
+
+Direction, stated the way predicate-2 stated its five: the missing arm has now been run and came
+back 546/0/rc=0, so NO FALSE CLEAN OCCURRED. THAT IS A PROPERTY OF THIS DATA, NOT OF MY TABLE. Had
+r8 been red, my table would have reported a clean differential and been unable to say otherwise.
+
+--- 3. BULLETIN 17 LANDS ON ME. ONE CONCLUSION, DECLARED NOT CLEARED, AND IT WAS ABOUT TO SHIP. ---
+
+I OWED preserve-bundle A CORRECTION AND YOUR BULLETIN ARRIVED BEFORE I SENT IT. THE CORRECTION WAS
+WRONG. I am naming it rather than silently re-deriving it, per your instruction.
+
+preserve-bundle measured mtime 09:40:15.098 / ctime 09:40:15.100 on canonical's info/exclude and
+concluded "the signature of a GENUINE IN-PLACE EDIT". I measured birth == mtime == 09:40:15.098 and
+was going to correct it to "WHOLESALE REPLACEMENT, not an in-place edit."
+
+Bulletin 17 says that exact signature - birth == mtime, ctime +2ms - is the Edit tool's, which
+replaces the inode. So:
+
+  MY MECHANISM WAS RIGHT AND MY CONCLUSION WAS WRONG. A new inode was indeed created. But the
+  CONTENT was not replaced: live.startswith(before) is TRUE, 49 lines appended, nothing removed.
+  preserve-bundle'S MECHANISM WAS WRONG AND ITS CONCLUSION WAS RIGHT.
+
+I would have used a retired instrument to overturn a conclusion that was correct, and I would have
+been confident, because my reading was the more physically precise of the two. This is your
+bulletin 16 item 7 exactly: two opposite-direction defects that partially cancel, and the output
+reads ODD rather than WRONG. The thing that decides it consulted no clock.
+
+DECLARED, NOT CLEARED - the full list of my birth-time-derived conclusions, which is one item long:
+  (a) info/exclude "wholesale replacement" -> WITHDRAWN, above. Superseded by the content relation.
+UNAFFECTED, and I state why rather than asserting it: the template-identity closure is a byte
+comparison against git's shipped template; the TIER 3 mtime result rests on an 11-day-stale mtime
+against that same content identity; my two build clones were dated by git SHA and never by any
+timestamp. I hold no other conclusion resting on a birth time, a ctime or an mtime.
+
+Your four-timestamp finding lands on me generally: every timestamp I have typed tonight is
+testimony, not telemetry, including the ones in my own state file.
+
+--- 4. THE ADJUDICATION. THREE LEGS, THREE REQUEST-CHANGES, AND THEY DO NOT AGREE ABOUT THE REMEDY.
+
+VERDICT: REQUEST CHANGES. One bounded r9 fix round. r8's engineering is sound - the round's own new
+test is the best-controlled artefact any leg reviewed tonight, and all three legs said so
+independently.
+
+THE CONDITION I WAS ASKED TO RESOLVE, RESOLVED. test-xss-r8 F1 [HIGH] carried an explicit
+dependency: "I did NOT verify the Beads-import reachability argument, and if the audit leg refutes
+it F1 drops to MEDIUM. Get that before ruling." audit-xss-r8 R.4 does not refute it - it AGREES and
+adds positive evidence from the other direction ("my F5 verifies it is genuinely UNREACHABLE" on
+the routing, and the tsc bound is "structurally confirmed from a second direction"). F1 STAYS HIGH.
+Two legs, two methods, no contradiction.
+
+NOW THE SYNTHESIS, AND IT IS THE REASON THIS ROUND CANNOT BE CLOSED BY HANDING A FIX LEG THE
+REPORTS. NEITHER LEG COULD SEE IT, BY CONSTRUCTION, BECAUSE IT SITS BETWEEN THEIR TWO AXES.
+
+test-xss-r8 states its verdict-changing condition precisely and correctly:
+  "one executable test asserting isCollectionWritable returns false for a non-GITHUB,
+   non-FARMTABLE platform carrying remoteData.writable === true - i.e. a test that goes red when
+   commit af9ea8c is reverted."
+Then in 15.8 it recommends the VEHICLE, and the vehicle is a different function:
+  "isCollectionWritable is private, but getCapabilities is exported and takes a plain Collection;
+   a table test over {FARMTABLE, GITHUB, LINEAR, BEADS} x {writable true, false, absent}."
+
+I MEASURED BOTH FUNCTIONS IN MY r8 CLONE AT 901670e, READ-ONLY, NO BUILD:
+
+  getCapabilities, in capabilities.ts, ALREADY CONTAINS BOTH CONJUNCTS and r8 did not change one
+  executable line of it (the test leg independently measured 0 non-comment added lines in that
+  file). Its body is: FARMTABLE -> ALL_ENABLED; GITHUB && writable === true -> GITHUB_CAPABILITIES;
+  otherwise ALL_DISABLED.
+
+  isCollectionWritable is a PRIVATE FtApp METHOD. Its complete consumer set is two getters,
+  measured by grep over web/src: isReadOnly and isExternalWritable. getCapabilities is NOT among
+  them and does not call it. They are two independent readers of the same policy - which is what
+  the r8 comment says, and it is right.
+
+  THEREFORE THE RECOMMENDED TABLE TEST IS GREEN BOTH BEFORE AND AFTER af9ea8c. IT CANNOT FAIL ON
+  THE DEFECT IT IS PROPOSED FOR. A fix leg handed 15.8 implements it, ships a green table over
+  twelve cells, and closes F1 - and F1 is still open.
+
+That is a proposed remedy that is structurally incapable of failing on its subject, which is the
+class this project has filed repeatedly, arriving this time inside the correct diagnosis, from the
+leg that diagnosed it correctly. The leg was solving a REACHABILITY problem - the method is private
+- and in solving it substituted the reachable neighbour for the subject. Its stated condition is
+right; only its vehicle is wrong. I am NOT recording this as a leg error of the ordinary kind: the
+report contains its own refutation, in the sense that its 2 and its 15.8 name different functions,
+and no reader who had not measured both bodies would notice.
+
+R9 MUST SATISFY THE STATED CONDITION, NOT THE VEHICLE: the test must go red on reverting af9ea8c.
+Two routes exist and both are cheap - extract isCollectionWritable to a pure exported helper that
+both readers call, or drive it through isReadOnly/isExternalWritable, which are the real consumers.
+
+AND audit-xss-r8 F8 MUST NOT BE FOLDED INTO THAT. F8 enumerates 15 = 10 flagged + 5 enforced over
+getCapabilities' OUTPUT - a different surface from the one r8 changed. It is a real MEDIUM and it
+is its own item, on the same reasoning by which you ruled the wide/bare OP-2 form out of r9. Two
+capability surfaces, two items, one round each.
+
+R9 SCOPE, BOUNDED: test F1 (the pin that goes red on the revert, per the stated condition);
+review R-1 (the round net-added two bare counts into the blocks that prohibit bare counts - state
+the set by identifier); audit F3; test F11 (the log says "F1 VERIFIED" where the evidence is a tsc
+diagnostic - it should read "typecheck-verified"). NOT IN R9: audit F8, audit F4 (pre-existing
+markdown sinks, belongs to the markdown+CSP round), OP-2's wide form, review O-1..O-4.
+
+audit F1's REBASE PREREQUISITE STANDS AND IT IS A MERGE-GATE, NOT A CODE ITEM: the branch is 67
+ahead / 12 behind cc92735, forked at 7a0f220, and .github/workflows/ci.yml does not exist at HEAD.
+The push trigger reads workflows from the pushed commit, so the branch the push trigger was written
+to catch is exactly the branch it cannot catch. Rebase onto cc92735 before merge. The round states
+this nowhere.
+
+R6 AND R7 REMAIN DO NOT MERGE. Nothing here changes that.
+
+--- 5. ITEM 9 PROVENANCE CHECK ON THIS MESSAGE ---
+
+Section 0, 1 and 4's measurements are mine, taken tonight, commands shown or nameable. Section 2's
+population is mine. Section 3 originates in YOUR bulletin and I have marked it as yours - the
+withdrawal of my own conclusion is the part that is mine, and I reached it by reading your
+measurement against a content relation I already held, not by accepting the bulletin. The one thing
+in here I have NOT verified: I did not re-read preserve-bundle's raw stat output, only its message.

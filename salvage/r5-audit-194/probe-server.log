@@ -1,0 +1,216 @@
+=== RUN   TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow
+=== RUN   TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/add_labels_shape_can_succeed
+    audit_r5_probe_test.go:69: CONTROL OK: the add_labels request shape can be allowed
+=== RUN   TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/stage_shape_can_succeed
+    audit_r5_probe_test.go:81: CONTROL OK: the UpdateTask(stage=...) request shape can be allowed
+=== RUN   TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/terminal_destinations_are_reachable_when_the_scope_is_held
+    audit_r5_probe_test.go:100: CONTROL OK: all four terminal destinations are reachable via UpdateTask
+--- PASS: TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow (0.03s)
+    --- PASS: TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/add_labels_shape_can_succeed (0.01s)
+    --- PASS: TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/stage_shape_can_succeed (0.00s)
+    --- PASS: TestAuditR5_PositiveControl_TheProbeCanObserveAnAllow/terminal_destinations_are_reachable_when_the_scope_is_held (0.02s)
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_duplicate
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_completed
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_duplicate
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_completed
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_completed
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_duplicate
+=== NAME  TestAuditR5_Charge1_ShapeA_AddLabelSwap
+    audit_r5_probe_test.go:148: MEASURED shape A (add_labels[Y] on a task labelled X): 12/12 denied naming task:close, 12/12 allowed once task:close is held, 0/12 converted with task:write
+--- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap (0.10s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_duplicate (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/completed_to_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_duplicate (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/wont_fix_to_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/duplicate_to_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeA_AddLabelSwap/cancelled_to_duplicate (0.01s)
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_wont_fix__restamp_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_duplicate__restamp_duplicate
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_cancelled__restamp_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_completed__restamp_completed
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_duplicate__restamp_duplicate
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_cancelled__restamp_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_completed__restamp_completed
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_wont_fix__restamp_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_cancelled__restamp_cancelled
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_completed__restamp_completed
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_wont_fix__restamp_wont_fix
+=== RUN   TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_duplicate__restamp_duplicate
+=== NAME  TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion
+    audit_r5_probe_test.go:210: MEASURED shape B (UpdateTask(stage=Y) on a task labelled [X,Y], no label write): 12/12 denied naming task:close, 12/12 allowed once task:close is held, 0/12 converted with task:write
+--- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion (0.11s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_wont_fix__restamp_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_duplicate__restamp_duplicate (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_completed_and_cancelled__restamp_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_completed__restamp_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_duplicate__restamp_duplicate (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_wont_fix_and_cancelled__restamp_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_completed__restamp_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_wont_fix__restamp_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_duplicate_and_cancelled__restamp_cancelled (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_completed__restamp_completed (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_wont_fix__restamp_wont_fix (0.01s)
+    --- PASS: TestAuditR5_Charge1_ShapeB_NoLabelWriteReAssertion/labelled_cancelled_and_duplicate__restamp_duplicate (0.01s)
+=== RUN   TestAuditR5_Charge1_RemovalDirection
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_wont_fix
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_duplicate
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_cancelled
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_completed
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_duplicate
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_cancelled
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_completed
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_wont_fix
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_cancelled
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_completed
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_wont_fix
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_duplicate
+    audit_r5_probe_test.go:244: MEASURED denied: rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== NAME  TestAuditR5_Charge1_RemovalDirection
+    audit_r5_probe_test.go:248: MEASURED removal direction: 12/12 denied, 0/12 ungated
+--- PASS: TestAuditR5_Charge1_RemovalDirection (0.04s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_duplicate (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_completed_from_completed_and_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_completed (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_duplicate (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_wont_fix_from_wont_fix_and_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_completed (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_duplicate_from_duplicate_and_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_completed (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge1_RemovalDirection/remove_cancelled_from_cancelled_and_duplicate (0.00s)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality0_no_stage_labels_restamp_accepted
+    audit_r5_probe_test.go:335: MEASURED cardinality0_no_stage_labels_restamp_accepted: allowed=true closes=0 labels [bug] -> [bug ft:stage/accepted] (err=<nil>)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality0_nonterminal_label_restamp_itself
+    audit_r5_probe_test.go:335: MEASURED cardinality0_nonterminal_label_restamp_itself: allowed=true closes=0 labels [ft:stage/accepted] -> [ft:stage/accepted] (err=<nil>)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_restamp_the_same_terminal
+    audit_r5_probe_test.go:335: MEASURED cardinality1_restamp_the_same_terminal: allowed=true closes=0 labels [ft:stage/completed] -> [ft:stage/completed] (err=<nil>)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_terminal_masked_by_a_nonterminal_restamp_itself
+    audit_r5_probe_test.go:335: MEASURED cardinality1_terminal_masked_by_a_nonterminal_restamp_itself: allowed=true closes=0 labels [ft:stage/wont_fix ft:stage/working] -> [ft:stage/wont_fix] (err=<nil>)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_terminal_beside_a_bare_stock_label
+    audit_r5_probe_test.go:335: MEASURED cardinality1_terminal_beside_a_bare_stock_label: allowed=true closes=0 labels [ft:stage/wont_fix duplicate] -> [ft:stage/wont_fix] (err=<nil>)
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality2_restamp_one_of_two
+    audit_r5_probe_test.go:335: MEASURED cardinality2_restamp_one_of_two: allowed=false closes=0 labels [ft:stage/wont_fix ft:stage/completed] -> [ft:stage/wont_fix ft:stage/completed] (err=rpc error: code = PermissionDenied desc = missing required scope "task:close")
+=== RUN   TestAuditR5_Charge4_FromEqualsToReachability/cardinality4_restamp_one_of_four
+    audit_r5_probe_test.go:335: MEASURED cardinality4_restamp_one_of_four: allowed=false closes=0 labels [ft:stage/completed ft:stage/wont_fix ft:stage/duplicate ft:stage/cancelled] -> [ft:stage/completed ft:stage/wont_fix ft:stage/duplicate ft:stage/cancelled] (err=rpc error: code = PermissionDenied desc = missing required scope "task:close")
+--- PASS: TestAuditR5_Charge4_FromEqualsToReachability (0.03s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality0_no_stage_labels_restamp_accepted (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality0_nonterminal_label_restamp_itself (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_restamp_the_same_terminal (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_terminal_masked_by_a_nonterminal_restamp_itself (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality1_terminal_beside_a_bare_stock_label (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality2_restamp_one_of_two (0.00s)
+    --- PASS: TestAuditR5_Charge4_FromEqualsToReachability/cardinality4_restamp_one_of_four (0.00s)
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/control_the_close_counter_can_reach_one
+2026/07/28 03:10:56 github passthrough: close acme/widgets#1: removing stage labels [ft:stage/accepted] failed, issue is closed but may carry a stale stage label: struct field for "clientMutationId" doesn't exist in any of 1 places to unmarshal
+2026/07/28 03:10:56 github passthrough: close acme/widgets#1: adding stage label [ft:stage/completed] failed, issue is closed but is not labelled completed: struct field for "clientMutationId" doesn't exist in any of 1 places to unmarshal
+    audit_r5_probe_test.go:426: CONTROL OK: closeCalls reaches 1 on a real close, so 0 is a measurement
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_triage
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_accepted
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_in_review
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_in_qa
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_deploying
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_completed
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_wont_fix
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_duplicate
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_cancelled
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_accepted
+    audit_r5_probe_test.go:477: MEASURED closed issue after UpdateTask(stage=accepted): state="CLOSED" labels=[ft:stage/accepted]
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_in_review
+    audit_r5_probe_test.go:477: MEASURED closed issue after UpdateTask(stage=in_review): state="CLOSED" labels=[ft:stage/in_review]
+=== RUN   TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_triage
+    audit_r5_probe_test.go:477: MEASURED closed issue after UpdateTask(stage=triage): state="CLOSED" labels=[ft:stage/triage]
+--- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially (0.06s)
+    --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/control_the_close_counter_can_reach_one (0.00s)
+    --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination (0.04s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_triage (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_accepted (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_in_review (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_in_qa (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_deploying (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_completed (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_wont_fix (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_duplicate (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_moves_issue_state_on_any_stage_destination/open_to_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue (0.01s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_accepted (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_in_review (0.00s)
+        --- PASS: TestAuditR5_Charge4_REV9PremiseAdversarially/update_task_never_reopens_a_closed_issue/closed_to_triage (0.00s)
+=== RUN   TestAuditR5_Charge5_CreateTaskResidualPrivilegeConsequence
+    audit_r5_probe_test.go:509: BASELINE: lifecycle=accepted available=true
+    audit_r5_probe_test.go:530: MEASURED after CreateTask(labels=[ft:stage/completed]) with task:write only: labels=[ft:stage/accepted ft:stage/triage ft:stage/completed] lifecycle=completed available=false reasons=[terminal]
+    audit_r5_probe_test.go:544: RESIDUAL REACHES THE #194 END STATE: lifecycle=completed (terminal), available=false. A task:write token has made a task read as finished.
+    audit_r5_probe_test.go:554: MEASURED ONE-WAY: the token that created the terminal state CANNOT undo it (rpc error: code = PermissionDenied desc = missing required scope "task:accept"). Creating costs task:write; reversing costs task:accept. That is the exact asymmetry #194 was filed for.
+--- PASS: TestAuditR5_Charge5_CreateTaskResidualPrivilegeConsequence (0.01s)
+=== RUN   TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix
+=== RUN   TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix/bare_stock_label_at_creation
+    audit_r5_probe_test.go:571: MEASURED bare stock label at creation: labels=[ft:stage/accepted ft:stage/triage duplicate] lifecycle=accepted available=true
+=== RUN   TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix/custom_prefix_deployment
+    audit_r5_probe_test.go:584: MEASURED custom prefix acme: at creation: labels=[acme:stage/accepted] lifecycle=accepted available=true
+--- PASS: TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix (0.01s)
+    --- PASS: TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix/bare_stock_label_at_creation (0.00s)
+    --- PASS: TestAuditR5_Charge5_CreateTaskUnprefixedAndCustomPrefix/custom_prefix_deployment (0.00s)
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_wont_fix
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_duplicate
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_cancelled
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_completed
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_duplicate
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_cancelled
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_completed
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_wont_fix
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_cancelled
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_completed
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_wont_fix
+=== RUN   TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_duplicate
+=== NAME  TestAuditR5_Charge6_CustomPrefixEndToEnd
+    audit_r5_probe_test.go:621: MEASURED custom prefix "acme:" shape A: 12/12 denied, 0/12 converted
+--- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd (0.04s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_duplicate (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/completed_to_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_completed (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_duplicate (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/wont_fix_to_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_completed (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/duplicate_to_cancelled (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_completed (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_wont_fix (0.00s)
+    --- PASS: TestAuditR5_Charge6_CustomPrefixEndToEnd/cancelled_to_duplicate (0.00s)
+=== RUN   TestAuditR5_Charge6_DefaultPrefixLabelsAreInertUnderACustomPrefix
+    audit_r5_probe_test.go:640: MEASURED deployment push_prefix="acme:" carrying a foreign "ft:stage/wont_fix": labels=[acme:stage/accepted ft:stage/wont_fix] lifecycle=accepted available=true reasons=[]
+    audit_r5_probe_test.go:647: MEASURED remove_labels[ft:stage/wont_fix] under push_prefix="acme:": err=<nil>
+--- PASS: TestAuditR5_Charge6_DefaultPrefixLabelsAreInertUnderACustomPrefix (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.428s

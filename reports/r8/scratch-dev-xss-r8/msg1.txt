@@ -1,0 +1,34 @@
+Item 1: re-anchor citations by identifier, never by line number
+
+16 numeric citations removed from the three r7-touched comment blocks and
+replaced with identifiers or quoted source text (_BRIEF-RULES.md §30).
+
+12 of them were demonstrably STALE: they named a code construct and resolved
+to a comment line, in every case a comment line inside the very annotation
+that displaced them. Examples, all in export_import.go ImportCollection:
+
+  ":332 ... NO KEY VALIDATION"  -> "// privilege grant. Do not relax this..."
+  ":331 which hardcodes ..."    -> "// platform check, turns an unvalidated..."
+  "capabilities.ts:94 the FARMTABLE branch" -> the CONJUNCT B comment head
+
+1 more was stale in the worse direction: convert.go cited "reaches the store
+at :412", and export_import.go:412 is `if err != nil {` inside the comments
+loop -- it RESOLVES, to plausible code, so a reader who checked came back
+with false confidence. The real call is s.store.ImportCollection(ctx,
+importParams). This is the same failure convert.go's own remote_data comment
+already describes having made with entstore.go:408.
+
+2 were correct-as-comment-references but pointed into files that move.
+1 (entstore.go:2117) was correct and was re-anchored only because it sat in
+a sentence being rewritten; it is counted here so the 16 reconciles.
+
+The CONJUNCT A block previously read "Cited by name, not line: this round
+spent most of itself on citations that resolved to the wrong thing" while
+containing three line numbers that resolved to the wrong thing. That
+sentence is now true.
+
+Also drops the claim that the two conjunct-A halves are "two adjacent
+lines": they are the platform guard and the importParams Platform field,
+which are not adjacent.
+
+Comments only. No behavioural change.

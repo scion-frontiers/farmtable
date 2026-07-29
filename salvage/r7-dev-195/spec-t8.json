@@ -1,0 +1,66 @@
+{
+  "note": "T-8 verification. Swapping the private Marked instance for the shared singleton was GREEN at 69 checks. It must now be RED, and RED via the new effect-based check.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 71;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "T8-singleton",
+      "desc": "V-marked: configure the SHARED singleton instead of a private instance — was GREEN at 69 checks",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "import { Marked, type Tokens } from 'marked';",
+          "replace": "import { marked, type Tokens } from 'marked';"
+        },
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "const parser = new Marked({",
+          "replace": "marked.use({"
+        },
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "});\n\n// THIS FUNCTION TAKES EXACTLY ONE PARAMETER",
+          "replace": "});\nconst parser = marked;\n\n// THIS FUNCTION TAKES EXACTLY ONE PARAMETER"
+        }
+      ]
+    },
+    {
+      "id": "ABL-t8",
+      "desc": "ABLATION: drop the poisoning so the check asserts against an unpoisoned singleton. The inline positive control must catch it.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    marked.use({\n      renderer: {\n        checkbox: (): string => '<img src=x onerror=alert(1)>',\n      },\n    });",
+          "replace": "    if (Date.now() > 0) { /* poisoning skipped */ } else { marked.use({}); }"
+        }
+      ]
+    }
+  ]
+}

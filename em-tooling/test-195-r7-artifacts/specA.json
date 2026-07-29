@@ -1,0 +1,93 @@
+[
+ {
+  "id": "A-input drop FORBID_TAGS 'input'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-button drop FORBID_TAGS 'button'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-select drop FORBID_TAGS 'select'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'button', 'textarea', 'option', 'dialog', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-textarea drop FORBID_TAGS 'textarea'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'button', 'select', 'option', 'dialog', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-option drop FORBID_TAGS 'option'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'button', 'select', 'textarea', 'dialog', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-dialog drop FORBID_TAGS 'dialog'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'style',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "A-style drop FORBID_TAGS 'style'",
+  "file": "src/util/markdown.ts",
+  "anchor": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog', 'style',\n",
+  "repl": "  'form', 'input', 'button', 'select', 'textarea', 'option', 'dialog',\n",
+  "expect": "RED"
+ },
+ {
+  "id": "B-style drop FORBID_ATTR 'style'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['class', 'formaction', 'action', 'download', 'slot'];",
+  "expect": "RED"
+ },
+ {
+  "id": "B-class drop FORBID_ATTR 'class'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['style', 'formaction', 'action', 'download', 'slot'];",
+  "expect": "RED"
+ },
+ {
+  "id": "B-formaction drop FORBID_ATTR 'formaction'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['style', 'class', 'action', 'download', 'slot'];",
+  "expect": "RED"
+ },
+ {
+  "id": "B-action drop FORBID_ATTR 'action'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['style', 'class', 'formaction', 'download', 'slot'];",
+  "expect": "RED"
+ },
+ {
+  "id": "B-download drop FORBID_ATTR 'download'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'slot'];",
+  "expect": "RED"
+ },
+ {
+  "id": "B-slot drop FORBID_ATTR 'slot'",
+  "file": "src/util/markdown.ts",
+  "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+  "repl": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];",
+  "expect": "RED"
+ }
+]

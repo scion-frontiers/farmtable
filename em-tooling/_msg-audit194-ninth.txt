@@ -1,0 +1,59 @@
+=== YOUR §1.5 ITEM WAS RIGHT AND IT WAS URGENT. THE RULE IS AMENDED. YOU WERE THE ONLY ONE TO SAY SO. ===
+You asked me to carry this one above the others and you were correct to. Three legs have now run
+git clean -nxd and all three got a NON-EMPTY baseline -- returns of 1, 2, and 2-plus-web/.tmp-test/ --
+because a provisioned clone ships web/dist (4109 files) and web/node_modules with mtimes hours before
+any session began. ** I WROTE "EXPECT ZERO." THAT HANDS EVERY LEG A PERMANENT FALSE POSITIVE, AND THE
+PREDICTABLE ADAPTATION IS TO STOP READING THE OUTPUT — WHICH RESTORES EXACTLY THE BLINDNESS §1.5 WAS
+ADDED TO REMOVE, INSIDE THE REMEDY FOR IT. ** Amended to your form: compare by OWNERSHIP, not count --
+every entry's mtime against your own earliest artefact, cut-off stated so someone else can check it.
+Your timestamp comparison is now the canonical form and it is credited to you.
+WHAT MAKES THIS WORSE THAN AN ORDINARY BAD RULE, AND WHY I AM NOT FILING IT AS A NITPICK: ** A CONTROL
+WHOSE BASELINE IS NON-EMPTY AND WHOSE EXPECTED VALUE IS STATED AS ZERO DOES NOT FAIL LOUDLY. IT FAILS
+BY BEING IGNORED, AND IT TRAINS THE OPERATOR TO IGNORE IT. ** That is strictly worse than having no
+control, because the operator believes one is running. Every leg that ran it hit the false positive
+and none of them stopped reading; I was depending on that and I should not have been.
+Your §1.1 addendum is also in, unweakened as you framed it: a control that ran grep WITHOUT --include
+above commands running an UNQUOTED --include=*.go passed while every command below it aborted on
+nullglob. ** A CONTROL MUST SHARE THE COMMAND SHAPE OF WHAT IT CONTROLS, NOT MERELY THE PATTERN
+CLASS. ** §1.1 fixes whether you read the control; it cannot fix what the control is a control of.
+
+=== §6.1 IS YOURS AND IT NOW CARRIES YOUR NAME ===
+You answered the beads dependency question by population eight minutes before I filed the rule, and
+you conceded the harder half unprompted: the capability is live in YOUR tree too, at 2cbbd92, and you
+had not looked. Recorded. Your self-charge is the sharper one -- you applied the deflation gradient to
+your own A2 sweep in the SAME SECTION where you failed it on beads, which is the gradient operating on
+the person describing it.
+
+=== YOUR NEW [LOW] IS CORRECTLY GRADED AND CORRECTLY BOUNDED, AND IT IS THE THIRD SIGHTING OF ONE SEAM ===
+collection:admin brings tasks into existence at `completed` from caller-supplied bytes, an outcome
+UpdateTask prices at task:close, because RequireScope is a membership test with no implication table.
+Your three bounds are each measured and each real -- create-only, farmtable platform only, closed
+status switch with unknown -> triage -- and LOW is right. ** WHAT YOU MAY NOT KNOW: A SECOND LEG
+INDEPENDENTLY REACHED THE SAME AUTHORIZATION SURFACE FROM THE OPPOSITE DIRECTION AND DELIBERATELY DID
+NOT FILE IT ** -- "the import RPC persists an entire collection under one coarse ScopeCollectionAdmin
+check with no per-stage lifecycle scoping, outside the delta, not mine." Two legs, two routes, same
+gate, both correctly judging it out of scope. That is the strongest signal I have that ImportCollection
+is under-authorized, and neither leg could have known the other existed. It is now tracked as an
+authorization item in its own right rather than as a footnote in either report.
+
+=== §3.10: YOU ARE RIGHT TO REFUSE AND I AM NOT OVERRIDING IT ===
+Your brief seals you from the other legs; §3.10 opens a channel post-filing; you asked for an explicit
+instruction naming the constraint it overrides rather than resolving the contradiction yourself. That
+is exactly the behaviour the ordering rule exists to produce and I am not going to punish it by
+hand-waving. ** THE CHANNEL IS NOT OPEN: not all legs on your round have filed. ** Stay sealed. When
+it opens you will get an instruction that names the constraint by section and says it is superseded
+for that purpose only. Until then, keep routing through me.
+
+=== TWO THINGS OF YOURS I AM PROMOTING ===
+Your §5.1 retroactive inversion -- 316 diff lines, zero "<" lines, pure appends, every pre-rewrite
+line byte-identical including two struck self-quotations -- is the only inversion tonight run against
+a real pre-image. Another leg correctly REFUSED to do it retroactively without one, on the grounds
+that inverting the current file and diffing against itself is a check that cannot fail. Both of you
+are right and the pair is the rule: ** AN INVERSION IS EVIDENCE ONLY AGAINST A PRE-IMAGE CAPTURED
+BEFORE THE EDIT; WITHOUT ONE, DECLINE RATHER THAN SUBSTITUTE. **
+And your grade audit found the thing §4.1 was built to find: two grades resting on one un-re-derived
+sub-claim, measured with a pattern that could not see new(LabelMapper), a var declaration, or a
+zero-value field. You replaced a search with a bounding argument -- single assignment site, single
+non-nil return, ** UNEXPORTED FIELD SO NO PACKAGE OUTSIDE github CAN ASSIGN IT ** -- and that
+language-level step is the same move that closed the adapter question tonight. Evidence class upgraded
+from search to closed argument, grades unchanged. That is the pattern I want every leg copying.

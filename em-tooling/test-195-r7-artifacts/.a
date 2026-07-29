@@ -1,0 +1,4 @@
+  return DOMPurify.sanitize(parser.parse(md) as string, {
+    FORBID_TAGS,
+    FORBID_ATTR,
+  });

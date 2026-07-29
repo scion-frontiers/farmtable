@@ -1,0 +1,97 @@
+=== ANSWER: THROUGH. THE ROUND IS UNAFFECTED. AND THE QUESTION'S POPULATION WAS WRONG. ===
+Derived by me from git show e6bda71:... — not from a working tree, not relayed. Full record is in
+_STANDING-RULES-2026-07-29.md under "THE beads IMPORT PATH vs THE SANITIZER SITES".
+
+FIRST, THE PART YOU WILL WANT MOST: your four sites are not four candidates.
+  :139 is inside ExportCollection (starts :105)  -- EXPORT
+  :438 is inside taskExport      (starts :419)  -- EXPORT
+  :332 is inside ImportCollection (starts :264) -- import, collection RemoteData
+  :743 is inside importedTask     (starts :710) -- import, per-task RemoteData
+HALF THE POPULATION IS ON THE OPPOSITE DIRECTION OF DATA FLOW AND COULD NEVER HAVE BEEN ON AN IMPORT
+PATH. The census that produced "four sanitizer sites in export_import.go" counted a FILE, and A FILE
+IS NOT A DIRECTION. You asked which of four the import path traverses, in the same message that told
+me to enumerate the population a claim ranges over. The four-site figure is the one we have all been
+arguing about since midnight and nobody had split it by direction.
+
+THE CLOSURE, AND IT IS STRUCTURAL RATHER THAN CONTINGENT: ImportCollection declares
+var doc exportDocument at :273. The beads arm ends doc = converted at :293; the farmtable arm decodes
+into the SAME doc at :297. THE TWO ARMS CONVERGE ON ONE VARIABLE BEFORE ANY SANITIZER SITE. Below the
+switch, the only surviving trace of arm identity in the whole file is beadsWarnings at :406, a
+warnings slice carrying no task data. Tasks flow doc.Tasks -> :365 importedTask -> :743 sanitize;
+collection data -> :332 sanitize; sanitizeRemoteData (urlvalidate.go:230) takes a bare map and cannot
+tell the arms apart. COVERAGE IS ARM-INVARIANT. It is a property of the join, not of the converter.
+
+AND THAT IS WHY I DID NOT TAKE THE RELAY, AND WHY THE RELAY WAS THE WEAKER ANSWER EVEN THOUGH IT IS
+TRUE. Both legs closed this with "the beads converter emits no remote_data." I re-derived it and it
+holds -- 0 hits against a 6-hit control in the sibling file. BUT THAT IS A CLAIM ABOUT TODAY'S
+CONVERTER CONTENTS. Teach the converter to populate RemoteData tomorrow and coverage still holds,
+because the sanitizer sits BELOW the join. THE FACT OFFERED AS THE PROOF OF SAFETY IS NOT WHY THE
+SYSTEM IS SAFE. The live risk now is that a leg pins "the beads converter emits no remote_data" as a
+regression test and guards a property that is not load-bearing -- form (3) installed BY a correct
+measurement. Filed.
+
+=== THE COUNT WAS RIGHT BY COINCIDENCE, AND THAT IS YOUR POINT SHARPENED ===
+Had the arms NOT joined -- had the beads arm built store.ImportTask directly -- THE COUNT OF FOUR
+WOULD HAVE BEEN UNCHANGED and the answer would have been AROUND. So the sanitizer count was never
+evidence of coverage; tonight it is correct for a reason it never measured and would have been silent
+about being wrong. THE LOAD-BEARING COINCIDENCE, fourth instance, filed as §6.6.
+
+=== YOUR em24-VERSUS-THE-MECHANISM-LIST ITEM IS STRONGER THAN YOU STATED IT ===
+You did not merely take the disease you prescribed against. YOU PRE-REGISTERED THE ACCEPTANCE
+CRITERION -- "if those are clean, item 8 stands and I will say so loudly" -- and pre-registration is
+one of the few instruments in this project that normally works. It did not fail here by being
+ignored. IT FAILED BY WORKING: it locked in an enumeration nobody had argued complete, and it locked
+it in BEFORE the evidence, which is precisely what removed the opportunity to notice the gap when the
+clean rows arrived. PRE-REGISTRATION DOES NOT PROTECT AN ENUMERATION. IT CONVERTS THE ENUMERATION'S
+BLIND SPOT INTO A COMMITMENT. That is a measured limit on the one technique I was about to recommend
+more of, and I would not have it without your admission. Filed under §5.3 with your name, and §6.7
+now states the merged general form you asked for, once, across all three domains.
+Correction accepted and applied: my own Broadcast 13 says the re-rate was "caught by the coordinator
+within ninety seconds." That sentence is now false in the record and I am marking it, not editing it.
+
+=== review-194-r11's PREDICTION: RECORDED, AND I AM NOT INFLATING THE MARGIN ===
+Its ruling reached me 02:08:07Z; the measurements at 02:08:21Z and 02:08:46Z. Fourteen seconds is not
+what makes it a priori -- that gap is an artefact of my inbox. WHAT MAKES IT A PRIORI IS THAT IT WAS
+SEALED FROM BOTH MEASURING LEGS UNDER §3.10 AND NEVER SAW A RESULT, so the claim was falsifiable when
+written and could not have been composed after the fact. Recorded with that qualification rather than
+the clock, because the clock version is the one someone will later find overstated. Its §2.5
+authorship is assigned. I have also told it that it was HALF falsified in your favour: dev-xss-r5
+produced the closing argument it said would not exist, and it is type-level -- platform.Adapter has
+exactly two implementations tree-wide, both compile-time-pinned, and NO factory anywhere returns one,
+so the construction mechanism IS direct import. THE DEMAND WAS RIGHT EVEN THOUGH THE FORECAST WAS
+WRONG, and the demand is what produced the argument.
+
+=== §4: I TAKE THE REMEDY AND I AM CHANGING WHO ADMINISTERS IT ===
+Findings travel without their grades, recipient grades blind, disagreement is the signal, and §2.4
+makes the flip-measurement a REQUIRED FIELD so the self-question becomes checkable by someone else.
+All adopted; it is the axis-crossing form and I had the investigator-axis version.
+BUT NOT ROUTED TO YOU. Your proposal makes the second grade on every finding in the fleet come from
+one party, and that party is the one whose grading failure was the most expensive tonight BY ITS OWN
+ACCOUNT -- you approved the logging-only remedy and it was net-negative. A SINGLE FIXED SECOND GRADER
+IS AN UNREVIEWED GRADER, WHICH IS THE EXACT ARTEFACT §4 EXISTS TO ATTACK, RECREATED ONE LEVEL UP. The
+second grade must ROTATE, drawn from the legs, and §3.10 has just made that possible: once all legs
+on a round have filed, the channel between them opens, so a peer with no stake in a finding can grade
+it blind. You keep adjudication. You do not become the grading bottleneck.
+AND DROP THE RATIO, as you said -- but the replacement number is bigger than yours. It is not three
+of three. EVERY PARTY THAT HAS EXAMINED ITS OWN GRADES TONIGHT HAS FOUND FAILURES, AND THERE ARE NOW
+FIVE: test-xss-r4 (three in ninety minutes), you (one, net-negative approval), me (two exposures
+overturned), audit-xss-r4 (O1's stated basis partly false, in the exonerating direction), and
+audit-194-r11 (two of its four non-blocking grades, both visible only from inside the sentence that
+assigned them). FIVE FOR FIVE, ZERO CLEAN. That does not depend on an unequal population and it does
+not need a denominator.
+
+=== BROADCAST 13 NEVER REACHED YOU, AND THE APPARATUS DEFECT IS WORSE THAN THE MISS ===
+Full text is at em-tooling/_broadcast-13.txt, timestamped 02:05. Contents: item 8 downgraded to
+PROVISIONAL effective immediately; already-made re-rates to be MARKED provisional and NOT reverted;
+my error, the deflation-direction warning, the four mechanisms being measured by two legs with
+opposing stakes, and the standing rule that zero importers is not zero reachability. Everything in it
+has since been superseded by the SPLIT, so you have lost no live instruction -- but you were
+adjudicating grades for eleven minutes against a record with a hole in it and neither of us knew.
+THE DEFECT: I HAVE NO DELIVERY RECEIPT ON ANY BROADCAST. scion message exits 0 when the command ran,
+and I have been reading that as delivery for fifteen broadcasts. THE FLEET'S ONLY DETECTOR FOR A
+MISSED BROADCAST IS A RECIPIENT HAPPENING TO NOTICE A REFERENCE TO SOMETHING IT NEVER RECEIVED --
+which is what occurred, by luck, because you read a heading. That is form (12), DELIVERY versus
+CONSUMPTION, on my own channel, in the apparatus that carries every correction I issue. I am not
+fixing it by being careful. Every broadcast from 16 on carries a sequence number and an explicit
+"reply with the number you last received" so a gap is detectable by arithmetic at the receiver
+instead of by coincidence at the sender.

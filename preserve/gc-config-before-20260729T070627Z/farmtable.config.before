@@ -1,0 +1,416 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = https://x-access-token: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@github.com/scion-frontiers/farmtable.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[user]
+	name = Scion Agent
+	email = scion-agent@local
+[branch "feat/new-collection-modal"]
+	remote = origin
+	merge = refs/heads/feat/new-collection-modal
+[branch "feat/collection-settings-modal"]
+	remote = origin
+	merge = refs/heads/feat/collection-settings-modal
+[branch "feat/collection-export-import"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/export-import-web-ui"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/tree-view-infinite-growth"]
+	remote = origin
+	merge = refs/heads/fix/tree-view-infinite-growth
+[branch "feat/extstore-a1-linkedaccount-schema"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-a3-remote-data"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-a6-multistore"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-b1b5-passthrough"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-b2-taskToProto"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-c1-ephemeral"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-c2-graph-check"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-a4-linkedaccount-store"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-a2-proto-rpcs"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-a8-multistore-wiring"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-b3-lazy-registration"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/extstore-b7-read-only-mode"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f36-main-content-scroll"]
+	remote = origin
+	merge = refs/heads/feat/f36-main-content-scroll
+[branch "fix/passthrough-spinner"]
+	remote = origin
+	merge = refs/heads/fix/passthrough-spinner
+[branch "feat/f38-independent-scroll"]
+	remote = origin
+	merge = refs/heads/feat/f38-independent-scroll
+[branch "deploy-9-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f39-independent-scroll-v3"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-10-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/local-test-protocol"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f40-inspector-scroll"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-11-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f41-tree-center-animation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-12-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/triage-dnd-investigation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/dnd-broken-investigation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f42-kanban-dnd-deadzone"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-13-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/auth-review"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/passthrough-write"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/passthrough-write-p1"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f43-tree-parent-child-only"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/tree-lines"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f44-dependency-view"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-14-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/passthrough-write-p2"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-15-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-16-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/passthrough-write-p3"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-17-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f45-beads-import"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-18-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f46-relationships-add-remove"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f47-ready-queue-alignment"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-19-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-20-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-21-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f48-dependency-view-dnd"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/f46-missing"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-22-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/reciprocal-relationship"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f49-reciprocal-relationship-sync"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/relationship-model"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f50-landing-page-scroll-newproject"]
+	remote = origin
+	merge = refs/heads/feat/f50-landing-page-scroll-newproject
+[branch "deploy-23-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-24-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f51-dependency-view-layout"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-25-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f52-palette-search"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f54-tree-minimap"]
+	remote = origin
+	merge = refs/heads/feat/f54-tree-minimap
+[branch "deploy-26-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-27-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-28-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/sync-flicker"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-29-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/f56-zoom-and-highlight"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/issue-77-validation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/issue-76-validation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f57-issue-76-bottlenecks"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-30-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f58-combined-pan-zoom-animation"]
+	remote = origin
+	merge = refs/heads/fix/f58-combined-pan-zoom-animation
+[branch "feat/f59-iap-token-header"]
+	remote = origin
+	merge = refs/heads/feat/f59-iap-token-header
+[branch "deploy-31-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/graph-redraw"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-32-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/f60-graph-poll-redraw"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-33-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-34-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/decomposer-iap-audience-flag"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-35-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "explore/decomposer-rerun"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-36-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-37-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature/f61-isolate-mode"]
+	remote = origin
+	merge = refs/heads/feature/f61-isolate-mode
+[branch "deploy-38-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/cloudsql-connection-pool"]
+	remote = origin
+	merge = refs/heads/fix/cloudsql-connection-pool
+[branch "deploy-39-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature/f61-v2-fixes"]
+	remote = origin
+	merge = refs/heads/feature/f61-v2-fixes
+[branch "deploy-40-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature/f62-task-deep-links"]
+	remote = origin
+	merge = refs/heads/feature/f62-task-deep-links
+[branch "review-f62"]
+	remote = origin
+	merge = refs/heads/feature/f62-task-deep-links
+[branch "deploy-41-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature/f63-default-dashboard"]
+	remote = origin
+	merge = refs/heads/feature/f63-default-dashboard
+[branch "deploy-42-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature/f64-dnd-animation"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-43-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feat/decomposer-improvements"]
+	remote = origin
+	merge = refs/heads/feat/decomposer-improvements
+[branch "feature/f65-dashboard-ready-count"]
+	remote = origin
+	merge = refs/heads/feature/f65-dashboard-ready-count
+[branch "feature/f66-solo-sticky"]
+	remote = origin
+	merge = refs/heads/feature/f66-solo-sticky
+[branch "fix/perf-phase1-getchildren-depth"]
+	remote = origin
+	merge = refs/heads/fix/perf-phase1-getchildren-depth
+[branch "deploy-44-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-45-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-46-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix/periodic-redraw-v2"]
+	remote = origin
+	merge = refs/heads/fix/periodic-redraw-v2
+[branch "deploy-47-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature-67-tree-orientation"]
+	remote = origin
+	merge = refs/heads/feature-67-tree-orientation
+[branch "perf-phase2-viewport-culling"]
+	remote = origin
+	merge = refs/heads/perf-phase2-viewport-culling
+[branch "deploy-48-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-49-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature-67-tweak-default-lr"]
+	remote = origin
+	merge = refs/heads/feature-67-tweak-default-lr
+[branch "fix-dependency-closed-solo"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-50-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-51-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "fix-solo-crossedge"]
+	remote = origin
+	merge = refs/heads/fix-solo-crossedge
+[branch "deploy-52-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature-68-kanban-autoscroll"]
+	remote = origin
+	merge = refs/heads/feature-68-kanban-autoscroll
+[branch "feature-69-inspector-external-link"]
+	remote = origin
+	merge = refs/heads/feature-69-inspector-external-link
+[branch "deploy-53-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature-70-favicon"]
+	remote = origin
+	merge = refs/heads/feature-70-favicon
+[branch "deploy-54-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "feature-71-minimap-damping"]
+	remote = origin
+	merge = refs/heads/feature-71-minimap-damping
+[branch "deploy-55-snapshot"]
+	remote = origin
+	merge = refs/heads/main
+[branch "auth-stage4-predeploy-fixes"]
+	remote = origin
+	merge = refs/heads/auth-stage4-predeploy-fixes
+[branch "auth-stage4-deploy-prep"]
+	remote = origin
+	merge = refs/heads/auth-stage4-deploy-prep
+[branch "task-state-core"]
+	remote = origin
+	merge = refs/heads/main
+[branch "task-state-predeploy-migration"]
+	remote = origin
+	merge = refs/heads/main
+[branch "deploy-task-state-phase1-live"]
+	remote = origin
+	merge = refs/heads/deploy-task-state-phase1-live
+[branch "task-state-hotfix-179-r2"]
+	remote = origin
+	merge = refs/heads/main
+[branch "task-state-web-ui"]
+	remote = origin
+	merge = refs/heads/main
+[branch "task-state-web-ui-v2"]
+	remote = origin
+	merge = refs/heads/task-state-web-ui-v2

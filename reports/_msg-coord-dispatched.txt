@@ -1,0 +1,59 @@
+=== r8 THREE-WAY DISPATCHED, 10:28Z. CONDITION SATISFIED BEFORE ANY LEG STARTED. ===
+
+THREE LEGS RUNNING at 901670e3f09ad57386cafb8359017d8d61a75070, branch url-scheme-validation-r8,
+range e4e3d13..901670e, 10 commits, 7 files, 476 insertions / 40 deletions [MEASURED, git diff --stat]:
+
+    review-xss-r8  code-reviewer     /workspace/farmtable-review-r8
+    audit-xss-r8   security-auditor  /workspace/farmtable-audit-r8
+    test-xss-r8    test-engineer     /workspace/farmtable-test-r8
+
+YOUR CONDITION: announced to all five legs at 10:24Z, AT CREATION, before any leg was started and
+before any of them was told the trees exist. Two legs have already replied against it and BOTH
+REPLIES CHANGED SOMETHING, which is more than I expected from an announcement.
+
+THE FREEZE QUESTION I DID NOT ASSUME. You extended the freeze to writes into canonical's .git, and
+git worktree add writes a registration there, so linked worktrees were out. I used standalone clones
+and then MEASURED whether cloning writes to its source rather than reasoning that it does not:
+142 depth-1 entries plus registrations, before and after three clones, DIFF EMPTY. Registrations 126
+before, 126 after. Newest entry still 10:00:28Z, which is dev-xss-r8 finishing. [MEASURED, bounded to
+depth 1 — I did not walk .git/objects, and two legs have declined to contradict that rather than
+confirming it, which is not a clearance.]
+
+TOKEN: still mine, still idle. No leg is building. All three briefs carry the request-with-
+pre-registered-expectation protocol, and all three carry your rule as mine: ANY VERIFICATION
+CONSTRUCTION IN MY BRIEF IS A PROPOSAL UNTIL THE LEG EXECUTES IT AND REPORTS, and a false premise
+found in my brief is a result I record against the brief. I put my own npm-test/Vitest error in the
+phase-two file verbatim so all three legs start from the corrected version and know I got it wrong.
+
+R6 AND R7 REMAIN DO NOT MERGE. Stated in the dispatch and in the common brief.
+
+=== TWO THINGS OUT OF THE DISPATCH, NEITHER OF WHICH I WENT LOOKING FOR ===
+
+1. EM-313, A CONTROL THAT FAILS TOWARD ALARM. Detailed separately, but the headline is that my
+   near-miss arm reported my PAT detector broken when it was sound, because the arm's discriminator
+   was shared with the members the pattern was supposed to admit. Almost everything tonight fails
+   toward clean. This one fails loudly — and the danger is that THE NATURAL RESPONSE TO A CONTROL
+   THAT FIRES IS TO WIDEN THE PATTERN, so a false alarm remediated in the obvious direction produces
+   a real hole. What caught it was the aggregate count contradicting the per-member arm, i.e. the
+   evidence we have been treating all night as the WEAKER kind.
+
+2. relocate's device result, which I am concurring with rather than reporting. ISOLATION AND
+   DURABILITY ARE BOUGHT BY THE SAME ACTION AND ARE NOT THE SAME PROPERTY. I created three more
+   complete copies of the at-risk history on the same block device as the original, and had you
+   asked me at 10:24Z whether the night's copying made the work safer I WOULD HAVE SAID YES WITHOUT
+   QUALIFYING IT. Its leg stopped because no permitted action buys off-device, which is the
+   instruction working, not a failed leg. I am proposing nothing off-host and I will not cite my
+   three clones as risk reduction anywhere.
+
+=== STILL OWED TO ME, NOT URGENT WHILE THE THREE LEGS RUN ===
+
+  * The whole-tree Go build. NOBODY HAS RUN go build ./... , go vet ./... , go test ./... or
+    make test against this branch tonight. It is UNMEASURED and I have told all three legs that
+    "unmeasured" is the finding until somebody measures it. I will route it deliberately once I see
+    whether a review leg needs the token first — I am not spending the single token on it while
+    three legs are mid-pass.
+  * My ruling on r8's two handbacks: OP-1, zero coverage on getCapabilities and isCollectionWritable
+    (route vs widen), and OP-2, 17 line-number citations still in tree against the cite-by-identifier
+    rule. I have deliberately NOT ruled on either before the review, so the legs reach them cold.
+
+Freeze intact. Nothing deleted, nothing pruned, no registration touched. Nothing to ptone.

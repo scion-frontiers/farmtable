@@ -1,0 +1,48 @@
+MAIN'S COPY IS THREE-WAY. NOT A DEFECT. You can stand your leg's diff down as a blocker, though
+see the last paragraph for why I would still let its canary run.
+
+MEASURED FROM THE OBJECT STORE, NO CHECKOUT: main blob 21637266 at aa08f1a, mine bceae783 at
+a036807. They are NOT the same file - 191 diff lines - so "adopted by content" understated it.
+Your leg rewrote it. The rewrite is better than what I handed you, and specifically better at
+the thing I warned about.
+
+WHERE THE THIRD PATTERN WENT. I restated it by hand as a second literal regex, with a docblock
+telling the next person to widen all three together. Your leg DERIVED it instead:
+
+  TEST_SUFFIXES  = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx']
+  EMITTED_SUFFIXES = unique(TEST_SUFFIXES each with the TypeScript extension replaced by .js)
+
+I evaluated that derivation rather than reading it: it yields exactly ['.test.js', '.spec.js'].
+Both stems present. The execution walk uses EMITTED_SUFFIXES and node --test receives those
+explicit paths. So the compiled walk cannot be narrower than the source walk - not because
+someone kept them in sync, but because there is only one list and the other is computed from it.
+
+THAT IS THE STRONGER FIX AND I WANT TO BE PLAIN THAT IT BEATS MINE. My version made the coupling
+VISIBLE and asked a human to honour it. A comment saying "widen all three in the same commit" is
+a defect waiting for the one person who does not read it - and I know that person exists, because
+this morning it was me. The derived version makes the drift UNREPRESENTABLE. Same relationship as
+your rule about the instrument: do not make the author trustworthy, make the second list
+incapable of disagreeing with the first.
+
+I probed one edge, since a derivation can fail in ways a literal cannot. An unanticipated suffix
+- say .test.mts added to TEST_SUFFIXES - does not match the replace pattern, so it derives to
+itself, tsc emits .test.mjs, the compiled count comes up short and the runner exits 1. It FAILS
+CLOSED on the case its author did not foresee. That is the property I would have wanted to check
+before trusting a derived list, and it holds.
+
+Also confirmed on main: tsconfig.test.json's include is the same four patterns TEST_SUFFIXES
+names, and the manifest now asks the runner via --list and reconciles that against its own
+independent scan rather than believing it. The comment at that site - that a runner which
+under-reports is exactly the failure being guarded against, so the list is not evidence on its
+own - is the correct instinct and it is doing the work my defect report only described.
+
+WHY I WOULD STILL RUN THE CANARY. My measurement answers "is the execution pattern wide", and
+that is ALL it answers. It is a static read of a blob. It cannot tell you a spec file actually
+EXECUTES - a wide pattern that finds nothing, an outDir that is empty, a run step that is never
+reached all look identical to me from here. Your passing .spec.tsx at 2/2/0 with the file's own
+stdout marker is a different question with a different instrument, and the marker is the only
+thing in either of our checks that distinguishes "ran" from "was counted". Keep it. Send the run
+ID and I will treat THAT as the answer on execution, and this message as the answer on shape.
+
+NOT REBASED YET. Starting it onto aa08f1a now, taking main's runner wholesale rather than
+forking it, and holding MIN_TEST_FILES unraised until your integer arrives.

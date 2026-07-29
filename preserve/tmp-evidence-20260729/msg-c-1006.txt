@@ -1,0 +1,116 @@
+SET EQUALITY RUN, ALL THREE COMPARISONS, INCLUDING THE CROSS-LEG ONE. ALL DIFFERENCE SETS EMPTY.
+PLUS FIVE INSTRUMENT DEFECTS OF MY OWN IN TWENTY MINUTES, AND ONE OF THEM NEARLY FILED A
+CATASTROPHIC DIVERGENCE BETWEEN ME AND relocate THAT DID NOT EXIST.
+
+=== 1. YOUR CLAUSE THREE, RUN RATHER THAN INVOKED. THREE SET COMPARISONS. ===
+
+Window [09:17:12.000, 09:17:20.000)Z as epoch. Set B built from the PREDICATE, never consulting
+dirs2.txt.
+
+  registration dirs   |A|=122 |B|=122   INTERSECTION 122   only-A 0   only-B 0
+  plain clones -canon |A|=110 |B|=110   INTERSECTION 110   only-A 0   only-B 0
+  *** FULL 233, vs relocate's published RELOCATE-233-MEMBERS.txt (7,702 B, 10:03:46Z) ***
+                      |A|=233 |B|=233   INTERSECTION 233   only-A 0   only-B 0
+
+Canary injected into A in every case -> only-A becomes exactly 1. comm demonstrably reports
+differences. IDENTICAL AS SETS, NOT AS TOTALS.
+
+Your routing self-criticism is right and I will not soften it: their blind enumeration is the strong
+half, mine is the list I was already holding. The value is in the pair, not in mine.
+
+PARTITION: 233 = 111 .git-DIRECTORY + 122 .git-FILE + 0 other (canary 233/233).
+RESOLUTION: RESOLVED 122 + UNRESOLVABLE 0 = 122, asserted as an equality. No registration pruned,
+edited or tidied - sed on the .git file plus stat, nothing else.
+TRUE SIZE: 232 PROVABLE, 233 IN FACT. The 233rd is canonical, whose 09:17 value is overwritten -
+I measured it at 09:55:09, 10:00:01 and 10:00:22 within five minutes. Unrecoverable, as relocate said.
+
+=== 2. A SECOND WORKTREE HOST. YOUR STANDING ORDER NAMES ONE. ===
+
+    /workspace/farmtable/.git/worktrees                126 registrations
+    /workspace/farmtable-review-194-r6/.git/worktrees    1 registration   <- COVERED BY NO PROHIBITION
+
+  A PROHIBITION WRITTEN AS A PATH PROTECTS A PATH. THE SECOND INSTANCE OF THE PROTECTED KIND OF
+  OBJECT WAS NEVER ENUMERATED, BECAUSE THE ORDER READ AS THOUGH IT NAMED A CATEGORY.
+
+127 registrations host-wide; 122 in window, 5 out, all named in section 23.2. One of the 5 is
+farmtable-xss-r8 at 10:00:28.909Z - BEING WRITTEN RIGHT NOW. 127 + relocate's own /tmp scratch = the
+128 they reported. Reconciled.
+
+=== 3. BULLETIN 7'S FOUR INTEGERS, RE-RUN AFTER relocate's BLIND-CORPUS FINDING ===
+
+My first answer was produced by an audit blind to its own invocation. Re-run in a SEPARATE
+invocation with their assertion: corpus now 348, previous audit reported 340, GROWTH PASS delta 8.
+
+    Q1  `2>&1 >` feeding a pipe                 3 commands,  7 occurrences
+    Q2  `>/dev/null` feeding a pipe (TEE)       3 commands, 15 occurrences
+    Q3  `2>/dev/null` into a counting stage    55 commands, 95 occurrences
+    Q5  `2>/dev/null` anywhere                150 commands,391 occurrences
+
+Q3 moved 46 -> 55 AND THAT IS A PREDICATE CHANGE, NOT A CORPUS EFFECT - I widened the counting stage
+to include `sort`. Flagging it because a figure that moves for two possible reasons and gets
+explained by one is the shape of every error tonight.
+
+Q4: Q1/Q2 - ZERO published, all six inside tonight's audit chain. Q3 - MANY published; I re-measured
+exactly ONE shape and THE OTHER 54 SITES ARE DECLARED, NOT CLEARED. Q5 - DECLARED, NOT CLEARED.
+
+THE ONE I RE-MEASURED IS THE ONE THAT LICENSED YOUR "NO CONFIG WRITE TONIGHT": 3 unguarded stores,
+fsck with stderr TO A FILE. Each 1,737 unreachable / 5,113 reachable / 0 bytes stderr. Single-homed
+test: COMPARISONS 1,737 == EXPECTED 1,737, present in canonical 1,737, SINGLE-HOMED 0. Positive
+control - a freshly hashed canary blob - correctly ABSENT, so the test can say NO. FIGURES STAND.
+And they stand because every store on this host happens to be healthy, which is a property of the
+contents and not of my instrument.
+
+=== 4. FIVE DEFECTS OF MY OWN, IN ONE AUDIT CHAIN, IN TWENTY MINUTES. THE RATE IS THE FINDING. ===
+
+(i) TIMESTAMP MATCHED AS A STRING. `case $m in *"09:17:12"*)` gave 117 of 122. Five landed at
+09:17:13 - the event crossed a second boundary. Epoch window gives 122. My 117/5 split reproduces
+relocate's raw distribution exactly, which validates the data and excuses nothing.
+  A ONE-SECOND EVENT THAT CROSSES A SECOND BOUNDARY LOSES ITS TAIL SILENTLY.
+
+(ii) `2>` CONTAINS `>`. My tee regex matched 98 commands; almost all were 2>/dev/null, a different
+class. Corrected with a lookbehind: 3. I NEARLY REPORTED MY OWN TEE EXPOSURE AS 98 WHEN IT IS 3 -
+and the over-count was in the SELF-INCRIMINATING direction, which is why it nearly survived. I had
+no instinct to check a number that made me look worse.
+
+(iii) *** A SET COMPARISON AGAINST AN EMPTY SET. *** My first host-wide find used a malformed
+-prune -o and returned 0 roots. The comparison then reported INTERSECTION 0 / ONLY-IN-MINE 122 /
+ONLY-IN-RELOCATE'S 0 - total disagreement on every member. I was about to file a catastrophic
+divergence between two legs.
+  A SET COMPARISON AGAINST AN EMPTY SET REPORTS TOTAL DISAGREEMENT, AND TOTAL DISAGREEMENT LOOKS
+  EXACTLY LIKE THE FINDING THE COMPARISON WAS COMMISSIONED TO FIND. You ordered set equality BECAUSE
+  counts can agree while sets differ - and the failure mode of the fix is that one side is empty and
+  it SCREAMS.
+  THE MISSING CONTROL IS A NON-EMPTINESS PRECONDITION ON BOTH SIDES, ASSERTED BEFORE THE COMPARISON
+  AND NEVER INFERRED FROM IT. Added; it now aborts. I used it on the cross-leg comparison above.
+
+(iv) MY CONTROL WAS WRONG AND THE DETECTOR WAS FINE - I misfiled `>/dev/null 2>&1 |` against the
+bare-tee pattern and it printed *** WRONG ***. Second time tonight a leg nearly reported a live
+detector dead. A FAILING CONTROL IS BELIEVED FASTER THAN A PASSING ONE.
+
+(v) THE THESIS PROVING ITSELF, AND THE BEST THING I HAVE TONIGHT: my gc re-measurement ran
+`for S in $(cat /tmp/gc-unguarded.txt)`, which word-split lines of the form "UNGUARDED <path> ->
+<config>" into four tokens and produced TWELVE SPURIOUS ZERO-UNREACHABLE STORES. Twelve clean-looking
+zeros, and the correct total still appeared among them.
+  THE ONLY REASON I CAUGHT IT IS THAT I HAD CAPTURED STDERR TO A FILE INSTEAD OF DISCARDING IT. The
+  residue read: fatal: cannot change to 'UNGUARDED': No such file or directory.
+  YOUR STANDING RULE AGAINST DISCARDING STDERR PAID FOR ITSELF INSIDE THE VERY COMMAND WRITTEN TO
+  AUDIT VIOLATIONS OF IT. Had I written 2>/dev/null there - the habit under audit - I would have
+  published twelve clean stores and a correct total, and nothing would have looked wrong.
+
+=== 5. MULTIOS, REPRODUCED NOT INHERITED, PLUS ONE SHARPENING ===
+
+  f 2>&1 >/dev/null | wc -l   POSIX 1  HOST 4
+  f >/dev/null 2>&1 | wc -l   POSIX 0  HOST 4
+  f >/dev/null      | wc -l   POSIX 0  HOST 3
+  unsetopt multios -> 1/0/0 ; setopt multios -> 4/4/3.  Your bulletin 6 was too narrow; 7 is right.
+
+The option query is worse than wrong, IT IS NON-INJECTIVE. setopt|grep -c multios -> 0, and my
+control on a known-OFF option (interactivecomments) ALSO -> 0. setopt lists options at their
+NON-DEFAULT value, so absence is produced by an on-by-default option AND an off-by-default one. TWO
+OPPOSITE STATES SHARE ONE OBSERVABLE. $options[multios] -> on. unsetopt|grep -c multios -> 1.
+
+=== STATE ===
+reports/preserve-bundle.md sections 22-23, now 2,026 lines. Warning file amended in three places.
+Stat-only throughout this task; no git command was run against any host tree for it. Freeze intact,
+nothing deleted including my own /tmp scratch, no config writes, no off-host move. Restore answer
+unchanged: YES, performed and verified by content hash.

@@ -1,0 +1,27 @@
+STATUS
+
+1. SEVEN. Plainly, as you asked: MY EIGHTH CAME FROM READING MERGE-TREE'S PROSE, not
+its stage entries. No stage entries for ft-app.ts exist. Not splitting the difference,
+not carrying both. Mechanism and the correction-scope re-check are in
+OUT-OF-SCOPE-BACKLOG.md as EM-357, not sent.
+
+2. YOUR OUTSTANDING QUESTION, OWED SINCE 15:12. The 23,650,037-byte decomposer binary
+was excluded because it is REBUILDABLE FROM SOURCE IN THE PRESERVED SET, not because it
+is large. Size was not the predicate. The limit, stated rather than the comfort: I
+excluded it on that basis at the time and have NOT since executed a build to prove the
+rebuild succeeds. REASONED, not MEASURED. Say the word and I will build it.
+
+3. ONE THING FOR em-hardening BEFORE THEIR NEXT COMMIT, sent to the thread because it
+is the carve-out: both safe-url files have stages 2 and 3 and NO STAGE 1. No merge base
+exists for either - both sides wrote them from nothing. Union-the-tables is not the
+better method there, it is the only one; the usual resolution finds no base and
+degrades into a pick-a-side.
+
+BLOCKER
+The post-FF SHA carrying the floor fix. Holding as instructed.
+
+NEXT ACTION
+On the SHA: rebase e64138c onto it, re-run every gate result against the new base
+rather than carrying today's forward, resolve five, leave the two safe-url files
+untouched, read the auto-merged ft-app.ts, write the 30 paths into the merge commit
+body with the SHA in the same sentence.

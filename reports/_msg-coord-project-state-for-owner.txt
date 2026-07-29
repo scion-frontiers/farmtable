@@ -1,0 +1,109 @@
+PROJECT STATE SUMMARY - WRITTEN FOR THE OWNER, PLAIN LANGUAGE, FORWARD AS-IS
+
+Verification note, so you can forward this without checking behind me. Everything in
+paragraph 2 and paragraph 5 about branch positions and CI I re-measured myself in the
+last few minutes, after the crash restore. Everything marked UNVERIFIED was measured
+before the restore and I have not re-run it tonight. I have marked the holes rather than
+dropping them.
+
+
+1. THE TASK STATE REFACTOR - WHAT IS ACTUALLY BUILT
+
+The refactor gives tasks a real lifecycle state instead of inferring their status from
+whatever labels happen to be attached. The first phase of that is finished, merged and
+running in production. A user gets a genuine benefit from it today: task state is tracked
+and displayed consistently, and tasks backed by GitHub issues keep their stage in step
+with the issue rather than drifting.
+
+The honest part is what happened next. Reviewing that first phase turned up security
+problems in the surrounding code - not in the refactor itself, but in the paths it made
+easier to reach. Essentially all engineering effort since has gone into those problems.
+The remaining refactor work has not been touched in that time. If you were tracking this
+by review activity it would look like steady progress on the refactor; it is not. It is
+steady progress on defects found next to it.
+
+
+2. WHAT IS MERGED AND WHAT IS NOT - AND THE GAP IS LARGE
+
+Merged and live: the first phase, as above. That is the whole of it.
+
+Not merged: three branches of security and correctness work, none of which has landed any
+production change. The largest is sixty-seven commits ahead of main and twelve commits
+behind it. Nothing from any of the three has reached a user. The gap between "work done"
+and "work shipped" is currently the entire body of work from the last stretch, and I do
+not want that read as nearly-done. Each of these branches has been through repeated
+review cycles and each cycle has found something blocking. That pattern has not yet
+broken, and I would not forecast a merge date from it.
+
+
+3. WHY THE REVIEWS SAY DO NOT MERGE - IN TERMS OF WHAT IT DOES TO A USER
+
+Two things, both real.
+
+The first: text that arrives from outside - a task description, an imported document, data
+pulled back from GitHub - can put a link into the dashboard that runs code instead of
+navigating somewhere. If a user views a task containing such a link and clicks it, code
+chosen by whoever wrote that text runs in their browser, in their logged-in session, on a
+page that holds a long-lived API token. That is the defect the current cycle is trying to
+close. Several fixes have been written for it. Each time, the review found a slightly
+different way of spelling the same attack that the fix did not cover. The fix is getting
+narrower each cycle, which is progress, but it is not closed.
+
+The second: the permission checks around changing a task's lifecycle state can be
+bypassed. Someone allowed to edit a task can, in certain configurations, change its
+lifecycle state - including closing it - without holding the permission that is supposed
+to be required for that. Nobody outside the organisation can reach it, because the whole
+service sits behind the identity proxy, but inside that boundary it is a real hole.
+
+Separately and worth saying plainly, because it is not on either branch and it is already
+live: there is an endpoint in production that writes stored access tokens with no
+permission check on the caller at all. It is behind the same proxy. It is not a
+theoretical finding and it has not been fixed. [UNVERIFIED since the crash restore - this
+was measured before it and I have not re-confirmed it tonight.]
+
+
+4. MAIN IS RED
+
+The test suite on main does not pass reliably. The cause is understood: a piece of
+background work is started without any way for the test that started it to wait for it to
+finish, so tests can see data left behind by other tests. It is not a recent breakage and
+it is not caused by any branch in review. [UNVERIFIED since the crash restore - the root
+cause analysis and the failure rate were measured before it; I have not re-run the suite
+tonight.]
+
+What it costs us is worse than one failing test. When the baseline is unreliable, a
+failure in new work cannot be distinguished from the existing noise, so every pass and
+every failure we report from the test suite is weaker evidence than it looks. Fixing it is
+not currently in any workstream's scope. It probably should be somebody's job.
+
+
+5. CI - AND THIS ONE IS COUNTERINTUITIVE
+
+CI now exists. It landed on main yesterday evening, and I confirmed that just now.
+
+The problem is that the branches in review were all created before it existed. The trigger
+reads its instructions from the commit being pushed, so pushing one of those branches does
+not produce a failing CI run - it produces no CI run at all. Silence is indistinguishable
+from success. I have confirmed directly that the CI definition is present on main and
+absent from the head of the branch closest to merging. Every one of these branches has to
+be brought up to date with main before it goes anywhere near a merge, or we will read an
+empty result as a green one.
+
+There is a second version of the same trap: a freshly cloned copy of the repository cannot
+be built at all, because some files the build needs are not stored in the repository. Any
+build that has ever succeeded did so on a machine that already had them lying around.
+[UNVERIFIED since the crash restore.] CI now catches this specific case, which is the one
+genuinely good piece of news in this paragraph.
+
+
+6. WHAT I NEED FROM YOU
+
+Nothing blocking. The work is unblocked and moving as of now.
+
+One thing is a call I should not make alone, and it is a priority question rather than a
+technical one. The security hardening described in paragraph 3 is currently sitting on the
+critical path in front of the rest of the task state refactor. It can stay there, or the
+refactor can be separated out and allowed to land on its own while the hardening
+continues behind it. Both are defensible. Which one you want depends on whether finishing
+the refactor or closing that browser-side hole matters more to you this week, and that is
+your call, not mine.

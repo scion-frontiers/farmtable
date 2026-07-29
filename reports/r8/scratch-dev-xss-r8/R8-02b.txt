@@ -1,0 +1,10 @@
+=== RUN   TestWebRemoteDataConsumersAreDeclared
+--- PASS: TestWebRemoteDataConsumersAreDeclared (0.00s)
+=== RUN   TestWebRemoteDataCensusIsNonVacuous
+--- PASS: TestWebRemoteDataCensusIsNonVacuous (0.00s)
+=== RUN   TestWebCensusDescendsIntoShippedSource
+--- PASS: TestWebCensusDescendsIntoShippedSource (0.00s)
+=== RUN   TestWebCensusAnchoringIsTopLevelOnly
+--- PASS: TestWebCensusAnchoringIsTopLevelOnly (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/webguard	0.014s

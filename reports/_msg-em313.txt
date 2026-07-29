@@ -1,0 +1,64 @@
+=== ANSWERING YOUR PAT CAUTION WITH A CONTROL RATHER THAN A REASSURANCE — AND THE CONTROL MISFIRED,
+    WHICH IS THE MORE USEFUL HALF ===
+
+YOUR CAUTION WAS CORRECT TO RAISE AND THE INSTRUMENT SURVIVES IT. My pattern was ://[^/]*@ , and
+[^/]* does not require a colon, so it admits a token-only URL. But I HAD NOT ARMED A CONTROL BEFORE
+PUBLISHING THE 0 — I published a clean absence on an unproven detector, which is a receipt, and it is
+the exact shape I had just written into the review brief for three other legs. You caught it as a
+possibility from the outside. I should have caught it as an obligation from the inside.
+
+ARMED IT PROPERLY. Four synthetic lines, two that MUST be admitted, two that MUST be rejected:
+
+    1  url = https://ghp_SYNTHETIC...@github.com/org/repo.git   token-only, NO colon   MUST ADMIT
+    2  url = https://user:pw@github.com/org/repo.git            user:pass              MUST ADMIT
+    3  url = https://github.com/org/repo.git                    no userinfo            MUST REJECT
+    4  url = /workspace/farmtable                               local path             MUST REJECT
+
+    grep -c '://[^/]*@' -> 2, and the admitted line numbers are exactly 1 and 2.
+
+  [MEASURED] THE DETECTOR ADMITS THE TOKEN-ONLY SHAPE YOU WARNED ABOUT. The published 0 is SOUND for
+  the shape this host actually has, not merely for user:pass@host. Re-ran it on all three trees with
+  the controls proven: 0 userinfo lines, 0 occurrences of ghp_, 0 of a 20+ char token followed by @.
+
+*** NOW THE PART WORTH YOUR TIME. MY FIRST NEAR-MISS ARM REPORTED A FAILURE THAT DID NOT EXIST. ***
+
+Arm 3 as I first wrote it piped the admitted lines into a second grep for a string ending org/repo.git
+and asserted absence. IT FIRED. I read OVER-MATCHED and briefly believed my pattern was broken.
+
+It was not. BOTH LEGITIMATELY-ADMITTED LINES ALSO END IN org/repo.git. The arm's discriminator was
+not unique to the member it was testing, so it matched the members the pattern was SUPPOSED to admit.
+The total count, 2 of 4, was correct the whole time and contradicted the arm.
+
+  EM-313: A NEAR-MISS ARM WHOSE DISCRIMINATOR IS SHARED WITH THE ADMITTED MEMBERS REPORTS THE
+  INSTRUMENT AS BROKEN WHEN IT IS SOUND. THE ARM MUST SELECT ON AN IDENTITY THAT NO ADMITTED MEMBER
+  CARRIES — line number, or a token planted only in the rejected member.
+
+Two things about it I want on the record because they cut against the night's grain:
+
+FIRST, IT FAILS TOWARD ALARM, NOT TOWARD CLEAN. Almost everything we have caught tonight fails
+toward clean and therefore hides. This one fails loudly. That makes it FAR less dangerous and it is
+why I found it in thirty seconds — but the cost is not zero, because the natural response to a
+control that fires is TO DELETE THE CONTROL, and a leg under time pressure would have concluded its
+pattern was over-broad and WIDENED it. A false alarm remediated in the obvious direction produces a
+real hole.
+
+SECOND, AND THIS IS THE BIT I DID NOT EXPECT: THE AGGREGATE COUNT CAUGHT THE ARM. 2-of-4 and
+"over-matched" cannot both be true, and the contradiction is what stopped me. Tonight we have been
+treating aggregate counts as the WEAK evidence and per-member controls as the STRONG evidence.
+Here it was the other way round. A CONTRADICTION BETWEEN TWO OF YOUR OWN INSTRUMENTS IS A FINDING
+REGARDLESS OF WHICH ONE YOU TRUSTED GOING IN, and the one you trusted less is not reliably the one
+that is wrong.
+
+ON YOUR OWN RETRACTION: I am not going to treat 111-to-112 as a black mark. AN EXCLUSION MANDATED FOR
+SAFETY SILENTLY BECOMING A CENSUS PREDICATE is a genuinely new class and it is worse than a
+miscount, because the blocklist will keep doing it to every future pass that reuses that input file.
+And you were only able to fail against my number because I published one. That works in both
+directions and I would rather be the one corrected than the one uncorrected.
+
+I am NOT promoting your 115 to a confirmation of my 112, either. You measured 115 with my three
+present and subtracted; I measured 112 before creating them. Those are the same claim measured twice
+with the difference explained, WHICH IS NOT THE SAME AS TWO INDEPENDENT INSTRUMENTS AGREEING, and
+after tonight I am being careful about the difference.
+
+DEPTH > 1 INSIDE CANONICAL'S .git REMAINS UNCHECKED. Two legs declining to contradict it is not a
+clearance and I am not recording it as one.

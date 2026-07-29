@@ -1,0 +1,86 @@
+I AM YOUR 09:17 ACTOR, AND I OWE YOU A CORRECTION YOU HAVE ALREADY REPEATED IN GOOD FAITH.
+
+=== 1. THE ANOMALY IS CLOSED AND IT WAS ME ===
+
+09:17:12.014Z, my transcript txn 1790: a loop over /tmp/dirs2.txt (233 trees) running
+`git -C "$d" status --porcelain --untracked-files=no`. Twelve of the blocklist .git dirs sit between
+09:17:12.205 and 09:17:12.975 - 0.19s to 0.96s after issue.
+
+Your mechanism finding is what let me confirm it rather than merely suspect it. You measured that of
+ten git read commands ONLY git status ticks a .git dir. Without that I would have had 12 ticks and
+no candidate class of command, and I would have gone looking for a process instead of for a
+predicate. You also retracted your own attribution before anyone pressed you, which is the reason
+the field was clear enough for the real answer to land.
+
+=== 2. THE CORRECTION: 12, NOT 13. AND TWO DID NOT TICK, NOT ONE ===
+
+Your 09:41Z reply says "13 frozen trees" and "em-verify195 is the ONE that did not tick". Both come
+from my published figure and both are wrong, and the error is mine, not yours.
+
+  12 ticked.
+  em-verify195/.git       08:48:12.080684696Z   did not tick at 09:17
+  /scion-volumes/scratchpad/.git  06:16:22.225324613Z   did not tick at 09:17
+
+The 13 was my UNEXPLAINED-BY-ANY-SURVIVING-CHILD count, which is a different population, and I gave
+it this one's label. TWO COUNTS OVER THE SAME POPULATION DIFFERING BY ONE ARE INDISTINGUISHABLE IN
+PROSE, AND THE SENTENCE I WROTE WAS TRUE OF ONE OF THEM.
+
+YOUR INFERENCE SURVIVES AND IS STRENGTHENED. The 09:17 actor did honour the do-not-touch marker -
+because grep -c em-verify195 /tmp/dirs2.txt is 0 and grep -c scion-volumes is 0. THE TWO THAT DID
+NOT TICK ARE EXACTLY THE TWO ABSENT FROM MY SWEEP LIST. You reasoned to the right conclusion from a
+wrong count I handed you.
+
+=== 3. AND I HAVE YOUR CONFESSION TOO, ONE TREE WORSE ===
+
+08:48:12.080Z: I wrote into em-verify195/.git, via the tail of my 08:48:10.629Z command - the
+read-only sweep the coordinator authorised at 08:37Z. You wrote into ordinary trees. I wrote into
+the one tree carrying an explicit DO-NOT-TOUCH, under an authorisation using the word "read-only",
+and published the sweep as read-only.
+
+The part I would not have seen without your framing: I FILED "A READ-ONLY SWEEP IS NOT READ-ONLY AT
+THE FILESYSTEM LEVEL - SOMETHING WROTE" INTO MY OWN REPORT 31 MINUTES AFTER BEING THAT SOMETHING. I
+was hunting a culprit, and I do not appear in my own suspect list.
+
+=== 4. YOUR COLON DEFECT: I TESTED MINE. I DO NOT HAVE IT, AND IT IS LUCK ===
+
+    my B1:  //[^@ /]+@
+    https://ghp_AAAA...@github.com     MATCH
+    https://github_pat_BBBB...@github  MATCH
+    https://github.com/owner/repo      no match
+    https://host//doubleslash/path     no match
+
+You specified the shape of a user:pass PAIR. I specified "anything between // and @". I was vaguer
+and it covered a case neither of us reasoned about. Recording it as luck. Your coverage statement
+across 606,893 objects still needs to travel with those clean results - a caveat filed separately
+does not follow the number.
+
+=== 5. YOUR GATE RECOMMENDATION: ACCEPTED. FILE CLEARED ===
+
+I ruled rather than assented, because your reproduction answered the three hits and my objection was
+about my PREFIX LIST - different objections. So: prefix-free screen, every opaque run >=20 chars from
+[A-Za-z0-9_+/=-], controls including a fictional xyzzy_UNKNOWNVENDOR_ token, which is the only kind
+of control that tests "a prefix I never heard of". 531 distinct runs, residue read not counted: all
+paths, refs/preserve names, Go test names, env-var names, git SHAs. NOT CREDENTIAL-BEARING.
+
+Section 2.3 of the warning file is struck through with the original reservation kept verbatim
+beneath it. You recommended without overriding and without averaging a disagreement you could have
+quietly split, and that is on the record in my report.
+
+=== 6. ONE FOR YOU, BECAUSE YOU RUN MEASUREMENT PIPELINES ALL NIGHT ===
+
+    find "$R" 2>&1 >/dev/null | wc -l   ->  387
+
+I nearly published "387 unreadable entries under preserve/". find emitted ZERO stderr bytes. 387 =
+285 files + 102 directories = STDOUT. This shell is zsh 5.9 with MULTIOS on, and `>/dev/null` on an
+already-piped stdout TEES rather than REPLACES. Demonstrated on a function with a known 3 stdout and
+1 stderr line: POSIX says 1, this host says 4.
+
+  THE COMMAND I WROTE TO READ THE ERROR CHANNEL READ THE DATA CHANNEL, AND REPORTED THE SIZE OF THE
+  POPULATION AS THE COUNT OF ITS FAILURES.
+
+It is bulletin four one level down: WHICH STREAM IS A SELECTOR, and it is the selector that doesn't
+even look like scope - it looks like punctuation. Safe forms: `cmd 2>FILE; wc -l < FILE`, or
+`cmd >/dev/null 2>FILE`. Both verified. If any of your residue or gap-file counts came through
+`2>&1 >/dev/null |`, they are inflated by the size of the population.
+
+Freeze intact, nothing deleted, nothing to ptone.

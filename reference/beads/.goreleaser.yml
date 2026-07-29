@@ -1,0 +1,244 @@
+# GoReleaser configuration for beads
+# See https://goreleaser.com for documentation
+
+version: 2
+
+before:
+  hooks:
+    # Ensure dependencies are up to date
+    - go mod tidy
+    # Generate Windows PE version info resources (.syso files)
+    # Reduces antivirus false positives by embedding legitimate metadata
+    - ./scripts/gen-winres.sh
+
+builds:
+  - id: bd-linux-amd64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=1
+      - CC=gcc
+      - CXX=g++
+    tags:
+      - gms_pure_go
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+    hooks:
+      post:
+        - ./scripts/verify-cgo.sh "{{ .Path }}"
+
+  - id: bd-linux-arm64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+    tags:
+      - gms_pure_go
+    goos:
+      - linux
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+    hooks:
+      post:
+        - ./scripts/verify-cgo.sh "{{ .Path }}"
+
+  - id: bd-android-arm64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=0
+    tags:
+      - gms_pure_go
+    goos:
+      - android
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+
+  # darwin-amd64 and darwin-arm64 are built by a dedicated macOS CI job
+  # (release.yml: goreleaser-macos) with CGO_ENABLED=1 for embedded Dolt support.
+
+  - id: bd-windows-amd64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    tags:
+      - gms_pure_go
+    goos:
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+      - -buildmode=exe
+    hooks:
+      post:
+        - ./scripts/verify-cgo.sh "{{ .Path }}"
+        # Sign Windows executable with Authenticode certificate
+        # Requires WINDOWS_SIGNING_CERT_PFX_BASE64 and WINDOWS_SIGNING_CERT_PASSWORD secrets
+        - ./scripts/sign-windows.sh "{{ .Path }}"
+
+  - id: bd-windows-arm64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=0
+    tags:
+      - gms_pure_go
+    goos:
+      - windows
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+      - -buildmode=exe
+    hooks:
+      post:
+        # Sign Windows executable with Authenticode certificate
+        # Requires WINDOWS_SIGNING_CERT_PFX_BASE64 and WINDOWS_SIGNING_CERT_PASSWORD secrets
+        - ./scripts/sign-windows.sh "{{ .Path }}"
+
+  - id: bd-freebsd-amd64
+    main: ./cmd/bd
+    binary: bd
+    env:
+      - CGO_ENABLED=0
+    tags:
+      - gms_pure_go
+    goos:
+      - freebsd
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Build={{.ShortCommit}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Branch={{.Branch}}
+
+archives:
+  - id: bd-archive
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: "Features"
+      regexp: '^.*feat(\(\w+\))?:.*$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*fix(\(\w+\))?:.*$'
+      order: 1
+    - title: "Others"
+      order: 999
+
+release:
+  github:
+    owner: gastownhall
+    name: beads
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  header: |
+    ## beads v{{.Version}}
+
+    Pre-compiled binaries for Linux, macOS (Intel & Apple Silicon), Windows (AMD64 & ARM64), Android/Termux (ARM64), and FreeBSD.
+    {{ if .Prerelease }}
+    ### Installation (release candidate)
+
+    > **This is a prerelease for validation.** The stable install channels —
+    > Homebrew, the `install.sh` / `install.ps1` scripts, npm, and PyPI —
+    > intentionally keep serving the latest **stable** release, so they will **not**
+    > install this RC. Use one of the methods below.
+
+    **Manual download (recommended):**
+    Download the archive for your platform from the **Assets** below, extract it,
+    and place `bd` on your PATH.
+
+    **Go install (pinned to this RC):**
+    ```bash
+    go install github.com/steveyegge/beads/cmd/bd@v{{ .Version }}
+    # For embedded Dolt support:
+    CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/steveyegge/beads/cmd/bd@v{{ .Version }}
+    ```
+
+    When you are done validating, return to the stable release through your normal
+    channel (e.g. `brew upgrade beads`).
+    {{ else }}
+    ### Installation
+
+    **Homebrew (macOS/Linux):**
+    ```bash
+    brew install beads
+    ```
+
+    **Quick Install (macOS/Linux/FreeBSD):**
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+    ```
+
+    **Windows (PowerShell):**
+    ```powershell
+    irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+    ```
+
+    **Manual Install:**
+    Download the appropriate binary for your platform below, extract it, and place it in your PATH.
+    {{ end }}
+
+# Announce the release
+announce:
+  skip: false

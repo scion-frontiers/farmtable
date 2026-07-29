@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: <fixture>: static-html.js re-exports unsafeStatic :: export { html as staticHtml } from 'lit/static-html.js';
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

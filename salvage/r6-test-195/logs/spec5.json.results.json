@@ -1,0 +1,56 @@
+[
+ {
+  "label": "E1 EVISCERATE one check body (call site kept, assertions removed)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "E1b EVISCERATE that check AND revert slot from FORBID_ATTR",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "E2 EMPTY SINK_BINDINGS",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2211\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1 identity shadow, sanitizer import kept under an alias | V1b sanitizer import removed entirely | V1c sanitizer re-homed onto another module (no new file) | V1d sanitizer shadowed by a parameter, not a declaration | V2 unsafeHTML renamed in the import clause | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink file | V7 value alias hidden behind a regex literal containing an escaped // | V7b value alias hidden behind a regex character class | V5 sanitizer imported as a type only | V10 value alias swept away by a semicolon-less import statement\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "E3 EMPTY RAW_DIRECTIVES",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2211\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: import { unsafeHTML as raw } from 'lit/directives/unsafe-html.js'; | import { unsafeHTML as raw } from 'lit-html/development/directives/unsafe-html.js'; | import { unsafeSVG as raw } from 'lit/directives/unsafe-svg.js'; | import { unsafeStatic as raw } from 'lit/static-html.js'; | import * as d from 'lit/directives/unsafe-html.js'; | export { unsafeHTML } from 'lit/directives/unsafe-html.js'; | export * from 'lit/directives/unsafe-html.js'; | const raw = unsafeHTML; | const S = { raw: unsafeHTML }; | const { unsafeHTML: raw } = await import('lit/directives/unsafe-html.js'); | const d = unsafeHTML as unknown as (s: string) => unknown; | const raw = unsafeHTML\n; | callIt(unsafeHTML); | import { unsafeHTML } from 'lit/directives/unsafe-html.js'\nconst rawHtml = unsafeHTML\nimport { renderMarkdown } from '../../util/markdown.js'; | const t = html`<!-- forgot to close this\n${x}`;\nconst raw = unsafeHTML;\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "E4 EMPTY SANITIZER_DEPENDENCIES",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: import DOMPurify from 'dompurify'; | import 'dompurify'; | import * as P from 'dompurify'; | export { default as P } from 'dompurify'; | const P = await import('dompurify'); | const P = await import(`dompurify`); | const P = require('dompurify'); | import purify from 'dompurify/dist/purify.es.mjs'; | import { Marked } from 'marked'; | const { marked } = await import('marked'); | OPT-OUT HONOURED: import DOMPurify from 'dompurify'; // raw-sink-scan: ignore-line\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "E5 add '.ts' to INERT_EXTENSIONS (stop scanning the tree)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "      src/components/inspector/ft-inspector-comments.ts: imports '../../util/markdown.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n      src/components/inspector/ft-inspector-comments.ts: imports '../../util/format.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/ft-inspector-desc.ts: imports '../../util/markdown.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n      src/components/inspector/ft-inspector-desc.ts: imports '../../gen/service.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n      src/components/inspector/ft-inspector-desc.ts: imports '../../capabilities.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n      src/components/inspector/ft-inspector-desc.ts: imports './inspector-shared-styles.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 0 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n  - fixture: the sink-binding rules accept a correct sink file: the sound fixture was rejected: src/components/inspector/sound-fixture.ts: imports '../../util/markdown.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n  - fixture: a string literal naming the sink identifiers is not a violation: string blanking regressed \u2014 the guard now rejects a correct sink file: src/components/inspector/sound-fixture.ts: imports '../../util/markdown.js', which does not resolve to any file this guard scans \u2014 a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it\n  - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: FALSE POSITIVE: import { renderMarkdown } from '../../util/markdown.js';\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "E6 EMPTY LEGITIMATE_SOURCE (false-positive control table)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "E7 EMPTY INERT_PROSE (false-positive control table)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "E8 markdown.ts uses the SHARED marked singleton instead of the private instance",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed\n[tsc --noEmit exit=0]"
+ }
+]

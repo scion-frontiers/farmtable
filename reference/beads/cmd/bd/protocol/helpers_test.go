@@ -1,0 +1,624 @@
+// Package protocol contains invariant tests that pin down expected CLI behavior.
+//
+// Each test asserts a specific rule that the bd CLI must satisfy. When a test
+// is skipped, the skip message references the issue tracking the violation.
+// Un-skip when the underlying bug is fixed — the test becomes a permanent
+// guardrail against re-regression.
+//
+// These tests are independent of the differential regression suite
+// (tests/regression/) and can be merged and run without it.
+package protocol
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/steveyegge/beads/internal/testutil"
+)
+
+// ---------------------------------------------------------------------------
+// Binary build (once per test run)
+// ---------------------------------------------------------------------------
+
+var (
+	bdPath string
+	bdDir  string
+	bdOnce sync.Once
+	bdErr  error
+)
+
+// testDoltPort is set by TestMain when a test Dolt server is available.
+// Passed to bd subprocesses via BEADS_DOLT_PORT so they never hit prod.
+var testDoltPort int
+
+func TestMain(m *testing.M) {
+	os.Exit(testMainInner(m))
+}
+
+func testMainInner(m *testing.M) int {
+	os.Setenv("BEADS_TEST_MODE", "1")
+	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: %v, skipping Dolt tests\n", err)
+	} else {
+		defer testutil.TerminateDoltContainer()
+		testDoltPort = testutil.DoltContainerPortInt()
+	}
+
+	code := m.Run()
+
+	os.Unsetenv("BEADS_DOLT_PORT")
+	os.Unsetenv("BEADS_TEST_MODE")
+
+	if bdDir != "" {
+		os.RemoveAll(bdDir)
+	}
+	return code
+}
+
+// requireDoltStore enforces the Dolt-backed store precondition for a test.
+// Locally (and in any job where Dolt is best-effort) a missing container skips
+// the test, so contributors without Docker stay green. Two cases turn a missing
+// store into a hard failure instead of a silent skip:
+//
+//   - The required contract-corpus CI job sets BEADS_PROTOCOL_REQUIRE_DOLT=1, so
+//     it can never report success without exercising the golden or double-run
+//     checks when the Dolt container fails to start.
+//   - -corpus.update (i.e. `make corpus-regen`) means the caller intends to
+//     regenerate the committed corpus. Skipping then would exit 0 while writing
+//     nothing, letting a deliberate wire-shape change leave stale committed blobs
+//     on disk — the exact footgun the corpus gate exists to prevent. Guarding the
+//     intent here (not just in the Makefile) also covers a direct
+//     `go test -corpus.update` invocation.
+func requireDoltStore(t *testing.T, what string) {
+	t.Helper()
+	if testDoltPort != 0 {
+		return
+	}
+	if os.Getenv("BEADS_PROTOCOL_REQUIRE_DOLT") == "1" {
+		t.Fatalf("%s requires a live Dolt store, but the test container is unavailable and BEADS_PROTOCOL_REQUIRE_DOLT=1; the required contract-corpus job must not skip these checks", what)
+	}
+	if *updateCorpus {
+		t.Fatalf("%s: -corpus.update needs a live Dolt store, but the test container is unavailable; regenerating without it would silently write nothing and leave the committed corpus stale. Start Docker/Dolt, then rerun `make corpus-regen`.", what)
+	}
+	t.Skipf("%s: test Dolt server not available", what)
+}
+
+func buildBD(t *testing.T) string {
+	t.Helper()
+	bdOnce.Do(func() {
+		bin := "bd-protocol"
+		if runtime.GOOS == "windows" {
+			bin += ".exe"
+		}
+		dir, err := os.MkdirTemp("", "bd-protocol-*")
+		if err != nil {
+			bdErr = err
+			return
+		}
+		bdDir = dir
+		bdPath = filepath.Join(dir, bin)
+
+		modRoot := findModuleRoot(t)
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bdPath, "./cmd/bd")
+		cmd.Dir = modRoot
+		cmd.Env = buildEnv()
+
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			bdErr = fmt.Errorf("go build: %w\n%s", err, out)
+		}
+	})
+	if bdErr != nil {
+		t.Skipf("skipping: failed to build bd: %v", bdErr)
+	}
+	return bdPath
+}
+
+func findModuleRoot(t *testing.T) string {
+	t.Helper()
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("could not determine test file location")
+	}
+	dir := filepath.Dir(filename)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("could not find go.mod")
+		}
+		dir = parent
+	}
+}
+
+func buildEnv() []string {
+	env := os.Environ()
+	if prefix := icuPrefix(); prefix != "" {
+		env = append(env,
+			"CGO_CFLAGS=-I"+prefix+"/include",
+			"CGO_CPPFLAGS=-I"+prefix+"/include",
+			"CGO_LDFLAGS=-L"+prefix+"/lib",
+		)
+	}
+	return env
+}
+
+func icuPrefix() string {
+	out, err := exec.Command("brew", "--prefix", "icu4c").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// ---------------------------------------------------------------------------
+// Workspace: isolated temp dir with git repo + bd init
+// ---------------------------------------------------------------------------
+
+type workspace struct {
+	dir string
+	bd  string
+	t   *testing.T
+	// prefix is the id prefix this workspace was initialized with — the
+	// interchange tests need it to mint well-formed ids in hand-written
+	// JSONL fixtures.
+	prefix string
+}
+
+// testPrefix returns a unique prefix with a random suffix to ensure each test
+// invocation gets its own Dolt database (<prefix>), avoiding cross-test
+// pollution and stale data from prior runs.
+func testPrefix(t *testing.T) string {
+	var b [4]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		t.Fatal(err)
+	}
+	return "t" + hex.EncodeToString(b[:]) // e.g. "t1a2b3c4d" — 9 chars, valid SQL identifier
+}
+
+func newWorkspace(t *testing.T) *workspace {
+	t.Helper()
+	testutil.RequireDoltBinary(t)
+	requireDoltStore(t, "protocol workspace")
+	bd := buildBD(t)
+	dir := t.TempDir()
+	w := &workspace{dir: dir, bd: bd, t: t}
+
+	w.git("init")
+	w.git("config", "user.name", "protocol-test")
+	w.git("config", "user.email", "test@protocol.test")
+
+	if err := os.WriteFile(filepath.Join(dir, ".gitkeep"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w.git("add", ".")
+	w.git("commit", "-m", "initial")
+
+	prefix := testPrefix(t)
+	w.run("init", "--prefix", prefix, "--quiet")
+	w.prefix = prefix
+	return w
+}
+
+func (w *workspace) env() []string {
+	env := []string{
+		"PATH=" + os.Getenv("PATH"),
+		"HOME=" + w.dir,
+		"GIT_CONFIG_NOSYSTEM=1",
+		"BEADS_TEST_MODE=1",
+		// Metrics off. Two reasons, one of them a test-stability bug: bd spawns a
+		// DETACHED `bd send-metrics` child that writes $HOME/.beads/eventsData
+		// after the parent exits, and HOME here is the t.TempDir() workspace — so
+		// the child races Go's RemoveAll and the test fails its own cleanup with
+		// "unlinkat …: directory not empty". (The other reason: a test suite
+		// should not ship telemetry.)
+		"BD_DISABLE_METRICS=1",
+	}
+	if testDoltPort > 0 {
+		env = append(env, "BEADS_DOLT_PORT="+strconv.Itoa(testDoltPort))
+	}
+	if v := os.Getenv("TMPDIR"); v != "" {
+		env = append(env, "TMPDIR="+v)
+	}
+	return env
+}
+
+func (w *workspace) git(args ...string) {
+	w.t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		w.t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
+func (w *workspace) run(args ...string) string {
+	w.t.Helper()
+	cmd := exec.Command(w.bd, args...)
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		w.t.Fatalf("bd %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+	return string(out)
+}
+
+// tryRun runs a bd command and returns output + error (does not fatal on failure).
+func (w *workspace) tryRun(args ...string) (string, error) {
+	w.t.Helper()
+	cmd := exec.Command(w.bd, args...)
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// runExpectError runs bd and expects a non-zero exit code.
+// Returns the combined output and exit code.
+func (w *workspace) runExpectError(args ...string) (string, int) {
+	w.t.Helper()
+	cmd := exec.Command(w.bd, args...)
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		w.t.Fatalf("bd %s: expected non-zero exit, got success\nOutput: %s",
+			strings.Join(args, " "), out)
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		w.t.Fatalf("bd %s: unexpected error type: %v", strings.Join(args, " "), err)
+	}
+	return string(out), exitErr.ExitCode()
+}
+
+// create runs bd create --silent and returns the issue ID.
+func (w *workspace) create(args ...string) string {
+	w.t.Helper()
+	allArgs := append([]string{"create", "--silent"}, args...)
+	cmd := exec.Command(w.bd, allArgs...)
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		stderr := ""
+		if ee, ok := err.(*exec.ExitError); ok {
+			stderr = string(ee.Stderr)
+		}
+		w.t.Fatalf("bd create %s: %v\n%s", strings.Join(args, " "), err, stderr)
+	}
+	id := strings.TrimSpace(string(out))
+	if id == "" {
+		w.t.Fatal("bd create returned empty ID")
+	}
+	return id
+}
+
+// showJSON runs bd show <id> --json and returns the first issue object.
+//
+// The payload is count-only: labels and dependencies are inline, but comments
+// and dependents are reported as comment_count / dependent_count and their
+// bodies are omitted. Use showJSONFull to assert on comment or dependent
+// content.
+func (w *workspace) showJSON(id string) map[string]any {
+	w.t.Helper()
+	out := w.run("show", id, "--json")
+	items := parseJSONOutput(w.t, out)
+	if len(items) == 0 {
+		w.t.Fatalf("bd show %s --json returned no items", id)
+	}
+	return items[0]
+}
+
+// showJSONFull runs bd show <id> --json with the opt-in relational payloads and
+// returns the first issue object — the shape to assert against when a test
+// cares about comment or dependent CONTENT rather than counts.
+//
+// bd show --json has been count-only by default since cfcc95799 ("count-only
+// JSON details with opt-in streamed payloads", be-ijck6q): materializing every
+// comment and dependent made show pathologically slow on hub beads, so the full
+// lists moved behind --include-comments / --include-dependents. The data is
+// still there — these flags are how you ask for it.
+func (w *workspace) showJSONFull(id string) map[string]any {
+	w.t.Helper()
+	out := w.run("show", id, "--json", "--include-comments", "--include-dependents")
+	items := parseJSONOutput(w.t, out)
+	if len(items) == 0 {
+		w.t.Fatalf("bd show %s --json --include-comments --include-dependents returned no items", id)
+	}
+	return items[0]
+}
+
+// ---------------------------------------------------------------------------
+// Assertion and comparison helpers
+// ---------------------------------------------------------------------------
+
+// findByID finds an issue in a JSON array by its ID.
+func findByID(items []map[string]any, id string) map[string]any {
+	for _, item := range items {
+		if item["id"] == id {
+			return item
+		}
+	}
+	return nil
+}
+
+// parseReadyIDs runs bd ready --json and returns the set of issue IDs.
+func parseReadyIDs(t *testing.T, w *workspace) map[string]bool {
+	t.Helper()
+	out := w.run("ready", "--json")
+	ids := make(map[string]bool)
+
+	items := parseJSONOutput(t, out)
+	for _, m := range items {
+		if id, ok := m["id"].(string); ok {
+			ids[id] = true
+		}
+	}
+	return ids
+}
+
+// requireStringSetEqual asserts that got and want contain exactly the same
+// strings (order-independent). On failure it prints missing and unexpected items.
+func requireStringSetEqual(t *testing.T, got, want []string, context string) {
+	t.Helper()
+	sortedGot := append([]string(nil), got...)
+	sortedWant := append([]string(nil), want...)
+	sort.Strings(sortedGot)
+	sort.Strings(sortedWant)
+
+	if slices.Equal(sortedGot, sortedWant) {
+		return
+	}
+
+	missing, unexpected := setDiff(sortedWant, sortedGot)
+	t.Errorf("%s: string set mismatch (got %d, want %d)\n  missing:    %v\n  unexpected: %v",
+		context, len(got), len(want), missing, unexpected)
+}
+
+// depEdge represents a dependency edge for set comparison.
+type depEdge struct {
+	issueID     string
+	dependsOnID string
+}
+
+// requireDepEdgesEqual asserts that the dependency objects contain exactly
+// the expected depends-on targets (order-independent).
+//
+// Handles two JSON formats:
+//   - list --json:  objects with "issue_id" and "depends_on_id" fields
+//   - show --json:  embedded Issue objects where "id" = the depends-on target
+//
+// NOTE: This compares targets only, not dependency type (blocks vs
+// parent-child etc.). Current protocol tests create one dep type per
+// scenario so this is sufficient. If a test needs to distinguish types,
+// extend depEdge to include type and compare (target, type) tuples.
+func requireDepEdgesEqual(t *testing.T, gotObjs []map[string]any, want []depEdge, context string) {
+	t.Helper()
+
+	got := make([]depEdge, 0, len(gotObjs))
+	for _, obj := range gotObjs {
+		issueID, _ := obj["issue_id"].(string)
+		dependsOn, _ := obj["depends_on_id"].(string)
+		// show --json embeds the depended-on issue directly; its "id" is the target.
+		if dependsOn == "" {
+			dependsOn, _ = obj["id"].(string)
+		}
+		got = append(got, depEdge{issueID: issueID, dependsOnID: dependsOn})
+	}
+
+	// Compare only the depends_on_id targets. The issue_id may be empty in
+	// the show --json format (it's implicit from the parent), so we compare
+	// just the target set to stay format-agnostic.
+	gotTargets := make([]string, len(got))
+	for i, e := range got {
+		gotTargets[i] = e.dependsOnID
+	}
+	wantTargets := make([]string, len(want))
+	for i, e := range want {
+		wantTargets[i] = e.dependsOnID
+	}
+	sort.Strings(gotTargets)
+	sort.Strings(wantTargets)
+
+	if slices.Equal(gotTargets, wantTargets) {
+		return
+	}
+
+	missing, unexpected := setDiff(wantTargets, gotTargets)
+	t.Errorf("%s: dep target set mismatch (got %d, want %d)\n  missing:    %v\n  unexpected: %v",
+		context, len(got), len(want), missing, unexpected)
+}
+
+// requireCommentTextsEqual asserts that the comment objects contain exactly
+// the expected text values (order-independent).
+//
+// NOTE: Uses text as identity, which works when all comment texts in a
+// scenario are distinct. If a test creates duplicate-text comments, this
+// will undercount — switch to multiset (count occurrences) or compare
+// author+text pairs instead.
+func requireCommentTextsEqual(t *testing.T, gotObjs []map[string]any, want []string, context string) {
+	t.Helper()
+
+	got := make([]string, 0, len(gotObjs))
+	for _, obj := range gotObjs {
+		if text, ok := obj["text"].(string); ok {
+			got = append(got, text)
+		}
+	}
+
+	sortedGot := append([]string(nil), got...)
+	sortedWant := append([]string(nil), want...)
+	sort.Strings(sortedGot)
+	sort.Strings(sortedWant)
+
+	if slices.Equal(sortedGot, sortedWant) {
+		return
+	}
+
+	missing, unexpected := setDiff(sortedWant, sortedGot)
+	t.Errorf("%s: comment text set mismatch (got %d, want %d)\n  missing:    %v\n  unexpected: %v",
+		context, len(got), len(want), missing, unexpected)
+}
+
+// setDiff returns items in want but not got (missing) and items in got but
+// not want (unexpected). Both inputs must be sorted.
+func setDiff(want, got []string) (missing, unexpected []string) {
+	wantSet := make(map[string]bool, len(want))
+	for _, s := range want {
+		wantSet[s] = true
+	}
+	gotSet := make(map[string]bool, len(got))
+	for _, s := range got {
+		gotSet[s] = true
+	}
+	for _, s := range want {
+		if !gotSet[s] {
+			missing = append(missing, s)
+		}
+	}
+	for _, s := range got {
+		if !wantSet[s] {
+			unexpected = append(unexpected, s)
+		}
+	}
+	return missing, unexpected
+}
+
+func getStringSlice(m map[string]any, key string) []string {
+	arr, ok := m[key].([]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, v := range arr {
+		if s, ok := v.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func getObjectSlice(m map[string]any, key string) []map[string]any {
+	arr, ok := m[key].([]any)
+	if !ok {
+		return nil
+	}
+	var out []map[string]any
+	for _, v := range arr {
+		if obj, ok := v.(map[string]any); ok {
+			out = append(out, obj)
+		}
+	}
+	return out
+}
+
+func assertField(t *testing.T, issue map[string]any, key, want string) {
+	t.Helper()
+	got, ok := issue[key].(string)
+	if !ok || got == "" {
+		t.Errorf("field %q missing or empty in show --json, want %q", key, want)
+		return
+	}
+	if got != want {
+		t.Errorf("field %q = %q, want %q", key, got, want)
+	}
+}
+
+func assertFieldFloat(t *testing.T, issue map[string]any, key string, want float64) {
+	t.Helper()
+	got, ok := issue[key].(float64)
+	if !ok {
+		t.Errorf("field %q missing or not a number in show --json, want %v", key, want)
+		return
+	}
+	if got != want {
+		t.Errorf("field %q = %v, want %v", key, got, want)
+	}
+}
+
+func assertFieldPrefix(t *testing.T, issue map[string]any, key, prefix string) {
+	t.Helper()
+	got, ok := issue[key].(string)
+	if !ok || got == "" {
+		t.Errorf("field %q missing or empty in show --json, want prefix %q", key, prefix)
+		return
+	}
+	if !strings.HasPrefix(got, prefix) {
+		t.Errorf("field %q = %q, want prefix %q", key, got, prefix)
+	}
+}
+
+// parseJSONOutput handles schema-versioned envelopes, JSON arrays, and JSONL.
+//
+// Schema-versioned output wraps arrays as {"schema_version": N, "items": [...]}.
+// Object output injects schema_version as a top-level field.
+func parseJSONOutput(t *testing.T, output string) []map[string]any {
+	t.Helper()
+
+	// Try schema-versioned envelope first
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(output), &envelope); err == nil {
+		if items, ok := envelope["items"]; ok {
+			if arr, ok := items.([]any); ok {
+				var result []map[string]any
+				for _, item := range arr {
+					if m, ok := item.(map[string]any); ok {
+						result = append(result, m)
+					}
+				}
+				return result
+			}
+		}
+		// Single object (e.g. bd show --json, bd create --json)
+		return []map[string]any{envelope}
+	}
+
+	// Try JSON array (legacy, pre-schema_version)
+	var arr []map[string]any
+	if err := json.Unmarshal([]byte(output), &arr); err == nil {
+		return arr
+	}
+
+	// Fall back to JSONL
+	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
+		if line == "" {
+			continue
+		}
+		var m map[string]any
+		if err := json.Unmarshal([]byte(line), &m); err != nil {
+			continue
+		}
+		arr = append(arr, m)
+	}
+	return arr
+}
+
+// assertSchemaVersion verifies that the output object contains schema_version.
+func assertSchemaVersion(t *testing.T, obj map[string]any, context string) {
+	t.Helper()
+	sv, ok := obj["schema_version"]
+	if !ok {
+		t.Errorf("%s: missing schema_version field", context)
+		return
+	}
+	if v, ok := sv.(float64); !ok || v < 1 {
+		t.Errorf("%s: schema_version = %v, want >= 1", context, sv)
+	}
+}

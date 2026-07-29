@@ -1,0 +1,9 @@
+/workspace/farmtable-task-state-predeploy/.git/config
+/workspace/farmtable-task-state-core/.git/config
+/workspace/farmtable/.git/config
+/workspace/farmtable-passthrough-write-p1/test-writethrough.db
+/workspace/.scion/agents/coordinator/scion-agent.json
+/scion-volumes/scratchpad/projects/farmtable/preserve/gc-config-before-20260729T070627Z/farmtable.config.before
+/scion-volumes/scratchpad/scion-reference/.design/hosted/git-groves.md
+/home/scion/.scion/harness/inputs/telemetry.json
+/home/scion/.scion/scion-env

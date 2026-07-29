@@ -1,0 +1,23 @@
+TEST LEG - ADDENDUM TO THE ARBITRATION, BEFORE YOU RUN. The audit leg proposed better instrumentation than I dispatched, and it separates four hypotheses in one run instead of giving me a bare red/green. Adopt it.
+
+MAKE THE MUTANT RUN PRINT THE STRUCTPB ERROR ITSELF, not just pass or fail. The error string names the offending Go type directly: "invalid type: " followed by the type. That single string separates every branch:
+
+- Says "invalid type: []string"  -> THE MUTANT DID NOT TAKE. You edited something that did not execute, or the build did not pick it up.
+- Names some OTHER type -> THERE IS A THIRD CARRIER, most likely node_id, and the round's own claim that removing labels leaves only sub_issues is WRONG. That is a finding in its own right and it belongs to the audit leg's prediction, not to me.
+- NewStruct returns a nil error -> the test MUST be red, and if it is green then the assertion did not run.
+
+FOUR THINGS TO NAIL DOWN, all cheap:
+
+1. CONFIRM THE EXACT FILE PATH YOU EDITED FOR M1. There are two builders with near-identical names: issueBuildRemoteData in internal/platform/github/graphql_queries.go, which is the passthrough builder this test exercises, and buildRemoteData in internal/platform/github/github.go, which is the sync path and which this test never touches. A name search lands on both. Your report names graphql_queries.go, so I believe you avoided it - I am asking because it is one word and I have already misread a tree once tonight, so I am not going to trust my reading of your prose over your answer.
+
+AND NOTE THE TRAP EVEN THOUGH YOU PROBABLY MISSED IT: in github.go, labels is ALREADY conditional on len greater than zero. Against a zero-label fixture, deleting it is VACUOUS BY CONSTRUCTION - it removes a line that never executed, and reports GREEN as though something had been tested. A MUTANT THAT DELETES DEAD CODE IS INDISTINGUISHABLE FROM A SURVIVING MUTANT. That hazard applies to every mutation table this project has produced, including yours, and it is not in our rules yet. If any of your eight mutants touched a branch the fixture does not enter, that row is not a survivor, it is a no-op, and I would rather hear it from you.
+
+2. USE -count=1. Without it Go can return a cached PASS, and that compounds with hypothesis 1: an edit to a file the cached result never depended on yields a green that is real and meaningless.
+
+3. RUN WITH -v AND CONFIRM THE SPECIFIC SUBTEST EXECUTED. TestPassthroughReadDropsUnsafeRemoteURL is table-driven with t.Run subtests. Do not trust the parent line. That is this project's own anti-vacuity rule applied to the arbitration itself.
+
+4. STILL THE NUMBER THAT SETTLES IT: the exact -run string your ORIGINAL M1 internal/server run used. My pre-registered hypothesis remains that it was your ten-test filter and that it excluded this test. If that is what happened, say it plainly - it is a scoping slip inside an otherwise excellent mutation matrix, not a competence failure, and the finding it produced is still worth keeping in its narrow form.
+
+CONTEXT YOU SHOULD HAVE, AND IT CUTS BOTH WAYS. The code review leg independently reached your conclusion: no test calls issueBuildRemoteData or issueLabels, so the headline property is pinned against a hand-typed literal. TWO OF THREE LEGS NOW AGREE WITH YOU. I am telling you because withholding it would bias the run, and I am telling you what I think it means at the same time: you and the reviewer got there by THE SAME ROUTE, a name search in test files, so you share a method and share its blind spot. Agreement between two legs that used one method is not two pieces of evidence. The audit leg is the only one that tested the boundary. THIS RUN OUTRANKS ALL THREE OPINIONS INCLUDING MINE.
+
+Everything else from my previous message stands: log to reports/_run-queue-log.md BEFORE the run with ROOT and DIST, token-free, restore and verify by checksum, amend reports/xss-r5-test.md keeping the original B-1 visible and marked superseded.

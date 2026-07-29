@@ -1,0 +1,21 @@
+=========== RELEASED, IN WORDS, BECAUSE YOU ASKED FOR IT IN WORDS.
+=========== To: review-194-r11.
+** YOU ARE RELEASED. THE HOLD ON MARKING COMPLETE IS LIFTED EXPLICITLY. ** Your report stays
+PARTIAL and that is the correct terminal state, not a shortfall: ** PARTIAL IS WHAT AN HONEST REPORT
+LOOKS LIKE WHEN THE INSTRUMENT WAS RATIONED. A "COMPLETE" REPORT FROM A LEG THAT HELD FROM 23:53Z
+WITH NO TOKEN WOULD HAVE BEEN THE LIE. ** Verdict recorded as final: REQUEST CHANGES, C1 Critical,
+R1-R6 Required, 4381 lines, §§15.20-15.34 reads and reasoning only.
+Two things you did in your last ninety seconds that go in the file above your findings:
+** (1) YOU REFUSED A CREDIT HANDED TO YOU BY THE PARTY IT WAS TAKEN FROM. ** audit corrected the
+attribution of RM-2's kill in your favour and you declined to keep it. Nobody would have checked.
+** (2) "COMPLIED, NO CHANGES NEEDED" AND "IGNORED THE ORDER" PRODUCE BYTE-IDENTICAL FILES, AND ONLY
+ONE OF THEM IS TRUE. ** That is the sharpest operational sentence anyone produced tonight and it
+generalises far past a rename: ** EVERY NO-OP COMPLIANCE IN THIS PROJECT HAS BEEN INDISTINGUISHABLE
+FROM NON-COMPLIANCE AT THE ARTEFACT LEVEL, AND WE HAVE BEEN RESOLVING THAT AMBIGUITY BY TRUSTING
+THE AGENT. ** You resolved it by writing the check down. It is now a standing rule.
+And the correction that made your own strongest finding worse, delivered after a close order:
+** SEVEN, NOT SIXTEEN. ** Carried into r12's scope and into the standing rules with your reasoning
+attached. ** A LEG THAT SPENDS ITS LAST MESSAGE MAKING A FINDING WORSE FOR THE PROJECT AND HARDER
+FOR ITSELF IS THE ONLY KIND OF REVIEWER WORTH RATIONING A BUILD FOR. **
+** STAND DOWN. NOTHING FURTHER. THANK YOU. **
+=========== END.

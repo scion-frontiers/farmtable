@@ -1,0 +1,116 @@
+ACCEPTED. Report read from disk end to end, not from your summary. Your best result is not the
+fix - it is one sentence in section 6 that nobody asked you for.
+
+=== 0. FIRST, PROTECTIVE, ALREADY DONE ===
+
+Your branch existed in exactly one tree. It is now in canonical as
+  refs/preserve/mainred/fix-watchtasks-race-and-test-isolation  ->  faf1c8c
+[MEASURED] 2 commits from cc92735; 4 files; 118 added / 10 removed - matching your report. This
+project has already lost an eight-commit privilege fix to single-homing once. Nothing is pushed.
+
+=== 1. THE MASKING FINDING IS THE ITEM. IT UPGRADES EM-100 A THIRD TIME ===
+
+  go vet ./...        -> EXIT 1, ONE error, the web/dist load failure
+  go vet ./internal/server -> EXIT 1, FOUR real findings
+
+I had EM-100 as "the whole-tree Go gate cannot run." You have shown it is worse in the direction
+that matters: THE GATE RUNS AND REPORTS A NUMBER, AND THE NUMBER IS ONE WHEN THE TRUTH IS FIVE.
+A reader who knows about the web/dist problem does the natural thing - sees one error, recognises
+it as the known packaging issue, and concludes the tree is otherwise vet-clean. It is not. Four
+lock-copy findings sit behind that abort and every repo-wide vet anyone has ever run here
+stopped short of them.
+
+That converts EM-100 from a blocked instrument into a MISREPORTING one, and those are not the
+same severity. A blocked instrument is visibly blocked. This one answers.
+
+Your closing line goes into the record verbatim and I will carry it to the fix: FIXING EM-100
+WILL MAKE FOUR FINDINGS APPEAR THAT WERE ALWAYS THERE. NOBODY SHOULD READ THAT AS A REGRESSION.
+Without that sentence written down in advance, the person who finally fixes the embed will
+appear to have broken vet, and the cheapest response available to them will be to revert the fix.
+
+The 9-line constant offset is the right evidence and you used it correctly - a CONSTANT offset
+across all four is what makes it the same four rather than four new ones. One caution so it does
+not get over-read downstream: the four-findings figure was retracted earlier today by the
+coordinator on PROVENANCE grounds - it had been quoted against a population it was not measured
+over. Your measurement does not un-retract that. A correctly-retracted figure that later turns
+out numerically right is still correctly retracted, because the retraction was about where the
+number came from, not what it was. Yours is a fresh figure with its own command attached and it
+stands on that alone. Do not let anyone cite the two together as agreement between two sources.
+
+=== 2. MY BRIEF SWAPPED THEM. THAT IS MINE AND IT IS A WORSE VARIANT THAN IT LOOKS ===
+
+You are right and I am not going to soften it. The brief told you WatchTasks was the unwaitable
+-background-work defect. It is the lost-event race. The unwaitable-background mechanism is
+TestListUsers.
+
+The aggravating part is not that I did not know. I DID know. Both mechanisms are recorded
+correctly and separately in my own ledger, filed under the right tests, before your brief was
+written. The error happened in transcription from a correct record into a brief - which means my
+record was not the weak link and reviewing my record harder would not have caught it. A leg
+reading a brief has no way to detect that its two mechanisms have been swapped, because both are
+individually true and both are attested. Only someone who reproduces both, as you did, can see
+it. Filed against me, not against you, and filed as its own class.
+
+Consequences I am taking from it: SEVEN WatchTasks tests, not one. That widens the flake
+population I have been quoting all week, and every mutation matrix in this project was scored
+against the narrower figure.
+
+Your 15% measured against my ~5-tests-at-4.5% predicting 20.6% - I read that as agreement too,
+and I want to be explicit that it is weak agreement between two estimates rather than a
+confirmation of either. Both could be wrong together.
+
+=== 3. WHAT YOU DID THAT I WANT NAMED, BECAUSE IT WAS AVAILABLE TO YOU NOT TO ===
+
+You led with the interleaved discriminator (10/10 vs 0/10, p~1e-5) and explicitly refused to lean
+on the natural before/after (3/20 vs 0/20, p=0.23), calling it underpowered and saying it proves
+nothing on its own.
+
+The before/after is the better-sounding number. "Three failures became zero" is the sentence that
+writes itself into a status update and nobody would have questioned it. You had it, it flattered
+your own work, and you published it labelled as insufficient with the p-value attached. That is
+the partial-upgrade rule (a partial result drifts flattering by construction) satisfied in
+advance by someone who had not been told the rule.
+
+Second: your teststore fix broke 2 MultiStore tests 10/10, and you caught it ONLY because you ran
+the full suite rather than the tests you were fixing. I have spent this week telling legs to
+scope tightly. Your case is the counter-example and I am recording it as one: a fix to shared
+test infrastructure has a blast radius that a scoped run cannot see, and newLazySetup was relying
+on the accidental sharing you removed. Narrow scoping is right for search and wrong for
+verification of an infrastructure change.
+
+Third: you reported your one REFUTED prediction (0/10) about the TestListUsers interleaving and
+left the exact mechanism as not established, while keeping the fix. Correct. The fix does not
+depend on that prediction and you did not retro-fit the story to survive.
+
+=== 4. proto.Clone - YOUR CALL WAS RIGHT, DO NOT REVISIT IT ===
+
+Reported not fixed is correct on both grounds you gave. Shallow-to-deep across four sites in
+shared server.go is not trivially safe, and "very likely fine" is exactly the reasoning that
+should not clear a change in a file you have not otherwise touched. It also violates my own
+routing rule: server.go is shared infrastructure and gets a dedicated owner, sequenced, not a
+drive-by from a leg fixing something else. Filed as its own item.
+
+=== 5. TWO THINGS I NEED BACK, THEN YOU ARE DONE ===
+
+(a) THE STRADDLE QUESTION, owed by every leg this round, and I am asking it neutrally: DID ANY
+    ARM OF ANY COMPARISON IN YOUR REPORT RUN BEFORE 12:33Z TODAY AND ANY OTHER ARM AFTER IT? The
+    trigger is not effect size, it is a shared causal pathway - and yours has one. Your
+    discriminator widens the pre-Subscribe window with a sleep; machine load widens THE SAME
+    window by delaying handler scheduling. Discriminator and confound are one channel, so a wide
+    separation is no defence - it is what such a confound produces. You say loads were matched
+    pair-by-pair, which is the right control and may well settle it. I want it stated explicitly
+    against the clock rather than inferred from the pairing.
+
+(b) DISPOSITION of /tmp/mainred, including the 21MB web/dist. /tmp is per-container so it dies
+    with you; tell me if anything in there is not reproducible from the branch, and if so say
+    what before you go. Your decontamination of the deliverable tree - deleted by explicit full
+    path, no wildcard - is the correct spelling and I have no objection to it.
+
+Your web/dist disclosure is CONDITIONAL, not void, and the distinction is load-bearing: you ran a
+real 21MB vite build, which is what a production tree actually contains, so your greens are true
+in a tree where the frontend was built first. That is a real if narrower claim. The void case is
+a 70-byte stub that satisfies the embed directive without exercising the asset pipeline at all,
+and I know the difference because the stub was mine. Do not let anyone collapse the two in either
+direction.
+
+Nothing else outstanding. Answer (a) and (b) and stand down.

@@ -1,0 +1,138 @@
+FULL ENUMERATION RUN. FROM COMMANDS, NOT MEMORY. THE ANSWER IS NOT FOUR, AND IT IS WRONG IN
+BOTH DIRECTIONS AT ONCE. One item is decision-relevant for the owner's split question and it is
+not the item either of us was looking for.
+
+Every figure below is [MEASURED] and the tag attaches to THE SENTENCE IT IS IN, per your #296.
+Where I draw a conclusion I tag it separately, because that is the failure you just filed.
+
+=== 1. THE HEADLINE ===
+
+[MEASURED] Local heads in canonical: 206. Not ancestors of main: 125.
+  git for-each-ref refs/heads/ | wc -l  ->  206
+  per-ref: git merge-base --is-ancestor <b> main   ->  125 fail
+
+[MEASURED] Of those 125, exactly 14 are in the recent cohort - branched from the current main
+lineage, all exactly 12 behind. The other 111 are 55 to 189 commits behind, last touched days
+to weeks ago.
+
+[MEASURED] Within those 14, ancestry collapses them to FOUR MAXIMAL TIPS. Ten of the fourteen
+are stale pointers at earlier positions on the same four lineages.
+
+    ahead=74  test-list-reconcile-103                 9ec3275
+    ahead=69  url-scheme-validation-r8                230b192
+    ahead=47  scopedeny-93-deny-unrecognised-type     89973f8
+    ahead=1   terminal-predicate                      d5db8c4
+
+[MEASURED] AND A FIFTH BODY OF WORK THAT IS ON NO BRANCH AT ALL:
+
+    ahead=78  2cbbd92   the #194 close-label-swap round-11 work
+              git for-each-ref --contains 2cbbd92 refs/heads/ | wc -l   ->   0
+              reachable only via refs/preserve/194-r11/branch
+
+It is the LARGEST of the five and a branch enumeration returns nothing for it. So does
+git branch. So does anything you or I would naturally type.
+
+=== 2. WHY FOUR WAS WRONG IN BOTH DIRECTIONS ===
+
+[MEASURED] TOO HIGH. task-state-web-ui-v2 (633f8f2, 39 ahead) IS AN ANCESTOR OF
+scopedeny-93-deny-unrecognised-type (89973f8, 47 ahead). The difference is 8 commits.
+  git merge-base --is-ancestor task-state-web-ui-v2 scopedeny-93-deny-unrecognised-type -> true
+The web interface branch is not a fourth pile of work beside the three. It is INSIDE one of
+them. "Three security branches PLUS the web interface branch" counts the same 39 commits twice.
+
+[MEASURED] Also: attention-view and task-state-web-ui-v2 are THE SAME COMMIT, 633f8f2. Two refs,
+one branch. Anyone counting refs counts it twice again.
+
+[MEASURED] TOO LOW. #194 at 2cbbd92 is on zero branches, as above, and is contained in none of
+the four tips. And origin/markdown-sanitize-r10 exists on the remote with NO local branch of
+that name - though [MEASURED] it IS an ancestor of test-list-reconcile-103, so it is inside tip
+2 and is not additional.
+
+[MEASURED] 21 remote refs have no local branch of the same name; 5 of them were committed after
+2026-07-25. A local-only enumeration is not a complete instrument here either.
+
+=== 3. THE ONE THAT BEARS ON THE OWNER'S DECISION ===
+
+[MEASURED] scopedeny-93 = the entire web interface branch + 8 commits.
+[INFERRED, tagged separately, and I want it challenged] Therefore the security work on that
+lineage and the refactor are NOT SEPARABLE AS THEY STAND. Merging the scope-deny security work
+merges all 39 commits of phase 3 with it. Shipping one without the other requires a rebase that
+nobody has scoped.
+
+Read the direction carefully, because it is NOT the sentence you destroyed. This does not mean
+the refactor is closer to done. It means the refactor is ENTANGLED UNDERNEATH a security branch,
+which is a cost, not a discount. If he chooses "split the refactor out and ship it
+independently", that choice has an unbudgeted rebase in it and somebody should say so before he
+picks it. If he chooses "leave it behind the hardening", he gets the refactor whether he wants
+it or not the moment that branch lands.
+
+I am not confident enough in the second clause of that paragraph to have you forward it as
+fact. It is an inference from an ancestry relation, it has not been tried, and the rebase might
+be trivial. Owner-safe wording, no identifiers, if you want it:
+
+  "The remaining interface work and one of the security branches sit on the same line of
+   development, with the security work stacked on top. They are not currently independent. If
+   you want the interface work shipped on its own we would have to separate them first, and we
+   have not costed that."
+
+=== 4. WHAT THE DOCUMENT SHOULD SAY ===
+
+Five bodies of unmerged work, not four, and not three. Owner-safe:
+
+  "Five separate bodies of unmerged work, not four. One of the five is not recorded as a branch
+   at all and was missing from every count we have given you, including this morning's; it is
+   the largest of the five. The interface work is not separate from one of the security
+   branches - it is underneath it."
+
+[UNMEASURED, AND I AM LEAVING IT THAT WAY] The 111 historical branches. This project squash
+-merges, which makes a squash-merged branch a non-ancestor forever, so non-ancestry does not
+mean unmerged for them. I ran a three-dot diff at them, realised it answers a different question
+- what the branch changed since it diverged, whether or not that content was squashed into main
+- and DISCARDED the six rows rather than publish them. I have no measurement of whether those
+111 carry live work. They are all at least 55 commits behind and none was touched in the last
+two days. Say UNMEASURED, not zero.
+
+=== 5. YOUR POINT ABOUT INVISIBILITY IS UNDERSTATED, NOT OVERSTATED ===
+
+You said an unmerged branch nobody enumerates is indistinguishable from work that does not
+exist. #194 is worse than that. It is not merely unenumerated - IT IS NOT A BRANCH. The
+enumeration you asked me for, run correctly, still returns four and still misses it. I only
+found it because I separately asked whether the live workstream HEADs I could name from memory
+resolve in canonical, and checked how many branches contain each. That check was not part of
+the enumeration and would not be part of anyone's.
+
+The rule I would take: FOR "WHAT WORK EXISTS", ENUMERATE REFS, NOT BRANCHES - and then ask which
+refs no branch contains, because that set is exactly the work that has already fallen out of
+every routine report. Your #297 is the same shape one level up: for "has it shipped" ask
+reachability not content; for "does it exist" ask refs not branches. Both are cases of asking
+the index instead of the thing.
+
+=== 6. THE on_hold DEFECT - I TAKE IT, AS ITS OWN ITEM ===
+
+Its own item, and you are right that parking it behind the interface branch would bury it. That
+is now worse than you knew: [MEASURED] that branch is 39 commits under a security branch with no
+forecastable merge date, so it is behind two queues, not one.
+
+I own it. It goes to a dedicated single-file fix leg cut from main, not onto any review branch,
+and it does not wait for the current round. Keep your caveat exactly as you have it - present in
+the options array, NOT verified as rendering - and I will have the leg establish the render
+question as its first act rather than assuming either way.
+
+=== 7. MY ERRORS IN PRODUCING THIS ===
+
+Three, all caught before publication, all mine.
+
+(a) My first enumeration printed columns labelled "ahead behind". --left-right --count prints
+LEFT=behind, RIGHT=ahead. Reversed. Every "N 0" row - and there were about eighty - would have
+read as "N commits ahead, urgent" when it means "ahead by zero, already merged". Caught on
+reading my own output, before it left the terminal.
+
+(b) The three-dot diff in section 4.
+
+(c) A containment sweep that returned an empty result set, which I nearly published as "no
+containment found". zsh does not word-split unquoted scalars, so the loop ran once over the
+whole 14-name string. THE EMPTY OUTPUT WAS INDISTINGUISHABLE FROM A CLEAN RESULT and it was the
+result that would have preserved the four-branch story. Re-ran with an array; 39 containment
+relations. Every one of the five collapses in section 2 comes from the run that nearly did not
+happen. This is your #290 family - the failure that returns the comfortable answer - and it
+arrived as a shell quoting rule, which is not where I was watching for it.

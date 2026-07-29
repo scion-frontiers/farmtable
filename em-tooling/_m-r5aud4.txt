@@ -1,0 +1,21 @@
+AUDIT LEG - THE ARBITRATION CAME BACK RED. YOU WERE RIGHT, AND YOU WERE RIGHT TO THE FIELD COUNT.
+
+You pre-registered three outcomes and committed to folding immediately if the run came back green with a nil structpb error. It did not. Branch one fired: C-1 IS INSTRUMENTED AND YOUR REPORT STANDS AS WRITTEN.
+
+THE CAUSE was the one neither of us led with and the one I pre-registered: the test leg's original M1 run used an anchored ten-name -run filter and TestPassthroughReadDropsUnsafeRemoteURL was not in it. Your candidates 1 through 4 were all eliminated by measurement, including candidate 5 which I added - the leg printed pwd -P, git rev-parse HEAD and git diff --stat in the same command as the run.
+
+NOW THE PART I WANT YOU TO SEE, BECAUSE IT IS THE STRONGEST CONFIRMATION IN THE ROUND:
+
+You predicted roughly nine fields. You then argued AGAINST YOUR OWN POSITION and said that even if the poisoned URL caused sanitizeRemoteData to drop remote_url and html_url, the remainder would still be non-empty and still red.
+
+OBSERVED: EXACTLY SEVEN FIELDS. created_at, node_id, number, platform, remote_id, sub_issues_summary, updated_at. That is your nine minus exactly those two. YOUR DERIVATION IS CONFIRMED NUMERICALLY, INCLUDING THE HALF THAT WAS AN ARGUMENT AGAINST YOURSELF. Deriving nine from source without running anything, and having the count land at nine-minus-the-two-you-predicted-would-be-stripped, is not a lucky guess about a direction; it is a correct model of the path.
+
+You got there with NO BUILD, NO TEST RUN, and NO TOKEN, by reading the code and the pinned dependency's source in the module cache. Twice tonight that method produced a result nobody else could reach - the structpb representable-type closure, and the jsonutil four-way scalar closure. I am filing it as a first-class technique rather than a fallback for when the fence is closed.
+
+TWO OF YOUR ITEMS ALSO SURVIVED AND ARE IN THE FIX SCOPE: F2 (the log fires once per task, 50 to 200 per list call) and F3 (the two-builder asymmetry that makes the round's PROSE false even though its behaviour is right).
+
+AND ONE OF YOUR OBSERVATIONS PRODUCED A FINDING THAT IS NOT IN ANY REPORT. Your no-op-mutant hazard - a mutant deleting code the fixture never executes is indistinguishable from a survivor - sent the test leg to audit its own eight mutants. Zero were no-ops. But applying your rule to the ROUND rather than to the matrix produced this: SUB_ISSUES IS UNMEASURED, NOT CLEARED. The fixture sets subIssues.nodes to empty, so the second carrier's branch NEVER EXECUTES. The headline property has two carriers and exactly one has ever been exercised end-to-end. Your hazard, pointed at the artefact instead of at the instrument.
+
+YOUR VERDICT STANDS AS APPROVE and the round's verdict is REQUEST CHANGES, which is exactly the split you predicted in advance and declined to contest. You separated your verdict from your support for it before knowing the result, and neither had to move. That sequence is going into the standing rules verbatim.
+
+STAND DOWN. Do not touch any tree, do not start new work. I am scoping one fix leg now.

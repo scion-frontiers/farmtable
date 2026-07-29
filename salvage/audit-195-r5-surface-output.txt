@@ -1,0 +1,60 @@
+=== TAGS PERMITTED THROUGH THE PRODUCTION CONFIG ===
+HTML  (97): a abbr acronym address area article aside audio b bdi bdo big blink blockquote br canvas center cite code content data datalist dd decorator del details dfn dir div dl dt element em fieldset figcaption figure font footer h1 h2 h3 h4 h5 h6 header hgroup hr i img ins kbd label legend li main map mark marquee menu menuitem meter nav nobr ol optgroup output p picture pre progress q rp rt ruby s samp section shadow small source spacer span strike strong sub summary sup table time track tt u ul var video wbr slot
+SVG   (31): svg a circle defs desc ellipse filter font g glyph hkern image line marker mask metadata mpath path pattern polygon polyline rect stop switch symbol text title tref tspan view vkern
+MathML(29): math menclose merror mfenced mfrac mglyph mi mlabeledtr mmultiscripts mn mo mover mpadded mphantom mroot mrow ms mspace msqrt mstyle msub msup msubsup mtable mtd mtext mtr munder munderover
+TOTAL PERMITTED: 157
+
+=== TAGS MARKED ACTUALLY EMITS FROM MARKDOWN SYNTAX (22) ===
+a blockquote code del em h1 h2 hr img li ol p pre span strong table tbody td th thead tr ul
+
+=== EXCESS SURFACE: permitted but never emitted by markdown (138) ===
+abbr acronym address area article aside audio b bdi bdo big blink br canvas center circle cite content data datalist dd decorator defs desc details dfn dir div dl dt element ellipse fieldset figcaption figure filter font footer g glyph h3 h4 h5 h6 header hgroup hkern i image ins kbd label legend line main map mark marker marquee mask math menclose menu menuitem merror metadata meter mfenced mfrac mglyph mi mlabeledtr mmultiscripts mn mo mover mpadded mpath mphantom mroot mrow ms mspace msqrt mstyle msub msubsup msup mtable mtd mtext mtr munder munderover nav nobr optgroup output path pattern picture polygon polyline progress q rect rp rt ruby s samp section shadow slot small source spacer stop strike sub summary sup svg switch symbol text time title track tref tspan tt u var video view vkern wbr
+
+=== mXSS RE-PARSE STABILITY (idempotence + round-trip) ===
+  inert  roundtripStable=true  idempotent=true
+     in  : "<svg></p><style><a id=\"</style><img src=1 onerror=alert(1)>\">"
+     out : "<p><svg></svg></p><img src=\"1\">\"&gt;<p></p>\n"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<noscript><p title=\"</noscript><img src=x onerror=alert(1)>\">"
+     out : "<p></p><p></p>\n"
+  inert  roundtripStable=true  idempotent=false
+     in  : "<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>"
+     out : "<math><mtext></mtext></math>"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<svg><p><style><img src=1 onerror=alert(1)></style></p></svg>"
+     out : "<p><svg></svg></p><p></p><p></p>\n"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<math><mtext><table><mglyph><style><!--</style><img title=\"--&gt;&lt;/mglyph&gt;&lt;img src=1 onerror=alert(1)&gt;\">"
+     out : "<p><math><mtext><table></table></mtext></math></p>"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<table><caption><svg><foreignobject><math><mtext><table><mglyph><style><img src=x onerror=alert(1)>"
+     out : "<table><caption><svg></svg></caption></table>"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<xmp><p title=\"</xmp><img src=x onerror=alert(1)>\">"
+     out : "<p></p><img src=\"x\">\"&gt;<p></p>\n"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<listing><p title=\"</listing><img src=x onerror=alert(1)>\">"
+     out : "<p></p><p title=\"</listing><img src=x onerror=alert(1)>\"></p>\n"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<svg><animate onbegin=alert(1) attributeName=x dur=1s>"
+     out : "<p><svg></svg></p>\n"
+  inert  roundtripStable=true  idempotent=true
+     in  : "<template><style><a title=\"</style><img src=x onerror=alert(1)>\">"
+     out : "<p><template><img src=\"x\">\"&gt;<p></p>\n</template></p>"
+
+  SELF-CHECK post-reparse handler detector fires on control: FIRE
+  mXSS vectors checked: 10, yielding a live handler after reparse: 0
+
+=== CHECKBOX RENDERER ===
+  in : "- [x] done"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Completed\">☑︎</span> done</li>\n</ul>\n"
+  in : "- [ ] todo"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Not completed\">☐︎</span> todo</li>\n</ul>\n"
+  in : "- [x] <img src=x onerror=alert(1)>"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Completed\">☑︎</span> <img src=\"x\"></li>\n</ul>\n"
+  in : "- [X] UPPER"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Completed\">☑︎</span> UPPER</li>\n</ul>\n"
+  in : "- [x] \"><script>alert(1)</script>"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Completed\">☑︎</span> \"&gt;</li>\n</ul>\n"
+  in : "- [x] ‮rtl-override"
+  out: "<ul>\n<li><span role=\"img\" aria-label=\"Completed\">☑︎</span> ‮rtl-override</li>\n</ul>\n"

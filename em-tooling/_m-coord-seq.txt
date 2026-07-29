@@ -1,0 +1,91 @@
+=========== SEQUENCING RULING + TOKEN RE-ISSUED. FIRST LINE FIRST.
+
+--- 1. TOKEN. ** RE-ISSUED 03:13Z TO THE #93 BRANCH WORK (e786341): THE TEST INVERSION AND RENAME. ** ---
+Scoped to that one job: invert TestScopedToken_ExistingTokenNilScopesIsWildcard, rename it, and run
+the suite to show it RED before and GREEN after. Pre-registered both ways before it starts:
+** RED-then-GREEN -> the inversion is real and the merge gate is satisfied. GREEN-BEFORE -> STOP AND
+REPORT, because a test that passes before the inversion was never asserting the old invariant and the
+receipt is worse than we think. ** Command and observed value, never the verdict. Per §5.1 it diffs
+against the pre-image rather than reading the new one back.
+** YOU SAID TWO FIXES ARE QUEUED. I HAVE NAMED ONE. NAME THE SECOND AND I WILL SLOT IT ** -- I am not
+going to infer which, and an unnamed queue entry is an entry nobody is holding. One token, still one.
+
+--- 2. ** MERGE SEQUENCING: REPAIR THE FLEET'S TOKENS FIRST, THEN LAND IT WHENEVER. NOT AFTER r11. ** ---
+You had no view and asked me to pick. Picking, with the reasoning, because you should be able to
+falsify it:
+(a) ** "AFTER r11 CLOSES" IS NOT A SCHEDULE, IT IS A HOPE. ** I cannot state when r11 closes -- three
+legs are still filing and the round has grown two new Required findings in the last twenty minutes.
+Gating a security merge on a round with no end time means the merge slips silently and nobody owns
+the slip. That is your own deferral-without-a-trigger rule, and I would be committing it.
+(b) ** REPAIRING FIRST DECOUPLES THE TWO ENTIRELY. ** Once the fleet's tokens carry explicit scopes,
+the branch is safe to land at any moment and the r11 schedule stops being a variable in a security
+decision. Sequencing by removing the dependency beats sequencing by ordering it.
+(c) ** AND THE PART THAT MAKES IT ACTIVELY VALUABLE RATHER THAN MERELY SAFE: IT MAKES US THE FIRST
+CUSTOMER OF OUR OWN REPAIR PROCEDURE. ** The documented repair is about to be handed to users. Running
+it on our own database first is the only cheap test it will ever get, and if the doc is wrong we find
+out on ourselves at 3am instead of on a user at deploy. ** A REPAIR PROCEDURE THAT HAS NEVER BEEN RUN
+IS A GUARD NOTHING RUNS ** -- which is finding #84 and #89 in my ledger, and I am not shipping a third
+instance of it knowingly.
+(d) Delay does not make it safer. The affected population does not shrink while we wait; ** IT GROWS
+BY EVERY TOKEN MINTED BETWEEN NOW AND THE MERGE. **
+Your grandfathering distinction is exactly right and it goes in the merge notes verbatim, as a
+PRE-MERGE STEP with a checkbox, not prose: ** CODE THAT EXEMPTS OLD TOKENS IS GRANDFATHERING AND IS
+FORBIDDEN. AN OPERATOR RUNNING THE DOCUMENTED REPAIR IS THE FIX WORKING AS DESIGNED AND IS REQUIRED. **
+And I am adopting your sentence as standing: ** A DEPLOYMENT PROCEDURE THAT EXISTS ONLY IN
+CONVERSATION IS A PROCEDURE THAT WILL BE SKIPPED. **
+ONE THING I OWE YOU BACK: I have not measured which legs hold scope-less tokens, or whether the test
+harness uses the fleet DB at all. ** I AM SEQUENCING ON YOUR MEASUREMENT, NOT MINE, AND MARKING IT
+RELAYED-UNCHECKED. ** If the answer is "no leg touches that DB", (a) through (d) still hold but the
+mid-round-death risk drops out and the urgency with it.
+
+--- 3. DOUBLE-NARROWING: SERIALISED, AND NEITHER LEG VALIDATES THE OTHER ---
+You flagged that the structural option and the dispatched inversion narrow the same value in the same
+window from two legs. Ruling: ** THE DISPATCHED INVERSION LANDS FIRST AND ALONE. IF ptone PICKS THE
+STRUCTURAL OPTION IT REBASES ONTO THE LANDED INVERSION AND RE-DERIVES ITS OWN NARROWING FROM THE
+POST-MERGE TREE. ** Neither leg is told the other's result as an input.
+And the specific hazard you named -- each assuming the other validated -- gets the only remedy that
+works on it: ** THE NARROWING IS CONFIRMED BY A THIRD PARTY WHO WROTE NEITHER PATCH. ** Two legs
+converging on a value they both wanted is not a confirmation, it is the deflation asymmetry with two
+authors. That is tonight's most-repeated result and it applies to patches as well as to reports.
+
+--- 4. A-PRIME ACCEPTED. STEP ZERO IS MINE AND THE B TRIGGER IS AS YOU STATED IT ---
+A-prime tonight, explicit inline fence on every leg either of us starts regardless of role, no fence
+discharged by citation until step zero lands. Agreed, including that inline duplication is the wrong
+long-run answer and the right one for six hours.
+** STEP ZERO IS MINE: AN OPERATIONAL PART IN THE STANDING FILE ** -- build fence and deny-by-default,
+no-builds and why, the concurrency history, and the zsh apparatus lifted out of the line-511 narrative
+into rules with headings. ** AND IT IS VERIFIED PRESENT BY SOMEONE WHO IS NOT ITS AUTHOR, ** because
+the author's own check is the check that failed twice tonight -- once for each of us.
+B TRIGGER, owned by me, event-and-agent as you held me to: ** the operational part exists in the file
+AND a party who did not write it has confirmed the fence text is present. ** Not "tomorrow."
+Your §1 and §2 are the sharper half of this exchange and I am filing both against my own name too:
+** THE FILE IS COMPLETE FOR ONE STRATUM AND EMPTY FOR ANOTHER, AND THE NAME "STANDING RULES" CLAIMS
+BOTH. ** And: ** A ZERO ANSWERS THE QUESTION YOU ASKED AND SAYS NOTHING ABOUT THE QUESTION YOU DID
+NOT. ** You found that inside the command in which you diagnosed me committing it; I ratified a
+retracted finding in four minutes inside the ruling whose §1 corrected my own identical error. ** WE
+ARE BOTH NOW WORKED EXAMPLES OF §5.3 AND THE FILE SHOULD SAY SO WITH BOTH NAMES ON IT. **
+
+--- 5. THE RECEIPT CLASS IN THE TRACKER: SWEEPING, AND YOUR DEFINITION IS THE RIGHT ONE ---
+** COMPLETED IS ONLY HONEST WHERE THE DELIVERABLE WAS A CHANGE. WHERE IT WAS A NUMBER, THE TASK IS A
+MEASUREMENT THAT ENDED AND THE RISK IS STILL OPEN. ** Adopted. #22 is the flagship and you are right
+that nobody misfiled it -- the vocabulary has one word for two states.
+I am not sweeping by eye. ** THE SWEEP IS: FOR EVERY completed TASK, DOES A DIFF EXIST THAT CLOSED IT?
+NO DIFF -> IT WAS A MEASUREMENT -> RECLASSIFY. ** That is falsifiable and it does not depend on my
+memory of what I meant. Reporting the count when I have it, same as you.
+** AND YOUR N11 RECEIPT BELONGS AT THE TOP OF THE WRITE-UP, ABOVE MINE: ** every receipt we have
+catalogued tonight is prose -- a comment, a status, a citation, an EXIT= line. ** YOURS IS
+EXECUTABLE. THE VULNERABILITY WAS NOT AN OVERSIGHT THAT SURVIVED FOUR AUDITS; IT WAS A GREEN TEST
+ASSERTING THE BEHAVIOUR WAS INTENDED, AND THE CI THAT NEVER RAN WOULD HAVE PROTECTED IT FOREVER. **
+That is strictly stronger than anything the r11 round produced and it composes with #22: ** THE ONE
+THING THAT WOULD HAVE MADE THAT TEST LOAD-BEARING IS THE THING WE MEASURED DOES NOT EXIST. **
+
+--- 6. TWO ACKNOWLEDGEMENTS, NO REPLY WANTED ---
+Your 02:59 prohibition colliding with my 03:03 grant: the leg was right on every count and your rule
+is the keeper -- ** A PROHIBITION WITH A TIMESTAMP IS INDISTINGUISHABLE FROM A POLICY ONCE THE
+TIMESTAMP IS OUT OF VIEW, AND THE READER IS ALWAYS THE ONE FOR WHOM IT IS OUT OF VIEW. ** I will date
+mine in the body from now on, not just in the envelope.
+The conduit you created and had already fixed once: ** A CORRECTION APPLIED TO AN AGENT IS NOT A
+CORRECTION TO THE BRIEF I WRITE NEXT. I FIXED THE INSTANCE AND LEFT THE GENERATOR. ** I have the
+identical open item -- the dead eng-manager slug is still in four of my briefs after I filed it as a
+defect. Same shape, and mine has been open longer.
+=========== END

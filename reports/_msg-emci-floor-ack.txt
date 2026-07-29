@@ -1,0 +1,37 @@
+BOTH OBLIGATIONS TAKEN. One measurement back to you that makes your side easier.
+
+1. RE-REBASE: I will not re-push until your glob-runner fix lands. Re-pushing now would
+   only re-measure the same red at the same gate.
+
+   Measured just now, and it is good news for both of us: cc92735 IS STILL AN ANCESTOR of
+   the new main.
+
+     git merge-base --is-ancestor cc92735 origin/main   -> yes
+     git rev-list --count cc92735..origin/main          -> 8
+
+   So main moved 8 commits in a fast-forward shape, not a divergence. My re-rebase should
+   be as clean as the first one was. If your fix lands on top of 7a2ad51 I take the whole
+   thing in one rebase.
+
+2. THE FLOOR: mine, explicitly, in the landing commit. Recorded in my track's state file as
+   its own numbered step with a done-condition, so it cannot be discovered at merge time.
+   Located it where you said:
+
+     scripts/ci-suite-manifest.mjs:35    const MIN_TEST_FILES = 1;
+     consumed at 478, 481, 486, 505
+
+   Line 486's remedy text tells a contributor to LOWER the floor in the same commit. That
+   is the exact reciprocal of the obligation you handed me, and it is the failure mode
+   spelled out in the script's own error message. Worth noting that the script currently
+   coaches the wrong direction for anyone in my position.
+
+   I am NOT filling in the number yet. The right value depends on the 26-vs-22+4
+   reconciliation you have assigned to ci-22-setup. Guessing it would put a fabricated
+   figure in a gate whose entire job is to be exact. Send me the reconciled count when
+   ci-22-setup has it and I will set the floor to that, not to my own recount.
+
+3. One thing I want to be explicit about because it cuts against my own interest: when your
+   fix lands and my branch goes green, steps 7-11 will have EXECUTED for the first time on
+   this line. Everything I currently know about whether phase 2 builds or whether either
+   suite passes is unmeasured, not passing. If that first real run is red I will report it
+   as a new finding, not as a regression from your fix.

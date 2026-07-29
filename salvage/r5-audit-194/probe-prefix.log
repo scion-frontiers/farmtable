@@ -1,0 +1,127 @@
+=== RUN   TestAuditR5_PrefixParseMatrix
+=== RUN   TestAuditR5_PrefixParseMatrix/canonical
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:stage/completed") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/upper_all
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("FT:STAGE/COMPLETED") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/mixed_case
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("Ft:Stage/Completed") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/leading_space
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("  ft:stage/completed") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/trailing_space
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:stage/completed  ") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/prefix_no_stage_segment
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:completed") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/bare_stock_duplicate
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("duplicate") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/bare_completed
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/bare_wont_fix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("wont_fix") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/contains_prefix_not_at_start
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("xft:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/prefix_as_infix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("team-ft:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/prefix_after_space_inside
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("a ft:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/double_prefix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:ft:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/triple_prefix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:ft:ft:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/internal_space_after_prefix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft: stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/prefix_only
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/empty
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/whitespace_only
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("   ") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/fullwidth_latin
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ｆｔ：stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/cyrillic_es_colon
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ғt:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/turkish_dotless
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("fTİ:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/kelvin_in_stage
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:stage/wont_fiK") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/nbsp_lead
+    audit_r5_prefix_probe_test.go:98: authorizationStage("\u00a0ft:stage/completed") = ("completed", true), want ok=false
+          rationale: NBSP is not stripped by TrimSpace... measured, not assumed
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("\u00a0ft:stage/completed") = ("completed", true)
+=== RUN   TestAuditR5_PrefixParseMatrix/zwsp_inside_prefix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("f\u200bt:stage/completed") = ("", false)
+=== RUN   TestAuditR5_PrefixParseMatrix/combining_after_prefix
+    audit_r5_prefix_probe_test.go:101: MEASURED authorizationStage("ft:stage/completed́") = ("", false)
+--- FAIL: TestAuditR5_PrefixParseMatrix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/canonical (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/upper_all (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/mixed_case (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/leading_space (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/trailing_space (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/prefix_no_stage_segment (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/bare_stock_duplicate (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/bare_completed (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/bare_wont_fix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/contains_prefix_not_at_start (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/prefix_as_infix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/prefix_after_space_inside (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/double_prefix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/triple_prefix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/internal_space_after_prefix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/prefix_only (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/empty (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/whitespace_only (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/fullwidth_latin (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/cyrillic_es_colon (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/turkish_dotless (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/kelvin_in_stage (0.00s)
+    --- FAIL: TestAuditR5_PrefixParseMatrix/nbsp_lead (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/zwsp_inside_prefix (0.00s)
+    --- PASS: TestAuditR5_PrefixParseMatrix/combining_after_prefix (0.00s)
+=== RUN   TestAuditR5_NBSPAndTrimSpaceBoundary
+    audit_r5_prefix_probe_test.go:135: MEASURED lead=nbsp authorizationStage = ("completed", true) [TrimSpace-equivalent=true]
+    audit_r5_prefix_probe_test.go:135: MEASURED lead=ideographic_space authorizationStage = ("completed", true) [TrimSpace-equivalent=true]
+    audit_r5_prefix_probe_test.go:135: MEASURED lead=ogham_space authorizationStage = ("completed", true) [TrimSpace-equivalent=true]
+    audit_r5_prefix_probe_test.go:135: MEASURED lead=tab authorizationStage = ("completed", true) [TrimSpace-equivalent=true]
+    audit_r5_prefix_probe_test.go:135: MEASURED lead=vertical_tab authorizationStage = ("completed", true) [TrimSpace-equivalent=true]
+--- PASS: TestAuditR5_NBSPAndTrimSpaceBoundary (0.00s)
+=== RUN   TestAuditR5_StripForMatchAndAuthorizationStageCannotDisagree
+    audit_r5_prefix_probe_test.go:208: MEASURED over 9 prefixes x 117 labels: 190 agreeing maps, 186 labels the display path keys but B6 refuses to let feed authorization
+--- PASS: TestAuditR5_StripForMatchAndAuthorizationStageCannotDisagree (0.00s)
+=== RUN   TestAuditR5_ConfiguredPrefixThatIsASubstringOfAStageName
+--- PASS: TestAuditR5_ConfiguredPrefixThatIsASubstringOfAStageName (0.00s)
+=== RUN   TestAuditR5_PathologicalPrefixConfigs
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="" matchPrefix="ft:" own_label="ft:stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="ft:" matchPrefix="ft:" own_label="ft:stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="acme:" matchPrefix="acme:" own_label="acme:stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix=" " matchPrefix=" " own_label=" stage/completed" authorizes=false self_consistent=false bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:284: FAIL-CLOSED MISCONFIG push_prefix=" ": the deployment's own push label " stage/completed" does NOT feed authorization. Farm Table's own closed tasks read as non-terminal => available and claimable. Wrong direction is 'wrongly available', not 'wrongly privileged'.
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="  " matchPrefix="  " own_label="  stage/completed" authorizes=false self_consistent=false bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:284: FAIL-CLOSED MISCONFIG push_prefix="  ": the deployment's own push label "  stage/completed" does NOT feed authorization. Farm Table's own closed tasks read as non-terminal => available and claimable. Wrong direction is 'wrongly available', not 'wrongly privileged'.
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="\t" matchPrefix="\t" own_label="\tstage/completed" authorizes=false self_consistent=false bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:284: FAIL-CLOSED MISCONFIG push_prefix="\t": the deployment's own push label "\tstage/completed" does NOT feed authorization. Farm Table's own closed tasks read as non-terminal => available and claimable. Wrong direction is 'wrongly available', not 'wrongly privileged'.
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="FT:" matchPrefix="ft:" own_label="FT:stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="ft:stage/" matchPrefix="ft:stage/" own_label="ft:stage/stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="stage/" matchPrefix="stage/" own_label="stage/stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="\u00a0" matchPrefix="\u00a0" own_label="\u00a0stage/completed" authorizes=false self_consistent=false bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:284: FAIL-CLOSED MISCONFIG push_prefix="\u00a0": the deployment's own push label "\u00a0stage/completed" does NOT feed authorization. Farm Table's own closed tasks read as non-terminal => available and claimable. Wrong direction is 'wrongly available', not 'wrongly privileged'.
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="ft" matchPrefix="ft" own_label="ftstage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+    audit_r5_prefix_probe_test.go:275: MEASURED push_prefix="完了:" matchPrefix="完了:" own_label="完了:stage/completed" authorizes=true self_consistent=true bare_stock_leak=""
+--- PASS: TestAuditR5_PathologicalPrefixConfigs (0.00s)
+=== RUN   TestAuditR5_CustomStageAliasesUnderB6
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "shipped"                auth=("",false) display=("completed",true)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "ft:shipped"             auth=("completed",true) display=("completed",true)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "ft:stage/shipped"       auth=("completed",true) display=("completed",true)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "ft:stage/rolled-back"   auth=("",false) display=("",false)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "ft:rolled-back"         auth=("",false) display=("",false)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "rolled-back"            auth=("",false) display=("",false)
+    audit_r5_prefix_probe_test.go:311: MEASURED alias probe "ft:ft:shipped"          auth=("completed",true) display=("completed",true)
+--- PASS: TestAuditR5_CustomStageAliasesUnderB6 (0.00s)
+=== RUN   TestAuditR5_SingularAndSetReaderAgreeOnTerminalness
+    audit_r5_prefix_probe_test.go:402: MEASURED: 96 label sets, singular and set readers agree on terminal-ness on every one, and the set always contains the singular winner
+--- PASS: TestAuditR5_SingularAndSetReaderAgreeOnTerminalness (0.00s)
+=== RUN   TestAuditR5_TheReadersDivergeExactlyWhenTheTiebreakListIsIncomplete
+    audit_r5_prefix_probe_test.go:447: MEASURED (simulated): with a terminal stage absent from the tiebreak list the singular reader resolves to ("",false) = fall back to t.Stage, while the set reader would report it. Divergence direction is WRONGLY AVAILABLE, not wrongly privileged, because the set (authorization) is the stricter of the two.
+--- PASS: TestAuditR5_TheReadersDivergeExactlyWhenTheTiebreakListIsIncomplete (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/platform/github	0.008s
+FAIL

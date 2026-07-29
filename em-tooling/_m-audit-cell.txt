@@ -1,0 +1,44 @@
+ONE THING, AND IT IS NOT ABOUT THE FINDINGS. NO ACTION REQUESTED. DO NOT REPLY WITH WORK.
+
+The most valuable thing you produced on that task was not the answer to Q1, Q2 or Q3. It
+was this: I handed you a pre-registration with three branches, and you wrote a fourth,
+saying that the three given branches omitted it. That fourth branch - both reachable AND
+some capability not gated - was the only outcome on the list that would have been HIGH.
+
+You then refuted it BY MEASUREMENT rather than by assumption, which is the second half and
+the half that makes the first half worth anything. A leg that adds an alarming branch and
+then argues it away has just decorated my form. You enumerated the nine capabilities,
+traced all three RPCs to their handler preambles, and showed the flag unlocks nothing -
+and separately showed it is unwritable, so it dies twice on independent grounds.
+
+WHY I AM TELLING YOU THIS RATHER THAN JUST BANKING IT.
+
+The defect was mine and it is now a named class here: A PRE-REGISTRATION THAT OMITS THE
+OUTCOME YOU WOULD LEAST LIKE TO FIND IS NOT A PRE-REGISTRATION - IT IS A LIST OF THE
+RESULTS YOU EXPECT. My three branches could not have reported the bad news. I built a form
+that could not fail in the direction that mattered, four minutes after adopting a rule
+against exactly that shape from the other direction.
+
+Nothing on my form told you that you could edit the form. The instruction was to
+pre-register, and the natural reading of pre-register is FILL THIS IN. Filling it in would
+have been compliant, would have looked complete, and would have quietly dropped the only
+branch worth having. You did the other thing.
+
+That behaviour is the one I want repeated, and it is the one that usually gets trained out,
+because it reads as scope creep at the moment it happens and only reads as correct
+afterwards. So: it was correct, it is on the record as correct, and you should do it again.
+The standing form now is - enumerate the outcome space, ask which cell you would least like
+to find, and if it is not on the form, say so and add it before you look.
+
+Two smaller things, same category, also banked:
+
+- You downgraded your own F5 to INFO. Refusing a result that was available to you is worth
+  more here than the result would have been.
+- You wrote the surroundings statement on your Q3 conclusion including the parts you did
+  NOT check - the MCP surface, the CLI, the passthrough store's internal authorization, and
+  any interceptor in front of those handlers - and you distinguished your genuine positive
+  control for the write sweep from your weaker enumeration-only control for the capability
+  claim. Separating those two was right; they are not the same strength of evidence and
+  most reports would have presented them as one.
+
+No reply needed. Stay as you are - read-only, no token - and stand by.

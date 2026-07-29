@@ -1,0 +1,195 @@
+{
+  "note": "W4 verification. T-3 measured that EVERY fixture table is emptyable with the suite green. One case per table empties it; all must be RED. Plus the quantifier inversion: a BANNED_SINKS pattern no fixture exercises must now be RED.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 70;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-legit",
+      "desc": "empty LEGITIMATE_SOURCE",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const LEGITIMATE_SOURCE = [",
+          "replace": "  const LEGITIMATE_SOURCE: string[] = []; const _unusedLS = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-escapelegit",
+      "desc": "empty ESCAPE_LEGITIMATE",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const ESCAPE_LEGITIMATE = [",
+          "replace": "  const ESCAPE_LEGITIMATE: string[] = []; const _unusedEL = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-prose",
+      "desc": "empty INERT_PROSE",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const INERT_PROSE = [",
+          "replace": "  const INERT_PROSE: string[] = []; const _unusedIP = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-indirection",
+      "desc": "empty INDIRECTION_EVASIONS",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const INDIRECTION_EVASIONS = [",
+          "replace": "  const INDIRECTION_EVASIONS: string[] = []; const _unusedIE = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-escape",
+      "desc": "empty ESCAPE_EVASIONS",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const ESCAPE_EVASIONS = [",
+          "replace": "  const ESCAPE_EVASIONS: string[] = []; const _unusedEE = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-banned",
+      "desc": "empty BANNED_SINK_POSITIVES — T-3's worked example",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const BANNED_SINK_POSITIVES = [",
+          "replace": "  const BANNED_SINK_POSITIVES: string[] = []; const _unusedBSP = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-sink",
+      "desc": "empty SINK_EVASIONS",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = [",
+          "replace": "  const SINK_EVASIONS: { label: string; find: string; replace: string }[] = []; const _unusedSE: { label: string; find: string; replace: string }[] = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-ownership",
+      "desc": "empty OWNERSHIP_EVASIONS",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  const OWNERSHIP_EVASIONS = [",
+          "replace": "  const OWNERSHIP_EVASIONS: string[] = []; const _unusedOE = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-arity",
+      "desc": "empty ARITY_EVASIONS (this round's own table — it must not be exempt)",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const ARITY_EVASIONS: { label: string; replace: string }[] = [",
+          "replace": "const ARITY_EVASIONS: { label: string; replace: string }[] = []; const _unusedAE: { label: string; replace: string }[] = ["
+        }
+      ]
+    },
+    {
+      "id": "T-EMPTY-aritylegit",
+      "desc": "empty ARITY_LEGITIMATE",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = [",
+          "replace": "const ARITY_LEGITIMATE: { label: string; replace: string }[] = []; const _unusedAL: { label: string; replace: string }[] = ["
+        }
+      ]
+    },
+    {
+      "id": "INVERT-1",
+      "desc": "THE QUANTIFIER INVERSION: add a 9th BANNED_SINKS pattern that no positive exercises. Was GREEN before this round — the old check ranged over the fixtures, so it could not see an unfixtured pattern.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\\s*\\(/ },\n];",
+          "replace": "  { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\\s*\\(/ },\n  { name: 'Element.setInnerHTMLUnsafe (typo, matches nothing)', pattern: /setInnerHTMLUnsafeXYZ\\s*\\(/ },\n];"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 8),",
+          "replace": "      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 9),"
+        }
+      ]
+    },
+    {
+      "id": "INVERT-CTRL",
+      "desc": "CONTROL for the inversion: the same 9th pattern WITH a positive that exercises it must be GREEN. Otherwise the inversion is just 'any new pattern is rejected', which is a rule nobody could live with.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\\s*\\(/ },\n];",
+          "replace": "  { name: 'lit unsafeStatic directive', pattern: /unsafeStatic\\s*\\(/ },\n  { name: 'hypothetical new sink', pattern: /brandNewSink\\s*\\(/ },\n];"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 8),",
+          "replace": "      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 9),"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 15),",
+          "replace": "      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 16),"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    'return unsafeStatic(body);',",
+          "replace": "    'return unsafeStatic(body);',\n    'brandNewSink(body);',"
+        }
+      ]
+    }
+  ]
+}

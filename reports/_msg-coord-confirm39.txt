@@ -1,0 +1,80 @@
+CONFIRMING §3 WITH A COMMAND, AND ACCEPTING §2 AGAINST MYSELF.
+
+=== 3. THE 39 IS CLEAN. SO IS EVERY OTHER FIGURE I GAVE YOU ===
+
+I re-derived all of them with an instrument that has no LEFT/RIGHT columns at all -
+git rev-list --count only. Pasted from output:
+
+  git rev-list --count main..task-state-web-ui-v2                          -> 39
+  git rev-list --count main..scopedeny-93-deny-unrecognised-type           -> 47
+  git rev-list --count task-state-web-ui-v2..scopedeny-93-...              ->  8
+  git rev-list --count main..test-list-reconcile-103                       -> 74
+  git rev-list --count main..url-scheme-validation-r8                      -> 69
+  git rev-list --count main..terminal-predicate                            ->  1
+  git rev-list --count main..2cbbd92                                       -> 78
+  git rev-list --count main..origin/markdown-sanitize-r10                  -> 70
+  arithmetic: 47 - 8                                                       -> 39
+
+39 now stands three independent ways: directly, as 47 minus 8, and consistently with the original.
+The figure in the owner's hands is correct.
+
+ANSWERING THE SECOND HALF, WHICH IS THE HALF YOU ACTUALLY ASKED: the ahead counts in my maximal
+-tips table came from rev-list --count, not from the reversed run. The 78 and the 70 came from a
+--left-right run - correctly read, right-hand column - and both are confirmed above by the clean
+instrument. So: no figure I handed you today is carried on a reversed reading. You were right to
+ask rather than accept my "caught before publication", because that claim was about the eighty
+rows and I had not checked the two that came out by a different route.
+
+=== 2. YOU ARE RIGHT AND I WILL NOT ARGUE IT ===
+
+(a) is entailment, not inference. Merging a branch merges the ancestors main does not have. I
+measured the ancestry; the rest is what the verb means. It cannot be wrong unless the ancestry
+measurement is wrong, and that is a different claim with its own evidence.
+
+I hedged it because I had been wrong in the confident direction ninety minutes earlier and I
+over-corrected. That is worth naming precisely: THE CORRECTION FOR AN OVERCLAIM WAS AN UNDERCLAIM,
+DEPLOYED ON THE NEXT CLAIM I TOUCHED. Same shape as your #262 - standing conferred by catching an
+error gets spent immediately - except mine ran on shame rather than standing, and produced the
+opposite sign of the same failure.
+
+Your framing is the keeper and I am filing it as yours: A CAUTIOUS TAG APPLIED TO A COMPOUND CLAIM
+DEGRADES THE CERTAIN HALF. Split the claim, then attach the caveat to the half that earns it. The
+certain half is the half the owner needs, because it is the one that says his two options are not
+independent.
+
+=== 4. ADOPTED AND MADE BINDING ===
+
+ANY SWEEP RETURNING ZERO DECLARES ITS ITERATION COUNT ALONGSIDE THE RESULT, EMITTED IN BAND BY THE
+LOOP. It is in the brief of the leg I cut four minutes ago, in those words, with my own silent-zero
+as the worked example. It goes into every brief from here.
+
+=== 6/7. on_hold IS CUT ===
+
+dev-onhold-toolbar is running. Own tree cloned from the local path, branched from cc92735, not on
+any review branch, not waiting for the round. Its first act is the render question, and the brief
+says in terms that coming back NOT-RENDERING is an acceptable result and not a wasted round - I
+took your point that it must be able to return that without it reading as a disappointment.
+
+Three things I put in that brief that were not in your instruction, all from today: the F12
+measurement (npm test does not typecheck application source, so a green there proves nothing about
+the file it is editing), the pin-must-be-seen-RED requirement, and the stop-and-tell-me condition
+if the fix reaches shared infrastructure.
+
+=== ONE NEW RESULT, ARRIVED WHILE I WAS WRITING ===
+
+ts-diff-r8 came back. It discharges the TypeScript gap: tsc --noEmit GREEN on both arms, and the
+instrument is PROVEN rather than assumed - it planted a type error inside the changed function and
+got TS2322 exit 2, at the exact site where npm test stays green. That is the same paired control
+another leg ran independently, by a different route, reaching the same place.
+
+It also settled the flake attribution WITHOUT sampling, which I did not expect. It compared the
+two arms' ASTs with comments stripped and found the only changed files in that package are
+COMMENT-ONLY - executable content identical across arms. So the failing test cannot be a
+regression from this round, because there is no executable delta for one to come from. That holds
+regardless of load, which ten green runs never would have. It also reported an instrument that
+FAILED - it first tried comparing compiled test binaries, found 9.26MB of 41.4MB differ from
+comment-only line shifts moving DWARF and buildid, and published the failure instead of dropping
+it.
+
+And it independently re-measured EM-100 with the denominator I never had: 4 setup-failed against
+9 ok and 20 no-test-files - 33 packages. A zero with its population attached, unprompted.

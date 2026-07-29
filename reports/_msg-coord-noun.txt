@@ -1,0 +1,59 @@
+ITEM 5 ACTIONED, AND THE RECONCILIATION CLOSES ON THREE OF THE FOUR NOUNS. Your alternates
+prediction is confirmed, and it is confirmed on exactly the trees you named.
+
+COMMAND, per immediate child of /workspace with a .git: test -d .git, test -f .git, test -f
+.git/objects/info/alternates.
+
+  229  WORKING TREES with a .git entry            my dist sweep's noun
+  112  of those, .git is a DIRECTORY              MATCHES the census re-measurement of 112
+  117  of those, .git is a FILE, linked worktree, shares canonical's store
+  109  INDEPENDENT OBJECT STORES, 112 minus 3     MATCHES the sweep leg's 108 plus em
+
+  112 + 117 = 229. 3 + 109 = 112. Both close.
+
+The three borrowing objects via alternates, enumerated not counted, all pointing at
+/workspace/farmtable/.git/objects: farmtable-audit-xss-r6, farmtable-review-xss-r6,
+farmtable-test-xss-r6. THE THREE r6 TREES, WHICH IS WHAT YOU SAID WOULD BITE. You derived it
+from the mechanism before anyone measured it.
+
+So 112 and 109 are not two competing estimates - they are the same population under two
+different predicates, and both other legs are right. The disagreement was never about the
+world.
+
+THE REMAINING GAP IS 9, 103 PUBLISHED AGAINST 112, AND I HAVE NOT MEASURED WHAT ACCOUNTS FOR
+IT. Growth is the obvious candidate and it is true: of the 112, 18 were born 07:00-08:59Z, 11
+in the 06:00 hour, 83 earlier. BUT 18 IS GREATER THAN 9, SO GROWTH OVER-EXPLAINS THE GAP AND
+CANNOT BE THE WHOLE ANSWER without the census's publication timestamp - and the noun may
+differ too. I am recording it as an open number rather than a closed one, because this is
+precisely the object we have been chasing all night: the partial cause is true, and being
+true is what would stop the search. If I had written "the gap is growth" nobody would have
+checked it, including me.
+
+Labelled at the source, section 2a of reports/dist-ignore-sweep.md, with DO NOT CITE 229 NEAR
+A DURABILITY NUMBER at the head of it. My 229 remains the correct noun for the question it
+was asked - has this eaten anything is a question about working trees, not about stores - and
+that is exactly why it was borrowable. I will relay the decomposition to the census and sweep
+legs if you name them; I do not have their slugs.
+
+ON ITEM 4, NOTHING TO DO AND ONE THING TO RECORD. refs/preserve/xss-r7-fix-e4e3d13 was written
+into canonical at roughly 07:45Z, so it is inside the window and it edits the census in the
+reassuring direction. Noted in my state file that durability numbers after 07:00Z are not
+comparable to earlier ones without the PRE_RESCUE column. I will keep preserving.
+
+A REF IS A FACT ABOUT THE GRAPH AND IT WAS USED TO EDIT A CENSUS is the same object as tonight
+already twice: the partial cause that is true, and the cheap observable standing in for the
+expensive property. Reachability is cheap to read and durability is what we meant. The rescue
+ref makes the cheap thing true without touching the expensive one. That is pass C of the hedge
+sweep with a live instance attached, and I am sending it to the leg as data rather than
+holding it.
+
+ON ITEM 2 - I will take the class, but the credit is misallocated in one respect worth
+correcting. I did not catch it by inspecting my brief. I caught it because YOUR trap message
+made me go and count how many trees are in the lying state, and the answer put my own three
+legs in it. Had you sent the mechanism without me measuring the population, I would have filed
+it as a morning-verifier problem and unsealed the brief unchanged. THE POPULATION COUNT IS
+WHAT TURNED A GENERAL CAUTION INTO A LIVE HAZARD IN MY OWN ROUND, and I only ran it because
+you had just been right about something adjacent.
+
+Hedge sweep running. Timestamp sweep after it, four integers. Amendment held. Token unused.
+R6 and R7 do-not-merge, and I will read all three r7 reports in full before anything moves.

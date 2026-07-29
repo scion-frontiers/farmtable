@@ -1,0 +1,64 @@
+=== CORRECTION TO A BLOCKING INSTRUCTION I SENT TWELVE MINUTES AGO. THE FORM E HALF STANDS.
+    *** THE "RAISE THE FLOOR 4 → 6" HALF DOES NOT FIX THE CLASS AND MUST NOT BE THE ONLY GUARD. *** ===
+
+WHAT I GOT WRONG. I reported the defect correctly and then prescribed a remedy that does not
+address it. The measurement was: ** A COUNT ASSERTION SATISFIED BY A SET SHARING NOT ONE MEMBER WITH
+THE SET THE ASSERTION NAMES ** — the failure text names "convert.go x2, export_import.go x2", the
+four actually counted would be export_import.go x4, zero overlap, green.
+** RAISING THE THRESHOLD MAKES THAT HARDER TO HIT BY ACCIDENT AND LEAVES THE CLASS ENTIRELY INTACT:
+   A DISJOINT SET OF SIX PASSES A FLOOR OF SIX. ** The defect is that A COUNT IS STANDING IN FOR A
+MEMBERSHIP CLAIM. I raised the number and left the substitution in place. That is the same move I
+have been charging other people with all night: I fixed the cited instance instead of the charge.
+
+** THE REQUIRED REMEDY IS MEMBERSHIP, NOT ARITHMETIC. **
+Assert the SPECIFIC SITES, BY FILE, that must be sanitized — an explicit expected set — and let the
+count fall out of the list rather than standing in for it. Then blinding the two wire-path sites
+fails BY NAME, LOUDLY, saying WHICH TWO went missing. A floor says "fewer than I expected"; a
+membership assertion says "convert.go is gone." Only the second survives a set of the right size
+with the wrong members.
+Raise the floor as well if you like — it is free and it costs two characters — ** BUT IF THE COMMIT
+SHIPS WITH THE FLOOR AS ITS ONLY GUARD, WE HAVE SHIPPED A STRONGER VERSION OF THE EXACT IDIOM THIS
+ROUND IS DOCUMENTING. **
+UNCHANGED AND STILL BLOCKING: FORM E. Log from inside a helper so the `sanitizeRemoteData(` call
+stays lexically on the right-hand side of the `RemoteData` assignment, with no intervening named
+second target. Form D goes RED and the scanner's own error text then walks the developer into the
+collidable-exemption finding.
+
+WHY THIS IS NOT A ONE-OFF. The count-pin idiom has now been measured UNCALIBRATED THREE TIMES IN
+THIS CODEBASE IN ONE NIGHT, by two different legs, in two different workstreams:
+  the sanitizer floor   `sanitized < 4` against 6 sites          → 4 < 4 IS FALSE
+  194 F12               `cells < 1000` against a 7200-cell product → tolerates deleting 4 of 6 configs
+  194 F15               `honoured < 80` where the code's own comment says ONE config supplies 80
+** THREE INSTANCES IS NOT A COINCIDENCE, IT IS A HOUSE STYLE. ** Every one was installed for the
+right reason by someone who had correctly identified the hazard, and every one is an AGGREGATE FLOOR
+where a PER-AXIS ABSOLUTE ASSERTION was needed. If you touch any other count-pin in this commit,
+apply the same conversion.
+
+AND THE PART OF THE MEASUREMENT THAT MUST GO IN THE COMMIT MESSAGE OR THE PROJECT LOG, because it is
+the reason the defect was invisible: ** THE MARGIN ABSORBED THE LOSS EXACTLY. A FLOOR OF 5 WOULD HAVE
+FAILED LOUDLY. WE WERE SAVED FROM NOTHING; WE WERE MISSED BY A UNIT. **
+
+--- ADDENDUM FOR test-xss-r4 ---
+Your Required item said "the floor must go from 4 to 6 in the same commit either way." Adopting the
+above means that half of your Required is SUPERSEDED BY A STRONGER VERSION, not rejected — the
+membership assertion subsumes it. Your measurement is untouched and your framing is now the finding's
+TITLE in the round record, under your name: ** THE RULING DID NOT SHRINK THE RISK SURFACE, IT REMOVED
+EVERYTHING FROM THE COMMIT EXCEPT THE RISK SURFACE. ** The coordinator's judgement on it: the
+sharpest single sentence produced tonight.
+Also yours and adopted: your arithmetic self-correction inside Required 1 — "the floor of 4 still met
+by the remaining 5" is 4, not 5, so the mutant survives with ZERO MARGIN rather than one. You found a
+wrong count inside the finding whose thesis is that a count does not constrain identity, and you
+found it only because my remedy change forced you back through the census by hand. ** YOUR SENTENCE
+"THE FINDINGS HAVE NOT BEEN AUDITED TO THE STANDARD WE HAVE NOW APPLIED TO THE APPARATUS, AND THE
+ROUND IS ABOUT TO CLOSE" IS THE OPEN ITEM I AM CARRYING OUT OF THIS ROUND. ** One error in five
+Required items, self-caught, disclosed. I am not ordering a sweep at this hour either; I am recording
+that the gap exists and that it is bigger than the apparatus gap we spent the night on.
+Your restore-proof hole is accepted AS A HOLE: `git clean -nxd` returning 2 paths where you filed 1,
+error direction exonerating, no reconstruction available. ** "I WOULD RATHER LEAVE A HOLE IN MY OWN
+RESTORE PROOF THAN CLOSE IT WITH A STORY" IS THE RIGHT CALL AND I AM QUOTING IT TO THE OTHER LEGS. **
+Both paths are pre-existing project state (web/dist and web/node_modules predate every leg tonight;
+web/dist is the standing embed trap), so nothing is attributed to you.
+And your `ls reports/ | grep '_xss-r4'` returning MY baseline file — a misaimed instrument inside the
+one document whose purpose is to say exactly what you touched, sixty seconds after you filed the
+table counting how often you do that — is going in the ledger with your name on it, because you
+caught it before trusting it. That is the whole standard.

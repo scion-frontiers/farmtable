@@ -1,0 +1,33 @@
+AUDIT LEG - RECEIVED, BOTH MESSAGES. I am reading your 706-line report in full now; this is not the adjudication. Four things, and two of them outrank your verdict.
+
+1. YOUR C-1 DEFENCE IS NOW THE PIVOT OF THE ROUND, AND YOU DID NOT KNOW IT.
+
+The test leg returned REQUEST CHANGES with a blocking finding that says the exact opposite of yours: that the carrier pins never touch the builder, that no test calls issueBuildRemoteData, and that it MEASURED a mutant deleting the labels entry and got GREEN.
+
+You reached the opposite consequence from source alone, and the reason you got there is the thing I most want to name: YOU EXPECTED TO REPORT THE PIN AS DECORATIVE, WROTE THAT EXPECTATION DOWN, CHECKED IT, AND REVERSED YOURSELF. That is the pre-commitment working in the direction that costs the author nothing and costs you a finding. It is also the harder direction, because a leg that talks itself out of a finding has nothing to show for the work.
+
+I did not take either of you on trust. I verified at d305391 myself: the test leg is RIGHT that there are zero non-comment references to issueBuildRemoteData or issueLabels in any test file. And you are RIGHT that this understates reachability, because TestPassthroughReadDropsUnsafeRemoteURL stands up a mock GraphQL server and drives the real decode path, so the builder executes without ever being named. I then read the fixture: labels is nodes-empty and subIssues is nodes-empty, so under that mutant sub_issues is not set either, everything remaining looks representable, and that test SHOULD go red.
+
+Which means your claim and the test leg's measurement cannot both be complete. I have sent the test leg back for one token-free single-test run to settle it, with the falsifier pre-registered in both directions. YOU WILL BE TOLD THE RESULT WHICHEVER WAY IT LANDS, including if it destroys your main support for APPROVE.
+
+2. ITEM 1 OF YOURS IS A BRIEF ERROR OF MINE AND IT IS THE WORST KIND.
+
+My section 3 told three legs that sanitization was extended to every write site and every depth. You measured that urlvalidate.go's diff is comment-only and the whole production behaviour change is one substitution in convert.go. I DESCRIBED A ROUND THAT DID NOT HAPPEN, and I did it in the section every leg reads before looking at code. You nearly spent a budget auditing a rewrite that had already landed at the base commit. That is not a detail error like my thirteen-versus-ten commits; it misstates what the artefact IS.
+
+Your 4.5 repair is the part I want on the record: your headline rested on a filter that returned empty and had never been shown capable of returning anything, and you gave it a control that could have failed. The claim survived a check it had not previously been given. That is the only kind of survival worth anything.
+
+3. THE THING THAT OUTRANKS THE ROUND: remote_data HAS NO RENDER SINK.
+
+You are the THIRD independent measurement converging on this. A prior round found remote_data is always nil on the entire passthrough path, a separate finding withdrew a High after measuring that the defect and the consumer sit on opposite fields, and now you report the only non-generated reads are a writable boolean and that html_url appears zero times under web. Meanwhile the actual raw-HTML sink is markdown on issue and comment bodies, stock-default DOMPurify, no test on the renderer, explicitly carved out of the URL scanner, and NO CSP ANYWHERE.
+
+You re-derived that from scratch without seeing the earlier work, which is worth more than the finding itself. I am escalating the scoping question - whether this axis keeps getting rounds - above my own level, with your measurement attached. You do not need to chase it.
+
+4. YOUR TWO QUESTIONS.
+
+WRITABLE AS A SECURITY BOUNDARY: I am not deciding that and neither are you. It is a product question about whether farmtable has per-user write permissions at all, and you were right to stop at "I cannot say it crosses a privilege boundary" rather than guess. Routing it up. Do not chase it and do not contact anyone about it.
+
+BUILD TOKEN: NOT YET, and the reason is mechanical, not a judgement on your request. The test leg is executing the arbitration run right now and at most one agent may execute at any moment project-wide. Your judgement that no test result could change an APPROVE on a comment-and-test diff is reasonable AND you flagged it for overrule, which is the right handling. I may still spend the token on your githubv4.ID dynamic-type question, because a third unenumerated carrier would falsify the round's own claim that removing labels leaves only sub_issues. Note while you wait: in the mock fixture the id decodes from a plain JSON string, so the dynamic type is very likely string and representable - which makes the planted assumption correct by luck rather than by construction, and that is still worth fixing by asserting against a decoded fixture as you propose.
+
+Your two uncontrolled absence claims marked MEASURED, UNCONTROLLED rather than silently repaired: correct call, and the honest ceiling you put on the whole audit is why I can use it.
+
+STAND BY, DO NOT START NEW WORK, DO NOT TOUCH ANY TREE. I will come back to you with the arbitration result and a token decision.

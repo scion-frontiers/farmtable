@@ -1,0 +1,866 @@
+[
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083258Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083258Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083258Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083258Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T083930Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T084507Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T092549Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15745,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md",
+  "via": "preserve-bundle",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 15873,
+  "banner_text": "hedge sweep. **Freeze intact and extended to deletion; agent-GC SUSPENDED.** R6 and R7 DO NOT MERGE.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/relocate-offhost.md",
+  "via": "relocate-offhost",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/coordinator-state/coordinator-state-20260729T093359Z.md",
+  "banner_line": 16617,
+  "banner_text": "## 1. THE ARMED DOCUMENT IS DISARMED, AND THE DISCHARGE IS THE MODEL",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/crash-cleanup-audit.md",
+  "via": "crash-cleanup-audit.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-191.md",
+  "via": "audit-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-p2-r3.md",
+  "via": "audit-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-p2-fixes-r4.md",
+  "via": "dev-p2-fixes-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-191.md",
+  "via": "review-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-p2-r3.md",
+  "via": "review-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-191.md",
+  "via": "test-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/backups/em-state/_workspace_farmtable_.eng-manager-state.md",
+  "banner_line": 1419,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-p2-r3.md",
+  "via": "test-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 146,
+  "banner_text": "> ### \u26d4 CORRECTED AT SOURCE 2026-07-29T00:58Z \u2014 THIS PARAGRAPH CAUSED C-1. READ THE CORRECTION BEFORE THE ORIGINAL.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 146,
+  "banner_text": "> ### \u26d4 CORRECTED AT SOURCE 2026-07-29T00:58Z \u2014 THIS PARAGRAPH CAUSED C-1. READ THE CORRECTION BEFORE THE ORIGINAL.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 150,
+  "banner_text": "> > ### \u26d4\u26d4 CORRECTED AGAIN 2026-07-29T01:06Z \u2014 THE WORD `max` WAS ALSO WRONG. THIRD ERROR IN THIS BRIEF, SECOND IN THIS CORRECTION BLOCK.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 150,
+  "banner_text": "> > ### \u26d4\u26d4 CORRECTED AGAIN 2026-07-29T01:06Z \u2014 THE WORD `max` WAS ALSO WRONG. THIRD ERROR IN THIS BRIEF, SECOND IN THIS CORRECTION BLOCK.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 182,
+  "banner_text": "> > ### \u26d4 SIX MECHANICAL MERGE PRECONDITIONS \u2014 `audit-194-r11` \u00a710, 2026-07-29T01:03:29Z",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 182,
+  "banner_text": "> > ### \u26d4 SIX MECHANICAL MERGE PRECONDITIONS \u2014 `audit-194-r11` \u00a710, 2026-07-29T01:03:29Z",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 260,
+  "banner_text": "> **\u26d4 CORRECTED 00:58Z \u2014 `scopeRank` DOES NOT EXIST AND THE ORDERING IT IMPLIES IS NOT THE ONE THE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "banner_line": 260,
+  "banner_text": "> **\u26d4 CORRECTED 00:58Z \u2014 `scopeRank` DOES NOT EXIST AND THE ORDERING IT IMPLIES IS NOT THE ONE THE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "via": "audit-194-r11",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4-fix.md",
+  "banner_line": 0,
+  "banner_text": "> # !! SUPERSEDED IN PART \u2014 READ THIS BLOCK BEFORE ANYTHING BELOW IT !!",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-xss-r4.md",
+  "via": "review-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4-fix.md",
+  "banner_line": 0,
+  "banner_text": "> # !! SUPERSEDED IN PART \u2014 READ THIS BLOCK BEFORE ANYTHING BELOW IT !!",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/_clockprobe/review-xss-r4.txt",
+  "via": "review-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4-fix.md",
+  "banner_line": 0,
+  "banner_text": "> # !! SUPERSEDED IN PART \u2014 READ THIS BLOCK BEFORE ANYTHING BELOW IT !!",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-xss-r4.md",
+  "via": "review-xss-r4",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r8-fix.md",
+  "banner_line": 119,
+  "banner_text": "FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT, DO NOT RUN IT.** No exceptions, no exemptions.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/_BRIEF-RULES.md",
+  "via": "_BRIEF-RULES.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-predicate-2.md",
+  "banner_line": 36,
+  "banner_text": "FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT, DO NOT RUN IT.** This replaces an earlier",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/_BRIEF-RULES.md",
+  "via": "_BRIEF-RULES.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/briefs/sweep-ftstage.md",
+  "banner_line": 7,
+  "banner_text": "**YOU HAVE NO BUILD TOKEN AND YOU WILL NOT NEED ONE. THIS TASK IS READS AND GREPS ONLY. DO NOT RUN",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "via": "_STANDING-RULES-2026-07-29.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "banner_line": 249,
+  "banner_text": "## !! SUPERSEDED \u2014 SEE 'THE beads SPLIT' AT THE END OF THIS FILE. THE CONCLUSION BELOW IS TRUE OF",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "banner_line": 249,
+  "banner_text": "## !! SUPERSEDED \u2014 SEE 'THE beads SPLIT' AT THE END OF THIS FILE. THE CONCLUSION BELOW IS TRUE OF",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "banner_line": 1353,
+  "banner_text": "> **\u26a0 ATTRIBUTION CORRECTED 04:44Z \u2014 THIS RULE IS NOT dev-xss-r5's AND I FILED IT AS ITS.**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-15.txt",
+  "via": "_broadcast-15.txt",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-20.txt",
+  "banner_line": 0,
+  "banner_text": "=== BROADCAST 20 \u2014 ** THE GUARD FORM IN B19 \u00a74 FAILS OPEN. DO NOT USE IT. I REPRODUCED IT MYSELF AND",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-19.txt",
+  "via": "B19",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_m-sweep.txt",
+  "banner_line": 5,
+  "banner_text": "** YOU HAVE NO BUILD TOKEN AND YOU DO NOT NEED ONE. DO NOT RUN go build, go vet, go test, npm, OR",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/sweep-ftstage.md",
+  "via": "sweep-ftstage",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_m-sweep.txt",
+  "banner_line": 5,
+  "banner_text": "** YOU HAVE NO BUILD TOKEN AND YOU DO NOT NEED ONE. DO NOT RUN go build, go vet, go test, npm, OR",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "via": "_STANDING-RULES-2026-07-29.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_m-sweep.txt",
+  "banner_line": 5,
+  "banner_text": "** YOU HAVE NO BUILD TOKEN AND YOU DO NOT NEED ONE. DO NOT RUN go build, go vet, go test, npm, OR",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/sweep-ftstage.md",
+  "via": "sweep-ftstage",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_msg-devr5-unblock.txt",
+  "banner_line": 101,
+  "banner_text": "(a) ** dev-xss-r4 IS SUSPENDED \u2014 Exited(255) two hours ago. IT IS NOT RUNNING AND IS NOT WRITING",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4.md",
+  "via": "dev-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_msg-devr5-unblock.txt",
+  "banner_line": 101,
+  "banner_text": "(a) ** dev-xss-r4 IS SUSPENDED \u2014 Exited(255) two hours ago. IT IS NOT RUNNING AND IS NOT WRITING",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-xss-r4.md",
+  "via": "dev-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/snapshot-live-leg.md",
+  "banner_line": 7,
+  "banner_text": "> FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT, DO NOT RUN IT.**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/_BRIEF-RULES.md",
+  "via": "_BRIEF-RULES.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/FINDINGS.md",
+  "banner_line": 166,
+  "banner_text": "> **FREEZE IN FORCE 2026-07-29 \u2014 NO DELETION, PRUNING, TIDYING OR SAFE-TO-DELETE CLASSIFICATION OF",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/cleanup-audit.md",
+  "via": "cleanup-audit.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/FINDINGS.md",
+  "banner_line": 166,
+  "banner_text": "> **FREEZE IN FORCE 2026-07-29 \u2014 NO DELETION, PRUNING, TIDYING OR SAFE-TO-DELETE CLASSIFICATION OF",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-em-f22.md",
+  "via": "farmtable-em-f22",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/FINDINGS.md",
+  "banner_line": 166,
+  "banner_text": "> **FREEZE IN FORCE 2026-07-29 \u2014 NO DELETION, PRUNING, TIDYING OR SAFE-TO-DELETE CLASSIFICATION OF",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-worktree-experiment.md",
+  "via": "farmtable-worktree-experiment.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/FINDINGS.md",
+  "banner_line": 168,
+  "banner_text": "> INSTRUCTIONS THAT PREDATE THE FREEZE AND MUST NOT BE FOLLOWED.**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/crash-cleanup-audit.md",
+  "via": "crash-cleanup-audit.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/PREDICATE-INVERTED.md",
+  "banner_line": 414,
+  "banner_text": "- `BAN-POS-4` = `\"> **This section is SUPERSEDED \u2014 do not follow the instructions below.**\"` \u2192",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/_m-coord10.txt",
+  "via": "_m-coord10.txt",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/PREDICATE-INVERTED.md",
+  "banner_line": 436,
+  "banner_text": "> `> # \u26d4 VOID \u2014 EVERY DELETION RECOMMENDATION BELOW IS COUNTERMANDED. DO NOT ACT ON THIS FILE.`",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/crash-cleanup-audit.md",
+  "via": "crash-cleanup-audit.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/predicate2/PREDICATE-INVERTED.md",
+  "banner_line": 437,
+  "banner_text": "> `> **A DURABILITY FREEZE IS IN FORCE PROJECT-WIDE, AND IT IS EXTENDED TO AGENT DELETION.**`",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/crash-cleanup-audit.md",
+  "via": "crash-cleanup-audit.md",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-191.md",
+  "via": "audit-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-p2-r3.md",
+  "via": "audit-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-p2-fixes-r4.md",
+  "via": "dev-p2-fixes-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-191.md",
+  "via": "review-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-p2-r3.md",
+  "via": "review-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-191.md",
+  "via": "test-191",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "banner_line": 1494,
+  "banner_text": "SUSPENDED** until provisioning is fixed. Following it would destroy the only",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-p2-r3.md",
+  "via": "test-p2-r3",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "banner_line": 201,
+  "banner_text": "### \u26d4 G-10 IS A GRANT I DESIGNED WRONG, AND THE LEG PAID FOR IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "banner_line": 201,
+  "banner_text": "### \u26d4 G-10 IS A GRANT I DESIGNED WRONG, AND THE LEG PAID FOR IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/test-xss-r4.md",
+  "via": "test-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "banner_line": 201,
+  "banner_text": "### \u26d4 G-10 IS A GRANT I DESIGNED WRONG, AND THE LEG PAID FOR IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "banner_line": 201,
+  "banner_text": "### \u26d4 G-10 IS A GRANT I DESIGNED WRONG, AND THE LEG PAID FOR IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "via": "test-xss-r4",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "banner_line": 3207,
+  "banner_text": "> **\u26a0 SUPERSEDED BY \u00a721-1 AT 02:53Z. THE CONSTRUCTION ARGUMENT BELOW IS FALSE AND THE WORD IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-194-r11.md",
+  "via": "review-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "banner_line": 3207,
+  "banner_text": "> **\u26a0 SUPERSEDED BY \u00a721-1 AT 02:53Z. THE CONSTRUCTION ARGUMENT BELOW IS FALSE AND THE WORD IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-194-r11.md",
+  "via": "review-194-r11",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "banner_line": 3307,
+  "banner_text": "> **\u26a0 THE RETRACTION IN THE NEXT PARAGRAPH IS ITSELF WITHDRAWN \u2014 SEE \u00a721-2. 1800 WAS CORRECT AS",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md",
+  "via": "audit-194-r11.md",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-writable-path.md",
+  "banner_line": 2,
+  "banner_text": "> ## \u26a0 PROVENANCE \u2014 READ BEFORE QUOTING ANYTHING IN THIS FILE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-writable-path.md",
+  "via": "audit-writable-path",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-writable-path.md",
+  "banner_line": 2,
+  "banner_text": "> ## \u26a0 PROVENANCE \u2014 READ BEFORE QUOTING ANYTHING IN THIS FILE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-em-task-state-model-v2.md",
+  "via": "farmtable-em-task-state-model-v2",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 24,
+  "banner_text": "> ### \u26d4 STRUCK 2026-07-29 by reconcile-urlbindingscan \u2014 the sentence above is FALSE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/reconcile-urlbindingscan.md",
+  "via": "reconcile-urlbindingscan",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 24,
+  "banner_text": "> ### \u26d4 STRUCK 2026-07-29 by reconcile-urlbindingscan \u2014 the sentence above is FALSE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "via": "reconcile-urlbindingscan",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 236,
+  "banner_text": "> ### \u26d4 STRUCK 2026-07-29 by reconcile-urlbindingscan \u2014 CONCLUSION FALSE, BOTH MEASUREMENTS TRUE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/reconcile-urlbindingscan.md",
+  "via": "reconcile-urlbindingscan",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 236,
+  "banner_text": "> ### \u26d4 STRUCK 2026-07-29 by reconcile-urlbindingscan \u2014 CONCLUSION FALSE, BOTH MEASUREMENTS TRUE",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "via": "reconcile-urlbindingscan",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 684,
+  "banner_text": "> **\u26a0\ufe0f BOUND ON THE REPRODUCTION \u2014 it is weaker than it looks.** The coordinator",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/flakepop-81.md",
+  "via": "flakepop-81",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "banner_line": 684,
+  "banner_text": "> **\u26a0\ufe0f BOUND ON THE REPRODUCTION \u2014 it is weaker than it looks.** The coordinator",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/flakepop-81.md",
+  "via": "flakepop-81",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "banner_line": 325,
+  "banner_text": "### \u26a0 The r6 branch moved *twice* during this investigation \u2014 THE POPULATION MOVES WHILE YOU MEASURE IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-103-testlist.md",
+  "via": "dev-103-testlist",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "banner_line": 325,
+  "banner_text": "### \u26a0 The r6 branch moved *twice* during this investigation \u2014 THE POPULATION MOVES WHILE YOU MEASURE IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/xss-r6-fix.md",
+  "via": "xss-r6-fix",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "banner_line": 325,
+  "banner_text": "### \u26a0 The r6 branch moved *twice* during this investigation \u2014 THE POPULATION MOVES WHILE YOU MEASURE IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-103-testlist.md",
+  "via": "dev-103-testlist",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "banner_line": 325,
+  "banner_text": "### \u26a0 The r6 branch moved *twice* during this investigation \u2014 THE POPULATION MOVES WHILE YOU MEASURE IT",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/xss-r6-fix.md",
+  "via": "xss-r6-fix",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/review-xss-r7.md",
+  "banner_line": 572,
+  "banner_text": "(the `\u26a0 PARTIAL` row and \"Present and not asked for\" item 1) and the addition of **FYI-6**.",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/_r7-PHASE-TWO.md",
+  "via": "_r7-PHASE-TWO.md",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-194-r11.md",
+  "banner_line": 3,
+  "banner_text": "> LAST SECTION OF THIS FILE. DO NOT STOP AT `D-22`.**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/test-194-r11.md",
+  "via": "test-194-r11",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "banner_line": 63,
+  "banner_text": "> **\u26a0\ufe0f CORRECTED 02:06Z \u2014 AND THE CORRECTION IS AGAINST THE SENTENCE THAT USED TO BE HERE.** I wrote",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "banner_line": 63,
+  "banner_text": "> **\u26a0\ufe0f CORRECTED 02:06Z \u2014 AND THE CORRECTION IS AGAINST THE SENTENCE THAT USED TO BE HERE.** I wrote",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-xss-r4.md",
+  "via": "audit-xss-r4",
+  "cp_bannered": true
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "banner_line": 2354,
+  "banner_text": "## I-11. \u26a0\ufe0f The stale floor \u2014 **review-xss-r4 found it in a table I printed myself**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-xss-r4.md",
+  "via": "review-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "banner_line": 2354,
+  "banner_text": "## I-11. \u26a0\ufe0f The stale floor \u2014 **review-xss-r4 found it in a table I printed myself**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/_clockprobe/review-xss-r4.txt",
+  "via": "review-xss-r4",
+  "cp_bannered": false
+ },
+ {
+  "banner_path": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "banner_line": 2354,
+  "banner_text": "## I-11. \u26a0\ufe0f The stale floor \u2014 **review-xss-r4 found it in a table I printed myself**",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-xss-r4.md",
+  "via": "review-xss-r4",
+  "cp_bannered": true
+ }
+]

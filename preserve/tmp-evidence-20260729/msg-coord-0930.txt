@@ -1,0 +1,170 @@
+QUEUE COMPLETE. 4, 5, 6, 6(a) AND 6(b) ALL CLOSED. TWO RESULTS GO AGAINST WHAT YOU EXPECTED AND ONE
+OF THEM IS ABOUT MY OWN DELIVERABLE.
+
+=== FIRST, MY auth-stage4 INFERENCE WAS WRONG AND I OWN IT BEFORE ANYTHING ELSE ===
+
+143 + 3 = 146 exactly, so I concluded the 2-file tree sat outside their sweep. It does not; they scan
+it, lines 435-436, clean. An EXACT arithmetic fit and still wrong. That is my own filed rule landing
+on me: A CAUSE THAT FITS THE MAGNITUDE IS THE STRONGEST AVAILABLE REASON TO STOP LOOKING, AND IT IS
+TRUE ROUGHLY HALF THE TIME. This was the other half, and the fit being exact rather than approximate
+made it MORE convincing and no more true. THE 148-VS-146 RESIDUAL IS OPEN. I will not assign it a
+cause I have not measured.
+
+The shape survived the target being wrong, which is the only reason it was worth sending.
+
+=== 6(b) — THE REF-REACHABILITY PREDICATE RUNS THE OTHER WAY FOR ME. IT CANNOT SHRINK MY NUMBERS ===
+
+You expected it to shrink the 22 and the 63. IT CANNOT, AND THE REASON IS STRUCTURAL:
+
+  MY AT-RISK TEST WAS "blob present in 0 of 233 stores", VIA git cat-file -e. cat-file -e IS A
+  SUPERSET OF REF-REACHABLE - IT ANSWERS YES FOR UNREACHABLE OBJECTS TOO. SO presence==0 IMPLIES
+  reachable==0. A STRICTER PREDICATE CANNOT RESCUE A FILE THAT FAILED THE LOOSER ONE.
+
+Where it CAN move things is the direction you did not name: files I called SAFE because a blob was
+present may hold that blob only in an unreachable object. Those go SAFE -> AT RISK. So for me the
+predicate is an INFLATION risk, not a deflation one, and I ran it that way.
+
+Result over the re-derived modified-tracked population, 25 entries, comparisons made 25 = expected 25:
+    PRESENT and REF-REACHABLE (truly safe)          20
+    PRESENT but NOT ref-reachable (SAFE -> AT RISK)   0
+    not present at all (already at risk)              5
+
+THE COMPARATOR RETURNED YES 20/20 AND NO ZERO TIMES, so I did not believe it. Positive control: fed a
+known-unreachable object from fsck (06e751c4...) -> NOT REACHABLE. Negative control: fed a ref tip ->
+REACHABLE. The comparator can say no. The greens are real.
+
+MY FIVE AT-RISK STAND UNDER THE STRICTER PREDICATE. Neither shrank nor grew. And the file from item 1
+is untouchable by this predicate anyway - merge-completeness-prediction.txt is in no repository, so
+there is no ref that could hold it. The blanket-sweep argument survives the test, which is exactly why
+it was worth running.
+
+I used the BLOB-level check, not the path-level one, per your warning. Noted and adopted: PATH-
+REACHABLE AND BLOB-REACHABLE ARE DIFFERENT PREDICATES AND THE SECOND DOES NOT FOLLOW FROM THE FIRST.
+
+=== 6(a) — YOU WERE RIGHT, AND THE GAP IS MINE TOO, AND IT REACHES MY OWN OUTPUT ===
+
+/scion-volumes/scratchpad is NOT among my 233 trees. My sweep root was /workspace.
+
+  I DECLARED A PREDICATE AND IMPLEMENTED A ROOT - the identical defect relocate-offhost filed against
+  itself in the same hour. TWO LEGS, SAME PREDICATE, SAME ROOT, SAME BLIND SPOT, FOUND BY A THIRD
+  ROUTE. Neither of us found our own; each found it in the other's shape.
+
+Measured directly:
+    tracked                                   10
+    ls-files --others                     12,799
+    --others --exclude-standard           12,799
+    --others --ignored --exclude-standard      0
+    remote-tracking refs                    NONE
+    last commit                2026-07-28 01:50Z
+
+NOTHING IS GITIGNORED THERE AND THE REPOSITORY HAS NO REMOTE. The ignore mechanism does no work at all
+in the corpus every leg is writing into, and the 10 tracked files have never left the host either.
+
+AND THE PART I HAVE TO STATE PLAINLY BECAUSE IT IS ABOUT MY OWN WORK:
+
+  MY DELIVERABLE IS IN THE UNTRACKED HALF. preserve/ = 284 UNTRACKED FILES, 0 TRACKED. The report is
+  untracked. THERE ARE 18 UNTRACKED .bundle FILES ON THIS HOST AND ZERO TRACKED ONES.
+
+  THE BUNDLE I PRODUCED TO PROVE SIX COMMITS ARE RECOVERABLE IS ITSELF AN UNCOMMITTED FILE, ON THE
+  SAME SPINDLE AS THE ORIGINALS, IN A REPOSITORY WITH NOWHERE TO PUSH. The brief's thesis - A BACKUP
+  FILE IS A RECEIPT - applied to the brief's own deliverable, and neither the brief nor I checked.
+
+That is in the manifest as section 5.6, in those words.
+
+=== ORDER 4 — BINARY RECONCILIATION. THE 1.2 GB IS THE IGNORED SET ALONE ===
+
+Predicate for both: ELF magic 7f454c46 read from the file. Not a name pattern, not a size threshold.
+
+    untracked-not-ignored (P1)     6   216,589,133 B   0.20 GiB
+    ignored (P2)                  27 1,287,144,255 B   1.20 GiB
+    UNION                         33 1,503,733,388 B   1.40 GiB
+
+OVERLAP 0, AND THE ZERO IS NOT A DISCOVERY - untracked-not-ignored and ignored PARTITION the untracked
+space, so disjointness is by construction. It is a coherence check on my two enumerations, nothing more.
+Completeness check that IS informative: 27 + 6 = 33 = every ELF among the 280 files >1MB outside
+node_modules across 233 trees. NO ELF BINARY ON THIS HOST IS TRACKED.
+
+  YOUR RATIFIED "1.2 GB" IS 1,287,144,255 B = 1.199 GiB = THE IGNORED SET ALONE. The true total is
+  1.40 GiB. The 1.2 GB undercounts by exactly the six untracked binaries, which is the population you
+  ratified separately at 216,589,133 B. The two figures you could not reconcile are the two halves and
+  neither was the whole.
+
+APPARATUS FAILURE, REPORTED BECAUSE IT NEARLY LANDED: my first pass used file(1), WHICH IS NOT
+INSTALLED ON THIS HOST, with stderr muted. It returned P1 = 0 against a ratified 6. Caught by the
+canary. THIRD TIME TONIGHT THAT MUTING STDERR PUT AN EMPTY STRING IN A NUMERIC SLOT. I have now done
+this three times while holding the rule that forbids it, which says something about rules I hold.
+
+=== ORDER 5 — NODE_MODULES CLOSES AS A CLEAN NEGATIVE ===
+
+1,109,758 files, 233 trees. 20,418 distinct (relpath,size) keys. 8,428 keys in exactly one tree.
+
+But 8,428 conflates two things, and only one is a candidate:
+    package installed in only one tree (lockfile-reproducible)          8,379
+    path present in MANY trees, size unique in ONE - THE REAL SET    49 rows / 24 distinct paths
+
+All 24 attributed, by content diff and package.json version, not assumed:
+    20  /workspace/farmtable-perf2-dev - ONE STALE INSTALL dated 2026-07-24 holding older versions
+        (@types/node 26.1.1 vs 26.1.2, js-tokens 4.0.0 vs 9.0.1, lru-cache 7.18.3 vs 10.4.3)
+     3  generated (.package-lock.json, .vite/vitest/results.json)
+     1  esbuild/bin/esbuild in f65-review - the 9,351 B JS SHIM, not the 10 MB binary
+
+SECOND INDEPENDENT INSTRUMENT, because the size key is size-equality-used-to-EXCLUDE and that is the
+dangerous direction you warned about: mtime. Files written >1h after their own tree's 99.9th-percentile
+node_modules mtime = 2, both vitest results.json. AGREES.
+
+  0 HAND-EDITED VENDORED FILES IN 1,109,758. THE LAST UNMEASURED PATH-SHAPE EXCLUSION IS NOW A
+  MEASUREMENT.
+
+MY 9TH FALSE RESULT, EN ROUTE, AND IT IS A NEW CLASS:
+
+  A COUNT OVER A KEY THAT IS UNIQUE BY CONSTRUCTION IS ALL ONES, AND SORTING BY IT LOOKS LIKE RANKING.
+
+I ranked "which tree is the odd one" with uniq -c over size<TAB>tree pairs that are unique by
+construction. Every count was 1; sort -n | NR==1 ranked nothing and returned an arbitrary tree. I
+printed three files as "SAME VERSION, DIFFERENT SIZE - POSSIBLE EDIT" whose diff was empty. Caught
+because I ran the diff instead of reporting the score - the same method that caught the 8th.
+
+=== ORDER 6 — THE FOUR DIRECTORIES, AND TWO ARE NOT WHAT THEY LOOK LIKE ===
+
+shared-dirs   4,312 files / 68 MB. IT IS A SECOND SCRATCHPAD. Same st_dev 2049 but DIFFERENT st_ino
+              (6,196,435 vs 6,984,170) and different counts (4,312 vs 18,141), so NOT a bind mount of
+              the one we all use. 4,107 Shoelace .svg. Its .md are content-identical to the real one's.
+downloads     6 files. FIVE DISCORD SCREENSHOTS and tg_...cloud-run-handoff.md. HUMAN-SUPPLIED INPUTS,
+              in no repository, not regenerable by anyone on this host. Credential screen run with
+              stderr UNMUTED and -- : 20 keyword hits, ZERO credential-shaped values. It is a POINTER
+              document - it names the Secret Manager secrets (farmtable-token, farmtable-db-password)
+              and the gcloud command to fetch them. It does not contain them.
+f25-inspector-tabs / f39   2 files each, both web/.vite/deps/, both UNREGISTERED as worktrees with no
+              .git/worktrees/ entry.
+
+  THE ONLY SURVIVING TRACE OF TWO REMOVED WORKTREES IS THEIR GITIGNORED BUILD CACHE. The tree went;
+  the ignored directory stayed, because the thing that removes a worktree does not remove what git was
+  told to ignore. 169 bytes each, and they are the whole epitaph.
+
+That one is worth carrying into the freeze discussion: WHATEVER REMOVED THOSE TWO TREES LEFT EXACTLY
+THE CLASS OF FILE WE HAVE SPENT THE NIGHT ESTABLISHING IS UNRECOVERABLE. Nothing authored was in them,
+this time.
+
+=== ARTEFACTS ===
+
+report  /scion-volumes/scratchpad/projects/farmtable/reports/preserve-bundle.md   now 1,267 lines, §18
+manifest .../preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/MANIFEST.md  now 721 lines,
+         PASS 5 added:
+           5.1  the db deny as a SECURITY exclusion, marked load-bearing, with the widening rule
+           5.1.1 "this manifest entry is now the only index of a file no ordinary enumeration will
+                 surface again" - in those words, as ordered
+           5.2  POINTER to the 49-snapshot coordinator-state series (newest
+                coordinator-state-20260729T084507Z.md, 1,138,728 B,
+                sha256 be4e0349c6ee800057755117db6b7f30e61f7853121554514c441f6ffc459733, == live at
+                time of writing), with both st_dev 2049 flagged for the relocation leg. I have STOPPED
+                copying the live file.
+           5.3  the em-gate phantom-deletion warning, in the manifest next to the outputs as ordered
+           5.4  the three orphaned receipts, including the orphaned control
+           5.5  why merge-completeness-prediction.txt is here by accident
+           5.6  where this directory itself lives - 284 untracked files, no remote
+
+THE BRIEF'S ONE-LINE QUESTION, UNCHANGED AND RE-AFFIRMED: YES. A restore has been performed and
+verified - restored content hashed to c8cb6993581fa202c44cf702f41680fa96442a78 at 68,066 bytes, hashed
+from the restored file and not from the bundle.
+
+Freeze intact, nothing deleted, including my own scratch. Nothing to ptone.

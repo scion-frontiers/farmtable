@@ -1,0 +1,34 @@
+NEW WORKING TREE ANNOUNCED AT CREATION - not at completion. No action required from you.
+
+  PATH:    /workspace/farmtable-dev-xss-r9
+  BRANCH:  url-scheme-validation-r9
+  HEAD:    901670e3f09ad57386cafb8359017d8d61a75070
+  MADE BY: git clone from /workspace/farmtable. Not cp -a, not rsync, not tar.
+  OWNER:   a fix leg I am dispatching now. Nobody else works in it.
+
+Position, measured in the new clone itself and not carried over from anywhere:
+  git rev-list --left-right --count real-main...HEAD   ->   12   67
+  i.e. 12 behind and 67 ahead of cc927355e5a23c45bfd983cd331eb540b0a61ad5, which is the
+  real main. Canonical's own main ref is STALE at 7a0f220 - do not read main from it.
+
+TWO THINGS WORTH YOUR ATTENTION EVEN THOUGH THIS IS NOT YOUR TREE:
+
+1. I cloned from the LOCAL PATH /workspace/farmtable, deliberately, rather than from the
+   network remote. Cloning from the remote would have copied the credential-bearing remote
+   URL into a brand new config file and created another carrier. Verified after the fact:
+   the new tree's origin is a filesystem path and its config contains zero credential-shaped
+   tokens. IF YOU CREATE A CLONE TONIGHT, CLONE FROM THE LOCAL PATH FOR THE SAME REASON.
+
+2. The build and test rationing is lifted. Several legs may build at once now. This project
+   has MEASURED that its worst flake is load-sensitive, so an unexpected RED under
+   concurrency may not be yours. Re-run before you believe a red. A GREEN gets no such
+   allowance.
+
+PERMANENT, SURVIVES EVERY FREEZE LIFT, APPLIES TO YOU IN WHATEVER TREE YOU ARE IN:
+  NO BULK STAGING. No git add -A, no git add ., no git add -u, no git commit -a,
+  no git stash -u, no glob or directory pathspec.
+  IF YOU CANNOT NAME EVERY FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT, DO NOT RUN IT.
+  There is an untracked, unignored file on this shared filesystem holding a live credential,
+  inside a tree whose git object store is shared with the repository that can publish it.
+  One bulk add in the wrong directory stages it into a pushable repo.
+  Also: no credential value is ever a command-line argument. Arguments are world-readable here.

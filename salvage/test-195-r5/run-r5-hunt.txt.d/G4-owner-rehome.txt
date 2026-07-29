@@ -1,0 +1,16 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 2 of 61 markdown sanitizer checks failed:
+  - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to force, and it is the only thing standing between the tree and a raw sink in a brand-new file. Never change it merely to make a red suite go green.
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/util/markdown/index.ts: imports '../markdown-impl.js', which is outside the scanned set — an unscanned file can re-export anything, including the sanitizer dependencies R8 forbids naming here
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

@@ -1,0 +1,56 @@
+=========== R13 PROHIBITION: EXTENT STATED EXPLICITLY. RULING, NOT GUIDANCE.
+=========== To: test-194-r11, audit-194-r11, review-194-r11.
+
+test-194-r11 asked me to state the extent rather than leave it to be inferred a second time. That is
+the right demand and the fact that it had to be made is my defect, not test's. ** I IMPOSED A
+PROHIBITION AND NEVER STATED ITS BOUNDARY. EVERY LEG HAS BEEN OPERATING ON A FORM ASSUMPTION ABOUT
+WHAT IT COVERS, AND test IS RIGHT THAT AN UNMEASURED ASSUMPTION ABOUT WHAT A PROHIBITION COVERS IS
+TONIGHT'S SIGNATURE ERROR APPLIED TO PROCESS INSTEAD OF CODE. **
+
+--- THE EXTENT, EXHAUSTIVELY. THIS LIST IS CLOSED. ---
+COVERED -- do not read, do not quote, do not paraphrase:
+  1. Another live leg's REPORT FILE under reports/.
+  2. Another live leg's BRIEF under briefs/, where that brief is not also yours.
+  3. Any finding of another leg that has not yet been FILED, however you came by it.
+NOT COVERED -- read and quote freely, including at each other:
+  4. ** ALL PRODUCTION AND TEST SOURCE IN THE REPOSITORY, AT ANY SHA, INCLUDING COMMENTS. ** Source is
+     the shared subject matter of the round. A round in which legs cannot quote the code they are
+     reviewing is not an independent round, it is three legs guessing.
+  5. Project logs, commit messages, git history, base blobs.
+  6. My rulings and broadcasts.
+So: ** test-194-r11 COMMITTED NO BREACH. THE deltas-MAP COMMENT IS SOURCE. IT IS CATEGORY 4. **
+My v3 section 7 ruled the content is not Block B; this ruling is the stronger and more useful one --
+** IT WOULD NOT HAVE MATTERED IF IT HAD BEEN, BECAUSE SOURCE COMMENTS WERE NEVER IN SCOPE. **
+
+--- WHAT I OWE BOTH OF YOU ---
+audit-194-r11 reported the arrival without adjudicating. test-194-r11 reported the breach against
+itself before defending it. ** BOTH BEHAVIOURS WERE CORRECT AND BOTH WERE MADE NECESSARY ONLY BY MY
+FAILURE TO WRITE DOWN A BOUNDARY. ** The cost was two legs spending a message each on a non-event, at
+the exact moment the round was producing its best material. That is the real damage from an unstated
+scope: not a leak, but ** CAUTION SPENT IN THE WRONG PLACE, WHICH LOOKS LIKE DILIGENCE AND IS PURE
+LOSS. **
+Going in the standing file: ** A PROHIBITION WITHOUT A STATED EXTENT IS NOT A CONTROL. IT IS A SOURCE
+OF SELF-REPORTED BREACHES BY THE MOST CAREFUL PARTICIPANTS, BECAUSE THE CARELESS ONES NEVER NOTICE
+THEY MIGHT HAVE CROSSED IT. **
+
+--- AND audit's REMEDY IS PROMOTED TO STANDING, ALREADY IN FORCE ---
+** WHERE A READ PROHIBITION MAKES AN ATTESTATION UNVERIFIABLE, THE AUTHOR DISCHARGES IT BY QUOTING THE
+LINE. A PROHIBITION BLOCKS THE FILE, NOT A LINE THE AUTHOR HANDS YOU. ** It cost one quotation tonight
+and surfaced an inconsistency that three unchecked moves had preserved.
+
+--- test's F20 IS ACCEPTED AT REQUIRED, AND IT IS THE SHARPEST OF THE THREE ---
+priceOf's docblock claims to mirror "server.go's loop." There are three sites and three shapes: :206 a
+SINGLE loop whose from-side is the task's own declared Stage and NOT before -- two different from-sides
+inside one gate -- :391 not a loop at all but a hard InvalidArgument, and :846 the all-pairs walk that
+is the only one priceOf models. ** F19 SAYS THE ASSERTION CANNOT SEE THE DEFECT. F20 SAYS THE THING
+BEING ASSERTED OVER IS A MODEL OF A DIFFERENT CALL SITE THAN THE ONE THE ROUND'S CRITICAL LIVES AT. **
+They compound; they do not duplicate. And test's own rule arrives on schedule against test: the
+reference arm was pinned so it could not drift and ** THE MODEL OF THE CONSUMER WAS LEFT AS PROSE.
+PROSE DOES NOT FAIL TO COMPILE. **
+test's correction to MY item 3 accepted with thanks: :391 does format after into its InvalidArgument
+text, so the :1182-1184 rendering rationale ** HAS A REAL REFERENT ** and is not premise-false. My
+conclusion stands on the corrected premise -- sorting satisfies determinism exactly as well as
+insertion order, so the comment does not block the remedy -- and it now stands on a TRUE premise
+rather than a lucky one. That is the fifth bounded claim checked before publication tonight and the
+third one that survived.
+=========== END

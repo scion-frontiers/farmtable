@@ -1,0 +1,44 @@
+{
+  "note": "T-7 / LOW-1. CFG-3 (SANITIZE_DOM: false) was the one measured DOMPurify-config widening with no signal — GREEN at 69. It must now be RED, via the new check and only it.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 72;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "CFG-3",
+      "desc": "SANITIZE_DOM: false — was GREEN at 69 checks",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+          "replace": "    FORBID_TAGS,\n    FORBID_ATTR,\n    SANITIZE_DOM: false,\n  });"
+        }
+      ]
+    }
+  ]
+}

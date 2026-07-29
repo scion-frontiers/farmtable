@@ -1,0 +1,42 @@
+=== Deploy-32 Live IAP + x-farmtable-token Validation ===
+Server: farmtable-486315127503.us-central1.run.app:443
+Time: 2026-07-23T00:40:01Z
+
+--- TEST 1: Authorization-only (IAP token, no x-farmtable-token) ---
+GetVersion: OK — server_version="dev"
+ListCollections: OK — 16 collections (unauthenticated pass-through)
+
+--- TEST 2: Authorization + x-farmtable-token (BOTH headers) ---
+GetVersion: OK (AUTHENTICATED via x-farmtable-token) — server_version="dev"
+ListCollections: OK — 16 collections
+  - default (id: 1e0f02d1-99cd-46bc-a739-bac0fde60710)
+  - farmtable-deploy4-web-202607200557 (id: 2c78db91-d17f-4d8b-9d62-29a7b1d409fd)
+  - farmtable-deploy4-cli-20260720055552 (id: b05c411c-283a-4c7e-a3a6-01673676a317)
+  - github-experiment-scion-frontiers-farmtable (id: 6a0a49f9-9c61-46cf-af5a-46f98f90ff20)
+  - github-mirror-scion-frontiers-farmtable-20260720 (id: 466c2baa-334e-439c-b9f9-abbe89eb8aae)
+  - External Store Passthrough (id: 5d1e4eea-3dc7-4958-99ac-01e3372c5a0d)
+  - ext-store-passthrough-design (id: 11f2f0ec-6cf2-4a1e-86f8-333d08d031d5)
+  - deploy-16-dep-test-1784724126309 (id: fc96463f-b711-404c-828b-8a01a99ff33b)
+  - Scenario 1: 4-Layer Chain (id: 4f98907f-65a2-4f38-ad09-7cc81497b9e3)
+  - Scenario 1: 4-Layer Chain (id: 9a2b4878-cf78-443d-a2ab-c3d7180fd3c7)
+  - D16-DepTest (id: 746cc577-7dc5-42c3-96ad-964ea8f33c97)
+  - D17-Phase2-Test (id: 39a35ce4-8ef5-462c-8b24-773b116813dd)
+  - deploy-20-beads-test (id: f6eca31f-6dc0-493d-8d90-8ae04be2ed0d)
+  - Deploy-24-Test (id: 3b100b87-6e9c-4adc-8661-980a4effcbca)
+  - Jibo (id: e3f521bb-0ae8-4c0b-8502-a2f67955ccbd)
+  - jibo (id: 7e76c29c-5981-4e32-98b2-fa2bdd5ad9b7)
+
+--- TEST 3: Authorization with ft_ token ONLY (old-style, no IAP bypass) ---
+Result: BLOCKED by IAP as expected — rpc error: code = Unauthenticated desc = Invalid IAP credentials: Unable to parse JWT
+
+--- TEST 4: x-farmtable-token ONLY (no Authorization header) ---
+Result: BLOCKED by IAP as expected — rpc error: code = Unauthenticated desc = Invalid IAP credentials: empty token
+
+=== SUMMARY ===
+TEST 1 (IAP-only auth):            Should show unauthenticated pass-through
+TEST 2 (IAP + x-farmtable-token):  Should show AUTHENTICATED + list collections
+TEST 3 (ft_ token in Authorization): Should be BLOCKED by IAP
+TEST 4 (x-farmtable-token only):    Should be BLOCKED by IAP
+
+If TEST 2 shows authenticated and TEST 3/4 are blocked,
+the x-farmtable-token header is the ONLY viable auth path through IAP.

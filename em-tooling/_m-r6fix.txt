@@ -1,0 +1,76 @@
+XSS PHASE 2 - ROUND 6 FIX LEG. YOU ARE THE ONLY LEG RUNNING. START HERE.
+
+Round 5 closed REQUEST CHANGES, 2 of 3 independent legs. Three reviewers ran in
+parallel and did not talk to each other. You are the single fix leg for all of it.
+
+YOUR BRIEF, READ IT IN FULL BEFORE TOUCHING ANYTHING:
+/scion-volumes/scratchpad/projects/farmtable/briefs/xss-r6-fix.md
+
+There is no staged section and nothing withheld. Read the whole file, first to last.
+If any instruction in it contradicts any other instruction in it, that is a defect in
+the brief and I want to hear about it before you resolve it yourself.
+
+YOUR TREE: /workspace/farmtable-xss-r6-fix
+Branch url-scheme-validation-r6, base d305391, clean, web/dist present. It is yours
+alone. Do not cd into any other farmtable directory to run anything.
+
+THE THREE SOURCE REPORTS. Read all three yourself. Do not take my summary of them as
+the record - my briefs have been wrong repeatedly this round and every leg found errors
+in them:
+  reports/xss-r5-review.md   REQUEST CHANGES, R1-R6, 422 lines
+  reports/xss-r5-audit.md    APPROVE, no CRITICAL no HIGH, 706 lines
+  reports/xss-r5-test.md     REQUEST CHANGES on B-2/B-3/B-4, B-1 WITHDRAWN
+(all under /scion-volumes/scratchpad/projects/farmtable/)
+
+READ THEM IN THAT ORDER, AND NOTE WHAT HAPPENED BETWEEN THEM. Two legs independently
+concluded the C-1 pin was decorative. I arbitrated by measurement and BOTH WERE WRONG -
+the pin is live, driven through a mock GraphQL server by a test that never names the
+function it exercises. Both legs conceded in writing. The lesson the winning leg asked
+me to record is NOT that it is the reliable one. Its own words: MY ROUTE HAD A REAL
+BLIND SPOT, THE TRANSFERABLE LESSON IS METHOD DIVERSITY PLUS ENVIRONMENT-PRINTING, NOT
+LEG RELIABILITY. Apply that to yourself. A name search over _test.go files is the exact
+method that failed twice tonight.
+
+THE ONE THING I MOST NEED YOU TO GET RIGHT, IN THE AUDITOR'S OWN WORDS:
+
+  If anyone fixing F3's false prose reaches for the natural tidy-up of normalising
+  []string to []any in the sanitizer, THAT DESTROYS THE FAIL-CLOSED ACCIDENT AND
+  SWITCHES PASSTHROUGH remote_data ON FOR THE FIRST TIME. THE HAZARD IS WHAT HAPPENS
+  NEXT. A fix leg looking at a red count assertion may update the expected count and
+  move on. THE RED IS THE ALARM, NOT THE BUG.
+
+You are that fix leg. If you find yourself editing an expected number to make a test
+pass, stop and message me instead.
+
+BUILD FENCE, PROJECT-WIDE AND LIVE. Exactly one build token exists and I hold it. It is
+still unspent - all three r5 legs finished without asking for it. You may run
+  go test ./internal/<pkg>/ -run '^TestName' -count=1
+freely, but append to reports/_run-queue-log.md BEFORE each run, ROOT and DIST columns
+mandatory even on lines you expect to pass. Anything wider - go build ./..., go vet
+./..., go test ./..., npm test, make - REQUIRES THE TOKEN. Ask me and wait. Asking is
+expected and is not a failure; running wide without it is.
+
+SHELL IS ZSH 5.9, NOT BASH. Unquoted globs are a fatal expansion error, not a literal.
+PIPESTATUS is empty - the array is $pipestatus and it is 1-INDEXED. grep is ugrep. A
+check whose success condition is NO MATCH exits 1 when it is clean, so never wrap it in
+|| true. main is currently RED for an unrelated reason, so a wide red is ambiguous.
+
+DELIVERABLES, ALL FOUR, OR THE TASK IS NOT DONE:
+  1. Commits on url-scheme-validation-r6. NOTHING PUSHED, EVER.
+  2. A report at reports/xss-r6-fix.md - scratch volume, NOT in the repo, do not git add it.
+  3. A project-log entry at .design/project-log/2026-07-29-dev-xss-r6.md - THIS ONE IS
+     IN-TREE AND MUST BE COMMITTED. It is the step developers skip.
+  4. Two named sections in your report: WHERE MY BRIEF WAS WRONG, and WHAT I DID NOT
+     CHECK. The brief asserts specific measured facts - line numbers, field counts,
+     scanner behaviour. If one is wrong, say so plainly. If you disobeyed an instruction
+     because obeying it would have made the artefact worse, say that too. That is the
+     outcome I want, not compliance.
+
+Mark every claim MEASURED, DERIVED, REASONED-NOT-MEASURED, or UNCHECKED. Cite by content
+rather than line number, except in B1 where the line numbers are themselves the subject.
+
+TERMINATION: you MUST commit your work and your project-log entry, write your report to
+disk, message farmtable-em-task-state-model-v2 with the branch, the HEAD sha, and the report byte size and
+first line, and then mark the task complete. A fix that exists only in your context does
+not exist. If you get stuck or the scope turns out bigger than the brief says, message me
+and signal blocked - do not silently narrow the work.

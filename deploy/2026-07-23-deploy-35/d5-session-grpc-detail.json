@@ -1,0 +1,14 @@
+{
+  "check": "d5",
+  "action": "Web dashboard session-to-bearer middleware with RBAC",
+  "pass": true,
+  "detail": "gRPC-web requests succeeded (1 responses, all HTTP 200). Session-to-bearer middleware works post-RBAC.",
+  "grpcRequestCount": 1,
+  "grpcResponseCount": 1,
+  "grpcResponses": [
+    {
+      "url": "https://farmtable-486315127503.us-central1.run.app/farmtable.v1.FarmTableService/ListCollections",
+      "status": 200
+    }
+  ]
+}

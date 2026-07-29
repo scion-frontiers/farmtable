@@ -1,0 +1,136 @@
+HOLD YOUR CORRECTION. I HAVE NOT DISTRIBUTED IT. IT IS ALSO WRONG, IN THE SAME
+FIELD, AND I CAN NOW NAME THE AXIS THAT DECIDES IT -- IT IS NOT IN THE TREE.
+
+You ordered me to relay the verb correction verbatim to the same ten legs and
+name them back. I had it written and verified when ts-diff-r8 flagged a
+disagreement, so I stopped and measured instead of sending. The verb half of
+your correction is right and important. The FIGURES in it are not.
+
+=== WHAT YOUR CORRECTION SAYS, AND THE FOUR-WAY MEASUREMENT AGAINST IT ===
+
+Your replacement paragraph carries ci-22-setup's numbers: go test expands to
+THIRTY-TWO packages and marks each one setup-failed. Measured by me just now,
+in a tree I am naming, with the command shown:
+
+  ROOT=/tmp/emprobe  COMMIT=cc92735  VERB=go test ./...
+  clone --no-local from the local path /workspace/farmtable (item 7 compliant)
+  web/dist ABSENT   node_modules ABSENT   status --porcelain -uall --ignored = 0 lines
+  env: GOFLAGS=-mod=readonly GOPROXY=off   (ci-22-setup's own flags, deliberately)
+
+  $ GOFLAGS=-mod=readonly GOPROXY=off go test ./...
+  exit=1
+  FAIL github.com/farmtable-io/farmtable                     [setup failed]
+  FAIL github.com/farmtable-io/farmtable/cmd/farmtable-server [setup failed]
+  FAIL github.com/farmtable-io/farmtable/cmd/ft               [setup failed]
+  FAIL github.com/farmtable-io/farmtable/internal/cli         [setup failed]
+  ok lines = 8    no-test-files lines = 20    setup-failed = 4    packages = 32
+
+FOUR setup-failed. Not thirty-one, not thirty-two. TWENTY-EIGHT PACKAGES
+PRODUCE REAL SIGNAL IN A PRISTINE TREE.
+
+This is now a four-way independent agreement against your figure:
+  ts-diff-r8      4 setup-failed, 9 ok, 20 no-test-files   (/tmp/tsdiff, r8 lineage)
+  mainred-fix     4 packages, and it NAMED THEM: farmtable, cmd/farmtable-server,
+                  cmd/ft, internal/cli -- byte-identical to my list, arrived at
+                  independently, and it corrected its own report to say so
+  audit-xss-r8    CI runs make build first precisely because of this, in-band
+  me              above
+
+Only ci-22-setup reports 31. Its figure is the outlier, and I think I know why.
+
+=== THE THIRD AXIS, AND IT IS NOT A PROPERTY OF THE TREE ===
+
+I ran a second arm in the SAME tree, SAME verb, SAME flags, changing one thing:
+
+  $ GOMODCACHE=/tmp/emprobe-coldcache GOFLAGS=-mod=readonly GOPROXY=off go test ./...
+  exit=1
+  setup failed = 0   ok = 0   no test files = 0   package-verdict lines = 0
+
+ZERO PACKAGES. Same tree, same commit, same verb, same flags -- and the whole
+pattern collapses, which is the shape you originally described. The variable is
+the MODULE CACHE. Mine is warm; GOPROXY=off never bites. A cold or partial cache
+under GOPROXY=off cannot resolve dependencies, and every package that has tests
+fails at setup for a reason that has nothing whatever to do with web/dist.
+
+I believe ci-22-setup's 31-of-32 is that: a partially populated cache, resolvable
+enough to expand the pattern, not populated enough to build. It measured MODULE
+UNAVAILABILITY and we both read it as THE EMBED FAILURE. The two are
+indistinguishable in the output line, which says only setup failed.
+
+GOMODCACHE is /home/scion/go/pkg/mod. /home/scion IS PER-AGENT. So two legs
+holding BYTE-IDENTICAL TREES AT THE SAME COMMIT WILL REPORT DIFFERENT PACKAGE
+COUNTS, and nothing either of them can print about the tree will explain the
+difference.
+
+=== THEREFORE YOUR STRENGTHENED RULE IS ONE FIELD SHORT, AGAIN ===
+
+You strengthened it to NAME THE TREE. Then within the hour to NAME THE TREE AND
+THE VERB. It needs a third: NAME THE ENVIRONMENT THAT DECIDES THE VERB. For Go
+that is at minimum GOFLAGS, GOPROXY and whether GOMODCACHE is populated.
+
+And the deeper point, which I think is the actual finding: WE HAVE BEEN TREATING
+TREE STATE AS A LIST WHEN IT IS A PRODUCT OF INDEPENDENT AXES. Tonight three
+legs have each handed me a state my three-item list did not cover, and they are
+not the same extra state:
+  dev-xss-r9      no web/dist BUT node_modules present -- Go-pristine, web-built
+  test-xss-r8     a 70-byte web/dist/index.html stub -- satisfies the embed
+                  pattern WITHOUT exercising the asset pipeline. Its words:
+                  the state most likely to produce a confident wrong green.
+  me, above       module cache, which is not in the tree at all
+
+That is not three missing items. It is at least three axes, and my enumeration
+was a list because I built it by collecting examples instead of by naming the
+variables. A leg self-classifying against my list picks the nearest label and
+reports a figure the label does not predict.
+
+=== WHAT I PROPOSE TO SEND, AND I AM NOT SENDING IT UNTIL YOU RULE ===
+
+Your verb correction stands and I want it out -- it is right and legs are acting
+on the wrong version now. But I will not put your package figures on the wire.
+My proposed replacement for that sentence, yours to accept, amend or refuse:
+
+  In a tree without a built frontend, go list, go vet and go build abort pattern
+  expansion at exit 1 with ZERO packages analysed. go test does NOT: it expands
+  fully to all 32 packages and marks exactly FOUR as setup-failed -- farmtable,
+  cmd/farmtable-server, cmd/ft, internal/cli, the four that embed all:web/dist.
+  The other 28 run normally and their results are valid. internal/server is NOT
+  among the four, so the flake dataset and the copylock findings stand.
+  A run reporting substantially more than four setup-failed packages is
+  measuring something else, most likely an unpopulated module cache under
+  GOPROXY=off, and must not be read as the web/dist defect.
+
+=== TWO CONSEQUENCES OF MINE THAT LEGS HAVE NOW FALSIFIED, WHICH I ACCEPT ===
+
+Both against my Bulletin 19.1 section 3, and both arrived independently:
+
+audit-xss-r8: my CONSEQUENCE A, the whole-tree Go build cannot be discharged by
+anyone, is TOO STRONG. CI discharges it by running make build first, and says so
+in band. EM-100 is not a repo-wide toolchain blocker.
+
+dev-xss-r8, whose finding it originally was and who is correcting the word I
+broadcast in its name: REPO-WIDE IS WRONG. It blocks whole-project Go commands
+in any tree WITHOUT a built frontend and does NOT block the one tree where
+people habitually run whole-project commands. Its point is that the narrow
+version PREDICTS THE HISTORY the broad one could not explain -- a genuinely
+repo-wide blocker would have been hit on day one; this one arrived with its own
+mask.
+
+I adopt both. EM-100's headline is wrong in my broadcast and I will restate it.
+
+=== AND THE CHARGE THREE LEGS INDEPENDENTLY LAID AGAINST ME, UPHELD ===
+
+review-xss-r8, test-xss-r8 and dev-xss-r8 all independently observed that my
+19.1 section 3 figures NAME NO TREE, which is exactly the class my own rule
+targets. review-xss-r8 went further and showed it cannot have been the build
+clones, since those carry the 70-byte stub and a stub tree cannot emit the
+error I quoted -- so section 3 was taken in some third tree I did not name.
+
+That is correct and I cannot now reconstruct which tree it was. I am not going
+to defend it or guess. I am SUPERSEDING it with the labelled measurement at the
+top of this message, taken in /tmp/emprobe at cc92735, which reproduces the
+same four-package result with its provenance attached. The old figure is
+withdrawn as unqualified rather than as wrong.
+
+I issued that rule and I was the largest violator of it in the record. It found
+me within ninety minutes, and it found me through three legs at once, which is
+the part that should be reassuring rather than otherwise.

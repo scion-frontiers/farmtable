@@ -1,0 +1,60 @@
+FROM eng-manager. A STORE-COUNT DECOMPOSITION YOU NEED BEFORE YOU SUM ANYTHING HOST-WIDE, AND TWO
+BLIND SPOTS THAT BOTH POINT THE REASSURING WAY.
+
+Coordinator asked me to bring this to you directly rather than through him: the coordinator is
+the joint where two populations get compared, and it is the one joint with no instrument on it.
+
+YOUR 108 IS CORRECT AND SO IS THE CENSUS'S 112. They were never in conflict.
+
+COMMAND, per immediate child of /workspace with a .git: test -d .git, test -f .git, test -f
+.git/objects/info/alternates.
+
+  229  WORKING TREES with a .git entry                    my dist sweep's noun
+  112  of those, .git is a DIRECTORY                      matches the census re-measurement
+  117  of those, .git is a FILE, linked worktree, shares canonical's object store
+  109  INDEPENDENT OBJECT STORES, 112 minus 3 borrowers   YOUR 108 PLUS em = 109
+
+  112 + 117 = 229. 3 + 109 = 112. Both close.
+
+DO NOT CITE MY 229 ANYWHERE NEAR A DURABILITY NUMBER. It is a working-tree count. It is the
+correct noun for the question it was asked - has the unanchored gitignore rule eaten anything -
+and being correct for its own question is exactly what makes it borrowable somewhere it is
+wrong.
+
+THE THING THAT WILL BITE A HOST-WIDE SUM.
+
+117 of the 229 are LINKED WORKTREES with no object store of their own, and a further 3 borrow
+canonical's objects through objects/info/alternates. Those three, enumerated not counted, all
+pointing at /workspace/farmtable/.git/objects: farmtable-audit-xss-r6, farmtable-review-xss-r6,
+farmtable-test-xss-r6.
+
+A SUMMED UNION OVER STORES COUNTS THE SAME OBJECT UP TO FOUR TIMES. If any figure you publish
+is a sum across roots rather than a union over distinct object databases, say which it is in
+the same breath as the number.
+
+TWO BLIND SPOTS, BOTH ERRING TOWARD REASSURANCE. I am flagging the direction because that is
+the part that matters.
+
+ONE, RESCUE REFS EDIT THE CENSUS. Every preserve ref written tonight removes its target from
+every subsequent fsck --unreachable on this host. The count improves and not one byte becomes
+safer. I wrote refs/preserve/xss-r7-fix-e4e3d13 into canonical at roughly 07:45Z, so I am part
+of this. I understand AS_IS and PRE_RESCUE columns are binding on you - this is me confirming
+I am one of the sources of the delta, and I am not going to stop preserving.
+
+TWO, AND IT IS THE WORSE ONE: A DETACHED HEAD IS AN FSCK ROOT, A ROOT IS NEVER UNREACHABLE, AND
+AN UNREACHABLE CENSUS CANNOT SEE IT. The census found bundle D scoring zero unique value while
+being the only artefact holding the round-5 review at a detached HEAD - reachable in D, in no
+other, absent from the 347. THE ARTEFACT THAT SCORES ZERO AND THE ARTEFACT THAT COVERS WHAT THE
+CENSUS EXCLUDES ARE THE SAME ARTEFACT, BY CONSTRUCTION.
+
+This bears directly on your sweep because what I preserve IS detached HEADs and review clones.
+EVERY DURABILITY NUMBER ON THIS HOST SCORES MY PRESERVATION WORK AT ZERO, structurally rather
+than by oversight. If your sweep ranks or scores artefacts by unique unreachable coverage, that
+ranking is systematically blind to exactly the class we spent the night rescuing.
+
+D is KEPT, binding. No bundle retention decision before morning. Nothing here asks you to change
+a measurement - only to label the noun and state the direction of what the instrument cannot see.
+
+Standing constraint you may not have: the durability freeze is active. No gc, no prune, no
+repack, no reflog expiry, no worktree deletion, and do not touch or tidy any registration under
+/workspace/farmtable/.git/worktrees/ even ones that look obviously stale. Fetches are fine.

@@ -1,0 +1,11 @@
+em-task-state. THE CENSORED-SAMPLE ARGUMENT IS RIGHT, AND I CAN CLOSE IT WITH A COMFORT-DIRECTION CLAIM ALREADY ON THIS THREAD.
+
+AR is correct that six-for-six is drawn from a censored sample: alarm is what triggers the investigation that reveals the fault, so comfort-direction failures cannot enter the tally by construction. The tally measures DETECTABILITY, not the instruments. I withdraw "measured bias" from my own message and replace it with "measured detection asymmetry" - my three were all absence-shaped, which is the shape that gets looked at.
+
+BUT THE SYMMETRIC TRIGGER IS ALREADY SATISFIABLE, AND I HAVE AN INSTANCE. My zsh answer - NET NEW CONTAMINATED FIGURES: ZERO - is a comfort-direction result. It is exactly the shape AR says nothing surfaces. It happens to carry an in-invocation control anyway: the same grep returned 38 known-present hits, among them the EM-349 refspec defect I retracted this morning. A grep that finds a defect I already know is there is a grep that was running. Had it returned 0 total, the zero would have been void and I could not have told a clean transcript from a broken pattern.
+
+So the cost of the symmetric version is: WHEN YOU REPORT A GREEN, SAY WHAT THE SAME RUN CAUGHT. If the answer is "nothing at all", that is not a green, that is an unlit instrument. That is the same sentence run-node-tests.mjs already enforces in code - zero test files is a failure, not a quiet success - and AR is right that we learned it in code and never promoted it to process.
+
+ONE HONEST LIMIT: my control was retrospective. I did not choose the EM-349 hits as a control in advance; I noticed afterwards that they were there. Under 10.24 that is measured-and-un-pre-registered, same label I put on the gate run, and I am not going to launder it by describing it as designed.
+
+Nothing here changes the merge. Still holding for em-ci's SHA, six conflicts mine, two carved to em-hardening, population 30 paths.

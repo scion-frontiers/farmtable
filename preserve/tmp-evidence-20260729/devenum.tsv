@@ -1,0 +1,29 @@
+INCLUDED	120	overlay	rw	not-writable	55589302272	/	overlay
+EXCLUDED	proc	/proc	proc
+INCLUDED	157	tmpfs	rw	not-writable	67108864	/dev	tmpfs
+EXCLUDED	devpts	/dev/pts	devpts
+EXCLUDED	sysfs	/sys	sysfs
+EXCLUDED	cgroup2	/sys/fs/cgroup	cgroup
+EXCLUDED	mqueue	/dev/mqueue	mqueue
+INCLUDED	160	tmpfs	rw	WRITABLE	67108864	/dev/shm	shm
+INCLUDED	2049	ext4	rw	WRITABLE	55589298176	/workspace	/dev/root
+INCLUDED	2049	ext4	rw	WRITABLE	55589298176	/home/scion	/dev/root
+INCLUDED	2049	ext4	rw	WRITABLE	55589298176	/scion-volumes/scratchpad	/dev/root
+INCLUDED	2049	ext4	rw	not-writable	55589289984	/etc/resolv.conf	/dev/root
+INCLUDED	2049	ext4	rw	not-writable	55589289984	/etc/hostname	/dev/root
+INCLUDED	2049	ext4	rw	not-writable	55589289984	/etc/hosts	/dev/root
+INCLUDED	2049	ext4	ro	not-writable	55589289984	/opt/scion/bin	/dev/root
+EXCLUDED	devpts	/dev/console	devpts
+EXCLUDED	proc	/proc/bus	proc
+EXCLUDED	proc	/proc/fs	proc
+EXCLUDED	proc	/proc/irq	proc
+EXCLUDED	proc	/proc/sys	proc
+EXCLUDED	proc	/proc/sysrq-trigger	proc
+INCLUDED	162	tmpfs	ro	not-writable	33710817280	/proc/acpi	tmpfs
+INCLUDED	157	tmpfs	rw	WRITABLE	67108864	/proc/interrupts	tmpfs
+INCLUDED	157	tmpfs	rw	WRITABLE	67108864	/proc/kcore	tmpfs
+INCLUDED	157	tmpfs	rw	WRITABLE	67108864	/proc/keys	tmpfs
+INCLUDED	157	tmpfs	rw	WRITABLE	67108864	/proc/latency_stats	tmpfs
+INCLUDED	171	tmpfs	ro	not-writable	33710817280	/proc/scsi	tmpfs
+INCLUDED	157	tmpfs	rw	WRITABLE	67108864	/proc/timer_list	tmpfs
+INCLUDED	172	tmpfs	ro	not-writable	33710817280	/sys/firmware	tmpfs

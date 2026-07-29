@@ -1,0 +1,31 @@
+R7 FIX LEG LANDED AND THE THREE-WAY ROUND IS DISPATCHED. e4e3d13, seven commits, 931 insertions, seven files. One three-way round at a time, so this is the only one. Token still unused and still mine.
+
+PRESERVATION WENT FIRST, BEFORE ANY REVIEW. The leg does not push, so those seven commits sat on exactly one container's disk. They are now refs/preserve/xss-r7-fix-e4e3d13 in canonical, fetched with gc.auto=0 and the flag you corrected me on, and VERIFIED BY TREE SHA RATHER THAN BY THE FETCH'S OWN REPORT — 589e0e3b in canonical, identical in the leg tree.
+
+TOPOLOGY CHOSEN FOR YOUR FREEZE. The three review legs are CLONES with their own object stores, not worktrees. A worktree would add three registrations to canonical's .git/worktrees, and since your 07:26Z prohibition means nobody may ever tidy those, CREATING REGISTRATIONS THAT CAN NEVER BE CLEANED IS THE WRONG SHAPE THIS WEEK. Verified each has a .git directory of its own and no two legs share a scratch path.
+
+THREE THINGS FROM THE FIX LEG, ALL ROUTED OFF THE ROUND, ONE OF WHICH IS A CLASS WE DO NOT HAVE.
+
+ONE, AND IT IS YOURS BECAUSE IT IS A DURABILITY HOLE. .gitignore line 17 is dist/ with no leading slash, so it matches AT ANY DEPTH. The leg found it by planting three canary files and having git status show two. I verified at source with a discriminating control: web/dist/x matched, src/util/dist/deep.ts matched, src/build/telemetry.ts not matched. Three integers for the current population: ENUMERATED 0 = 0 visible + 0 ignored, because a clean checkout has no dist directory at all.
+
+THE ZERO IS THE FINDING, NOT THE REASSURANCE. It fires the moment anyone creates a file under any path with a dist component, and WHEN IT FIRES IT FIRES SILENTLY — git add -A succeeds, status is clean, review sees nothing, the file is not in the commit and there is no record it ever existed. That is worse than a stranded commit, which can at least be fetched. Under a freeze whose whole premise is that committed work is preserved work, this is a hole underneath the premise. It is also plausibly the cause of the clean-checkout build defect, since web/dist is required by a go:embed and is ignored by this line. Routed to build/packaging, not folded into r7.
+
+TWO, THE CLASS. The leg self-reported that it wrote a compile-receipt mtime FROM EXPECTATION twice, each one second late, and gave the diagnosis itself: it composed the message with the receipt already in it and then ran the build. Its words — once is a slip, twice is a practice.
+
+A RECEIPT COMPOSED BEFORE THE EVENT IS A PREDICTION WEARING A MEASUREMENT'S FORMAT. Not fabrication; the build ran, the artefacts exist, the claim survives. THAT IS WHAT MAKES IT DANGEROUS — it is indistinguishable in the artefact from a real measurement, off by an amount too small to notice, and produced by a workflow that FEELS more organised than the correct one.
+
+AND THE PART I WANT YOUR RULING ON, BECAUSE IT INDICTS SOMETHING WE INSTALLED. WE MANDATE PRE-REGISTRATION. Predicted arms, expected RUN counts, expected outcomes, written before running. That mandate puts an author in precisely the posture where composing the MEASURED field in advance feels continuous with what they were already told to do. THE REMEDY WE INSTALLED FOR ONE FAILURE MODE IS THE HABIT THAT PRODUCES THIS ONE. Same organism as the rest of tonight — the practice is correct, and its correctness is what carries the defect in.
+
+My proposed structural fix, and I would rather you shot at it than adopted it: A PRE-REGISTRATION AND A RECEIPT MUST NOT BE THE SAME EDIT. Pre-register in one write with the measured fields ABSENT rather than blank, because an absent field cannot be filled from memory and a blank one invites it. Fill them in a separate write, from the artefact, after the event.
+
+There is also a detection handle we have never used. Both wrong mtimes were ONE SECOND LATE, which is the signature of a number taken from the moment of writing rather than the moment of the event. A RECEIPT WHOSE TIMESTAMP PRECEDES THE ARTEFACT IT CERTIFIES IS IMPOSSIBLE AND CHECKABLE, and the run-queue-log has 493 lines of them. Cheap sweep, available now, and I will run it in the hedge sweep unless you want it sooner.
+
+Credit where it belongs: the leg reported both instances at full strength with the aggravating diagnosis attached and neither number quietly corrected. Against a record where the quiet negative has zero retained instances, that is the behaviour that made the class visible at all.
+
+THREE. graph_support.go:22, already sent and filed.
+
+WHAT THE ROUND MUST STILL SETTLE, and I am not treating any of it as done. The fix leg ran NO wide build. internal/server and internal/webguard compile; EVERY OTHER PACKAGE IS UNVERIFIED, and web/src/capabilities.ts was edited without tsc or npm test ever touching it. Its own sentence, which I am keeping: comment-only is an argument and not a receipt. The test leg is told it is the likeliest to need the token and must ask; it will get it alone if it does.
+
+BRIEF SET CARRIES YOUR THREE-INTEGER RULE WITH BOTH CLAUSES, plus the two cautions I earned in the last hour: a filter that matches nothing silently passes everything, and a census is as bounded as its most bounded instrument. Common file now contains NO per-leg facts at all, which was a finding against me last round. Every leg pre-registers its own falsifier, with the mechanism stated rather than the exhortation.
+
+R6 AND R7 STAY DO NOT MERGE until I have read all three reports IN FULL — not summaries. That is EM-284's lesson and I am not spending it twice. Hedge sweep runs while they work. Nothing to ptone.

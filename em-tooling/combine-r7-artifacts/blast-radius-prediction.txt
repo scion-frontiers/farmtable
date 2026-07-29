@@ -1,0 +1,164 @@
+PREDICTION — M8 (and siblings) blast radius on the COMBINED round-7 tree
+=========================================================================
+Written by: dev-194-combine-r7
+Tree:       /workspace, branch label-write-scope-r7, HEAD 15b7247c7745c661cbd45a0a35024bb36eff5c05
+Merge of:   base 6ced24e + leg A cc953e4 (5 commits) + leg B 4df2d1e (2 commits)
+
+WRITTEN BEFORE ANY MUTATION WAS APPLIED AND BEFORE ANY TEST WAS RUN ON THIS
+TREE. Derived from a static read of the call graph only. No trial run informed
+any number below. Timestamp is the file's git-add time in the combine commit.
+
+INPUTS I USED (all static):
+  - grep for every reference to `authorizationStage` in the repo
+  - the bodies of its 3 production callers
+  - leg A's full diff against the base for internal/platform/github/** and
+    internal/store/**
+  - leg B's report (dev-194-r7b.md) for the leg-B-alone numbers I am carrying
+    forward: M8 target test GREEN->RED, package radius 27 -> 28 top-level.
+
+-------------------------------------------------------------------------
+1. THE CALL GRAPH (static)
+-------------------------------------------------------------------------
+`authorizationStage` is defined at internal/platform/github/terminal_label_stages.go:46
+(NOT in labels.go — see the WHERE-THE-BRIEF-IS-WRONG note in my report).
+
+It has exactly THREE production callers:
+  C1  LabelMapper.StageLabelSwap          labels.go:392  (call at :402)
+  C2  LabelMapper.TerminalLabelStage      labels.go:652  (call at :659)
+  C3  LabelMapper.AllTerminalLabelStages  terminal_label_stages.go:166 (call at :178)
+
+Everything else that names it is a test or a comment.
+
+-------------------------------------------------------------------------
+2. WHAT LEG A DID TO THAT NEIGHBOURHOOD
+-------------------------------------------------------------------------
+Leg A changed 4 files in internal/platform/github: config.go, passthrough.go,
+resolver.go, and it ADDED resolver_test.go. I read each for a new or removed
+path to C1/C2/C3:
+
+  a) RestrictLabelWriteToSnapshot (new, passthrough.go) matches labels with
+     `labelMatchKey` only. It does NOT reach authorizationStage. NO new edge.
+  b) writeLabelSwap (new, passthrough.go) is a pure write primitive over
+     labelNamesToIDs + gql.add/removeLabels. NO new edge.
+  c) resolver.go now threads *GitHubConfig into NewPassThroughStore instead of
+     nil. This changes WHICH config a resolver-built mapper uses, but adds no
+     new call edge, and no pre-existing test in the package calls
+     NewPlatformResolver (verified: the only non-test caller is
+     cmd/farmtable-server/main.go:82).
+  d) config.go adds DefaultConfigPath. No behaviour change.
+  e) internal/store/store.go and multistore.go changes are PURELY ADDITIVE —
+     a new SnapshotLabelWriteRestrictor interface, a new package helper, and a
+     new MultiStore method. `LabelDeltaLifecycleStages` in both files is
+     byte-unchanged from base.
+
+  ==> Leg A adds NO new production edge to authorizationStage and removes none.
+      The ONLY new consumer is leg A's new TEST file.
+
+  f) resolver_test.go adds THREE top-level tests:
+       T1 TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore (5 subtests)
+       T2 TestNewPlatformResolver_DeclinesNonGitHubPlatforms
+       T3 TestNewPlatformResolver_RejectsAMalformedRemoteID
+     T1 drives GitHubPassThroughStore.LifecycleStages, whose body is
+        `if stages := s.mapper.AllTerminalLabelStages(t.Labels); len(stages) > 0 { return stages }; return []task.Stage{t.Stage}`
+     — i.e. T1 reaches authorizationStage through C3. T2 and T3 never build a
+     mapper answer; they assert on resolver dispatch only.
+
+-------------------------------------------------------------------------
+3. PREDICTION — M8: authorizationStage forced to return ("", false)
+-------------------------------------------------------------------------
+Under M8, C3 (AllTerminalLabelStages) can never populate `present`, so it
+returns nil for every label set. Therefore LifecycleStages always falls through
+to `[]task.Stage{t.Stage}` = [accepted] for T1's fixture.
+
+Cell-by-cell for T1 (want vs got):
+  1 custom_prefix_honours_the_operators_label   want terminal=true  -> got false  FAIL
+  2 custom_prefix_rejects_the_default_spelling  want terminal=false -> got false  pass
+  3 default_config_honours_the_default_spelling want terminal=true  -> got false  FAIL
+  4 default_config_rejects_a_custom_spelling    want terminal=false -> got false  pass
+  5 nil_config_still_means_the_defaults         want terminal=true  -> got false  FAIL
+  The `len(stages) == 0` guard is NOT tripped (len is 1), so the failures land
+  on the terminal assertion, not the contract Fatalf.
+  ==> T1 goes RED.  T2 GREEN.  T3 GREEN.
+
+PREDICTED PACKAGE BLAST RADIUS FOR M8 ON THE COMBINED TREE:
+    28 (leg B alone) + 1 (T1)  =  ** 29 top-level tests **
+
+PREDICTED target-test result (leg B's probe):
+    TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader -> RED, exit 1
+    (unchanged from leg B; leg A touched neither that test nor C1)
+
+DIRECTION: I predict the radius goes UP by exactly 1, not down. I am NOT
+predicting any test stops depending on authorizationStage, because leg A
+deleted no test and removed no call edge.
+
+CONFIDENCE / WHERE I COULD BE WRONG:
+  - If the 28 leg-B figure counted something other than distinct top-level
+    FAIL lines, my +1 arithmetic is still right but the absolute number moves.
+  - If leg A's now-returned label-write errors (10 un-discarded sites) cause a
+    package test to fail for an unrelated reason under M8, the radius would be
+    >29. I judge this unlikely IN THE UP DIRECTION and impossible in the down
+    direction: under M8 StageLabelSwap computes an EMPTY remove list, so
+    writeLabelSwap makes strictly FEWER GraphQL calls, i.e. strictly fewer
+    opportunities to error than in an unmutated run.
+
+-------------------------------------------------------------------------
+4. PREDICTIONS — the other leg-B mutations I will re-run
+-------------------------------------------------------------------------
+Selection rule: re-run every leg-B mutation whose TARGET CODE lives in a file
+leg A changed, OR whose target function is newly consumed by a leg A test.
+
+  MS1  delete the `len(stages) > 0` guard from GitHubPassThroughStore.LifecycleStages
+       [passthrough.go — a file LEG A CHANGED, and the exact function T1 calls]
+       PREDICT: leg B's TestLifecycleStageSetStager_EmptySideIsDetectable RED (as leg B measured).
+       PREDICT NEW: T1 also goes RED, and for a DIFFERENT reason than M8 —
+       cells 2 and 4 get an empty slice back and trip T1's
+       `len(stages) == 0 -> t.Fatalf("...contract forbids")` guard. Cells 1,3,5
+       still pass. This is an interaction leg B could not have measured.
+
+  MA1  AllTerminalLabelStages returns [completed] instead of nil when nothing present
+       [terminal_label_stages.go — leg A did NOT change this file, but T1 consumes C3]
+       PREDICT: leg B's TestLifecycleStageSetStager_EmptySideIsDetectable RED.
+       PREDICT NEW: T1 RED — cells 2 and 4 now see [completed], terminal=true,
+       want false. Cells 1,3,5 pass. Again a new leg-A-only dependency.
+
+  MCA  store.LabelDeltaLifecycleStages non-implementer arm -> [cancelled] both endpoints
+       [internal/store/store.go — a file LEG A CHANGED]
+       PREDICT: TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected RED (unchanged).
+       PREDICT NO CHANGE from leg B: leg A's edit to store.go is additive and
+       LabelDeltaLifecycleStages is byte-identical to base.
+       ANCHOR HAZARD I EXPECT TO HIT: leg A's new package-level
+       RestrictLabelWriteToSnapshot has the same `restrictor, ok := ...; if !ok`
+       shape. A short anchor like "if !ok {" is now MORE ambiguous in this file
+       than it was on leg B's tree. I will anchor on the full 4-line body
+       including `current := []task.Stage{LifecycleStage(ctx, s, t)}` and abort
+       if it is not unique.
+
+  MCB  MultiStore.LabelDeltaLifecycleStages unrouted arm -> [cancelled] both endpoints
+       [internal/store/multistore.go — a file LEG A CHANGED]
+       PREDICT: TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer RED
+       (leg B measured RED both before and after its change).
+       PREDICT NO CHANGE from leg B, same reasoning as MCA.
+
+NOT RE-RUN, with justification:
+  MNEW (add `archived` to the task.Stage enum, StageValidator and allStages).
+       Leg A touched none of the ent generated enum, StageValidator, or
+       allStages, and no leg A test reads allStages. There is no leg-A edge
+       into what MNEW perturbs. Cost is also high (hand-editing generated code).
+  M9   (reverse terminalStagePrecedence).
+       Leg A did not touch labels.go at all, and terminalStagePrecedence is
+       reached only via C2 (TerminalLabelStage). T1 reaches C3, and C3
+       deliberately does NOT consult terminalStagePrecedence (documented at
+       terminal_label_stages.go:158-162). So there is no new leg-A path to what
+       M9 perturbs. PREDICTION IF RUN ANYWAY: identical to leg B (target GREEN,
+       Cardinality RED).
+
+-------------------------------------------------------------------------
+5. HARNESS PRECONDITIONS I WILL ENFORCE (abort, not continue)
+-------------------------------------------------------------------------
+  - baseline package GREEN before any mutation, else abort
+  - every mutation anchored on unique CONTENT; non-unique or absent -> abort
+  - a mutation that fails to COMPILE aborts rather than scoring RED
+  - revert verified by re-reading the file and comparing sha256 to a pristine
+    out-of-repo copy, not by trusting the write
+  - a run that collects 0 top-level test names aborts as void
+  - exit codes read from the child process, never through a pipe

@@ -1,0 +1,9 @@
+=== RUN   TestAUDIT_REV0_HarnessIsStateful
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:220:     add    : [ft:stage/wont_fix] -> [ft:stage/accepted ft:stage/wont_fix]  OK
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> [ft:stage/accepted]
+    zzz_audit_rev2_test.go:238:     remove : [ft:stage/accepted ft:stage/wont_fix] -> [ft:stage/accepted]  OK
+    zzz_audit_rev2_test.go:239:     HARNESS PROVEN STATEFUL IN BOTH DIRECTIONS
+--- PASS: TestAUDIT_REV0_HarnessIsStateful (0.01s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.017s

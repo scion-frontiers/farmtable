@@ -1,0 +1,75 @@
+DISPATCH - ts-diff-r8. Read your brief first: briefs/ts-diff-r8.md. Everything below is
+addition and context, not a replacement.
+
+WHY YOU MATTER MORE THAN THE BRIEF MAKES IT SOUND. You will be the only agent on this project
+holding a genuinely clean checkout, outside /workspace, that you are permitted to build in.
+Three separate legs have hit questions they could not answer because they lacked exactly that,
+and correctly refused to work around it. You are the resolution to all three. Take that as
+licence to measure carefully, not as pressure to produce a green.
+
+THREE MEASUREMENTS, IN THIS ORDER OF IMPORTANCE:
+
+  1. THE TYPESCRIPT DIFFERENTIAL, brief sections 1 to 5. npm ci, npx tsc --noEmit, npm test on
+     both arms, e4e3d13 and 901670e. The round's ONLY executable production change is three
+     lines of TypeScript, and nothing has ever compiled them.
+
+  2. THE CLEAN-CHECKOUT GO BUILD, brief section 9. go build, go vet, go test on the BASE arm.
+
+  3. NEW, ADDED AFTER THE BRIEF WAS WRITTEN - see below.
+
+=== MEASUREMENT 3: RE-CHARACTERISE A FLAKE, PROPERLY THIS TIME ===
+
+TestWatchTasks_CreatedEvent in internal/server/watch_test.go went RED once at 5.01s in a full
+suite, then GREEN three times in isolation at ~0.013s, then GREEN in a second full suite. It was
+reported as a confirmed flake, and the leg that reported it has since VOIDED that
+characterisation itself, unprompted, because the procedure had no base arm and re-ran only the
+arm that disagreed. It is now UNCHARACTERISED. Nobody knows whether that red is a flake or a
+regression.
+
+You will already have both arms cloned, so this is cheap for you and expensive for anyone else.
+
+    go test ./internal/server/ -count=1
+
+internal/server is NOT one of the four packages the embed blocker kills, so this runs even
+though the whole-tree build does not. Confirm that yourself before relying on it.
+
+Run it INTERLEAVED across both arms - base, head, base, head - with the run count per arm FIXED
+AND WRITTEN DOWN BEFORE YOU START. I suggest five pairs. Report every single run with its arm,
+its duration, and pass or fail. Do not stop early because a pattern looks clear, and do not add
+runs because it does not.
+
+WHAT THE OUTCOMES MEAN:
+  - Reds on BOTH arms at similar rates -> pre-existing flake, not the diff. The likely answer.
+  - Reds ONLY on the head arm -> this is a regression and it is the most important thing you
+    will find. Say so immediately, do not wait until your report is finished.
+  - Zero reds on either arm across ten runs -> the flake is load-dependent and your container is
+    quiet. That is a REAL result, it is NOT evidence the flake does not exist, and you must
+    report it in exactly those terms.
+
+The 5.01s versus 0.013s gap suggests a timeout rather than a logic failure, and there is a known
+LOST-EVENT race in this area - an event published before the handler subscribes is dropped, and
+load widens that window by delaying the handler's scheduling. TREAT THAT AS A HYPOTHESIS I AM
+HANDING YOU, TAGGED UNCHECKED, NOT AS BACKGROUND FACT. It matters because it means load and the
+defect share a causal pathway, which is exactly the case where a wide separation between arms
+proves nothing.
+
+=== FOUR THINGS THAT WILL SAVE YOU TIME ===
+
+  There is no build token any more and no queue. Build freely in your own /tmp clones.
+
+  DO NOT enter, build in, or modify any tree under /workspace. Several are deliberately unbuilt
+  and a build inside one destroys their only useful property. Two legs have already had to
+  disclose doing this because MY earlier wording was ambiguous - it was my fault, not theirs,
+  and I am telling you so you are not the third.
+
+  If a rule in the brief cannot be satisfied, SAY SO AND STOP rather than working around it. Two
+  legs did that today and both refusals were correct and useful.
+
+  Nothing I have told you is load-bearing until you have measured it, INCLUDING the two commit
+  SHAs, the three-executable-lines figure, the four-failing-packages list, and the flake story
+  above. If your number disagrees with mine, YOUR NUMBER WINS and I want the disagreement stated
+  loudly rather than reconciled quietly.
+
+DELIVERABLES, ALL THREE REQUIRED: reports/ts-diff-r8.md, a project log entry under
+.design/project-log/, and a short message back to me. You MUST write the report and the log
+entry and then mark the task complete.

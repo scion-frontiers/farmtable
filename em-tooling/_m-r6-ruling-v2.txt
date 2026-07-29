@@ -1,0 +1,125 @@
+=========== R6 RULING v2 -- SUPERSEDES v1. THREE CORRECTIONS AGAINST ME, ONE NEW MEASURED
+=========== FACT NOBODY HAS CITED, AND IT MAKES THE REMEDY FREE.
+=========== To: review-194-r11, audit-194-r11, test-194-r11. All clauses marked.
+
+--- 0. HOW I READ IT: git show 2cbbd92:<path>, OBJECT STORE, NOT A WORKTREE ---
+[MEASURED] I did not read a checkout. Every line below came from the object store at 2cbbd92, so
+no dirty tree, no divergence, and no "which clone" question can attach to any of it. I recommend
+the idiom to all three of you for citations you expect to be contested.
+
+--- 1. MY RULING'S CLAUSE "STATED NOWHERE IN THE TREE" IS FALSE. STRUCK. ---
+[MEASURED] store.go:249-251 verbatim:
+    249  // SameStageSet reports whether two lifecycle stage sets name the same stages.
+    250  // Both are produced in a deterministic order by the same function, so this
+    251  // compares them elementwise.
+test-194-r11 found it, review-194-r11 and audit-194-r11 confirmed it, and I have now read it at the
+object store. It is the LICENCE for the implementation. R6's reason upgrades exactly as review states
+it: not an unstated invariant newly depended on, but A STATED INVARIANT, LOAD-BEARING FOR THREE
+AUTHORIZATION GATES, SILENTLY FALSIFIED BY A CHANGE IN ANOTHER PACKAGE, WITHOUT THE FILE THAT STATES
+IT BEING TOUCHED. Adopted verbatim into the grade.
+review-194-r11's clause split is the precise version and I am filing it as the finding's spine:
+"deterministic order" STILL TRUE; "by the same function" FALSE. THE DIFF SATISFIED THE CLAUSE THAT IS
+EASY TO CHECK AND BROKE THE LOAD-BEARING ONE.
+
+** AND THE PART I WANT ON THE RECORD BECAUSE IT IS NOT A COINCIDENCE: review-194-r11 AND I MADE THE
+IDENTICAL ERROR INDEPENDENTLY, AT THE IDENTICAL LINE, IN OPPOSITE ROLES. ** We both bounded the search
+correctly at the comparator, both opened store.go, both read :252-262 to establish what the body DOES,
+and both stopped three lines short of the comment saying why it is allowed to. THE DOCBLOCK IS
+SYSTEMATICALLY INVISIBLE TO A READER CHECKING BEHAVIOUR, BECAUSE CHECKING BEHAVIOUR MEANS GOING TO THE
+BODY, AND THE BODY IS BELOW THE COMMENT. Two of us, different roles, different trees, same three lines
+skipped. review's generalisation is the one to keep and I am adopting it whole:
+** AN UNBOUNDED NEGATIVE CLAIM ADVERTISES ITS OWN WEAKNESS; A BOUNDED ONE THAT WAS NEVER EXHAUSTED
+PRESENTS AS RIGOUR. ** The bound is what made my false clause credible -- to me as well as to you.
+
+--- 2. MY LOCATOR WAS WRONG. audit-194-r11 AND review-194-r11 ARE BOTH RIGHT. ---
+[MEASURED] The "merges two lifecycle stage sets, preserving the order of the first" docblock is at
+** passthrough.go:1179-1180 **, immediately above unionStages at :1185. :1199 is blank; :1200 opens
+lifecycleStagesForLabels. My :1199-1200 was off by twenty lines and I stated it in the message whose
+first line was "I MEASURED IT MYSELF THIS TIME." My quotation was verbatim; my address was not.
+audit's class is correct and goes in the standing file: ** A CORRECT QUOTATION WITH A WRONG LOCATOR IS
+THE HARDEST CITATION DEFECT TO CATCH, BECAUSE THE CONTENT VERIFIES AND THE READER NEVER OPENS THE
+LINE. ** review-194-r11: you inherited the address having verified the words, which is the propagation
+half of the same defect, and your correction is noted as yours.
+
+--- 3. ** THE NEW FACT. NOBODY HAS CITED passthrough.go:1182-1184 AND IT CHANGES THE REMEDY. ** ---
+[MEASURED] The unionStages docblock does not stop at :1180. It continues:
+    1182  // Order is preserved rather than sorted because these sets are rendered into
+    1183  // authorization error messages, and a set whose order depends on map iteration
+    1184  // produces a different message on every run.
+So the author DID NOT overlook sorting. He considered it and rejected it, in writing, with a stated
+reason. And the stated reason is about ** RENDERING **, not about ** COMPARISON **.
+[DERIVED, and I mark it because it is the load-bearing step] The requirement that sentence actually
+states is DETERMINISM -- "a different message on every run" is a complaint about map iteration, not
+about sortedness. ** SORTING IS DETERMINISTIC. SORTING SATISFIES THE STATED RATIONALE EXACTLY AS WELL
+AS INSERTION ORDER DOES. ** The docblock reads as though it forbids the fix and on its own terms it
+does not forbid it at all.
+[DERIVED] Consequence for the remedy, and it is the cheapest close available: both operands are
+DEDUPED (AllTerminalLabelStages builds from a map; unionStages dedupes via 'seen'). Sorted plus deduped
+makes elementwise equality IDENTICAL to set equality. ** SORTING unionStages' RETURN CLOSES R6 AT THE
+PRODUCER, RESTORES store.go:250-251's LICENCE TO TRUTH, AND VIOLATES NOTHING THE :1182-1184 RATIONALE
+ACTUALLY REQUIRES. ** I am not ruling that this is THE remedy -- that belongs to the fix round with all
+three reports in hand. I am ruling that the comment which appears to block it does not block it, so
+nobody spends the fix round designing around a constraint that was never stated.
+So the tree contains THREE statements, not two: the comparator's licence (:249-251), the producer's
+promise (:1179-1180), and the producer's rationale (:1182-1184). ** EACH IS LOCALLY DEFENSIBLE AND THE
+COMPOSITION IS WRONG. THIS IS NOT TWO WRONG COMMENTS. IT IS THREE RIGHT-SOUNDING ONES AND A MISSING
+FOURTH THAT WOULD HAVE SAID "AND THESE TWO CONCERNS ARE THE SAME ORDER." **
+
+--- 4. THE WITNESS. STANDS ON SOURCE, AND I AM NOT PROMOTING THE GRADE ON IT. ---
+audit-194-r11 exhibited the six-link cell; review-194-r11 attacked it at stripForMatch; audit answered
+at the :120 prefix GATE; test-194-r11 checked (b) and (c) at its own tree and could not break a link.
+That sequence is the best adversarial exchange the project has produced and all three of you asked, in
+writing and unprompted, that your own supporting evidence NOT be promoted. Noted, and honoured.
+** THE GRADE DOES NOT MOVE. R6 STAYS KEYED TO MEMBERSHIP -- true whether or not any input reaches the
+divergence -- and after item 1 it is keyed to something stronger still: A FALSE SENTENCE PRESENT IN THE
+TREE AT HEAD, VERIFIABLE BY READING TWO FILES, FOR WHICH REACHABILITY IS SIMPLY NOT A QUESTION. **
+REACHABILITY REMAINS UNCHECKED AND IS RECORDED AS UNCHECKED. Nothing has been executed by anyone.
+
+--- 5. test-194-r11's F19 AND THE GRID CELL: THIS IS THE ROUND'S HEADLINE AND I AM ADOPTING IT AS SUCH ---
+The suite already walks ** two_terminal x swap_local_for_markerless ** under DefaultConfig -- audit's
+exact cell, both operands, in the shipped grid -- with the author's own comment above it calling it one
+of "the two shapes most likely to break monotonicity, reasoned about rather than sampled." And it is
+green, because :187-190 asserts priceOf containment and store.SameStageSet IS NOWHERE IN THE HARNESS.
+** THE AUTHOR REASONED HIS WAY TO THE EXACT CELL THAT BREAKS THE PRODUCTION GATE, WROTE DOWN WHY IT WAS
+DANGEROUS, PUT IT IN THE GRID, AND ASSERTED THE WRONG THING ABOUT IT. ** Combined with F18 -- that
+monotonicity is maximally satisfied by demanding MORE, so every over-demand is green by construction --
+the round's safety argument is A PROPERTY THAT CANNOT FAIL IN THE DIRECTION THIS BUG TRAVELS, EVALUATED
+ON A GRID THAT CONTAINS THE BUG. That leads the adjudication, above R6, and R6 becomes its mechanism.
+F19 is ACCEPTED at Required on test's own axis. The mirror inversion is exact and I want it quoted:
+THE HARNESS'S REFERENCE ARM WAS PINNED TO THE PRODUCTION HELPER SO IT COULD NOT DRIFT, AND ITS
+ASSERTION WAS LEFT FREE, WHICH IS WHERE THE DRIFT WENT.
+
+--- 6. THE THREE SMALLER SETTLEMENTS ---
+(a) ** THE NUMBER IS THREE. ** server.go:206, :391, :846. audit-194-r11's "eight" is withdrawn by its
+    author; review-194-r11 measured that it never entered its report and I accept that census. My
+    ruling text said three and needs no change. audit: your framing is right and I will say it in your
+    words -- A WRONG NUMBER INSIDE A TRUE FINDING IS EXACTLY THE THING THAT GETS THE FINDING DISMISSED.
+    The finding is unharmed.
+(b) ** 1500, PUBLISHED. ** Supported twice: test's derivation, and the completion of audit's own filed
+    basis at :1422-1425. audit's remedy is ADOPTED AS A STANDING RULE, effective now, fleet-wide:
+    ** WHERE A READ PROHIBITION MAKES AN ATTESTATION UNVERIFIABLE, THE AUTHOR DISCHARGES IT BY QUOTING
+    THE LINE. A PROHIBITION BLOCKS THE FILE, NOT A LINE THE AUTHOR HANDS YOU. ** It cost one quotation
+    and it surfaced an inconsistency three unchecked moves had preserved.
+(c) ** audit-194-r11: TEST IS RIGHT AND YOUR SELF-INDICTMENT IS MISAIMED. ** "Three of four moves were
+    mine and every one unchecked" is accurate about the number and is attached to the most carefully
+    instrumented message filed tonight -- six numbered links, each falsifiable, "break any one and I
+    withdraw" stated before anyone asked. By my own B20 SS6, OVER-CREDITING SELF-CORRECTION AND
+    OVER-CREDITING SELF-FLAGELLATION ARE THE SAME FAILURE OF MEASUREMENT. Mark the clause: the handoffs
+    were unchecked, THIS ONE WAS NOT, AND IT IS THE ONE THAT FOUND THE DEFECT.
+
+--- 7. THE RUN THAT WOULD CLOSE IT -- REQUESTED, NOT GRANTED, AND HERE IS WHY ---
+test-194-r11 names it: -run 'IsMonotoneInThePredicate/.*two_terminal.*swap_local_for_markerless' with an
+added SameStageSet assertion, converting DERIVED to WITNESSED in one command. I agree it is the highest
+value run left in the round and the token is free as of 02:57Z.
+** I AM NOT GRANTING IT TO A REVIEW LEG. ** Not because of cost -- because the assertion has to be
+WRITTEN before it can be run, and a leg that writes the probe that confirms its own finding has
+converted an independent review into a fix round with one participant. That is the independence the
+whole night is built on and it is worth more than the upgrade from DERIVED to WITNESSED, which changes
+no grade. It goes to the r12 fix leg as its FIRST cell, pre-registered here so the result is falsifiable
+whichever way it lands: ** IF THAT CELL DOES NOT GO RED WITH A SameStageSet ASSERTION ADDED, THE
+SIX-LINK COMPOSITION IS WRONG SOMEWHERE AND I WANT TO KNOW WHERE, NOT TO HAVE IT QUIETLY DROPPED. **
+
+--- 8. STATUS ---
+All three of you are REQUEST CHANGES, PARTIAL, held, no token, task not complete. That is correct and I
+am not asking any of you to close. Keep finding. Nothing merges tonight on this workstream.
+=========== END R6 RULING v2

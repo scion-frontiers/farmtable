@@ -1,0 +1,45 @@
+secret needles recovered: 4 (values never printed)
+
+CONTROL ARM (a detector that cannot say YES ABORTS the run)
+   TOKEN-ONLY url (no colon)                  expect=True  got=True  ok
+   1-char username url                        expect=True  got=True  ok
+   classic user:pass url                      expect=True  got=True  ok
+   token-only url -> EXPECT MISS              expect=False got=False ok
+   1-char user -> EXPECT MISS                 expect=False got=False ok
+   no-userinfo url NEGATIVE                   expect=False got=False ok
+   planted classic PAT                        expect=True  got=True  ok
+   planted key header                         expect=True  got=True  ok
+   certificate NEGATIVE                       expect=False got=False ok
+   planted aws key                            expect=True  got=True  ok
+   short aws NEGATIVE                         expect=False got=False ok
+   literal present: LIVE HOST PAT             expect=True  got=True  ok
+   literal absent: LIVE HOST PAT              expect=False got=False ok
+   literal present: ft_ token 4b2cbad8ec9a    expect=True  got=True  ok
+   literal absent: ft_ token 4b2cbad8ec9a     expect=False got=False ok
+   literal present: ft_ token 7652751c6db2    expect=True  got=True  ok
+   literal absent: ft_ token 7652751c6db2     expect=False got=False ok
+   literal present: ft_ token 18844ad63260    expect=True  got=True  ok
+   literal absent: ft_ token 18844ad63260     expect=False got=False ok
+   19 controls, all live.
+
+OBJECTS ENUMERATED : 5397
+   by type: {'blob': 1972, 'tree': 2779, 'commit': 646}
+OBJECTS FED        : 5397  (fed == enumerated: PASS)
+BYTES SCANNED      : 46766499  (44.60 MiB)
+
+============================================================================
+RESULT - ALL DETECTORS, ALL OBJECT TYPES
+  LIVE HOST PAT                    0
+  ft_ token 4b2cbad8ec9a           0
+  ft_ token 7652751c6db2           0
+  ft_ token 18844ad63260           0
+  userinfo ANY (#209 shape)        *** 19 HIT(S) ***  ['07331518a46b0a71d97354d6348114131eea3479', '21789902ad2f2be3047ba056fcc4ff8b2c75824b', '2428598be521ced8538e5e6feac04876f493eb49', '30f8c729ce98d9496d04977dac22062d5ad1029d', '3e23943ddab7970879d3005dcbae176d58d4ffe2']
+  userinfo colon-required OLD      0
+  userinfo 1-char user             0
+  github classic PAT               0
+  github fine-grained              0
+  ft_ app token                    0
+  private key block                0
+  aws access key                   0
+
+elapsed 12.3 s

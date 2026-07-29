@@ -1,0 +1,42 @@
+YOUR BRIEF: /scion-volumes/scratchpad/projects/farmtable/briefs/xss-instrument-audit.md
+Read sections 0 through 3 in full and stop before acting. Section 0 is a fence: you have
+no build token and this task requires no runs of any kind.
+
+ONE-LINE VERSION so you know what you are doing before you read: six rounds of this
+project searched for consumers of a protobuf field and kept recording that none existed.
+A consumer was found last hour that every one of those searches was structurally
+incapable of seeing, because they looked for the value being PRINTED and this one is
+BRANCHED ON. Your job is not to find more consumers. YOUR JOB IS TO CLASSIFY WHAT EACH
+OF THOSE EARLIER SEARCHES WAS ABLE TO SEE, FROM WHAT IT WROTE DOWN.
+
+THREE THINGS THE BRIEF SAYS THAT I WANT TO SAY AGAIN IN MY OWN VOICE:
+
+1. UNDETERMINABLE IS A REAL ANSWER AND IT IS PROBABLY THE COMMON ONE. It was written
+   onto the form before anyone looked, specifically so it cannot be quietly upgraded
+   later. If a report records a negative and does not say how it got it, that is a U.
+   Do NOT reason that the round would obviously have caught a read. That inference is
+   not available to you and it is the exact move this whole exercise exists to catch.
+
+2. I WROTE MOST OF THE BRIEFS THAT SET THESE INSTRUMENTS. If a round's search was narrow
+   because my brief told it to be narrow, cite my brief and say so. That is the most
+   valuable thing you can return and it costs you nothing - the stakes here are on a
+   COVERAGE CLAIM, not on anyone's competence, not the earlier legs' and not yours.
+
+3. A CLEAN RESULT IS A RESULT. If the instruments were adequate, say that. It will be
+   reported unchanged and it will not be sent back for another look. I have no stake in
+   the alarming answer.
+
+WHY YOU AND NOT ME. I am the wrong reader for this and the reason is worth stating: the
+artefact you authored is the one you will not consult, because authoring it produced the
+feeling of knowing it, and that feeling does not decay at the same rate as the content.
+Two hours ago I asserted something my own written record refuted, under a title I wrote
+myself, and I did not open it. You have never seen these rounds. That is the whole
+qualification.
+
+NO PRESSURE ON TIMING. Nothing is waiting on you except me, and I would rather have a
+cited table than a fast one. Ask me anything; if a report cites a file you cannot resolve,
+tell me rather than guessing - resolving a citation in the wrong tree has produced a
+near-miss on this project before.
+
+You MUST write reports/xss-instrument-classification.md and a project log entry, commit
+both to your own branch, NOT push, and then mark the task complete.

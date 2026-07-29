@@ -1,0 +1,155 @@
+{
+  "note": "Second attempt at R2 and C2-e. First attempt failed to reproduce both, and the reason was mine, not the reporters': (a) my import.meta line had no LATER `from '…'` clause to swallow forward to, so nothing was blanked; (b) my C2-e omitted the unicode escape, which is what CF-2 says isolates R7 as the only per-file rule the shrink removes.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "R2-importmeta",
+      "desc": "R2 verbatim: laundering file prepends import.meta above the value alias, with a later `from` clause for the match to run to",
+      "expect": "GREEN",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nconst dev = import.meta.env.DEV\nexport const rawHtml = unsafeHTML\nexport { css as _css } from 'lit';\nimport { css } from 'lit';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { renderMarkdown } from '../../util/markdown.js';",
+          "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { rawHtml } from './inspector-shared-styles.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${unsafeHTML(renderMarkdown(this.description))}\n        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "R2-control",
+      "desc": "FALSIFIER for R2: the identical bypass with the import.meta line removed must be RED, or import.meta is not what is doing the work",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nexport const rawHtml = unsafeHTML\nexport { css as _css } from 'lit';\nimport { css } from 'lit';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { renderMarkdown } from '../../util/markdown.js';",
+          "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { rawHtml } from './inspector-shared-styles.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${unsafeHTML(renderMarkdown(this.description))}\n        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "C2-e",
+      "desc": "T-2 verbatim: shrink REQUIRED_SINKS + escaped alias + raw render",
+      "expect": "GREEN",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+          "replace": "];"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+          "replace": "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "CF-1",
+      "desc": "T-2's counterfactual: identical mutation with EXPECTED_CHECKS back to a hard literal 69 must be RED",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);",
+          "replace": "const EXPECTED_CHECKS = 69;"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+          "replace": "];"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+          "replace": "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "CF-2",
+      "desc": "T-2's other counterfactual: identical mutation WITHOUT the escape must be RED via the tree-wide tripwire",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+          "replace": "];"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+          "replace": "import { unsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "E1b",
+      "desc": "T-4: revert `slot` from FORBID_ATTR AND hollow out its check body",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+          "replace": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  check('slot attribute stripped', () => {\n",
+          "replace": "  check('slot attribute stripped', () => {\n    if (Date.now() > 0) return;\n"
+        }
+      ]
+    }
+  ]
+}

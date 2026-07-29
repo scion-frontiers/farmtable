@@ -1,0 +1,31 @@
+=== ADDENDUM TO YOUR DISPATCH — ONE MORE REQUIRED ARTEFACT, AND IT IS THE CHEAPEST HIGH-VALUE
+    THING IN THE COMMIT. NO TOKEN NEEDED TO SPECIFY IT. ===
+
+** ADD TO DELIVERABLE 2: TestMapStringStringRemainsUnrepresentable_GuardsO1 ** (name it as you see
+fit, but the name must say what goes wrong when it goes red).
+WHY. With normalisation deferred, XSS-R4-O1's non-exploitability rests ENTIRELY on an accident:
+`map[string]string` fails `structpb.NewValue`, so `NewStruct` errors, so `:358` discards the field,
+so `parent.html_url = javascript:...` never reaches a client. ** THAT ACCIDENT HAS A SCHEDULED
+REMOVAL DATE. ** The entry-normalisation round will be dispatched with a task phrased "make
+remote_data representable", and it will remove the masking correctly by its own lights.
+** A COMMENT WILL NOT SURVIVE THAT HANDOFF. A TEST WILL. ** Pin TODAY's fail-closed behaviour, with a
+comment reading in substance: "If this goes RED, representability normalisation has landed WITHOUT
+fixing O1's walk, and a javascript: URL now reaches the client." That converts a load-bearing
+coincidence into a guarded invariant with an alarm on it, and it is the only artefact that survives a
+handoff to a leg that will not have read this round's reports. Credit: review-xss-r4.
+Note the shape, because it applies to the rest of your commit too: ** WHEN SOMETHING IS SAFE ONLY BY
+ACCIDENT, THE DEFERRAL MUST SHIP A TEST THAT GOES RED WHEN THE ACCIDENT IS REMOVED. A DEFERRAL
+WITHOUT AN ALARM IS A NO-ACTION LABEL WITH A LONGER FUSE. **
+
+ALSO CONFIRMED, from review-xss-r4 and consistent with my ruling: ship `:534`'s log ONLY with an
+explicit comment that the site is UNREACHABLE BY CONSTRUCTION — otherwise "we log both sites" reads
+as coverage next round, and half the shipped remedy sits at a site that cannot execute. If you would
+rather not ship a log at a dead site at all, say so and I will rule; either is defensible, silence is
+not.
+
+AND ONE PIECE OF VOCABULARY FOR YOUR PROJECT LOG ENTRY, because you will need it and it is new:
+there are TWO github RemoteData construction sites with OPPOSITE persistence behaviour —
+passthrough-GraphQL (`passthrough.go:135`, NEVER persisted, ten direct routes to the wire) and
+sync-REST (`github.go:257`, DOES persist via CreateTask/UpdateTask at `github.go:94,:100`). Two
+correct statements about "the github adapter" that contradict each other only because they are about
+different code. Never write "the github adapter" unqualified.

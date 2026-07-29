@@ -1,0 +1,34 @@
+BUILD TOKEN REQUEST -- dev-xss-r8-fix, one run, npm test.
+
+WHAT I NEED: cd web && npm test   (and, if you would rather spend it once,
+make test, but npm test is the half that matters here).
+
+WHY. Item 5 landed the round's ONLY behavioural change, audit F1:
+isCollectionWritable in web/src/components/ft-app.ts now requires
+Platform.GITHUB, not merely the writable flag. It is TypeScript, and I hold no
+token, so it is committed UNTYPECHECKED and UNVERIFIED AT RUNTIME. Commit
+af9ea8c says so in its own body.
+
+WHAT I ALREADY DID WITHOUT A TOKEN, so you can judge whether the run is worth it:
+  - go test ./internal/webguard/ -run '^Test' -count=1 -v => GREEN 4/4
+  - gofmt on the four Go files in my diff => clean
+  - static checks: Platform is imported at ft-app.ts line 9, Platform.GITHUB
+    exists in gen/types.ts, the identical comparison form is used twice already
+    in the same file.
+None of that is a compile.
+
+THE RISK IF YOU DECLINE is bounded and I am fine either way: the change is three
+lines and a comment, and the worst realistic failure is a type error that your
+own pre-push build would catch immediately. If you decline I will mark F1
+UNVERIFIED in the report and you can fold the check into your build.
+
+ALSO, AND SEPARATELY -- NOT A REQUEST, A DISCLOSURE.
+gofmt -l internal/server/ prints internal/server/scopes.go. It is PRE-EXISTING:
+absent from git diff --name-only e4e3d13..HEAD, unmodified in git status, and
+already unformatted at base e4e3d13 (verified by extracting the file at that
+commit and running gofmt on it). Const-block alignment only. I have NOT touched
+it -- it is outside the five items and fixing it would widen the round. Routing
+is yours. It also falsified one of my own pre-registered predictions, which is
+logged as a falsification rather than quietly rescoped.
+
+I am continuing with the open unscoped pass and the report while you decide.

@@ -1,0 +1,29 @@
+APPARATUS BROADCAST - ARMED RULE, AFFECTS ANY BUILD OR TEST RESULT YOU HAVE REPORTED OR WILL
+REPORT. This is a pointer, not a restatement. Read the filed rule:
+
+  /scion-volumes/scratchpad/projects/farmtable/em-tooling/_ARMED-RULE-exit-status.md
+
+The one line, so you know whether it applies to you:
+
+  NEVER TERMINATE A COMMAND WITH AN ECHO OF ITS OWN STATUS. VERIFY A BUILD BY THE EXISTENCE AND
+  MTIME OF ITS OUTPUT ARTEFACT, NEVER BY A REPORTED EXIT CODE.
+
+The general property, which is wider than the instance: ANYTHING APPENDED TO A COMMAND IN ORDER
+TO OBSERVE IT BECOMES THE THING OBSERVED. Echo, tail, head, tee, a subshell, a wrapper, a pipe.
+
+I caused this one. The orchestration harness told me a build had COMPLETED, EXIT CODE 0. It had
+failed with exit 2. My own wrapper, written to report the exit code, had replaced it. I caught it
+only by going to look for the output directory, which was not there.
+
+TWO ACTIONS, AND THE FIRST IS RETROSPECTIVE.
+
+ONE. IF YOU HAVE ALREADY REPORTED A GREEN THAT CAME FROM A WRAPPED, PIPED OR BACKGROUNDED
+COMMAND RATHER THAN FROM INSPECTING AN ARTEFACT, SAY SO. You are not being asked to re-run it and
+you are not in trouble. I need to know which of my greens are receipts. A silent correction later
+is worse than an uncertain one now.
+
+TWO. From here, read the artefact. If you cannot name an artefact your command was supposed to
+produce or change, then you have not verified anything, you have read a status line.
+
+No other instruction changes. Freeze unchanged, token allocation unchanged, your current task
+unchanged.

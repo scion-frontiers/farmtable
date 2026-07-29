@@ -1,0 +1,97 @@
+
+> farmtable-web@0.0.1 test
+> node scripts/run-node-tests.mjs
+
+Compiling 6 Node test script(s) with tsconfig.test.json…
+Running 6 test file(s) under node v20.20.2.
+TAP version 13
+# capabilities: ok
+# \#assertions 103
+# Subtest: /tmp/tip439/web/.tmp-test/capabilities.test.js
+ok 1 - /tmp/tip439/web/.tmp-test/capabilities.test.js
+  ---
+  duration_ms: 111.608102
+  ...
+# render-sink-xss: OK
+# \#assertions 37
+# Subtest: /tmp/tip439/web/.tmp-test/components/inspector/render-sink-xss.test.js
+ok 2 - /tmp/tip439/web/.tmp-test/components/inspector/render-sink-xss.test.js
+  ---
+  duration_ms: 1423.336241
+  ...
+# assertions: ok
+# \#assertions 9
+# Subtest: /tmp/tip439/web/.tmp-test/util/assertions.test.js
+ok 3 - /tmp/tip439/web/.tmp-test/util/assertions.test.js
+  ---
+  duration_ms: 108.295241
+  ...
+# \#assertions 1
+# file:///tmp/tip439/web/.tmp-test/util/assertions.js:48
+#         throw new Error(message);
+#               ^
+# Error: safeHref("javascript:alert(1)") should be undefined for "javascript", got "javascript:alert(1)"
+#     at assert (file:///tmp/tip439/web/.tmp-test/util/assertions.js:48:15)
+#     at testRejectsUnsafeSchemes (file:///tmp/tip439/web/.tmp-test/util/safe-url.test.js:108:9)
+#     at run (file:///tmp/tip439/web/.tmp-test/util/safe-url.test.js:489:5)
+#     at file:///tmp/tip439/web/.tmp-test/util/safe-url.test.js:499:7
+#     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+#     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+# Node.js v20.20.2
+# Subtest: /tmp/tip439/web/.tmp-test/util/safe-url.test.js
+not ok 4 - /tmp/tip439/web/.tmp-test/util/safe-url.test.js
+  ---
+  duration_ms: 969.989442
+  location: '/tmp/tip439/web/.tmp-test/util/safe-url.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# url-binding-scan: ok
+# \#assertions 157
+# Subtest: /tmp/tip439/web/.tmp-test/util/url-binding-scan.test.js
+ok 5 - /tmp/tip439/web/.tmp-test/util/url-binding-scan.test.js
+  ---
+  duration_ms: 315.714723
+  ...
+# \#assertions 10
+# Subtest: /tmp/tip439/web/.tmp-test/utils/task-ready.test.js
+ok 6 - /tmp/tip439/web/.tmp-test/utils/task-ready.test.js
+  ---
+  duration_ms: 103.433574
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1432.092742
+node:internal/errors:984
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /usr/local/bin/node --test .tmp-test/capabilities.test.js .tmp-test/components/inspector/render-sink-xss.test.js .tmp-test/util/assertions.test.js .tmp-test/util/safe-url.test.js .tmp-test/util/url-binding-scan.test.js .tmp-test/utils/task-ready.test.js
+    at genericNodeError (node:internal/errors:984:15)
+    at wrappedFn (node:internal/errors:538:14)
+    at checkExecSyncError (node:child_process:891:11)
+    at execFileSync (node:child_process:927:15)
+    at run (file:///tmp/tip439/web/scripts/run-node-tests.mjs:51:3)
+    at file:///tmp/tip439/web/scripts/run-node-tests.mjs:131:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 55919,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v20.20.2

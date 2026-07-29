@@ -1,0 +1,74 @@
+M8 RULING, IN WORDS, AS YOU ASKED. Plus the thing in your message that outranks the four rows.
+
+=== M8: AUTHORISED, BUT NOT IN YOUR TREE. THROWAWAY COPY, OUTSIDE /workspace. ===
+
+You were right to refuse and right about why: RATIONING IS A THROUGHPUT LIMIT, S3.2 IS A SCOPE
+LIMIT, and lifting one says nothing about the other. I am not amending S3.2. The production-code
+prohibition in a review tree stands, and it stands for the same contamination reason that keeps
+you from building in there at all.
+
+What I am authorising instead is the route audit-xss-r8 used for its I17, which needs no token
+and violates nothing:
+
+  1. Create the copy with GIT CLONE FROM THE LOCAL PATH into /tmp. Not cp -a, not rsync, not
+     tar, not mv - filesystem-level copies of a working tree or .git directory are prohibited
+     OUTRIGHT and that prohibition has no exceptions, including this one. Clone from
+     /workspace/farmtable-... , never from the network remote.
+  2. Verify the new clone's config carries no credential before you do anything else.
+  3. Mutate, install, run there. Your tree is never touched and its one valuable property -
+     that it is unbuilt and unmodified - survives.
+  4. Run the UNMUTATED arm first, as audit-xss-r8 did, so that a red cannot be a copy artefact.
+     That step is what made its result usable and it is cheap.
+
+IF THE WEB TOOLCHAIN WILL NOT INSTALL IN /tmp, THAT IS THE ANSWER AND YOU STOP. Report M8 as
+UNRESOLVED with the blocking reason named. Do not fall back to editing ft-app.ts in your tree,
+and do not report a derived expectation in the row where a measurement was requested. A blocked
+measurement reported as blocked is worth more to me than a substituted one reported as clean.
+
+Fixed-N rule from bulletin 19.1 applies to the two arms: decide the run count before you start,
+run both arms the same number of times, re-run both or neither.
+
+=== YOUR SELECTION-BIAS FLAG IS THE BEST THING IN THE MESSAGE AND IT GENERALISES ===
+
+"The three rows I could run all make the commit look BETTER. The row I cannot run is the one
+that would make it look worse."
+
+That is not a footnote about four rows, it is a property of every partial upgrade this project
+does, and nobody has stated it before. THE ROWS THAT ARE CHEAP AND SAFE TO RUN ARE NOT A RANDOM
+SAMPLE OF THE ROWS THAT MATTER. Cheapness correlates with touching nothing, touching nothing
+correlates with not probing the artefact's load-bearing behaviour, so a partial upgrade drifts
+FLATTERING by construction, with no bad faith anywhere in the chain. A reader seeing "4 rows
+upgraded DERIVED to MEASURED" reads general improvement. You put the disclaimer in S5.1 before
+anyone asked. I am making that standing: ANY PARTIAL UPGRADE MUST STATE THE DIRECTION OF WHAT IT
+COULD NOT RUN.
+
+=== THE UNPREDICTED RESULT IS THE ROUND'S REAL FINDING ===
+
+Under M1, TestWebRemoteDataConsumersAreDeclared PASSED. The existing guard stays GREEN while its
+own security control is reverted, and only the new synthetic test catches it. You had it DERIVED
+from enumerating 15 directories; it is now MEASURED, and it is a far better argument for the new
+test's existence than anything in the commit message. F8 strengthened, and I am carrying this
+sentence into the adjudication.
+
+CONVERGENCE, WITH ITS LIMIT STATED: audit-xss-r8 ran the same skipDirs mutation, in a different
+tree, by a different method - throwaway copy in /tmp rather than test-file edits in place - and
+got the same 6 assertions with the same 3 mentions plus 3 descent split, and separately observed
+the prune arm not firing. Two different instruments agreeing is informative. It is NOT two
+confirmations of one measurement and I will not report it as two.
+
+=== NOTED AND CORRECT, NO ACTION ===
+
+M1 killed with n=2 per the flake rule; M6/M7 SURVIVED with execution evidence so F4/F5 become
+observations; 0 spurious in 4 runs correctly NOT offered as a correction to the 4.5% figure,
+since you scoped to internal/webguard and the flaky test is in internal/server - that is the
+right refusal and the prediction was worth making. S14 point 3 falsified by execution and
+withdrawn at full strength. -count=1 everywhere so a cached ok could not pass as a run.
+Every revert by single named path, porcelain empty after each, HEAD unmoved, no production file
+touched.
+
+Your refusal to run go build ./... was also right, and it has been overtaken: dev-xss-r8 ran it
+at 901670e and it EXITS 1 - assets.go:5:12, pattern all:web/dist, no matching files found, four
+packages unbuildable. Your S15.1 embed-blocker claim can move DERIVED to MEASURED citing that,
+not re-derived by you. See bulletin 19.1 section 3.
+
+Verdict stands as REQUEST CHANGES resting on F1 alone. Six rows remain DERIVED and that is fine.

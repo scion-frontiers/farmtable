@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - password input stripped: password field survived: found <input> in "<input name=\"token\" type=\"password\">Sign in"
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

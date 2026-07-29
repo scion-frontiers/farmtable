@@ -1,0 +1,135 @@
+18.7-COMPLIANT RE-RUN, DONE. THREE RESULTS YOU NEED, ONE OF THEM A DISCLOSURE ABOUT ME, AND ONE
+CAVEAT ON YOUR OWN ORDER THAT I THINK IS LOAD-BEARING.
+
+===================================================================================================
+1. *** DISCLOSURE. THE CANONICAL LIVE TOKEN IS IN MY OWN SESSION TRANSCRIPT, TWELVE TIMES. ***
+===================================================================================================
+
+Matched by DIGEST over span = BARE TOKEN, per 18.3 section 2. No value printed, no line printed.
+
+  count=12   /home/scion/.claude/projects/-workspace/a931809c-...jsonl   mode 600, 171,997,309 bytes
+  count=1    /home/scion/.scion/harness/inputs/telemetry.json            mode 644   [in your inventory]
+  count=1    /home/scion/.scion/scion-env                                mode 644   [in your inventory]
+
+  MEASURED NEGATIVE, and I am reporting it as a measurement because the arm is armed:
+    /home/scion/.claude/file-history/  -  369 files, mode 644, prior versions of every Edit-touched
+    file - ZERO occurrences of the canonical digest. That is a real negative: the positive control
+    fired, the method named every file, and the answer is nothing.
+
+TIER-1 CONTROL FOR THE DIGEST ARM, armed BEFORE the arm ran, and both directions checked:
+  fabricated token digest a2ad35423b64f66c  ->  arm fires 1   OK
+  same arm against the CANONICAL digest    ->  fires 0        OK, so it is not matching everything
+
+  *** THE TWELVE ARE NOT A CONFIGURATION FILE. THEY ARE THE RECORD OF ME DOING THIS
+      INVESTIGATION. I HAVE SPENT THE NIGHT NOT PRINTING THE VALUE, AND THE HARNESS WROTE IT TO
+      DISK TWELVE TIMES ANYWAY, IN A FILE I CANNOT ROTATE, TRUNCATE OR DELETE UNDER THE FREEZE. ***
+
+The file grew 838,878 bytes between two of my own commands in the last few minutes. THE CARRIER IS
+STILL GROWING WHILE I REPORT ON IT. I am taking no action on it - your standing rule is that no
+containment is proposed without naming the reader it excludes, and I cannot name one.
+
+===================================================================================================
+2. *** NEW CARRIER, NOT IN YOUR SEVEN-ENTRY INVENTORY, DIFFERENT SECRET, AND THE RECURSIVE SCAN
+    REPORTED ZERO PEM KEYS ACROSS 44,546 FILES. ***
+===================================================================================================
+
+  /home/scion/.scion/secrets.json                     mode 600, 1,987 bytes, 1 PEM BEGIN marker
+  /home/scion/.scion/telemetry-gcp-credentials.json   mode 600, 2,385 bytes, 1 PEM BEGIN marker
+
+Neither is a GitHub credential. Both are PRIVATE KEYS in a per-agent home, x N agents.
+
+AND THIS RETRACTS A HEDGE OF MINE, AGAINST ME. I published, three hours ago, that at 2,385 bytes
+with no PEM block the GCP file was "more likely an external-account or impersonation config than a
+raw service-account key, UNRESOLVED, not read." IT HAS A PEM BLOCK. My "no PEM block" came from the
+recursive scan that returned pem = 0 over the whole home. THE HEDGE WAS CORRECTLY MARKED UNRESOLVED
+AND ITS STATED BASIS WAS A VOID MEASUREMENT. Marking a claim unresolved does not make the evidence
+under it sound - it only stops the claim travelling, which is worth something, but not this.
+
+===================================================================================================
+3. THE BATTERY. REACH BESIDE HITS, THREE TAGS, BINARIES INCLUDED, INVENTORY AS CALIBRATION.
+===================================================================================================
+
+METHOD: find /home/scion /tmp -type f -print0, then xargs -0 grep -l -a -E. No recursion by grep.
+GREP DECLARED: ugrep 7.5.0 x86_64-pc-linux-gnu +sse2, -P:pcre2jit. There is no binary named ugrep.
+
+  POPULATION (find) ....... 44,798
+  NOT READABLE ................. 1     (/tmp/scion-metadata-shutdown-18380.token, permission denied)
+  ENUMERATION ERRORS ........... 0
+  *** REACH (files actually opened) 44,797 ***
+  Reach and population differ by exactly the one file I cannot read. Under the old method the
+  difference was the result; under this one it is one file, named.
+
+  ARM            TOTAL   APPARATUS   VENDORED   OURS      versus my RETRACTED recursive run
+  github_pat         5           2          0      3      was 3
+  ghp               79           3          0     76      was 1
+  gh[osu]_           0           0          0      0      was 0  (this zero is now a measurement)
+  url_embedded      12           2          8      2      was 137 - DIFFERENT PATTERN, NOT COMPARABLE
+  pem_private_key   73           2         68      3      *** was 0 ***
+  gcp_svc_account   12           2          9      1      was 10
+
+  TIER-3 CALIBRATION per your 18.7 section 6 - both inventory entries in my population RETURNED:
+    RETURNED  /home/scion/.scion/scion-env
+    RETURNED  /home/scion/.scion/harness/inputs/telemetry.json
+  The scan is calibrated. Its zeros are measurements.
+
+  THE pem ROW IS THE ONE THAT MATTERS: 0 -> 73. Your 18.7 is not a theoretical correction on this
+  host. It is the difference between "no private keys anywhere in the agent home" and "there are
+  private keys in the agent home, two of them ours."
+
+===================================================================================================
+4. *** THE CAVEAT ON YOUR OWN ORDER, AND I THINK IT NEEDS TO GO OUT WITH 18.7 RATHER THAN AFTER. ***
+===================================================================================================
+
+You ordered binaries INCLUDED. Correct - it is how we found the pem row. But it is not free, and
+nobody has priced it:
+
+  76 of my 79 ghp_ hits are Go BUILD CACHE object files. I ran them down. SIX distinct
+  ghp_-shaped strings across 73 compiled archives. Then, by the named-file method:
+    equal to the canonical digest ........................ 0
+    present in any go/pkg/mod source file ................ 0
+    present in any file under /workspace/farmtable ....... 0
+  So they are not the live secret, not from vendored source, and not from our source. The residual
+  hypothesis I cannot exclude is that they are BYTE COINCIDENCES INSIDE COMPILED DATA - four
+  literal characters followed by twenty bytes that happen to be alphanumeric.
+
+  *** INCLUDING BINARIES REMOVES A FALSE-NEGATIVE CLASS AND INSTALLS A FALSE-POSITIVE CLASS, AND
+      THE TWO COUNTS ARE NOW MEASURED OVER DIFFERENT ALPHABETS. A HIT COUNT OVER TEXT AND A HIT
+      COUNT OVER BINARY ARE NOT THE SAME KIND OF NUMBER AND MUST NOT BE SUMMED. ***
+
+  That is your own 18.2 mixed-strength-battery ruling arriving on a new axis, and the fix is the
+  same: report the binary and text splits separately, or report only digest-matched hits, which
+  cannot coincide. I recommend the second for credentials - THE DIGEST ARM HAS NO FALSE POSITIVES
+  AND IT IS THE ARM THAT ANSWERED EVERY QUESTION THAT MATTERED TONIGHT. The pattern arms were the
+  ones that produced 79 hits with 3 real ones in them.
+
+  MY THREE-TAG SCHEME MISSED AGAIN, AND THIS TIME I HAD ALREADY PUBLISHED THE DIAGNOSIS. I filed,
+  an hour ago: "an apparatus tag defined by path is only as good as the apparatus being confined to
+  that path." I then wrote a new tag as a path prefix list, and it missed /tmp/b18-item2/ because I
+  had put controls in a SUBDIRECTORY. Two of my own fabricated controls were tagged OURS again.
+  *** I DIAGNOSED THE CLASS, PATCHED THE INSTANCE BY ADDING ONE FILENAME, AND THE CLASS RECURRED
+      IN THE NEXT DIRECTORY DOWN WITHIN THE HOUR. That is exactly the thing you filed against
+      yourself as "refining how you do a thing is not checking whether to do it," and it is also
+      #112 - a correction is a claim like any other. Your Order B is right and a path prefix is not
+      an implementation of it. IT HAS TO BE A MANIFEST WRITTEN AT CREATION, WHICH IS WHAT YOU SAID. ***
+
+  AND THE UNITS ERROR, FOURTH INSTANCE, INSIDE THIS SCAN. Resolving the go-build question I typed
+  grep -c -F -f LIST -r --include=*.go DIR | head -1 and read the output as an answer. It used
+  grep -r four commands after I retracted every grep -r zero, AND -c with -r emits one row per file
+  so head -1 showed me a single file's count of zero. I caught it, re-ran named-file with -l, and
+  the correct answer is 0 - the same number, arrived at by an instrument that was actually looking.
+  *** THE WRONG METHOD AGREED WITH THE RIGHT ONE, WHICH IS THE OUTCOME THAT TEACHES NOTHING AND
+      FEELS LIKE CONFIRMATION. If I had not re-run it I would have published a correct number
+      backed by nothing, and no reviewer could have told. ***
+
+===================================================================================================
+5. STATE
+===================================================================================================
+
+  r9 brief WRITTEN, not dispatched: briefs/dev-xss-r9-fix.md, 194 lines. 15.8 vehicle named AS
+  STRUCK with the measured reason; red-on-revert of af9ea8c with pasted output as the acceptance
+  test; your CI-gate-key ruling in as an explicit deliverable, package-qualified not bare.
+  Dispatch is waiting on a tree, which I will announce by full path to all five AT CREATION.
+
+  Still owed by me: the two r8 leg rulings, and the state-file append.
+  Nothing I am doing touches a frozen tree, and I have run no git command in one tonight since
+  your 18.5.

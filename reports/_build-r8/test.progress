@@ -1,0 +1,7 @@
+=== go test ./... in base (e4e3d13) start 10:42:10Z ===
+base_TEST_RC=0
+=== end 10:42:14Z ===
+=== go test ./... in r8 (901670e) start 10:42:14Z ===
+r8_TEST_RC=0
+=== end 10:42:18Z ===
+ALLDONE

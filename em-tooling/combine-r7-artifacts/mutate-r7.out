@@ -1,0 +1,61 @@
+pristine snapshot of 5 files in /tmp/r7-pristine-gum5_z2g
+  34b17bf220eb  internal/platform/github/terminal_label_stages.go
+  3c20e60ac750  internal/platform/github/passthrough.go
+  f3f294ea0f1c  internal/platform/github/labels.go
+  1dc159a5eb5c  internal/store/store.go
+  21ffa14ed382  internal/store/multistore.go
+
+===== BASELINE (must be GREEN) =====
+  ./internal/platform/github/: exit=0 top_level_total=150 fails=0
+  ./internal/store/: exit=0 top_level_total=121 fails=0
+  baseline OK. internal/platform/github top-level tests = 150
+
+===== PC (positive control) =====
+  mutated internal/platform/github/labels.go (anchor unique, verified)
+  compiles OK
+  probe TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn: RED exit=1
+  package ./internal/platform/github/: exit=1 top_level_fails=14 of 150
+  reverted and verified
+
+===== M8 =====
+  mutated internal/platform/github/terminal_label_stages.go (anchor unique, verified)
+  compiles OK
+  probe TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader: RED exit=1
+  package ./internal/platform/github/: exit=1 top_level_fails=29 of 150
+  reverted and verified
+
+===== MS1 =====
+  mutated internal/platform/github/passthrough.go (anchor unique, verified)
+  compiles OK
+  probe TestLifecycleStageSetStager_EmptySideIsDetectable: RED exit=1
+  package ./internal/platform/github/: exit=1 top_level_fails=4 of 150
+  reverted and verified
+
+===== MA1 =====
+  mutated internal/platform/github/terminal_label_stages.go (anchor unique, verified)
+  compiles OK
+  probe TestLifecycleStageSetStager_EmptySideIsDetectable: RED exit=1
+  package ./internal/platform/github/: exit=1 top_level_fails=9 of 150
+  reverted and verified
+
+===== MCA =====
+  mutated internal/store/store.go (anchor unique, verified)
+  compiles OK
+  probe TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected: RED exit=1
+  package ./internal/store/: exit=1 top_level_fails=1 of 121
+  reverted and verified
+
+===== MCB =====
+  mutated internal/store/multistore.go (anchor unique, verified)
+  compiles OK
+  probe TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer: RED exit=1
+  package ./internal/store/: exit=1 top_level_fails=1 of 121
+  reverted and verified
+
+===== FINAL STATE =====
+  ./internal/platform/github/: exit=0 fails=0
+  ./internal/store/: exit=0 fails=0
+  MUTANT markers remaining: 0
+
+wrote /scion-volumes/scratchpad/projects/farmtable/em-tooling/combine-r7-artifacts/mutation-results.json
+ALL MUTATIONS COMPLETE, TREE RESTORED AND GREEN

@@ -1,0 +1,16 @@
+Created 15 new users
+{
+  "collection_id": "0e688faf-9adc-480d-b4b7-1385cae6a0db",
+  "dry_run": false,
+  "stats": {
+    "changes": 0,
+    "comments": 1,
+    "relationships": 29,
+    "tasks": 537,
+    "users_created": 15,
+    "users_matched": 0
+  },
+  "warnings": [
+    "Created 15 new users"
+  ]
+}

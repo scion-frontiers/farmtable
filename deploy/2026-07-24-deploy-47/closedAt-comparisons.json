@@ -1,0 +1,26 @@
+[
+  {
+    "id": "f02dd56c-3030-5a11-94db-ca55823b1c64",
+    "closedAt_before": "2026-07-22T21:33:58.000Z",
+    "closedAt_after": "2026-07-22T21:33:58.000Z",
+    "stable": true
+  },
+  {
+    "id": "90379e1f-696f-5060-a106-2cb44b8eea94",
+    "closedAt_before": "2026-07-22T21:03:09.000Z",
+    "closedAt_after": "2026-07-22T21:03:09.000Z",
+    "stable": true
+  },
+  {
+    "id": "ca66b6f4-31a7-5cb7-83e3-844bfdbc22a7",
+    "closedAt_before": "2026-07-15T21:08:06.000Z",
+    "closedAt_after": "2026-07-15T21:08:06.000Z",
+    "stable": true
+  },
+  {
+    "id": "593cbe0f-264c-5305-be35-306f58b35c98",
+    "closedAt_before": "2026-07-15T21:08:04.000Z",
+    "closedAt_after": "2026-07-15T21:08:04.000Z",
+    "stable": true
+  }
+]

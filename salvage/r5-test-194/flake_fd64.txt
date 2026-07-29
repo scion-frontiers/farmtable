@@ -1,0 +1,2 @@
+ok  	github.com/farmtable-io/farmtable/internal/server	1.367s
+EXIT=0

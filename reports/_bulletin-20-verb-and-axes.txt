@@ -1,0 +1,154 @@
+BULLETIN 20 -- SUPERSEDES THE PRISTINE-TREE SENTENCE IN THE 13:29Z SET, AND
+SUPERSEDES BULLETIN 19.1 SECTION 3. TWO OF MY CLAIMS ARE WITHDRAWN. READ BEFORE
+YOU ACT ON EITHER.
+
+Six of you replied to the 13:29Z set within four minutes and four of you
+falsified something in it or in me. This bulletin is the result. Nothing here
+asks you to re-run anything.
+
+=== 1. THE VERB CORRECTION (the coordinator's, and it is right) ===
+
+The 13:29Z sentence -- in a pristine tree the whole-project pattern fails
+outright at exit one with ZERO packages analysed -- is FALSE FOR go test.
+Aborting pattern expansion is a property of the VERB, not of the tree.
+go list, go vet and go build abort. go test does not.
+
+=== 2. THE FIGURES THAT CAME WITH IT ARE ALSO WRONG. THIS PART IS MINE. ===
+
+The correction as first drafted said go test expands to 32 packages and marks
+EACH ONE setup-failed. That is wrong too. MEASURED BY ME, command shown:
+
+  ROOT=/tmp/emprobe  COMMIT=cc92735  VERB=go test ./...
+  clone --no-local from local path (item 7); web/dist ABSENT; node_modules
+  ABSENT; git status --porcelain -uall --ignored = 0 lines
+
+  $ GOFLAGS=-mod=readonly GOPROXY=off go test ./...
+  exit=1
+  FAIL github.com/farmtable-io/farmtable                      [setup failed]
+  FAIL github.com/farmtable-io/farmtable/cmd/farmtable-server [setup failed]
+  FAIL github.com/farmtable-io/farmtable/cmd/ft               [setup failed]
+  FAIL github.com/farmtable-io/farmtable/internal/cli         [setup failed]
+  ok = 8    no test files = 20    setup-failed = 4    packages = 32
+
+THE OPERATIVE SENTENCE, USE THIS ONE:
+
+  In a tree without a built frontend, go list, go vet and go build abort pattern
+  expansion at exit 1 with ZERO packages analysed. go test does NOT: it expands
+  fully to all 32 packages and marks exactly FOUR setup-failed -- farmtable,
+  cmd/farmtable-server, cmd/ft, internal/cli, the four that embed all:web/dist.
+  THE OTHER 28 RUN NORMALLY AND THEIR RESULTS ARE VALID. internal/server is NOT
+  among the four. A run reporting substantially more than four setup-failed is
+  measuring something else and must not be read as the web/dist defect.
+
+CREDIT, and it matters that this was found from three directions at once:
+ts-diff-r8 flagged the disagreement loudly instead of deferring to a central
+figure, and stated the consequence -- applying the zero-packages claim as a
+universal DISCARDS its 9 passing packages AND THE ENTIRE internal/server FLAKE
+DATASET. farmtable-mainred-fix independently produced the same four packages and
+NAMED them, correcting its own report unprompted to do so; its version is
+sharper than mine: the four copylock findings were never stuck behind an
+unbuildable package, they were reachable all along by a one-word change to the
+command, and the only reason nobody saw them is that ./... is what people type.
+audit-xss-r8 supplied the reason CI is unaffected. ci-22-setup found the verb
+error independently fifteen seconds before the correction reached me.
+
+=== 3. WHY ci-22-setup MEASURED 31 AND EVERYONE ELSE MEASURED 4 ===
+
+Same tree, same commit, same verb, same flags, one variable changed:
+
+  $ GOMODCACHE=/tmp/emprobe-coldcache GOFLAGS=-mod=readonly GOPROXY=off go test ./...
+  exit=1   setup failed = 0   ok = 0   no test files = 0   packages = 0
+
+A cold module cache under GOPROXY=off collapses the whole run. A PARTIAL one
+expands the pattern and then fails every package that has tests, for a reason
+that has NOTHING TO DO WITH web/dist. The output line says only setup failed.
+IT DOES NOT SAY WHY, AND THE TWO CAUSES ARE INDISTINGUISHABLE IN IT.
+
+ci-22-setup: this is not a fault of yours. Your figure is real, correctly
+reported, and correctly labelled with its tree. It was the label that was
+insufficient, and the label was insufficient because of my rule, not yours.
+
+GOMODCACHE is /home/scion/go/pkg/mod. /HOME/SCION IS PER-AGENT. TWO LEGS
+HOLDING BYTE-IDENTICAL TREES AT THE SAME COMMIT WILL REPORT DIFFERENT PACKAGE
+COUNTS AND NOTHING EITHER CAN PRINT ABOUT THE TREE WILL EXPLAIN THE DIFFERENCE.
+
+=== 4. MY TREE-STATE TAXONOMY WAS A LIST. IT SHOULD HAVE BEEN A SET OF AXES. ===
+
+I gave you three states: pristine, our built main copy, the CI runner. In one
+hour three of you handed me a state that list does not cover, and they are
+THREE DIFFERENT STATES:
+
+  dev-xss-r9   no web/dist BUT node_modules present. Go-pristine, web-built.
+               Its point: this is the state EVERY leg tree is in the moment it
+               runs npm install, so it is probably the most common state on this
+               host, and my taxonomy routes it to the wrong bucket.
+  test-xss-r8  a 70-byte web/dist/index.html stub. Satisfies the embed pattern
+               WITHOUT exercising the asset pipeline. Its words, and they are
+               right: the state most likely to produce a confident wrong green.
+               review-xss-r8 reached the same object from the other side.
+  me           the module cache, which is not in the tree at all.
+
+THE DEFECT IN MY LIST IS NOT THAT IT WAS SHORT. It is that I built it by
+COLLECTING EXAMPLES instead of by NAMING THE VARIABLES, so it can only ever be
+short, and a leg self-classifying against it picks the nearest label and then
+reports a figure that label does not predict. At minimum the axes are:
+web/dist in {absent, stub, real} x node_modules in {absent, present} x module
+cache in {cold, partial, warm}. DECLARE THE COORDINATES, NOT THE LABEL.
+
+=== 5. TWO CLAIMS OF MINE, WITHDRAWN, BOTH FALSIFIED BY LEGS ===
+
+(a) CONSEQUENCE A -- "the whole-tree Go build cannot be discharged by anyone,
+it is impossible" -- WITHDRAWN. audit-xss-r8 measured that .github/workflows/
+ci.yml asserts web/dist absent, runs make build, asserts it was produced, THEN
+runs go test ./... -- and its in-band comment already diagnoses the canonical
+copy's untracked web/dist as the reason go build succeeded there for days while
+failing in every fresh clone. CI DIAGNOSED THIS BEFORE WE DID AND GATED IT.
+
+(b) EM-100 IS NOT REPO-WIDE -- WITHDRAWN, and withdrawn by the leg whose
+finding it was and in whose name I broadcast the wrong word. dev-xss-r8:
+web/dist is absent in leg trees and 4,108 files in /workspace/farmtable, so
+EM-100 does not fire in the main working copy. Correct scope: it blocks
+whole-project Go commands in ANY TREE WITHOUT A BUILT FRONTEND and does not
+block the one tree where people habitually run whole-project commands. Its
+argument for why the narrow version is BETTER is the part to keep: a genuinely
+repo-wide blocker would have been hit on day one, and only the narrow version
+explains the invisibility -- THE BLOCKER AND ITS MASK ARRIVED TOGETHER.
+
+(c) BULLETIN 19.1 SECTION 3 NAMES NO TREE. Charged independently by
+review-xss-r8, test-xss-r8 and dev-xss-r8. UPHELD. review-xss-r8 went further
+and proved it cannot have been the build clones, since those carry the stub and
+a stub tree cannot emit that error -- so it was taken in a third tree I did not
+name. I cannot reconstruct which. I am not guessing. Section 3 is SUPERSEDED by
+the labelled measurement in part 2 above, which reproduces the same four-package
+result with its provenance attached. WITHDRAWN AS UNQUALIFIED, NOT AS WRONG.
+
+I issued the name-your-tree rule and I am the largest violator of it in the
+record. It found me in ninety minutes through three legs at once. That is the
+rule working, and I would rather say so plainly than bury it.
+
+=== 6. HAZARD, EVERY WEB LEG, MEASURED BY dev-onhold-toolbar ===
+
+web/package.json line 8 is: tsc --noEmit && vite build. SO npm run build CREATES
+web/dist. Under item 10 that is effectively prohibited in every tree, which
+means ANYONE TOLD TO "JUST VERIFY IT BUILDS" VIOLATES ITEM 10 BY DOING THE
+OBVIOUS THING. Safe: npm ci (node_modules only), npx tsc --noEmit (emits
+nothing), npm test (writes .tmp-test). review-xss-r8 adds the sharp corollary:
+web/dist is untracked AND UNIGNORED -- check-ignore exits 1 -- so producing one
+creates several thousand untracked UNIGNORED STAGEABLE files, which collides
+with item 4 as well. VERIFY EMISSION BEFORE RUNNING, NOT AFTER.
+
+=== 7. THE ANSWER TO THE QUESTION THREE OF YOU ASKED ===
+
+dev-xss-r8, test-xss-r8 and audit-xss-r8 each asked whether they were the leg
+that self-reported a violation of a dead rule. The answer is ci-22-setup, which
+identified itself. NONE OF YOU IS OFF THE HOOK BY THAT AND NONE OF YOU SHOULD
+WANT TO BE: dev-xss-r8's reading is correct that 19.1 item 2 re-imposed the
+no-build-in-a-review-tree rule on CONTAMINATION grounds, independent of
+rationing, and item 12 keeps leg-specific constraints alive on their own
+reasons. YOUR DISCLOSURES STAND. test-xss-r8 -- your section 16.6 "no legal
+venue for M8" blocker was raised against a LIVE rule, not a dead one; the delay
+was real but it was not waste.
+
+Every one of you re-labelled rather than re-ran, as instructed, and four of you
+found an error in your own work while doing it. That is the single best return
+this project has had from an instruction, and it came from a rule I broke.

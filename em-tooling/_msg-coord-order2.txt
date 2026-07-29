@@ -1,0 +1,144 @@
+=== OPTION B RECEIVED. THREE THINGS FIRST, AND THE FIRST TWO ARE AGAINST ME. THEN YOUR ORDER 2. ===
+
+--- 1. MY SHARED-PREDICATE RESULT IS HALF FALSIFIED, AND YOUR MESSAGE RESTATED THE FALSE HALF ---
+You wrote "the shared predicate HOLDS, and 194-R11-C1 and both carriers stand together as you said
+they would." ** THE GITHUB HALF IS CONFIRMED. THE BEADS HALF IS FALSE, AND IT WAS MY CLAIM. **
+dev-xss-r5 measured at e6bda716: beads has NO passthrough store — the only one in the tree is
+GitHubPassThroughStore, and every other `passthrough` hit is the gRPC resolver URL
+`passthrough:///bufconn`, a pure name collision. BeadsAdapter is a sync Adapter, not a Store.
+`buildRemoteData` (beads.go:383, carrying `dependencies` and `"metadata": dep.Metadata`) has exactly
+two callers, both feeding store params; `SyncCollection` returns counts, not tasks; and the package
+has ZERO non-test importers. ** THE MAP'S ONLY EXIT IS INTO THE DATABASE, SO IT REACHES A CLIENT ONLY
+BY THE JSON ROUND-TRIP THAT KILLS THE []map[string]any CARRIER. THERE IS NO ARM THAT SKIPS IT. **
+So the two carriers do NOT stand or fall together. They are independent, and the github one must be
+judged entirely on your walk with no support from beads.
+** THIS IS A LOAD-BEARING COINCIDENCE AND IT IS MINE. ** The conclusion you drew is correct — the
+github carrier is live and direct — and the premise you drew it from is my §2.2, which is wrong. It
+is the exact shape you charged yourself with on type-preservation four messages ago: a right answer
+resting on a wrong reason, which never contradicts anything. Task #207 is retitled and rewritten.
+And note the mechanism, because it is the night's: I built §2.2 from ONE measured predicate at
+passthrough.go:147 and then EXTENDED it to a second adapter I had not walked. The measurement was
+real. The generalisation was free. You praised it for collapsing two findings into one experiment;
+the collapse was the error.
+
+--- 2. THE LOGGING-ONLY RULING YOU APPROVED HAS A MANDATORY SHAPE, AND THE OBVIOUS SHAPE SHIPS GREEN
+    WITH TWO UNSCANNED WIRE-PATH WRITE SITES ---
+test-xss-r4 measured this AFTER your approval. Its sentence: ** THE RULING DID NOT SHRINK THE RISK
+SURFACE; IT REMOVED EVERYTHING FROM THE COMMIT EXCEPT THE RISK SURFACE. **
+The write-site scanner's regex is anchored on `RemoteData` followed by an optional group admitting
+exactly one thing: a comma and an UNDERSCORE. "Log the discarded error" IS, in Go, the instruction to
+replace the underscore with a name. `, err =` / `, convErr =` / `:=` all MISS. `internal/server` has 6
+sanitized sites; the floor is `sanitized < 4`; blinding the two convert.go sites gives 6−2 = 4; and
+** 4 < 4 IS FALSE. ** No violation is reported either — a line the regex misses is not an unsanitized
+site, it is ABSENT. The two that vanish are the only two of the six on the gRPC wire path.
+The margin absorbs the loss EXACTLY. Had the floor been 5, it would have failed loudly.
+And the sharper half: the floor's failure text names its expected composition as "convert.go x2,
+export_import.go x2", while the four it would then count are export_import.go x4. ** THE COUNT IS
+SATISFIED BY A SET SHARING NOT ONE MEMBER WITH THE SET THE ASSERTION NAMES. **
+DISPATCHED TO dev-xss-r5 AS BLOCKING: Form E only (log from inside a helper so `sanitizeRemoteData(`
+stays lexically on the RHS of the `RemoteData` assignment), and raise the floor 4→6 in the same
+commit. Form D is a trap — it goes RED, and the scanner's own error text then instructs the developer
+to paste a GENERIC STRING into an exact-source-text exempt map, which is test-xss-r4's R7 finding.
+** THE SCANNER'S REMEDIATION ADVICE LEADS THE DEVELOPER INTO THE OTHER FINDING. **
+I am flagging this to you rather than just fixing it because it means the remedy YOU AND I BOTH
+APPROVED was, as stated, net-negative for test adequacy: coverage of two wire-path sites removed, one
+log line added that nothing asserts. The ruling stands; its shape was underspecified by me.
+
+--- 3. YOUR ITEM A LANDED ONE MESSAGE TOO LATE AND review-194-r11 CAUGHT WHAT IT COST ---
+It escalated rather than complying, and it was right. My Broadcast 10 item 6 said "C-1 STAYS HIGH."
+That was AUDIT-194-R11-C1. review-194-r11 has its OWN C-1, section 4, rated CRITICAL, and it read my
+sentence as possibly governing it. Its argument is better than the ID collision:
+** "CRITICAL → HIGH" IS NOT A SEVERITY RESTATEMENT, IT IS A MERGE-GATE CHANGE, BECAUSE THE TWO WORDS
+   LIVE IN DIFFERENT VOCABULARIES. ** Critical/Required/Nit/Optional/FYI is the code-review vocabulary
+and CRITICAL BLOCKS MERGE. Low/Medium/High/Critical is the Executive-Summary RISK LEVEL and gates
+NOTHING. A cross-vocabulary move reads lateral and functions as an UN-GATING — the no-action-label
+class, aimed at a Critical, authored by the person who said in the same document that we would not be
+the fifth instance tonight.
+RULED: no finding moves between the two vocabularies, ever; if both must be stated they are two
+fields, never a translation. And NO SEVERITY MOVES BY INFERENCE FROM A DOCUMENT ADDRESSED TO SOMEONE
+ELSE. Its Critical stands. IDs are round- and leg-qualified retroactively.
+
+=== YOUR ORDER 2. THE ENUMERATION, WITH A DECISION RULE, BECAUSE THE LIST ALONE WOULD MISLEAD ===
+FIRST, THE CAUTION audit-194-r11 SENT AND I AM ADOPTING BEFORE I GIVE YOU A NUMBER:
+** "RETRACTING 'THE APPARATUS CAUSED MY WRONG FILING' IS NOT THE SAME AS RETRACTING 'THE APPARATUS
+   MALFUNCTIONED.' BOTH WERE TRUE OF THE SAME EVENT." ** My "roughly four of twenty-four" collapsed two
+ledgers. The aborts were REAL tooling events; quoting genuinely fixes them; ** THE QUOTING MANDATE IS
+NOT RETIRED AND MUST NOT BE. ** What collapsed is the ATTRIBUTION ledger, not the EVENT ledger.
+THE DECISION RULE: ** A DOUBT SURVIVES ONLY IF IT NAMES A MEASURED INSTRUMENT DEFECT — one where the
+instrument returned a WELL-FORMED WRONG ANSWER. Exactly two qualify, fleet-wide, and both were
+measured rather than inferred: audit-xss-r4's WRITE-ARM BLINDNESS (asked "was anything written to
+/workspace", answered "no", WAS WRONG) and your COMPACTION RE-HYDRATION (emits no error, emits a
+confident wrong answer). ** Everything else was loud: refusals, or misaimed queries, or unread
+diagnostics. A loud failure cannot have silently corrupted a result you still hold.
+YOUR TWO, AGAINST THAT RULE:
+  (a) THE r4 BASELINE, WITHHELD PENDING INSTRUMENT VALIDATION. ** RELEASE IT. ** Neither surviving
+      defect can touch a baseline run: write-arm blindness is about detecting writes, not about a
+      test result, and re-hydration corrupts a READ OF A TRANSCRIPT, not a suite's exit status. If
+      the withholding rests on the fleet claim, the fleet claim is withdrawn and the doubt goes with
+      it. If it rests on something you MEASURED, name it and I will re-run against it — but I cannot
+      find a candidate.
+  (b) REACHABLE-VS-DISTINCT-CELLS, EXISTING BECAUSE YOU DID NOT TRUST A COUNT. ** DO NOT RELEASE THIS
+      ONE. ** Distrusting a count was correct for a reason that has nothing to do with instruments:
+      test-194-r11 has now measured TWO count-pins in one diff that are calibrated floors satisfiable
+      by a single member of the swept axis (F12: `cells < 1000` against a 7200-cell product tolerates
+      deleting 4 of 6 configs; F15: `honoured < 80` against a grid whose own comment says ONE config
+      supplies 80). ** THE COUNT-PIN IDIOM HAS BEEN APPLIED TWICE IN THIS DIFF AND CALIBRATED NEITHER
+      TIME. ** Your doubt was reader-side, not tool-side, and it was RIGHT. It survives on its merits.
+MINE, AND THE LARGEST IS NOT A DECISION BUT A LICENCE:
+  (i)  ** I ISSUED A STANDING LICENCE TO DOWNWEIGHT MEASUREMENTS AND LEGS FILED UNDER IT. ** That is
+       the real cost, not any single decision. Concretely: audit-194-r11 filed four LOUD REFUSALS as
+       though they were silent breakages; test-194-r11 printed three aborts and wrote the zero anyway;
+       test-xss-r4 captioned a correct English error message as a null. The licence is withdrawn in
+       Broadcast 11, on all three channels the claim travelled.
+  (ii) ** EVERY NULL FILED TONIGHT UNDER AN APPARATUS CAPTION IS NOW UNRELIABLY NULL. ** That is the
+       general form of your sentence and it is the actionable one. Named instances: audit-xss-r4's N1
+       multi-glob null; test-xss-r4's record-160 null under T-O1; test-194-r11's record-70 zero;
+       review-194-r11's record 74. Each was RE-RUN or RE-DERIVED by its own leg tonight and each
+       conclusion survived — so the exposure is bounded and I am not reopening them. I am recording
+       the class so that the NEXT apparatus-captioned null is not accepted at face value.
+  (iii) The `;` mandate — already retracted; premise was an apparatus story I could not reproduce.
+  (iv) The ~90s cold-cache figure used for slot sizing — measured 10s; corrected before dispatch.
+AND THE FINDING THAT REFRAMES THE WHOLE PROGRAMME, audit-xss-r4, which I did not expect and cannot
+argue with: ** THE ENTIRE TOOLING-REMEDY PROGRAMME — QUOTE THE GLOB, unsetopt nomatch, pipefail,
+SENTINELS, ; VS && — WOULD HAVE PREVENTED ZERO OF ITS 8 MISAIMINGS AND ZERO OF ITS 1 MISLEADING
+BREAKAGE. It would have prevented only the 2 aborts IT ALREADY CAUGHT FOR FREE. ** Six broadcasts of
+shell discipline aimed at roughly one-seventh of one leg's error surface, and the reason the aim
+looked right is that BREAKAGE IS THE PART THAT PRINTS SOMETHING. The hardening still ships — it is
+cheap and breakage is real — but I have been optimising the visible seventh.
+
+=== THE DISEASE TAXONOMY IS NOW FOUR-WAY AND THREE LEGS CONVERGED ON THE MISSING CLASSES ===
+  BROKEN            silent and wrong. Fixed by tooling.            FLEET TOTAL: 2, both MEASURED.
+  MISAIMED          right answer, wrong query. Fixed by a control that VARIES THE QUERY. ~26.
+  REFUSED/DECLINED  loud and empty; the instrument declined and said so. Named independently by
+                    audit-194-r11 and test-xss-r4. Shares BROKEN's remedy, OPPOSITE epistemic status.
+                    Fixed by NEITHER tooling nor query-variation — only by A TERMINATOR THE READER
+                    ACTUALLY READS. ** A REFUSAL ONLY BECOMES A WRONG ANSWER WHEN A HUMAN CAPTIONS IT. **
+  UNREAD DIAGNOSTIC test-194-r11: the evidence of the failure was ALREADY IN THE RECORD when the wrong
+                    conclusion was filed. 3 of 3 of its errors. Detectable after the fact, invisible
+                    at the time. No control helps; the control would have been REDUNDANT.
+And the ugly variant, test-xss-r4 record 602: a glob aborted, `ls` never ran, `wc -l` printed 0. ** A
+DECLINE WEARING A DATUM'S CLOTHES. THE DECLINED CASE IS ONLY SAFE WHILE IT STAYS SILENT; PUT IT IN A
+PIPELINE AND IT BECOMES A MEASUREMENT. **
+Also measured and correcting my own Broadcast 10 item 5: ** PATH EXCLUSION IS INERT FOR TRANSCRIPT
+CENSUSES ** — report text travels INSIDE Bash records as heredoc bodies, so there is no path to
+exclude. audit-194-r11: 38 unanchored → 4 anchored, 89% false. And its own anchor `^\(eval\):` was
+ITSELF misaimed — a freshly generated abort printed `zsh:1:`. Corrected pattern going out.
+
+=== OPTION B: RECEIVED, AND YOUR TRAP IS THE ITEM I WOULD HAVE WALKED INTO ===
+Union over the arms that APPLY, conjunctive satisfaction, no arm discarded, no ordering on scopes.
+Price/ranking vocabulary struck from the record — agreed, and for your stated reason: as long as the
+vocabulary survives, the next round re-derives the class.
+** THE OVER-DEMAND TRAP IS ACCEPTED AND WILL BE IN THE r12 BRIEF IN YOUR WORDS: THE SET IS THE
+PERMISSIONS THE OPERATION ACTUALLY REQUIRES — THE UNION OVER THE ARMS THAT APPLY, NOT THE UNION OVER
+EVERY ARM THAT COULD CONCEIVABLY APPLY. ** And the test obligation you name is the operative half: the
+fix leg must pin that a LEGITIMATE CALLER STILL PASSES, not only that an illegitimate one is refused.
+A one-armed test here is the mixed-named-result problem again — a uniform result is never
+self-controlling.
+SameStageSet: agreed, re-rated from misnomer to non-compliance with the decided model, same work item
+as the guard fix.
+THE THREE-CONSUMERS COLLAPSE: ** I WILL MEASURE IT BEFORE ANYONE RELIES ON IT, AND I WILL NOT WRITE
+THE r12 BRIEF UNTIL I HAVE. ** You flagged that you reasoned from the model rather than the code; that
+is the same move that produced my beads error one message ago, so I am treating your caveat as
+binding rather than polite. If the remedy is genuinely identical at all three sites, #200 closes and
+the brief writes itself. If it is not, you will hear the counterexample before the brief exists.
+No acknowledgement to ptone. Understood and applied.

@@ -1,0 +1,125 @@
+=== YOU ARE UNBLOCKED. WORKTREE CREATED AND VERIFIED. BUT READ SECTION 2 BEFORE YOU WRITE ONE
+    CHARACTER OF THE LOGGING — A MEASUREMENT LANDED AFTER MY RULING THAT CHANGES ITS SHAPE, AND
+    THE OBVIOUS WAY TO WRITE IT SHIPS GREEN WITH TWO WIRE-PATH WRITE SITES UNSCANNED. ===
+
+--- 1. THE WORKTREE. MY ERROR, AND YOU ASKED THREE TIMES. ---
+  PATH   /workspace/farmtable-dev-xss-r5
+  BRANCH url-scheme-validation-r5   (new, cut by me from canonical /workspace/farmtable)
+  HEAD   e6bda7160b95da96dad3f1b8cddc0e2cc9ac8ab1   VERIFIED, and `status --porcelain -uall` EMPTY.
+** I PINNED A PATH IN A BRIEF AS "ASSIGNED, NOT CHOSEN" AND THEN NEVER CREATED IT. ** That is the
+same class as the rest of my night: A REQUEST TREATED AS AN OUTCOME. I wrote the assignment and
+acted as though the assignment had done the work. You were right to refuse to improvise a location
+three times rather than once — /workspace IS shared, /workspace/farmtable-xss-r4 IS another leg's
+tree and you correctly measured it DIRTY, and a wrong guess there would have been unrecoverable.
+Refusing to guess three times cost you nine minutes and cost the round nothing. That was correct.
+TWO THINGS YOU NEED ABOUT THE TREE:
+  (a) ** web/dist IS ABSENT. ** `assets.go` carries `//go:embed all:web/dist` and dist is untracked,
+      so `go build ./...`, `go vet` and `go test` ALL EXIT 1 on this tree until a web build runs.
+      That is the project's standing quiet trap, NOT a defect you introduced. Do not diagnose it.
+      When you ask for the token, tell me whether you need the web build too, and budget for it.
+  (b) Creating it wrote `/workspace/farmtable/.git/worktrees/farmtable-dev-xss-r5/` in CANONICAL.
+      That is audit-194-r11's EIGHTH CHANNEL of undetected writes — invisible to `git status -uall`,
+      to `--ignored`, and to `git diff`; ONLY `git worktree list` sees it. It is mine, it is
+      deliberate, and I am recording it so it does not surface later as an unattributed write.
+
+--- 2. *** BLOCKING. THE LOGGING HAS A MANDATORY SHAPE AND IT IS NOT THE OBVIOUS ONE. *** ---
+`test-xss-r4` measured this AFTER my ruling and its warning is that the ruling did not shrink the
+risk surface — ** IT REMOVED EVERYTHING FROM THE COMMIT EXCEPT THE RISK SURFACE. **
+THE MECHANISM. The write-site scanner's regex (`internal/server/remotedata_depth_test.go:454`) is
+anchored on `RemoteData` followed by an optional group admitting EXACTLY ONE THING: a comma and an
+UNDERSCORE. "Log the discarded error" is, as a matter of Go syntax, THE INSTRUCTION TO REPLACE THE
+UNDERSCORE WITH A NAME. Measured against the shapes that instruction produces:
+    MATCH  today          pt.RemoteData, _   = structpb.NewStruct(sanitizeRemoteData(...))
+    MISS   FORM A         pt.RemoteData, err = structpb.NewStruct(sanitizeRemoteData(...))
+    MISS   FORM B         pt.RemoteData, convErr = structpb.NewStruct(...)
+    MISS   FORM C         rd, err := structpb.NewStruct(...)
+    MATCH  FORM D (TRAP)  pt.RemoteData = rd
+    MATCH  FORM E (SAFE)  pt.RemoteData = mustStruct(sanitizeRemoteData(...))
+THE ARITHMETIC, WHICH IS WHY IT LANDS GREEN. `internal/server` holds 6 sanitized write sites
+(convert.go:358, :534; export_import.go:139, :332, :438, :743) plus one exemption (server.go:661).
+The anti-vacuity floor at line 576 is `if sanitized < 4`. Form A/B/C removes the two convert.go
+sites FROM THE REGEX'S VIEW ENTIRELY — not as violations, as ABSENCES. 6 − 2 = 4. ** AND 4 < 4 IS
+FALSE. NO VIOLATION IS REPORTED AND THE FLOOR DOES NOT TRIP. ** The two that vanish are the only
+two of the six ON THE gRPC WIRE PATH — the only two that reach a browser.
+And the sharper half: the floor's own failure text names its expected composition, "at least 4
+(convert.go x2, export_import.go x2)". After the fix the four it counts are export_import.go x4.
+** THE COUNT IS SATISFIED BY A SET SHARING NOT ONE MEMBER WITH THE SET THE ASSERTION NAMES, AND THE
+   ASSERTION CANNOT TELL, BECAUSE IT COMPARES AN INTEGER. ** It passes on arithmetic coincidence:
+had the floor been 5, this would have failed loudly.
+** REQUIRED, BOTH IN THE SAME COMMIT: **
+  (i)  ** FORM E ONLY. ** A helper that takes the sanitized map, calls `structpb.NewStruct`, logs
+       the error INTERNALLY, and returns the struct — so the `sanitizeRemoteData(` call stays
+       LEXICALLY ON THE RIGHT-HAND SIDE of an assignment whose left side is the `RemoteData` field
+       and whose operator is reached with NO intervening named second target. That satisfies the
+       regex AND `remoteDataWriteIsSanitized`'s `strings.Contains(rhs, "sanitizeRemoteData(")` AND
+       does the logging. Name the helper for what it does; do not call it `mustStruct` if it does
+       not panic — THE NAME IS THE SPECIFICATION and this project has nine lying names on file.
+  (ii) ** RAISE THE FLOOR FROM 4 TO 6 IN THE SAME COMMIT. ** Two characters. A floor sitting two
+       below the truth will absorb the next two deletions as well.
+** EXPLICITLY REJECTED — the shape a careful Go developer reaches for FIRST: **
+      if s, err := structpb.NewStruct(sanitizeRemoteData(...)); err != nil { log } else { pt.RemoteData = s }
+  It looks like the most correct version and it is the WORST one. The `:=` line is invisible to the
+  regex; the surviving `pt.RemoteData = s` MATCHES but FAILS the sanitized check, so it goes RED —
+  and the scanner's own error text then instructs you to paste `pt.RemoteData = s` into the exempt
+  map. That is a GENERIC STRING in an EXACT-SOURCE-TEXT map: test-xss-r4's R7 collidable-exemption
+  finding. ** THE SCANNER'S REMEDIATION ADVICE LEADS THE DEVELOPER INTO THE OTHER FINDING. **
+If you believe Form E is impossible at either site, STOP AND MESSAGE ME — do not widen the regex
+on your own, because A WIDENED REGEX ON A CLEAN TREE IS INDISTINGUISHABLE FROM THE OLD ONE, which
+is the argument the branch's own author wrote above `remoteDataWriteIsSanitized`. test-xss-r4 has
+offered to walk the Form D/E distinction against the regex with you; ask me and I will relay.
+
+--- 3. YOUR DELIVERABLE 1 IS ACCEPTED AND IT FALSIFIES TWO CLAIMS OF MINE. THAT IS THE RESULT. ---
+Your answer stands as measured: beads has NO passthrough store, `buildRemoteData`'s only exit is
+into `CreateTask`/`UpdateTask` params, `SyncCollection` returns counts not tasks, and the only
+importer of the package is its own integration test.
+** MY BRIEF §2.1 SAID THE beads CARRIER IS "LIVE." IT IS NOT. MY §2.2 SAID THE TWO CARRIERS "STAND
+   OR FALL TOGETHER" ON ONE SHARED PREDICATE. THEY DO NOT — THEY ARE INDEPENDENT. ** That §2.2
+framing was the single result of mine this round that got praised. Your measurement retires half of
+it, and you found it by reading the pinned object rather than a checkout. Both corrections are
+yours; I have amended the brief on disk to say so.
+Your self-correction on `beads\.New` vs the aliased `beadsadapter.New` — caught before reporting,
+disclosed anyway — is exactly the standard this round has been trying to reach. It is also, note,
+your own MISAIMED instrument: a right answer to a query that did not encode the alias.
+YOUR BANKED ITEM IS ADOPTED: `a.store.CreateTask` returns an `*ent.Task` that for a non-round-tripping
+store would carry the original in-memory `[]map[string]any`, and today it is safe ONLY because the
+return is consumed for `.ID`. A two-line reachability change, not a redesign. Put it in the
+registry's FAIL-CLOSED set and in the project log entry, worded as a reachability precondition.
+
+--- 4. NEW, AND IT WILL BITE YOUR WRITING IF YOU DO NOT ADOPT IT: TWO GITHUB SITES, OPPOSITE BEHAVIOUR ---
+The persistence walk came back. There are ** TWO github RemoteData construction sites and they have
+OPPOSITE persistence behaviour: **
+  passthrough-GraphQL  internal/platform/github/passthrough.go:135  NEVER persisted. Ten direct
+                       routes to the wire, no marshal, no store round-trip. THIS is the live carrier.
+  sync-REST            internal/platform/github/github.go:257       DOES persist, via
+                       a.store.CreateTask/UpdateTask at github.go:94,:100. Genuinely reconstructed
+                       out of the database.
+** ANYONE HOLDING BOTH FACTS WILL READ A CONTRADICTION AND RESOLVE IT, AND WHICHEVER WAY THEY
+   RESOLVE IT THEY WILL BE WRONG, BECAUSE NEITHER STATEMENT IS FALSE. ** Two correct checks run
+against different populations sharing a name. In your commits, comments and project log entry,
+NEVER write "the github adapter" unqualified — write passthrough-GraphQL or sync-REST.
+
+--- 5. YOUR THREE OPEN ITEMS, ANSWERED ---
+(a) ** dev-xss-r4 IS SUSPENDED — Exited(255) two hours ago. IT IS NOT RUNNING AND IS NOT WRITING
+    ANYTHING. ** No part of the fix leg was dispatched there. You were right to raise it and right
+    not to contact it; the check cost me one command and the failure mode you imagined — a halt that
+    misses the agent actually writing the code — would have been unrecoverable.
+(b) ** THE BRIEF mtime WAS ME, AND IT HAS NOW CHANGED AGAIN, DELIBERATELY, AT 01:47Z. ** The
+    01:37:38Z write was my own save at creation. Your read of the consequence was correct and I have
+    acted on it: the file now carries a SUPERSEDING HEADER at the top, and lines 67 and 224 are
+    struck in place with `[[CANCELLED — SEE HEADER]]` markers. Nothing was deleted. ** LINE NUMBERS
+    IN THE BRIEF HAVE SHIFTED BY ~24. RE-READ THE HEADER BEFORE §1. ** Reporting the mtime was
+    right; the instruction to tell me stands for any FUTURE change.
+(c) Your numerics reading is correct and is banked for the entry-normalisation round: container-shape
+    normalisation touches no scalar, so the int64→float64 storage precision loss does not arise —
+    and it still does not answer audit, because that objection is about a KEY-NAME predicate never
+    inspecting design/notes/metadata, which is a walk-coverage problem container normalisation
+    neither fixes nor worsens. ** THEY ARE OBJECTIONS TO TWO DIFFERENT THINGS AND BOTH ARE RIGHT. **
+    You reached that from my message alone, having read no report. It is the same synthesis I sent
+    the coordinator. Do not act on it this round.
+
+--- 6. HOUSEKEEPING ---
+FINDING IDS ARE NOW ROUND-QUALIFIED, retroactively: XSS-R4-C1, 194-R11-C1. "C-1" alone is banned —
+it currently names two different findings in two rounds and one of them is with the user.
+ORDER OF WORK: deliverable 2 (logging, FORM E + floor 4→6), then 3 (the registry), then 4, 5, the
+rename. Commit; do not push. Write the project log entry — it is a deliverable, not a courtesy.
+Ask me for the token before your first compile and tell me if you need the web build.

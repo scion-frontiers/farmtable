@@ -1,0 +1,2107 @@
+package formula
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/steveyegge/beads/internal/beads"
+	"github.com/steveyegge/beads/internal/git"
+	"github.com/steveyegge/beads/internal/testutil"
+)
+
+func resetFormulaSearchCaches() {
+	beads.ResetCaches()
+	git.ResetCaches()
+}
+
+func resetFormulaSearchTestContext(t *testing.T) {
+	t.Helper()
+	t.Setenv("BEADS_DIR", "")
+	t.Setenv("GT_ROOT", "")
+	resetFormulaSearchCaches()
+	t.Cleanup(resetFormulaSearchCaches)
+}
+
+func runGitForFormulaTest(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, output)
+	}
+}
+
+func initFormulaTestRepo(t *testing.T, repoDir string) {
+	t.Helper()
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGitForFormulaTest(t, repoDir, "init")
+	if err := testutil.ForceRepoLocalHooksPath(repoDir); err != nil {
+		t.Fatalf("force repo-local hooks path: %v", err)
+	}
+	runGitForFormulaTest(t, repoDir, "config", "user.email", "test@example.com")
+	runGitForFormulaTest(t, repoDir, "config", "user.name", "Test User")
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("# Test\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitForFormulaTest(t, repoDir, "add", "README.md")
+	runGitForFormulaTest(t, repoDir, "commit", "-m", "init")
+}
+
+func writeFormulaFixture(t *testing.T, dir, formulaName, description string) string {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	formulaPath := filepath.Join(dir, formulaName+FormulaExtTOML)
+	content := fmt.Sprintf(
+		"formula = %q\ndescription = %q\n[[steps]]\nid = \"step1\"\ntitle = \"Step 1\"\n",
+		formulaName,
+		description,
+	)
+	if err := os.WriteFile(formulaPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return formulaPath
+}
+
+func canonicalTestPath(path string) string {
+	resolved, err := filepath.EvalSymlinks(filepath.Clean(path))
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	return resolved
+}
+
+func TestParse_BasicFormula(t *testing.T) {
+	jsonData := `{
+  "formula": "mol-test",
+  "description": "Test workflow",
+  "version": 1,
+  "type": "workflow",
+  "vars": {
+    "component": {
+      "description": "Component name",
+      "required": true
+    },
+    "framework": {
+      "description": "Target framework",
+      "default": "react",
+      "enum": ["react", "vue", "angular"]
+    }
+  },
+  "steps": [
+    {"id": "design", "title": "Design {{component}}", "type": "task", "priority": 1},
+    {"id": "implement", "title": "Implement {{component}}", "type": "task", "depends_on": ["design"]},
+    {"id": "test", "title": "Test {{component}} with {{framework}}", "type": "task", "depends_on": ["implement"]}
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Check basic fields
+	if formula.Formula != "mol-test" {
+		t.Errorf("Formula = %q, want mol-test", formula.Formula)
+	}
+	if formula.Description != "Test workflow" {
+		t.Errorf("Description = %q, want 'Test workflow'", formula.Description)
+	}
+	if formula.Version != 1 {
+		t.Errorf("Version = %d, want 1", formula.Version)
+	}
+	if formula.Type != TypeWorkflow {
+		t.Errorf("Type = %q, want workflow", formula.Type)
+	}
+
+	// Check vars
+	if len(formula.Vars) != 2 {
+		t.Fatalf("len(Vars) = %d, want 2", len(formula.Vars))
+	}
+	if v := formula.Vars["component"]; v == nil || !v.Required {
+		t.Error("component var should be required")
+	}
+	if v := formula.Vars["framework"]; v == nil || v.Default == nil || *v.Default != "react" {
+		t.Error("framework var should have default 'react'")
+	}
+	if v := formula.Vars["framework"]; v == nil || len(v.Enum) != 3 {
+		t.Error("framework var should have 3 enum values")
+	}
+
+	// Check steps
+	if len(formula.Steps) != 3 {
+		t.Fatalf("len(Steps) = %d, want 3", len(formula.Steps))
+	}
+	if formula.Steps[0].ID != "design" {
+		t.Errorf("Steps[0].ID = %q, want 'design'", formula.Steps[0].ID)
+	}
+	if formula.Steps[1].DependsOn[0] != "design" {
+		t.Errorf("Steps[1].DependsOn = %v, want [design]", formula.Steps[1].DependsOn)
+	}
+}
+
+func TestDefaultSearchPaths_UsesResolvedBeadsDirForWorktree(t *testing.T) {
+	resetFormulaSearchTestContext(t)
+
+	root := t.TempDir()
+	mainRepo := filepath.Join(root, "main-repo")
+	initFormulaTestRepo(t, mainRepo)
+
+	worktreeDir := filepath.Join(root, "worktree")
+	runGitForFormulaTest(t, mainRepo, "worktree", "add", worktreeDir, "HEAD")
+	t.Cleanup(func() {
+		cmd := exec.Command("git", "worktree", "remove", "--force", worktreeDir)
+		cmd.Dir = mainRepo
+		_ = cmd.Run()
+	})
+
+	mainFormulaDir := filepath.Join(mainRepo, ".beads", "formulas")
+	if err := os.MkdirAll(filepath.Join(mainRepo, ".beads", "dolt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFormulaFixture(t, mainFormulaDir, "shared", "shared formula")
+
+	t.Chdir(worktreeDir)
+	resetFormulaSearchCaches()
+
+	paths := DefaultSearchPaths()
+	if len(paths) == 0 {
+		t.Fatal("DefaultSearchPaths() returned no paths")
+	}
+
+	gotResolved := canonicalTestPath(paths[0])
+	wantResolved := canonicalTestPath(filepath.Join(mainRepo, ".beads", "formulas"))
+	if gotResolved != wantResolved {
+		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", gotResolved, wantResolved)
+	}
+
+	parser := NewParser()
+	f, err := parser.LoadByName("shared")
+	if err != nil {
+		t.Fatalf("LoadByName(shared) failed: %v", err)
+	}
+	if !strings.HasPrefix(f.Source, wantResolved) {
+		t.Fatalf("formula source = %q, want prefix %q", f.Source, wantResolved)
+	}
+}
+
+func TestDefaultSearchPaths_FallsBackToCwdFormulaDirWithoutBeadsProject(t *testing.T) {
+	resetFormulaSearchTestContext(t)
+
+	root := t.TempDir()
+	formulaDir := filepath.Join(root, ".beads", "formulas")
+	writeFormulaFixture(t, formulaDir, "local-only", "cwd fallback")
+
+	t.Chdir(root)
+	resetFormulaSearchCaches()
+
+	paths := DefaultSearchPaths()
+	if len(paths) == 0 {
+		t.Fatal("DefaultSearchPaths() returned no paths")
+	}
+	want := filepath.Join(root, ".beads", "formulas")
+	if filepath.Clean(paths[0]) != filepath.Clean(want) {
+		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", paths[0], want)
+	}
+
+	parser := NewParser()
+	if _, err := parser.LoadByName("local-only"); err != nil {
+		t.Fatalf("LoadByName(local-only) failed: %v", err)
+	}
+}
+
+func TestDefaultSearchPaths_IncludesCwdFormulaDirWithResolvedParentProject(t *testing.T) {
+	resetFormulaSearchTestContext(t)
+
+	root := t.TempDir()
+	parentFormulaDir := filepath.Join(root, ".beads", "formulas")
+	if err := os.MkdirAll(filepath.Join(root, ".beads", "dolt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFormulaFixture(t, parentFormulaDir, "shared", "parent formula")
+
+	checkout := filepath.Join(root, "checkout")
+	checkoutFormulaDir := filepath.Join(checkout, ".beads", "formulas")
+	writeFormulaFixture(t, checkoutFormulaDir, "checkout-local", "checkout formula")
+
+	t.Chdir(checkout)
+	resetFormulaSearchCaches()
+
+	paths := DefaultSearchPaths()
+	if len(paths) < 2 {
+		t.Fatalf("DefaultSearchPaths() returned %d paths, want at least 2", len(paths))
+	}
+
+	gotResolved := canonicalTestPath(paths[0])
+	wantResolved := canonicalTestPath(parentFormulaDir)
+	if gotResolved != wantResolved {
+		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", gotResolved, wantResolved)
+	}
+
+	gotCwd := canonicalTestPath(paths[1])
+	wantCwd := canonicalTestPath(checkoutFormulaDir)
+	if gotCwd != wantCwd {
+		t.Fatalf("DefaultSearchPaths()[1] = %q, want %q", gotCwd, wantCwd)
+	}
+
+	parser := NewParser()
+	if _, err := parser.LoadByName("checkout-local"); err != nil {
+		t.Fatalf("LoadByName(checkout-local) failed: %v", err)
+	}
+}
+
+func TestDefaultSearchPaths_IncludesCheckoutFormulaDirFromSubdirectory(t *testing.T) {
+	resetFormulaSearchTestContext(t)
+
+	root := t.TempDir()
+	parentFormulaDir := filepath.Join(root, ".beads", "formulas")
+	if err := os.MkdirAll(filepath.Join(root, ".beads", "dolt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFormulaFixture(t, parentFormulaDir, "shared", "parent formula")
+	t.Setenv("BEADS_DIR", filepath.Join(root, ".beads"))
+
+	checkout := filepath.Join(root, "checkout")
+	initFormulaTestRepo(t, checkout)
+	checkoutFormulaDir := filepath.Join(checkout, ".beads", "formulas")
+	writeFormulaFixture(t, checkoutFormulaDir, "checkout-local", "checkout formula")
+
+	subdir := filepath.Join(checkout, "cmd")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Chdir(subdir)
+	resetFormulaSearchCaches()
+
+	paths := DefaultSearchPaths()
+	if len(paths) < 2 {
+		t.Fatalf("DefaultSearchPaths() returned %d paths, want at least 2", len(paths))
+	}
+
+	gotResolved := canonicalTestPath(paths[0])
+	wantResolved := canonicalTestPath(parentFormulaDir)
+	if gotResolved != wantResolved {
+		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", gotResolved, wantResolved)
+	}
+
+	gotCheckout := canonicalTestPath(paths[1])
+	wantCheckout := canonicalTestPath(checkoutFormulaDir)
+	if gotCheckout != wantCheckout {
+		t.Fatalf("DefaultSearchPaths()[1] = %q, want %q", gotCheckout, wantCheckout)
+	}
+
+	parser := NewParser()
+	if _, err := parser.LoadByName("checkout-local"); err != nil {
+		t.Fatalf("LoadByName(checkout-local) failed from subdirectory: %v", err)
+	}
+}
+
+func TestValidate_ValidFormula(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-valid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1"},
+			{ID: "step2", Title: "Step 2", DependsOn: []string{"step1"}},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid formula: %v", err)
+	}
+}
+
+func TestValidate_MissingName(t *testing.T) {
+	formula := &Formula{
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps:   []*Step{{ID: "step1", Title: "Step 1"}},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for formula without name")
+	}
+}
+
+func TestValidate_DuplicateStepID(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-dup",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1"},
+			{ID: "step1", Title: "Step 1 again"}, // duplicate
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for duplicate step IDs")
+	}
+}
+
+func TestValidate_InvalidDependency(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-bad-dep",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1", DependsOn: []string{"nonexistent"}},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for dependency on nonexistent step")
+	}
+}
+
+func TestValidate_RequiredWithDefault(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-bad-var",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Vars: map[string]*VarDef{
+			"bad": {Required: true, Default: StringPtr("value")}, // can't have both
+		},
+		Steps: []*Step{{ID: "step1", Title: "Step 1"}},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for required var with default")
+	}
+}
+
+func TestValidate_InvalidPriority(t *testing.T) {
+	p := 10 // invalid: must be 0-4
+	formula := &Formula{
+		Formula: "mol-bad-priority",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1", Priority: &p},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for priority > 4")
+	}
+}
+
+func TestValidate_ChildSteps(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-children",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1"},
+					{ID: "child2", Title: "Child 2", DependsOn: []string{"child1"}},
+				},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid nested formula: %v", err)
+	}
+}
+
+func TestValidate_ChildStepsInvalidDependsOn(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-bad-child-dep",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1"},
+					{ID: "child2", Title: "Child 2", DependsOn: []string{"nonexistent"}},
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for child depends_on referencing unknown step")
+	}
+}
+
+func TestValidate_ChildStepsInvalidPriority(t *testing.T) {
+	p := 10 // invalid
+	formula := &Formula{
+		Formula: "mol-bad-child-priority",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1", Priority: &p},
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for child with invalid priority")
+	}
+}
+
+func TestValidate_BondPoints(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-compose",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1"},
+			{ID: "step2", Title: "Step 2"},
+		},
+		Compose: &ComposeRules{
+			BondPoints: []*BondPoint{
+				{ID: "after-step1", AfterStep: "step1"},
+				{ID: "before-step2", BeforeStep: "step2"},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid bond points: %v", err)
+	}
+}
+
+func TestValidate_BondPointBothAnchors(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-bad-bond",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps:   []*Step{{ID: "step1", Title: "Step 1"}},
+		Compose: &ComposeRules{
+			BondPoints: []*BondPoint{
+				{ID: "bad", AfterStep: "step1", BeforeStep: "step1"}, // can't have both
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("Validate should fail for bond point with both after_step and before_step")
+	}
+}
+
+func TestExtractVariables(t *testing.T) {
+	formula := &Formula{
+		Formula:     "mol-vars",
+		Description: "Build {{project}} for {{env}}",
+		Steps: []*Step{
+			{ID: "s1", Title: "Deploy {{project}} to {{env}}"},
+			{ID: "s2", Title: "Notify {{owner}}"},
+			{ID: "s3", Gate: &Gate{Type: "gh:{{gate_kind}}", AwaitID: "{{pr_url}}", Timeout: "{{gate_timeout}}"}},
+		},
+	}
+
+	vars := ExtractVariables(formula)
+	want := map[string]bool{
+		"project":      true,
+		"env":          true,
+		"owner":        true,
+		"gate_kind":    true,
+		"pr_url":       true,
+		"gate_timeout": true,
+	}
+
+	if len(vars) != len(want) {
+		t.Errorf("ExtractVariables found %d vars, want %d", len(vars), len(want))
+	}
+	for _, v := range vars {
+		if !want[v] {
+			t.Errorf("Unexpected variable: %q", v)
+		}
+	}
+}
+
+func TestSubstitute(t *testing.T) {
+	tests := []struct {
+		input string
+		vars  map[string]string
+		want  string
+	}{
+		{
+			input: "Deploy {{project}} to {{env}}",
+			vars:  map[string]string{"project": "myapp", "env": "prod"},
+			want:  "Deploy myapp to prod",
+		},
+		{
+			input: "{{name}} version {{version}}",
+			vars:  map[string]string{"name": "beads"},
+			want:  "beads version {{version}}", // unresolved kept
+		},
+		{
+			input: "No variables here",
+			vars:  map[string]string{"unused": "value"},
+			want:  "No variables here",
+		},
+	}
+
+	for _, tt := range tests {
+		got := Substitute(tt.input, tt.vars)
+		if got != tt.want {
+			t.Errorf("Substitute(%q, %v) = %q, want %q", tt.input, tt.vars, got, tt.want)
+		}
+	}
+}
+
+func TestValidateVars(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-vars",
+		Vars: map[string]*VarDef{
+			"required_var": {Required: true},
+			"enum_var":     {Enum: []string{"a", "b", "c"}},
+			"pattern_var":  {Pattern: `^[a-z]+$`},
+			"optional_var": {Default: StringPtr("default")},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		values  map[string]string
+		wantErr bool
+	}{
+		{
+			name:    "missing required",
+			values:  map[string]string{},
+			wantErr: true,
+		},
+		{
+			name:    "all provided",
+			values:  map[string]string{"required_var": "value"},
+			wantErr: false,
+		},
+		{
+			name:    "valid enum",
+			values:  map[string]string{"required_var": "x", "enum_var": "a"},
+			wantErr: false,
+		},
+		{
+			name:    "invalid enum",
+			values:  map[string]string{"required_var": "x", "enum_var": "invalid"},
+			wantErr: true,
+		},
+		{
+			name:    "valid pattern",
+			values:  map[string]string{"required_var": "x", "pattern_var": "abc"},
+			wantErr: false,
+		},
+		{
+			name:    "invalid pattern",
+			values:  map[string]string{"required_var": "x", "pattern_var": "123"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateVars(formula, tt.values)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateVars() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestApplyDefaults(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-defaults",
+		Vars: map[string]*VarDef{
+			"with_default":    {Default: StringPtr("default_value")},
+			"without_default": {},
+		},
+	}
+
+	values := map[string]string{"without_default": "provided"}
+	result := ApplyDefaults(formula, values)
+
+	if result["with_default"] != "default_value" {
+		t.Errorf("with_default = %q, want 'default_value'", result["with_default"])
+	}
+	if result["without_default"] != "provided" {
+		t.Errorf("without_default = %q, want 'provided'", result["without_default"])
+	}
+}
+
+func TestParseFile_AndResolve(t *testing.T) {
+	// Create temp directory with test formulas
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, ".beads", "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Write parent formula
+	parent := `{
+  "formula": "base-workflow",
+  "version": 1,
+  "type": "workflow",
+  "vars": {
+    "project": {
+      "description": "Project name",
+      "required": true
+    }
+  },
+  "steps": [
+    {"id": "init", "title": "Initialize {{project}}"}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "base-workflow.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Write child formula that extends parent
+	child := `{
+  "formula": "extended-workflow",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["base-workflow"],
+  "vars": {
+    "env": {
+      "default": "dev"
+    }
+  },
+  "steps": [
+    {"id": "deploy", "title": "Deploy {{project}} to {{env}}", "depends_on": ["init"]}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "extended-workflow.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	// Parse and resolve
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	// Check inheritance
+	if len(resolved.Vars) != 2 {
+		t.Errorf("len(Vars) = %d, want 2 (inherited + child)", len(resolved.Vars))
+	}
+	if resolved.Vars["project"] == nil {
+		t.Error("inherited var 'project' not found")
+	}
+	if resolved.Vars["env"] == nil {
+		t.Error("child var 'env' not found")
+	}
+
+	// Check steps (parent + child)
+	if len(resolved.Steps) != 2 {
+		t.Errorf("len(Steps) = %d, want 2", len(resolved.Steps))
+	}
+	if resolved.Steps[0].ID != "init" {
+		t.Errorf("Steps[0].ID = %q, want 'init' (inherited)", resolved.Steps[0].ID)
+	}
+	if resolved.Steps[1].ID != "deploy" {
+		t.Errorf("Steps[1].ID = %q, want 'deploy' (child)", resolved.Steps[1].ID)
+	}
+}
+
+func TestResolve_CircularExtends(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, ".beads", "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Write formulas that extend each other (cycle)
+	formulaA := `{
+  "formula": "cycle-a",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["cycle-b"],
+  "steps": [{"id": "a", "title": "A"}]
+}`
+	formulaB := `{
+  "formula": "cycle-b",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["cycle-a"],
+  "steps": [{"id": "b", "title": "B"}]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "cycle-a.formula.json"), []byte(formulaA), 0644); err != nil {
+		t.Fatalf("write a: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(formulaDir, "cycle-b.formula.json"), []byte(formulaB), 0644); err != nil {
+		t.Fatalf("write b: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(filepath.Join(formulaDir, "cycle-a.formula.json"))
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	_, err = p.Resolve(formula)
+	if err == nil {
+		t.Error("Resolve should fail for circular extends")
+	}
+
+	// Verify the error message shows the full cycle chain
+	errStr := err.Error()
+	if !strings.Contains(errStr, "cycle-a") {
+		t.Errorf("error should mention cycle-a: %v", err)
+	}
+	if !strings.Contains(errStr, "cycle-b") {
+		t.Errorf("error should mention cycle-b: %v", err)
+	}
+	if !strings.Contains(errStr, "->") {
+		t.Errorf("error should show cycle chain with '->': %v", err)
+	}
+}
+
+func TestGetStepByID(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-nested",
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1"},
+					{
+						ID:    "child2",
+						Title: "Child 2",
+						Children: []*Step{
+							{ID: "grandchild", Title: "Grandchild"},
+						},
+					},
+				},
+			},
+			{ID: "step2", Title: "Step 2"},
+		},
+	}
+
+	tests := []struct {
+		id   string
+		want string
+	}{
+		{"epic1", "Epic 1"},
+		{"child1", "Child 1"},
+		{"grandchild", "Grandchild"},
+		{"step2", "Step 2"},
+		{"nonexistent", ""},
+	}
+
+	for _, tt := range tests {
+		step := formula.GetStepByID(tt.id)
+		if tt.want == "" {
+			if step != nil {
+				t.Errorf("GetStepByID(%q) = %v, want nil", tt.id, step)
+			}
+		} else {
+			if step == nil || step.Title != tt.want {
+				t.Errorf("GetStepByID(%q).Title = %v, want %q", tt.id, step, tt.want)
+			}
+		}
+	}
+}
+
+func TestFormulaType_IsValid(t *testing.T) {
+	tests := []struct {
+		t    FormulaType
+		want bool
+	}{
+		{TypeWorkflow, true},
+		{TypeExpansion, true},
+		{TypeAspect, true},
+		{TypeConvoy, true},
+		{"invalid", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.t.IsValid(); got != tt.want {
+			t.Errorf("%q.IsValid() = %v, want %v", tt.t, got, tt.want)
+		}
+	}
+}
+
+// TestValidate_NeedsField tests validation of the needs field (bd-hr39)
+func TestValidate_NeedsField(t *testing.T) {
+	// Valid needs reference
+	formula := &Formula{
+		Formula: "mol-needs",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1"},
+			{ID: "step2", Title: "Step 2", Needs: []string{"step1"}},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid needs reference: %v", err)
+	}
+
+	// Invalid needs reference
+	formulaBad := &Formula{
+		Formula: "mol-bad-needs",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1"},
+			{ID: "step2", Title: "Step 2", Needs: []string{"nonexistent"}},
+		},
+	}
+
+	err := formulaBad.Validate()
+	if err == nil {
+		t.Error("Validate should fail for needs referencing unknown step")
+	}
+}
+
+// TestValidate_WaitsForField tests validation of the waits_for field (bd-j4cr)
+func TestValidate_WaitsForField(t *testing.T) {
+	// Valid waits_for value
+	formula := &Formula{
+		Formula: "mol-waits-for",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "fanout", Title: "Fanout"},
+			{ID: "aggregate", Title: "Aggregate", Needs: []string{"fanout"}, WaitsFor: "all-children"},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid waits_for: %v", err)
+	}
+
+	// Invalid waits_for value
+	formulaBad := &Formula{
+		Formula: "mol-bad-waits-for",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1", WaitsFor: "invalid-gate"},
+		},
+	}
+
+	err := formulaBad.Validate()
+	if err == nil {
+		t.Error("Validate should fail for invalid waits_for value")
+	}
+}
+
+// TestValidate_WaitsForChildrenOf tests the children-of(step) syntax (gt-8tmz.38)
+func TestValidate_WaitsForChildrenOf(t *testing.T) {
+	// Valid children-of() syntax
+	formula := &Formula{
+		Formula: "mol-children-of",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "survey-workers", Title: "Survey Workers"},
+			{ID: "aggregate", Title: "Aggregate", Needs: []string{"survey-workers"}, WaitsFor: "children-of(survey-workers)"},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid children-of(): %v", err)
+	}
+
+	// Invalid: reference to unknown step
+	formulaBad := &Formula{
+		Formula: "mol-bad-children-of",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1", WaitsFor: "children-of(unknown-step)"},
+		},
+	}
+
+	if err := formulaBad.Validate(); err == nil {
+		t.Error("Validate should fail for children-of() with unknown step")
+	}
+
+	// Invalid: empty step ID
+	formulaEmpty := &Formula{
+		Formula: "mol-empty-children-of",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{ID: "step1", Title: "Step 1", WaitsFor: "children-of()"},
+		},
+	}
+
+	if err := formulaEmpty.Validate(); err == nil {
+		t.Error("Validate should fail for children-of() with empty step ID")
+	}
+}
+
+// TestParseWaitsFor tests the ParseWaitsFor helper function (gt-8tmz.38)
+func TestParseWaitsFor(t *testing.T) {
+	tests := []struct {
+		input     string
+		wantGate  string
+		wantSpawn string
+		wantNil   bool
+	}{
+		{"", "", "", true},
+		{"all-children", "all-children", "", false},
+		{"any-children", "any-children", "", false},
+		{"children-of(survey)", "all-children", "survey", false},
+		{"children-of(my-step)", "all-children", "my-step", false},
+		{"invalid", "", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			spec := ParseWaitsFor(tt.input)
+			if tt.wantNil {
+				if spec != nil {
+					t.Errorf("ParseWaitsFor(%q) = %+v, want nil", tt.input, spec)
+				}
+				return
+			}
+			if spec == nil {
+				t.Fatalf("ParseWaitsFor(%q) = nil, want non-nil", tt.input)
+			}
+			if spec.Gate != tt.wantGate {
+				t.Errorf("ParseWaitsFor(%q).Gate = %q, want %q", tt.input, spec.Gate, tt.wantGate)
+			}
+			if spec.SpawnerID != tt.wantSpawn {
+				t.Errorf("ParseWaitsFor(%q).SpawnerID = %q, want %q", tt.input, spec.SpawnerID, tt.wantSpawn)
+			}
+		})
+	}
+}
+
+// TestValidate_ChildNeedsAndWaitsFor tests needs and waits_for in child steps
+func TestValidate_ChildNeedsAndWaitsFor(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-child-fields",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1"},
+					{ID: "child2", Title: "Child 2", Needs: []string{"child1"}, WaitsFor: "any-children"},
+				},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid child needs/waits_for: %v", err)
+	}
+
+	// Invalid child needs
+	formulaBadNeeds := &Formula{
+		Formula: "mol-bad-child-needs",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1", Needs: []string{"nonexistent"}},
+				},
+			},
+		},
+	}
+
+	if err := formulaBadNeeds.Validate(); err == nil {
+		t.Error("Validate should fail for child with invalid needs reference")
+	}
+
+	// Invalid child waits_for
+	formulaBadWaitsFor := &Formula{
+		Formula: "mol-bad-child-waits-for",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "epic1",
+				Title: "Epic 1",
+				Children: []*Step{
+					{ID: "child1", Title: "Child 1", WaitsFor: "bad-value"},
+				},
+			},
+		},
+	}
+
+	if err := formulaBadWaitsFor.Validate(); err == nil {
+		t.Error("Validate should fail for child with invalid waits_for")
+	}
+}
+
+// TestParse_NeedsAndWaitsFor tests JSON parsing of needs and waits_for fields
+func TestParse_NeedsAndWaitsFor(t *testing.T) {
+	jsonData := `{
+  "formula": "mol-deacon",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "inbox-check", "title": "Check inbox"},
+    {"id": "health-scan", "title": "Check health", "needs": ["inbox-check"]},
+    {"id": "aggregate", "title": "Aggregate results", "needs": ["health-scan"], "waits_for": "all-children"}
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check needs field
+	if len(formula.Steps[1].Needs) != 1 || formula.Steps[1].Needs[0] != "inbox-check" {
+		t.Errorf("Steps[1].Needs = %v, want [inbox-check]", formula.Steps[1].Needs)
+	}
+
+	// Check waits_for field
+	if formula.Steps[2].WaitsFor != "all-children" {
+		t.Errorf("Steps[2].WaitsFor = %q, want 'all-children'", formula.Steps[2].WaitsFor)
+	}
+}
+
+// gt-8tmz.8: Tests for on_complete/for-each runtime expansion
+
+func TestParse_OnComplete(t *testing.T) {
+	jsonData := `{
+  "formula": "mol-patrol",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "survey-workers",
+      "title": "Survey workers",
+      "on_complete": {
+        "for_each": "output.polecats",
+        "bond": "mol-polecat-arm",
+        "vars": {
+          "polecat_name": "{item.name}",
+          "rig": "{item.rig}"
+        },
+        "parallel": true
+      }
+    },
+    {
+      "id": "aggregate",
+      "title": "Aggregate results",
+      "needs": ["survey-workers"],
+      "waits_for": "all-children"
+    }
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check on_complete field
+	oc := formula.Steps[0].OnComplete
+	if oc == nil {
+		t.Fatal("Steps[0].OnComplete is nil")
+	}
+	if oc.ForEach != "output.polecats" {
+		t.Errorf("ForEach = %q, want 'output.polecats'", oc.ForEach)
+	}
+	if oc.Bond != "mol-polecat-arm" {
+		t.Errorf("Bond = %q, want 'mol-polecat-arm'", oc.Bond)
+	}
+	if len(oc.Vars) != 2 {
+		t.Errorf("len(Vars) = %d, want 2", len(oc.Vars))
+	}
+	if oc.Vars["polecat_name"] != "{item.name}" {
+		t.Errorf("Vars[polecat_name] = %q, want '{item.name}'", oc.Vars["polecat_name"])
+	}
+	if !oc.Parallel {
+		t.Error("Parallel should be true")
+	}
+}
+
+func TestValidate_OnComplete_Valid(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-valid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "survey",
+				Title: "Survey",
+				OnComplete: &OnCompleteSpec{
+					ForEach: "output.items",
+					Bond:    "mol-item",
+				},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for valid on_complete: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_MissingBond(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-invalid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "survey",
+				Title: "Survey",
+				OnComplete: &OnCompleteSpec{
+					ForEach: "output.items",
+					// Bond is missing
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("expected validation error for missing bond")
+	}
+	if !strings.Contains(err.Error(), "bond is required") {
+		t.Errorf("expected 'bond is required' error, got: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_MissingForEach(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-invalid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "survey",
+				Title: "Survey",
+				OnComplete: &OnCompleteSpec{
+					Bond: "mol-item",
+					// ForEach is missing
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("expected validation error for missing for_each")
+	}
+	if !strings.Contains(err.Error(), "for_each is required") {
+		t.Errorf("expected 'for_each is required' error, got: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_InvalidForEachPath(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-invalid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "survey",
+				Title: "Survey",
+				OnComplete: &OnCompleteSpec{
+					ForEach: "items", // Should start with "output."
+					Bond:    "mol-item",
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("expected validation error for invalid for_each path")
+	}
+	if !strings.Contains(err.Error(), "must start with 'output.'") {
+		t.Errorf("expected 'must start with output.' error, got: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_ParallelAndSequential(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-invalid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "survey",
+				Title: "Survey",
+				OnComplete: &OnCompleteSpec{
+					ForEach:    "output.items",
+					Bond:       "mol-item",
+					Parallel:   true,
+					Sequential: true, // Can't have both
+				},
+			},
+		},
+	}
+
+	err := formula.Validate()
+	if err == nil {
+		t.Error("expected validation error for parallel + sequential")
+	}
+	if !strings.Contains(err.Error(), "cannot set both parallel and sequential") {
+		t.Errorf("expected 'cannot set both' error, got: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_Sequential(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-valid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "process-queue",
+				Title: "Process queue",
+				OnComplete: &OnCompleteSpec{
+					ForEach:    "output.branches",
+					Bond:       "mol-merge",
+					Sequential: true,
+				},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for sequential on_complete: %v", err)
+	}
+}
+
+func TestValidate_OnComplete_InChildren(t *testing.T) {
+	formula := &Formula{
+		Formula: "mol-valid",
+		Version: 1,
+		Type:    TypeWorkflow,
+		Steps: []*Step{
+			{
+				ID:    "parent",
+				Title: "Parent",
+				Children: []*Step{
+					{
+						ID:    "child",
+						Title: "Child",
+						OnComplete: &OnCompleteSpec{
+							ForEach: "output.items",
+							Bond:    "mol-item",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed for on_complete in child: %v", err)
+	}
+}
+
+// bd-4bt1: Tests for gate field parsing
+
+func TestParse_GateField(t *testing.T) {
+	jsonData := `{
+  "formula": "mol-release",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "run-tests",
+      "title": "Run CI tests",
+      "gate": {
+        "type": "gh:run",
+        "id": "ci-tests",
+        "await_id": "12345",
+        "timeout": "1h"
+      }
+    },
+    {"id": "deploy", "title": "Deploy to prod", "depends_on": ["run-tests"]}
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check gate field
+	gate := formula.Steps[0].Gate
+	if gate == nil {
+		t.Fatal("Steps[0].Gate is nil")
+	}
+	if gate.Type != "gh:run" {
+		t.Errorf("Gate.Type = %q, want 'gh:run'", gate.Type)
+	}
+	if gate.ID != "ci-tests" {
+		t.Errorf("Gate.ID = %q, want 'ci-tests'", gate.ID)
+	}
+	if gate.AwaitID != "12345" {
+		t.Errorf("Gate.AwaitID = %q, want '12345'", gate.AwaitID)
+	}
+	if gate.Timeout != "1h" {
+		t.Errorf("Gate.Timeout = %q, want '1h'", gate.Timeout)
+	}
+}
+
+func TestParse_GateFieldTOML(t *testing.T) {
+	tomlData := `
+formula = "mol-release"
+version = 1
+type = "workflow"
+
+[[steps]]
+id = "wait-for-approval"
+title = "Wait for human approval"
+[steps.gate]
+type = "human"
+await_id = "approval-ticket"
+timeout = "24h"
+
+[[steps]]
+id = "proceed"
+title = "Proceed after approval"
+depends_on = ["wait-for-approval"]
+`
+	p := NewParser()
+	formula, err := p.ParseTOML([]byte(tomlData))
+	if err != nil {
+		t.Fatalf("ParseTOML failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check gate field
+	gate := formula.Steps[0].Gate
+	if gate == nil {
+		t.Fatal("Steps[0].Gate is nil")
+	}
+	if gate.Type != "human" {
+		t.Errorf("Gate.Type = %q, want 'human'", gate.Type)
+	}
+	if gate.AwaitID != "approval-ticket" {
+		t.Errorf("Gate.AwaitID = %q, want 'approval-ticket'", gate.AwaitID)
+	}
+	if gate.Timeout != "24h" {
+		t.Errorf("Gate.Timeout = %q, want '24h'", gate.Timeout)
+	}
+}
+
+func TestParse_GateFieldMinimal(t *testing.T) {
+	// Test gate with only type (minimal valid gate)
+	jsonData := `{
+  "formula": "mol-timer",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "wait",
+      "title": "Wait for timer",
+      "gate": {"type": "timer"}
+    }
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	gate := formula.Steps[0].Gate
+	if gate == nil {
+		t.Fatal("Steps[0].Gate is nil")
+	}
+	if gate.Type != "timer" {
+		t.Errorf("Gate.Type = %q, want 'timer'", gate.Type)
+	}
+	if gate.ID != "" {
+		t.Errorf("Gate.ID = %q, want empty", gate.ID)
+	}
+	if gate.Timeout != "" {
+		t.Errorf("Gate.Timeout = %q, want empty", gate.Timeout)
+	}
+}
+
+func TestParse_GateFieldWithAllTypes(t *testing.T) {
+	// Test various gate types mentioned in the spec
+	tests := []struct {
+		name     string
+		gateType string
+		id       string
+	}{
+		{"github_run", "gh:run", "test-workflow"},
+		{"github_pr", "gh:pr", "123"},
+		{"timer", "timer", ""},
+		{"human", "human", ""},
+		{"bead", "bead", "bd-xyz"},
+		{"mail", "mail", "from:witness"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			jsonData := fmt.Sprintf(`{
+  "formula": "mol-test",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "step1", "title": "Test step", "gate": {"type": "%s", "id": "%s"}}
+  ]
+}`, tt.gateType, tt.id)
+
+			p := NewParser()
+			formula, err := p.Parse([]byte(jsonData))
+			if err != nil {
+				t.Fatalf("Parse failed: %v", err)
+			}
+
+			gate := formula.Steps[0].Gate
+			if gate == nil {
+				t.Fatal("Gate is nil")
+			}
+			if gate.Type != tt.gateType {
+				t.Errorf("Gate.Type = %q, want %q", gate.Type, tt.gateType)
+			}
+			if gate.ID != tt.id {
+				t.Errorf("Gate.ID = %q, want %q", gate.ID, tt.id)
+			}
+		})
+	}
+}
+
+func TestParse_GateInChildStep(t *testing.T) {
+	jsonData := `{
+  "formula": "mol-nested",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "epic",
+      "title": "Release Epic",
+      "children": [
+        {
+          "id": "child-gate",
+          "title": "Wait for CI",
+          "gate": {"type": "gh:run", "id": "ci", "timeout": "30m"}
+        }
+      ]
+    }
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	child := formula.Steps[0].Children[0]
+	if child.Gate == nil {
+		t.Fatal("Child gate is nil")
+	}
+	if child.Gate.Type != "gh:run" {
+		t.Errorf("Child Gate.Type = %q, want 'gh:run'", child.Gate.Type)
+	}
+}
+
+// TestParseTOML_SnakeCaseFields verifies that snake_case fields like depends_on
+// are correctly parsed from TOML. This tests the fix for GitHub issue #1449.
+func TestParseTOML_SnakeCaseFields(t *testing.T) {
+	tomlData := `
+formula = "mol-snake-test"
+version = 1
+type = "workflow"
+
+[[steps]]
+id = "step1"
+title = "First Step"
+
+[[steps]]
+id = "step2"
+title = "Second Step"
+depends_on = ["step1"]
+
+[[steps]]
+id = "step3"
+title = "Third Step"
+needs = ["step2"]
+waits_for = "all-children"
+`
+	p := NewParser()
+	formula, err := p.ParseTOML([]byte(tomlData))
+	if err != nil {
+		t.Fatalf("ParseTOML failed: %v", err)
+	}
+
+	if len(formula.Steps) != 3 {
+		t.Fatalf("len(Steps) = %d, want 3", len(formula.Steps))
+	}
+
+	// Test depends_on (the field that was broken before the fix)
+	step2 := formula.Steps[1]
+	if len(step2.DependsOn) != 1 || step2.DependsOn[0] != "step1" {
+		t.Errorf("Steps[1].DependsOn = %v, want [step1]", step2.DependsOn)
+	}
+
+	// Test needs (worked before, should still work)
+	step3 := formula.Steps[2]
+	if len(step3.Needs) != 1 || step3.Needs[0] != "step2" {
+		t.Errorf("Steps[2].Needs = %v, want [step2]", step3.Needs)
+	}
+
+	// Test waits_for (another snake_case field)
+	if step3.WaitsFor != "all-children" {
+		t.Errorf("Steps[2].WaitsFor = %q, want 'all-children'", step3.WaitsFor)
+	}
+}
+
+// Tests for simple string vars in TOML [vars] section
+
+func TestParseTOML_SimpleStringVars(t *testing.T) {
+	// Test that simple string assignments work in [vars] section
+	tomlData := `
+formula = "mol-patrol"
+version = 1
+type = "workflow"
+
+[vars]
+wisp_type = "patrol"
+rig_name = "mayor"
+
+[[steps]]
+id = "start"
+title = "Start {{wisp_type}} on {{rig_name}}"
+`
+	p := NewParser()
+	formula, err := p.ParseTOML([]byte(tomlData))
+	if err != nil {
+		t.Fatalf("ParseTOML failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check vars were parsed correctly
+	if len(formula.Vars) != 2 {
+		t.Fatalf("len(Vars) = %d, want 2", len(formula.Vars))
+	}
+
+	// Simple string should become Default
+	if v := formula.Vars["wisp_type"]; v == nil {
+		t.Error("wisp_type var not found")
+	} else if v.Default == nil || *v.Default != "patrol" {
+		t.Errorf("wisp_type.Default = %v, want 'patrol'", v.Default)
+	}
+
+	if v := formula.Vars["rig_name"]; v == nil {
+		t.Error("rig_name var not found")
+	} else if v.Default == nil || *v.Default != "mayor" {
+		t.Errorf("rig_name.Default = %v, want 'mayor'", v.Default)
+	}
+}
+
+// be-58b: Tests for step override in extends
+
+func TestResolve_ChildStepOverridesParentByID(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	// Parent formula with workspace-setup step
+	parent := `{
+  "formula": "mol-base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "workspace-setup", "title": "Parent workspace setup"},
+    {"id": "build", "title": "Build", "depends_on": ["workspace-setup"]}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "mol-base.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Child overrides workspace-setup with different title
+	child := `{
+  "formula": "mol-child",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["mol-base"],
+  "steps": [
+    {"id": "workspace-setup", "title": "Child workspace setup"}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "mol-child.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	// Should have 2 steps (override, not 3 from concatenation)
+	if len(resolved.Steps) != 2 {
+		t.Fatalf("len(Steps) = %d, want 2", len(resolved.Steps))
+	}
+
+	// workspace-setup should have child's title
+	if resolved.Steps[0].Title != "Child workspace setup" {
+		t.Errorf("Steps[0].Title = %q, want 'Child workspace setup'", resolved.Steps[0].Title)
+	}
+
+	// build should still be present
+	if resolved.Steps[1].ID != "build" {
+		t.Errorf("Steps[1].ID = %q, want 'build'", resolved.Steps[1].ID)
+	}
+}
+
+func TestResolve_OverridePreservesParentPosition(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	parent := `{
+  "formula": "mol-base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "step-a", "title": "A"},
+    {"id": "step-b", "title": "B"},
+    {"id": "step-c", "title": "C"}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "mol-base.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Child overrides step-b (middle step) — should keep position [1]
+	child := `{
+  "formula": "mol-child",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["mol-base"],
+  "steps": [
+    {"id": "step-b", "title": "B-override"}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "mol-child.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	// Should have 3 steps, not 4
+	if len(resolved.Steps) != 3 {
+		t.Fatalf("len(Steps) = %d, want 3", len(resolved.Steps))
+	}
+
+	// Order should be preserved: A, B-override, C
+	wantIDs := []string{"step-a", "step-b", "step-c"}
+	for i, wantID := range wantIDs {
+		if resolved.Steps[i].ID != wantID {
+			t.Errorf("Steps[%d].ID = %q, want %q", i, resolved.Steps[i].ID, wantID)
+		}
+	}
+
+	// The overridden step should have child's title
+	if resolved.Steps[1].Title != "B-override" {
+		t.Errorf("Steps[1].Title = %q, want 'B-override'", resolved.Steps[1].Title)
+	}
+}
+
+func TestResolve_ChildNewStepsAppendedAfterParent(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	parent := `{
+  "formula": "mol-base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "init", "title": "Init"}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "mol-base.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Child adds new steps and overrides init
+	child := `{
+  "formula": "mol-child",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["mol-base"],
+  "steps": [
+    {"id": "init", "title": "Custom Init"},
+    {"id": "deploy", "title": "Deploy", "depends_on": ["init"]}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "mol-child.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	// 2 steps: init (overridden) + deploy (new)
+	if len(resolved.Steps) != 2 {
+		t.Fatalf("len(Steps) = %d, want 2", len(resolved.Steps))
+	}
+
+	if resolved.Steps[0].ID != "init" || resolved.Steps[0].Title != "Custom Init" {
+		t.Errorf("Steps[0] = {%s, %s}, want {init, Custom Init}", resolved.Steps[0].ID, resolved.Steps[0].Title)
+	}
+	if resolved.Steps[1].ID != "deploy" {
+		t.Errorf("Steps[1].ID = %q, want 'deploy'", resolved.Steps[1].ID)
+	}
+}
+
+func TestResolve_MultipleOverrides(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	parent := `{
+  "formula": "mol-base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "step-a", "title": "A"},
+    {"id": "step-b", "title": "B"},
+    {"id": "step-c", "title": "C"},
+    {"id": "step-d", "title": "D"}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "mol-base.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Child overrides step-a and step-c
+	child := `{
+  "formula": "mol-child",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["mol-base"],
+  "steps": [
+    {"id": "step-a", "title": "A-new"},
+    {"id": "step-c", "title": "C-new"}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "mol-child.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+
+	if len(resolved.Steps) != 4 {
+		t.Fatalf("len(Steps) = %d, want 4", len(resolved.Steps))
+	}
+
+	wantTitles := []string{"A-new", "B", "C-new", "D"}
+	for i, want := range wantTitles {
+		if resolved.Steps[i].Title != want {
+			t.Errorf("Steps[%d].Title = %q, want %q", i, resolved.Steps[i].Title, want)
+		}
+	}
+}
+
+func TestResolve_NeedsReferencesToOverriddenStepStillResolve(t *testing.T) {
+	dir := t.TempDir()
+	formulaDir := filepath.Join(dir, "formulas")
+	if err := os.MkdirAll(formulaDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	parent := `{
+  "formula": "mol-base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {"id": "workspace-setup", "title": "Parent setup"},
+    {"id": "build", "title": "Build", "needs": ["workspace-setup"]},
+    {"id": "test", "title": "Test", "depends_on": ["build"]}
+  ]
+}`
+	if err := os.WriteFile(filepath.Join(formulaDir, "mol-base.formula.json"), []byte(parent), 0644); err != nil {
+		t.Fatalf("write parent: %v", err)
+	}
+
+	// Child overrides workspace-setup; build's needs reference should still resolve
+	child := `{
+  "formula": "mol-child",
+  "version": 1,
+  "type": "workflow",
+  "extends": ["mol-base"],
+  "steps": [
+    {"id": "workspace-setup", "title": "Custom setup"}
+  ]
+}`
+	childPath := filepath.Join(formulaDir, "mol-child.formula.json")
+	if err := os.WriteFile(childPath, []byte(child), 0644); err != nil {
+		t.Fatalf("write child: %v", err)
+	}
+
+	p := NewParser(formulaDir)
+	formula, err := p.ParseFile(childPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	resolved, err := p.Resolve(formula)
+	if err != nil {
+		t.Fatalf("Resolve should succeed (needs refs still valid): %v", err)
+	}
+
+	// 3 steps: workspace-setup (overridden), build, test
+	if len(resolved.Steps) != 3 {
+		t.Fatalf("len(Steps) = %d, want 3", len(resolved.Steps))
+	}
+
+	// build should still reference workspace-setup
+	if resolved.Steps[1].Needs[0] != "workspace-setup" {
+		t.Errorf("Steps[1].Needs = %v, want [workspace-setup]", resolved.Steps[1].Needs)
+	}
+}
+
+func TestParseTOML_MixedVarFormats(t *testing.T) {
+	// Test mixing simple strings and full table definitions
+	tomlData := `
+formula = "mol-mixed"
+version = 1
+type = "workflow"
+
+[vars]
+simple_var = "simple_value"
+
+[vars.complex_var]
+description = "A complex variable"
+default = "complex_default"
+required = false
+enum = ["a", "b", "c"]
+
+[vars.required_var]
+description = "A required variable"
+required = true
+
+[[steps]]
+id = "step1"
+title = "Test"
+`
+	p := NewParser()
+	formula, err := p.ParseTOML([]byte(tomlData))
+	if err != nil {
+		t.Fatalf("ParseTOML failed: %v", err)
+	}
+
+	// Validate parsed formula
+	if err := formula.Validate(); err != nil {
+		t.Errorf("Validate failed: %v", err)
+	}
+
+	// Check vars count
+	if len(formula.Vars) != 3 {
+		t.Fatalf("len(Vars) = %d, want 3", len(formula.Vars))
+	}
+
+	// Check simple var
+	if v := formula.Vars["simple_var"]; v == nil {
+		t.Error("simple_var not found")
+	} else if v.Default == nil || *v.Default != "simple_value" {
+		t.Errorf("simple_var.Default = %v, want 'simple_value'", v.Default)
+	}
+
+	// Check complex var
+	if v := formula.Vars["complex_var"]; v == nil {
+		t.Error("complex_var not found")
+	} else {
+		if v.Description != "A complex variable" {
+			t.Errorf("complex_var.Description = %q, want 'A complex variable'", v.Description)
+		}
+		if v.Default == nil || *v.Default != "complex_default" {
+			t.Errorf("complex_var.Default = %v, want 'complex_default'", v.Default)
+		}
+		if len(v.Enum) != 3 {
+			t.Errorf("len(complex_var.Enum) = %d, want 3", len(v.Enum))
+		}
+	}
+
+	// Check required var
+	if v := formula.Vars["required_var"]; v == nil {
+		t.Error("required_var not found")
+	} else {
+		if !v.Required {
+			t.Error("required_var.Required should be true")
+		}
+		if v.Description != "A required variable" {
+			t.Errorf("required_var.Description = %q, want 'A required variable'", v.Description)
+		}
+	}
+}
+
+// TestParseTOML_StepMetadata verifies that a `metadata = { ... }` table on a
+// step is preserved through TOML parsing. Regression for gastownhall/beads#3341.
+func TestParseTOML_StepMetadata(t *testing.T) {
+	tomlData := `
+formula = "repro"
+description = "Reproduction case"
+version = 1
+type = "workflow"
+
+[[steps]]
+id = "work"
+title = "Do the work"
+labels = ["worker"]
+metadata = { priority_level = "high", origin = "repro" }
+`
+	p := NewParser()
+	formula, err := p.ParseTOML([]byte(tomlData))
+	if err != nil {
+		t.Fatalf("ParseTOML failed: %v", err)
+	}
+
+	if len(formula.Steps) != 1 {
+		t.Fatalf("len(Steps) = %d, want 1", len(formula.Steps))
+	}
+	step := formula.Steps[0]
+	if len(step.Metadata) != 2 {
+		t.Fatalf("Steps[0].Metadata has %d entries, want 2 (%v)", len(step.Metadata), step.Metadata)
+	}
+	if got := step.Metadata["priority_level"]; got != "high" {
+		t.Errorf("Steps[0].Metadata[priority_level] = %v, want \"high\"", got)
+	}
+	if got := step.Metadata["origin"]; got != "repro" {
+		t.Errorf("Steps[0].Metadata[origin] = %v, want \"repro\"", got)
+	}
+}
+
+// TestParseJSON_StepMetadata verifies that `"metadata": { ... }` on a step is
+// preserved through JSON parsing. Regression for gastownhall/beads#3341.
+func TestParseJSON_StepMetadata(t *testing.T) {
+	jsonData := `{
+  "formula": "repro",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "work",
+      "title": "Do the work",
+      "metadata": {"priority_level": "high", "origin": "repro"}
+    }
+  ]
+}`
+	p := NewParser()
+	formula, err := p.Parse([]byte(jsonData))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if len(formula.Steps) != 1 {
+		t.Fatalf("len(Steps) = %d, want 1", len(formula.Steps))
+	}
+	step := formula.Steps[0]
+	if len(step.Metadata) != 2 {
+		t.Fatalf("Steps[0].Metadata has %d entries, want 2 (%v)", len(step.Metadata), step.Metadata)
+	}
+	if got := step.Metadata["priority_level"]; got != "high" {
+		t.Errorf("Steps[0].Metadata[priority_level] = %v, want \"high\"", got)
+	}
+}

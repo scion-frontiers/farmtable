@@ -1,0 +1,49 @@
+fix(web): require GITHUB platform in isCollectionWritable (audit F1)
+
+Item 5 of the r8 closed list, plus audit condition 3.
+
+F1 -- THE ONE BEHAVIOURAL CHANGE IN THIS ROUND.
+
+isCollectionWritable tested the writable flag but not the platform. Its two
+callers, isReadOnly and isExternalWritable, each exclude FARMTABLE before
+calling, so the effective predicate was "not FARMTABLE and writable" -- strictly
+weaker than the invariant getCapabilities enforces, which is GITHUB *and*
+writable, together. The enum has six non-FARMTABLE values, so the gap is the
+whole of that set minus GITHUB.
+
+Not theoretical: the Beads import path reaches the same import params struct
+without passing the farmtable platform guard, which sits only in the farmtable
+arm of the format switch. It is inert today because the platform is hardcoded
+one layer up, not because anything checks it here. This is a tightening --
+GITHUB is unaffected; other external platforms move to read-only, which is the
+documented default for external collections.
+
+CONDITION 3 -- the browser-only caveat, in both halves of the pair.
+
+The "SECURITY CONTROL" label was attached to two conjuncts of which only one is
+server-side enforcement. capabilities.ts and the ImportCollection comment in
+export_import.go now each say so in their own voice: nothing in Go enforces the
+writable key, there is no server-side notion of a read-only collection, and a
+caller with a token and curl bypasses conjunct B entirely.
+
+VERIFICATION -- READ THIS, IT IS PARTIAL.
+
+  RAN (no token needed, OP-1(b)): go test ./internal/webguard/ -run '^Test'
+  -count=1 -v  =>  GREEN 4/4. Confirms the edits do not trip the remote_data
+  census: the two declared texts in ft-app.ts are preserved byte-identical and
+  the diff adds no new remote_data mention.
+
+  RAN: gofmt on the four Go files in this branch's diff => clean.
+
+  NOT RUN: npm test, tsc --noEmit, make test. I DO NOT HOLD THE BUILD TOKEN.
+  THE F1 CHANGE IS THEREFORE UNVERIFIED AT RUNTIME AND UNTYPECHECKED. What I
+  could establish statically without a token: Platform is already imported in
+  ft-app.ts (line 9), Platform.GITHUB exists in gen/types.ts, and the same
+  comparison form is already used twice in this file. That is not a substitute
+  for a compile.
+
+  NO TEST ADDED, AND THE ABSENCE IS ITSELF A FINDING. Neither reader of this
+  gate -- isCollectionWritable nor getCapabilities -- has any test coverage at
+  all, so there was no existing suite to extend and a new one would have been
+  the round's first. Raised in the open pass rather than built here, because
+  the brief bounds this round to five items and says not to widen it.

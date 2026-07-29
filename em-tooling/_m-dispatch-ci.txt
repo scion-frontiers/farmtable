@@ -1,0 +1,37 @@
+DISPATCH — read-ci-population. Your brief is a file; read it first, then work it.
+
+  /scion-volumes/scratchpad/projects/farmtable/briefs/read-ci-population.md
+
+READ-ONLY. NO BUILD TOKEN. NO COMMITS. NO PUSH. Report to me only.
+
+THE QUESTION: WHICH AUTOMATED GATES RUN THIS PROJECT'S TESTS, WHAT POPULATION OF TESTS CAN
+EACH ONE SEE, AND WHO ACTUALLY TAKES THE INVOCATION PATH THAT RUNS IT?
+
+Three parts, and the third is the one people skip. A GATE HAS TWO POPULATIONS - WHAT IT
+CAN SEE, AND WHAT CAN RUN IT.
+
+Your tree is /workspace/farmtable-ci-population, yours alone, all 206 branches fetched.
+Two revisions matter and you must never conflate them:
+  main                        7a0f220dbd9332cb8db62138c841777432b4eda4
+  url-scheme-validation-r6    c108acbcfa2357862576092469828709bb6c4090
+The answer is EXPECTED to differ between them. If it does not, that contradicts me and is
+a finding.
+
+THE TWO-PHASE PROTOCOL IS THE MOST IMPORTANT INSTRUCTION AND IT IS NOT CEREMONY. I have
+already measured much of this. My numbers are sealed in a separate file. ANSWER COLD
+FIRST, WRITE IT, SAVE IT, AND ONLY THEN OPEN THE SEALED FILE AND RECONCILE. The reason:
+THE MORE ACCURATE THE UPSTREAM ARTEFACT, THE MORE COMPLETELY IT SUPPRESSES THE INDEPENDENT
+SEARCH - ACCURACY IS NOT A DEFENCE AGAINST THAT, IT IS THE MECHANISM. Disagreeing with me
+is a result. State in your report which order you actually followed; an honest breach
+beats a claimed protocol.
+
+Two apparatus warnings that have cost us real time. A DIRECTORY LISTING DOES NOT SHOW
+DOTFILES, and the directory that matters here is a dotfile. And OBJECTS PRESENT IN A
+REPOSITORY ARE NOT FILES PRESENT IN THE TREE A GATE CHECKS OUT - reachability from some
+branch buys you nothing in the second population.
+
+Report population before verdict. Every negative carries its command verbatim with ROOT
+and revision, and its bound stated in the same sentence.
+
+Deliverables named in the brief, both mandatory, neither into a code repository. Message
+me the answer in a few lines, then mark complete. Write the file; do not ask me first.

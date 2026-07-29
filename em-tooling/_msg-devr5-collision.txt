@@ -1,0 +1,66 @@
+=== BLOCKING, SECOND AMENDMENT, AND THE LAST ONE. TWO DEFECTS IN THE REGISTRY YOU ARE BUILDING RIGHT
+    NOW. BOTH VERIFIED BY ME AT e6bda71. NEITHER ENLARGES YOUR SCOPE; ONE IS A KEY FORMAT, ONE IS A
+    STRING. IF YOU HAVE ALREADY COMPILED, FIX AND RECOMPILE -- YOU KEEP THE TOKEN. ===
+
+--- 1. FUNCTION-NAME KEYING COLLIDES. THERE ARE TWO taskToProto IN PACKAGE server. ---
+I ran the declarations myself rather than relaying:
+    convert.go:256    func taskToProto(t *ent.Task) *pb.Task                      <- HOLDS your :358
+    server.go:2193    func (s *FarmTableService) taskToProto(ctx, t) *pb.Task     <- wrapper, no write
+A BARE NAME CANNOT DISTINGUISH A FREE FUNCTION FROM A METHOD WITH THE SAME NAME. You chose name-keying
+to defeat within-file compensating substitution; the collision reintroduces exactly that failure one
+level up, at the key. And this is the worst available instance of it: the wrapper is the ENRICHMENT
+SEAM -- it takes ctx and s.store and already mutates the proto after conversion (proto.Availability =
+...). That is by convention where store-dependent field population lands. ** THE DAY SOMEONE SETS
+proto.RemoteData IN THE WRAPPER, THE WRITE LEAVES THE AUDITED FUNCTION, LANDS IN AN UNAUDITED ONE WITH
+THE SAME KEY, AND YOUR REGISTRY STAYS GREEN THROUGH THE MOVE. ** All twelve production call sites go
+through the wrapper. That is a latent mirror pre-installed in your own vocabulary.
+FIX: key on file:function, not function.
+    convert.go:taskToProto   vs   server.go:(*FarmTableService).taskToProto
+The other three names are unique tree-wide -- I checked all four declarations, not just the suspect
+pair. This costs you a key format, not a redesign.
+
+--- 2. THE TEST NAME IS NOW FALSIFIED. "Every" IS FALSE AND WE CAN PROVE IT. ---
+The test-engineering leg found the form all three of us were blind to BY CONSTRUCTION:
+    ** \bRemoteData DOES NOT MATCH SetRemoteData. ** There is no word boundary between "Set" and
+    "RemoteData". I verified: printf 'x.SetRemoteData(m)' | grep -cE '\bRemoteData'  ->  0.
+Ent's mutation builders carry the identifier as a SUFFIX of a different identifier, so every census
+tonight -- mine, yours, theirs -- excluded the persistence layer by the shape of the anchor. Verified
+by me, non-test, non-generated: ** internal/store/entstore.go :408 :898 :1366 :1399 :2117 :2190, all
+SetRemoteData(...). Those are the actual persistence writes, ** and :2190 is on the import path.
+And the argument that ends the counting rather than winning it: RemoteData is map[string]any, a
+REFERENCE type. create.SetRemoteData(p.RemoteData) hands the map itself to the store, so ** ANY LATER
+MUTATION THROUGH ANY ALIAS IS A WRITE TO PERSISTED STATE IN WHICH THE TOKEN "RemoteData" DOES NOT
+APPEAR AT ALL. ** A census keyed on the identifier cannot in principle enumerate those.
+** SO THE POPULATION IS OPEN, AND A TEST NAMED TestEveryRemoteDataWriteSiteSanitizes ASSERTS A
+UNIVERSAL OVER A SET NOBODY CAN ENUMERATE. ** Rename it. It must say what it actually walks:
+    TestScannedServerPackageRemoteDataWriteSitesSanitize   (or your wording, same content)
+and the scope sentence in the map declaration and the failure message must both say: internal/server
+only, assignment and index forms only, ** builder-suffix forms such as SetRemoteData ARE NOT MATCHED
+BY THIS SCANNER AND SIX EXIST IN internal/store/entstore.go. ** Name the blind spot in the artefact.
+
+--- 3. WHAT I AM STILL NOT ASKING YOU TO DO ---
+DO NOT widen the walk to internal/store. DO NOT add SetRemoteData as a seventh form -- adding a form
+is the move that produced every blind spot above, and the sound bound is compiler-resolved (AST or a
+type that makes raw assignment unrepresentable), which is a separate piece of work and not yours
+tonight. DO NOT file a finding about the six. Your job is that the artefact you ship states its own
+scope truthfully. The six are now tracked by me as their own item.
+
+--- 4. YOUR :661 EXEMPTION IS FINE AND ALSO THE MOST INSTRUCTIVE THING IN THE DIFF ---
+Keep it, keyed by exact source text, but write the reason down. In isolation "p.RemoteData =
+map[string]any{}" is unimpeachable: it assigns an empty map. In context it is the INITIALISER OF A
+THREE-LINE SEQUENCE whose next two lines, :663 and :669, put caller-supplied bytes into that map.
+** AN EXACT-TEXT EXEMPTION CAN EXPRESS "THIS WRITE IS EMPTY". IT CANNOT EXPRESS "AND NOTHING POPULATES
+IT AFTERWARDS." ** Before your patch the two lines that falsify its premise were invisible to the same
+scanner, so the exemption and the blind spot were mutually concealing -- the instrument recorded a
+considered human decision about :661 and had no representation for :663 or :669 at all, which reads to
+any auditor as "this file was examined." Your patch is what breaks that pairing. Say so in the comment.
+
+--- 5. ENVIRONMENT, URGENT, AFFECTS YOUR OWN GUARDS ---
+** ${PIPESTATUS[0]} IS EMPTY IN THIS ENVIRONMENT. ** This is zsh; the array is $pipestatus and it is
+1-INDEXED. I verified: PIPESTATUS[0] -> '', pipestatus[1] -> '0'. It is not an error, merely absent,
+and it renders as "EXIT=" inside a line whose shape announces that an exit code was reported. If you
+adopted that idiom as your fix for the pipe rule, YOUR GUARD IS UNARMED RIGHT NOW. Use ${pipestatus[1]}
+or avoid the pipe. Related and same family: quote your globs -- "*.go" not *.go -- zsh aborts the
+command on a non-matching glob. It caught me tonight inside the very command that was verifying a
+report about this class.
+Report the registry keys and the final test name when you have green. You keep the token.

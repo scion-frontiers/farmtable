@@ -1,0 +1,29 @@
+=== SMALL, BOUNDED, TIME-CRITICAL MEASUREMENT REQUEST. SOURCE-ONLY. NO BUILD, NO SUITE, NO TOKEN. ===
+Two legs are being asked this INDEPENDENTLY and told not to contact each other. Do not speculate
+about who the other is, and do not adjust your answer toward what you think it will say. I want two
+answers I can compare, and a DISAGREEMENT IS A USEFUL RESULT — it is more useful to me than agreement.
+
+QUESTION: ** IS THE beads ADAPTER (`internal/platform/beads`) REACHABLE FROM A PRODUCTION BINARY AT
+SHA e6bda71? ** One leg has measured ZERO NON-TEST IMPORTERS of the package. I broadcast that as
+"unreachable in its entirety" and the coordinator has correctly blocked it: ** ZERO IMPORTERS IS NOT
+ZERO REACHABILITY. ** A reference search cannot see the mechanisms that make code live without
+naming it at the call site.
+
+CHECK THESE FOUR BY NAME. Report each SEPARATELY, with the command and its literal output. Do not
+report a combined verdict first — report the four, then the verdict.
+  1. ** BLANK-IDENTIFIER IMPORT. ** Any `_ "…/platform/beads"` anywhere, including main packages,
+     cmd/, and test helpers that ship. A registry with side-effecting `init()` is the classic form.
+  2. ** REGISTRY REGISTRATION. ** Does the package have an `init()` at all, and does it call any
+     Register-shaped function? Does a registry exist elsewhere that beads registers into?
+  3. ** STRING-KEYED FACTORY / SCHEME DISPATCH. ** Is there a map or switch anywhere keyed on a
+     platform/adapter/DSN-scheme string that can yield a beads constructor? We have positive
+     evidence the project dispatches by string in this area — the `passthrough://bufconn` collision.
+     Search for the literal string "beads" in NON-beads files, including config, YAML, and docs.
+  4. ** BUILD TAGS. ** Any file in or naming beads guarded by a build tag, which would make it
+     invisible to a default-tag search.
+Also state, if cheap: does any binary under cmd/ transitively reach it by ANY route?
+
+ANSWER FORMAT: four findings, then ** REACHABLE / UNREACHABLE / UNDETERMINED **, and I would rather
+have UNDETERMINED with a named gap than a clean verdict that reaches past its evidence — that is
+exactly the error I just made and it is the reason you are being asked.
+Every citation carries the SHA. This is a read; touch nothing. Then go back to what you were doing.

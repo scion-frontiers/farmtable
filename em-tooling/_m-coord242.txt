@@ -1,0 +1,44 @@
+ESCALATION: A SCOPING RESULT THAT OUTRANKS THE ROUND IT CAME FROM. Third
+independent convergence, three different legs, three different workstreams.
+
+MEASURED: remote_data HAS NO RENDER SINK IN THIS APPLICATION. Nothing in the Lit
+dashboard reads it. It travels the wire, it lands in the proto, and no component
+puts it on a page. The xss-r5 security audit went looking for the sink in order to
+rate the finding and could not find one. That is now the third time this has been
+found - dev-xss-r3 (#148), the xss-r4 direction split (#202), and audit-xss-r5 (#242)
+- by three legs that were not told about each other's results.
+
+MEASURED, SAME LEG, SAME PASS: the sink that DOES exist is unsafeHTML over rendered
+markdown on issue and comment bodies, and there is NO CSP on that origin. Attacker-
+authored GitHub issue text reaches raw HTML injection. That is the live one.
+
+SO THE SHAPE OF THE PROBLEM IS: we have spent six rounds - r1 through r6, currently
+dispatching the r6 fix leg - hardening a field that cannot currently be rendered,
+while the field that IS rendered raw is tracked on a different axis and has not had
+a fix round at all. I am not proposing we abandon r6. The r6 work is defensible on
+its own terms: remote_data is a wire-level trust boundary, the harm if a sink is
+ever added is real, and two of the six blocking items are false statements shipped
+in production comments, which are cheap and worth fixing regardless.
+
+WHAT I AM ASKING YOU TO RULE ON, because I do not think it is mine to decide:
+
+1. IS remote_data A SECURITY BOUNDARY OR A CORRECTNESS ONE? The auditor asked this
+   explicitly and declined to answer it itself. If it is a correctness boundary, the
+   remaining r6 items are ordinary tech debt and stop competing for the security
+   budget. If it is a security boundary, we should say WHY in the tree, because
+   nobody reading the code today can tell.
+
+2. AFTER r6 LANDS, DOES THIS AXIS CLOSE? My recommendation is YES - r6 is the last
+   round on remote_data, and the next security round goes to the markdown sink and
+   CSP (#85, #91, #113, #102). I want that ruling from you rather than from me,
+   because I have been running this axis and I am the wrong person to judge when it
+   has had enough.
+
+3. THE CSP TRACK IS ALREADY APPROVED AS ITS OWN AXIS (#85) BUT HAS NEVER BEEN
+   DISPATCHED. It is the highest-value unstarted security work I am aware of. It is
+   also blocked behind a build fence I control and a one-token serialization policy,
+   so I cannot run it concurrently with anything else. Sequencing call is yours.
+
+NO ACTION NEEDED ON r6 - the fix leg is running and I am not blocked on this. This
+is a where-does-the-next-round-go question, and I would rather ask it now than after
+r6 lands and the momentum picks the answer for me.

@@ -1,0 +1,57 @@
+
+===== PREREQUISITES =====
+preserve refs: 29
+
+===== BUILD SAFE SET =====
+canonical project-log commits: 131
+preserved project-log commits: EXCLUDED (positive-control mode)
+SAFE set size: 131
+
+===== SCAN CLONES =====
+clones scanned: 49
+
+===== AT-RISK PROJECT-LOG COMMITS (unique) =====
+SHA	CLONE	SUBJECT
+00755260	farmtable-audit-194b	Audit the #194 round-5 label-write scope: verdict APPROVE, six findings
+03ab6b63	farmtable-194-combined	Fix #194 multi-label terminal bypass at the root (round 4)
+03bd1559	farmtable-audit-194	Pin the ClosedAt fallback that Part 2 depends on, and log the work
+089fac7d	farmtable-194-combined	Log the #194 round-6 leg B server and store work
+0b539d76	farmtable-audit-191	Add independent security re-review log for #191 round 2
+0ba257eb	farmtable-audit-194	docs: security audit round 3 for #194 close-label-swap (REQUEST CHANGES, 2 High)
+0c60d153	farmtable-195-r7	docs(project-log): record #195 round-4 cleanup
+131fb360	farmtable-audit-195	docs(project-log): round-6 security audit for #195 — APPROVE (0C/0H/0M/2L/3I)
+1407de5f	farmtable-test-194-r6	Log the #194 round-6 test review: mutation results, seam tripwire gap, flake mechanism
+168c520f	farmtable-review-194	Log the #194 round-4 independent code review
+204af7e9	farmtable-195-r7	docs: log markdown sanitizer hardening (#195)
+2f912bbe	farmtable-task-state-web-ui	feat: update web UI for task state contract
+40348bbe	farmtable-review-194	Log the #194 round-5 code review leg: REQUEST CHANGES on three claim/test findings
+4af70511	farmtable-test-191	Add round-2 test re-review log for the terminal predicate
+53296afe	farmtable-195-r7	docs(project-log): append closing-round entry for #195 (C1/C2)
+5daace4b	farmtable-195-r7	docs: log the G7 check-total pin (#195)
+5db3937f	farmtable-194-combined	Log the round-6 leg-A record: stub correction, M1/M2, and the open seam
+651da265	farmtable-194-combined	Log the #194 round-3 authorization and scheduling fixes
+6c1c22ac	farmtable-195-r7	docs(project-log): append the R8/R9 addendum
+6ced24e5	farmtable-194-combined	Combine #194 round 6 leg A (label/prefix) and leg B (server/store)
+6d2feb02	farmtable-task-state-core	chore: capture mounted task-state-core baseline
+6f081739	farmtable-review-191	Add round-2 review log for the terminal-stage predicate
+7b4f6dd0	farmtable-195-r7	docs(project-log): round-7 entry for #195 (W1-W5, recommendations, and two corrections to r6)
+86f30bcd	farmtable-195-r7	docs(project-log): round-6 entry for #195 (T1/T2/T3/T4b/F1/F2/C1/C2/T7 + 4 production items)
+89306d0a	farmtable-195-r7	docs(project-log): round-6 code-review leg for #195 (REQUEST CHANGES: R1 arity, R2 import.meta, R3 guard rationale)
+9f98ad81	farmtable-194-combined	Log the #194 audit fix round
+9fba706e	farmtable-review-194-r6	Log the #194 round-6 code review leg: APPROVE, seam is destruction-only
+a396cbbf	farmtable-close-label-swap	Log the #194 round-3 test review
+a6a2801a	farmtable-task-state-core	docs: log task state phase1 core work
+a9c68d8e	farmtable-test-194	Record the #194 round-5 independent test review
+bae4fd06	farmtable-195-r7	docs: log #195 round-3 cleanup (G1 sink-binding gap closed)
+bcd40a4b	farmtable-attention-view	docs: log the Phase 2 web UI round-5 fix pass
+c1ec1ba9	farmtable-194-combined	Pin the ClosedAt fallback that Part 2 depends on, and log the work
+cfe1d275	farmtable-audit-194b	Log the #194 round-4 security audit
+d71096cc	farmtable-audit-194-r6	Log the #194 round-6 security audit leg
+d7314cfe	farmtable-194-combined	Correct two overclaims about the terminal predicate
+e0f0e159	farmtable-test-195	docs(project-log): test-review leg for #195 round 6 — REQUEST CHANGES
+ea8ac390	farmtable-194-combined	Log the #194 round-5 label-write scope, set-valued source and prefix controls
+eb190c16	farmtable-195-r7	docs: log #195 pre-merge cleanup round
+eb2797fc	farmtable-194-combined	Correct two false claims in the round-5 log (#194 round 6, review F2, test T-1)
+fee3d765	farmtable-close-label-swap	Log #194 r3 test-review addendum: confirm multi-label bypass, self-service escalation
+
+unique_at_risk=41  clones_scanned=49  safe_set=131

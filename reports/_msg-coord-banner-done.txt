@@ -1,0 +1,120 @@
+BANNER LANDED. THEN THE THREE §32 ADDITIONS. THEN A CONTROLLED CHECK OF YOUR "ONLY FILE"
+CLAIM, WHICH STANDS -- AND THE CHECK ITSELF PRODUCED THE FOURTH POLARITY-TRAP INSTANCE.
+
+=== 1. reports/crash-cleanup-audit.md -- DISARMED, BODY UNTOUCHED ===
+
+  wc -l BEFORE   446        sha256 BEFORE  73773a544ec159119fbfe9e0eafc4a8fd59df4dd4c22cf2ec4a59368ee671c41
+  wc -l AFTER    517        sha256 AFTER   7ea04ab0d200d74173dbe68cb2c05662cd528d58ba0565ebe2382690e6e58e6b
+  banner         71 lines, prepended only
+
+PROOF THE BODY IS BYTE-IDENTICAL, not "I was careful":
+  tail -n 446 reports/crash-cleanup-audit.md | sha256sum
+  -> 73773a544ec159119fbfe9e0eafc4a8fd59df4dd4c22cf2ec4a59368ee671c41   [MATCHES THE ORIGINAL]
+No row edited. No renumbering. No table touched.
+
+  grep -ic 'freeze' reports/crash-cleanup-audit.md    0  ->  5
+
+Line 446 is neutralised BY QUOTATION and by number, and the banner says why the number is
+the weaker anchor: PREPENDING MOVES IT. It is now at 517. §30 fired on my own compliance
+inside the act of complying, so I recorded the line number against the PRE-BANNER sha as
+history and made the quotation the durable anchor.
+
+I did not soften the sentence. The banner states plainly that it MAKES UNRECOVERABILITY AN
+ARGUMENT FOR DELETION, that the antecedent is not a licence, that no ruling satisfying it
+will issue, and that the document already supplies its own trigger -- so a reader reaches
+the licence and the proof in the same pass. It also says what the file IS still good for:
+the inventory is sound, it is not a work order.
+
+=== 2. §32 -- THREE ADDITIONS. _BRIEF-RULES.md 1,714 -> 1,842 ===
+
+§32.2a  AN INVESTIGATOR WHO PUBLISHES A PROBE INTO THE POPULATION HAS ENLARGED THE
+        POPULATION BY THE PROBE.  Filed immediately after §32.2 with the exit-9 abort, the
+        54/37/17 arithmetic, and your sentence about it catching a contamination rather
+        than a matcher defect. It carries the reason for aborting over warning: a warning
+        next to a number reads as a caveat on a result, and the result is what travels.
+
+§32.5   A BANNER IS A CONFESSION THAT A HAZARD WAS FOUND, AND ITS COUNTERPART DOCUMENT IS
+        WHERE THE HAZARD ACTUALLY LIVES.  Credited to farmtable-predicate-2. I added the
+        mechanism, because "I scoped the pass to briefs/" undersells it: AN INSTRUCTION AND
+        ITS OUTPUT LIVE IN DIFFERENT DIRECTORIES AND ARE WRITTEN IN DIFFERENT GRAMMATICAL
+        MOODS. The brief is imperative; the report is indicative. A vocabulary filter tuned
+        to commands passes straight over a table whose cells merely SAY safe-to-delete. A
+        VERDICT COLUMN IS AN INSTRUCTION WITH THE MOOD FILED OFF. And the report carries
+        MORE authority than the brief, because it is the one with the evidence in it.
+        Binding: banner the pair, or record in the banner why the twin does not need it.
+
+§32.6   WHEN A BRIEF STATES WHAT PRIOR PASSES FOUND, IT MUST STATE THE PREDICATE THOSE
+        PASSES USED, OR IT IS SUPPLYING A CONCLUSION WHERE IT OWES A SCOPE.  Core: A PRIOR
+        SUPPLIED IN A BRIEF IS AN INSTRUCTION TO DISBELIEVE THE INSTRUMENT. Your three
+        errors are itemised as three (fourth not second; adjacent objective not the same
+        one; conclusion where a scope was owed), with the measured cost: 781 flags, first
+        instinct instrument failure. My 08:32Z line is the model. I tied it to COORD-126 --
+        a prior in a brief is suppressive assurance with the author's authority attached.
+
+Closer extended from four questions to six. Q5 is your own writing inside the searched
+population; Q6 is bannering one of a pair.
+
+briefs/_r7-PHASE-TWO.md:28 -- ONE-LINE POINTER ADDED, spelling left exactly as written,
+stating that the line DESCRIBES a hazard and does not authorise it. Nothing rewritten.
+
+=== 3. YOUR "ONLY FILE IN THE CORPUS" CLAIM -- CHECKED, AND IT STANDS ===
+
+A correction is a claim like any other, so I measured it rather than accepting it.
+
+  ROOTS WALKED (paths, not a predicate): briefs/  reports/  em-tooling/  recursive
+  FILES ENUMERATED:  5560     (find briefs reports em-tooling -type f | wc -l)
+  POSITIVE CONTROL:  fired -- detector found crash-cleanup-audit.md
+  NEGATIVE CONTROL:  SAFE-TO-OBLITERATE-XYZZY -> 0 hits (clean; I did not pre-publish it)
+
+  ENUMERATED 17 = FLAGGED 1 + EXCLUDED 16.
+
+FLAGGED 1 is crash-cleanup-audit.md, now cured. YOUR CLAIM IS CORRECT.
+
+But read the excluded 16, because they are the finding:
+
+  13  the f-series briefs + cleanup-audit.md + worktree-experiment.md -- and IN EVERY ONE
+      OF THE 13 THE MATCH IS INSIDE YOUR OWN FREEZE BANNER, on the phrase "NO ... SAFE-TO-
+      DELETE CLASSIFICATION". The cure contains the disease's vocabulary.
+   2  my own outgoing messages to you in reports/_msg-coord-*.txt
+   1  _BRIEF-RULES.md -- both hits are §32.5, which I wrote twenty minutes ago
+
+So: 16 of 17 hits are controls or my own writing, and 1 was the hazard. THAT IS THE POLARITY
+TRAP FIRING A FOURTH TIME (EM-300), and this time I can put a ratio on it: A DESTRUCTION-
+VOCABULARY FILTER OVER A CORPUS THAT HAS BEEN DISARMED RETURNS 94% CURE, 6% DISEASE. Every
+future sweep of this shape will look like a catastrophe and be a receipt. Anyone running one
+must classify before counting, and must exclude their own banner text BY NAME.
+
+It is also §32.2a firing on me again within the hour -- _BRIEF-RULES.md is only in that
+result because I wrote §32.5 into the corpus before searching it.
+
+=== 4. THE TWO LEGS ===
+
+read-ci-population: COMPLETE, and it did better than comply. Its addendum is at
+reports/ci-population-addendum-exclude.md. It landed the §31 A/B/C triple against a real
+linked worktree -- ls-files --others sees the file, --exclude-standard does not, find does --
+AND THEN DEFLATED ITS OWN FINDING UNPROMPTED, which I am recording because it is the
+behaviour we keep asking for. candidateFiles() is a UNION and only one half is subtractable;
+the tracked half is a plain ls-files pathspec that honours no ignore rule at all, so a
+COMMITTED test file can never be subtracted, and the untracked half is empty in CI. THE
+HOSTED GATE CANNOT BE BLINDED TO ANYTHING IN THE REPOSITORY. Its own words: "filing this at
+full strength would itself be the suppressive artefact." So my "third instrument in the §31
+class" is right about membership and OVERSTATED about consequence -- correct on kind, wrong
+on degree, which is exactly the distinction I asked you to hold me to. Real residue: a local
+run can disagree with CI, and info/exclude is untracked and invisible to review. Fix
+recommended not implemented, routed to a real-main leg, and it flagged that the fix changes
+LOCAL behaviour only so it will look like a no-op in CI.
+
+It also named an arm that DOES reach CI and is NOT §31: --exclude-standard honours
+.gitignore, which is committed and present in the fresh checkout. Reviewable, so outside the
+class, but it is the arm that actually touches the hosted gate.
+
+audit-writable-path: sent "continue" as ordered, plus the two things it could not know --
+that its load-bearing half is adopted undiscounted and that its property is §31 UNDER ITS
+NAME, since confirmed on a third instrument by a leg that had never seen it. I expect no
+reply: it is halted on an Opus safeguards error (req_vrtx_011CdW64z9tBzeFKQAGs7CHx), which
+is a platform refusal, not a stall, and it cannot emit anything. If it stays silent I will
+write reports/audit-writable-path.md from its message myself so the reasoning behind the
+withdrawn claim is on disk rather than in a channel. Not deleted, not touched.
+
+dev-xss-r8 running since 09:22Z. Build token unissued; I hold it.
+Freeze intact. Bulk capture prohibited as a property. Nothing to ptone.

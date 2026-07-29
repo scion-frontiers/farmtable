@@ -1,0 +1,66 @@
+AUTHORITATIVE CONSTRAINT SET, EFFECTIVE NOW. RELAYED VERBATIM FROM THE COORDINATOR.
+This REPLACES every constraint set you were previously given. Read it in full and act on it.
+It is restated IN FULL rather than by subtraction, deliberately: a control with several
+justifications cannot be safely amended by naming only the one that went.
+
+WHY YOU ARE GETTING THIS. Some constraints you are working under were withdrawn centrally over
+an hour ago and the withdrawal was never distributed. A leg has already self-reported, in good
+faith and at cost to itself, a violation of a rule that no longer existed.
+
+  A CONSTRAINT LIFTED CENTRALLY STAYS IN FORCE IN EVERY AGENT THAT WAS NOT TOLD, AND THE AGENT
+  WILL SELF-REPORT VIOLATIONS OF A RULE THAT NO LONGER EXISTS.
+
+The reason this is invisible from the centre is that a leg obeying a dead rule is
+indistinguishable from a leg obeying a live one, AND IT LOOKS EXEMPLARY. Every mechanism we have
+distributes impositions. NOTHING WE HAVE DISTRIBUTES WITHDRAWALS.
+
+=== LIFTED. NO LONGER IN FORCE. DO NOT RE-IMPOSE, DO NOT ACT AS IF STILL BOUND ===
+1. The credential investigation is CLOSED. There is no next scan. No further enumeration of
+   carriers, spans, digests or exposure. The host-wide sweep is NOT AUTHORISED, not deferred.
+2. The operational freeze on gc, prune, worktree changes and file deletion is LIFTED.
+3. The blanket prohibition on network operations is LIFTED. Ordinary development network use,
+   module downloads, toolchain fetches, fetch and pull, needs no special authorisation.
+
+=== PERMANENT. SURVIVES THE LIFT. SURVIVES ANY FUTURE ROTATION ===
+4. NO BULK STAGING, ANYWHERE, EVER. No add-all, no add-dot, no add-update, no commit-all, no
+   stash-untracked, no glob or directory pathspec. Name every file or do not run it. This is not
+   about any one file; it is a property of how we work here.
+5. A CREDENTIAL VALUE IS NEVER A COMMAND-LINE ARGUMENT. Not in a search, not in an echo, not in
+   a comparison, not quoted, not once. This harness writes every command line to an append-only
+   transcript, so there is no transient argv to hide in.
+6. Never print, log, commit, paste or archive a token value. Never run a bare remote listing;
+   pipe it through redaction.
+7. LEG TREES CLONE FROM THE LOCAL PATH ON THIS HOST, NEVER FROM THE NETWORK REMOTE. A network
+   clone writes the authenticated URL into a brand-new config and manufactures a fresh carrier.
+   This is a HYGIENE rule about not creating new copies, not an investigation rule, so it is
+   unaffected by the stand-down.
+8. THE CREDENTIAL'S STATUS IS ACCEPTED RISK BY OWNER INSTRUCTION, NOT RESOLVED. Those exact
+   words. It is not handled, not addressed, not mitigated, not closed. If your report needs a
+   word for it, use the one above.
+
+=== STILL IN FORCE ON THEIR OWN SEPARATE REASONS, UNCONNECTED TO THE FREEZE ===
+9. THE AGENT-DELETION FREEZE STANDS, and its justification is AMENDED: the primary reason is not
+   loss of an agent's context, it is LOSS OF WORK THAT NO STORE BUT THAT CONTAINER HAS SEEN.
+   Before any agent is deleted, stopped or allowed to lapse, resolve and fetch every ref in its
+   tree, testing the tip's existence in canonical directly rather than asking whether it pushed.
+10. THE BUILT FRONTEND IN THE MAIN WORKING COPY STAYS. Do not delete, clean or otherwise remove
+    it. Removing it converts a silent wrong baseline into a live outage mid-round and destroys
+    the only evidence of how long this has been true. Do not create one anywhere either.
+11. Build-concurrency admission control stands. R6 and R7 remain DO NOT MERGE.
+12. Leg-specific constraints stand on their own reasons and are not lifted by any of the above.
+
+=== THE THING YOU MOST NEED TO KNOW ===
+THE MAIN WORKING COPY IS A BUILT TREE, NOT A CLEAN ONE, AND HAS BEEN SINCE 27 JULY. Several
+thousand frontend files sit there untracked and invisible to routine checks. THERE ARE THREE
+TREE STATES ON THIS PROJECT: pristine, our built main copy, and the CI runner which builds
+during its own run. WHOLE-PROJECT COMMANDS BEHAVE DIFFERENTLY IN EACH. In a pristine tree the
+whole-project pattern fails outright at exit one with zero packages analysed.
+
+  EVERY FIGURE ANY LEG REPORTS FROM A BUILD, VET, TEST OR PACKAGE COUNT MUST NAME THE TREE IT
+  WAS TAKEN IN, IN BAND, FROM THE PROCESS THAT TOOK IT.
+
+Retroactively: no report we have ever produced states this, so no existing figure of that kind
+is qualified. They are not wrong. They are UNQUALIFIED, which is a different and more awkward
+thing. If you are holding such a figure, re-label it; do not re-run it unasked.
+
+ACKNOWLEDGE RECEIPT. Then continue what you were doing.

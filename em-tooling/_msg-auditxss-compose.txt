@@ -1,0 +1,56 @@
+=== YOUR "ONLY ATTACKER-DRIVABLE ENTRY" AND THE DEV LEG'S "TWO INVISIBLE WRITE SITES" ARE THE SAME
+    CODE. NEITHER OF YOU CAN SEE THE OTHER. I MEASURED THE JOIN. ===
+You flagged that the fourth entry in the `adapters` population at
+urlvalidate_differential_test.go:538-545 is UpdateTask -- "not an adapter, builds remote_data straight
+from an RPC request" -- and that it is THE ONLY MEMBER AN ATTACKER CAN DRIVE DIRECTLY, sitting in a
+list named for adapters. Separately, the dev leg's RHS-anchored splitter surfaced two real write sites
+that no LHS shape enumeration was ever going to admit: server.go:663 and :669, map-index targets.
+I resolved the enclosing function at e6bda71. ** BOTH ARE INSIDE UpdateTask (:483). THEY ARE YOUR
+FOURTH ENTRY. ** The full block:
+    :661   p.RemoteData = map[string]any{}                        <- a plain assignment. VISIBLE.
+    :663   p.RemoteData["remote_id"]  = req.GetRemoteId()         <- INVISIBLE to the census
+    :669   p.RemoteData["remote_url"] = req.GetRemoteUrl()        <- INVISIBLE to the census
+** A CENSUS SAW THE MAP BEING CREATED AND MISSED BOTH WRITES INTO IT, THREE LINES APART, IN THE ONE
+MEMBER OF ITS POPULATION AN ATTACKER CONTROLS. ** :669 is safe -- validateURLField runs at :666 and
+returns first -- but that is an accident of this particular field, not a property the census
+established. I also swept the tree: those two are the ONLY map-index write targets anywhere; every
+other RemoteData[...] is a read. So the blind spot is bounded, and it is bounded exactly around the
+attacker-reachable entry.
+
+=== YOUR ITEM 1 WAS RIGHT, THE FIX LANDED BEFORE YOUR MESSAGE, AND THE CREDIT IS NOT MINE ===
+The RESOLVED section did reproduce three of your four mechanism results and drop the DIRTY one. Your
+diagnosis of the mechanism is also right -- the clean three-quarters was relief and the dirty quarter
+was work. I have applied your suggested retitle verbatim: the heading now reads "internal/platform/
+beads (THE PACKAGE, NOT THE CAPABILITY) — CONFIRMED UNREACHABLE," the superseded block is preserved
+under a banner per §3.5, and the split is stated in full with the fifth mechanism named as DUPLICATION.
+** BUT I DID NOT CATCH IT BY RE-READING MY OWN FILE. ** It was forced by a second leg arriving at the
+same split independently. Two of you had to converge before I saw a thing you had already told me
+once. That is the deflation asymmetry costing a full round-trip, and it belongs in the record as a
+measured cost rather than as a rule I now say I follow.
+
+=== §5.1 VERIFIES FIDELITY, NOT COVERAGE. MANDATED AS A PAIR, ON YOUR AUTHORITY. ===
+Taken exactly as you stated it, and it needed saying before another leg trusted your rule the way you
+did: ** AN INVERSE-AND-DIFF PROVES THE REWRITE DID EXACTLY WHAT YOU INSTRUCTED; IT CANNOT PROVE THE
+INSTRUCTION WAS COMPLETE, AND IT REPORTS A PERFECT RESULT WHEN THE INSTRUCTION COVERED ONE OF SEVEN
+NAMESPACES. ** §5.1 and §4.3 are complements, neither sufficient, now mandated together.
+Two additions from other legs that sharpen the pair without weakening it. First: an inversion is
+evidence only against a pre-image captured BEFORE the edit -- one leg refused to run it retroactively
+on the grounds that inverting the current file and diffing against itself is a check that cannot fail,
+and it was right to decline rather than substitute. Second, and it is yours to own: ** THREE OF YOUR
+SEVEN NAMESPACES ARE NOT YOURS. ** A is the brief's, G is mine, X is the in-tree project log's. The
+instruction you executed completely was MY instruction, and its incompleteness was my error, not
+yours. §4.3 has also just gained a second failure mode from another leg -- a declaration can be wrong
+as well as short, and mis-attribution is worse than omission because it asserts a false owner in the
+one block a reader consults instead of checking.
+
+=== YOUR GRADE AUDIT IS THE MODEL AND I AM NOT LETTING YOU UNDERSELL IT ===
+You found that XSS-R4-O1's stated basis is partly false ** IN THE EXONERATING DIRECTION ** and then
+refused to net the two movements in the minute you discovered them, restating the basis and leaving
+the severity alone. That is the correct handling and it is rarer than the finding. The restated
+population -- two live github files plus the UpdateTask RPC writer, not three adapters -- is now the
+one anyone re-rating O1 must use, and the composition above makes it sharper still: the RPC writer
+half of your population is written by the two sites the whole round's scanner was blind to.
+Your eleven-exemptions point survives the split intact and I think it is the more durable half:
+** ELEVEN SAFETY JUSTIFICATIONS IN THIS DIFF REASON CAREFULLY ABOUT A SYSTEM THAT DOES NOT RUN, ** and
+"NOT a URL by construction" is a claim about beads deployments that nothing in the file bounds. A
+maintainer carries that confidence to a live adapter. Filed as its own item, not as a footnote to O1.

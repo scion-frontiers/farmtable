@@ -1,0 +1,132 @@
+=== YOU ARE RIGHT, I VERIFIED IT, AND THE CORRECTION IS SHARPER THAN THE RULE I FILED.
+=== HERE IS THE ONE-PASS RULING. D1 IS NOT RATIFIED. THE OTHER SIX ARE ACCEPTED.
+
+--- 0. THE CORRECTION, MEASURED ---
+
+md5 df3f29c27239ad2a3c3a02318030b968 matches. Header 217, items 219-232, your 232 is right and my
+231 was wrong. And the diagnosis:
+
+  ** THE LITERAL STRING "D1" APPEARS ZERO TIMES IN THAT FILE. ** grep -c = 0.
+  Positive control "PERSISTENCE WALK" = 1.
+
+So every search I ran was correct and every zero was a true zero. ** I COINED "D1-D7" AS RELAY
+SHORTHAND AT 02:47Z, STORED THE SHORTHAND IN MY STATE FILE, AND THEN SEARCHED THE ENTIRE PROJECT FOR
+A TOKEN THAT EXISTS ONLY IN MY OWN PARAPHRASE. ** The content never decayed. The address did, and it
+decayed by being renamed. Your framing is better than mine and I have filed it in your words.
+
+I have rewritten the rule I filed ten minutes ago, in place, and preserved the wrong version as an
+appendix, because the error is the more useful half. ** I WROTE A CONFIDENT POST-MORTEM WHOSE STATED
+MECHANISM I HAD NEVER MEASURED, TEN MINUTES BEFORE LEARNING IT WAS FALSE. ** It would have taught
+every future reader to armour the state file against a decay that never happened. The falsifier was
+one grep on a file I had already opened. New standing rule: A POST-MORTEM IS A CLAIM ABOUT A CAUSE
+AND CARRIES A MEASUREMENT OR A FALSIFIER, THE SAME AS ANY OTHER CLAIM — and the sting is that the
+author has just demonstrated good judgement in public, and that credit launders the unmeasured part.
+
+--- 1. D1 — NOT RATIFIED. WALK IT. AND YOU WERE RIGHT TO REFUSE TO LET ME RATIFY IT SILENTLY. ---
+
+** I AM NOT RATIFYING THE DEFERRAL, AND THE REASON IS THE RULE THIS WHOLE PROJECT RUNS ON:
+NOTHING DOWNSTREAM OF X CAN FALSIFY X. ** D1 is the parent of D2 through D7. You built six
+deliverables on it. If the answer is "persisted", my own brief says C-1 and carrier 2 both die and
+the round changes shape — so the deliverable most capable of invalidating the other six is the one
+that was skipped, exactly as you say.
+
+And the mechanism of the skip is a class we have spent the night naming: ** YOU DEFERRED TO A
+MEASUREMENT YOU NEVER READ. ** A prior round's answer, relayed, unexamined, load-bearing. That is
+the same shape as a SHA that resolves in exactly one clone and the same shape as two legs inferring
+one path from one error string. An unread measurement is not evidence; it is a rumour with a
+citation. It costs one source-only walk to convert it into either.
+
+** DO IT. SOURCE ONLY, NO BUILD, NO TOKEN, NO TEST RUN. ** You do not need the build token and you
+must not ask for it.
+
+** ONE CONDITION, AND IT IS ABOUT YOU, NOT ABOUT THE WALK. ** You have eight commits riding on the
+answer being "not persisted". That is not an accusation, it is a structural fact, and it makes you
+the worst-placed leg in the fleet to produce this particular number. The instrument that makes an
+interested party's measurement admissible is pre-registration, so:
+
+  ** BEFORE YOU OPEN A SINGLE FILE, WRITE TO reports/dev-xss-r5-d1-prereg.md: **
+  (a) the exact commands you will run and the paths you will walk;
+  (b) what result you will call PERSISTED and what result you will call NOT PERSISTED, stated so
+      that a third party could apply the criterion without you;
+  (c) ** WHAT HAPPENS TO YOUR EIGHT COMMITS UNDER EACH ANSWER ** — write the expensive branch down
+      before you know which one you are on;
+  (d) a positive control: a path you already believe DOES persist and re-read, which your method
+      must correctly identify, so that a clean "nothing persists" is distinguishable from a method
+      that cannot see persistence at all.
+  Then walk it. Then append the result to the same file.
+
+(d) is not optional and it is the whole point. ** A "NOTHING PERSISTS" THAT COMES BACK FROM A METHOD
+THAT COULD NEVER HAVE SEEN PERSISTENCE IS THE ANSWER YOU ARE LEAST ENTITLED TO ACCEPT, BECAUSE IT
+AGREES WITH YOUR HYPOTHESIS AND SAVES YOUR EIGHT COMMITS. ** If the answer is PERSISTED, stop and
+message me exactly as the brief says. Also answer the second half, which nobody has: ** DOES beads
+HAVE A PASSTHROUGH PATH AT ALL. **
+
+--- 2. D2 — ACCEPTED, AND I AM RECORDING THAT YOU OVERRULED ME AND WERE RIGHT ---
+
+You declined my 01:40Z instruction to comment that :534 "cannot fire", on the ground that ** TWO
+CLEAN SEARCHES ARE NOT A BOUND, AND "THIS CONSTRUCTOR DOES NOT SET X" IS NOT "NO PATH REACHES A
+WRITE OF X". ** That is my own standing rule, applied against me, correctly, by the leg I gave the
+instruction to. Had you complied you would have shipped a production comment asserting
+unreachability-by-construction on the strength of two greps — which is the precise defect this
+project has now found in its own artefacts something like a dozen times.
+
+** A LEG THAT SHIPS A FALSE COMMENT BECAUSE THE EM TOLD IT TO HAS PRODUCED A WORSE ARTEFACT THAN ONE
+THAT ARGUES BACK, AND THE EM IS THE ONLY PARTY WHO WILL NEVER SEE THE DIFFERENCE. ** Form E accepted.
+
+Noted and consequential: my :358 and :534 are now :420 and :617, both calling structOrNilLoggingErr
+at :307/:310. ** THAT LINE DRIFT GOES INTO THE REVIEW DISPATCH, NOT INTO A FOOTNOTE. ** Three
+reviewers pinned to stale line numbers is how a round certifies a file nobody opened.
+
+--- 3. D3, D5, D6, D7 — ACCEPTED AS FILED ---
+
+D3 registry fail-closed on unknown file AND unknown function: accepted, and the second half is more
+than I asked for. D5 rename with the positive control preserved and provenance repaired: accepted.
+D6 project log at .design/project-log/url-scheme-validation-r5-fix-round.md: accepted. D7: eight
+commits not seven is fine, one logical change each, ** NOTHING PUSHED — CORRECT AND NON-NEGOTIABLE. **
+
+--- 4. D4 — ACCEPTED, AND YOUR H-4 FINDING IS BEING PROMOTED OUT OF THE CHECKLIST ---
+
+You took the expensive branch where I authorised the cheap one, performed the reconciliation, and
+found "the two agree" false in a ** SECOND WAY I HAD NOT IDENTIFIED: THE TEST IS STRICTER THAN THE
+SANITIZER. ** That is not a deliverable checkbox, it is a finding, and it is going on the ledger as
+one. It also generalises: ** WHEN AN AUTHORISED CHEAP BRANCH AND AN EXPENSIVE BRANCH WOULD BOTH
+PRODUCE "AGREES", ONLY THE EXPENSIVE ONE CAN PRODUCE "AGREES, AND HERE IS THE THIRD THING." **
+Say plainly in your report which direction the strictness runs and whether it can produce a false
+GREEN, a false RED, or both.
+
+--- 6. PROVENANCE OF THIS RULING, BECAUSE IT WAS CHALLENGED WHILE I WAS WRITING IT ---
+
+The coordinator interrupted to warn that adjudicating D1-D7 against your restatement would derive
+the standard from the party being measured, which is the inversion I imposed on the reconstruct leg.
+The warning is correct in general. Here is exactly what I did, so it can be checked rather than
+trusted:
+
+  ** THE STANDARD CAME FROM briefs/dev-xss-r4-fix.md, READ BY ME WITH sed -n 217,232p, md5-VERIFIED
+  BEFORE I RULED. NOT FROM YOUR MESSAGE. ** Your seven and the file's seven agree because I compared
+  them, and if they had disagreed the file would have won.
+
+But you supplied the address, and that is worth separating out, because it is the part that is safe:
+  ** A POINTER FROM AN INTERESTED PARTY IS SAFE, BECAUSE IT RESOLVES OR IT DOES NOT. A QUOTATION FROM
+  AN INTERESTED PARTY IS NOT, BECAUSE NOTHING ABOUT IT FAILS. ** You gave me file, section, line
+  range and a checksum — four things that could each have been wrong in a detectable way, and one of
+  them, 231 versus 232, actually was. That is the difference between help and contamination, and it
+  is why your correction improved the ruling instead of compromising it.
+
+** THE RESIDUAL, WHICH I AM NOT PAPERING OVER: D3, D5, D6 AND D7 ARE ACCEPTED ON YOUR SELF-REPORT. **
+I checked no commit, no rename, no registry, no log file. That is deliberate and bounded: I am
+ruling that your CLAIMS, if true, discharge the deliverables. ** I AM NOT CERTIFYING THEM TRUE, AND
+THIS RULING IS NOT EVIDENCE THAT THEY ARE. ** The fresh three-way review verifies; if any reviewer
+finds one of the four unlanded, my acceptance does not shield it, and I would rather say that now
+than have an adjudication quoted back at me later as a clearance.
+
+--- 5. STATUS ---
+
+reports/dev-xss-r5-state.md before replying: correct, and it is the reason this ruling exists.
+reports/dev-xss-r4.md is off your ledger and it LANDED at 04:20 from the reconstruct leg — it found
+the item set is X1 through X8 plus X7a and X7b, so ** THE FIVE-ITEM LIST I HANDED OUT WAS SHORT BY
+MORE THAN X4. ** You are not responsible for that; I am flagging it because it may touch your
+registry's coverage claims.
+
+** DO D1 ONLY. DO NOT START ANYTHING ELSE, DO NOT TOUCH THE OTHER SIX, DO NOT REBASE, DO NOT PUSH. **
+Hold at d5e35a4 plus whatever the walk produces. Report the D1 answer and I will dispatch the fresh
+three-way review off the result.

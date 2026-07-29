@@ -1,0 +1,57 @@
+Item 2: a regression guard for basename pruning that actually goes red
+
+Takes the brief's PREFERRED option: the test now fails when the B4 fix is
+reverted. The comment is not merely downgraded to stop claiming a guard.
+
+NEW: TestWebCensusAnchoringIsTopLevelOnly. It hands censusRemoteDataMentions a
+t.TempDir() fixture instead of the real web/ tree, because the real tree cannot
+answer the question. Derived independently, not taken from r7's cells:
+
+  $ find web -mindepth 2 -type d \( -name node_modules -o -name dist \
+      -o -name build -o -name .vite -o -name coverage -o -name .tmp-test \)
+  (empty)
+
+No directory at depth >= 1 carries a skipDirs basename, so skipDirs[rel] and
+skipDirs[d.Name()] select the SAME set in this tree and no assertion reading
+only the real tree can distinguish them. The fixture supplies the shape the
+real tree lacks: src/build/, src/util/dist/ and src/components/coverage/, the
+three directories that actually hid planted consumers while the guard was green.
+
+Two arms, both needed. The REGRESSION arm asserts the nested consumers are
+found; it fails under the revert. The PRUNE arm asserts top-level dist/ and
+node_modules/ are still skipped, so reach cannot be bought by deleting the
+filter. Plus a liveness check on an ordinary fixture file, so a fixture that is
+not read at all cannot pass the negative assertions for the wrong reason. The
+fixture is not driven off skipDirs: emptying that map must not empty the test.
+
+MEASURED (OP-1(b) shape; OP-1(h) throwaway copies outside /workspace; NO TOKEN):
+
+  MUTATION: `if rel != "." && skipDirs[rel] {` -> `if skipDirs[d.Name()] {`
+
+  R8-03  MUTATED   new test  -> RED, 6 errors, all on the predicted arm
+  R8-04  MUTATED   old test  -> GREEN
+  R8-05  PRISTINE  all 4     -> GREEN 4/4
+  R8-02b MYTREE    all 4     -> GREEN 4/4
+
+R8-04 is the point. The same mutation, same tree, same invocation shape, leaves
+TestWebCensusDescendsIntoShippedSource green. The new test is red exactly where
+the old one is blind.
+
+ALSO CORRECTED, and it is the defect the brief called the larger half: that old
+test's error message said "a basename match here is the exact defect this test
+exists to catch." It does not catch it. The message and the doc comment now
+state the test's real scope -- top-level widening -- and name the test that does
+catch basename pruning.
+
+ALSO: one stale citation fixed in this file that my item-1 sweep missed. The
+allowlist entry for the r7 capabilities.ts annotation cited
+"internal/server/export_import.go:306" in its reason. My item-1 population was
+scoped to production files and excluded _test.go, which was the wrong boundary
+-- a stale citation is stale wherever it lives. Re-anchored by identifier.
+
+ALSO: one new allowlist entry, for a comment line added by this leg's item 3.
+R8-02 falsified my own GREEN prediction by going red on it. Declared with a
+reason rather than reworded to dodge the identifier, following the reasoning
+already recorded in the entry above it.
+
+Test-only. No production code touched in the commit or in any cell.

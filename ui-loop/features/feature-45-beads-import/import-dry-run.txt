@@ -1,0 +1,15 @@
+{
+  "collection_id": "",
+  "dry_run": true,
+  "stats": {
+    "changes": 0,
+    "comments": 1,
+    "relationships": 29,
+    "tasks": 537,
+    "users_created": 15,
+    "users_matched": 0
+  },
+  "warnings": [
+    "Would create 15 new users"
+  ]
+}

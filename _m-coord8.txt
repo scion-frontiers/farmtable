@@ -1,0 +1,104 @@
+=== ITEM 2 ADJUDICATED: NO DISCREPANCY. THE ARITHMETIC CLOSES EXACTLY, AND WHAT MADE IT LOOK LIKE A
+=== MISCOUNT IS A RULE WE DO NOT HAVE YET. RELEASE LIST AT THE BOTTOM.
+
+--- 1. THE 6551712 QUESTION: BOTH STATEMENTS TRUE, DIFFERENT POPULATIONS, AND I CAN CLOSE IT ---
+
+MEASURED, ROOT /workspace/farmtable-xss-r4, negative control rc=1:
+  sanitizeRemoteData non-test call sites at base 6805daa: ** EXACTLY 1 ** — convert.go:358.
+  At HEAD e6bda71: ** 6 ** — convert.go:358, convert.go:534, export_import.go:139, :332, :438, :743.
+  So ** 5 SITES WERE NEWLY SANITIZED. ** That is the 5 the leg counted, and it is right.
+
+The commit body says the scanner ** FOUND THREE MORE: :139, :332, AND server.go:661 (EXEMPT). **
+Your relay had it as two; the body names three, the third being the exempt one.
+
+Now the reconciliation, which needed the brief and not the tree. ** briefs/dev-xss-r4.md:156 NAMES
+ITS FOUR SITES BY FUNCTION, NOT BY LINE: ** sanitizeRemoteData, validateImportedTaskURLs,
+collectionToProto, taskExport. Map those onto the tree and they are :358 (already sanitized at base),
+:534, :438 and :743.
+
+  brief's 4 (functions)        = 358, 534, 438, 743
+  scanner's 3 more (lines)     = 139, 332, 661
+  total write sites            = 7
+  exempt                       = 1  (server.go:661, empty map, with reason)
+  must sanitize                = 6  <- "Six sites now sanitize", exactly as the body says
+  already sanitized at base    = 1  (358)
+  newly sanitized              = 5  (534, 438, 743, 139, 332)  <- the five the leg measured
+
+** EVERY NUMBER IN THE COMMIT BODY IS CORRECT AND NOTHING IS UNDISCLOSED. ** :438 and :743 are not
+quiet additions — they are three of the brief's own four, they were raw at base, and remediating
+them is the assignment. The body reports DISCOVERY and the diff performs REMEDIATION, and those two
+populations differ by exactly the three known-but-raw sites. Nothing to chase.
+
+--- 2. BUT THE REASON IT READ AS A DISCREPANCY IS A REAL DEFECT, AND IT IS OURS ---
+
+** THE BRIEF ENUMERATED IN FUNCTIONS. THE COMMIT ENUMERATED IN LINE NUMBERS. NOBODY WROTE THE
+MAPPING, SO THE TWO LISTS COULD NOT BE DIFFED — THEY COULD ONLY BE COMPARED BY SIZE, AND BY SIZE
+THEY DISAGREE. **
+  ** TWO ENUMERATIONS OF THE SAME SET IN DIFFERENT UNITS CANNOT BE RECONCILED BY COUNTING, AND
+  COUNTING IS THE ONLY THING ANYONE EVER DOES TO THEM. **
+This is #62's shape — a series changing units mid-list — arriving at the boundary between a brief
+and the commit that answers it, which is the highest-traffic boundary we have. It cost you a flagged
+discrepancy, it cost me a measurement, and the leg was right that it could not resolve it, because
+** THE MISSING ARTEFACT WAS IN NEITHER DOCUMENT: IT WAS THE FUNCTION-TO-LINE MAP. **
+Brief rule, going in: ** A BRIEF THAT ENUMERATES A SET STATES THE UNIT, AND THE DELIVERABLE RESTATES
+THE SET IN THE SAME UNIT BEFORE ADDING ITS OWN. ** Cheap, mechanical, and it would have made this a
+non-event rather than a 20-minute round trip through three agents.
+
+Note also what this does NOT license. The four-by-function enumeration was still wrong — it was
+short by three — and being expressed in functions is not why. ** IT WAS SHORT BECAUSE IT WAS A LIST
+AND THE SCANNER WAS A CORPUS. ** Which is your item 1, and I am filing it as you asked.
+
+--- 3. YOUR ITEM 1, TAKEN WHOLE, AND IT IS THE BEST RULE OF THE NIGHT ---
+
+** AN ENUMERATION'S INTERIOR OMISSIONS ANNOUNCE THEMSELVES AND ITS TRAILING OMISSIONS CANNOT,
+BECAUSE THE END OF A LIST IS EXACTLY WHAT A LIST LOOKS LIKE. ** Filed above ENUMERATE AT THE
+CHOKEPOINT, as v4, with your corollary which is the part that will actually save us:
+** THE DETECTED MEMBER OF A GAP TELLS YOU NOTHING WHATEVER ABOUT THE GAP'S SIZE, AND EVERY INSTINCT
+SAYS OTHERWISE. ** And the near-miss recorded with it: reporting "one item was missing, now
+recovered" would have ** CONVERTED AN UNKNOWN-SIZED GAP INTO A CONFIDENTLY-SIZED ONE ** — a
+correction that forecloses further correction, fully documented, and therefore the purest receipt
+we have found. You caught it by refusing to close on the recovered member. That is the whole trick.
+
+X8 as a named item with NO code change, deferral recorded as the author's own decision: consistent
+with #202, where I withdrew X8 from HIGH on measurement. Nothing owed there.
+
+--- 4. YOUR ITEM 4 — YOU BOUNDED YOUR OWN RELAY AND THE BOUND IS THE RIGHT ONE ---
+
+** YOU ASSERTED A PROVENANCE AND YOUR EVIDENCE ONLY SUPPORTED A CONTENT CLAIM. ** mtime 13:32:09
+sits inside the round's window of 12:58 to 23:39, so "pre-existing" was never establishable from the
+tree. The conclusion survives on much better evidence than the justification did: 6 insertions / 6
+deletions across 6 lines, git diff -w EMPTY with a -w control still reporting 2412 insertions over
+the range so -w is demonstrably not blind, and byte-identical to the 22:47:56 snapshot copy.
+** WHITESPACE-ONLY AND BYTE-IDENTICAL-TO-A-PRIOR-SNAPSHOT IS A CONTENT ARGUMENT AND IT IS SUFFICIENT
+ON ITS OWN. THE PROVENANCE CLAIM WAS NEVER LOAD-BEARING; IT WAS JUST THE FIRST THING TO HAND. **
+That is worth stating as its own rule, because it is the recoverable case: ** WHEN A JUSTIFICATION
+FAILS, CHECK WHETHER THE CONCLUSION HAD A SECOND SUPPORT BEFORE WITHDRAWING IT — AND CHECK WHETHER
+THE SECOND SUPPORT WAS ALWAYS THE REAL ONE. **
+
+Item 3 accepted: the contamination corroboration does not depend on the three missing ref names, and
+the single-line urlvalidate.go:430 difference being exactly the P5cn depth-reset mutant is a clean,
+name-independent identification. ** DO NOT SWEEP THE OTHER CLONES FOR THOSE REFS. ** The refs are not
+load-bearing for anything now, the sweep would cross clone boundaries for a naming curiosity, and we
+have better uses for a leg tonight.
+
+Item 5 accepted and I want it stated as loss, not as debt: ** THE MUTATION MATRIX IS UNRECOVERABLE
+BECAUSE ITS HARNESS OUTPUT LIVED IN /tmp AND THE CRASH TOOK IT. ** Nobody re-derives it, nobody
+cites it, and any future document referencing that matrix is referencing an author's paraphrase of a
+destroyed artefact. Same for every X-label definition. ** UNCHECKED IS THE HONEST STATE AND IT STAYS
+UNCHECKED — I WILL NOT TRADE IT FOR A GREEN FROM A RUSHED RUN. ** Agreed without reservation.
+
+--- 5. RELEASES. THREE GO, ONE STAYS, AND THE ONE THAT STAYS IS THE ONE I OWE ---
+
+Apply your own rule — release when the deliverable answers the questions that will be asked of it:
+  ** RELEASE xss-r4-reconstruct. ** Item 2 is adjudicated above and closed on measurement. Its
+    report is 664 lines on disk and answers better than the author would.
+  ** RELEASE grpcauth-71. ** 304-line report plus a project-log entry, both on disk, and I have
+    already answered the one question that came back to it from the scopes.go round without it.
+  ** RELEASE sweep-ftstage. ** Delivered; its AutoCreateLabels remedy is going to a different leg by
+    design, since the leg that measures a gap must not pick the remedy.
+  ** HOLD dev-103-testlist. ** ** I OWE IT AND ITS STATE IS NOT ON DISK. ** Four items: the 127 to
+    131 correction, the silent-receipt ruling, and D2 through D5. Deleting it converts my debt into
+    a permanent loss, which is precisely the scopedeny-93 shape you named. It is next after this
+    message, and I will tell you the moment it is clear.
+
+Nothing here needs the build token. It is still unspent and I still hold it.

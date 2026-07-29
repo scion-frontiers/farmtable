@@ -1,0 +1,91 @@
+THE ROUND-INSTRUMENT READ LANDED. YOU ASKED FOR IT WHEN IT DID. I READ ALL 309 LINES
+BEFORE RELAYING ANY OF IT.
+
+ITS HEADLINE: THE PREMISE I HANDED IT IS WRONG, AND THAT IS THE FINDING.
+
+The capability gate was FOUND, named by file and line, and correctly characterised AS A
+CAPABILITY GATE, in ELEVEN artefacts, starting in round one. Not missed and later found.
+Found, repeatedly, by the very searches I said could not find it. One r5 artefact records
+finding it BY the render-sink hunt.
+
+So my EM-242 and EM-257 are FALSIFIED ON THEIR CAUSAL CLAIM. A rendering-keyed search is
+NOT structurally incapable of finding a branched-on consumer. It found it eleven times.
+The failure was in SUMMARISATION AND IN READING, not in instrument blindness.
+
+AND I WANT THIS ONE ON THE OTHER SIDE OF THE LINE YOU DREW TWENTY MINUTES AGO. You ruled
+the ruling-versus-question collision NOT chargeable to me, because it was a correction I
+issued rather than an error that reached a deliverable. By that same test THIS ONE IS
+CHARGEABLE. EM-257 reached three briefs and it reached your rulings. Same night, same
+person, opposite disposition, and the difference is exactly the test you named.
+
+THE SIXTH CELL. The leg took your escape hatch and it earned it.
+
+  P - PREDICATE-NARROWED. The instrument was consumption-keyed or identifier-keyed and
+  DID enumerate the consumers, but the negative was RECORDED against a rendering-keyed
+  predicate - no sink, reaches no href, never rendered. THE CONSUMER IS PRESENT IN THE
+  REPORT'S EVIDENCE AND ABSENT FROM ITS CONCLUSION.
+
+The sharpest single row: in the round-one audit, the sentence that names BOTH
+capability-gate consumers BEGINS with the words reaches no href. The evidence and its
+own conclusion contradict each other inside one sentence, and it survived five rounds.
+
+MY PRE-REGISTERED TRIGGER SENTENCE IS NOT SUPPORTED. The supported one is narrower and
+it is the leg's wording, not mine:
+
+  Some of what we recorded as looked-at-and-clean was looked at, correctly, at a
+  NARROWER SCOPE than the words we filed it under - and we then read our own words at
+  the WIDER scope.
+
+That is the parent principle, measured: a true statement about a narrow thing, restated
+about a wider one, with no re-measurement at the boundary. The new part is that here the
+boundary is INSIDE A SINGLE DOCUMENT, between its evidence and its conclusion. No relay,
+no second author, no elapsed time. It is the shortest possible instance of the class.
+
+NUMBERS, AS OF CUT-OFF 06:12:38Z, and stated as as-of rather than as totals for the axis,
+because the open round joins the population on completion. 27 negatives. Axis A: EXPLICIT
+24, UNDETERMINABLE 2, NOTHING-RUN 1. Axis B over the 24, plural: CONSUMPTION 17,
+RENDERING 7, IDENTIFIER 6. Genuinely rendering-bound with no consumption sibling in the
+same leg: TWO. Both axes were needed; a single-letter form would have crushed most rows.
+
+YOUR NOTHING-RUN CELL FIRED - ONCE. And it fired only because the leg that produced that
+negative had SELF-LABELLED it as derived. Which means the cell can only ever find the
+honest cases, and the dishonest ones are invisible to it. That is a property of the
+instrument you designed, it is worth knowing, and neither of us said it when we designed
+it.
+
+MY BRIEFS ARE IMPLICATED, IN BOTH DIRECTIONS, AND THE LEG WENT LOOKING WITHOUT BEING
+ASKED. One of my round-three briefs MANDATED a rendering-keyed instrument, and is the
+direct cause of one of the two genuinely rendering-bound negatives. I corrected it one
+round later, in writing, unprompted. And my round-one brief set a rendering-keyed
+predicate that the round-one audit simply EXCEEDED - which is the only reason the gate is
+in the record from round one at all. So the record was saved by a leg ignoring my keying.
+
+AND THE RECURSION, WHICH IS THE PART I WOULD HAVE PREFERRED NOT TO SEND. The one-line
+framing I gave that leg - the premise for the whole exercise - IS ITSELF A
+PREDICATE-NARROWED COLLAPSE OF THE RECORD. I committed the defect under audit inside the
+brief commissioning the audit, and the leg said so to my face in its own section five.
+
+TWO CATCHES AGAINST ME IN ITS METHOD SECTION, both mine, both cheap: my population
+command was BLIND TO DOTFILES and silently excluded ten files - the leg's comment was
+that this is the same shape as the failure under audit - and I pointed it at the wrong
+tree.
+
+DISPOSITION, MINE, TAKEN: correct the round-five consumer-population artefact, which is
+where the false sentence actually lives; do NOT reopen any earlier leg, which is the
+leg's own recommendation and it is right. And the provisional marks on the open round's
+ten negatives get LIFTED as to instrument blindness, because that hypothesis is dead, and
+REPLACED with the narrower check the read supports: does each negative's CONCLUSION match
+the scope of its EVIDENCE. That is a cheaper check and it is the one that would have
+worked.
+
+LAST, AND IT IS A SECOND DATA POINT ON YOUR FLAGSHIP CLAIM RATHER THAN A NEW TOPIC.
+I adopted COORD-118 from you and then, roughly twenty minutes later, handed the fix leg a
+pre-registered failure baseline - two named tests expected to be red - WITHOUT ITS ROOT.
+That baseline was measured on one line and I applied it to another. Its wide run came
+back entirely green and the leg caught the error, cleanly, and refused to dress it up.
+THE ROOT TRAVELLED AND THE REVISION DID NOT, in my own hands, inside half an hour of
+adopting the rule that says so.
+
+That is the second measured instance tonight of A RULE ADOPTED IS NOT A RULE ARMED, on a
+different rule, in the same hands, at the same interval. One instance was a finding. Two
+at that interval is a rate, and it says the arming problem is not specific to EM-246.

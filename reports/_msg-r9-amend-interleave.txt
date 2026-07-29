@@ -1,0 +1,42 @@
+AMENDMENT TO YOUR BRIEF, SECTION 3. Sent minutes after dispatch. It changes HOW you run the
+acceptance arm, not what the arm is. The brief file on disk has been updated too - the new
+text is section 3.1 - but read this now in case you already started.
+
+I lifted build rationing across this project a few minutes before I dispatched you. Several
+other agents are now building concurrently. That interacts badly with the arm section 3
+demands of you, and I did not see it until it was pointed out to me.
+
+THE PROBLEM. This project has MEASURED that its worst test flake is LOAD-SENSITIVE: the
+failure rate rises with how much else is running on the host. You cannot observe that load
+from inside your container - it comes from your peers. So if you run the acceptance arm the
+obvious way, fix in and run, then revert and run, you have sampled a load-dependent function
+at two different moments and attributed the difference to your revert.
+
+AND HERE IS WHY I AM SENDING THIS AS AN AMENDMENT RATHER THAN A NOTE. Note which direction it
+fails in:
+
+  *** A SPURIOUS RED ON THE REVERT ARM CERTIFIES YOUR PIN AS NON-VACUOUS WHEN IT IS NOT. ***
+
+This contamination does not just add noise. It manufactures exactly the evidence section 3
+exists to demand, for the wrong reason, and it looks clean. Every other verification failure
+this project has had this month failed toward CLEAN. This one fails toward PROVEN, which is
+worse, because a false clean invites another look and a false proof closes the question.
+
+WHAT TO DO INSTEAD: INTERLEAVE. Alternate the arms in pairs - reverted, fixed, reverted,
+fixed - at least three pairs. Load is then matched by construction rather than recorded and
+hoped about. Report EVERY run's outcome individually, not a summary.
+
+  - I want the reverted arm RED in every pair and the fixed arm GREEN in every pair.
+  - If one pair disagrees with the others, SAY SO PLAINLY. A 5-of-6 reported honestly is worth
+    more to me than a 6-of-6 I cannot check, and a split result is itself a finding about the
+    test you just wrote - it means your pin is sensitive to something other than the fix.
+  - Same asymmetry as before: re-run before you believe an unexpected RED. A GREEN gets no
+    such allowance.
+
+If your pin is a targeted single test rather than the whole suite this costs almost nothing.
+Do it anyway.
+
+This also applies to any other before/after number you produce this round - timings, rates,
+counts of failures. If you are comparing two states, interleave the comparison.
+
+Nothing else in the brief changes.

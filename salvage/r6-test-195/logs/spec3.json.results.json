@@ -1,0 +1,122 @@
+[
+ {
+  "label": "P1 REVERT slot from FORBID_ATTR",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - slot attribute stripped (no projection into the host UI): slot attribute survived: found \"slot\" in \"<div slot=\\\"footer\\\">x</div>\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "P1b REVERT action from FORBID_ATTR",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - action attribute stripped from a tag that survives: action attribute survived on a permitted tag: found \"action\" in \"<div action=\\\"https://evil.example\\\">x</div>\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "P2 REVERT the non-string guard",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown does not throw on non-string input: renderMarkdown threw on undefined input (marked(): input parameter is undefined or null\nPlease report this to https://github.com/markedjs/marked.) \u2014 a throw inside render() takes down the whole Lit component, not one field\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "P3 REVERT dompurify range ^3.4.12 -> ^3.0.0 (package.json only)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "P4 URI POLICY: ALLOW_UNKNOWN_PROTOCOLS true",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - unknown URL schemes are dropped: unknown protocol survived \u2014 has ALLOW_UNKNOWN_PROTOCOLS been enabled?: found \"evilproto:\" in \"<p><a href=\\\"evilproto:payload\\\">x</a></p>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "P5 EMPTY FORBID_TAGS",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "  - form tag stripped: credential-phishing form survived: found <form> in \"<form><input name=\\\"token\\\" type=\\\"password\\\"><button>Sign in</button></form>\"\n  - password input stripped: password field survived: found <input> in \"<form><input name=\\\"token\\\" type=\\\"password\\\"><button>Sign in</button></form>\"\n  - submit button stripped: submit button survived: found <button> in \"<form><input name=\\\"token\\\" type=\\\"password\\\"><button>Sign in</button></form>\"\n  - select and option stripped: select survived: found <select> in \"<p><select><option>a</option></select></p>\\n\"\n  - textarea stripped: textarea survived: found <textarea> in \"<textarea>x</textarea>\"\n  - dialog stripped (no fake modal): dialog survived: found <dialog> in \"<dialog open=\\\"\\\">Enter your password</dialog>\"\n  - svg style element stripped (no CSS injection into the shadow root): style element survived inside svg: found <style> in \"<p><svg><style>:host{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999}</style></svg></p>\\n\"\n  - svg style cannot reach an attacker origin: style element survived: found <style> in \"<p><svg><style>@import url(<a href=\\\"https://evil.example/x.css\\\">https://evil.example/x.css</a>);</style></svg></p>\\n\"\n  - svg style stripped inside a markdown list: style survived in \"- <svg><style>*{display:none}</style></svg>\": found <style> in \"<ul>\\n<li><svg><style>*{display:none}</style></svg></li>\\n</ul>\\n\"\n  - svg style stripped inside a blockquote: style survived in \"> <svg><style>*{display:none}</style></svg>\": found <style> in \"<blockquote>\\n<p><svg><style>*{display:none}</style></svg></p>\\n</blockquote>\\n\"\n  - svg style stripped inside a table cell: style survived in \"| a |\\n| - |\\n| <svg><style>*{display:none}</style></svg> |\": found <style> in \"<table>\\n<thead>\\n<tr>\\n<th>a</th>\\n</tr>\\n</thead>\\n<tbody><tr>\\n<td><svg><style>*{display:none}</style></svg></td>\\n</tr>\\n</tbody></table>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "P6 EMPTY FORBID_ATTR",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 6 of 69 markdown sanitizer checks failed:\n  - action attribute stripped from a tag that survives: action attribute survived on a permitted tag: found \"action\" in \"<div action=\\\"https://evil.example\\\">x</div>\"\n  - slot attribute stripped (no projection into the host UI): slot attribute survived: found \"slot\" in \"<div slot=\\\"footer\\\">x</div>\"\n  - style attribute stripped: inline style survived: found \"style=\" in \"<div style=\\\"position:fixed;top:0;left:0;width:100vw;height:100vh\\\">overlay</div>\"\n  - download attribute stripped: download attribute survived: found \"download\" in \"<p><a href=\\\"https://x.example/f\\\" download=\\\"invoice.pdf\\\">dl</a></p>\\n\"\n  - class attribute stripped (no CSS-reuse forgery): class attribute survived: found \"class=\" in \"<div class=\\\"comment\\\"><div class=\\\"comment-header\\\"><span class=\\\"comment-author\\\">farmtable-admin</span><span class=\\\"comment-time\\\">2 minutes ago</span></div><div class=\\\"comment-body\\\">Your session expired.</div></div>\"\n  - code blocks render: code block changed: expected \"<pre><code>const a = 1;\\n</code></pre>\\n\", got \"<pre><code class=\\\"language-js\\\">const a = 1;\\n</code></pre>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D5 EMPTY BANNED_SINKS",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2211\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every banned raw-HTML sink form is actually detected: banned sink no longer detected: el.innerHTML = body; | el.outerHTML = body; | el.innerHTML += body; | el.innerHTML ||= body; | el.innerHTML &&= body; | el.innerHTML ??= body; | el['innerHTML'] = body; | el[\"outerHTML\"] = body; | el.insertAdjacentHTML(\"beforeend\", body); | document.write(body); | el.setHTMLUnsafe(body); | range.createContextualFragment(body); | return unsafeSVG(body); | return unsafeStatic(body); | const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D5b NEUTER one BANNED_SINKS pattern (document.write) only",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every banned raw-HTML sink form is actually detected: banned sink no longer detected: document.write(body);\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D5c PAIR: neuter document.write pattern AND drop its positive fixture",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "D6 NEUTER sourceFileCountViolation",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: the tree-wide count pins fire on a changed count: count pin no longer fires: the source-file pin is silent at 49 | the source-file pin is silent at 51\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D7 NEUTER sinkCountViolation",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: the tree-wide count pins fire on a changed count: count pin no longer fires: the sink-count pin is silent at 1 | the sink-count pin is silent at 3\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D8 DISABLE opts.strings blanking",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: a string literal naming the sink identifiers is not a violation: string blanking regressed \u2014 the guard now rejects a correct sink file: src/components/inspector/sound-fixture.ts:5: unsafeHTML appears in a non-called position \u2014 outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow. | src/components/inspector/sound-fixture.ts:5: renderMarkdown appears in a non-called position \u2014 outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D17 REVERT F1: stripImportStatements back to [^;] with mandatory semicolon",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 3 of 69 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: import { unsafeHTML } from 'lit/directives/unsafe-html.js'\nconst rawHtml = unsafeHTML\nimport { renderMarkdown } from '../../util/markdown.js';\n  - fixture: the sink-binding rules accept a correct sink file: a correct sink file with ASI-style imports was rejected \u2014 a guard that rejects correct code gets deleted: src/components/inspector/sound-fixture.ts:2: unsafeHTML appears in a non-called position \u2014 outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow. | src/components/inspector/sound-fixture.ts:3: renderMarkdown appears in a non-called position \u2014 outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.\n  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V10 value alias swept away by a semicolon-less import statement\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D18 REVERT T2: unterminated <!-- blanks to EOF again",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2211\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: const t = html`<!-- forgot to close this\n${x}`;\nconst raw = unsafeHTML;\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "D20 REVERT T1 sink half: sinkArgumentIsSanitized stops rejecting a top-level comma",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V11 second argument passed to the sanitizer (a configuration channel)\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "A22 ABLATE the Function.length half of the arity pin (alone)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "A21 ABLATE the declaration-scan half of the arity pin (alone)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "A22+C7a PAIR: ablate Function.length half, then add (md, opts = {})",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2208\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: renderMarkdown declares more than one parameter: (md: string, opts: Record<string, unknown> = {}) \u2014 a defaulted second parameter keeps Function.length at 1, so the declaration is checked too\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2208:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2213:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "A21+C7a PAIR: ablate declaration-scan half, then add (md, opts = {})",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ }
+]

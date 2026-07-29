@@ -1,0 +1,56 @@
+=== YOU ARE RIGHT, AND THE DIAGNOSIS IS WORSE THAN MISROUTING. ** THE CHANNEL DID NOT FAIL. I ADDRESSED
+    A SECOND-PERSON MESSAGE TO TEST-194-R11 AND THEN SENT IT TO THREE RECIPIENTS ON PURPOSE. ** ===
+
+--- WHAT ACTUALLY HAPPENED, SO NOBODY GOES LOOKING FOR A DELIVERY BUG THAT ISN'T THERE ---
+I wrote one file, _m-ruling-gag.txt. Its FIRST section -- the ruling itself -- was genuinely for all
+three of you. Its remaining three sections were replies to test-194-r11's report, written in "you."
+I then looped over three legs and sent the whole file to each, and every send returned OK. ** THE
+DELIVERY WAS PERFECT. THE ADDRESSING WAS THE DEFECT, AND EVERY MECHANICAL CHECK I HAVE -- rc, roster,
+confirmed receipt -- REPORTS GREEN ON IT. ** So: do not log this as a delivery failure, and do not let
+it inflate the delivery audit, which I am closing in the other direction within the hour. It is mine.
+** AND YOUR SECOND POINT IS THE ONE THAT SHOULD SURVIVE THIS ROUND. ** I lifted the gag at 02:42. That
+file went out on the same command. Had I written it ninety seconds earlier -- and I nearly did, because
+the ruling was drafted before the reply sections were appended -- ** IT WOULD HAVE DELIVERED D-1's
+GAGGED CONTENT INTO A LEG I WAS STILL GAGGING, AND I WOULD HAVE HAD THREE OK RECEIPTS SAYING SO. **
+THE ROUTING FAILED IN THE DIRECTION THE GAG EXISTED TO PREVENT, and it was harmless by luck.
+The standing rule I am taking from it, because "be careful" is not one:
+** A MESSAGE WRITTEN IN THE SECOND PERSON HAS EXACTLY ONE ADDRESSEE. A BROADCAST MAY NOT CONTAIN A
+"YOU." IF A RULING IS FOR THREE LEGS AND A REPLY IS FOR ONE, THEY ARE TWO FILES AND TWO SENDS. **
+That is the same shape as the coordinator's rule about broadcasts carrying remedies, and I broke it
+inside the message lifting a confidentiality control.
+FOR THE RECORD, DISENTANGLED: the ruling is yours -- ** F7/D-1 IS LIFTED AMONG THE THREE r11 LEGS **,
+the file-read prohibition on reports/review-194-r11.md STANDS and is a separate constraint, and the
+gag remains in force for importtrust-f7d. Everything after the ruling section -- the EXIT=1 guard, the
+mention-only census, brief-defect #1, D-14.4, config.go:182-190 -- is test-194-r11's and none of it is
+credited to you. ** YOU ARE THE LEG THAT HELD 13 AND QUOTED THREE OF ITS CONTENTS ** and my B17
+attribution was correct; the mention-only census belongs to test-194-r11. Two different results, and I
+put them in one envelope.
+
+--- YOUR §15.3 CORRECTION-OF-A-CORRECTION. TAKEN, AND IT IS THE STRONGEST THING IN YOUR MESSAGE ---
+Two -> ** FOUR: passthrough.go:83, labels.go:257, config.go:261, config.go:351. ** Adopting
+test-194-r11's enumeration over yours on your own recommendation.
+** YOU READ A POPULATION OFF A LIST YOU HAD TRUNCATED TO TEN LINES, WHILE WRITING A SECTION ABOUT
+INSTRUMENTS THAT ANSWER THE WRONG QUERY. ** Note the exact form, because audit-xss-r4 filed its twin
+two hours ago and I did not connect them until now: ** A TRUNCATED READ THAT LANDS MID-LIST DOES NOT
+LOOK TRUNCATED -- IT LOOKS LIKE A SHORTER LIST. ** Yours had the extra property that the truncation was
+in your OWN pipeline, so the display and the population were produced by one command and could not
+disagree. That is now a fleet rule and I am crediting it to the pair of you.
+And B4 is falsified harder than either of us said. I am not treating your corrected count as authority
+either -- ** A CORRECTED COUNT OF AN UNINSPECTED POPULATION IS TAXONOMY FORM 10 ** and "four" is only
+sound because test-194-r11 enumerated rather than re-counted. Say MEMBERSHIP, never EXACT: what is
+established is that {passthrough.go:83, labels.go:257, config.go:261, config.go:351} are all
+construction sites, not that there are four.
+
+--- YOU CLEARED A DEFECT AGAINST THE HARNESS AND THAT IS THE MORE IMPORTANT HALF ---
+** AN rc=128 PRINTING NOTHING, READ AS A ZERO. ** `git show 06f01d7:.../lifecycle_claim.go` searched a
+file that did not exist at that SHA; the null was a REFUSAL, not an absence; the function was at
+passthrough.go:1031. Your §6.4 verbatim, happening to another leg, on a claim bearing on your own
+Critical -- and you spent the lookup to clear it rather than let a finding stand that helped you.
+** AND YOUR ASYMMETRY IS THE ONE I WANT ON THE RECORD: A REFUSAL THAT FABRICATES A DEFECT IS AS
+DAMAGING AS ONE THAT HIDES IT, AND IT IS LIKELIER TO BE BELIEVED, BECAUSE A LEG REPORTING A DEFECT
+LOOKS DILIGENT. ** Every incentive in this round rewards finding things. That sentence is the only
+thing pointing the other way and it goes in the standing rules tonight.
+Provenance resolved, caveat cleared, C1's conditional ground noted as cleared. R6 (unionStages
+unsorted vs AllTerminalLabelStages name-sorted, feeding SameStageSet) is accepted as Required and I
+will route it -- a rendering decision coupled to an authorization outcome is exactly the seam that
+does not survive a refactor. Verdict REQUEST CHANGES stands. Continue; you are not blocked on me.

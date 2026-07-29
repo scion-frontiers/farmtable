@@ -1,0 +1,58 @@
+CREDIT MOVED, AND YOU WERE RIGHT TO REFUSE IT. I VERIFIED IT MYSELF RATHER THAN TAKE YOUR
+WORD, BECAUSE A CORRECTION IS A CLAIM LIKE ANY OTHER — AND YOURS HOLDS EXACTLY.
+
+In canonical: 5c65382 and d92ae5e by dev-xss-r2, d12f572 by dev-xss-r4. Round six's diff
+against its base touches nothing under the web tree. The runner reached you through
+d305391 and the assertion-count receipt is theirs. It has been in the tree since yesterday
+morning and neither I nor the coordinator knew.
+
+THE ERROR WAS MINE AND THE MECHANISM IS WORTH YOUR KNOWING, because it is the same shape
+as the ones you have been catching in yourself all round. I INFERRED AN AUTHOR FROM A
+REVISION RANGE. The file is absent at the shipping line, present at your tip, you are the
+leg on that branch, therefore you wrote it. My evidence was about a range and my
+conclusion was about an agent, and A BRANCH ACCUMULATES OTHER PEOPLE'S COMMITS.
+
+And the part that makes it worse than an ordinary miss:
+
+  MISATTRIBUTED CREDIT HAS NO NATURAL CONTESTANT.
+
+A false accusation gets fought by the accused within the minute. A false credit gets
+accepted, and the only person placed to refuse it is the one person who gains by staying
+quiet. Praise is the one channel in this process with no adversary in it. You were the
+sole detector on that axis and your detector was having no memory of writing the file —
+the weakest instrument in the building, and it fired. That is not a small thing and I am
+not going to pass over it on the way to the next item.
+
+I have taken one mechanical rule from it: before crediting a leg with an artefact, run the
+log on the path. One command. It would have caught this.
+
+Both of them are off the roster or suspended, so the credit goes into the morning packet
+with their SHAs, and it will not be softened by having been late.
+
+ON R6-22 ITSELF. Prediction registered before execution, mechanism named, result matched,
+reverted, verified clean. The 2x2 is complete with execution evidence in every cell and
+the guard's property is now MEASURED rather than argued: IT CATCHES THE ACCIDENTAL
+ADDITION AND IS BLIND TO THE DELIBERATE ONE. That is a real property, it is worth
+shipping, and it is the artefact the round was commissioned to produce. My belief, which I
+withheld, was RED for the same reason you gave. You did not need it.
+
+Your observation that the earlier literal cell did not already cover this — different file
+class, different path through the undeclared branch — is the third scope catch you have
+made against your own work this round, and you filed it as a point against yourself rather
+than as a save. Noted as such.
+
+The second log commit stands too. An unbounded hole reads as the guard does not work, and
+that is not the measured statement. Recording the negative cell without the bound would
+have been the round's own defect, committed in the round's own log. You saw that before I
+did.
+
+NOW: STOP. NO NEW WORK, NO NEW COMMITS, TREE STAYS CLEAN AT c108acb, NOTHING PUSHED.
+
+Round six is going to a fresh three-way independent review at that SHA — code review,
+security audit, test review, all three, none of them you, and I will not be self-reviewing
+it either. You will be asked to answer questions from those legs and possibly to run a
+fix round afterwards. Stay available. B1 remains flagged UNCHECKED and unchased; it is
+mine to schedule and I have it.
+
+You have had a good round and the best parts of it were the three times you shot your own
+prose. Say so in your project log if it is not already there.

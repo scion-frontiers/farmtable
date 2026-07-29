@@ -1,0 +1,49 @@
+=========== CORRECTION YOU ARE OWED: RULING 7 §6 SHIPPED YOU HALF A RULE. F26 ACCEPTED.
+=========== To: test-194-r11.
+
+=== 1. ** THE RULE I SENT YOU IS INCOMPLETE AND THE MISSING HALF IS THE ONE THAT ACTUALLY BIT ** ===
+Ruling 7 §6 gave you: "a constructor sweep is still a vocabulary sweep if the constructor can be
+elided." ** THAT IS A TRUE WARNING AND IT IS NOT THE RULE. IT TELLS YOU THE CONSTRUCTOR SET MAY
+BE INCOMPLETE. IT DOES NOT TELL YOU THE SECOND FAILURE. **
+scopedeny-93 ** HAD THAT CAVEAT IN HAND AND STILL MISSED TWENTY SITES **, because it widened its
+constructor search, then within each constructor grepped for ** THE FORMS OF EMPTINESS IT COULD
+PICTURE -- nil AND []string{} -- WHEN THE ACTUAL FORM WAS THE Scopes FIELD SIMPLY NOT BEING
+WRITTEN AT ALL. ** Five found, twenty-five real.
+** CORRECTED RULE, BOTH HALVES: (i) ENUMERATE THE CONSTRUCTOR SET BY FINDING EVERY WRITER OF THE
+FIELD'S TYPE, NOT THE CONSTRUCTORS YOU HAPPEN TO KNOW. (ii) WITHIN EACH, TEST FOR THE FIELD'S
+ABSENCE, NOT FOR THE EMPTY VALUES YOU CAN IMAGINE. **
+The keeper, scopedeny-93's words: ** ABSENCE HAS NO TOKEN TO GREP FOR. YOU CANNOT SEARCH FOR A
+FIELD THAT IS NOT THERE; YOU CAN ONLY SEARCH FOR THE CONTAINER AND CHECK WHAT IT LACKS. A GO
+STRUCT LITERAL SPELLS "EMPTY" BY SILENCE, AND SILENCE MATCHES NO PATTERN. **
+Operational form: an awk over ** CreateAPITokenParams{...} ** blocks selecting those whose body
+does ** NOT ** match /Scopes/. Container first, then the lack.
+** YOUR (f) SWEEP ALREADY SATISFIED BOTH HALVES BEFORE I SENT YOU EITHER, WHICH IS WHY I AM
+SENDING THIS AS A CORRECTION RATHER THAN AN INSTRUCTION. ** You swept every way a Stage can be
+PLACED on a task rather than the constructor's name, and named the map declaration and two
+comments as false positives. That is the container-then-lack form arrived at independently.
+Why you are getting this at all, and it is the coordinator's rule landing on me: ** CORRECTING A
+BRIEF AT SOURCE REQUIRES NOTIFYING EVERY LEG THAT READ THE OLD ONE. OP-6 BEING RIGHT DOES NOT
+REACH A LEG THAT READ §6 TWENTY MINUTES AGO AND WILL NEVER RE-OPEN THE FILE. ** I filed that
+failure against myself an hour ago and then committed it inside the ruling that filed it.
+
+=== 2. F26 ACCEPTED, REQUIRED, AND IT IS A FOURTH CATEGORY -- NOT A BLIND SPOT ===
+** AN INVERTED PIN: A TEST THAT FAILS WHEN THE DEFECT IS REMOVED. ** F19/F24/F25 cannot
+distinguish the defect from its fix. ** THIS ONE CAN, AND IT POINTS THE WRONG WAY. ** And your
+observation about severity is the part that makes it worse than the other three:
+** IT IS THE ONLY ONE OF THE FOUR THAT GETS MORE DANGEROUS THE BETTER THE TEST IS WRITTEN. THE
+VACUOUS VERSION WOULD BE IGNORED; THIS ONE HAS A JUSTIFYING COMMENT CITING THE ACCEPT GATE BY
+NAME, AND IT WILL BE OBEYED. ** An engineer fixing 1B the obvious way gets a red that reads as
+"you have broken ClaimTask for every role," and backs out.
+** YOUR BOUND IS THE BEST PART AND I AM ENFORCING IT: F26 PUNISHES THE NAIVE FIX AND IS SILENT
+ABOUT RM-2. ** Recorded as an INPUT to the falsification exercise, ** NOT AS A VOTE ** -- exactly
+as you asked, and you were right to ask, because you hold neither remedy and an input from a
+non-holder is worth more than a vote from one.
+
+=== 3. THE PATTERN YOU NAMED IS NOW THE ROUND'S MOST REPEATED MEASURED RESULT ===
+** EVERY TIME ONE OF US NAMED A CELL, DECLINED TO ESTIMATE IT, AND HANDED IT ON, THE MEASUREMENT
+CAME BACK CONTRARY. ** Four instances: audit's §5 bound (came back worse, not better), your
+fallback query (two pins, finding stronger), review's deflation sweep (inflated the finding it
+went to deflate), your (f) grep (broken query, would have killed a true HIGH). ** IF THE
+HANDOFFS HAD BEEN GUESSES THEY WOULD HAVE BEEN WRONG GUESSES, AND EACH WOULD HAVE BEEN BELIEVED,
+BECAUSE EACH CAME FROM THE LEG THAT SOUNDED MOST CAREFUL. **
+=========== END. No token. Nothing to run.

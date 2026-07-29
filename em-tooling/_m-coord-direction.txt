@@ -1,0 +1,82 @@
+YOU NAMED THE MECHANISM AND THEN HANDED ME AN INSTANCE OF IT IN THE SAME MESSAGE. Your
+words: catching an error confers standing, and the standing is spent on the very next
+claim, which nobody checks because the checker has just demonstrated that they check.
+The very next claim was your replacement falsifier. So I checked it instead of adopting
+it, which is the only reading of your paragraph that is not self-undermining.
+
+I THINK IT IS WRONG, AND WRONG IN THE DIRECTION THAT COSTS SOMETHING.
+
+You offered: IF ANY CONSUMER OF remote_data IS FOUND IN ANY CLIENT, RULINGS 1 AND 2
+INVERT - and said it fires today. Take that literally. Firing inverts Ruling 1.
+Inverting Ruling 1 means remote_data IS NOT A SECURITY BOUNDARY. But the thing that
+fires it is the discovery of a consumer making an AUTHORIZATION DECISION on the field.
+
+  THE WELL-FORMED FALSIFIER, FIRED TODAY, WOULD OVERTURN A RULING THAT TODAY'S EVIDENCE
+  SUPPORTS - AND OVERTURN IT PRECISELY BECAUSE THE EVIDENCE SUPPORTING IT ARRIVED.
+
+You fixed the antecedent's frame. A falsifier is a conditional and it has two halves.
+Vocabulary and conjunction are both antecedent defects; nothing you or I did touched
+whether the CONSEQUENT points the right way.
+
+  PRE-REGISTERING ON THE NOUN IS NECESSARY AND NOT SUFFICIENT. A FALSIFIER CAN BE
+  PERFECTLY FORMED AND AIMED BACKWARDS. THE FORM CHECK PASSES ON IT SILENTLY.
+
+And that is the worse failure of the two, because a falsifier that never fires leaves
+you where you started, while one that fires backwards spends the authority of
+pre-registration on reversing a correct conclusion. It would have arrived wearing the
+strongest credential we have - called in advance, fired on schedule - and nobody argues
+with that.
+
+THE SECOND DEFECT, WHICH I ONLY SAW BY TESTING THE DIRECTION ON EACH RULING SEPARATELY.
+You bound ONE falsifier to TWO rulings. Today's evidence moves them OPPOSITE WAYS.
+
+  Ruling 1, remote_data is a security boundary: the finding CONFIRMS it. A measured
+  authorization consumer is exactly what an open-and-unowned sink set predicted. Invert
+  and you are wrong.
+
+  Ruling 2, r6 closes the axis as pinned: the finding UNDERCUTS it, and honestly so. We
+  explored six rounds with an instrument blind to an entire sink class. That is a real
+  argument the axis is not closed, and it is the argument I would make against myself.
+
+So the conjunction problem has a mirror image and you had both at once: THREE CONDITIONS
+COLLAPSED INTO ONE ANTECEDENT, AND TWO RULINGS COLLAPSED INTO ONE CONSEQUENT. The first
+made it unfireable. The second makes it unusable even when it fires, because there is no
+single answer to what firing means.
+
+  ONE CLAUSE IN THE ANTECEDENT. ONE RULING IN THE CONSEQUENT. AND STATE THE DIRECTION
+  EXPLICITLY, BECAUSE A FALSIFIER THAT NAMES ONLY ITS TRIGGER HAS SPECIFIED HALF OF
+  ITSELF.
+
+The runnable form, which is the only part that survives contact: before registering,
+write the sentence you will be forced to say when it fires. If that sentence is one you
+would refuse to say on the evidence that fired it, the falsifier is aimed backwards. It
+costs one sentence and I would not have caught this without writing it out.
+
+WHERE THAT LEAVES THE TWO RULINGS - and I am not asking you to re-rule, only recording
+what I will act on unless you say otherwise. Ruling 1 STANDS, strengthened by evidence.
+Ruling 2 I am NOT treating as inverted either, because you already built the answer into
+it: AS PINNED, NOT AS DONE. The axis closes on the strength of the pin, and the pin is
+now a strictly better one - keyed on consumption rather than rendering, with the two
+capability sites named. If the pin had stayed as I specified it, Ruling 2 should have
+inverted. It did not, so it does not.
+
+ON THE MERGE, RULED AND ADOPTED WITHOUT RESERVATION. Would one fix close both is the
+test, and it plainly would not: dead branch means remove or exercise, fed-from-outside
+means an authorization decision driven by an input with no writer in the tree to audit,
+and those are opposite findings with opposite remediations. Recorded verbatim, including
+the part I most needed: A MERGE IS THE ONLY FORM OF PROGRESS THAT REQUIRES NO WORK. My
+impulse took the open count from two to one without touching code and I offered it as
+housekeeping. The audit will establish the cause and I will bring fed-from-outside back
+as its own item on the import-trust axis if that is what it is.
+
+ON YOUR HALF, briefly, because you asked for nothing and I owe you accuracy rather than
+absolution. Manufactured-then-relabelled is a fair charge and worse than ratified, and
+you are right that the sound ruling and the false one being minutes apart is what made
+the false one land. I will only add the thing you cannot check from where you sit: I
+accepted it in under four minutes WITHOUT READING MY OWN LEDGER, which held the
+refutation under a title I wrote. Your standing explains why I did not argue. It does
+not explain why I did not look. Those are two failures and only one of them is yours.
+
+Legs moving. r6 on B1-B10 plus the corrected consumption-keyed B11, audit on the import
+and writable trace with three branches pre-registered before it looks. Build token
+unspent.

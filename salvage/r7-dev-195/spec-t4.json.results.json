@@ -1,0 +1,72 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2920\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2920:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2925:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "E1a",
+    "desc": "revert `slot` from FORBID_ATTR only. Already red before this round; the baseline for E1b.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "slot attribute stripped (no projection into the host UI): slot attribute survived: found \"slot\" in \"<div slot="
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2920\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - slot attribute stripped (no projection into the host UI): slot attribute survived: found \"slot\" in \"<div slot=\\\"footer\\\">x</div>\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2920:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2925:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "E1b",
+    "desc": "T-4 verbatim: revert `slot` AND hollow out its check body \u2014 was GREEN at 69",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "assertion total pinned: expected 122 assertions to run, 120 did. Every check() call site is still present \u2014 th"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2922\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - assertion total pinned: expected 122 assertions to run, 120 did. Every check() call site is still present \u2014 that is what the check total above measures \u2014 so this is a change INSIDE one or more check bodies. If you added or removed assertions deliberately, update EXPECTED_ASSERTIONS in the same commit. If you did not, a check body has been hollowed out: it still runs, still counts, and no longer asserts anything. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2922:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2927:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "E1c",
+    "desc": "GENERALISATION: hollow out a DIFFERENT check (script tag stripped) with no production change at all. Nothing but the assertion total can see this.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "assertion total pinned: expected 122 assertions to run, 120 did. Every check() call site is still present \u2014 th"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2922\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - assertion total pinned: expected 122 assertions to run, 120 did. Every check() call site is still present \u2014 that is what the check total above measures \u2014 so this is a change INSIDE one or more check bodies. If you added or removed assertions deliberately, update EXPECTED_ASSERTIONS in the same commit. If you did not, a check body has been hollowed out: it still runs, still counts, and no longer asserts anything. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2922:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2927:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "E1d",
+    "desc": "ABLATION: neuter the assertion counter itself. E1b/E1c would then be invisible again, so this must be caught by the pin's own arithmetic.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "assertion total pinned: expected 122 assertions to run, 72 did. Every check() call site is still present \u2014 tha"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2919\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - assertion total pinned: expected 122 assertions to run, 72 did. Every check() call site is still present \u2014 that is what the check total above measures \u2014 so this is a change INSIDE one or more check bodies. If you added or removed assertions deliberately, update EXPECTED_ASSERTIONS in the same commit. If you did not, a check body has been hollowed out: it still runs, still counts, and no longer asserts anything. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2919:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2924:1\n\nNode.js v20.20.2\n"
+  }
+]

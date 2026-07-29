@@ -1,0 +1,70 @@
+[
+  {
+    "check": "a1",
+    "action": "ListTasks with existing (pre-Stage4) token — read access",
+    "pass": true,
+    "detail": "ListTasks returned 50 tasks — existing token still works for reads"
+  },
+  {
+    "check": "a2",
+    "action": "CreateTask with existing (pre-Stage4) token — write access",
+    "pass": true,
+    "detail": "CreateTask returned id=fc965cc9-4002-474c-9829-4d6aed8c5b33 — existing token still works for mutations (test task cleaned up)"
+  },
+  {
+    "check": "a3",
+    "action": "ListCollections with existing (pre-Stage4) token — collection read",
+    "pass": true,
+    "detail": "ListCollections returned 18 collections — existing token works for collection reads"
+  },
+  {
+    "check": "b.i",
+    "action": "ListTasks in allowed collection with task:read scope",
+    "pass": true,
+    "detail": "ListTasks returned 31 tasks — scoped read works in allowed collection"
+  },
+  {
+    "check": "b.ii",
+    "action": "CreateTask in allowed collection WITHOUT task:write scope — should be REJECTED",
+    "pass": true,
+    "detail": "Correctly rejected: code=PermissionDenied message=\"missing required scope \\\"task:write\\\"\" — scope enforcement works",
+    "grpc_code": "PermissionDenied"
+  },
+  {
+    "check": "b.iii",
+    "action": "ListTasks in DIFFERENT collection — should be REJECTED (collection restriction)",
+    "pass": true,
+    "detail": "Correctly rejected: code=PermissionDenied message=\"token not authorized for collection 2c78db91-d17f-4d8b-9d62-29a7b1d409fd\" — collection restriction works",
+    "grpc_code": "PermissionDenied"
+  },
+  {
+    "check": "c1",
+    "action": "ListCollections with wildcard admin token",
+    "pass": true,
+    "detail": "ListCollections returned 18 collections — admin can read all"
+  },
+  {
+    "check": "c2",
+    "action": "CreateTask + DeleteTask with wildcard admin token (write access)",
+    "pass": true,
+    "detail": "CreateTask returned id=16134442-ba21-4531-89b9-6834587a8f1c — admin can write (test task cleaned up)"
+  },
+  {
+    "check": "c3",
+    "action": "ListTasks in primary AND secondary collection with admin token (no collection restriction)",
+    "pass": true,
+    "detail": "Admin token can read tasks in both collections — no collection restriction works"
+  },
+  {
+    "check": "e1",
+    "action": "ListTasks via dual-header auth (ft CLI / decomposer pattern)",
+    "pass": true,
+    "detail": "ListTasks returned 50 tasks — dual-header pattern works"
+  },
+  {
+    "check": "e2",
+    "action": "CreateTask via dual-header auth (mutating RPC via ft CLI pattern)",
+    "pass": true,
+    "detail": "CreateTask returned id=6cc19cf5-a4a4-447c-9373-a7df22de01f4 — dual-header mutating works (cleaned up)"
+  }
+]

@@ -1,0 +1,97 @@
+TEST/QA LEG, r7 review of e4e3d13 -- VERDICT: REQUEST CHANGES
+
+Report: reports/test-xss-r7.md   Log: reports/test-xss-r7-project-log.md
+ROOT /workspace/farmtable-xss-r7-test, detached at e4e3d13, DIST ABSENT.
+Tree clean at exit (git status --porcelain empty, gofmt -l internal/webguard empty).
+No build token requested or spent. Seven targeted single-package cells (T7-01..T7-07),
+all pre-registered in _run-queue-log.md with ROOT and DIST before running. No production
+code modified. No wide build, no ./..., no make, no npm.
+
+Context first, because it matters for how you read the verdict: fourteen of fifteen
+in-scope brief items landed, and the two hardest landed well. The doc.go rewrite against
+cc92735 survived independent verification claim by claim, and the per-field sampler is the
+best-canaried change in the branch. Nothing I found contradicts the round's security
+argument. All four blocking items are things nobody instructed.
+
+FOUR BLOCKING
+
+B1 -- Five citations added by this commit do not resolve. All five were CORRECT at c108acb
+and were broken by the insertion of the comment blocks that carry them (29 lines added above
+in export_import.go, 16 in capabilities.ts). Population: ENUMERATED 27 = RESOLVES 22 + STALE 5
++ EXCLUDED 0. The stale five include export_import.go:306, which is the anchor of the whole
+CONJUNCT A argument and is cited from three files. This is the round's own declared defect
+class, committed in the same comment that declares it. Cheapest fix in the set: cite by
+symbol name. Note this is second-round recurrence -- review-r6 and audit-r6 both observed
+wrong-line citations as the mechanism that made the previous comment dangerous, neither
+recommended a rule, and the fix brief cites by line throughout.
+
+B2 -- THE B4 FIX HAS NO TEST. I reverted the entire behavioural content of the anchoring
+fix (back to basename pruning) and all three webguard tests stayed GREEN (T7-03). With a
+live undeclared consumer planted at web/src/util/dist/deep.ts the reverted guard still
+passes (T7-04); the same plant drives it RED the moment anchoring returns (T7-05). Root
+cause is a population fact: ENUMERATED 6 skipDirs entries = MATCHING SOMETHING IN THIS TREE
+0 + MATCHING NOTHING 6, so both pruning policies compute an identical descended set on every
+path that exists. This is not the fix leg's slip -- brief item B4 specified the canary as
+plant, show RED, revert, which by construction leaves no residue. The remedy is already an
+unused seam: the census helper takes a root, so a t.TempDir fixture makes the plant
+permanent. Worth noting one of the three r6 plant paths is under an unanchored dist/ rule
+and could not have been committed even if someone had tried.
+
+B3 -- CONJUNCT B IS DOCUMENTED AND UNGUARDED. Conjunct A has a real test asserting
+FailedPrecondition on a github-platform document. Conjunct B, the FARMTABLE early return in
+getCapabilities, has nothing: reordering it is invisible to the census (text-keyed,
+position-blind), to npm test (ENUMERATED 4 web test files = exercising getCapabilities 0),
+and to tsc. test-xss-r6.md F4 forecast this gap in as many words and it never became a work
+item in the fix brief.
+
+B4 -- arises in reconciliation, and it is a carried-forward r6 condition, not a new defect.
+remotedata_consumers_test.go:83 still states "Other clients of this API are not in this
+tree", under a heading saying an unstated limit is how a guard becomes a false assurance.
+collectionSupportsGraph (internal/server/graph_support.go:22) reads the same attacker map
+with no platform early return. audit-r6 Condition 2 asked to qualify the claim or widen the
+census; the widening was correctly held, and the qualification landed in the PROJECT LOG
+(line 230) rather than in the guard. One sentence fixes it. Attribution: phase two handed me
+graph_support.go:22; what is mine is that it falsifies a sentence inside the guard. Behaviour
+is covered by graph_support_test.go -- only the self-description is wrong.
+
+Ten non-blocking, N1..N10, in the report. N1 is capabilities.ts reintroducing the producer
+count that convert.go was corrected to refuse, in the same commit.
+
+THE CANARY CELL I TRUST LEAST: R7-04.
+
+Not because it was faked -- it was executed faithfully and reported faithfully, and I
+verified its line number (:381) against the artefact. I distrust what it is taken to mean.
+R7-04 is read in the record as evidence that the new descent test catches the basename
+defect. It does not test that. It mutates skipDirs CONTENTS (adds "src"), which any pruning
+policy would honour, so it exercises the test's must-list against a directory that really is
+pruned. The basename-versus-anchored distinction is never varied. That is exactly why B2 was
+available: the strongest-looking cell in the round validates a variable the fix did not
+change. Same family as R7-03. If you keep one thing from this leg, keep this: a mutation
+matrix measures the detector and assumes the census.
+
+Two corrections to _r7-PHASE-TWO.md, both in the report:
+- git check-ignore -v web/dist returns rc=1 in my tree, not rc=0. The polarity argument built
+  on the zero exit code does not hold; check-ignore exits non-zero when nothing matches, so
+  the misleading part is the human-readable output, not the status. The hazard and the
+  prescribed inside-path remedy are both correct, and I re-ran with the four negative controls.
+- Only ONE of the three r6 plant paths is gitignored (web/src/util/dist/deep.ts, .gitignore:17).
+  web/src/build/telemetry.ts and web/src/components/coverage/deep2.ts are NOT ignored. I had
+  hypothesised all three were and recorded the death of my own claim.
+
+The embargo worked and I want that on the record: three of my four blocking items are cold
+pass and appear in no r6 artefact. It leaked in one place only -- r7-test.md restates the fix
+leg's self-reported bound, which is a phase-two fact, in the file I read second.
+
+TWO THINGS I WOULD LIKE FROM YOU, both optional and neither blocks this verdict:
+
+1. Build token for npm test plus tsc --noEmit on web/. TypeScript is the only language in the
+   round that nothing has verified -- capabilities.ts was edited without either ever running
+   against it, per the fix leg's own bound. I did not spend a token guessing.
+2. Permission for one mutation cell that requires touching production code (N5: per-field
+   timer with a shared counter, to check the sampler fix is complete on both axes). I did not
+   do it, because not modifying production code is the harder rule and I kept it.
+
+WHAT I DID NOT CHECK is a real section (10 items), not a disclaimer. The largest gaps: no
+package outside internal/server and internal/webguard was compiled by me; I did not run the
+web suite; I did not verify the Ent or proto layers; and I did not audit
+scripts/ci-suite-manifest.mjs, which is routed elsewhere.

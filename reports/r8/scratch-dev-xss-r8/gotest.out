@@ -1,0 +1,46 @@
+# github.com/farmtable-io/farmtable
+assets.go:5:12: pattern all:web/dist: no matching files found
+FAIL	github.com/farmtable-io/farmtable [setup failed]
+# github.com/farmtable-io/farmtable/cmd/farmtable-server
+assets.go:5:12: pattern all:web/dist: no matching files found
+FAIL	github.com/farmtable-io/farmtable/cmd/farmtable-server [setup failed]
+# github.com/farmtable-io/farmtable/cmd/ft
+assets.go:5:12: pattern all:web/dist: no matching files found
+FAIL	github.com/farmtable-io/farmtable/cmd/ft [setup failed]
+# github.com/farmtable-io/farmtable/internal/cli
+assets.go:5:12: pattern all:web/dist: no matching files found
+FAIL	github.com/farmtable-io/farmtable/internal/cli [setup failed]
+?   	github.com/farmtable-io/farmtable/api/farmtable/v1	[no test files]
+?   	github.com/farmtable-io/farmtable/cmd/decomposer	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/convert	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/decomposer	0.007s
+ok  	github.com/farmtable-io/farmtable/internal/mcp	0.034s
+?   	github.com/farmtable-io/farmtable/internal/platform	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/platform/beads	0.018s
+ok  	github.com/farmtable-io/farmtable/internal/platform/github	0.044s
+2026/07/29 12:34:45 task.remote_data dropped: sanitized remote_data is not structpb-representable: proto: invalid type: map[string]string; offending keys: "parent" (map[string]string)
+--- FAIL: TestWatchTasks_CreatedEvent (5.01s)
+    watch_test.go:153: timed out waiting for event
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	6.250s
+ok  	github.com/farmtable-io/farmtable/internal/serverapp	0.057s
+ok  	github.com/farmtable-io/farmtable/internal/store	0.520s
+?   	github.com/farmtable-io/farmtable/internal/store/ent	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/apitoken	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/change	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/collection	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/comment	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/enttest	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/hook	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/migrate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/predicate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/relationship	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/runtime	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/task	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/user	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/schema	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/streaming	0.912s
+?   	github.com/farmtable-io/farmtable/internal/testutil	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/webguard	0.012s
+FAIL

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "LOW2-innerHTML",
+    "desc": "innerHTML sink in index.html's inline script \u2014 was GREEN at 69 (file not scanned at all)",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: i"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: index.html (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "LOW2-docwrite",
+    "desc": "document.write in index.html's inline script",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: i"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: index.html (document.write) [tripwire: an enumeration of known sinks, not a proof of absence]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "LOW2-escape",
+    "desc": "the promoted R7 must reach index.html too",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2956\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:\n      index.html:20 \u2014 an escape outside a string literal lets an identifier be spelled so that every name-based rule in this file misses it, while TypeScript still resolves it to the real binding. Write the name literally.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2956:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2961:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "LOW2-delete",
+    "desc": "delete index.html entirely. Read by explicit path, so this must throw rather than silently shorten the scanned set.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "RED",
+    "tail": ""
+  },
+  {
+    "id": "LOW2-benign",
+    "desc": "FALSE-POSITIVE CONTROL: index.html as it ships must stay GREEN, and a benign edit to its inline script must too. Bringing a file into the scanned set is only useful if the file can live there.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  }
+]

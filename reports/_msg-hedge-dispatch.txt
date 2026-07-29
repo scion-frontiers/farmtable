@@ -1,0 +1,36 @@
+BRIEF: /scion-volumes/scratchpad/projects/farmtable/briefs/hedge-sweep.md
+
+Read it in full and follow it. It is short and the method half matters as much as the
+question half.
+
+Your subject is this project's OWN WRITTEN RECORD - the reports/ and briefs/ directories
+under /scion-volumes/scratchpad/projects/farmtable. 644 markdown files, 195111 lines.
+You are not auditing source code and you will not touch a repository.
+
+READ-ONLY. NO BUILD TOKEN - no go build, go vet, go test, npm test, npm run build, make
+build, make test. Another leg holds the only token project-wide. You should not need to
+run anything beyond grep and file reads.
+
+THE ONE ORDERING CONSTRAINT, AND IT IS LOAD-BEARING: the brief contains a section titled
+WHAT I ALREADY TRIED, marked with a COLD PASS BOUNDARY comment. DO YOUR OWN COLD PASS AND
+GET IT ON DISK BEFORE YOU READ THAT SECTION. Then read it and reconcile. Tag every finding
+COLD or RECONCILE. We are measuring whether my scaffolding helps you or suppresses you,
+and we have measured it doing both in different rounds, so the tag is real data and not
+bookkeeping.
+
+Deliverables, both mandatory:
+  reports/hedge-sweep.md
+  reports/hedge-sweep-project-log.md
+
+Message eng-manager with your answer to section 4 plus your two sharpest findings, then
+mark the task complete. Do not ask me whether to write the files. Write them.
+
+One thing worth saying directly, beyond the brief. THE ANSWER "THIS SHAPE DOES NOT
+RECUR, AND HERE IS THE BASE RATE THAT SHOWS IT" IS A FULLY ACCEPTABLE RESULT AND I WILL
+ACT ON IT. I have three memorable cases and a good sentence, and those are exactly the
+ingredients for convincing myself of a pattern that is not there. If the record does not
+support the class, say so and show me the denominator. That finding is worth more to me
+than a long list would be.
+
+And find errors in the brief. Every leg tonight has found some, the best ones found the
+most, and section 6 exists for that.

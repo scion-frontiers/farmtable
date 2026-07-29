@@ -1,0 +1,40 @@
+[
+  {
+    "check": "c1",
+    "action": "GetVersion without farmtable token (exempt endpoint)",
+    "pass": true,
+    "detail": "GetVersion returned server_version=\"dev\" — exempt endpoint works unauthenticated"
+  },
+  {
+    "check": "c2",
+    "action": "GetStatus without farmtable token (exempt endpoint)",
+    "pass": true,
+    "detail": "GetStatus returned server=\"farmtable\" version=\"dev\" — exempt endpoint works unauthenticated"
+  },
+  {
+    "check": "a1",
+    "action": "ListTasks with dual-header auth (read RPC)",
+    "pass": true,
+    "detail": "ListTasks returned 50 tasks — dual-header auth works for reads"
+  },
+  {
+    "check": "a2",
+    "action": "CreateTask with dual-header auth (mutating RPC)",
+    "pass": true,
+    "detail": "CreateTask returned id=2035c996-81dc-4526-8c60-a0ae17d5b03a — mutating RPC with identity works (cleanup delete failed: rpc error: code = Unimplemented desc = delete is not supported; close tasks instead)"
+  },
+  {
+    "check": "b1",
+    "action": "CreateTask without farmtable token (should be REJECTED)",
+    "pass": true,
+    "detail": "Correctly rejected: code=Unauthenticated message=\"authentication required\" — Stage 1 mandatory auth enforcement working",
+    "grpc_code": "Unauthenticated"
+  },
+  {
+    "check": "b2",
+    "action": "ListTasks without farmtable token (should be REJECTED under Stage 1)",
+    "pass": true,
+    "detail": "Correctly rejected: code=Unauthenticated message=\"authentication required\" — mandatory auth enforced on non-exempt RPCs",
+    "grpc_code": "Unauthenticated"
+  }
+]

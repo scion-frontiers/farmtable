@@ -1,0 +1,23 @@
+Bug reproduction BEFORE fix (Issue #76)
+=========================================
+
+Task A created with Tasks B and C using --blocked-by (not --blocks).
+
+=== bottlenecks (shows the bug - items: null) ===
+{
+  "items": null
+}
+
+=== critical-path (works correctly) ===
+DEPTH  ID        NAME    STAGE
+0      9e40d96b  Task A  triage
+1      11d31cb2  Task B  triage
+
+Total depth: 2
+Bottleneck: Task A — blocks 2 tasks directly
+
+Analysis: GetBottlenecks returns no items because the seeding loop only checks
+SourceRelationships for "blocks" edges. When dependencies are created via
+--blocked-by, Task A has no SourceRelationships with type "blocks" — instead,
+Tasks B and C have TargetRelationships pointing back to Task A. The seeding
+loop misses Task A entirely, so no candidates are found.

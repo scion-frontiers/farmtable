@@ -1,0 +1,87 @@
+AUDIT BACK. THE ESCALATION IS DEAD, MEASURED, AND IT DIED TWICE BY UNRELATED
+MECHANISMS. And I committed your falsifier defect a third time, in a new dress, while
+dispatching the very question that found this.
+
+MY DEFECT FIRST, BECAUSE IT IS THE RESULT.
+
+I told the audit leg to pre-register three branches before it looked: Q1 yes and Q2 no;
+Q1 no; both yes but the server gates everything. It wrote a fourth and labelled it
+"added by me because the three given branches omit it" - both yes AND some capability
+NOT gated. HIGH. THE ONLY DANGEROUS CELL IN THE SPACE, AND I HAD LEFT IT OUT.
+
+  A PRE-REGISTRATION WHOSE BRANCH SET OMITS THE ALARMING OUTCOME IS A CONJUNCTIVE
+  FALSIFIER BY ANOTHER ROUTE. Yours could not fire because every clause had to hold.
+  Mine could not fire because the outcome it would have reported was not on the form.
+
+Same failure, opposite construction, and I built mine four minutes after adopting the
+rule against yours. So the runnable check needs its second half: writing the sentence
+you will be forced to say when it fires does nothing if the firing branch is not in the
+list. ENUMERATE THE OUTCOME SPACE AND THEN ASK WHICH CELL IS THE ONE YOU WOULD LEAST
+LIKE TO FIND. If it is not there, you have not pre-registered, you have listed the
+results you expect.
+
+The leg refuted its own added branch by measurement rather than by assumption, which is
+the only reason the omission cost nothing.
+
+WHAT IT MEASURED. Q1 NO, four independent barriers, and the load-bearing one is not the
+validation check. The document's platform is validated and then THROWN AWAY - the params
+literal hardcodes a server-side constant. DELETING THE VALIDATION CHANGES NOTHING, and
+the Beads branch never reaches the validation at all and is safe purely on the constant.
+Import is create-only with no collection-ID field, and platform is immutable after
+creation. Client side: the capability function returns fully-enabled for farmtable ONE
+BRANCH BEFORE the line that reads the field. An importer can set the flag; on the only
+collections an import can produce, nothing ever looks at it.
+
+It measured my (c) anyway because it decides severity in the counterfactual: the nine
+operations that flag would unlock all require identity plus a write scope plus a
+collection-access check, and update derives its collection from the STORED record so a
+client cannot redirect the check. No handler reads any client-supplied capability. The
+flag is both unreachable AND worthless. Q3: NOT A SECURITY BOUNDARY. Highest severity
+LOW. I am accepting that - it closes a question the r5 audit round told me to decide
+explicitly and I had left open.
+
+IT ALSO CAUGHT TWO GAPS IN THE PREMISE I RELAYED. I named one store implementation;
+there are two, and the second returns not-implemented, which strengthens the premise. And
+I never mentioned the create and update collection RPCs, WHICH ARE THE PATHS THAT CAN
+ADDRESS GITHUB COLLECTIONS. "Import is the only writer" was the load-bearing claim of my
+own question and I handed it over as given. The leg verified it rather than accepting it,
+and that verification is the one real finding.
+
+F2, LOW, AND IT IS THE THING TO KEEP. The store layer FULLY implements collection
+remote_data write and old-into-new merge. Create and update simply never populate the
+field from the request. The entire safety margin is ONE UNWRITTEN LINE IN A PARAMS
+LITERAL, in handlers that already parse the collection ID and already authorize. Wiring
+either makes the flag client-settable on GitHub collections in a single commit. And the
+defence that a server would never trust collection remote_data IS NOT AVAILABLE HERE -
+graph support already branches on remote_data server-side. Feature gate, not authz gate,
+which is why LOW, but the pattern is in the codebase.
+
+NOW THE PART THAT IS NOT SETTLED, AND I AM NOT GOING TO REPORT IT AS SETTLED.
+
+You ruled: let the audit establish the cause, dead or fed-from-outside, and do not merge
+until it does. The audit established NO IN-TREE WRITER, with a controlled sweep. IT DID
+NOT ESTABLISH DEAD. Both legs said the out-of-tree writer population cannot be bounded
+from the tree, and direct database access is listed as unchecked. Dead requires bounding
+that population and nobody has. So your precondition for re-ranking is not met, the merge
+stays refused, and I am leaving the cause OPEN rather than taking the answer that is
+available.
+
+ONE NEW THING, AND IT IS FUNCTIONAL RATHER THAN SECURITY, WHICH IS WHY I AM BRINGING IT
+TO YOU RATHER THAN FILING IT. Nine GitHub write operations in the dashboard sit behind a
+flag that nothing in this repository sets. Every GitHub collection is therefore read-only
+in the UI, always. Either that is dead code or the GitHub write feature does not work,
+and I cannot tell which from the tree. It looks like a product question to me. I am not
+contacting anyone about it; tell me if it is one and I will prepare it properly.
+
+AND I CORRECTED THE r6 LEG A THIRD TIME, correcting my own previous correction. I had
+told it to write "silent capability downgrade in the UI" into a production comment. With
+nothing setting the flag, a GitHub collection goes from disabled to disabled - THERE IS
+NO OBSERVABLE DOWNGRADE TODAY, and I would have shipped it into the exact class this
+round exists to remove, a comment asserting a consequence that cannot occur. I read both
+files myself this time instead of combining two legs' reports, because all three errors
+in this chain came from reasoning across a boundary rather than measuring at it. The
+shipped sentence is now bounded to the tree and states the condition under which it stops
+being harmless. B11 explicitly unchanged - I told the leg that relaxing it on the
+strength of this news is the trap.
+
+Three corrections to one brief is my rate, not the leg's. Recorded as mine.

@@ -1,0 +1,12 @@
+--- /tmp/mainred/armA/internal/server/watch.go	2026-07-29 12:51:13.487739443 +0000
++++ /tmp/mainred/armB/internal/server/watch.go	2026-07-29 12:51:13.488739460 +0000
+@@ -57,8 +57,8 @@
+ 
+ 	filter := buildFilter(req)
+ 
+-	time.Sleep(200 * time.Millisecond) // armA DIAGNOSTIC
+ 	sub := s.eventBus.Subscribe(filter)
++	time.Sleep(200 * time.Millisecond) // armB DIAGNOSTIC
+ 	defer s.eventBus.Unsubscribe(sub.ID)
+ 
+ 	var seq int64

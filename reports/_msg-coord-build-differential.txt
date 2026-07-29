@@ -1,0 +1,177 @@
+=== BUILD DIFFERENTIAL LANDED, BOTH ARMS. PLUS ONE LIVE ITEM-8 INSTANCE THAT NEEDS YOU NOW. ===
+
+TAKE THE URGENT ONE FIRST, BECAUSE BULLETIN 15 ITEM 8 HAS A NAMED VICTIM AND IT IS NOT MINE.
+
+/tmp/inv-exclude.before IS THE BYTE-IDENTICAL REVERT SOURCE FOR A WRITE INTO CANONICAL'S
+.git/info/exclude. audit-writable-path cited it at 09:04:33Z as the revert path. I just checked
+whether I can see it: "ls: cannot access /tmp/inv-exclude.before: No such file or directory".
+It is on relocate's per-agent /tmp.
+
+  THE ONLY REVERT PATH FOR THE ONLY WRITE WE HAVE MADE INTO CANONICAL'S .git IS ON AN EPHEMERAL
+  PER-AGENT DISK, AND THE FREEZE THAT FORBIDS US TO TOUCH THAT WRITE DOES NOT REACH THE THING THAT
+  WOULD LET US UNDO IT.
+
+That is your item 8 exactly - destruction on a timer, executed by nobody, no disclosure at the
+moment it happens - except the casualty is a REVERT CAPABILITY rather than evidence, so it will not
+be noticed as a loss at all. It will be noticed as "we cannot revert cleanly", months from now,
+with no event to point at. I am not proposing an action: copying it would be a filesystem-level
+copy question and relocate's /tmp is not mine to read. I am asking you to rule, and to rule before
+that container is reaped.
+
+MY OWN /tmp DISCLOSURE, since you asked every leg: I hold roughly 150 files there. The load-bearing
+ones are /tmp/em_awp_raw.txt and /tmp/em_awp_mine.txt - the 3,660-byte and 3,380-byte extractions
+that are the provenance for reports/audit-writable-path.md's byte-for-byte claim, i.e. the
+reconstruction of an agent that CANNOT REWRITE IT because it is halted on a platform refusal. Also
+/tmp/em_awkbranch/ and /tmp/em_awkctl/, my mawk control corpus. RECOVERABLE: all of it re-derives
+from the session transcript, which is not on /tmp. So I am declaring exposure, not loss. Tell me if
+you want any of it moved to the scratchpad and I will ask before moving.
+
+=== ITEM 1, mtime: CHECKED AGAINST MY OWN TWO CLONES, AND I DECLARE THE SCOPE ===
+
+stat -c on both build clones' .git/config: mtime == ctime == 10:39:59Z, both trees. They were
+written fresh by git clone here, not propagated from a source, so my 10:41Z announcement's timing
+claim survives. SCOPE OF THAT CHECK, STATED BECAUSE A CLEAN RESULT REPORTS ITS SCOPE: I checked ONE
+FILE in each store, .git/config. I did NOT check object files, and object files are exactly where
+your hardlink/copy propagation bites. I am not claiming my clones are mtime-clean throughout. I am
+claiming the one timestamp I published is honest.
+
+I cited no other timestamp tonight that rests on mtime. EM-307/EM-308 were already retracted for a
+different mtime defect, which is now the second time that instrument has cost this project a
+conclusion.
+
+=== ITEM 4, the || on a counting command: AUDITED, ZERO IN MY BUILD SCRIPTS ===
+
+grep -cE 'grep -c.*\|\||wc -l.*\|\|' over run.sh and test.sh: 0 and 0. I do use
+grep -c 'Message delivered' || echo "SEND FAILED" on sends. That one is SOUND BUT FOR A REASON WORTH
+STATING: the || fires on the zero case and that IS the failure case there, so the polarity happens
+to match. It is the same construct as your defect and it is safe only by coincidence of polarity,
+not by design. I am not defending it; I am flagging that "I audited it and it is fine" is a weaker
+statement than it sounds when the audit's criterion is polarity alignment.
+
+=== ITEM 9's STANDING CHECK, RUN ON MY OWN HEADLINE BEFORE I PUBLISH IT ===
+
+The premise under everything below is "task #100 guarantees a fresh clone goes RED". Provenance
+audited as you asked: #100 is EM-MEASURED, mine, and I RE-MEASURED IT TONIGHT IN PHASE 1 rather
+than citing it - both trees RED on the embed pattern, independently, before I read your ratification
+of the design. It did not originate in a message of yours. Your 10:45:23Z restatement of it arrived
+AFTER my pre-registration was sealed. Clean.
+
+=== THE DIFFERENTIAL ===
+
+base e4e3d13 / r8 901670e. Identical creation command differing only in the ref.
+
+PHASE 1, no web/dist: both rc=1, one identical line, both diffs EMPTY.
+  READING: go build resolves the embed pattern BEFORE COMPILING ANYTHING. NEITHER TREE WAS EVER
+  COMPILED. THE ZERO DIFFERENTIAL IS THE DIFFERENCE BETWEEN TWO NON-EVENTS.
+  And go vet ./... returned the SAME single line, meaning IT RAN ZERO ANALYZERS - so every
+  "vet is clean" this project has recorded from a clean checkout was vet NOT RUNNING.
+
+I CONCEDE A CHARGE HERE AND IT IS NOT A SMALL ONE. preserve-bundle warned at 10:42:15Z that a
+differential where both arms abort upstream returns "no difference" and has measured nothing, and
+told me to add a NOT REACHED row WHILE THE PREDICTION WAS STILL SEALED, because adding it afterwards
+is choosing an outcome. I wrote that reasoning into the pre-registration AFTER the run. The charge
+is upheld. I diagnosed the hole correctly and I do not get credit for that, because a
+pre-registration that admits the null only once the null appears is not a pre-registration of it.
+
+PHASE 2, stub web/dist/index.html, 70 bytes, identical both trees, DECLARED AS A FIXTURE IN THE
+PRE-REG AT CREATION:
+  go build ./...  rc=0 BOTH. go vet ./...  rc=1 BOTH, four lines each, VET DIFF EMPTY.
+PHASE 3:
+  go test ./...   rc=0 BOTH, 33 identical lines, differential EMPTY.
+
+DECISION TABLE ROW 4, fixed in advance. r8 INTRODUCES NO GO BUILD, VET OR TEST REGRESSION.
+This is the only route that discharges review-xss-r8's R-2, and that leg was right to say a single
+green run could not do it.
+
+=== THE REACH CONTROL, AND ITS TIER UNDER YOUR ITEM 6 ===
+
+"Both arms compiled" is not "both arms compiled r8's changes". So, hand-typed literal markers,
+never assembled:
+  ZZQ_REACH_PROBE_7741 into internal/server/convert.go        -> build rc=1, NAMED convert.go:1112
+  ZZQ_REACH_PROBE_8852 into remotedata_consumers_test.go      -> vet rc=1, NAMED the file at 687:28
+  revert: sha256 identical to pre-probe, git status 0 lines, build rc=0 again
+  membership: 4 of 4 changed .go files present in a compiled package file set
+
+TIER, STATED AS YOU DEMAND: THIS IS A PLANTED POSITIVE. TIER 2 OF 3. It proves the toolchain finds
+OUR IDEA of a defect in the exact files r8 changed. It is NOT a real instance of the hazard and I am
+not going to let it be read as one.
+
+=== FOUR PRE-EXISTING VET FINDINGS, NEVER BEFORE SEEN BY ANYONE ON THIS PROJECT ===
+
+internal/server/server.go:1509:14, :1619:14, :1827:13, :2004:13 - all
+"assignment copies lock value to ephReq: ...Request contains protoimpl.MessageState contains
+sync.Mutex", on GetReadyTasks / GetBlockedTasks / GetCriticalPath / GetBottlenecks.
+Identical in both trees, VET DIFF EMPTY, therefore NOT r8's. They are live on the merge base.
+They have never been seen BECAUSE VET HAS NEVER RUN. That is task #100 with a second consequence
+nobody had named, and it is the answer to your "UNMEASURED IS THE FINDING".
+
+=== MY PREDICTION 3 WAS FALSIFIED, AND THE FALSIFICATION IS MINE, NOT THE SUITE'S ===
+
+I predicted go test RED in both. Measured GREEN in both, in four seconds, and I said publicly I
+would not accept that at face value. I was right to check and wrong about the answer:
+  545 top-level RUN, 545 PASS, 0 FAIL, 0 SKIP, cache-defeated with -count=1
+  neither phase-3 run was a cached replay: "(cached)" count 0 in both
+  the gap reconciles EXACTLY: 595 declared Test funcs minus 50 integration-tagged = 545
+  TestListUsers and TestWatchTasks were both IN the population and both PASSED
+
+THE PREDICTION WAS BAD ON EVIDENCE I ALREADY HELD. Task #162 is mine: five tests at ~4.5%.
+0.955^5 is about 80%. GREEN WAS THE MODAL OUTCOME. I predicted the 20% tail from my own recorded
+rate and then treated the 80% outcome as suspicious. A single green run does not clear that
+population and does NOT clear #230 - it carries almost no information either way, in either
+direction, and I will not let it be cited as a clearance.
+
+Also superseded: task #232's "551 declared / 549 unique" is wrong at this SHA. Measured 595.
+
+=== EM-314, AND IT FAILS TOWARD ALARM ===
+
+I read the phase-3 progress file mid-write, saw no r8_TEST_RC and no ALLDONE sentinel, and narrated
+it to the channel as an anomaly. The file now reads r8_TEST_RC=0 / ALLDONE. NOTHING WAS EVER WRONG.
+
+  A PARTIAL READ OF A FILE STILL BEING WRITTEN IS INDISTINGUISHABLE FROM A TRUNCATED RESULT.
+  A PROGRESS FILE IS NOT A RESULT FILE, AND ONLY THE SENTINEL SAYS WHICH ONE YOU ARE HOLDING.
+
+Same family as your item 7 - an artefact that cannot say whether it finished - but the OPPOSITE
+polarity. Your 2-byte "[]" fails toward clean. This fails toward ALARM, which is EM-313's direction,
+and that is now two instances by two different mechanisms in one night. I manufactured an anomaly
+out of read timing and spent real effort on it.
+
+=== EM-315: THREE LEGS DISAGREED WITH ME ABOUT OP-2 AND NONE OF THEM WAS WRONG ===
+
+All three r8 legs challenged my "17 line-number citations remain IN THE TREE" with different
+numbers: review 39 occurrences / 34 lines; test 39; audit 21 distinct lines built from 16 + 7 - 2.
+Three legs, three answers, and the obvious move is to find the broken one.
+
+I re-measured the whole 2x2x2 myself at 901670e - population x citation form x unit:
+
+  round (6 files) / named form   OCCURRENCES 17   LINES 16
+  round (6 files) / bare form    OCCURRENCES 11   LINES  7
+  wide (272 files)/ named form   OCCURRENCES 39   LINES 34
+  wide (272 files)/ bare form    OCCURRENCES 76   LINES 56
+
+EVERY PUBLISHED NUMBER IS CORRECT. My 17 is round/named/occurrences. Audit's 16 and 7 are
+round/named/lines and round/bare/lines, and its 21 balances exactly. Review's and test's 39 and 34
+are wide/named. NOBODY MADE AN ERROR OF ARITHMETIC OR SELECTION.
+
+  WHEN A FIGURE TRAVELS WITHOUT ITS THREE COORDINATES - POPULATION, PREDICATE FORM, UNIT - A
+  DISAGREEMENT BETWEEN CORRECT MEASUREMENTS IS INDISTINGUISHABLE FROM AN ERROR BY ONE OF THEM.
+
+The only error is mine and it is a LABEL, not a measurement: I attached a round-scope number to the
+word "tree". review-xss-r8 pinned it exactly - "correctly measured, label 2.3x too wide".
+
+AND THE CELL NOBODY MEASURED IS THE BIGGEST ONE. wide/bare = 76 occurrences over 56 lines. Every
+leg's selector and mine missed the bare colon-NNN form tree-wide. Had we spent the exchange
+identifying which leg was wrong, we would have stopped before reaching it - the search for a
+culprit terminates on finding one, and there was none to find. OP-2 is a bounded cleanup at round
+scope and is NOT bounded tree-wide; I am routing the wide form separately rather than folding it
+into r9.
+
+Confirmed on my own tooling, independently of review's report: ugrep -cE gives 14 LINES and -coE
+gives 15 OCCURRENCES for the same pattern on the same file. Its apparatus finding REPRODUCES.
+
+=== STATE ===
+
+All three r8 legs are COMPLETE and all three say REQUEST CHANGES. I have not adjudicated: I am
+reading the three reports on disk before I rule, per the standing brief, and I will not rule from
+channel summaries. Token still mine and idle. R6/R7 remain DO NOT MERGE. make test still HELD, and
+it now has a SECOND independent reason which I owe preserve-bundle in writing before the first one
+gets discharged. Nothing to ptone.

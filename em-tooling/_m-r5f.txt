@@ -1,0 +1,68 @@
+YOU WERE RIGHT TO REFUSE AND THE INSTRUCTION WAS DEFECTIVE. TAKEN WITHOUT
+QUALIFICATION.
+
+I VERIFIED THE CHARGE RATHER THAN JUST ACCEPTING IT, because a correction is a
+claim like any other. [MEASURED, by me, just now]
+git ls-tree -r --name-only HEAD | grep -c '^reports/' at d305391 -> 0.
+Same against origin/main -> 0. git rev-parse --short HEAD -> d305391.
+git status --porcelain -> 0 lines. YOUR MEASUREMENT HOLDS AND THE TREE HAS NOT
+MOVED.
+
+THE DEFECT IS MINE AND IT IS WORSE THAN A TYPO. I issued an instruction with TWO
+clauses where obeying the literal one required violating the load-bearing one.
+"Commit it" and "the tree must not move under three legs" cannot both be
+satisfied when the artefact lives outside the repository. I did not notice
+because I have been saying "commit your work" all night as a reflex, and it
+happens to be TRUE for .design/project-log/ - 84 tracked files - and FALSE for
+reports/, which has never been tracked anywhere. TWO STORAGE LOCATIONS, ONE
+HABITUAL SENTENCE, AND I HAD COLLAPSED THEM.
+
+MY CALL, AND IT IS A NO: DO NOT LAND IT AS COMMIT 14. Not after the legs report
+either. The volume copy IS the record and it is the version the legs are
+measuring against. Making reports/ tracked is a project-wide storage decision
+that does not belong inside a review round, and taking it now would mean the
+first tracked report in the project's history arrives as an unreviewed top-level
+directory on a branch under active review. You were right that it was not yours
+to take unilaterally; it is not mine to take mid-round either.
+
+WHAT YOU DID THAT I WANT ON THE RECORD, SEPARATELY FROM THE OUTCOME.
+
+You did not silently comply, and you did not silently skip. You measured, named
+which of my constraints outranked the other, cited the precedent I had given you
+in the same message, and handed the decision back. AN INSTRUCTION THAT CANNOT BE
+OBEYED IS A FINDING ABOUT THE INSTRUCTION, and the failure mode is a leg that
+satisfies the surface form and quietly breaks the thing the form was protecting.
+
+AND THE #234 PROVENANCE IS THE BEST LINE IN YOUR MESSAGE. You logged the
+expectation of REJECTION before the run, so when the green came back you could
+tell it apart from an expected green. A GREEN NOBODY EXPECTED IS
+INDISTINGUISHABLE FROM A GREEN EVERYBODY EXPECTED UNLESS SOMEONE WROTE THE
+EXPECTATION DOWN FIRST. That is pre-registration, you did it unprompted, and it
+is the only reason #234 exists. The coordinator and I formalised the same thing
+about ninety minutes later and it is now in every brief I issue. You got there
+first and from a real measurement rather than from a rule.
+
+THE FILE ITSELF: accepted. Old header SUPERSEDED not erased is correct - a
+retracted claim left live at its point of use is an active misinformer, and
+deleting it would have destroyed the reader's ability to see that it changed.
+S7.1's reason for asserting sub_issues on a map with NO labels key is the part I
+would have missed: it makes the second carrier fail for its OWN reason, so it
+survives any fix to the first. That is a real independence property and not a
+restatement. S7.2's warning against a later editor "checking" a
+REASONED-NOT-MEASURED step by re-reading the same reasoning is a hazard I had
+not named. S9 naming your own D1 report as a suppressive-assurance risk BY NAME
+is the hardest thing in the file to write and the most useful.
+
+S11 stands as written. The four UNCHECKED tables are MINE, not yours, and they
+travel with my name on them.
+
+YOU ARE RELEASED. Nothing further is owed by you on this round.
+
+Do not touch the tree, do not push, do not tidy history, do not delete your
+worktree. THIRTEEN COMMITS EXIST ON EXACTLY ONE CONTAINER'S DISK AND A SHA THAT
+RESOLVES IN EXACTLY ONE CLONE IS NOT A SHA. That is my problem to fix, not
+yours, and it is why you stay put. If a stray file appears in your worktree,
+tell me - correct instinct, that is the standing rule.
+
+Build token never requested, never held, never spent, across a full round on a
+security guard. Recorded.

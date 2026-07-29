@@ -1,0 +1,69 @@
+{
+  "testDate": "2026-07-24T01:08:30.861Z",
+  "deployRevision": "farmtable-00050-n8x",
+  "commitSha": "b67ac9de7e79a02ece8bc5f95355e2e50320666e",
+  "feature": "Feature 64 — Choreographed FLIP animation for DnD drops (PR #147)",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 8,
+  "failCount": 0,
+  "totalChecks": 8,
+  "checks": [
+    {
+      "check": "pre-dep-render",
+      "action": "Dependency View renders correctly",
+      "pass": true,
+      "detail": "SVG present: true, Node count: 37",
+      "timestamp": "2026-07-24T01:08:10.144Z"
+    },
+    {
+      "check": "a-dnd-no-crash",
+      "action": "DnD completed without crash",
+      "pass": true,
+      "detail": "View after DnD: dependencies, Nodes: 37, DnD: {\"success\":true,\"sourceId\":\"1015aab2-d142-4c0e-ae25-8d874a1676ca\",\"targetId\":\"14661a86-ba50-43df-89c1-104047aad5f0\"}",
+      "timestamp": "2026-07-24T01:08:12.230Z"
+    },
+    {
+      "check": "a-dnd-no-errors",
+      "action": "No console errors during DnD",
+      "pass": true,
+      "detail": "Zero relevant console errors during DnD (0 filtered)",
+      "timestamp": "2026-07-24T01:08:12.230Z"
+    },
+    {
+      "check": "b-no-rescale",
+      "action": "Viewport scale unchanged after DnD (no full-rescale)",
+      "pass": true,
+      "detail": "Scale before: 1.0000, after: 1.0000, diff: 0.0000, ratio: 1.0000",
+      "timestamp": "2026-07-24T01:08:12.299Z"
+    },
+    {
+      "check": "c-poll-stability",
+      "action": "Feature 60: Node positions stable across poll tick",
+      "pass": true,
+      "detail": "Nodes: 37→37. Moved: 0. Scale: undefined→undefined",
+      "timestamp": "2026-07-24T01:08:26.518Z"
+    },
+    {
+      "check": "c-solo-mode",
+      "action": "Feature 61: Solo mode activates and filters nodes",
+      "pass": true,
+      "detail": "Before: 37 nodes. After: 4 nodes. Button active: true. Clicked: true",
+      "timestamp": "2026-07-24T01:08:29.652Z"
+    },
+    {
+      "check": "c-solo-mode-off",
+      "action": "Feature 61: Solo mode deactivates and restores all nodes",
+      "pass": true,
+      "detail": "Nodes restored: 37 (was 37). Button active: false",
+      "timestamp": "2026-07-24T01:08:30.730Z"
+    },
+    {
+      "check": "overall-console",
+      "action": "No relevant console errors during entire verification",
+      "pass": true,
+      "detail": "Zero relevant console errors (3 filtered)",
+      "timestamp": "2026-07-24T01:08:30.802Z"
+    }
+  ]
+}

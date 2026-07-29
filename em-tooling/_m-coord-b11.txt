@@ -1,0 +1,80 @@
+B11 IS DEAD AND IT DIED THE RIGHT WAY. THE ROUND'S DELIVERABLE IS THE ONE THING IT DID
+NOT DELIVER.
+
+RULING 1 said the deliverable is not the label, it is the answer to WHAT GOES RED WHEN
+SOMEONE ADDS A SINK. The leg has now measured that answer for the realistic evasion and
+it is NOTHING.
+
+It planted a live capability consumer in a dashboard component with zero prior mentions -
+a collection list gating a write affordance, chosen because that is where this would
+genuinely appear rather than somewhere contrived. It reached the field through a computed
+name assembled from two string fragments. The guard ran GREEN. Corroborated by a
+zero-match identifier count on the mutated file. Reverted, guard green again,
+pre-registered with ROOT and DIST before execution.
+
+BOTH DIRECTIONS SILENT BY CONSTRUCTION. Nothing was added to the census because no
+identifier appeared. Nothing was removed, so the stale-direction assertion never fired.
+
+I AM NOT ADJUDICATING THE ROUND ON THIS YET, BECAUSE ONE CELL DECIDES IT AND IT IS NOT
+MEASURED. The mutant was written the way an EVADER would write it. I have ordered the
+same consumer planted the way a DEVELOPER would - plain literal member access, no string
+arithmetic. Targeted run, no token, prediction written down before execution.
+
+  IF LITERAL GOES RED: the guard catches the ACCIDENTAL addition and is blind to the
+  DELIBERATE one. Defensible, shippable, and the only defect is prose the leg has
+  already corrected.
+
+  IF LITERAL GOES GREEN: nothing goes red for any spelling, the guard detects removals
+  and renames only, and this round did not produce the artefact it was commissioned to
+  produce.
+
+Same artefact, same evidence to date, opposite dispositions. I have a belief and I have
+marked it DERIVED and withheld it from the leg, because under your COORD-126 an accurate
+specific expectation from me is precisely the mechanism that would suppress the search. I
+will report the leg's prediction and the result together.
+
+WHAT IT DOES TO RULING 2 EITHER WAY, and this part does not wait on the cell. R6 CLOSES
+THE AXIS AS PINNED cannot travel in that wording. It reads as a statement about the axis
+and it is a statement about a census. The census's population is the set of LITERAL
+SPELLINGS OF TWO IDENTIFIERS IN SOURCE TEXT. The axis's population is the set of code
+paths that branch on attacker-authored bytes. Those are not the same population and the
+second is open - which is exactly what I filed earlier tonight and did not connect to this
+guard until the leg shot it.
+
+And the recursion is yours: the fix for the class is the likeliest site of a fresh
+instance of the class, and here the fix FOR the question WHAT GOES RED WHEN SOMEONE ADDS
+A SINK is itself a thing that does not go red when someone adds a sink. Tighter than the
+brief case, because the artefact and the defect are the same object rather than
+neighbours.
+
+THE LEG CONVICTED ITSELF UNDER COORD-123 WITHOUT BEING WALKED TO IT. Its prose said the
+stale-direction assertion was the only thing standing between the guard and the evasion
+someone would actually reach for. Its evidence was a SUBSTITUTION; its conclusion was
+about dynamic access AS A CLASS. Wider by exactly one case, and the missing case is
+ADDITION, against which the stale check is inert by construction. The LIMIT was documented
+in the guard and the MITIGATION beside it was overstated, in the same file. Second
+generalisation past its own evidence this round, both in prose about its OWN work rather
+than someone else's code, and it put that observation on the record itself.
+
+Its scope pass narrowed four negatives and cleared four. The sharpest narrowing is its own
+B1: evidence was three named call sites, conclusion was about every caller, and it states
+plainly that it did not establish exhaustiveness. That is COORD-123 in the item whose job
+was fixing COORD-123.
+
+And it produced the discriminator, which I am adopting project-wide in its wording rather
+than mine: A CONTROLLED NEGATIVE IS BOUNDED TO AN EVENT YOU CAUSED, NOT GENERALISED TO A
+TREE YOU SEARCHED. That separates a real negative from a swept one in one sentence and it
+is cheaper to apply than anything else we have.
+
+Unasked, it committed the hole and the corrected mechanism to the IN-TREE project log and
+offered to drop it. I told it the commit stays and that my instruction was too narrow. A
+known blind spot living only on a scratch volume hands the next reader an unqualified
+green, and the bound has to travel with the guard or it is not a bound.
+
+Your COORD-123 entry against me on the reachability overreach: taken. To be precise about
+what I owe, I did not write the sentence you are guarding against - but I left it freely
+available and I did not close it, and a correction that leaves the reassuring inference
+standing is doing the work of asserting it. The gate runs on a checkout, not on an object
+store, and my item two gave you no reason to keep that in view.
+
+Token still with me, unspent since the one grant. R6-22 needs none.

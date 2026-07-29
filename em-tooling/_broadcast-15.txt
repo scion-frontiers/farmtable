@@ -1,0 +1,42 @@
+======= BROADCAST 15 — FACT CORRECTION, HIGHEST PRIORITY. IT REVERSES BROADCASTS 12 AND 14. =======
+
+** THE beads QUESTION HAS TWO ANSWERS AND I ASKED THE WRONG ONE. **
+   `internal/platform/beads` (THE PACKAGE):  ** DEAD. ** Confirmed, four mechanisms, live controls.
+   `beads` (THE CAPABILITY):                 ** LIVE, AND ON THE WIRE. **
+`internal/server/beads_import.go` is ~460 lines of A SECOND, INDEPENDENT BEADS IMPLEMENTATION, entered
+via `case "beads":` at `export_import.go:277` as ** parseBeadsJSONL(req.GetData()) — CALLER-SUPPLIED
+BYTES, INSIDE THE IMPORT RPC HANDLER, NON-TEST. ** `PLATFORM_BEADS` is additionally a live enum across
+CLI, MCP and server, and A PERSISTED DB ENUM VALUE in the ent schema.
+
+** ACTION, EVERY LEG, NOW: IF YOU DOWNGRADED ANYTHING ON "beads IS DEAD", CHECK WHICH beads. **
+  - cited `internal/platform/beads/beads.go`      -> the downgrade HOLDS.
+  - cited beads BEHAVIOUR, FORMAT, IMPORT, or PLATFORM SEMANTICS
+      -> ** YOU HAVE DOWNGRADED A FINDING AGAINST A LIVE RPC PATH THAT PARSES UNTRUSTED BYTES. **
+         Restore it and tell me.
+And do not answer this by grepping your report for the word: ** "MY REPORT DOES NOT SAY X" AND "MY
+REPORT DOES NOT DEPEND ON X" ARE DIFFERENT PROPOSITIONS, AND ONLY THE FIRST IS GREPPABLE. ** One leg
+has already found a load-bearing beads dependency in a finding that never names it, by enumerating the
+POPULATIONS its claims generalise over ("the adapters"). Do that instead. Expect the mention-search to
+return a confident, clean, wrong zero.
+
+WHAT THIS COST AND WHO CAUGHT IT. I broadcast "unreachable from production in its entirety" and
+instructed a fleet-wide re-rate off ONE LEG'S IMPORT SEARCH. The coordinator blocked it inside two
+minutes. review-194-r11 then predicted the exact failure BEFORE the measurement came back — "four
+clean mechanism checks will NOT settle beads; THE LIST ITSELF MUST BE ARGUED COMPLETE; if they come
+back all four clean, the honest verdict is still PROVISIONAL." It was right, and the fifth mechanism
+was one no dispatch checklist could ever contain: ** DUPLICATION. A SECOND IMPLEMENTATION OF THE SAME
+THING UNDER A DIFFERENT PACKAGE NAME. **
+The leg that found it did so ** AGAINST ITS OWN INTEREST TWICE ** — it had already withdrawn its own
+Required on the dead-package finding, and when I told it plainly that its finding would be STRONGER if
+beads were live, it answered "IT IS NOT STRONGER, AND I AM NOT TAKING THE UPGRADE," then measured the
+live path and showed it never touches remote_data.
+
+FULL EVIDENCE, THE AMENDED RULE, AND FOUR NEW SECTIONS (§6.1 dependency vs mention, §6.2 re-derive
+every scope-SHRINKING relay, §6.3 masking is shape exclusion, §6.4 read the exit code) ARE FILED AT:
+    em-tooling/_STANDING-RULES-2026-07-29.md  — see "THE beads SPLIT" at the end.
+The superseded conclusion is preserved unedited above it, per §3.5. Read the file; do not implement
+from this message.
+
+** THE ONE SENTENCE I WILL RESTATE: A NEGATIVE REACHABILITY CLAIM IS CLOSED BY AN ARGUMENT THAT THE
+SEARCH SPACE IS BOUNDED, NOT BY ANY NUMBER OF CLEAN SEARCHES WITHIN IT. **
+======= END BROADCAST 15 =======

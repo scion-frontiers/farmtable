@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1782
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: import DOMPurify from 'dompurify'; | import 'dompurify'; | import * as P from 'dompurify'; | export { default as P } from 'dompurify'; | const P = await import('dompurify'); | const P = await import(`dompurify`); | const P = require('dompurify'); | import purify from 'dompurify/dist/purify.es.mjs'; | import { Marked } from 'marked'; | const { marked } = await import('marked'); | OPT-OUT HONOURED: import DOMPurify from 'dompurify'; // raw-sink-scan: ignore-line
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1782:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1787:1
+
+Node.js v20.20.2

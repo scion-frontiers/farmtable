@@ -1,0 +1,29 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 16 of 61 markdown sanitizer checks failed:
+  - form tag stripped: credential-phishing form survived: found <form> in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>"
+  - form action attribute stripped: attacker origin survived: found "evil.example" in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>"
+  - password input stripped: password field survived: found <input> in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>"
+  - submit button stripped: submit button survived: found <button> in "<form action=\"https://evil.example\"><input name=\"token\" type=\"password\"><button>Sign in</button></form>"
+  - select and option stripped: select survived: found <select> in "<p><select><option>a</option></select></p>\n"
+  - textarea stripped: textarea survived: found <textarea> in "<textarea>x</textarea>"
+  - style attribute stripped: inline style survived: found "style=" in "<div style=\"position:fixed;top:0;left:0;width:100vw;height:100vh\">overlay</div>"
+  - download attribute stripped: download attribute survived: found "download" in "<p><a href=\"https://x.example/f\" download=\"invoice.pdf\">dl</a></p>\n"
+  - dialog stripped (no fake modal): dialog survived: found <dialog> in "<dialog open=\"\">Enter your password</dialog>"
+  - class attribute stripped (no CSS-reuse forgery): class attribute survived: found "class=" in "<div class=\"comment\"><div class=\"comment-header\"><span class=\"comment-author\">farmtable-admin</span><span class=\"comment-time\">2 minutes ago</span></div><div class=\"comment-body\">Your session expired.</div></div>"
+  - svg style element stripped (no CSS injection into the shadow root): style element survived inside svg: found <style> in "<p><svg><style>:host{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:9999}</style></svg></p>\n"
+  - svg style cannot reach an attacker origin: style element survived: found <style> in "<p><svg><style>@import url(<a href=\"https://evil.example/x.css\">https://evil.example/x.css</a>);</style></svg></p>\n"
+  - svg style stripped inside a markdown list: style survived in "- <svg><style>*{display:none}</style></svg>": found <style> in "<ul>\n<li><svg><style>*{display:none}</style></svg></li>\n</ul>\n"
+  - svg style stripped inside a blockquote: style survived in "> <svg><style>*{display:none}</style></svg>": found <style> in "<blockquote>\n<p><svg><style>*{display:none}</style></svg></p>\n</blockquote>\n"
+  - svg style stripped inside a table cell: style survived in "| a |\n| - |\n| <svg><style>*{display:none}</style></svg> |": found <style> in "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><svg><style>*{display:none}</style></svg></td>\n</tr>\n</tbody></table>\n"
+  - code blocks render: code block changed: expected "<pre><code>const a = 1;\n</code></pre>\n", got "<pre><code class=\"language-js\">const a = 1;\n</code></pre>\n"
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

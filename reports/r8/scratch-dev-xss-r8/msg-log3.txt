@@ -1,0 +1,11 @@
+docs: correct two stale facts in the r8 log
+
+The cell range read R8-01..R8-10; the build-token session added five more. The
+commit list omitted the two commits that followed it.
+
+Small, and fixed for that reason rather than in spite of it. This round exists
+because a previous one left prose that had quietly stopped matching the tree,
+and a log that miscounts its own receipts is the same defect in miniature.
+
+The final SHA still cannot be named -- writing it changes it. That fixpoint is
+noted in the entry itself and no amend closes it.

@@ -1,0 +1,10 @@
+[self-check] broken tree -> exit 1 OK
+MX-newsink-existing-file     exit=1   red   expect=red   OK 
+    what: A THIRD, correctly-sanitized sink added to an existing scanned file. No new file, so the file-count pin is idle; the argument is sanitized, so the arg checks are idle. Only the sink-count pin can see it.
+    last: - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 3 — update REQUIRED_SINKS deliberately if a sink was added or removed
+MX-newsink-existing-file+SINKCOUNT exit=0   green expect=red   !! MISMATCH
+    what:   ...with the sink-count pin ablated
+    last: markdown sanitizer: 61 checks passed
+
+=== MISMATCHES ===
+  MX-newsink-existing-file+SINKCOUNT: got green, expected red :: markdown sanitizer: 61 checks passed

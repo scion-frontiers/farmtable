@@ -1,0 +1,48 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 72,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 72 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2841\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 72 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 72 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2841:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2846:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T8-singleton",
+    "desc": "V-marked: configure the SHARED singleton instead of a private instance \u2014 was GREEN at 69 checks",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown does not use the shared marked singleton: a renderer installed on the shared marked singleton r"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2841\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 72 markdown sanitizer checks failed:\n  - renderMarkdown does not use the shared marked singleton: a renderer installed on the shared marked singleton reached renderMarkdown: found \"<img\" in \"<ul>\\n<li><img src=\\\"x\\\"> done</li>\\n</ul>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2841:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2846:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-t8",
+    "desc": "ABLATION: drop the poisoning so the check asserts against an unpoisoned singleton. The inline positive control must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown does not use the shared marked singleton: the hostile renderer never took effect on the singlet"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2840\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 72 markdown sanitizer checks failed:\n  - renderMarkdown does not use the shared marked singleton: the hostile renderer never took effect on the singleton, so the rest of this check is vacuous: missing \"onerror\" in \"<ul>\\n<li><input checked=\\\"\\\" disabled=\\\"\\\" type=\\\"checkbox\\\"> done</li>\\n</ul>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2840:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2845:1\n\nNode.js v20.20.2\n"
+  }
+]

@@ -1,0 +1,44 @@
+RULE REPLACEMENT, project-wide, arrived after my last message. It changes WHERE you measure,
+not what you measure. Section 7 of the brief is updated; this is the operative text:
+
+  MEASURE THE COMMIT, NOT THE TREE. Any result that will be reported, cited or merged on is
+  produced from a FRESH CHECKOUT OF THE COMMIT, or from a separate module that can only READ
+  the target. Do not make the instrument trustworthy - make it INCAPABLE of seeing what the
+  commit does not contain.
+
+  The tree-state declaration survives ONLY as a fallback where that is genuinely
+  impractical, and it is then a confession, not a certificate.
+
+This SUPERSEDES the declare-your-tree-state rule I gave you. Why it was replaced matters for
+how you read it: four false greens today shared one cause - the tree had something the commit
+did not - and NOT ONE OF THE FOUR LEGS WAS CARELESS. Each measured accurately. The instrument
+answered a question about a TREE and every reader took the answer to be about a COMMIT.
+Asking you to declare your tree state was a diligence remedy for a structural problem, and it
+was demonstrated leaky within the hour by a leg that was clean before, clean after, and dirty
+at the instant that mattered.
+
+FOR YOU, CONCRETELY, three changes:
+
+1. COMMIT FIRST, THEN MEASURE. Your reported greens come from a fresh checkout of the landing
+   commit, cloned FROM THE LOCAL PATH, not the network remote. Do not report a green taken
+   from the tree you resolved the two conflicts in - that tree is exactly the one most likely
+   to hold something the commit does not.
+
+2. THE POSITIVE CONTROL GOES IN A SCRATCH CLONE. This supersedes what I told you an hour ago
+   about deliberately holding a dirty tree and declaring it. Clone to a scratch path, add the
+   throwaway failing spec THERE, take both arms there, discard the clone. The control measures
+   the INSTRUMENT, not the commit; running it somewhere else is what keeps those two results
+   from ever being confused. Your landing tree stays clean throughout.
+
+3. THE DISCRIMINATION REQUIREMENT FROM MY LAST MESSAGE STILL STANDS UNCHANGED - the red arm
+   only counts if it carries your spec file's own assertion text, not the runner's
+   count-mismatch message. Where it runs changed; what makes it valid did not.
+
+One limit, so you do not over-read the new rule. A fresh checkout of the commit is dirty the
+instant the node runner executes, because running it IS writing .tmp-test. The fresh checkout
+still buys the thing that matters - every compiled input came from committed sources - but
+"measure the commit" does not mean nothing was written. It means nothing UNCOMMITTED WAS
+READ. Report it in those words.
+
+If you have already taken measurements in your working tree, you do not need to redo the
+work - redo the MEASUREMENT from the fresh checkout after you commit, and report only those.

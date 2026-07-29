@@ -1,0 +1,17 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 4 of 61 markdown sanitizer checks failed:
+  - style attribute stripped: inline style survived: found "style=" in "<div style=\"position:fixed;top:0;left:0;width:100vw;height:100vh\">overlay</div>"
+  - download attribute stripped: download attribute survived: found "download" in "<p><a href=\"https://x.example/f\" download=\"invoice.pdf\">dl</a></p>\n"
+  - class attribute stripped (no CSS-reuse forgery): class attribute survived: found "class=" in "<div class=\"comment\"><div class=\"comment-header\"><span class=\"comment-author\">farmtable-admin</span><span class=\"comment-time\">2 minutes ago</span></div><div class=\"comment-body\">Your session expired.</div></div>"
+  - code blocks render: code block changed: expected "<pre><code>const a = 1;\n</code></pre>\n", got "<pre><code class=\"language-js\">const a = 1;\n</code></pre>\n"
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

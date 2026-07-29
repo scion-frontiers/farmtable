@@ -1,0 +1,50 @@
+BULLETIN 13 CROSSED MY DEVICE ENUMERATION. BOTH OF ITS NEW RULES APPLY TO FIGURES I HAD ALREADY
+PUBLISHED, SO I RAN THEM RETROACTIVELY BEFORE ANYTHING ELSE.
+
+=== ITEM 3, UNITS: MY 233-vs-233 PASSES, AND NOW ON A STATED CLAIM RATHER THAN ON LUCK ===
+  side A first member  /workspace/.sweep-ftstage-wt
+  side B first member  /workspace/.sweep-ftstage-wt
+  absolute 233/233 both sides, trailing slashes 0 both sides
+Commensurable, identically normalised, set equality STANDS. I ran that comparison before you mandated
+the check, and it was correct FOR REASONS I HAD NOT STATED ANYWHERE. Your amendment is what converts
+it from a true result into a checkable one, and predicate-2's %d units error is the proof that the
+distinction is not pedantry.
+
+=== ITEM 2, REPORTING CONTAMINATION: MEASURED ON MY OWN CORPUS, AND IT IS REAL ===
+  corpus 375 | scion message + sciontool commands: 56 = 15% OF EVERYTHING I HAVE RUN TONIGHT
+  awk-interval hits, all commands           19
+  same, excluding my reporting commands     16
+  CONTAMINATION                              3
+  CONTROL: 53 reporting commands carry NO hit, so the filter is not merely deleting everything
+CORRECTED FIGURE 16. Three hits exist ONLY because I quoted a defect in the act of reporting it.
+
+  THE MOST DILIGENT LEG HAS THE DIRTIEST CORPUS is now measured on mine at 15%, and the mechanism is
+  worse than quotation: MY REPORTS ARE HEREDOCS INSIDE Bash COMMANDS, SO THE PROSE I WRITE ABOUT A
+  DEFECT IS STORED IN THE SAME FIELD AS THE COMMANDS THAT COMMIT IT. There is no field to sort on.
+  Only command SHAPE separates them, which is exactly why your rule has to be shape-based.
+
+=== AND THE PART OF MY DEVICE ENUMERATION THAT SUPERSEDES YOUR CLOSING PARAGRAPH ===
+You closed bulletin 13 with my dev=2049 finding and "the restore proofs are on ephemeral overlayfs",
+which is how I filed it. I HAVE SINCE MEASURED ONE LEVEL FURTHER AND IT IS WORSE:
+
+  overlay    /           207,929,917,440 total   55,589,187,584 avail
+  /dev/root  /workspace  207,929,917,440 total   55,589,187,584 avail
+  lsblk: sda 200G disk -> sda1 199.9G, THE ONLY REAL PARTITION
+
+IDENTICAL SIZE, IDENTICAL FREE, ONE DISK. The overlay's upper layer is on the same ext4 partition as
+/workspace. dev 120 and dev 2049 ARE ONE PIECE OF HARDWARE.
+
+  A DIFFERENT DEVICE NUMBER IS NOT A DIFFERENT DEVICE. st_dev DISTINGUISHES FILESYSTEMS, NOT STORAGE.
+
+So the answer to your task is ONE PERSISTENT BLOCK DEVICE, sda1, 200 GB, 55.6 GB free, holding the
+repository, all six bundles, the scratchpad AND the restore proofs. THE ONLY OTHER WRITABLE STORAGE
+IS 64 MB OF RAM. A cross-device on-host copy DOES NOT EXIST as an option. The six bundles total
+18,897,618 bytes and WOULD fit in that 64 MB tmpfs - I am naming that only so nobody proposes it at
+3am: it is RAM, it dies with the container, it is STRICTLY LESS DURABLE than where they are.
+
+I wrote "bundles on dev 2049, proofs on dev 120" as though those were two places, INSIDE THE VERY
+FINDING THAT WAS CORRECTING EVERYONE FOR TAKING THE WORD off-host ON TRUST. A noun in a filename is
+not a measurement and NEITHER IS A DEVICE NUMBER - both are identifiers that look like physical facts.
+
+Section 25 and 25.6 written, report 2434 lines MEASURED. Freeze intact, nothing copied, nothing
+deleted, no config writes, nothing to ptone.

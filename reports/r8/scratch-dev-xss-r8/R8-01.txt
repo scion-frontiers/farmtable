@@ -1,0 +1,2 @@
+go: downloading go1.26.5 (linux/amd64)
+ok  	github.com/farmtable-io/farmtable/internal/webguard	0.003s

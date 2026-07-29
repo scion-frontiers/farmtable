@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-07-22T02:10:12.344Z",
+  "siteUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "revision": "farmtable-00019-w8z",
+  "commit": "6cddeb4",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "feature42_flex1": {
+    "maxDeadZone": 0,
+    "passed": true
+  },
+  "columnMeasurements": [
+    {
+      "name": "Triage",
+      "cardCount": 0,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 16,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "Backlog",
+      "cardCount": 0,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 288,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "Ready",
+      "cardCount": 17,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 560,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "Working",
+      "cardCount": 1,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 832,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "In Review",
+      "cardCount": 1,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 1104,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "In QA",
+      "cardCount": 0,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 1376,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "Deploying",
+      "cardCount": 0,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 1648,
+      "deadZone": 0,
+      "flexGrow": "1"
+    },
+    {
+      "name": "Completed",
+      "cardCount": 0,
+      "hostHeight": 1884,
+      "hostTop": 123,
+      "hostBottom": 2007,
+      "cardsHeight": 1835,
+      "cardsTop": 173,
+      "cardsBottom": 2007,
+      "cardsWidth": 260,
+      "cardsLeft": 1920,
+      "deadZone": 0,
+      "flexGrow": "1"
+    }
+  ],
+  "dndTest1": {
+    "sourceColumn": "Ready",
+    "targetColumn": "Triage",
+    "beforeCount": 0,
+    "afterCount": 1,
+    "passed": true,
+    "method": "Playwright locator.dragTo() — real HTML5 DnD events",
+    "targetPositionPct": "75% down column height",
+    "note": "Drop targeted bottom 75% of column — was entirely dead space without flex:1"
+  },
+  "dndTest2": {
+    "targetColumn": "Backlog",
+    "passed": false,
+    "targetPositionPct": "85% down column height"
+  },
+  "scrollCheck": {
+    "regression": false,
+    "details": [
+      {
+        "name": "Triage",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "Backlog",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "Ready",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "Working",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "In Review",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "In QA",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "Deploying",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      },
+      {
+        "name": "Completed",
+        "overflowY": "visible",
+        "overflowX": "visible"
+      }
+    ]
+  },
+  "overallPass": true
+}

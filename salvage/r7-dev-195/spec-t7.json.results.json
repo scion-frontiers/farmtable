@@ -1,0 +1,36 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 73,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2868\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 73 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2868:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2873:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "CFG-3",
+    "desc": "SANITIZE_DOM: false \u2014 was GREEN at 69 checks",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "DOM-clobbering id/name attributes stripped: a clobbering name attribute survived: found \"name=\" in \"<p><a name"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2868\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 73 markdown sanitizer checks failed:\n  - DOM-clobbering id/name attributes stripped: a clobbering name attribute survived: found \"name=\" in \"<p><a name=\\\"body\\\">a</a><a id=\\\"body\\\">b</a></p><p id=\\\"children\\\">c</p><a name=\\\"getElementById\\\">d</a><p></p>\\n\"\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2868:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2873:1\n\nNode.js v20.20.2\n"
+  }
+]

@@ -1,0 +1,545 @@
+
+### V1 — identity-shadow the sanitizer; sanitizer import retained under an alias (EM's V1)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+      src/components/inspector/ft-inspector-comments.ts:8: re-binds renderMarkdown locally — this shadows the import and silently unwraps the sink while leaving the sink text byte-identical
+      src/components/inspector/ft-inspector-comments.ts:8: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V1b — sanitizer import removed entirely, replaced by a local identity function
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+      src/components/inspector/ft-inspector-comments.ts:7: re-binds renderMarkdown locally — this shadows the import and silently unwraps the sink while leaving the sink text byte-identical
+      src/components/inspector/ft-inspector-comments.ts:7: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V1c — the realistic 'helper moved to util/format.ts' re-home; no new file, count untouched, two imports merged into one
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V1e — NEW: shadow the sanitizer with a destructured local binding
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:9: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V2 — unsafeHTML renamed in the import clause and called under the alias (round-2 form)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 3 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-desc.ts: does not import unsafeHTML unaliased from lit's unsafe-html directive module (a specifier ending 'directives/unsafe-html.js') — the name may therefore resolve to something other than the audited one
+  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 — update REQUIRED_SINKS deliberately if a sink was added or removed
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts: unsafeHTML renamed with 'as' in an import/export clause [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3 — value-alias the directive beside the untouched real sink; sink count preserved (EM's V3 / test MUT-B9 / audit M-2)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3b — property bag: const S = { raw: unsafeHTML } (missed by audit's assignment regex)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3c — destructuring rename off a dynamic import (renames via ':' not 'as')
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3d — laundered through an `as` cast: const raw = unsafeHTML as unknown as F
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3e — whitespace variant: `unsafeHTML (c.body)` with one space evades `unsafeHTML\(`
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 3 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: unsafeHTML(c.body) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 3 — update REQUIRED_SINKS deliberately if a sink was added or removed
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-comments.ts -> unsafeHTML(c.body)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V3f — NEW: re-export the directive out of the sink file, then import it back elsewhere under any name
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V4 — drop the sanitizer wrapper at the sink (the original #195 regression)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(this.description) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(this.description)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V5 — NEW: import the sanitizer name as a TYPE only, then supply the value locally
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+      src/components/inspector/ft-inspector-desc.ts:5: re-binds renderMarkdown locally — this shadows the import and silently unwraps the sink while leaving the sink text byte-identical
+      src/components/inspector/ft-inspector-desc.ts:5: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V6 — NEW: hide the value alias inside a lit template's HTML comment... no; hide it on the same line as a legitimate import
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:8: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:8: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V7 — NEW: try to smuggle the value alias behind the ignore-line opt-out marker in a REQUIRED_SINKS file
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V8 — NEW: block-comment the sanitizer out of the sink expression (comment stripping must not create a bypass)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(this.description) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(this.description)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### T-jsx — new .jsx file with a raw sink — previously invisible to the scan AND to the count pin
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to force, and it is the only thing standing between the tree and a raw sink in a brand-new file. Never change it merely to make a red suite go green.
+  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-evil.jsx (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### T-mts — new .mts file with a raw sink
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to force, and it is the only thing standing between the tree and a raw sink in a brand-new file. Never change it merely to make a red suite go green.
+  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-evil.mts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### T-cts — new .cts file with a raw sink
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to force, and it is the only thing standing between the tree and a raw sink in a brand-new file. Never change it merely to make a red suite go green.
+  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-evil.cts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### T-oreq — logical-assignment raw write: el.innerHTML ||= body (audit M-5)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-inspector-desc.ts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### T-newfile-alias — new .ts file whose sink is a VALUE-aliased directive, with EXPECTED_SOURCE_FILES bumped to 51 to defeat the count pin (test MUT-G1-3c)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-evil.ts:3: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### FP1 — CONTROL, must stay GREEN: legitimate `import { html } from 'lit/static-html.js'`
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### FP2 — CONTROL, must stay GREEN: the security comment a developer writes about this very guard
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### FP3 — CONTROL, must stay GREEN: legitimate barrel re-export of a SAFE symbol from a watched module
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### FP4 — CONTROL, must stay GREEN: a string literal naming a banned form, with the documented opt-out marker
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### FP5 — CONTROL, must stay GREEN: an ordinary comparison against innerHTML is not a write
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### FP6 — CONTROL, must stay GREEN: the HTML comment already living in the production sink file, restated in the other one
+EXIT=0  GREEN (correct)
+markdown sanitizer: 61 checks passed
+
+### P1 — PIN: deleting a check must fail the check-total pin
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 60 markdown sanitizer checks failed:
+  - check total pinned: expected 61 checks to run, 60 did — a check was added or silently removed
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1696:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1701:1
+
+### P2 — PIN: dropping a REQUIRED_SINKS entry must fail
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 60 markdown sanitizer checks failed:
+  - unsafeHTML call sites are still found: expected exactly 1 unsafeHTML call sites, found 2 — update REQUIRED_SINKS deliberately if a sink was added or removed
+  - check total pinned: expected 61 checks to run, 60 did — a check was added or silently removed
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1694:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1699:1
+
+### P3 — PIN: neutering the R4 usage rule must be caught by the fixture table, not only by the tree
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1d sanitizer shadowed by a parameter, not a declaration | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink file | V7 value alias hidden behind a regex literal containing an escaped // | V7b value alias hidden behind a regex character class
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### P4 — PIN: neutering comment stripping must be caught by the prose fixture table
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 3 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts:232: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - fixture: comments and marked lines cannot turn the suite red: the guard rejects prose about itself: <fixture>:1: unsafeHTML used in a non-called position :: // SECURITY: never import unsafeHTML as something else - it defeats the scan. | document.write :: // Do not use document.write( here; use lit templating. | <fixture>:1: unsafeHTML used in a non-called position :: /* renderMarkdown must wrap every unsafeHTML call. */ | <fixture>:1: unsafeHTML used in a non-called position :: const t = html`<!-- renderMarkdown, not unsafeHTML, is the boundary. -->${x}`;
+  - fixture: the sink-binding rules accept a correct sink file: the sound fixture was rejected: src/components/inspector/sound-fixture.ts:4: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow. | src/components/inspector/sound-fixture.ts:4,8: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1697:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1702:1
+
+### V1d — NEW: shadow the sanitizer with a PARAMETER, not a declaration (defeats audit's const/let/var/function/class rule)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:189: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V9 — NEW (hunted against my own fix): decoy module whose specifier SUFFIX-matches util/markdown.js, plus the count bump needed to get past the file-count pin
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V9b — NEW: same decoy, but the decoy path itself ends in `util/markdown.js` so suffix matching accepts it verbatim
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V10 — NEW (hunted against my own fix): CONCATENATE raw attacker markup onto the sanitized output at the real sink. No new file, no new binding, no count change, required literal intact.
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: unsafeHTML(renderMarkdown(c.body) + c.body) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-comments.ts -> unsafeHTML(renderMarkdown(c.body) + c.body)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V10b — NEW: same shape, template-literal form
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(`<div>${renderMarkdown(this.description)}</div>` + this.desc) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(`<div>${renderMarkdown(this.description)}</div>` + this.desc)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V11 — NEW: sanitize a DIFFERENT value than the one rendered — renderMarkdown('') keeps the literal, raw body goes in beside it
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(renderMarkdown('') || this.description) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(renderMarkdown('') || this.description)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V12 — rename a REQUIRED_SINKS file on disk (previously verified as ENOENT via the named per-file check)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-description.ts binds its markdown sink to the sanitizer: ENOENT: no such file or directory, open '/workspace/farmtable-markdown-sanitize/web/src/components/inspector/ft-inspector-description.ts'
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### P5 — PIN: removing the sinkBinding() call entirely
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 47 markdown sanitizer checks failed:
+  - check total pinned: expected 61 checks to run, 47 did — a check was added or silently removed
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1694:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1699:1
+
+### V13 — NEW (attacking my own comment stripper): hide a value alias behind a regex literal containing an escaped '//', so the scanner mistakes it for a line comment and blanks the rest of the line
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V13b — NEW: same idea via a character class, where '/' needs no escape
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V14 — NEW: an unterminated block comment swallowing the guard's view of the rest of the file
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-comments.ts: does not import unsafeHTML unaliased from lit's unsafe-html directive module (a specifier ending 'directives/unsafe-html.js') — the name may therefore resolve to something other than the audited one
+      src/components/inspector/ft-inspector-comments.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') — the name may therefore resolve to something other than the audited one
+  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 — update REQUIRED_SINKS deliberately if a sink was added or removed
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V15 — NEW: smuggle the alias through a template literal, which the scanner deliberately does not strip
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:10: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V16 — NEW (hunting my own R4): spell the directive with a unicode escape in the identifier, which TS resolves to the same binding but \bunsafeHTML\b cannot see
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:10: contains a unicode or hex escape outside a string literal — an escape lets an identifier be spelled so that the rules above cannot match it. Write the name literally.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V17 — NEW (hunting my own scan-set): park the alias in a *.test.ts file, which isScannableSource deliberately excludes and EXPECTED_SOURCE_FILES does not count, then import it into the real sink
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: imports './helper.test.js', which does not resolve to any file this guard scans — a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/components/inspector/ft-inspector-comments.ts: imports './helper.test.js', which is outside the scanned set — an unscanned file can re-export anything, including the sanitizer dependencies R8 forbids naming here
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V18 — NEW (hunting R6): dynamic import with a TEMPLATE-LITERAL specifier, which R6's quote class does not match, pulling the alias out of an unscanned test file
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: import(`./helper.test.js`) — a dynamic import specifier must be a plain quoted literal, or R6 has nothing to resolve and the module it loads is outside every rule here
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V19 — NEW (hunting R7): put the unicode escape INSIDE a second import statement, where stripImportStatements removes it before R7 looks, while the audited unaliased import stays intact for R2
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:4: contains a unicode or hex escape outside a string literal — an escape lets an identifier be spelled so that the rules above cannot match it. Write the name literally.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V20 — NEW: ADDITIVE aliased import - the audited unaliased import stays, so R2 passes, and the alias rides in a second import statement that R4 never sees (imports are stripped)
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts: unsafeHTML renamed with 'as' in an import/export clause [tripwire: catches the listed indirection forms only, not all of them]
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V21 — NEW: namespace import of the directive module, reached as a property
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 4 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: unsafeHTML(c.body) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 3 — update REQUIRED_SINKS deliberately if a sink was added or removed
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts: directives/unsafe-html.js imported as a namespace [tripwire: catches the listed indirection forms only, not all of them]
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-comments.ts -> unsafeHTML(c.body)
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V22 — NEW: sanitizer imported unaliased (R2 satisfied) but a SECOND aliased sanitizer import provides an identity function used at the sink
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: no longer contains unsafeHTML(renderMarkdown( — the sanitizer wrapper is gone
+      src/components/inspector/ft-inspector-comments.ts: unsafeHTML(renderMarkdown2(c.body)) — the argument is not a bare renderMarkdown(…) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.
+  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-comments.ts -> unsafeHTML(renderMarkdown2(c.body))
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V23 — EM's vector: subvert DOMPurify's shared singleton config from inside the sink file, leaving the binding and the sink byte-identical
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/components/inspector/ft-inspector-comments.ts:8: names the module specifier 'dompurify'. Only src/util/markdown.ts may import the sanitizer's dependencies. Any other file holding a reference to them can rewrite the shared configuration they are used through — DOMPurify's default export is a singleton, and two addHook calls at module scope turn renderMarkdown into a pass-through while every rule about the sink binding still holds.
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V24 — MY HUNT (new axis, import-graph route): park the dompurify re-export in an UNSCANNED *.test.ts file, so no scanned file ever names the specifier R8 matches on
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 2 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts: imports './purify-shim.test.js', which does not resolve to any file this guard scans — a binding that arrives from outside the scanned set can be the raw directive under any name, and none of the rules above will see it
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/components/inspector/ft-inspector-comments.ts: imports './purify-shim.test.js', which is outside the scanned set — an unscanned file can re-export anything, including the sanitizer dependencies R8 forbids naming here
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V24b — MY HUNT: same route but from a NON-sink scanned component, where R6 (relative imports must resolve into the scanned set) does not apply at all
+EXIT=1  DEAD
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+Error: 1 of 61 markdown sanitizer checks failed:
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/components/inspector/inspector-shared-styles.ts: imports './purify-shim.test.js', which is outside the scanned set — an unscanned file can re-export anything, including the sanitizer dependencies R8 forbids naming here
+    at run (file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1695:15)
+    at file:///workspace/farmtable-markdown-sanitize/web/.tmp-test/util/markdown.test.js:1700:1
+
+### V25 — MY HUNT (new axis, no import at all): mutate the global DOM prototypes the sanitizer relies on. Verified at runtime to render <img onerror> and <script> raw.
+EXIT=0  SURVIVED (BAD)
+markdown sanitizer: 61 checks passed
+
+
+===== SUMMARY =====
+DEAD            V1
+DEAD            V1b
+DEAD            V1c
+DEAD            V1e
+DEAD            V2
+DEAD            V3
+DEAD            V3b
+DEAD            V3c
+DEAD            V3d
+DEAD            V3e
+DEAD            V3f
+DEAD            V4
+DEAD            V5
+DEAD            V6
+DEAD            V7
+DEAD            V8
+DEAD            T-jsx
+DEAD            T-mts
+DEAD            T-cts
+DEAD            T-oreq
+DEAD            T-newfile-alias
+GREEN (correct) FP1
+GREEN (correct) FP2
+GREEN (correct) FP3
+GREEN (correct) FP4
+GREEN (correct) FP5
+GREEN (correct) FP6
+DEAD            P1
+DEAD            P2
+DEAD            P3
+DEAD            P4
+DEAD            V1d
+DEAD            V9
+DEAD            V9b
+DEAD            V10
+DEAD            V10b
+DEAD            V11
+DEAD            V12
+DEAD            P5
+DEAD            V13
+DEAD            V13b
+DEAD            V14
+DEAD            V15
+DEAD            V16
+DEAD            V17
+DEAD            V18
+DEAD            V19
+DEAD            V20
+DEAD            V21
+DEAD            V22
+DEAD            V23
+DEAD            V24
+DEAD            V24b
+SURVIVED (BAD)  V25
+
+1 NOT DEAD

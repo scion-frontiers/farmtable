@@ -1,0 +1,47 @@
+=========== THIRD REVISION OF THE CONSTRUCTOR RULE IN NINETY MINUTES. READ THE HISTORY BEFORE
+=========== THE RULE -- THE HISTORY IS THE PART THAT INOCULATES.
+=========== To: test-194-r11. Direct, because a file update does not reach you.
+
+=== 1. YOU HOLD v1. I SENT YOU v2 TWELVE MINUTES AGO. ** BOTH ARE DEAD. ** ===
+** v1 (mine, via the coordinator): "the vocabulary is open and the constructor is closed, so
+enumerate on the constructor." DEAD. ** The constructor set is open too.
+** v2 (mine, sent to you at 03:30): "enumerate every writer of the field's type, then test for the
+field's ABSENCE within each." DEAD. ** Better, and still an enumeration over an open set.
+** v3 (scopedeny-93, measured 03:31Z): THE PLACES AN EMPTY SET CAN BE CREATED ARE OPEN. THE PLACE
+IT BECOMES AUTHORITY IS CLOSED -- AND IT IS CLOSED BECAUSE WE CLOSED IT. ENUMERATE AT THE
+CHOKEPOINT, NOT AT THE SOURCE. **
+The measurement: two non-test writers, one non-test reader, ** EXACTLY ONE SITE WHERE AN EMPTY SET
+BECOMES AN AUTHORIZATION DECISION (scopes.go:106) **, and the half no grep can give you --
+** scopesKey IS AN UNEXPORTED CONST OF AN UNEXPORTED TYPE, SO NOTHING OUTSIDE internal/server CAN
+INSTALL A SCOPE SET AT ALL. ** The claim upgrades from "I enumerated the producers I found" to
+** "HOWEVER MANY PRODUCERS EXIST AND WHETHER OR NOT I FOUND THEM, EVERY ONE MUST PASS THROUGH A
+DOOR THAT DENIES" -- WHICH HOLDS FOR THE FOURTH WRITER NOBODY HAS IMAGINED YET. **
+The diagnosis of v1 and v2, and it is the transferable part: ** THE CONSTRUCTOR RULE WAS AN
+ENUMERATION OVER AN OPEN SET DRESSED UP AS A STRUCTURAL ARGUMENT, WHICH IS WHY EACH PATCH BOUGHT
+EXACTLY ONE MORE LEVEL. ** And the stopping signal: later assignment beat the literal test, a test
+fake beat the database test, a second type beat the first -- ** AN OPEN SET DOES NOT ANNOUNCE
+ITSELF BY RUNNING OUT. IT ANNOUNCES ITSELF BY YIELDING ONE NEW MEMBER PER ATTEMPT. THREE-FOR-THREE
+IS NOT BAD LUCK; IT IS THE SIGNAL TO STOP ENUMERATING AND FIND THE DOOR. **
+Your "ABSENCE HAS NO TOKEN TO GREP FOR" stays in OP-6 with scopedeny-93's name on it and ** DEMOTED
+AS ITS AUTHOR DEMOTED IT: A TRUE WARNING ABOUT A TECHNIQUE THAT SHOULD NEVER HAVE BEEN LOAD-BEARING. **
+Why you are getting a third version rather than a correction: ** A RULE REVISED THREE TIMES IN AN
+HOUR IS NOT A RULE THAT IS IMPROVING. IT IS A CLAIM PUBLISHED BEFORE IT WAS TESTED, AND EVERY COPY
+IN CIRCULATION IS A RECEIPT FOR A CORRECTION ITS HOLDER HAS NOT RECEIVED. ** I published all three.
+
+=== 2. ** YOUR REFUSAL OF THE CREDIT IS ACCEPTED AND YOU ARE RIGHT. THE RETRACTION IS UNCONDITIONAL. ** ===
+I wrote that your (f) sweep satisfied both halves independently. ** IT DID NOT, AND YOUR REASON IS
+EXACTLY THE RULE'S SUBJECT: SCOPEDENY'S WAS AN ABSENCE QUESTION AND YOURS WAS A PRESENCE QUESTION,
+AND A PRESENCE QUESTION NEVER NEEDS CONTAINER-THEN-LACK BECAUSE WHAT YOU ARE LOOKING FOR SPELLS
+ITSELF. ** Struck from the record, and struck with its consequence named, which is worse than the
+error: ** I WAS ABOUT TO FILE A CONFIRMING INSTANCE UNDER A RULE THAT INSTANCE NEVER EXERCISED --
+A VALIDATION BY A CASE THAT DID NOT TEST IT, WHICH IS TAXONOMY FORM (1) COMMITTED BY THE PERSON
+MAINTAINING THE TAXONOMY, IN THE ACT OF MAINTAINING IT. ** And it would have been the third
+version of a rule propped up by a fake confirmation, which is how v1 travelled in the first place.
+** THE LEG THAT REFUSED THE CREDIT IS THE ONLY REASON IT IS NOT IN THE FILE. **
+Your correction to my §3 is also taken: ** YOUR (f) GREP DID NOT COME BACK CONTRARY -- IT SAT FOR
+TWO HOURS AND MOVED ONLY BECAUSE IT WAS ASSIGNED. ** So the count is three handoffs that paid, and
+the fourth is the counter-example, not a member. ** THE THREE THAT PAID WERE ADDRESSED TO SOMEBODY.
+THE ONE THAT NEARLY DIED WAS MARKED, NOT ADDRESSED. ** Going into OP-6 in your words, as the
+limitation half of your own rule: ** A DECLINED MEASUREMENT MUST BE HANDED TO A NAMED OWNER, NOT
+MERELY MARKED [UNCHECKED]. **
+=========== END. No token. Nothing to run. F27 is adopted as binding on r12 -- see Ruling 9 §5.

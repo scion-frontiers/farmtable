@@ -1,0 +1,79 @@
+[
+  {
+    "check": "4a-closed-solo-shows-relationships",
+    "action": "CLOSED task in Solo mode shows BLOCKS relationships (original repro)",
+    "pass": true,
+    "detail": "hasNoDepsMessage: false (expected false — fix should show relationships). Layout nodes: 6. Layout edges: 5. DOM nodes: 5. DOM edges: 5. Selected task: 9f7731a8-a23d-493d-86eb-2ac5d39f5e7a. Task is closed: true. Using original repro: true. Expected ≥3 BLOCKS edges (got 5).",
+    "timestamp": "2026-07-24T21:27:13.216Z"
+  },
+  {
+    "check": "4a-repro-3-blocks",
+    "action": "Original repro task shows all 3 BLOCKS relationships",
+    "pass": true,
+    "detail": "Layout edges: 5 (expected ≥3). Layout nodes: 6. Task: 9f7731a8-a23d-493d-86eb-2ac5d39f5e7a",
+    "timestamp": "2026-07-24T21:27:13.216Z"
+  },
+  {
+    "check": "4b-normal-hides-closed",
+    "action": "Non-Solo Dependency View hides CLOSED tasks (no regression)",
+    "pass": true,
+    "detail": "Closed tasks in layout: 0 (expected 0). Total layout nodes: 140. isolateMode: false (expected false/undefined). selectedTaskId: null",
+    "timestamp": "2026-07-24T21:27:19.485Z"
+  },
+  {
+    "check": "4c-unrelated-closed-hidden-in-solo",
+    "action": "Unrelated CLOSED tasks stay hidden when Solo is active for an OPEN task",
+    "pass": true,
+    "detail": "Closed tasks in solo layout: 0 (expected 0). Selected task: undefined (phase 1). Solo nodes: 2. Solo edges: 1.",
+    "timestamp": "2026-07-24T21:29:40.776Z"
+  },
+  {
+    "check": "5-dependency-culling",
+    "action": "Dependency View loads with viewport culling (Perf Phase 2 from deploy-49)",
+    "pass": true,
+    "detail": "Layout nodes: 37, DOM nodes: 37. Edges: 29 layout, 29 DOM. Culling correct (DOM ≤ layout): true. Scale: 0.416",
+    "timestamp": "2026-07-24T21:27:25.696Z"
+  },
+  {
+    "check": "5-tree-default-lr",
+    "action": "Tree View defaults to LR layout, no ?layoutdir= param (deploy-50 regression)",
+    "pass": true,
+    "detail": "Orientation: LR (expected LR). layoutdir param: null (expected null). Node count: 37. Orientation btn icon: arrow-clockwise",
+    "timestamp": "2026-07-24T21:27:31.965Z"
+  },
+  {
+    "check": "5-tree-toggle-tb",
+    "action": "Tree View toggles to TB, URL shows ?layoutdir=TB (deploy-50 regression)",
+    "pass": true,
+    "detail": "Orientation after toggle: TB (expected TB). layoutdir param: TB (expected TB)",
+    "timestamp": "2026-07-24T21:27:34.051Z"
+  },
+  {
+    "check": "5-tree-toggle-back-lr",
+    "action": "Tree View toggles back to LR, URL param removed (deploy-50 regression)",
+    "pass": true,
+    "detail": "Orientation after toggle back: LR (expected LR). layoutdir param: null (expected null)",
+    "timestamp": "2026-07-24T21:27:36.065Z"
+  },
+  {
+    "check": "5-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-24T21:27:40.304Z"
+  },
+  {
+    "check": "5-default-view-routing",
+    "action": "Default view routing works (should default to dashboard)",
+    "pass": true,
+    "detail": "Default view: dashboard",
+    "timestamp": "2026-07-24T21:27:44.555Z"
+  },
+  {
+    "check": "5-console-errors",
+    "action": "No relevant console errors",
+    "pass": true,
+    "detail": "Total console errors: 2, relevant: 0. Clean",
+    "timestamp": "2026-07-24T21:27:44.613Z"
+  }
+]

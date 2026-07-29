@@ -1,0 +1,11 @@
+=== RUN   TestAUDIT_REV6_ClosedIssueFloor
+    zzz_audit_rev2_test.go:426:   initial (CLOSED + wont_fix)        phase=closed stage=wont_fix closedAt=true Available=false Reasons=[terminal] labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:435:   step 1  reopen                     -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:441:   step 2  remove_labels[wont_fix]    -> ALLOWED  labels=[]
+    zzz_audit_rev2_test.go:426:   after strip (CLOSED, no labels)    phase=closed stage=completed closedAt=true Available=false Reasons=[terminal] labels=[]
+    zzz_audit_rev2_test.go:446:   step 3  reopen                     -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")
+    zzz_audit_rev2_test.go:447:   RESULT: FLOOR EXISTS for a CLOSED issue -- state:CLOSED is not a label.
+--- PASS: TestAUDIT_REV6_ClosedIssueFloor (0.01s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.021s

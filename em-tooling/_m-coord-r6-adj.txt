@@ -1,0 +1,90 @@
+R6 ADJUDICATED: DO NOT MERGE. All three legs in, all three read in full, plus the cold leg.
+
+VERDICTS: audit APPROVE-WITH-CONDITIONS / review REQUEST CHANGES / test DO NOT MERGE AS-IS.
+It is not the tally that decides it. It is that they converge from different routes.
+
+THE DECISIVE RESULT, AND NEITHER LEG KNEW THE OTHER WAS DOING IT. Two legs planted a LITERAL,
+no-string-arithmetic RemoteData consumer -- the exact spelling the project log says goes RED
+naming file, line and text -- and BOTH GOT GREEN, by two unrelated mechanisms. The audit planted
+Go-side: out of population, B11 is web-scoped, and live uncovered Go reads exist today. The test
+leg planted web-side in web/src/build/, web/src/util/dist/ and web/src/components/coverage/: all
+three pruned, because skipDirs is indexed on d.Name() inside WalkDir, so it prunes BY BASENAME AT
+ARBITRARY DEPTH. And web/tsconfig.json includes "src" wholesale, so those files are compiled,
+bundled, SHIPPED SOURCE. The guard classifies source as build output on the strength of one path
+segment. Both reverted and re-confirmed baseline.
+
+This kills the bound we were shipping: "CATCHES THE ACCIDENTAL ADDITION; never observed catching
+a deliberate one." The pruning case IS the accidental one. Nobody has to be adversarial to create
+web/src/components/coverage/. The bound is not conservative, it is wrong in the direction we
+assumed was safe.
+
+WHY THE ROUND COULD NOT SEE IT, in the test leg's words, and this is the part worth keeping:
+"The round's matrix cannot express this because both its axes presuppose the file was read."
+All four planted mutations sat in files the walk already reached. A MUTATION MATRIX MEASURES THE
+DETECTOR AND ASSUMES THE CENSUS. THE POPULATION WAS THE UNTESTED AXIS IN AN INSTRUMENT BUILT TO
+TEST POPULATIONS. This is COORD-135 twice over: two canaries, one guard, no fire.
+
+MERGE BLOCKER CONFIRMED BY TWO INDEPENDENT EXECUTIONS, AND THE ATTRIBUTION MATTERS. Both legs
+extracted main's ci-suite-manifest.mjs and ran it read-only against the branch: exit 1, fail-closed,
+and CI runs it BEFORE the suites on push to any branch. But web/package.json and
+web/scripts/run-tests.mjs are UNTOUCHED by d305391..c108acb -- inherited from dev-xss-r2 and r4.
+THE FIX IS A CHANGE TO A FILE ON MAIN, NOT TO THIS BRANCH. It is cross-branch coordination, not
+something the r6 developer can do in place. I would have scoped that to the wrong agent.
+
+BETTER NEWS THAN THE ROUND BELIEVES, from two legs: doc.go says no CI exists anywhere. True at
+c108acb, FALSE on cc92735, whose ci.yml runs go test ./... directly on push to any branch. So the
+guard DOES acquire a real invoker on merge. The honest blocker is not that nothing runs it -- it
+is that the branch cannot REACH that CI because the first step fails closed on it. Neither
+Dockerfile runs go test, so no image build enforces it either way.
+
+THREE APPARATUS FAILURES OF MINE, ONE NEW CLASS.
+
+1. FIXED. Section 7 lived inside the file my dispatch ordered read first, in full. All three legs
+read the embargoed content before writing anything. Round six has NO cold-pass data at all -- the
+correlated failure three independent legs exist to prevent. Review's wording: an embargo enforced
+by a file boundary cannot be violated by an obedient reader; as written, the more compliant the
+leg, the more thoroughly it is contaminated. Section 7 is now its own file with a STOP header
+carrying the reason. Third instance of the unsatisfiable-instruction class, first with a
+measurable cost.
+
+2. RIDER ADOPTED. My section 7 listed ci.yml under "environmental facts you would otherwise
+measure as findings." The diff contains a document asserting no CI exists anywhere. I HELD BOTH
+HALVES AND JOINED THEM INTO AN INSTRUCTION NOT TO LOOK. The targeting did not miss the defect, it
+PRE-CLASSIFIED THE DECISIVE EVIDENCE AS NOISE. Two legs found it by ignoring me. Now standing:
+AN ENVIRONMENTAL FACT THAT CONTRADICTS SOMETHING THE DIFF ASSERTS IS A FINDING, NOT AN EXEMPTION.
+AN EXEMPTION LIST IS A TARGETING INSTRUMENT THAT READS AS A COURTESY.
+
+3. NEW, AND I THINK IT IS THE ONE FOR YOU. The cold leg obeyed its isolation perfectly -- did not
+open the forbidden files -- and got the answer anyway, FROM MY OWN METHODOLOGY SECTION. My section
+4 worked example for the within-invocation control was "a single sweep covering both Go and
+TypeScript returned 11 TypeScript hits and 0 Go hits." That is the shape of the answer to the
+question I was asking it. It read that before running anything, then found a Go zero and a
+TypeScript non-zero, and told me: "I cannot prove my sweep was uncontaminated. Discount my
+Go-zero when you reconcile." A METHODOLOGY EXAMPLE IS A CONTENT CHANNEL. Every worked example in
+a brief must be drawn from a question the leg is NOT being asked. Note that the leak was ACCURATE,
+which is what made it effective -- COORD-126 again, arriving through the plumbing. Second time
+tonight an APPARATUS section carried the payload; the exemption list was the other. I built an
+elaborate isolation protocol and handed over the answer in the part nobody reads as content.
+
+AND A REAL HOLE IN MY CONTROL DOCTRINE, filed as Clause B2. The cold leg found that a token sweep
+for the marker returns a correct, controlled, genuinely-alive zero -- and it is the wrong answer,
+because the import path that CAN set the key contains no occurrence of the word anywhere in it.
+THE CONTROL REQUIREMENT DEFENDS AGAINST A DEAD INSTRUMENT. IT OFFERS NO DEFENCE AGAINST A LIVE
+INSTRUMENT AIMED AT THE WRONG TARGET. For a blob-valued field the question must be posed as what
+writes the CONTAINER, not what writes the KEY. A DEAD INSTRUMENT LEAVES A TRACE; A MISAIMED ONE
+RETURNS A CLEAN RESULT WITH A VALID RECEIPT ATTACHED.
+
+OP-1 RULING I have filed, tell me if you disagree: git fetch of a URL and node running a
+read-only report both need NO token. The token serialises CONTENTION FOR THE MACHINE, not reading.
+The list was written as an enumeration of banned commands, so a leg meeting anything not on it had
+only a guess -- and one leg told me that ambiguity STOPPED IT RUNNING THE DECISIVE COMMAND. State
+the principle, give the list as examples of it.
+
+Cold-leg substance separately: the marker is ORPHANED PLUMBING, not an omission. Both store
+params already declare RemoteData and EntStore implements correct read-modify-merge; no caller
+populates either. Storage ran AHEAD of the API. My brief anticipated the reverse and an agent
+checking only my named failure mode would have missed it.
+
+Token still with me, unspent. Nothing to ptone. Freeze respected. Next: one bounded fix round,
+scoped to the two prose items plus the sampler and the prune, with the manifest fix routed
+separately to main.

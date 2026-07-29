@@ -1,0 +1,89 @@
+ITEMS 1, 2 AND 3 ALL DELIVERED. §32 IS LANDED. AND MY OWN PREDICTION FAILED, WHICH I AM
+REPORTING AS A FAILURE RATHER THAN RESCUING.
+
+ITEM 1+2 — briefs/_BRIEF-RULES.md, 1,520 -> 1,714 lines, new §32, four properties in one pass.
+
+32.1 BULK CAPTURE. Your text verbatim, including the non-exhaustiveness clause and the
+"if you cannot name every file the command will touch, do not run it" close. Carried with
+the stash-untracked evidence (three already fired) as the proof that the list form fails,
+and with the measured add-table showing the mandated form is the loudest form.
+
+32.2 ABORTING CONTROLS, from briefs/farmtable-predicate-2.md. As a property: A DETECTOR THAT
+HAS NOT RETURNED YES IN THIS INVOCATION IS NOT KNOWN TO BE RUNNING. Plus the shape rule from
+audit-194-r11 — a control must share the command shape of the thing it controls, or it proves
+a path the scan does not take.
+
+32.3 CLAUSE THREE, from reports/relocate-offhost.md 22.3. Control, canary and fed are three
+separate claims; set equality not count equality; canary inside the population. AND THE PART
+YOU WILL WANT: I read the 28-hour-old file. The rule is fully present in it as falsifier F5
+plus a mandatory positive control. THE WORD "CLAUSE" DOES NOT APPEAR IN THAT FILE ANYWHERE.
+So the rule was not merely unpublished — it was UNFINDABLE BY THE NAME IT WAS LATER GIVEN,
+and every later search for it, including by its own author, came back empty and concluded it
+had never been done. A RULE EMBODIED ONLY IN AN IMPLEMENTATION IS NOT FINDABLE BY THE NAME IT
+IS LATER GIVEN. That is your item 6 arriving from a third direction.
+
+32.4 YOUR 09:16 CORRECTION, landed in the same pass while it was still warm. "I declared a
+predicate and then implemented a root" is in as the general cure, with the sign-flip worked
+example. I have added one line you did not: A SCOPE FAILURE AND A ROUNDING FAILURE ARE NOT
+THE SAME CLASS — a number computed over the wrong root carries no information about the
+region it never saw, and that region may behave oppositely. And explicitly: an argument about
+KIND is not refuted by a correction to DEGREE, in either direction. Your ratification of the
+banner decision does not need the percentage and does not lose anything without it.
+
+CORPUS PATHS — 32.1 landed in FOUR files, as a pointer and not a copy, so I do not arm a
+copy-paste generator:
+  briefs/_BRIEF-RULES.md            (the full statement, §32)
+  briefs/farmtable-predicate-2.md   (line 30 region, replaced the two-spelling ban)
+  briefs/dev-xss-r8-fix.md          (hard constraint 2, replaced)
+  em-tooling/snapshot-live-leg.md   (banner, replaced, with the supersession stated)
+briefs/_r7-PHASE-TWO.md line 28 mentions the old spelling but is a FINDING DESCRIPTION and
+not an instruction, so I left it. Naming it so the omission is yours to overrule, not mine
+to hide.
+
+ITEM 3 — THE NUMERIC PREDICTION, WRITTEN BEFORE THE COMMAND RAN.
+  reports/em-bulkcapture-prereg.md   sha256 41b6a17f3ddf3f5f1872f3c38997cb497551bbd8ff6a3bc7825cbb0d2343f8e2
+  reports/em-bulkcapture-result.md
+
+FILES SEARCHED 661. ENUMERATED 54 = MINE 37 + PRE-EXISTING 17.
+  P1 zero live bulk-capture instructions besides the suspended runbook — HOLDS
+  P2 enumerated between 5 and 25 — FALSIFIED, 54
+  P3 stash appears at least once — HOLDS, 16
+  P4 the widened set finds a spelling the narrow set missed — HOLDS
+
+P2 IS SCORED FALSIFIED AND I AM NOT RESCUING IT. The predicate I intended — the corpus as it
+stood before tonight — returns 17, inside my range. Scoring that instead would be scoring
+what I meant rather than what I wrote. I PREDICTED OVER A CORPUS I HAD ALREADY EDITED IN FOUR
+PLACES and did not subtract my own edits. The sweep for the hazard counted the cure as the
+disease, 37 times.
+
+THE ABORT, AND IT IS THE RESULT WORTH YOUR TIME.
+My negative control was a string I chose because nothing could plausibly contain it. It
+returned ONE HIT and the run aborted before reporting anything. The hit was the
+pre-registration file itself: I had written the control string into the corpus, then searched
+the corpus for the control string. AN INVESTIGATOR WHO PUBLISHES A PROBE INTO THE POPULATION
+HAS ENLARGED THE POPULATION BY THE PROBE — the same class as an evidence table unioning the
+investigator's probes, but arriving as a CONTROL invalidated by its own publication rather
+than as a count inflated by them.
+
+What matters is what the abort prevented. Without that negative control the run returns 54, I
+report 54, and 37 hits of my own freshly-written cure travel as evidence of a corpus-wide
+hazard. THE ABORTING CONTROL DID NOT CATCH A MATCHER DEFECT. IT CAUGHT THE CONTAMINATION THAT
+WOULD HAVE MADE MY HEADLINE WRONG BY 3x, AND IT CAUGHT IT BY REFUSING TO PRODUCE A RESULT AT
+ALL. §32.2 fired against the person landing §32.2, inside the hour, which is the only kind of
+evidence for a standard that is worth anything.
+
+F1 IS CLEAN — zero live bulk-capture instructions in the corpus. The four-file landing is
+sufficient and r8 is unblocked on this axis. I am dispatching dev-xss-r8 next.
+
+ONE THING I FOUND AND DID NOT TOUCH. The withdrawn 87/13 figure is still sitting unannotated
+at reports/relocate-offhost.md lines 2049-2050, inside a section whose stated predicate is
+"each of the 230 working trees" while the enumerator walked one root. The withdrawal exists
+only as a message. THAT IS YOUR OWN OPENING COROLLARY FIRING ON THE CORRECTION TO ITSELF — a
+control delivered by message protects the agents who were running when it was sent. Anyone
+who opens that file tomorrow gets the figure with full apparatus and no warning, and that
+file has an established house convention for exactly this, two retraction banners already in
+it. It is another leg's report and not a dispatch-time instruction file, so it is outside the
+edit authority you gave me and I have not touched it. Flagging it for you or its author.
+
+Two legs are showing STALLED: read-ci-population at 09:12, audit-writable-path at 09:16:50.
+Handling them after the r8 dispatch unless you want them reordered.

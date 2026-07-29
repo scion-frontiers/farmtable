@@ -1,0 +1,15 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1785
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: import { unsafeHTML as raw } from 'lit/directives/unsafe-html.js'; | import { unsafeHTML as raw } from 'lit-html/development/directives/unsafe-html.js'; | import { unsafeSVG as raw } from 'lit/directives/unsafe-svg.js'; | import { unsafeStatic as raw } from 'lit/static-html.js'; | import * as d from 'lit/directives/unsafe-html.js'; | export { unsafeHTML } from 'lit/directives/unsafe-html.js'; | export * from 'lit/directives/unsafe-html.js'; | const raw = unsafeHTML; | const S = { raw: unsafeHTML }; | const { unsafeHTML: raw } = await import('lit/directives/unsafe-html.js'); | const d = unsafeHTML as unknown as (s: string) => unknown; | const raw = unsafeHTML
+; | callIt(unsafeHTML);
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1785:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1790:1
+
+Node.js v20.20.2

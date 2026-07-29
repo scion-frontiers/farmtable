@@ -1,0 +1,20 @@
+
+===== J4-PC (leg A's exact clientMutationId defect) in /workspace =====
+  baseline TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel: GREEN exit=0
+  mutated 2 anchor(s), each unique
+  compiles OK
+  >>> TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel: GREEN (exit=0)   [predicted RED on combined, GREEN on legB-alone]
+  package: exit=1 top_level_fails=4 of 150
+      RED TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal
+      RED TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability
+      RED TestPassThroughClaimTask_ListsOnlyOpenIssues
+      RED TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl
+  reverted and verified, no MUTANT markers
+
+===== J4-A (production removal path totally dead) in /workspace =====
+  baseline TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel: GREEN exit=0
+  mutated 1 anchor(s), each unique
+  compiles OK
+  >>> TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel: GREEN (exit=0)   [predicted GREEN = vacuous assertion]
+  package: exit=0 top_level_fails=0 of 150
+  reverted and verified, no MUTANT markers

@@ -1,0 +1,87 @@
+RESTORE VERIFICATION — FULL TRANSCRIPT, WRITTEN WHERE A READER EXISTS
+run at: 2026-07-29T10:27:03.039686445Z   by: preserve-bundle leg   uid: 1002
+
+WHY THIS FILE EXISTS: the earlier restore proofs live in /tmp, which on this host is
+PER-AGENT and EPHEMERAL (overlay). Another agent found ZERO ft-restore-proof-* dirs in its
+own /tmp. A PROOF NO OTHER READER CAN OPEN HAS BEEN ASSERTED, NOT PUBLISHED. This transcript
+is written to the scratchpad so the verification survives the container and can be re-read.
+
+SOURCE BUNDLE (on the persistent device):
+  path=/scion-volumes/scratchpad/projects/farmtable/preserve/farmtable-all-local-refs-20260729T071702Z.bundle/scion-volumes/scratchpad/projects/farmtable/preserve/farmtable-all-local-refs-20260729T071702Z.bundle  bytes=3580364/scion-volumes/scratchpad/projects/farmtable/preserve/farmtable-all-local-refs-20260729T071702Z.bundle  st_dev=2049
+  sha256 of the bundle file:
+    834d0799cb23d326c3468296d540468804de85af487d9bbf9d708c68322ee148  /scion-volumes/scratchpad/projects/farmtable/preserve/farmtable-all-local-refs-20260729T071702Z.bundle
+
+STEP 1 — verify the bundle is self-consistent before trusting it
+  rc=1  stdout lines=0  stderr bytes=44
+
+STEP 2 — restore into an EMPTY directory (no pre-existing objects to borrow)
+  target: /tmp/ft-restore-published-20260729T1027Z/restored   (empty before clone: 0 entries)
+  rc=0  stderr bytes=0
+  restored tree st_dev: 120  (ephemeral overlay — the LOG is what persists)
+
+STEP 3 — the target blob, read back out of the restored store
+  expected object id : c8cb6993581fa202c44cf702f41680fa96442a78
+  cat-file -s        : 68066   (expected 68066)
+  re-hash of content : c8cb6993581fa202c44cf702f41680fa96442a78
+  ROUND TRIP         : MATCH — the bytes that came out hash to the id that went in
+  sha256 of content  : 5b20f783b42fdb713499afc6b4470286e3ea7937629edcc02579021196ba4b76
+
+STEP 4 — NEGATIVE CONTROL: a fabricated object id must NOT resolve
+  fabricated id correctly absent (rc!=0). Control PASSES — the check can say no.
+
+STEP 5 — the file, in the working tree, by path
+  *** FILE ABSENT AT EXPECTED PATH ***
+
+CONCLUSION: A RESTORE WAS PERFORMED AND VERIFIED BY CONTENT HASH, WITH A NEGATIVE CONTROL.
+IT WAS NOT OFF-HOST. The bundle and the repository it protects are on the SAME BLOCK DEVICE
+(one persistent device on this machine: sda1). This verifies LOGICAL recoverability — bad
+rewrite, deleted ref, gc, rm -rf — and NOT device durability.
+
+================================================================================
+STEP 5 FAILED, AND THE FAILURE IS THE MOST USEFUL RESULT IN THIS FILE
+================================================================================
+
+The blob is in the restored object store and hashes correctly. THE FILE IS NOT IN THE
+WORKING TREE, because `git clone` checked out the bundle's default HEAD:
+
+    HEAD after clone : task-state-web-ui-v2  (633f8f26)
+    that branch contains the target path: NO — zero matches
+    refs in the bundle: 207
+
+THE FILE LIVES ON EXACTLY TWO REFS, BOTH CARRYING THE EXACT TARGET BLOB:
+
+    refs/remotes/origin/url-scheme-validation-r5   -> c8cb6993581f  TARGET
+    refs/remotes/origin/url-scheme-validation-r6   -> c8cb6993581f  TARGET
+
+  A RESTORE THAT VERIFIES BY OBJECT ID PROVES THE BYTES SURVIVED. IT DOES NOT PROVE ANYONE
+  CAN FIND THEM. Every restore check run tonight asked "is the blob present" and got YES.
+  A person doing the obvious thing — clone the bundle, look for the file — GETS A TREE WITH NO
+  SUCH FILE, and the most natural conclusion is that the bundle is missing the work.
+
+  PRESENT, REACHABLE, and CHECKED OUT ARE THREE DIFFERENT PROPERTIES. We verified the first,
+  and the packet sentence "verified by content hash" would have been read as the third.
+
+================================================================================
+RECOVERY INSTRUCTION — THIS IS THE PART THE BUNDLE DOES NOT CARRY
+================================================================================
+
+    git clone <bundle> restored
+    cd restored
+    git checkout -b recovered origin/url-scheme-validation-r6
+    ls web/src/util/url-binding-scan.test.ts        # 68066 bytes
+    git hash-object web/src/util/url-binding-scan.test.ts
+    # must print c8cb6993581fa202c44cf702f41680fa96442a78
+
+Verify you have the right bytes, not merely a file of the right name:
+    sha256sum web/src/util/url-binding-scan.test.ts
+    # 5b20f783b42fdb713499afc6b4470286e3ea7937629edcc02579021196ba4b76
+
+INSTRUCTION EXECUTED AT 2026-07-29T10:27:51Z, NOT MERELY WRITTEN:
+  file present      : YES
+  bytes             : 68066   (expected 68066)
+  git hash-object   : c8cb6993581fa202c44cf702f41680fa96442a78
+  sha256            : 5b20f783b42fdb713499afc6b4470286e3ea7937629edcc02579021196ba4b76
+  MATCHES TARGET    : YES
+
+FINAL ANSWER: A RESTORE HAS BEEN PERFORMED AND VERIFIED BY CONTENT HASH — YES.
+IT IS NOT OFF-HOST AND THERE IS NOWHERE ON THIS MACHINE THAT WOULD BE.

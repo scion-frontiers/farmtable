@@ -1,0 +1,47 @@
+[
+  {
+    "text": "Failed to load resource: the server responded with a status of 404 ()",
+    "url": "https://farmtable-486315127503.us-central1.run.app/favicon.ico",
+    "timestamp": "2026-07-23T23:40:07.861Z"
+  },
+  {
+    "text": "Failed to load resource: the server responded with a status of 401 ()",
+    "url": "https://farmtable-486315127503.us-central1.run.app/api/auth/session",
+    "timestamp": "2026-07-23T23:40:07.870Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:40:34.816Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:40:56.994Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:41:07.259Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:41:15.507Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:41:23.950Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:41:30.669Z"
+  },
+  {
+    "text": "Stream error: GrpcError: Response closed without grpc-status (Headers only)\n    at onEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7312:57927)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9350\n    at Array.forEach (<anonymous>)\n    at f.rawOnEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:9312)\n    at f.onTransportEnd (https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:8884)\n    at https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js:7283:14901",
+    "url": "https://farmtable-486315127503.us-central1.run.app/assets/index-BWLreBoa.js",
+    "timestamp": "2026-07-23T23:41:35.933Z"
+  }
+]

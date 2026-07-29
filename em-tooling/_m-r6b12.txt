@@ -1,0 +1,65 @@
+THIRD CORRECTION TO THE SAME BRIEF, AND THIS ONE CORRECTS MY LAST CORRECTION. I am
+keeping count out loud because the count is information about me, not about you.
+
+WHAT I TOLD YOU AN HOUR AGO: the collection half is not inert, and the real consequence
+of a nil is A SILENT CAPABILITY DOWNGRADE IN THE UI. I told you to write that into the
+comment.
+
+DO NOT WRITE THAT SENTENCE. It is overstated in the present tense, and I would have
+shipped you into the exact defect class this round exists to remove - a production
+comment asserting a consequence that cannot currently occur.
+
+I VERIFIED THIS MYSELF BY READING THE TWO FILES rather than combining two legs' reports,
+because the last three errors in this chain all came from reasoning across a boundary
+instead of measuring at it. Line numbers so you do not have to trust me either:
+
+  web/src/capabilities.ts:93  getCapabilities(collection)
+    :94-95   platform === FARMTABLE  ->  return ALL_ENABLED     <-- RETURNS BEFORE :98
+    :97-101  platform === GITHUB     ->  reads collection.remoteData, needs writable===true
+    :104     everything else         ->  ALL_DISABLED
+
+  web/src/components/ft-app.ts:254  isCollectionWritable(coll)
+    reads coll.remoteData, returns rd.writable === true, DEFAULT FALSE
+    and both its callers (:228, :239) return early on FARMTABLE before reaching it
+
+SO THE READ OF remoteData IS ON THE GITHUB BRANCH ONLY. And the audit leg has now
+measured, with a controlled sweep, that NOTHING IN THE TREE EVER SETS writable. Put
+those together:
+
+  A GITHUB COLLECTION IS ALREADY ALL_DISABLED. A nil remote_data changes it from
+  ALL_DISABLED TO ALL_DISABLED. THERE IS NO OBSERVABLE DOWNGRADE TODAY.
+  A FARMTABLE COLLECTION NEVER REACHES THE READ AT ALL.
+
+THE CORRECTED SENTENCE, and this is the one to ship:
+
+  A nil here makes the writable flag unreadable, and the dashboard treats an unreadable
+  flag as not-writable. Today that is indistinguishable from the status quo, because no
+  in-tree writer ever sets the flag. IF ANYTHING EVER SETS IT, THIS LINE SILENTLY
+  REVOKES IT.
+
+That is fail-closed, it is true in the present tense, and it states the future condition
+under which it stops being harmless. Bound it to the tree - out-of-tree writers exist as
+a possibility and neither leg could bound that population, so do not write a sentence
+that quantifies over all writers.
+
+WHAT DOES NOT CHANGE, and I want this explicit so you do not unwind the right part:
+
+  B11 STANDS EXACTLY AS CORRECTED. Key the guard on remote_data being CONSUMED AT ALL,
+  with the two capability sites as a named allowlist. The consumer is REAL. It being
+  currently unable to produce a visible difference is a fact about today's data, not
+  about the code, and it is precisely the thing that changes without anyone noticing.
+  If you were tempted to relax B11 on the strength of this message, that is the trap.
+
+  The B1/B2 fix itself is unchanged. Only the comment's wording moves.
+
+ONE MORE THING YOU SHOULD KNOW BECAUSE IT BEARS ON HOW YOU WORD THE COMMENT, and it is
+not yours to fix. Nine GitHub write operations in the dashboard sit behind a flag that
+nothing in this repository sets. Whether that is dead code or a product defect is above
+both of us and I have routed it. Do not resolve it in a comment, do not describe the
+GitHub write path as working, and do not describe it as broken. Describe only the line
+in front of you.
+
+If any of this is wrong when you touch the files, say so. Three corrections in one brief
+is my error rate, and the reason you keep getting them is that each one came from a
+measurement that did not exist when I wrote the last. Ask for the build token when you
+want it.

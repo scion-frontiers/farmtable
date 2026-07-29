@@ -1,0 +1,49 @@
+[self-check] broken tree -> exit 1 OK
+G3-arity-inline              exit=0   green expect=red   !! MISMATCH
+    what: ARGUMENT-SHAPE DRIFT (named in the amended claim): renderMarkdown grows a second parameter whose branch skips DOMPurify, and the desc sink passes it. R5 accepts the call because the argument is still a bare renderMarkdown(...) call; every behavioural test calls renderMarkdown with exactly one argument, so no test can express the new code path.
+    last: markdown sanitizer: 61 checks passed
+G3b-arity-sink-only          exit=0   green expect=red   !! MISMATCH
+    what: Control for G3: the sink alone grows a second argument, markdown.ts untouched. Isolates whether R5 accepts extra arguments at all.
+    last: markdown sanitizer: 61 checks passed
+G1-htmlcomment-blind         exit=0   green expect=red   !! MISMATCH
+    what: An UNTERMINATED <!-- inside a lit template blanks the guard's view to end of file (template-mode branch takes src.length when indexOf('-->') fails). Placed in a NON-sink scanned component, everything after it is invisible to R8/R9, the tripwire and BANNED_SINKS.
+    last: markdown sanitizer: 61 checks passed
+G1b-htmlcomment-control      exit=1   red   expect=red   OK 
+    what: Control for G1: the same innerHTML write with NO preceding unterminated HTML comment. Proves the harness can express the detection, so a green G1 is a blind spot and not an inexpressible input.
+    last: - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/inspector-shared-styles.ts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+G2-ignore-launder            exit=0   green expect=red   !! MISMATCH
+    what: Value-alias the directive in a NON-sink SCANNED file behind the documented ignore-line marker (the tripwire honours it; sinkBindingViolations does not run on non-sink files), then import and call it from a required sink.
+    last: markdown sanitizer: 61 checks passed
+G4-owner-rehome              exit=1   red   expect=red   OK 
+    what: markdown.ts moved to src/util/markdown/index.ts (a directory-per-module refactor). SANITIZER_OWNER is a literal path, so the moved sanitizer becomes a non-owner that names 'dompurify'.
+    last: - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to for
+OB1-asrule-dropname          exit=1   red   expect=red   OK 
+    what: Over-broaden the as-rename tripwire to fire on ANY `as` in an import/export clause. FP1/FP3 (`html as staticHtml`) should be the control that catches this.
+    last: - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: <fixture>: unsafeHTML renamed with 'as' in an import/export clause :: export { html as staticHtml } from 'lit/static-html.js'; | <fixture>: unsafeSVG renamed with 'as' in an import/export clause :: export { html as staticHtml } from 'lit/static-html.js'; | <fixture>: unsafeStatic renamed wit
+OB3-reexport-dropname        exit=1   red   expect=red   OK 
+    what: Over-broaden the re-export tripwire to match on module path alone. FP3 (`export { html as staticHtml } from 'lit/static-html.js'`) is its control.
+    last: - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: <fixture>: static-html.js re-exports unsafeStatic :: export { html as staticHtml } from 'lit/static-html.js';
+OB5-innerHTML-eq             exit=1   red   expect=red   OK 
+    what: Over-broaden the innerHTML pattern by dropping the (?!=) lookahead, so `el.innerHTML === prev` reads as a write. FP5 is its control.
+    last: - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: innerHTML/outerHTML assignment :: if (el.innerHTML === previous) return;
+OB6-htmlcomment-strip        exit=1   red   expect=red   OK 
+    what: Remove HTML-comment blanking inside lit templates. FP6 and the real comment in ft-inspector-desc.ts are its controls.
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - fixture: comments and marked lines cannot turn the suite red: the guard rejects prose about itself: <fixture>:1: unsafeHTML used in a non-called position :: const t = html`<!-- renderMarkdown, not unsafeHTML, is the boundary. -->${x}`; ;; - fixture: the sink-binding rules accept a co
+FP1                          exit=0   green expect=green OK 
+    what: CONTROL re-verification: legitimate `import { html as staticHtml } from 'lit/static-html.js'`
+    last: markdown sanitizer: 61 checks passed
+FP1xOB1                      exit=1   red   expect=red   OK 
+    what: FP1 under OB1: if the as-rename rule loses its name anchor, the FP1 construct must turn the suite red — otherwise FP1 controls nothing.
+    last: - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts: unsafeHTML renamed with 'as' in an import/export clause, src/components/inspector/ft-inspector-desc.ts: unsafeSVG renamed with 'as' in an import/export clause, src/components/inspector/ft-inspector-desc.ts: unsafeStatic renamed with 'as' in
+FP3xOB3                      exit=1   red   expect=red   OK 
+    what: FP3 under OB3.
+    last: - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts: static-html.js re-exports unsafeStatic [tripwire: catches the listed indirection forms only, not all of them] ;; - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: <fixture>: static-h
+FP5xOB5                      exit=1   red   expect=red   OK 
+    what: FP5 under OB5.
+    last: - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-inspector-desc.ts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence] ;; - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: innerHTML/outerHTML assignment ::
+
+=== MISMATCHES ===
+  G3-arity-inline: got green, expected red :: markdown sanitizer: 61 checks passed
+  G3b-arity-sink-only: got green, expected red :: markdown sanitizer: 61 checks passed
+  G1-htmlcomment-blind: got green, expected red :: markdown sanitizer: 61 checks passed
+  G2-ignore-launder: got green, expected red :: markdown sanitizer: 61 checks passed

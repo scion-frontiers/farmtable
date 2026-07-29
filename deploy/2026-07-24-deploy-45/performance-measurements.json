@@ -1,0 +1,45 @@
+{
+  "testDate": "2026-07-24T19:10:00Z",
+  "deployRevision": "farmtable-00052-hf7",
+  "commitSha": "7b94440b5878b03c6ee8301f0d9f1dc4336788ce",
+  "largeCollection": {
+    "name": "Vintage Action Figures Ecommerce v2 - flash-3.6",
+    "id": "85d56006-473f-4633-bfde-1b834dcadf9d",
+    "totalTasks": 9284,
+    "totalLoadTimeMs": 4006,
+    "timeToFirstNodesMs": 2999,
+    "timeToInteractiveMs": 2999,
+    "renderedNodeCount": 1036,
+    "treeInfo": {
+      "renderedNodes": 1036,
+      "foreignObjects": 1036,
+      "depthBadge": "2 deeper levels hidden",
+      "currentLevel": "3",
+      "maxDepth": 3,
+      "hasHierarchyNav": true
+    },
+    "baseline": "17,000-25,000ms (from investigation report)",
+    "levelDropdownOverride": {
+      "fromLevel": 3,
+      "toLevel": 4,
+      "nodesBefore": 1036,
+      "nodesAfter": 7866,
+      "result": "PASS"
+    },
+    "baselineComparison": {
+      "preFix": "17,000-25,000ms (from investigation report, 10k tasks)",
+      "postFix": "2,999ms (measured live, 9,284 tasks)",
+      "improvement": "6x-8x real-world speedup"
+    }
+  },
+  "smallCollection": {
+    "name": "default",
+    "id": "1e0f02d1-99cd-46bc-a739-bac0fde60710",
+    "totalTasks": 37,
+    "renderedNodes": 37,
+    "maxDepth": -1,
+    "depthBadge": null,
+    "depthLimitApplied": false,
+    "result": "PASS - no depth limit, renders all 37 nodes"
+  }
+}

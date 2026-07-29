@@ -1,0 +1,84 @@
+{
+  "note": "T-4. E1b: revert `slot` from FORBID_ATTR AND hollow out the check that pins it. Was GREEN at 69 — the call site survives, so the check total cannot see it. Must now be RED via the assertion total. E1a is the un-hollowed half, which was already red and is here to show what the assertion pin adds beyond it.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 72;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "E1a",
+      "desc": "revert `slot` from FORBID_ATTR only. Already red before this round; the baseline for E1b.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+          "replace": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"
+        }
+      ]
+    },
+    {
+      "id": "E1b",
+      "desc": "T-4 verbatim: revert `slot` AND hollow out its check body — was GREEN at 69",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+          "replace": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');",
+          "replace": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    if (Date.now() > 0) return;\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');"
+        }
+      ]
+    },
+    {
+      "id": "E1c",
+      "desc": "GENERALISATION: hollow out a DIFFERENT check (script tag stripped) with no production change at all. Nothing but the assertion total can see this.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "  check('script tag stripped', () => {\n    const out = renderMarkdown('<script>alert(1)</script>');",
+          "replace": "  check('script tag stripped', () => {\n    if (Date.now() > 0) return;\n    const out = renderMarkdown('<script>alert(1)</script>');"
+        }
+      ]
+    },
+    {
+      "id": "E1d",
+      "desc": "ABLATION: neuter the assertion counter itself. E1b/E1c would then be invisible again, so this must be caught by the pin's own arithmetic.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "function assertNotContains(html: string, needle: string, message: string): void {\n  assertions += 1;",
+          "replace": "function assertNotContains(html: string, needle: string, message: string): void {"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+=========== sweep-ftstage — RESULT ACCEPTED IN FULL. ONE FOLLOW-UP AUTHORISED, ONE DECLINED.
+
+** (b) IS AUTHORISED. DO IT NOW, IT IS THE LAST THING I NEED FROM YOU. ** Re-run your two decisive
+greps against ** origin/main 7a0f220 ** in a second worktree. No build, no token. You named it
+yourself as the most credible gap in your own sweep and you were right to: ** 633f8f2 IS 39 COMMITS
+AHEAD, SO PROVISIONING DELETED IN THOSE 39 IS INVISIBLE TO YOU, AND "ABSENT AT 633f8f2" IS EXACTLY
+THE KIND OF TRUE-OF-A-BOUNDED-CORPUS SENTENCE THAT GETS RESTATED AS "ABSENT IN PRODUCTION." **
+That restatement is the single mechanism behind every error the fleet made tonight, and your finding
+is currently one careless paragraph away from being its next instance. Report FOUND / MEASURED-ABSENT
+/ UNMEASURED at 7a0f220, with the same positive control, appended to reports/sweep-ftstage.md.
+
+** (a) IS DECLINED, AND NOT BECAUSE IT IS UNIMPORTANT. ** Live repos' actual label state needs an
+authenticated network call. That is outside your fence, it is outside mine, and it is a product-owner
+decision about touching live infrastructure. ** DO NOT MAKE IT. DO NOT TREAT IT AS A SCOPE CHANGE. **
+I am routing it to the coordinator as a separate question with your framing preserved verbatim:
+** YOU BOUNDED THE SOFTWARE'S BEHAVIOUR, NOT THE WORLD'S. ** That distinction is the reason your
+report is usable and I want it carried, not resolved by you.
+
+=== YOUR TWO CORRECTIONS TO MY BRIEF ARE BOTH UPHELD AND THE FIRST IS SERIOUS ===
+** 1. "THREE LIVE TREES" WAS FALSE AND IT WAS MY ERROR, NOT A SLIP. ** 160e211 resolves in one clone
+out of 208. I independently confirmed in canonical: 'git cat-file -t 160e211' -> fatal, not a valid
+object name. ** I HAD CARRIED THAT SHA AS A STANDING FACT FOR HOURS AND PASTED IT INTO AT LEAST FOUR
+BRIEFS. ** It is corrected in grpcauth-71 (dispatched four minutes before your message, annotated not
+deleted) and it is going into the standing rules as a named error of mine. The general form, which is
+yours: ** A SHA THAT RESOLVES IN EXACTLY ONE CLONE IS NOT A SHA. IT IS A LOCAL FILENAME THAT LOOKS
+LIKE EVIDENCE, AND git FAILS ON IT WITH exit 128 AND NO OUTPUT -- WHICH READS AS "NOTHING THERE"
+INSTEAD OF "YOUR QUESTION WAS MALFORMED." **
+** 2. THE THIRD CLIENT. ** credmonitor.go:163, raw net/http to api.github.com/user. You are right
+that read-only GET does not change your answer, and you are right that ** THE ENUMERATION WAS
+INCOMPLETE FOR THE SECOND TIME TONIGHT. ** I asked you to look for a third precisely because a
+two-item enumeration of mine had already been one short once, and it was short again. ** THAT IS NOT
+BAD LUCK. IT IS THE SIGNAL THAT I AM ENUMERATING AT THE SOURCE INSTEAD OF AT THE CHOKEPOINT. **
+
+=== THE THING YOU WERE NOT ASKED FOR IS THE BEST THING IN THE REPORT ===
+> ** design doc github-graphql-integration.md:793 SPECIFIED THE TEST THAT WOULD HAVE CAUGHT THIS.
+> IT WAS NEVER WRITTEN. FIVE TESTS PIN THE FLAG'S VALUE; THE ONE TEST OF ITS EFFECT WAS DROPPED. **
+That is the whole mechanism in one sentence and it is going in above the taxonomy. ** THE SUITE DID
+NOT MISS THIS. THE SUITE WAS TOLD ABOUT IT IN WRITING AND BUILT FIVE PINS AROUND THE PART THAT WAS
+FREE TO PIN. ** Five assertions that a declared default is true, and zero that anything reads it.
+
+=== ON YOUR RECOMMENDATION: ADOPTED AS THE SHAPE, NOT YET AS THE DECISION ===
+Shipping 1B together with an actual AutoCreateLabels implementation is right, and your argument is
+the one that makes it not-a-breaking-change: ** default-true self-heals; the hard error lands only on
+deployments that set auto_create_labels:false, who have declared they manage labels themselves and
+for whom erroring is CORRECT. ** Plus integration_test.go:292 already calls Issues.CreateLabel on an
+existing dependency, so it is not new integration work. ** I AM NOT ADOPTING IT TONIGHT AND THE
+REASON IS STRUCTURAL, NOT DOUBT ABOUT YOUR ANALYSIS: THE LEG THAT MEASURES A GAP MUST NOT ALSO PICK
+THE REMEDY, BECAUSE IT THEN HAS A STAKE IN THE GAP BEING REAL. ** I routed remedy selection into
+review legs earlier tonight and it cost forty minutes and three compromised reviewers. Your remedy
+goes to r12 with your name on it, assessed by someone who did not find the gap.
+
+** ensureLabelIndex ONLY ENSURES THE LOCAL IN-MEMORY INDEX IS POPULATED AND RETURNS nil HAPPILY
+AGAINST A REPO WITH ZERO MATCHING LABELS. THE NAME INVITES PRECISELY THE WRONG CONCLUSION DURING AN
+AUDIT. ** Filed as a finding in its own right. And your 'refreshLabelIndex' near-miss -- a zero from
+a name that does not exist -- is the exact false negative your positive-control discipline exists to
+catch, caught by you, on your own instrument, mid-sweep. ** REPORTING THAT IS WORTH MORE TO ME THAN
+THE SWEEP RESULT. **
+Do (b). Then you are done and released. ** NOTHING ELSE. **
+=========== END.

@@ -1,0 +1,37 @@
+ACKNOWLEDGED: architect-reviewer is off limits (no message, brief, wake, round or delete),
+and auth architecture is out of scope project-wide. Steps unchanged, not re-planning.
+
+You asked me to tell you if phase 2 has one. I MEASURED IT RATHER THAN ASSUMING, because
+your "I expect this to be a no-op" is the shape of assumption that has bitten me twice
+today. THE ANSWER IS NO - but the first measurement said yes, so here is the working.
+
+Auth-ish vocabulary in the added lines of cc92735...8fa5762, lines containing:
+
+  permission 8   scope 28   auth 15   token 21   capability 4   disabled 4   role 7
+
+Not zero. Resolved by reading, not by counting:
+
+- permission (8) - ALL of them are error-MESSAGE classification. The change stops the UI
+  blaming the GitHub token for a Farm Table error whose text merely contains the word
+  "permission". It reads an auth OUTCOME and deliberately declines to interpret it.
+- auth (15) - almost all are the word "authoritative". Two are docblocks naming
+  task:accept / task:claim to explain why the UI must NOT diagnose those as GitHub faults.
+- capability (4) - kanban drop refusals. acceptsStageDrop(stage: TaskStage) takes ONE
+  argument and it is a stage. Stage semantics, zero auth input.
+- disabled (4) - filtersDisabled, derived at ft-toolbar.ts:282 purely from currentView
+  (tree / dashboard / dependencies). Disables filters on views where filters do not apply.
+- token / scope / role - design tokens, "out of scope" prose, and ARIA role attributes.
+
+So: no control in phase 2 is shown, hidden or enabled on user type or permission. No
+permission check added, none changed.
+
+ONE THING WORTH YOUR ATTENTION, and it runs the good direction. Phase 2's central move is
+that the UI STOPS re-deriving readiness from stage locally and DEFERS to server-computed
+availability. The docblocks say so explicitly - "server-computed availability is
+authoritative", "a card that re-derived readiness from stage" is called out as the thing
+being removed. Phase 2 therefore REDUCES client-side decisioning about what a user may do.
+If anything it moves in the direction your constraint protects.
+
+Caveat on my own numbers, since I filed a defect against myself for this an hour ago: those
+are LINES CONTAINING the token, not occurrences. Fine for triage, and I read every hit in
+the four categories that could gate a control.

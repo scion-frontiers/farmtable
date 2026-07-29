@@ -1,0 +1,131 @@
+{
+  "note": "W2 verification. R2-importmeta was GREEN at 86f30bc and must now be RED, naming the tripwire. R2-control must stay RED (it was RED before, so it is not evidence on its own — it is what proves import.meta was the mechanism). ABL-1 reverts the lookahead and must be caught by the new INDIRECTION_EVASIONS entry, or that entry is decorative.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 69;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "R2-importmeta",
+      "desc": "R2 verbatim: laundering file prepends import.meta above the value alias — was GREEN at 86f30bc",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nconst dev = import.meta.env.DEV\nexport const rawHtml = unsafeHTML\nexport { css as _css } from 'lit';\nimport { css } from 'lit';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { renderMarkdown } from '../../util/markdown.js';",
+          "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { rawHtml } from './inspector-shared-styles.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${unsafeHTML(renderMarkdown(this.description))}\n        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "R2-control",
+      "desc": "the identical bypass with the import.meta line removed — RED before and after; it is what isolates import.meta as the mechanism",
+      "expect": "RED",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nexport const rawHtml = unsafeHTML\nexport { css as _css } from 'lit';\nimport { css } from 'lit';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "import { renderMarkdown } from '../../util/markdown.js';",
+          "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { rawHtml } from './inspector-shared-styles.js';"
+        },
+        {
+          "file": "web/src/components/inspector/ft-inspector-desc.ts",
+          "find": "        ${unsafeHTML(renderMarkdown(this.description))}",
+          "replace": "        ${unsafeHTML(renderMarkdown(this.description))}\n        ${rawHtml(this.description)}"
+        }
+      ]
+    },
+    {
+      "id": "FP-importmeta",
+      "desc": "FALSE-POSITIVE CONTROL: a correct file using import.meta beside a real import must stay GREEN",
+      "expect": "GREEN",
+      "tsc": true,
+      "edits": [
+        {
+          "file": "web/src/components/inspector/inspector-shared-styles.ts",
+          "find": "import { css } from 'lit';",
+          "replace": "const dev = import.meta.env.DEV\nvoid dev;\nimport { css } from 'lit';"
+        }
+      ]
+    },
+    {
+      "id": "ABL-1",
+      "desc": "ABLATION: revert the negative lookahead. The new INDIRECTION_EVASIONS entry must catch it.",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": ".replace(/\\bimport\\b(?!\\s*\\.)[^;'\"]*?\\bfrom\\b\\s*(['\"])[^'\"]*\\1\\s*;?/g, wipe)",
+          "replace": ".replace(/\\bimport\\b[^;'\"]*?\\bfrom\\b\\s*(['\"])[^'\"]*\\1\\s*;?/g, wipe)"
+        }
+      ]
+    },
+    {
+      "id": "ABL-2",
+      "desc": "ABLATION: delete the new INDIRECTION_EVASIONS entry. Nothing should catch this (the table is an enumeration) — this measures that the entry is what carries ABL-1, not some other rule.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    'const dev = import.meta.env.DEV\\n' +\n      'const rawHtml = unsafeHTML\\n' +\n      \"export { css as _css } from 'lit';\",\n  ];",
+          "replace": "  ];"
+        }
+      ]
+    },
+    {
+      "id": "ABL-3",
+      "desc": "ABLATION: revert the lookahead AND delete the new entry. Must be GREEN — that is the 86f30bc state, and it is what makes ABL-1's red attributable to the entry.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": ".replace(/\\bimport\\b(?!\\s*\\.)[^;'\"]*?\\bfrom\\b\\s*(['\"])[^'\"]*\\1\\s*;?/g, wipe)",
+          "replace": ".replace(/\\bimport\\b[^;'\"]*?\\bfrom\\b\\s*(['\"])[^'\"]*\\1\\s*;?/g, wipe)"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "    'const dev = import.meta.env.DEV\\n' +\n      'const rawHtml = unsafeHTML\\n' +\n      \"export { css as _css } from 'lit';\",\n  ];",
+          "replace": "  ];"
+        }
+      ]
+    }
+  ]
+}

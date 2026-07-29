@@ -1,0 +1,56 @@
+$ ft status --token "$FARMTABLE_TOKEN" --output json
+{
+  "api_protocol": "grpc",
+  "authenticated_as": {
+    "id": "a948da6d-10cb-4d5c-8167-b1a35de52946",
+    "name": "local",
+    "type": "AGENT"
+  },
+  "latency_ms": 90,
+  "platforms": null,
+  "server": "farmtable-qo7k5fvpda-uc.a.run.app:443",
+  "server_mode": "dev",
+  "server_version": "dev",
+  "status": "serving",
+  "task_count": 65,
+  "uptime_seconds": 4015
+}
+$ test/integration/test-task-lifecycle.sh
+INFO: creating disposable collection test-integration-20260720131756-7440-task
+PASS: collection created: 60fb37bf-ad46-4e80-8db7-d39c1dd4b36c test-integration-20260720131756-7440-task
+PASS: authenticated user resolved for assignee: a948da6d-10cb-4d5c-8167-b1a35de52946
+PASS: task created successfully: e8f4fdf8-0032-4011-b6fb-29a65d5c2ab0
+PASS: task appears in collection-scoped list
+PASS: task get returned expected fields
+PASS: task update changed priority, stage, labels, description, and assignee
+PASS: comment added successfully: 4557e81e-2e48-484d-8903-a69220a28dc9
+PASS: comment appears in comment list
+PASS: second task created successfully: a27b340e-3bdf-4e95-96a4-cbb2ad296e7a
+PASS: relationship added: task A blocks task B
+PASS: relationship visible in dependency tree
+PASS: task closed successfully
+LEFT_BEHIND: 60fb37bf-ad46-4e80-8db7-d39c1dd4b36c test-integration-20260720131756-7440-task
+PASS: task lifecycle journey completed
+$ test/integration/test-collection-lifecycle.sh
+INFO: creating disposable collection test-integration-20260720131758-7667-collection
+PASS: collection created: 9a568ad7-f0c2-49ab-8e6c-435fb9d11d5b test-integration-20260720131758-7667-collection
+PASS: collection appears in collection list
+PASS: collection get returned expected fields
+PASS: task created in disposable collection: 326e2596-0668-4448-9eb5-928ebb28868e
+PASS: task appears when listing with collection scope
+LEFT_BEHIND: 9a568ad7-f0c2-49ab-8e6c-435fb9d11d5b test-integration-20260720131758-7667-collection
+PASS: collection lifecycle journey completed
+$ test/integration/test-export-import.sh
+INFO: creating disposable source collection test-integration-20260720131759-7424-export
+PASS: source collection created: e2528733-7322-4eeb-a30e-458fe812fc41 test-integration-20260720131759-7424-export
+PASS: source task created: 0ce041c5-288b-4ab8-8943-e61f663c4eb6
+PASS: second source task created: 9d18659d-3705-4f00-8bda-4e4b7bd0c01a
+PASS: source collection has expected task count
+PASS: collection exported to valid JSON: /tmp/test-export-20260720131759-7424.json
+PASS: collection imported as new collection: e615511a-61b5-46be-b180-1e137d3b9aea test-integration-20260720131759-7424-reimported
+PASS: imported collection appears in collection list
+PASS: imported task count matches source
+PASS: spot-checked imported task fields match source
+LEFT_BEHIND: e2528733-7322-4eeb-a30e-458fe812fc41 test-integration-20260720131759-7424-export
+LEFT_BEHIND: e615511a-61b5-46be-b180-1e137d3b9aea test-integration-20260720131759-7424-reimported
+PASS: export/import journey completed

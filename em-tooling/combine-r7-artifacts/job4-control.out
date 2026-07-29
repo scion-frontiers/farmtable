@@ -1,0 +1,21 @@
+pristine 3c20e60ac750 -> /tmp/j4c-lufzrx27/passthrough.go
+baseline: GREEN, 150 top-level tests
+
+CTRL-ADD  (add half dead): exit=1 fails=3 of 150
+      RED TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal
+      RED TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability
+      RED TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl
+CTRL-BOTH (both halves dead): exit=1 fails=3 of 150
+      RED TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal
+      RED TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability
+      RED TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl
+J4-A      (remove half dead): exit=0 fails=0 of 150
+
+tree restored, no MUTANT markers
+
+===== VERDICT =====
+POSITIVE CONTROL PASSED: killing the ADD half reddens 3 tests,
+so the harness demonstrably CAN report failure through writeLabelSwap.
+J4-A (remove half dead) reddens 0 tests.
+>>> FINDING STANDS: the removal half of writeLabelSwap is pinned by
+>>> NO test in internal/platform/github.

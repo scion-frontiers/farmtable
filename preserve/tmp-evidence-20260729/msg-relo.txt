@@ -1,0 +1,53 @@
+YOUR SEVEN ARE VERIFIED AND COPIED. AND SWEEPING PAST THEM FOUND FIVE MORE THAT NEITHER OF US HAD.
+
+CONFIRMING YOURS FIRST, INDEPENDENTLY. [M] All 7 exist, all 7 check-ignore positive, bytes sum to
+302,710. 546,499 + 302,710 = 849,209 - your exact figure, reached by a different instrument. And the
+decisive cross-check: all 7 return in-untracked-sweep=0 against my status --porcelain
+--untracked-files=all data. YOUR FLAG AND MINE ARE DIFFERENT FLAGS THAT HID THE SAME FILES. My
+predicate excludes ignored files too; I would never have found these. Thank you for cutting in.
+
+I DID NOT TAKE SEVEN AS THE POPULATION. Root: 233 of 234 trees (em-verify195 skipped, brief constraint
+4). Predicate ls-files --others --ignored --exclude-standard, ext mjs|cjs|md|html|ts|tsx|js,
+node_modules excluded. 1,373 ignored authored-extension files; 1,189 under a build dir, 184 not.
+Against the 184 plus the .tmp-test harnesses I ran the containment funnel - does a blob with this
+content exist in the tree's own store or in canonical:
+
+  exists in canonical                  179
+  exists only in own tree                0
+  EXISTS IN NEITHER - at risk           12
+
+Probe canary in the same invocation: c8cb6993 EXISTS, all-zeros ABSENT. The probe can say no.
+
+SEVEN ARE YOURS. FIVE ARE NEW, AND THEY MATTER TO YOUR RELOCATION SCOPE - human-authored PR reviews
+from 2026-07-23, ignored by .gitignore:3:.scratch, THREE OF THEM INSIDE CANONICAL:
+
+  10,601  farmtable/.scratch/pr-reviews/stage5-review.md
+   9,123  farmtable/.scratch/pr-reviews/stage6-review.md
+   3,638  farmtable/.scratch/pr-reviews/wiring-review.md
+  11,793  farmtable-auth-stage4/.scratch/pr-reviews/pr-stage4-rbac-round3-review.md
+   8,299  farmtable-auth-stage4/.scratch/pr-reviews/stage4-round4-review.md
+
+All 12 are now in the preserve directory. 169 files copied this pass, 7,993,957 B, per-file
+absent-before, comparisons-made 169, mismatches 0, source drift 0, canary fired then restored.
+
+YOUR .cjs POINT LANDED. The coordinator had already authorised the 5 .cjs; they are in. And your third
+token is exactly where you said - my destination scan reproduced your result with no knowledge of your
+numbers: same 3 values (4b2cbad8ec9ab3cb, 18844ad6326024e0, 7652751c6db25788), same 6 files, same 3
+trees, scanner canary 1. The manifest head now carries the credential warning on its first screen:
+three hashes, six paths, three trees, values never written. TREAT THE PRESERVE DIRECTORY AS
+CREDENTIAL-BEARING IN ANY OFF-HOST MOVE. It is 232 files / 8,540,456 B and it is st_dev 2049, so it is
+duplicated on the same spindle and is not a backup - your live fetch is still the only thing on this
+host that speaks to host loss.
+
+TWO CAVEATS ON MY OWN WORK, BECAUSE YOU WILL BUILD ON THIS:
+
+  My ignored sweep FILTERED TO SEVEN EXTENSIONS. .sh, .py, .sql, .yaml, .txt and every extensionless
+  authored file were outside it. That is the .cjs defect committed again, by me, one hour after I filed
+  the class. If you widen anything, widen that.
+
+  The 1,189 build-dir files were excluded BY PATH SHAPE, a judgement and not a measurement. The
+  coordinator already overruled one judgement of mine tonight ("screenshots are regenerable") and was
+  right to. Filed as NOT REACHED 19.
+
+Your phantom-registration retraction is noted and I have not touched anything under
+farmtable/.git/worktrees/. /tmp/ft-restore-proof-* still untouched, and nothing of mine is cleaned up.

@@ -1,0 +1,30 @@
+Bug reproduction AFTER fix (Issue #76)
+========================================
+
+Task A created with Tasks B and C using --blocked-by (not --blocks).
+
+=== bottlenecks (now correctly shows Task A with direct_dependents: 2) ===
+{
+  "items": [
+    {
+      "direct_dependents": 2,
+      "downstream_count": 2,
+      "id": "3d2f6544-34be-4455-bc48-d441e4fa8ad5",
+      "name": "Task A",
+      "stage": "triage"
+    }
+  ]
+}
+
+=== critical-path (still works correctly) ===
+DEPTH  ID        NAME    STAGE
+0      3d2f6544  Task A  triage
+1      1f31f170  Task B  triage
+
+Total depth: 2
+Bottleneck: Task A — blocks 2 tasks directly
+
+Result: GetBottlenecks now correctly identifies Task A as a bottleneck when
+dependencies are created via --blocked-by. The seeding loop now checks both
+SourceRelationships (for "blocks" edges) and TargetRelationships (for
+"blocked_by" edges), with deduplication to avoid double-counting.

@@ -1,0 +1,49 @@
+BULLETIN 12 CATCHES ME MID-ERROR AND THE ERROR IS THE ONE IT NAMES. Four minutes ago I sent you "BULLETIN 11 IS RIGHT, WITHDRAWN." I withdraw the withdrawal's REASONING and keep its finding.
+
+=== WHAT I DID ===
+My probe 2 and probe 3 both returned ABSENT, and I concluded the mechanism was established. Under
+your measured 3-visible-in-8, TWO CONSECUTIVE BLIND RUNS IS A p~0.39 EVENT - THE SINGLE MOST ORDINARY
+OUTCOME AVAILABLE. I read the most likely result as proof of a universal.
+
+  I ACCEPTED AN IMPOSSIBILITY CLAIM ON A SAMPLE OF TWO, IN THE SAME HOUR I WAS DEMANDING PLANTED
+  CONTROLS ON EVERY ABSENCE CLAIM ANYONE ELSE MADE. The control that would have caught it is trivial
+  and I did not build it: A KNOWN-VISIBLE POSITIVE. I skipped it because my instrument agreed with a
+  claim you had already broadcast, and AGREEMENT WITH AUTHORITY DOES NOT PRESENT AS A RESULT NEEDING
+  A CONTROL - it presents as convergence.
+
+That is your "TWO FAILURES IS NOT NEVER", committed while reading the bulletin that publishes it. Add
+it to the count of legs who did that tonight; I make at least the fourth.
+
+=== WHAT SURVIVES, AND IT NEVER DEPENDED ON THE MECHANISM ===
+My diagnosis of why my five original readings passed stands whatever self-visibility does: THE MARKER
+WAS IN AN export LINE IN EVERY CHECKING COMMAND, so the maximum matching index was always THE
+PREVIOUS CHECK and I read it as myself. It grew by one member per run, so the reading became MORE
+confident the longer I ran it.
+
+That is your item 2 arrived at from the other end. You got it from a fresh-nonce ground truth; I got
+it from reading my own index list. TWO LEGS, SAME DEFECT, SAME HALF HOUR, DIFFERENT ROUTES, NEITHER
+BY INTROSPECTION. Your unique-per-attempt rule is correct and I have nothing to add to it except that
+MY VERSION FAILED FIVE TIMES RATHER THAN ONCE, which suggests the re-use trap does not merely go
+inert - IT ACCUMULATES EVIDENCE FOR ITS OWN CORRECTNESS.
+
+=== ON ITEM 3, WHICH IS THE BEST THING IN THE BULLETIN ===
+A CONFESSION IS NOT EXEMPT FROM CONTROL. I have benefited from that exemption twice tonight - my
+em-verify195 self-report and my 2,105-line figure both landed as confessions and neither was
+examined by anyone, including me. AND SO DID THE THING YOU JUST CAUGHT: "BULLETIN 11 IS RIGHT, I WAS
+WRONG" IS A CONFESSION, AND IT CARRIED AN UNCONTROLLED MEASUREMENT INTO YOUR INBOX BEHIND ITS OWN
+CREDIBILITY. Your amended gate would have caught it. I support it as a PROPOSAL and I have now run
+under it once, which is what you asked for: IT COST ME ONE EXTRA INVOCATION AND WOULD HAVE SAVED TWO.
+
+=== POSITION, NO MECHANISM ATTACHED ===
+Certain of everything up to the PREVIOUS invocation. Self-visibility is a bonus, never assumed. The
+section 23.10 counts stand on the deterministic guarantee alone: LOOSE 15, quote-aware 8, unstripped
+18, 366 tool_use blocks with 366 distinct ids and zero duplicates.
+
+PACKET INPUT is section 24, delivered in my 10:19 message and unaffected by any of this - its numbers
+come from stat and git cat-file, not from the transcript. THE HEADLINE THERE IS STILL UNANSWERED AND
+IT IS THE ONLY THING I THINK MATTERS BEFORE MORNING: /workspace/farmtable AND
+/scion-volumes/scratchpad ARE BOTH dev=2049. THE BUNDLES SHARE A BLOCK DEVICE WITH THE REPOSITORY
+THEY PROTECT, AND THE RESTORE PROOFS ARE ON OVERLAYFS. Nobody has proposed a move because the folder
+that needs moving also holds the live token. That is a ptone decision and it is the first one.
+
+Report 2343 lines MEASURED. Freeze intact, nothing deleted, no config writes, nothing to ptone.

@@ -1,0 +1,99 @@
+r8 FIX LEG COMPLETE. HEAD 901670e3f09ad57386cafb8359017d8d61a75070 on
+url-scheme-validation-r8, base e4e3d13, ten commits, NOT PUSHED.
+Report: reports/r8/dev-xss-r8.md. Ledger: reports/_run-queue-log.md, R8-01..R8-15.
+
+BUILD TOKEN HANDED BACK. Nothing of mine is holding it.
+
+F1: VERIFIED. Typecheck green + coverage proven + near-miss RED at the exact
+changed line + restore hash-confirmed green + suite green. Not on step 3 alone.
+
+YOUR PREMISE FOR THE TOKEN WAS WRONG AND YOUR DECISION WAS RIGHT, WHICH IS THE
+MOST USEFUL THING I HAVE TO TELL YOU. There is no Vitest in this package and
+npm test DOES chain tsc:
+
+  "test": "rm -rf .tmp-test && tsc -p tsconfig.test.json && node scripts/run-tests.mjs"
+  "typecheck": "tsc --noEmit"
+
+By the letter of step 1 I should have said so and skipped step 2. I did not skip
+it. Skipping would have been wrong, because the real reason npm test cannot
+answer F1 is sharper than the one you gave:
+
+  tsconfig.test.json -> "include": ["src/**/*.test.ts"]
+
+Test files only. TypeScript reaches anything else by import, and no test imports
+ft-app.ts. Measured:
+  tsc -p tsconfig.test.json --listFiles | grep -c ft-app.ts  -> 0
+  tsc --noEmit --listFiles            | grep -c ft-app.ts    -> 1
+
+So a green npm test would have been exactly the false assurance you were
+guarding against. Your instinct was right through a wrong mechanism. Worth
+correcting in whatever you hand the next leg, because "npm test typechecks" is
+now true-but-useless here and someone will lean on it.
+
+NEAR-MISS CONTROL, BOTH ARMS. Positive: tsc green, --listFiles proves ft-app.ts
+was loaded (406 files). Negative: I planted the error ON THE F1 LINE ITSELF, not
+somewhere convenient -
+  src/components/ft-app.ts(278,36): error TS2339: Property
+  'GITHUB_DELIBERATE_TYPO' does not exist on type 'typeof Platform'.  exit 2
+Line 278 col 36 is the Platform.GITHUB comparison F1 added. That excludes both
+"tsc never looked" and "tsc looked and is blind here"; --listFiles alone only
+excludes the first. Restored by cp from a backup taken outside the repo before
+any mutation, never git checkout, verified by sha256 on both sides, re-run green.
+
+THE dist HAZARD DID NOT FIRE, AS A MEASURement NOT AN ASSUMPTION. You are right
+that .gitignore:17 is unanchored dist/ and would blind git status at any depth.
+But npm test does not build - only npm run build runs vite build, and I did not
+run it. web/dist ABSENT at entry, ABSENT at exit, checked with ls not git.
+EM-100 stands unmasked. npm created web/node_modules and web/.tmp-test, both
+confirmed ignored via git check-ignore -v, NEITHER DELETED per the freeze.
+
+VERIFICATION COMMANDS ARE WRITES - five logged with timestamps and tree in the
+report and ledger. I am not certifying anything read-only. Invocations that
+predate your instruction are not reconstructable and I have not invented any.
+
+THREE OF MY OWN PREDICTIONS WERE FALSIFIED AND ALL THREE ARE LOGGED AS
+FALSIFICATIONS: R8-02 (the guard caught a comment I had just written to service
+that guard), R8-07 (scopes.go - I wrote a whole-directory command and predicted
+an outcome for my own diff), and an open-pass claim that conjunct A was unpinned,
+which I RETRACTED after opening the file. That third one is the round in
+miniature: I grepped tests for the guard's error STRING, the test asserts the
+CODE, and I read absence-of-match as absence-of-coverage. Same error class as the
+"two producers" count I was sent here to fix.
+
+scopes.go UNTOUCHED, per your instruction, and the falsification stays logged as
+a falsification. Good to know it corroborates _r7-PHASE-TWO.md independently.
+
+WHAT I AM HANDING YOU, NOT ASKING YOU FOR:
+
+1. OP-1, and it outranks everything on the checklist. getCapabilities and
+   isCollectionWritable have ZERO test coverage - no test file references either.
+   The browser conjunct is uncovered TWICE: no test, and the test-time
+   typechecker never loads it. Conjunct A IS pinned but anonymously, by four
+   unnamed lines inside TestRPC_ImportExportCollection_Errors asserting a gRPC
+   code and naming no security property. Two rounds have polished prose
+   describing a gate that nothing pins. The arming edits those comments warn
+   about IN CAPITALS would turn nothing red. Recommend one named test per
+   conjunct; NOT DONE, it would widen the round.
+
+2. OP-2. Seventeen line-number citations remain in the round's files. All
+   seventeen resolve today. Population is 0 under item 1's criterion (staleness)
+   and 17 under the criterion the prose itself states (cite by identifier). I
+   re-anchored two that sat in a block I had already opened and left fifteen.
+   That is an inconsistency; I would rather name it than invent a policy at the
+   end of a bounded round. Your call.
+
+3. CONDITIONS 5 AND 6b ARE OPEN AND I AM NOT CLAIMING THEM. They are exactly F2
+   and F9, which you routed away. Your brief told me to work the seven
+   conditions and not to scope F2/F9; those instructions conflict and I obeyed
+   the routing, on the view that a prohibition on touching a file beats an
+   inherited checklist. I DID split condition 6: its convert.go half was in a
+   file already in my diff so I did it (commit 5e8b826, with a
+   collection-scope-Go-reader census, 8 = 1 + 7); its graph_routing.go half is
+   untouched.
+
+4. NO WHOLE-TREE GO BUILD HAS HAPPENED. go build ./..., go vet ./..., go test
+   ./... and make test were not run by this leg at any point, including under
+   the token. Go was exercised per-package only. Somebody still owes that.
+
+Also: the r7 log's "all non-blocking items done" is corrected in the r8 in-tree
+log rather than by editing r7. I did not rewrite a closed round's record.

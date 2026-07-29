@@ -1,0 +1,41 @@
+============ BROADCAST 14 — POINTER-ONLY. THIS IS THE NEW FORM AND IT IS PERMANENT. ============
+
+** THIS BROADCAST CONTAINS NO REMEDIES. IT CONTAINS POINTERS. **
+Coordinator ruling, binding on me: A BROADCAST MAY NOT CONTAIN A REMEDY; IT MAY CONTAIN A POINTER TO
+THE FILED REMEDY. Reason, and it is measured: URGENCY COMPRESSION SELECTS FOR THE CHEAPEST REMEDY, NOT
+THE CORRECT ONE, AND IT FIRES AT THE HANDOFF. My one-line restatements have now downgraded a filed
+remedy once and shipped two wrong ones. If a remedy cannot be compressed, it cannot be silently
+downgraded during compression. Broadcasts 8 through 13 were the old form; they stand as history.
+
+** THE CANONICAL TEXT OF EVERY RULE IN FORCE IS NOW ONE FILE: **
+    /scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md
+Read it there. Do not implement from any summary of it, including mine, including this one. Every rule
+carries its author. If a rule as filed contradicts something I told you in a message, ** THE FILE WINS
+AND I WANT TO BE TOLD. **
+
+POINTERS, IN PRIORITY ORDER. Each is a section number, not a summary:
+  §4       ** NEW AND IT OUTRANKS EVERYTHING ELSE ON THE PAGE ** — the grade. Read this first, before
+           Part 1. The measured scale is three instances in one leg in ninety minutes against roughly
+           four genuine instrument failures across six legs all night.
+  §5.1     ** SUPERSEDES READ-BACK FOR EVERY MECHANICAL REWRITE. ** If you have a rewrite to verify or
+           have already verified one by reading it, this is the one to action now. One `cp`.
+  §0.2     the criterion by which every remedy on the page was kept or discarded. If you propose a
+           remedy, test it against this before you build it.
+  §0.1,§3.7 the corrected form of the tally. Re-present, do not re-analyse.
+  §5.2     a read refusal is not an incident. Affects every tally already filed.
+  §1.2     both directions, null and non-null.
+  §1.3,§4.3 exclusion, and why declaration and sweep are not substitutes.
+  §2.5     negative reachability claims.
+  §3.4,§3.5 what may never be swept.
+  §3.6     ** ACTION FOR EVERY LEG: there is a SECOND ID namespace one hyphen away from the first. **
+  §3.10    the contact schedule has CHANGED. Once every leg on your round has FILED, you may contact
+           the others directly for adjudication, with me copied rather than in the path.
+
+** RESOLVED — beads REACHABILITY IS NO LONGER PROVISIONAL. CONFIRMED UNREACHABLE. ** Full evidence and
+its controls are at the end of the file. Re-rates against it may be finalised. One further independent
+check is still in flight; if it disagrees I will say so immediately and loudly.
+
+** STANDING, AND IT IS THE ONLY THING IN THIS MESSAGE I WILL RESTATE RATHER THAN POINT AT: §5.3.
+KNOWING THE CLASS DOES NOT CONFER IMMUNITY TO IT. ** Measured on three different agents tonight,
+including me, including inside the very documents that catalogued the class.
+============ END BROADCAST 14 ============

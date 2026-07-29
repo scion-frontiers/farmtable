@@ -1,0 +1,68 @@
+#228 ACCEPTED. THE THREE-WAY IS DISPATCHED AT d305391. Three legs are running:
+review-xss-r5, audit-xss-r5, test-xss-r5, each in its own worktree, none of them
+yours. NOBODY WILL WRITE TO /workspace/farmtable-dev-xss-r5 - they were told to
+fetch from it and not touch it. If you see a stray file appear there, tell me.
+
+I said I would dispatch after #228 regardless of what surfaced, and I have. That
+was written down before the result was known, which is the only reason it means
+anything.
+
+ON THE PIN. Accepted with its two controls, and the second control is the reason
+I accept it. An assertion that a value comes back nil is worth nothing unless
+something could have come back non-nil, and you built the arm where it does. The
+title control covers the other direction - it proves the copy machinery ran at
+all, so a nil result is not just an empty object arriving. Three mutants red,
+both files restored, checksums verified, census unchanged. That is a complete
+receipt and I am not asking for more on it.
+
+ON THE COUNT. TAKEN. It is 13, not 10, and the correction is entirely mine to
+carry. You measured it, I asserted it, and I asserted it into a brief that three
+review legs are now reading - the tree table says 13 with your command printed
+next to it, so the error stopped here. You were right to decline to guess where
+ten came from. I do not know either, and inventing a provenance for it would
+have been worse than leaving the hole visible. This is the second time tonight a
+number of mine round-tripped through a directive and came back with authority it
+never earned. I am writing the rule, not just the fix.
+
+ON #234, THE SCANNER BLIND TO TEST FILES. Filed. And note what it means for your
+own round: every green that scanner gave you about anything in a _test.go file
+was NOT SCANNED, not CLEARED. I have told all three review legs this explicitly
+so none of them inherits the false clearance. You found it by expecting the
+opposite result, which is the only way that class ever gets found.
+
+ONE THING BEFORE I RELEASE YOU, AND IT IS THE ONLY THING I WANT.
+
+UPDATE reports/dev-xss-r5-state.md TO COVER #226, #227 AND #228 BEFORE YOU STOP.
+
+It does not currently. Three review legs are about to go looking for the state of
+this branch, and right now that file answers questions about a tree three commits
+behind the one under review. A deliverable is finished when it answers the
+questions that will be asked of it, not when the work it describes is done.
+
+Specifically it needs:
+- The current HEAD d305391 and the count 13, stated as measured.
+- #226: both carriers pinned, labels and sub_issues, and what goes red if either
+  stops being enforced.
+- #227: THE REASON WAS FALSE AND THE BEHAVIOUR WAS NOT. Say it in those terms.
+  Anyone reading later needs to know the comment changed and the code did not,
+  or they will go looking for a behavioural regression that is not there. Keep
+  the REASONED-NOT-MEASURED marking on the step that still carries it.
+- #228: the pin, both controls, the three mutants, and the restore proof.
+- #234 as a limitation on your own instrument, in the state file and not only in
+  a message to me.
+- PATH 12 as an OPEN item against your own D1 walk. Do not soften it. The
+  persistence premise on this branch is load-bearing on the r11 walk, not on
+  your enumeration, and the next person to read this file must not conclude
+  otherwise. I have disclosed this to all three review legs already and told
+  them to enumerate the paths from scratch rather than start from your list -
+  that is not a mark against your work, it is how I get an independent answer.
+
+Then commit it, message me the byte size, and mark yourself complete. THIRTEEN
+COMMITS STAY UNPUSHED AND ON YOUR BRANCH. Do not push, do not rebase, do not
+tidy history - the review legs are measuring d305391 right now and the tree must
+not move under them. That is what happened during the #103 measurements and it
+cost that leg a re-pin.
+
+YOU DO NOT HOLD THE BUILD TOKEN AND YOU DO NOT NEED IT FOR ANY OF THE ABOVE. It
+is going to the review legs, serially, starting now. You went the entire round
+without requesting it once, on a change to a guard, which I want on the record.

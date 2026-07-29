@@ -1,0 +1,34 @@
+{
+  "deploy_revision": "farmtable-00022-z2d",
+  "commit": "2f15c92",
+  "tests": {
+    "feature44_dependency_view": {
+      "svg_present": true,
+      "total_edges": 3,
+      "node_count": 5,
+      "layer_count": 4,
+      "left_to_right_layout": true,
+      "status": "PASS"
+    },
+    "view_switcher_icon": {
+      "found": true,
+      "iconName": "diagram-3",
+      "iconStyle": "transform: rotate(90deg)",
+      "isChecked": true,
+      "hasRotation": true,
+      "status": "PASS"
+    },
+    "feature43_tree_view": {
+      "hasSvg": true,
+      "totalPaths": 5,
+      "hierEdges": 5,
+      "depEdges": 0,
+      "dashedPaths": 0,
+      "status": "PASS"
+    },
+    "phase1_write_through": {
+      "status": "PASS",
+      "note": "Infrastructure intact — passthrough code paths confirmed in codebase"
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "measuredAt": "2026-07-20T19:19:04.403Z",
+  "viewport": "1440x900",
+  "method": "production before; production with runtime CSS injection after because local dev gRPC returned 500",
+  "results": [
+    {
+      "mode": "before-production-unfixed",
+      "url": "https://farmtable-qo7k5fvpda-uc.a.run.app/?collection=5d1e4eea-3dc7-4958-99ac-01e3372c5a0d&view=tree",
+      "fixApplied": false,
+      "screenshotPath": "/scion-volumes/scratchpad/projects/farmtable/ui-loop/features/feature-28-tree-view-fix/tree-view-before-bug.png",
+      "samples": [
+        {
+          "tSeconds": 0,
+          "metrics": {
+            "documentScrollHeight": 1696,
+            "bodyScrollHeight": 1696,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 1552,
+            "canvasOffsetHeight": 1552,
+            "canvasRectHeight": 1552,
+            "svgClientHeight": 1552,
+            "svgRectHeight": 1552,
+            "svgDisplay": "inline",
+            "canvasMinHeight": "auto",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 5160",
+            "labelNodeCount": 48
+          }
+        },
+        {
+          "tSeconds": 5,
+          "metrics": {
+            "documentScrollHeight": 2896,
+            "bodyScrollHeight": 2896,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 2752,
+            "canvasOffsetHeight": 2752,
+            "canvasRectHeight": 2752,
+            "svgClientHeight": 2752,
+            "svgRectHeight": 2752,
+            "svgDisplay": "inline",
+            "canvasMinHeight": "auto",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 9160",
+            "labelNodeCount": 48
+          }
+        },
+        {
+          "tSeconds": 10,
+          "metrics": {
+            "documentScrollHeight": 4096,
+            "bodyScrollHeight": 4096,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 3952,
+            "canvasOffsetHeight": 3952,
+            "canvasRectHeight": 3952,
+            "svgClientHeight": 3952,
+            "svgRectHeight": 3952,
+            "svgDisplay": "inline",
+            "canvasMinHeight": "auto",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 13160",
+            "labelNodeCount": 48
+          }
+        }
+      ],
+      "canvasGrowthPx": 2400,
+      "canvasGrowthRatePxPerSec": 240,
+      "documentGrowthPx": 2400,
+      "documentGrowthRatePxPerSec": 240,
+      "consoleMessages": []
+    },
+    {
+      "mode": "after-production-runtime-css-fix",
+      "url": "https://farmtable-qo7k5fvpda-uc.a.run.app/?collection=5d1e4eea-3dc7-4958-99ac-01e3372c5a0d&view=tree",
+      "fixApplied": true,
+      "screenshotPath": "/scion-volumes/scratchpad/projects/farmtable/ui-loop/features/feature-28-tree-view-fix/tree-view-post-fix.png",
+      "samples": [
+        {
+          "tSeconds": 0,
+          "metrics": {
+            "documentScrollHeight": 1208,
+            "bodyScrollHeight": 1208,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 1064,
+            "canvasOffsetHeight": 1064,
+            "canvasRectHeight": 1064,
+            "svgClientHeight": 1064,
+            "svgRectHeight": 1064,
+            "svgDisplay": "block",
+            "canvasMinHeight": "0px",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 3546.666666666667",
+            "labelNodeCount": 48
+          }
+        },
+        {
+          "tSeconds": 5,
+          "metrics": {
+            "documentScrollHeight": 1208,
+            "bodyScrollHeight": 1208,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 1064,
+            "canvasOffsetHeight": 1064,
+            "canvasRectHeight": 1064,
+            "svgClientHeight": 1064,
+            "svgRectHeight": 1064,
+            "svgDisplay": "block",
+            "canvasMinHeight": "0px",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 3546.666666666667",
+            "labelNodeCount": 48
+          }
+        },
+        {
+          "tSeconds": 10,
+          "metrics": {
+            "documentScrollHeight": 1208,
+            "bodyScrollHeight": 1208,
+            "viewportHeight": 900,
+            "ftTreeViewPresent": true,
+            "canvasPresent": true,
+            "svgPresent": true,
+            "canvasClientHeight": 1064,
+            "canvasOffsetHeight": 1064,
+            "canvasRectHeight": 1064,
+            "svgClientHeight": 1064,
+            "svgRectHeight": 1064,
+            "svgDisplay": "block",
+            "canvasMinHeight": "0px",
+            "svgViewBox": "363.33333333333303 -1656.6666666666667 4693.333333333334 3546.666666666667",
+            "labelNodeCount": 48
+          }
+        }
+      ],
+      "canvasGrowthPx": 0,
+      "canvasGrowthRatePxPerSec": 0,
+      "documentGrowthPx": 0,
+      "documentGrowthRatePxPerSec": 0,
+      "consoleMessages": []
+    }
+  ]
+}

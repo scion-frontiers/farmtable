@@ -1,0 +1,451 @@
+package git
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+)
+
+// gitContext holds cached git repository information.
+// All fields are populated with a single git call for efficiency.
+type gitContext struct {
+	gitDir     string // Result of --git-dir
+	commonDir  string // Result of --git-common-dir (absolute)
+	repoRoot   string // Result of --show-toplevel (normalized, symlinks resolved)
+	isWorktree bool   // Derived: gitDir != commonDir
+	err        error  // Any error during initialization
+}
+
+var (
+	gitCtxOnce sync.Once
+	gitCtx     gitContext
+)
+
+// initGitContext populates the gitContext with a single git call.
+// This is called once per process via sync.Once.
+func initGitContext() {
+	// Get all three values with a single git call
+	cmd := exec.Command("git", "rev-parse", "--git-dir", "--git-common-dir", "--show-toplevel")
+	output, err := cmd.Output()
+	if err != nil {
+		gitCtx.err = fmt.Errorf("not a git repository: %w", err)
+		return
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 3 {
+		gitCtx.err = fmt.Errorf("unexpected git rev-parse output: got %d lines, expected 3", len(lines))
+		return
+	}
+
+	gitCtx.gitDir = strings.TrimSpace(lines[0])
+	commonDirRaw := strings.TrimSpace(lines[1])
+	repoRootRaw := strings.TrimSpace(lines[2])
+
+	// Convert commonDir to absolute for reliable comparison
+	absCommon, err := filepath.Abs(commonDirRaw)
+	if err != nil {
+		gitCtx.err = fmt.Errorf("failed to resolve common dir path: %w", err)
+		return
+	}
+	gitCtx.commonDir = absCommon
+
+	// Convert gitDir to absolute for worktree comparison
+	absGitDir, err := filepath.Abs(gitCtx.gitDir)
+	if err != nil {
+		gitCtx.err = fmt.Errorf("failed to resolve git dir path: %w", err)
+		return
+	}
+
+	// Derive isWorktree from comparing absolute paths
+	gitCtx.isWorktree = absGitDir != absCommon
+
+	// Process repoRoot: normalize Windows paths, resolve symlinks,
+	// and canonicalize case on case-insensitive filesystems (GH#880).
+	// This is critical for git worktree operations which string-compare paths.
+	repoRoot := NormalizePath(repoRootRaw)
+	if resolved, err := filepath.EvalSymlinks(repoRoot); err == nil {
+		repoRoot = resolved
+	}
+	// Canonicalize case on macOS/Windows (GH#880)
+	if canonicalized := canonicalizeCase(repoRoot); canonicalized != "" {
+		repoRoot = canonicalized
+	}
+	gitCtx.repoRoot = repoRoot
+}
+
+// getGitContext returns the cached git context, initializing it if needed.
+func getGitContext() (*gitContext, error) {
+	gitCtxOnce.Do(initGitContext)
+	if gitCtx.err != nil {
+		return nil, gitCtx.err
+	}
+	return &gitCtx, nil
+}
+
+// GetGitDir returns the actual .git directory path for the current repository.
+// In a normal repo, this is ".git". In a worktree, .git is a file
+// containing "gitdir: /path/to/actual/git/dir", so we use git rev-parse.
+//
+// This function uses Git's native worktree-aware APIs and should be used
+// instead of direct filepath.Join(path, ".git") throughout the codebase.
+func GetGitDir() (string, error) {
+	ctx, err := getGitContext()
+	if err != nil {
+		return "", err
+	}
+	return ctx.gitDir, nil
+}
+
+// GetGitCommonDir returns the common git directory shared across all worktrees.
+// For regular repos, this equals GetGitDir(). For worktrees, this returns
+// the main repository's .git directory where shared data (like worktree
+// registrations, hooks, and objects) lives.
+//
+// Use this instead of GetGitDir() when you need to create new worktrees or
+// access shared git data that should not be scoped to a single worktree.
+// GH#639: This is critical for bare repo setups where GetGitDir() returns
+// a worktree-specific path that cannot host new worktrees.
+func GetGitCommonDir() (string, error) {
+	ctx, err := getGitContext()
+	if err != nil {
+		return "", err
+	}
+	return ctx.commonDir, nil
+}
+
+// GetGitHooksDir returns the path to the Git hooks directory.
+// This function is worktree-aware: hooks are shared across all worktrees
+// and live in the common git directory (e.g., /repo/.git/hooks), not in
+// the worktree-specific directory (e.g., /repo/.git/worktrees/feature/hooks).
+func GetGitHooksDir() (string, error) {
+	// Respect core.hooksPath if configured.
+	// This is used by beads' Dolt backend (hooks installed to .beads/hooks/).
+	cmd := exec.Command("git", "config", "--get", "core.hooksPath")
+	if out, err := cmd.Output(); err == nil {
+		hooksPath := strings.TrimSpace(string(out))
+		if hooksPath != "" {
+			// Expand tilde — git config may return ~/... which Go doesn't expand.
+			// Without this, Windows treats "~/.githooks" as a relative path and
+			// joins it to the repo root, creating a literal "~" directory. (GH#1796)
+			if strings.HasPrefix(hooksPath, "~/") || strings.HasPrefix(hooksPath, "~\\") {
+				if home, err := os.UserHomeDir(); err == nil {
+					hooksPath = filepath.Join(home, hooksPath[2:])
+				}
+			} else if hooksPath == "~" {
+				if home, err := os.UserHomeDir(); err == nil {
+					hooksPath = home
+				}
+			}
+
+			if filepath.IsAbs(hooksPath) {
+				return hooksPath, nil
+			}
+			ctx, err := getGitContext()
+			if err != nil {
+				return "", err
+			}
+			// Git treats relative core.hooksPath as relative to the repo root in common usage.
+			// (e.g., ".beads/hooks", ".githooks").
+			p := filepath.Join(ctx.repoRoot, hooksPath)
+			if abs, err := filepath.Abs(p); err == nil {
+				return abs, nil
+			}
+
+			return p, nil
+		}
+	}
+
+	// Default: hooks are stored in the common git directory.
+	ctx, err := getGitContext()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(ctx.commonDir, "hooks"), nil
+}
+
+// GetGitRefsDir returns the path to the Git refs directory.
+// This function is worktree-aware and handles both regular repos and worktrees.
+func GetGitRefsDir() (string, error) {
+	gitDir, err := GetGitDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(gitDir, "refs"), nil
+}
+
+// GetGitHeadPath returns the path to the Git HEAD file.
+// This function is worktree-aware and handles both regular repos and worktrees.
+func GetGitHeadPath() (string, error) {
+	gitDir, err := GetGitDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(gitDir, "HEAD"), nil
+}
+
+// IsWorktree returns true if the current directory is in a Git worktree.
+// This is determined by comparing --git-dir and --git-common-dir.
+// The result is cached after the first call since worktree status doesn't
+// change during a single command execution.
+func IsWorktree() bool {
+	ctx, err := getGitContext()
+	if err != nil {
+		return false
+	}
+	return ctx.isWorktree
+}
+
+// GetMainRepoRoot returns the main repository root directory.
+// When in a worktree, this returns the main repository root.
+// Otherwise, it returns the regular repository root.
+//
+// For nested worktrees (worktrees located under the main repo, e.g.,
+// /project/.worktrees/feature/), this correctly returns the main repo
+// root (/project/) by using git rev-parse --git-common-dir which always
+// points to the main repo's .git directory. (GH#509)
+// The result is cached after the first call.
+func GetMainRepoRoot() (string, error) {
+	ctx, err := getGitContext()
+	if err != nil {
+		return "", err
+	}
+	if ctx.isWorktree {
+		// For worktrees, the main repo root is the parent of the shared .git directory.
+		return filepath.Dir(ctx.commonDir), nil
+	}
+
+	// For regular repos (including submodules), repoRoot is the correct root.
+	return ctx.repoRoot, nil
+}
+
+// GetRepoRoot returns the root directory of the current git repository.
+// Returns empty string if not in a git repository.
+//
+// This function is worktree-aware and handles Windows path normalization
+// (Git on Windows may return paths like /c/Users/... or C:/Users/...).
+// It also resolves symlinks to get the canonical path.
+// The result is cached after the first call.
+func GetRepoRoot() string {
+	ctx, err := getGitContext()
+	if err != nil {
+		return ""
+	}
+	return ctx.repoRoot
+}
+
+// canonicalizeCase resolves a path to its true filesystem case on
+// case-insensitive filesystems (macOS/Windows). This is needed because
+// git operations string-compare paths exactly - a path with wrong case
+// will fail even though it points to the same location. (GH#880)
+//
+// On macOS, uses realpath(1) which returns the canonical case.
+// Returns empty string if resolution fails or isn't needed.
+func canonicalizeCase(path string) string {
+	if runtime.GOOS == "darwin" {
+		// Use realpath to get canonical path with correct case
+		cmd := exec.Command("realpath", path)
+		output, err := cmd.Output()
+		if err == nil {
+			return strings.TrimSpace(string(output))
+		}
+	}
+	// Windows: filepath.EvalSymlinks already handles case
+	// Linux: case-sensitive, no canonicalization needed
+	return ""
+}
+
+// NormalizePath converts Git's Windows path formats to native format.
+// Git on Windows may return paths like /c/Users/... or C:/Users/...
+// This function converts them to native Windows format (C:\Users\...).
+// On non-Windows systems, this is a no-op.
+func NormalizePath(path string) string {
+	// Only apply Windows normalization on Windows
+	if filepath.Separator != '\\' {
+		return path
+	}
+
+	// Convert /c/Users/... to C:\Users\...
+	if len(path) >= 3 && path[0] == '/' && path[2] == '/' {
+		return strings.ToUpper(string(path[1])) + ":" + filepath.FromSlash(path[2:])
+	}
+
+	// Convert C:/Users/... to C:\Users\...
+	return filepath.FromSlash(path)
+}
+
+// ResetCaches resets all cached git information. This is intended for use
+// by tests that need to change directory between subtests.
+// In production, these caches are safe because the working directory
+// doesn't change during a single command execution.
+//
+// WARNING: Not thread-safe. Only call from single-threaded test contexts.
+func ResetCaches() {
+	gitCtxOnce = sync.Once{}
+	gitCtx = gitContext{}
+}
+
+// IsJujutsuRepo returns true if the current directory is in a jujutsu (jj) repository.
+// Jujutsu stores its data in a .jj directory at the repository root.
+func IsJujutsuRepo() bool {
+	_, err := GetJujutsuRoot()
+	return err == nil
+}
+
+// IsColocatedJJGit returns true if this is a colocated jujutsu+git repository.
+// Colocated repos have both .jj and .git directories, created via `jj git init --colocate`.
+// In colocated repos, git hooks work normally since jj manages the git repo.
+func IsColocatedJJGit() bool {
+	if !IsJujutsuRepo() {
+		return false
+	}
+	// If we're also in a git repo, it's colocated
+	_, err := getGitContext()
+	return err == nil
+}
+
+// JJSecondaryWorkspaceRoot returns the secondary workspace root and true if
+// CWD is inside a jujutsu secondary workspace; otherwise ("", false).
+// Secondary workspaces have .jj/repo as a file (pointer to the primary's repo
+// directory) rather than a directory.
+func JJSecondaryWorkspaceRoot() (string, bool) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	return JJSecondaryWorkspaceRootFrom(cwd)
+}
+
+// JJSecondaryWorkspaceRootFrom is the path-aware variant of
+// JJSecondaryWorkspaceRoot: it resolves the jujutsu root starting from startDir
+// rather than the current working directory.
+func JJSecondaryWorkspaceRootFrom(startDir string) (string, bool) {
+	jjRoot, err := getJujutsuRootFrom(startDir)
+	if err != nil {
+		return "", false
+	}
+	info, err := os.Stat(filepath.Join(jjRoot, ".jj", "repo"))
+	if err != nil || info.IsDir() {
+		return "", false
+	}
+	return jjRoot, true
+}
+
+// IsJJSecondaryWorkspace returns true if CWD is inside a jujutsu secondary workspace.
+func IsJJSecondaryWorkspace() bool {
+	_, ok := JJSecondaryWorkspaceRoot()
+	return ok
+}
+
+// GetJJPrimaryWorkspaceRoot returns the root directory of the primary jujutsu
+// workspace when called from inside a secondary workspace. The secondary's
+// .jj/repo file contains a path (relative or absolute) to the primary's
+// .jj/repo directory; the primary workspace root is two levels above that.
+//
+// Returns an error if not in a jj secondary workspace or the path cannot be resolved.
+func GetJJPrimaryWorkspaceRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+	return GetJJPrimaryWorkspaceRootFrom(cwd)
+}
+
+// GetJJPrimaryWorkspaceRootFrom is the path-aware variant of
+// GetJJPrimaryWorkspaceRoot: it resolves the jujutsu root starting from startDir
+// rather than the current working directory.
+func GetJJPrimaryWorkspaceRootFrom(startDir string) (string, error) {
+	jjRoot, err := getJujutsuRootFrom(startDir)
+	if err != nil {
+		return "", err
+	}
+
+	// #nosec G304 -- .jj/repo path is within a jujutsu workspace we located by walking from cwd
+	content, err := os.ReadFile(filepath.Join(jjRoot, ".jj", "repo"))
+	if err != nil {
+		return "", fmt.Errorf("failed to read .jj/repo: %w", err)
+	}
+
+	target := strings.TrimSpace(string(content))
+	if target == "" {
+		return "", fmt.Errorf(".jj/repo is empty")
+	}
+
+	// .jj/repo content is relative to the .jj/ directory, or absolute.
+	var primaryRepoFile string
+	if filepath.IsAbs(target) {
+		primaryRepoFile = target
+	} else {
+		primaryRepoFile = filepath.Join(jjRoot, ".jj", target)
+	}
+
+	primaryRepoFile, err = filepath.Abs(primaryRepoFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve jj primary workspace path: %w", err)
+	}
+
+	// primaryRepoFile == <primary-root>/.jj/repo  →  root is Dir(Dir(that))
+	primaryRoot := filepath.Dir(filepath.Dir(primaryRepoFile))
+
+	if resolved, err := filepath.EvalSymlinks(primaryRoot); err == nil {
+		primaryRoot = resolved
+	}
+	if canonical := canonicalizeCase(primaryRoot); canonical != "" {
+		primaryRoot = canonical
+	}
+
+	return primaryRoot, nil
+}
+
+// GetJujutsuRoot returns the root directory of the jujutsu repository.
+// Returns empty string and error if not in a jujutsu repository.
+//
+// Walking stops at a .git boundary: a git repo nested inside a JJ
+// workspace (e.g. a clean-room scratch repo under a JJ-tracked parent) must not
+// inherit the parent's JJ context.  Only the directory that contains .git itself
+// is checked for a co-located .jj; we never walk further up.
+func GetJujutsuRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+	return getJujutsuRootFrom(cwd)
+}
+
+// getJujutsuRootFrom walks up from startDir to find the jujutsu root, applying
+// the same .git-boundary rule as GetJujutsuRoot. startDir is made absolute first
+// so that a relative input (e.g. ".") walks correctly rather than stalling at
+// filepath.Dir(".") == ".".
+func getJujutsuRootFrom(startDir string) (string, error) {
+	dir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve start directory: %w", err)
+	}
+
+	for {
+		jjPath := filepath.Join(dir, ".jj")
+		if info, err := os.Stat(jjPath); err == nil && info.IsDir() {
+			return dir, nil
+		}
+
+		// Stop at a git repo boundary. If .git exists here but no .jj was
+		// found at this level, this is a plain git repo (not JJ). Do not
+		// walk further up — the parent may have .jj but it belongs to a
+		// different (ancestor) repository.
+		gitPath := filepath.Join(dir, ".git")
+		if _, err := os.Stat(gitPath); err == nil {
+			break
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return "", fmt.Errorf("not a jujutsu repository (no .jj directory found)")
+}

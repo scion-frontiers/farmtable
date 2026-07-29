@@ -1,0 +1,25 @@
+STATUS / BLOCKER / NEXT ACTION. Deliverable written:
+/scion-volumes/scratchpad/projects/farmtable/status-taskstate.md
+
+STATUS
+Re-scoped, accepted. Handed ci-22-setup and farmtable-mainred-fix to em-ci and the
+five xss legs to em-hardening; all seven notified, nothing owed back to me.
+Contract phases 1-2 are on main at cc92735 - proto carries accepted, hold_reason,
+TaskAvailability, rank. Remaining: phase 2 web UI merge, terminal-predicate, docs.
+One recovery on the way in: the round-5 phase-2 fix commits existed in canonical as
+UNREFERENCED objects with no ref pointing at them. Five commits, one gc from gone.
+Anchored at refs/preserve/phase2-r5/attention-view-8fa5762.
+
+BLOCKER
+One, and it is a routing question, not work: #194 close-label-swap writes task
+lifecycle stage labels, so it is task-state by surface, but every open finding on
+it is an authorization bypass. Mine or em-hardening's? Not tracking it until you say.
+
+NEXT ACTION
+Start dev-p2-assemble to reset attention-view to 8fa5762 and rebase onto cc92735,
+which is what puts the branch under CI. Then push, read the run, and dispatch a
+three-way review of the r5 delta only.
+
+Nine numbered steps with owners and done-conditions are in the file. Prior review at
+633f8f2 was REQUEST CHANGES / APPROVE / APPROVE; all four blocking items were fixed
+in those five commits and none of the fixes has ever been reviewed.

@@ -1,0 +1,139 @@
+{
+  "testDate": "2026-07-23T23:41:41.080Z",
+  "deployRevision": "farmtable-00048-zgz",
+  "commitSha": "65deb12ef92c00a40d2b8b6b4d66b1e2712798f5",
+  "feature": "Feature 62 — Task deep-linking via ?task= URL param",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 18,
+  "failCount": 0,
+  "totalChecks": 18,
+  "checks": [
+    {
+      "check": "a-tree-url",
+      "action": "Selecting task in Tree View adds ?task= to URL",
+      "pass": true,
+      "detail": "URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree&task=1015aab2-d142-4c0e-ae25-8d874a1676ca. ?task param: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Inspector visible: true",
+      "timestamp": "2026-07-23T23:40:23.496Z"
+    },
+    {
+      "check": "a-inspector-open",
+      "action": "Inspector opens when task is selected",
+      "pass": true,
+      "detail": "Inspector visible: true. Content preview: \n      \n        Inspector\n        \n      \n\n      \n\n      \n        General\n        Relationships\n\n   ",
+      "timestamp": "2026-07-23T23:40:23.496Z"
+    },
+    {
+      "check": "b-fresh-url",
+      "action": "Fresh context preserves ?task= in URL",
+      "pass": true,
+      "detail": "Fresh URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree&task=1015aab2-d142-4c0e-ae25-8d874a1676ca. ?task param: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:40:34.731Z"
+    },
+    {
+      "check": "b-fresh-inspector",
+      "action": "Fresh context: Inspector auto-opens with correct task",
+      "pass": true,
+      "detail": "Inspector visible: true. Content: \n      \n        Inspector\n        \n      \n\n      \n\n      \n        General\n        Relationships\n\n        \n          \n            \n              \n     ",
+      "timestamp": "2026-07-23T23:40:34.731Z"
+    },
+    {
+      "check": "b-fresh-task-selected",
+      "action": "Fresh context: correct task is selected",
+      "pass": true,
+      "detail": "Selected task ID: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Task title: \"Test task from real client\"",
+      "timestamp": "2026-07-23T23:40:34.731Z"
+    },
+    {
+      "check": "c-dep-url",
+      "action": "Selecting task in Dependency View adds ?task= to URL",
+      "pass": true,
+      "detail": "URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=dependencies&task=1015aab2-d142-4c0e-ae25-8d874a1676ca. ?task param: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Inspector visible: true",
+      "timestamp": "2026-07-23T23:40:45.143Z"
+    },
+    {
+      "check": "c-fresh-dep-url",
+      "action": "Fresh context dependency deep-link preserves ?task=",
+      "pass": true,
+      "detail": "Fresh URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=dependencies&task=1015aab2-d142-4c0e-ae25-8d874a1676ca. ?task param: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:40:56.919Z"
+    },
+    {
+      "check": "c-fresh-dep-inspector",
+      "action": "Fresh context dependency: Inspector auto-opens",
+      "pass": true,
+      "detail": "Inspector visible: true. Content: \n      \n        Inspector\n        \n      \n\n      \n\n      \n        General\n        Relationships\n\n        \n          \n            \n              \n     ",
+      "timestamp": "2026-07-23T23:40:56.919Z"
+    },
+    {
+      "check": "c-fresh-dep-selected",
+      "action": "Fresh context dependency: correct task selected",
+      "pass": true,
+      "detail": "Selected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:40:56.919Z"
+    },
+    {
+      "check": "d-task-param-removed",
+      "action": "Closing Inspector removes ?task= from URL",
+      "pass": true,
+      "detail": "Before: ?task=1015aab2-d142-4c0e-ae25-8d874a1676ca. After: ?task=null. Inspector before: visible=true. After: visible=false. Full URL after: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=dependencies",
+      "timestamp": "2026-07-23T23:41:07.191Z"
+    },
+    {
+      "check": "e-collection-list-clean",
+      "action": "Collection list URL has no stale ?task= param",
+      "pass": true,
+      "detail": "URL: https://farmtable-486315127503.us-central1.run.app/. ?task param: null",
+      "timestamp": "2026-07-23T23:41:18.671Z"
+    },
+    {
+      "check": "e-reenter-clean",
+      "action": "Entering different collection has no stale ?task=",
+      "pass": true,
+      "detail": "URL: https://farmtable-486315127503.us-central1.run.app/?collection=2c78db91-d17f-4d8b-9d62-29a7b1d409fd&view=tree. ?task param: null. Inspector visible: false (expected: false). Collection: farmtable-deploy4-web-202607200557",
+      "timestamp": "2026-07-23T23:41:23.871Z"
+    },
+    {
+      "check": "e-no-inspector",
+      "action": "No Inspector open after entering collection without ?task=",
+      "pass": true,
+      "detail": "Inspector visible: false",
+      "timestamp": "2026-07-23T23:41:23.871Z"
+    },
+    {
+      "check": "f-tree-renders",
+      "action": "Tree View renders correctly (regression)",
+      "pass": true,
+      "detail": "SVG present: true, Node count: 37",
+      "timestamp": "2026-07-23T23:41:29.085Z"
+    },
+    {
+      "check": "f-tree-select",
+      "action": "Selecting task via click works normally",
+      "pass": true,
+      "detail": "Clicked: true. Selected: 1015aab2-d142-4c0e-ae25-8d874a1676ca. Expected: 1015aab2-d142-4c0e-ae25-8d874a1676ca",
+      "timestamp": "2026-07-23T23:41:30.616Z"
+    },
+    {
+      "check": "f-kanban-renders",
+      "action": "Kanban View renders correctly (regression)",
+      "pass": true,
+      "detail": "Columns: 8, Cards: 0",
+      "timestamp": "2026-07-23T23:41:35.864Z"
+    },
+    {
+      "check": "f-dep-renders",
+      "action": "Dependency View renders correctly (regression)",
+      "pass": true,
+      "detail": "Node count: 37",
+      "timestamp": "2026-07-23T23:41:41.020Z"
+    },
+    {
+      "check": "f-console",
+      "action": "No console errors during all checks",
+      "pass": true,
+      "detail": "Zero relevant console errors (9 filtered)",
+      "timestamp": "2026-07-23T23:41:41.020Z"
+    }
+  ]
+}

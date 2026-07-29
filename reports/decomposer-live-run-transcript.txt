@@ -1,0 +1,456 @@
+Using GenAI provider (project=deploy-demo-test, location=us-central1)
+Collection "decomposer-test-1784662856" not found, creating...
+Created collection: decomposer-test-1784662856 (id: f7351b20-3c44-41b1-a253-e8dd6128b250)
+Starting decomposition into collection f7351b20-3c44-41b1-a253-e8dd6128b250...
+Created root task: Build a Real-Time Collaborative Document Editor (id: 11dcc5ad-313a-4f52-92a1-08c066f2e927)
+[depth=0] LLM prompt for parent 11dcc5ad-313a-4f52-92a1-08c066f2e927:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Task to Decompose (depth 0)
+
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultaneously edit the ...
+[depth=0] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "research-collaboration-algorithms",
+          "title": "Research and Select Collaboration Algorithm",
+          "description": "Investigate and compare Operational Transformation (OT) and Conflict-free Replicated Data Types (CRDTs) for handling real-time concurrent edits. The analysis should consider complexity, performance, server requirements, and offline support. The output will be a decision documen...
+[depth=0] Created 00-research-collaboration-algorithms (group 0, terminal, id: c8dddf6b-0aed-4530-a109-7605db2ba616)
+[depth=0] Created 00-define-document-model (group 0, terminal, id: 4fb210a2-cb69-4bcf-a7de-9d814b9bcafb)
+[depth=0] Created 00-design-high-level-architecture (group 0, non-terminal, id: 9d1299cd-1ab9-4a9b-8a67-ad581fda8b6f)
+[depth=0] Created 01-implement-collaboration-engine (group 1, non-terminal, id: a8fdf809-9062-4815-b42a-409efb8c1e70)
+[depth=0] Created 01-setup-backend-service (group 1, non-terminal, id: 1ad7dd79-118b-4b88-85cd-9d7837b2f179)
+[depth=0] Created 01-develop-basic-editor-ui (group 1, non-terminal, id: 2ff1656d-3cfb-45e1-bd51-34c4a8260bdf)
+[depth=0] Created 02-integrate-collaboration-engine (group 2, non-terminal, id: 10fca601-3be0-4aed-86ac-c5697b3875f7)
+[depth=0] Created 02-implement-user-presence (group 2, terminal, id: 84d200a6-f3f0-4e13-98a8-80b67203328d)
+[depth=0] Created 02-setup-document-persistence (group 2, terminal, id: 32d10501-8905-4d74-b377-00d63d480989)
+[depth=0] Created 03-implement-version-history (group 3, non-terminal, id: dd4bdf30-2126-4e7b-982e-0a7578b6c332)
+[depth=0] Created 03-implement-access-control (group 3, non-terminal, id: 055f2c16-8b59-4615-af72-6e52e1bd0c8c)
+[depth=0] Created 03-implement-offline-support (group 3, non-terminal, id: ab007f02-4ed7-4cd4-96f7-178ac4170e0e)
+[depth=1] LLM prompt for parent 2ff1656d-3cfb-45e1-bd51-34c4a8260bdf:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+[depth=1] LLM prompt for parent ab007f02-4ed7-4cd4-96f7-178ac4170e0e:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent 1ad7dd79-118b-4b88-85cd-9d7837b2f179:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent a8fdf809-9062-4815-b42a-409efb8c1e70:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent 9d1299cd-1ab9-4a9b-8a67-ad581fda8b6f:
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent 10fca601-3be0-4aed-86ac-c5697b3875f7:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent dd4bdf30-2126-4e7b-982e-0a7578b6c332:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM prompt for parent 055f2c16-8b59-4615-af72-6e52e1bd0c8c:
+  [system] You are a task decomposer. Your job is to break a task into 6-12 subtasks organized into parallel groups.
+
+## Rules
+
+1. **Assess the task.** Decide if it is:
+   - **Terminal**: Atomic enough to be com...
+  [user] ## Parent Task Chain (for context)
+
+### Level 0
+# Build a Real-Time Collaborative Document Editor
+
+Design and implement a real-time collaborative document editor that allows multiple users to simultan...
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "setup-frontend-project",
+          "title": "Set Up Frontend Project Boilerplate",
+          "description": "Initialize a new frontend project using a modern framework like React or Vue with Vite. Set up the basic project structure, including directories for components, styles, and assets. Ensure a development server can be run and a basic 'Hello World' page is visible.",
+          "terminal": true
+    ...
+[depth=1] Created 00-setup-frontend-project (group 0, terminal, id: 0672fd49-e197-4b35-b838-c4b76f28fd11)
+[depth=1] Created 00-research-editor-libraries (group 0, terminal, id: 0940a82c-a7b9-485d-b62b-ccc7c5c07151)
+[depth=1] Created 00-design-editor-wireframes (group 0, terminal, id: 2e109361-9102-4603-b4a2-6789122aae04)
+[depth=1] Created 01-select-install-library (group 1, terminal, id: 535c5211-6333-478a-b240-540f5f64a74f)
+[depth=1] Created 01-implement-toolbar-ui (group 1, terminal, id: 286fd9a2-8e23-420f-b563-559874b95c0d)
+[depth=1] Created 02-integrate-basic-editor (group 2, terminal, id: 8e0d998f-b34d-41fc-9284-d077dbe2d02b)
+[depth=1] Created 03-connect-toolbar-to-editor (group 3, terminal, id: 48f7c836-f37b-4261-a301-88ab8fbc6f93)
+[depth=1] Created 03-implement-rich-text-nodes (group 3, terminal, id: a55fc6f7-ea7a-48f8-b7ab-3b916317e4b5)
+[depth=1] Created 03-implement-inline-images (group 3, terminal, id: 21721faf-896b-4bfa-880a-1828ecef8d75)
+[depth=1] Created 04-manage-document-state (group 4, terminal, id: 63c8151e-716d-45f5-abe9-e548bf89e381)
+[depth=1] Created 04-style-editor-interface (group 4, terminal, id: 67ce5b8b-d1c8-4c1e-8127-2201d15ca10e)
+[depth=1] Created 04-test-editor-functionality (group 4, terminal, id: d04685f2-74b0-4218-9133-3f43e50159fa)
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "implement-connection-detector",
+          "title": "Implement a Network Connection Detector Service",
+          "description": "Create a client-side service to monitor and report the application's network status. This service should use browser APIs (like `navigator.onLine` and the `online`/`offline` events) to provide a reliable, real-time boolean state indicating whether the client is connected to the...
+[depth=1] Created 00-implement-connection-detector (group 0, terminal, id: 0d4f4894-789e-49c5-b2eb-cf1ce59963a3)
+[depth=1] Created 00-setup-local-persistence-layer (group 0, terminal, id: be5dd2f3-ac84-4cf8-ab39-079f3adad20b)
+[depth=1] Created 00-design-offline-queue-structure (group 0, terminal, id: 68fc964a-0b2e-4819-b334-c24e7991b3ed)
+[depth=1] Created 01-route-operations-to-queue (group 1, terminal, id: 8081c9ec-f27c-48d6-afe2-c3c77ddbe544)
+[depth=1] Created 01-implement-document-caching (group 1, terminal, id: ef36b656-cc07-4fc9-a70a-bd18dc5ca1e6)
+[depth=1] Created 02-develop-reconnection-handler (group 2, terminal, id: e8945df5-8b12-4362-8169-153eb21b2137)
+[depth=1] Created 02-implement-client-sync-protocol (group 2, terminal, id: dfb60c40-eeb1-4650-ade4-4c987b828709)
+[depth=1] Created 03-handle-server-side-conflicts (group 3, non-terminal, id: 3fdecbfc-0195-4885-b70e-941e95bb58ca)
+[depth=1] Created 03-clear-acknowledged-operations (group 3, terminal, id: 34d0bdd5-1008-40a7-a7df-8b4df7d97578)
+[depth=1] Created 03-update-ui-post-sync (group 3, terminal, id: 26db98f1-5cd3-49df-9fa6-f627c1d4336e)
+[depth=2] Max depth reached, forcing terminal for parent 3fdecbfc-0195-4885-b70e-941e95bb58ca
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "setup-project-scaffolding",
+          "title": "Set up Backend Project Scaffolding",
+          "description": "Initialize a new service project. This includes creating the directory structure, initializing a package manager (e.g., npm, go mod), and adding basic development dependencies like a linter, formatter, and a server framework (e.g., Express, Gin). The output is a clean, ready-to-develop project ...
+[depth=1] Created 00-setup-project-scaffolding (group 0, terminal, id: 7e816fac-7b1b-4a3e-9379-12ff9ea797eb)
+[depth=1] Created 00-define-message-protocol (group 0, terminal, id: 971cd92b-e2be-4c86-a1a0-e4da08be4b77)
+[depth=1] Created 00-design-session-data-model (group 0, terminal, id: 0f9721a9-a1f3-4ee9-a210-90c252f6d68c)
+[depth=1] Created 01-implement-websocket-endpoint (group 1, terminal, id: a3b452c7-a7d3-424d-af2c-9b7261805560)
+[depth=1] Created 02-implement-session-management (group 2, terminal, id: ef917dd9-04d9-407e-b123-3397b7c304da)
+[depth=1] Created 02-implement-operation-broadcasting (group 2, terminal, id: b222c940-9e91-4ccf-9294-60a60ba794a9)
+[depth=1] Created 03-add-unit-tests (group 3, terminal, id: 5d9a6227-024b-477b-aa9b-147a9859def4)
+[depth=1] Created 03-configure-structured-logging (group 3, terminal, id: 8e558f22-b3c7-4eec-9b32-78d2cb8433c8)
+[depth=1] Created 03-create-deployment-artifacts (group 3, terminal, id: 3e033769-05ab-4271-89c7-4de6616ded2d)
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "define-operation-model",
+          "title": "Define and Model Edit Operations",
+          "description": "Formalize the set of supported edit operations (e.g., insert text, delete text, apply format, remove format). Define the data structure for each operation, including parameters like position, content, and formatting attributes. The output should be a specification document or data schema (e.g., Type...
+[depth=1] Created 00-define-operation-model (group 0, terminal, id: 4e9fbb76-0ba4-4183-8640-5f0d49af5ebf)
+[depth=1] Created 00-design-document-data-model (group 0, terminal, id: 7263e1c5-26eb-4b56-8082-0b9ff015f8e6)
+[depth=1] Created 00-specify-algorithm-logic (group 0, terminal, id: 0e7e403a-79cc-4563-9b45-e395b1a58fe9)
+[depth=1] Created 00-define-public-api (group 0, terminal, id: c2dcca28-60b2-43c6-9aad-c79d5129ebe8)
+[depth=1] Created 01-implement-data-models (group 1, non-terminal, id: 6b647401-4db8-475f-aa47-1c172d5305e0)
+[depth=1] Created 01-implement-core-algorithm (group 1, non-terminal, id: dd93e080-40e2-40b0-92e4-01b0afecedee)
+[depth=1] Created 01-implement-api-wrapper (group 1, non-terminal, id: a46b41e2-3d32-4490-8f9b-f2a23f47de4a)
+[depth=1] Created 02-develop-unit-tests (group 2, non-terminal, id: bae5a3dd-16c5-480c-a635-8a5a24a12413)
+[depth=1] Created 02-develop-concurrency-test-harness (group 2, non-terminal, id: 2548f5ee-d4fe-4535-9165-0e623eab81dd)
+[depth=1] Created 03-implement-concurrency-scenarios (group 3, non-terminal, id: 51386f23-909d-49be-a38d-6939cb980e2e)
+[depth=1] Created 03-implement-fuzz-testing (group 3, non-terminal, id: af1b3728-e47d-4c3c-b91c-525caab8cf20)
+[depth=2] Max depth reached, forcing terminal for parent af1b3728-e47d-4c3c-b91c-525caab8cf20
+[depth=2] Max depth reached, forcing terminal for parent bae5a3dd-16c5-480c-a635-8a5a24a12413
+[depth=2] Max depth reached, forcing terminal for parent 2548f5ee-d4fe-4535-9165-0e623eab81dd
+[depth=2] Max depth reached, forcing terminal for parent 51386f23-909d-49be-a38d-6939cb980e2e
+[depth=2] Max depth reached, forcing terminal for parent 6b647401-4db8-475f-aa47-1c172d5305e0
+[depth=2] Max depth reached, forcing terminal for parent dd93e080-40e2-40b0-92e4-01b0afecedee
+[depth=2] Max depth reached, forcing terminal for parent a46b41e2-3d32-4490-8f9b-f2a23f47de4a
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "setup-server-websocket-endpoint",
+          "title": "Set Up Server-Side WebSocket Endpoint",
+          "description": "Implement the backend WebSocket server endpoint to manage real-time client connections. This task involves handling new connections, disconnections, and associating each connection with a specific document ID to create collaboration sessions or 'rooms'. The output is a running server c...
+[depth=1] Created 00-setup-server-websocket-endpoint (group 0, terminal, id: af9708f3-6350-4235-8bfc-fa9015493edf)
+[depth=1] Created 00-implement-server-operation-handler (group 0, terminal, id: 2e7ee1aa-28fa-432a-afdb-23e81cfcd841)
+[depth=1] Created 00-setup-client-websocket-manager (group 0, terminal, id: 7b5632b2-c442-4ab5-a73b-8b2b8dd31a4a)
+[depth=1] Created 00-capture-editor-changes-as-ops (group 0, terminal, id: d7eef4c4-0cb0-4e85-a38d-ce465630ed66)
+[depth=1] Created 01-client-send-local-ops (group 1, terminal, id: 747c1b70-fa21-42b8-9bed-e5be770c98dd)
+[depth=1] Created 01-server-broadcast-operations (group 1, terminal, id: 7009b1de-311d-4ecb-a41b-cfebb6b9ad60)
+[depth=1] Created 01-client-receive-remote-ops (group 1, terminal, id: 6e28dd48-82b4-465e-b9c5-21f3ab514e45)
+[depth=1] Created 02-implement-client-op-transformation (group 2, terminal, id: b90c1e55-b40e-4e90-9171-ea69334ad298)
+[depth=1] Created 02-update-editor-with-transformed-ops (group 2, terminal, id: f4b486d8-f58c-440c-8494-2773b2d8420b)
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "design-history-storage-model",
+          "title": "Design the Document History Storage Model",
+          "description": "Decide on the strategy for storing document history: full snapshots at specific intervals or a continuous log of operations/deltas. Define the database schema for the chosen approach, considering fields like `document_id`, `version_id`, `timestamp`, `author_id`, and the content payloa...
+[depth=1] Created 00-design-history-storage-model (group 0, terminal, id: 1c5093d4-226c-4a8a-a9a7-d358b4e40e74)
+[depth=1] Created 00-design-history-api (group 0, terminal, id: 006fd979-4800-4277-8f31-7f9c84f940fe)
+[depth=1] Created 00-design-version-history-ui (group 0, terminal, id: 4e3820a8-a682-4644-bdfe-84d092074b74)
+[depth=1] Created 01-implement-history-capture (group 1, non-terminal, id: 482384c2-1e89-4c6d-8f73-a8e9a6c0f181)
+[depth=1] Created 01-implement-history-api-endpoints (group 1, non-terminal, id: fd383b22-96c4-49f3-ae81-0b1f2988f6d1)
+[depth=1] Created 01-scaffold-frontend-components (group 1, terminal, id: 1340a263-6733-4111-b5fa-37d575176cf1)
+[depth=1] Created 02-integrate-history-list-view (group 2, terminal, id: 74f18380-f492-49f5-b137-ce4a278269d0)
+[depth=1] Created 02-implement-version-preview (group 2, non-terminal, id: d2386802-a3fd-4197-b39b-b5947afbd43a)
+[depth=1] Created 03-implement-restore-functionality (group 3, terminal, id: ff6c5826-44c3-48cb-8778-88582b7ea658)
+[depth=1] Created 03-integrate-access-controls-ui (group 3, terminal, id: 1fe9eb46-7a57-4123-bd86-716671c1d889)
+[depth=1] Created 03-add-e2e-tests (group 3, terminal, id: 4ef59774-bd93-40c1-b91f-9c149bd4bc68)
+[depth=2] Max depth reached, forcing terminal for parent d2386802-a3fd-4197-b39b-b5947afbd43a
+[depth=2] Max depth reached, forcing terminal for parent 482384c2-1e89-4c6d-8f73-a8e9a6c0f181
+[depth=2] Max depth reached, forcing terminal for parent fd383b22-96c4-49f3-ae81-0b1f2988f6d1
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "define-system-components",
+          "title": "Define High-Level System Components and Responsibilities",
+          "description": "Identify and list all the major components of the system, such as the client-side editor, backend API server, real-time synchronization service, document database, and authentication service. For each component, write a concise summary of its primary responsibilities and it...
+[depth=1] Created 00-define-system-components (group 0, terminal, id: 75730967-f3d2-4126-88bc-34268b702af2)
+[depth=1] Created 00-design-client-architecture (group 0, terminal, id: 56f9989c-f132-40a9-ba33-acd299821126)
+[depth=1] Created 00-design-backend-architecture (group 0, terminal, id: cda36daa-794d-4d3d-81da-9c2f25aaf7ad)
+[depth=1] Created 00-design-realtime-protocol (group 0, terminal, id: 01eae401-c42b-434e-a1d5-ddb51d842934)
+[depth=1] Created 00-design-data-model (group 0, terminal, id: adc6ee00-63f3-47cb-b9ef-f059cd22f5d1)
+[depth=1] Created 00-design-auth-strategy (group 0, terminal, id: 6a70f898-0f1e-43b3-ad35-80493da90d62)
+[depth=1] Created 01-create-system-diagram (group 1, terminal, id: 198249ef-25c3-43fe-b649-a8c67ae2e406)
+[depth=1] Created 01-consolidate-architecture-document (group 1, terminal, id: 3eb0e8d9-4100-4e11-acb4-d4b1aaceb426)
+[depth=1] Created 01-define-api-contracts (group 1, terminal, id: d0a375a4-487d-4ec1-aaf1-782634f8dbb9)
+[depth=1] LLM response: ```json
+{
+  "groups": [
+    {
+      "group": 0,
+      "tasks": [
+        {
+          "slug": "define-permissions-schema",
+          "title": "Define and Implement Permissions Data Model",
+          "description": "Design and implement the database schema for storing document permissions. This will involve creating a table that links users to documents with a specific role (e.g., 'owner', 'editor', 'viewer'). The output is a migrated database schema ready to store permission data.",
+          "te...
+[depth=1] Created 00-define-permissions-schema (group 0, terminal, id: 1226e006-6637-4456-a492-718f81130455)
+[depth=1] Created 01-review-finalize-architecture (group 1, terminal, id: 3504fd6e-e25f-46fe-a039-97dcc883df1d)
+[depth=1] Created 00-implement-permissions-crud-api (group 0, terminal, id: fb0ceb9e-1427-4dff-9b4b-7d5e7191268e)
+[depth=1] Created 01-implement-session-access-control (group 1, terminal, id: 52700c84-0816-4972-8868-62ff05a58b0e)
+[depth=1] Created 01-implement-edit-authorization (group 1, terminal, id: 443e5d4a-3354-42eb-a432-551785a2a7f3)
+[depth=1] Created 02-design-permissions-management-ui (group 2, terminal, id: 44c01cfc-ecf7-40cb-ad51-119876d59e02)
+[depth=1] Created 02-build-permissions-ui-component (group 2, terminal, id: abe64263-6de7-482b-a3b9-56a45e44de6f)
+[depth=1] Created 03-integrate-invite-user-flow (group 3, terminal, id: aec4095b-d7af-47e3-8326-06371214e3af)
+[depth=1] Created 03-integrate-change-role-flow (group 3, terminal, id: be05a720-8db0-4d7d-976b-403cd79c4b40)
+[depth=1] Created 03-integrate-remove-user-flow (group 3, terminal, id: 300adee3-cecf-4d4a-b633-51251bf5b751)
+
+--- Decomposition Summary ---
+Collection:     f7351b20-3c44-41b1-a253-e8dd6128b250
+Root task:      Build a Real-Time Collaborative Document Editor
+Tasks created:  94 (74 terminal, 20 non-terminal)
+Max depth:      2
+Dashboard:      https://farmtable-qo7k5fvpda-uc.a.run.app/?collection=f7351b20-3c44-41b1-a253-e8dd6128b250
+
+=== ft CLI Verification ===
+
+--- ft task list (first 50 tasks) ---
+ID        NAME                                           PHASE  STAGE   PRI  ASSIGNEE  REMOTE
+11dcc5ad  Build a Real-Time Collaborative Document Edi…  OPEN   triage  —    —         —
+c8dddf6b  Research and Select Collaboration Algorithm    OPEN   triage  —    —         —
+4fb210a2  Define Document Data Model and Schema          OPEN   triage  —    —         —
+9d1299cd  Design High-Level System Architecture          OPEN   triage  —    —         —
+a8fdf809  Implement Core Collaboration Engine            OPEN   triage  —    —         —
+1ad7dd79  Set Up Backend Real-Time Service               OPEN   triage  —    —         —
+2ff1656d  Develop Basic Rich Text Editor UI              OPEN   triage  —    —         —
+10fca601  Integrate Collaboration Engine into Frontend…  OPEN   triage  —    —         —
+84d200a6  Implement User Presence and Cursors            OPEN   triage  —    —         —
+32d10501  Set Up Document Persistence and Loading        OPEN   triage  —    —         —
+dd4bdf30  Implement Version History and Restoration      OPEN   triage  —    —         —
+055f2c16  Implement Access Control (Permissions)         OPEN   triage  —    —         —
+ab007f02  Implement Offline Support                      OPEN   triage  —    —         —
+0672fd49  Set Up Frontend Project Boilerplate            OPEN   triage  —    —         —
+0940a82c  Research and Evaluate Rich Text Editor Libra…  OPEN   triage  —    —         —
+2e109361  Design Low-Fidelity Wireframes for the Edito…  OPEN   triage  —    —         —
+535c5211  Select and Install the Chosen Editor Library   OPEN   triage  —    —         —
+286fd9a2  Implement the Static Toolbar UI Component      OPEN   triage  —    —         —
+8e0d998f  Integrate a Basic Editor Instance              OPEN   triage  —    —         —
+48f7c836  Connect Toolbar Buttons to Editor API          OPEN   triage  —    —         —
+a55fc6f7  Implement All Required Rich Text Formatting    OPEN   triage  —    —         —
+21721faf  Implement Support for Inline Images            OPEN   triage  —    —         —
+63c8151e  Manage Document Content in Local State         OPEN   triage  —    —         —
+67ce5b8b  Apply Basic Styling to Editor and Toolbar      OPEN   triage  —    —         —
+d04685f2  Write Unit Tests for Editor Component          OPEN   triage  —    —         —
+0d4f4894  Implement a Network Connection Detector Serv…  OPEN   triage  —    —         —
+be5dd2f3  Set Up Local Persistence Layer                 OPEN   triage  —    —         —
+68fc964a  Design the Offline Operation Queue Structure   OPEN   triage  —    —         —
+8081c9ec  Route Local Operations to Offline Queue        OPEN   triage  —    —         —
+ef36b656  Implement Local Document Caching               OPEN   triage  —    —         —
+e8945df5  Develop Reconnection Synchronization Handler   OPEN   triage  —    —         —
+dfb60c40  Implement Client-Side Sync Protocol            OPEN   triage  —    —         —
+3fdecbfc  Handle Post-Sync Conflict Resolution           OPEN   triage  —    —         —
+34d0bdd5  Clear Acknowledged Operations from Queue       OPEN   triage  —    —         —
+26db98f1  Update UI to Reflect Merged State              OPEN   triage  —    —         —
+7e816fac  Set up Backend Project Scaffolding             OPEN   triage  —    —         —
+971cd92b  Define the WebSocket Message Protocol          OPEN   triage  —    —         —
+0f9721a9  Design In-Memory Session Data Model            OPEN   triage  —    —         —
+a3b452c7  Implement the Core WebSocket Endpoint          OPEN   triage  —    —         —
+ef917dd9  Implement Session Join/Leave Logic             OPEN   triage  —    —         —
+b222c940  Implement Operation Broadcasting Logic         OPEN   triage  —    —         —
+5d9a6227  Add Unit Tests for Session and Broadcast Log…  OPEN   triage  —    —         —
+8e558f22  Configure Structured Logging                   OPEN   triage  —    —         —
+3e033769  Create Deployment Artifacts (Dockerfile)       OPEN   triage  —    —         —
+4e9fbb76  Define and Model Edit Operations               OPEN   triage  —    —         —
+7263e1c5  Design the Document Data Model                 OPEN   triage  —    —         —
+0e7e403a  Specify Transformation or Merge Algorithm Lo…  OPEN   triage  —    —         —
+c2dcca28  Define the Module's Public API                 OPEN   triage  —    —         —
+6b647401  Implement Document and Operation Data Models   OPEN   triage  —    —         —
+
+--- ft task ready --include-unblocked ---
+ID        NAME                                           STAGE   PRI  BLOCKERS_RESOLVED
+0672fd49  Set Up Frontend Project Boilerplate            triage  —    0
+0940a82c  Research and Evaluate Rich Text Editor Libra…  triage  —    0
+2e109361  Design Low-Fidelity Wireframes for the Edito…  triage  —    0
+0d4f4894  Implement a Network Connection Detector Serv…  triage  —    0
+be5dd2f3  Set Up Local Persistence Layer                 triage  —    0
+68fc964a  Design the Offline Operation Queue Structure   triage  —    0
+11dcc5ad  Build a Real-Time Collaborative Document Edi…  triage  —    0
+c8dddf6b  Research and Select Collaboration Algorithm    triage  —    0
+4fb210a2  Define Document Data Model and Schema          triage  —    0
+9d1299cd  Design High-Level System Architecture          triage  —    0
+7e816fac  Set up Backend Project Scaffolding             triage  —    0
+971cd92b  Define the WebSocket Message Protocol          triage  —    0
+0f9721a9  Design In-Memory Session Data Model            triage  —    0
+4e9fbb76  Define and Model Edit Operations               triage  —    0
+7263e1c5  Design the Document Data Model                 triage  —    0
+0e7e403a  Specify Transformation or Merge Algorithm Lo…  triage  —    0
+c2dcca28  Define the Module's Public API                 triage  —    0
+af9708f3  Set Up Server-Side WebSocket Endpoint          triage  —    0
+2e7ee1aa  Implement Server-Side Operation Handler        triage  —    0
+7b5632b2  Set Up Client-Side WebSocket Manager           triage  —    0
+d7eef4c4  Capture Editor Changes as Operations           triage  —    0
+1c5093d4  Design the Document History Storage Model      triage  —    0
+006fd979  Design the Version History API                 triage  —    0
+4e3820a8  Design the Version History User Interface      triage  —    0
+75730967  Define High-Level System Components and Resp…  triage  —    0
+56f9989c  Design Client-Side Application Architecture    triage  —    0
+cda36daa  Design Backend Services Architecture           triage  —    0
+01eae401  Design Real-Time Communication Protocol        triage  —    0
+adc6ee00  Design Data Model and Persistence Strategy     triage  —    0
+fb0ceb9e  Implement Permissions CRUD API Endpoints       triage  —    0
+6a70f898  Design Authentication and Authorization Stra…  triage  —    0
+1226e006  Define and Implement Permissions Data Model    triage  —    0
+
+Showing 32 of 32 tasks. Use --cursor to page.
+
+--- ft task blocked ---
+ID        NAME                                           STAGE   BLOCKER_COUNT  BLOCKERS
+8081c9ec  Route Local Operations to Offline Queue        triage  3              Implement a Network Connection Detector Service, Set Up Loc…
+ef36b656  Implement Local Document Caching               triage  3              Implement a Network Connection Detector Service, Set Up Loc…
+e8945df5  Develop Reconnection Synchronization Handler   triage  2              Route Local Operations to Offline Queue, Implement Local Do…
+dfb60c40  Implement Client-Side Sync Protocol            triage  2              Route Local Operations to Offline Queue, Implement Local Do…
+3fdecbfc  Handle Post-Sync Conflict Resolution           triage  2              Develop Reconnection Synchronization Handler, Implement Cli…
+26db98f1  Update UI to Reflect Merged State              triage  2              Develop Reconnection Synchronization Handler, Implement Cli…
+34d0bdd5  Clear Acknowledged Operations from Queue       triage  2              Develop Reconnection Synchronization Handler, Implement Cli…
+055f2c16  Implement Access Control (Permissions)         triage  3              Integrate Collaboration Engine into Frontend and Backend, I…
+ab007f02  Implement Offline Support                      triage  3              Integrate Collaboration Engine into Frontend and Backend, I…
+535c5211  Select and Install the Chosen Editor Library   triage  3              Set Up Frontend Project Boilerplate, Research and Evaluate …
+286fd9a2  Implement the Static Toolbar UI Component      triage  3              Set Up Frontend Project Boilerplate, Research and Evaluate …
+8e0d998f  Integrate a Basic Editor Instance              triage  2              Select and Install the Chosen Editor Library, Implement the…
+48f7c836  Connect Toolbar Buttons to Editor API          triage  1              Integrate a Basic Editor Instance
+a55fc6f7  Implement All Required Rich Text Formatting    triage  1              Integrate a Basic Editor Instance
+21721faf  Implement Support for Inline Images            triage  1              Integrate a Basic Editor Instance
+63c8151e  Manage Document Content in Local State         triage  3              Connect Toolbar Buttons to Editor API, Implement All Requir…
+67ce5b8b  Apply Basic Styling to Editor and Toolbar      triage  3              Connect Toolbar Buttons to Editor API, Implement All Requir…
+d04685f2  Write Unit Tests for Editor Component          triage  3              Connect Toolbar Buttons to Editor API, Implement All Requir…
+a8fdf809  Implement Core Collaboration Engine            triage  3              Research and Select Collaboration Algorithm, Define Documen…
+1ad7dd79  Set Up Backend Real-Time Service               triage  3              Research and Select Collaboration Algorithm, Define Documen…
+2ff1656d  Develop Basic Rich Text Editor UI              triage  3              Research and Select Collaboration Algorithm, Define Documen…
+10fca601  Integrate Collaboration Engine into Frontend…  triage  3              Implement Core Collaboration Engine, Set Up Backend Real-Ti…
+84d200a6  Implement User Presence and Cursors            triage  3              Implement Core Collaboration Engine, Set Up Backend Real-Ti…
+32d10501  Set Up Document Persistence and Loading        triage  3              Implement Core Collaboration Engine, Set Up Backend Real-Ti…
+dd4bdf30  Implement Version History and Restoration      triage  3              Integrate Collaboration Engine into Frontend and Backend, I…
+a3b452c7  Implement the Core WebSocket Endpoint          triage  3              Set up Backend Project Scaffolding, Define the WebSocket Me…
+ef917dd9  Implement Session Join/Leave Logic             triage  1              Implement the Core WebSocket Endpoint
+b222c940  Implement Operation Broadcasting Logic         triage  1              Implement the Core WebSocket Endpoint
+5d9a6227  Add Unit Tests for Session and Broadcast Log…  triage  2              Implement Session Join/Leave Logic, Implement Operation Bro…
+8e558f22  Configure Structured Logging                   triage  2              Implement Session Join/Leave Logic, Implement Operation Bro…
+3e033769  Create Deployment Artifacts (Dockerfile)       triage  2              Implement Session Join/Leave Logic, Implement Operation Bro…
+6b647401  Implement Document and Operation Data Models   triage  4              Define and Model Edit Operations, Design the Document Data …
+dd93e080  Implement the Core Transformation/Merge Engi…  triage  4              Define and Model Edit Operations, Design the Document Data …
+a46b41e2  Implement the Public API Wrapper               triage  4              Define and Model Edit Operations, Design the Document Data …
+
+--- Total task count ---
+Total tasks: 4

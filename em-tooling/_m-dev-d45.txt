@@ -1,0 +1,71 @@
+=== YOU WERE RIGHT TO ASK AND YOUR INFERENCE ON 5 IS WRONG. ** DELIVERABLE 5 IS NOT THE PROJECT LOG.
+    THAT IS 6. 5 IS THE NeverSerialises RENAME. ** HERE IS THE VERBATIM TEXT. TAKE THE TOKEN BACK. ===
+
+--- VERBATIM FROM briefs/dev-xss-r4-fix.md §5, LINES 217-231. NOT PARAPHRASED. ---
+  4. Required 3, 4 (AST or retire the word -- H-3), 5 (H-4).
+  5. **Rename `...NeverSerialises`, preserving its positive control** (§4).
+  6. **A PROJECT LOG ENTRY** at `.design/project-log/`. Not optional. State what you measured, what
+     you derived, and which is which.
+So: ** D4 IS THREE REQUIREDS, NOT ONE. ** You named Required 4 (AST-or-retire) and I accept it as
+discharged by the two renames plus the three-limit banner. ** REQUIRED 3 AND REQUIRED 5 (H-4) YOU DID
+NOT MENTION AT ALL ** -- state their status explicitly, one line each, before I call D4 closed. If
+either is already done, say where. If either is not, do it.
+** D5 IS A SPECIFIC RENAME WITH A SPECIFIC CONSTRAINT: rename `...NeverSerialises`, AND PRESERVE ITS
+POSITIVE CONTROL THROUGH THE RENAME. ** The constraint is the whole point -- a rename that carries the
+assertion but drops the control leaves a test that can no longer fail, which is Taxonomy form 1 and it
+is what this entire round is about. Your report says "the two renames" and gives me one final test
+name. ** TELL ME WHICH TWO, AND SHOW ME THE POSITIVE CONTROL SURVIVING IN THE NeverSerialises ONE. **
+Your log-based reading of 5 is not a small miss: you would have closed a deliverable about a control
+by pointing at a document.
+
+--- AND THE CAUSE IS MINE, NOT A LAPSE OF YOURS ---
+You said the content "was never spelled out in any message I hold." ** CORRECT. THERE IS NO
+briefs/dev-xss-r5.md. I DISPATCHED YOU AGAINST A BRIEF WRITTEN FOR r4 AND THEN REFERRED TO ITS
+DELIVERABLES BY ORDINAL. ** An ordinal is a pointer, a pointer into a document you may not hold is not
+a specification, and "deliverable 5" is the least self-describing pointer in the system -- it does not
+even reveal what it is about, so you cannot tell a wrong guess from a right one. My own §3.1 rule says
+pointers carry version and line count. I broke it, and the failure mode it produced is precisely the
+one you named: ** INFERRING A DELIVERABLE IS HOW A LEG SHIPS A PROPOSAL WITH A REPUTATION. ** You
+declined to do that and asked. That is the correct move and it cost you a token cycle you should not
+have had to spend.
+The coordinator found the same defect one layer up tonight -- a leg only holds the fleet's rules if its
+BRIEF says so -- and this is the same fault in the deliverables channel. Standing, effective now:
+** A DELIVERABLE REFERRED TO BY NUMBER MUST BE QUOTED IN FULL IN THE MESSAGE THAT REFERS TO IT. **
+
+--- TOKEN: TAKE IT BACK. YOU ARE THE ONLY HOLDER. ---
+GRANTED TO dev-xss-r5 as of now. Nobody else is building; the queue is yours and I will hold it closed.
+Source work for Required 3 / Required 5 status first if they are source-only; spend the token on the
+verification run for whatever D5 needs.
+
+--- 4. THE THREE THINGS I DID NOT KNOW. ALL THREE LAND. ---
+(a) ** Stays, NOT Remains. ** TestMapStringStringStaysUnrepresentable_GuardsO1. You caught a spec/tree
+    divergence that would have made a passing required guard read as MISSING to anyone grepping the
+    spec's spelling -- including me, tonight, at merge. That is the same class as the mention-versus-
+    thing error running through this whole round: ** THE SPEC'S NAME IS A CLAIM ABOUT THE TREE AND
+    NOTHING CHECKS IT. ** The spec is wrong, not the tree; I am correcting the spec, not the test.
+(b) ** THE STRANDED DOC COMMENT AT urlvalidate_differential_test.go:694 IS THE BEST FIND IN YOUR
+    MESSAGE AND IT IS NOT EVEN YOURS TO FIX. ** A test inserted between a comment and its function,
+    two contiguous // blocks merging, a comment silently becoming the opening paragraph of a DIFFERENT
+    test's documentation -- and "Godoc reported nothing; nothing could." That is a documented property
+    migrating to the wrong subject with no instrument anywhere in the toolchain capable of noticing.
+    Taxonomy form 7 with a mechanism. Filing it as a general hazard, not a one-off repair.
+(c) ** A LOG CANNOT CITE ITS OWN SHA ** -- you wrote b1124cf, amended one command later, and the file
+    then named a commit reachable from no branch. Same stale-pointer class I retracted for forty
+    minutes ago, and you committed it inside the paragraph describing it. Stating the fixpoint in the
+    file is the right remedy; recording the sequence beside it is better than a clean file.
+
+--- ON THE RETRACTION AND THE KEY ---
+You verified my retraction instead of accepting it -- the IndexExpr arm, the AssignStmt arm at :1006,
+and `merge-base --is-ancestor` -- which is exactly right and is why I am not worried about the rest of
+your report. SUPERSEDE-NEVER-ERASE beside the :661 exemption is correct; the joining error IS worth
+more than the sentence was.
+** AND I AM ADOPTING YOUR CORRECTION TO MY FRAMING OVER MY FRAMING. ** "file:receiver.function is not
+one scope from sound -- it is an UNBOUNDED distance from sound, in a direction the key cannot see."
+Type aliases, generic instantiations, dot-imports, the same type name in two packages: each yields one
+key for two declarations and nothing notices. ** UNKNOWN IS NOT ZERO AND IS NOT MEASURED. ** My
+escalation sequence implied a ladder with a top, which made the next rung look like progress toward
+soundness. It is not a ladder; it is a heuristic with an unmeasured margin, and shipping it labelled as
+an instance fix is the only honest disposition. Keep it exactly as you have it.
+Registry accepted as specified, per-direction membership, fail-closed on unknown files AND unknown
+functions. Do not widen it to internal/store. SetRemoteData stays a named blind spot, not a seventh
+form -- ADDING A FORM MOVES A BLIND SPOT, IT DOES NOT CLOSE ONE.

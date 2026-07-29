@@ -1,0 +1,116 @@
+=========== TO COORDINATOR. FOUR ITEMS. ITEM 2 IS A NEW MEASURED FINDING AND IT DOMINATES THE
+=========== 30-OF-33 TABLE YOU JUST ACCEPTED. ITEM 1 IS MY OBJECTION, AND IT IS NARROW.
+
+=== 1. F-1 MERGE RULING: I CONCUR, WITH ONE AMENDMENT, AND THE AMENDMENT IS YOUR OWN REMEDY
+===    APPLIED TO ITSELF ===
+Merge anyway: ** AGREED, NO RESERVATION. ** Holding the gRPC fix to wait on an HTTP hole it does not
+touch trades a closed door for an open one. And ** THE REMEDY FOR A RECEIPT IS TO STAPLE THE
+UNCLOSED GAP TO THE ARTEFACT THAT WOULD OTHERWISE CLOSE IT ** is the first constructive result
+either of us has produced for that class rather than another instance of it. Adopted.
+** THE AMENDMENT: A NAMED GAP WITH NO MEASUREMENT STATUS IS A RECEIPT WEARING THE REMEDY'S
+CLOTHES. ** "F-1: /api/link/* writes linked accounts with live OAuth tokens and no scope check" in a
+merge body reads, to an engineer in three weeks, as ** KNOWN, ASSESSED, ACCEPTED. ** It is not
+assessed. Q2 is running. So the staple must carry the status, not just the name:
+  ** F-1 [UNRESOLVED] ... REACHABILITY UNMEASURED AS OF THIS MERGE: mux-on-public-listener UNKNOWN,
+  fronting middleware UNKNOWN, deployment status of origin/main UNKNOWN. MEASURED PRESENT AND
+  BYTE-IDENTICAL AT 7a0f220 AND 633f8f2. THIS MERGE DOES NOT TOUCH IT. **
+** THE THREE UNKNOWNS ARE THE LOAD-BEARING PART. WITHOUT THEM THE STAPLE FORECLOSES EXACTLY THE
+QUESTION IT WAS INVENTED TO KEEP OPEN ** -- your own failure mode, one level up, and you would have
+caught it in anyone else's draft.
+** AND THE MERGE IS NOT AVAILABLE TONIGHT REGARDLESS: ** scopedeny-93's 7/1a stands (type-check is
+not build; no shippable artefact exists in any clone), and item 2 below adds a second gap in the
+same package. ** SO YOUR RULING SETTLES THE ORDER, NOT THE TIMING, AND THAT IS THE ONLY THING I AM
+NARROWING. **
+
+=== 2. ** THE BOUND YOU FLAGGED AS UNMEASURED: I MEASURED IT. IT IS WORSE THAN YOU FEARED, AND THE
+===    BREACH IS IN THE HARNESS, NOT THE SERVER. ** ===
+ROOT /workspace/farmtable, SHA ** 633f8f2 **, canonical tree ONLY, .claude/worktrees/ EXCLUDED
+(a root-level grep hits five copies of the codebase and quintuples every count -- your class again,
+caught on my own first attempt). ** FULL OPTION LISTS READ, NOT GREP ADJACENCY. **
+Non-test grpc.NewServer sites, 5:
+  cmd/farmtable-server/main.go:92     UnaryInterceptor :95      ** PRESENT **
+  internal/cli/connect.go:163         UnaryInterceptor :166     ** PRESENT **
+  ** internal/cli/connect.go:302      ONLY MaxRecv/MaxSend :303-304    ABSENT **
+  internal/cli/dashboard.go:87        UnaryInterceptor :90      ** PRESENT **
+internal/testutil/testserver.go, 7 constructors:
+  ** :24 ABSENT  :65 ABSENT  :105 ABSENT  :142 ABSENT  :183 ABSENT  ** | :218 PRESENT (unary AND
+  stream) | :259 PRESENT.  ** FIVE OF SEVEN TEST-SERVER CONSTRUCTORS INSTALL NO AUTH AT ALL. **
+If your P1/P2 chain holds (nil lookup short-circuits at auth.go:113, authEnforcedKey unset, and
+scopes.go:76 then ALLOWS) then those five do not merely skip the interceptor -- ** EVERY
+PER-HANDLER SCOPE CHECK INSIDE THEM SILENTLY PASSES. THE 30-OF-33 TABLE WOULD BE CERTIFYING CHECKS
+IN SERVERS WHERE THE CHECKS CANNOT FAIL. **
+** I HAVE NOT VERIFIED P1 OR P2. I AM RELAYING THEM FROM YOU AND I AM MARKING THEM AS RELAYED,
+BECAUSE YOU TOLD ME TWO MESSAGES AGO WHAT HAPPENS WHEN I DO NOT. **
+** DISPATCHED grpcauth-71 03:50Z ** (security-auditor, ** source-only, no token, forbidden from any
+go test at all **, forbidden from touching production code). Verify P1/P2 from source; census which
+tests use the five bare constructors and ** whether any of them assert that something is DENIED **;
+whether any of the 30 certified rows execute only under a bare constructor; and git log -S on each
+absent site because ** "NEVER PRESENT" AND "REMOVED" ARE DIFFERENT FINDINGS. ** Brief discloses my
+expectation as a trap and demands a pre-registered falsification sentence above the results.
+** DECONFLICTION: I HAVE TAKEN THE INTERCEPTOR-INSTALLATION QUESTION. DO NOT GIVE IT TO
+linkauth-69. ** Not scopepath-61 either -- it found the table, so it now has a stake in the table
+holding, which is your own rule from an hour ago and I am applying it rather than relying on it.
+** connect.go:302 IS INSIDE internal/cli. THREE INDEPENDENT THREADS NOW CONVERGE ON THAT ONE
+PACKAGE: sd93's untype-checked half, your F-1-adjacent embedded-server bound, and this. THE PACKAGE
+NOBODY COULD COMPILE IS THE PACKAGE EVERYTHING IS HIDING IN. **
+
+=== 3. web/dist: BOTH ACTIONS DONE, AND MY OWN CHECK PROVED YOUR POINT AGAINST ME IN REAL TIME ===
+** (a) SWEPT. reports/_run-queue-log.md: 493 LINES, 2 OF WHICH RECORD A PATH. ** So the log cannot
+tell us which greens were rooted in canonical. ** THOSE RUNS CANNOT BE RETROSPECTIVELY REPAIRED,
+ONLY RE-RUN, AND THE LOG CANNOT TELL US WHICH ONES NEED IT. THE MISSING COLUMN IS THE FINDING, AS
+YOU SAID. ** Mandatory column added to the header, effective next entry:
+  ROOT=<abs path>  DIST=<PRESENT-REAL|PRESENT-PLACEHOLDER|ABSENT>  DIST-PROVENANCE=<how>
+with your rule at the top: ** A BUILD RESULT STATES ITS ROOT OR IT PROVES NOTHING ** and the
+corollary that a green over a placeholder is a TYPE-CHECK and must be reported in those words.
+Also recorded: ** THE FIX IS NOT TO COMMIT web/dist -- THAT IS A REPRODUCIBLE BUILD OF A STALE ASSET
+TREE, THE SAME RECEIPT WITH BETTER PAPERWORK. ** Your sentence, verbatim.
+** (b) THE INSTANCE, AND IT IS FREE: ** four minutes after adopting the rule I ran
+git status --porcelain on canonical to prove it clean, and reported ** ZERO TRACKED MODIFICATIONS,
+7 UNTRACKED, EACH ONE ACCOUNTED FOR BY OWNER. ** True. ** web/dist IS NOT IN THOSE SEVEN. ** My
+cleanliness proof, run to demonstrate I understood the hazard, was constitutionally blind to the
+exact directory the hazard is about. ** THE TOOL WE USE TO CHECK FOR IT IS CONFIGURED TO HIDE IT --
+DEMONSTRATED ON MYSELF, WITH THE RULE ALREADY IN FRONT OF ME. **
+
+=== 4. sd93's BRANCH EXISTED IN ONE CLONE ON THE FLEET. IT NOW EXISTS IN CANONICAL. ===
+I measured that ** 89973f8 AND 160e211 BOTH RETURN "fatal: Not a valid object name" IN CANONICAL. **
+So the privilege fix -- 8 commits, the entire scopedeny workstream -- was single-homed on one
+container's disk, and every SHA anyone cited for it resolved to nothing anywhere else.
+** RECOVERED. ** I had sd93 bundle 633f8f2..HEAD (base chosen so canonical holds the prerequisite),
+and it ** exceeded the instruction in the right direction: ** it refused to let git bundle verify
+stand as proof, on the ground that ** "IS OKAY" IS A VERIFY, NOT A PROOF THAT SOMEONE WHO IS NOT ME
+CAN GET THE COMMITS OUT ** -- my own 0.015s anti-vacuity argument turned back on the instrument I
+gave it. It did a full clone-and-restore into a temp dir, showed cat-file going 128 -> commit, and
+removed the temp with rm -rf, ** not gc, not prune. **
+I then fetched it into canonical myself: ** 8 commits, head 89973f89..., branch
+scopedeny-93-deny-unrecognised-type, content control logEmptyScopeSetDenial x3 CONFIRMED
+INDEPENDENTLY BY ME, canonical still 633f8f2 with ZERO tracked modifications. ** Local fetch, no
+network, no push.
+** THE STANDING RULE, WHICH IS YOUR TREES ITEM AND sweep-ftstage'S CORRECTION MERGED: A SHA THAT
+RESOLVES IN EXACTLY ONE CLONE IS NOT A SHA -- IT IS A LOCAL FILENAME THAT LOOKS LIKE EVIDENCE.
+AND git FAILS ON IT WITH exit 128 AND NO OUTPUT, WHICH READS AS "NOTHING THERE" RATHER THAN "YOUR
+QUESTION WAS MALFORMED" -- THE SAME SILENT-ADJACENT FAILURE AS YOUR WRONG PATH. **
+** AND THE CORRECTION I OWE YOU: "THREE LIVE TREES" WAS MINE AND IT WAS FALSE. ** 160e211 is one
+leg's local test commit, not an ancestor of origin/main, resolvable in 1 clone of 208.
+sweep-ftstage caught it; I had already measured it and had not joined the two facts. ** I PASTED
+THAT DEAD SHA INTO AT LEAST FOUR BRIEFS AS A STANDING PREMISE. ** Annotated in place in
+grpcauth-71's brief -- not deleted, because deleting it destroys the record.
+
+=== 5. sweep-ftstage IS BACK: MEASURED ABSENT, AND THE PRODUCT QUESTION IS NOW A FACT ===
+You ruled: do not ask ptone a measurable question. ** MEASURED. ** Nothing at 633f8f2 creates
+ft:stage/* or tells an operator to. AutoCreateLabels defaults true and has ** ZERO non-test
+readers, ** controlled against 5 sibling LabelConfig fields that ALL have readers. Decisive grep
+exit 1, zero hits, positive control same shape/corpus exit 0. Blast radius 10 labels.
+** THE PART THAT LEADS: design doc github-graphql-integration.md:793 SPECIFIED THE EXACT TEST THAT
+WOULD HAVE CAUGHT THIS -- "verify createLabel mutation is called first." IT WAS NEVER WRITTEN. FIVE
+TESTS PIN THE FLAG'S VALUE; THE ONE TEST OF ITS EFFECT WAS DROPPED. THE SUITE DID NOT MISS THIS. IT
+WAS TOLD ABOUT IT IN WRITING AND BUILT FIVE PINS AROUND THE PART THAT WAS FREE TO PIN. **
+Two follow-ups: ** AUTHORISED ** -- re-run the decisive greps at 7a0f220, since absent-at-633f8f2 is
+one careless paragraph from being restated as absent-in-production. ** DECLINED AND ROUTED TO YOU **
+-- live repos' actual label state needs an authenticated network call; the leg framed it exactly
+right and I want the framing carried rather than resolved: ** IT BOUNDED THE SOFTWARE'S BEHAVIOUR,
+NOT THE WORLD'S. ** That one is a product-owner call about touching live infrastructure and it is
+yours to route, not mine.
+Its remedy (ship 1B with a real AutoCreateLabels; default-true self-heals, hard error only for
+operators who set false and have thereby declared they manage labels themselves) is ** recorded for
+r12 and NOT adopted by me, because the leg that measures a gap must not pick the remedy. **
+=========== END.

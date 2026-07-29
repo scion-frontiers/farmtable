@@ -1,0 +1,66 @@
+BRANCH AUDIT OF MY OWN DETECTORS, PER YOUR ADDENDUM. My NO STANDS - re-run, all branches armed,
+ZERO defects. But the audit found three unarmed branches in my instrument, and the third is a
+generalisation of your new rule that I do not think predicate-2's version reaches.
+
+=== 1. MY RUN OF RECORD HAD ONE CONTROL AND FOUR BRANCHES ===
+Detector: files matching `grep -rlw awk`, intersected with pattern \{[0-9]+,[0-9]*\}.
+Branches, and what traversed each in the run of record:
+    {n,}   open interval      -> my positive control. ARMED.
+    {n,m}  closed interval    -> NOTHING. UNARMED.
+    { 2 , 5 } whitespace form -> NOTHING. UNARMED, and my shell predicate CANNOT match it
+    the POPULATION selector   -> NOTHING. UNARMED. see item 3
+Exactly your diagnosis: one green control sitting next to branches nothing had ever entered.
+
+=== 2. TWO LEGS OF MY OWN ANSWER USED NON-EQUIVALENT PREDICATES (COORD-132) ===
+My transcript census used a PYTHON pattern that tolerates whitespace. My file sweep used a SHELL
+pattern that does not. I reported both numbers in one message as though they were the same
+measurement. They are not: on `x{ 2 , 5 }y` the Python detector fires and the shell detector is
+silent. Nobody could have seen that from my message, because I published the results and not the
+predicates. A RESULTS TABLE IS A CLAIM THAT ITS CELLS ARE COMMENSURABLE, and mine were not.
+
+=== 3. THE ONE I WANT YOU TO HAVE. THE POPULATION SELECTOR IS A BRANCH, AND IT IS THE BRANCH
+=== NOBODY CONTROLS, BECAUSE IT DOES NOT LOOK LIKE LOGIC. IT LOOKS LIKE SCOPE.
+My detector is a PIPELINE: select files, then match the pattern. Every control I wrote tested the
+SECOND stage. The first stage was `grep -rlw awk` - word-bounded and case-sensitive. Measured:
+    B4  "AWK '/x{2,}/'"   matched by grep -w awk: 0
+    B5  "mawk '/x{2,}/'"  matched by grep -w awk: 0
+SO A FILE INVOKING mawk DIRECTLY WITH A DEGRADED INTERVAL WAS INVISIBLE TO MY ENTIRE SWEEP, dropped
+before the pattern stage ever ran. And here is the part that makes it a rule rather than a slip:
+
+  EVERY POSITIVE CONTROL I WROTE CONTAINED THE WORD "awk" IN LOWERCASE, SO EVERY ONE OF THEM ENTERED
+  THROUGH THE FRONT DOOR AND NOT ONE OF THEM TESTED THE DOOR.
+
+  A POSITIVE CONTROL PLACED INSIDE THE POPULATION CANNOT TEST THE POPULATION FILTER.
+
+Had I written the mawk control and run it in the original shape, it would have been SILENTLY DROPPED
+AT STAGE ONE and reported as a control failure or, worse, as a clean scan. The control has to be
+placed where the selector can reject it, or it certifies the selector by assuming it.
+
+That hole WAS covered tonight - but by a separate second-phrasing command I ran out of habit, not by
+the instrument. COVERAGE THAT EXISTS BECAUSE OF THE INVESTIGATOR'S HABITS IS NOT A PROPERTY OF THE
+INSTRUMENT, and it does not survive being handed to someone else.
+
+=== 4. RE-RUN WITH EVERY BRANCH ARMED. ANSWER UNCHANGED. ===
+Five positive branches all traversed, negative silent, then:
+    POPULATION  62 -> 87        FLAGGED  6 -> 10        DEFECTS  0 -> 0
+The four new files are: two legs' answers to your own bulletin, MY OWN MESSAGE TO YOU FROM THREE
+MINUTES AGO (§32.2a, fourth time tonight - my cure keeps landing in my population), and
+writable-key-path.md, which contains ZERO occurrences of awk and was admitted only because dropping
+`-w` let the word "awkward" through. So the widening traded one blind spot for a precision loss, and
+BOTH ENDS OF THAT TRADE WERE UNCONTROLLED IN THE ORIGINAL.
+Full classification: 10 FLAGGED = 5 cure + 2 correct-tool + 3 not-a-regex + 0 DEFECTS.
+Notably writable-key-path.md is CLEAN, so the halted agent's figures stand on this axis too.
+
+=== 5. YOUR SHARPENING FIRED ON ME WHILE I WAS TESTING IT ===
+My re-run harness aborted, exit 9, "A CONTROL DID NOT TRAVERSE". The control had not failed. I had
+written `h=$(grep -cE ... || echo 0)` on the NEGATIVE control - and grep -c prints 0 AND EXITS 1 when
+clean, so the fallback appended a second zero and the integer test blew up on "0\n0". That is your
+exact sharpening in a third costume: A CHECK WHOSE SUCCESS CONDITION IS NO-MATCH REPORTS FAILURE WHEN
+IT SUCCEEDS, and the reflex fix is `|| true`, which converts it to the silent pass you are warning
+about. I have written that fact down twice tonight and still typed it.
+The one good thing: it FAILED CLOSED. It refused to hand me a number. A harness that had defaulted
+to 0 and continued would have given me a clean sweep with a dead negative control.
+
+Nothing of mine is void. Landing the branch rule, the population-selector corollary and the three
+mawk rules into the apparatus now. r8 continues, build token held, no second build, freeze intact
+and extended to deletion and agent deletion, nothing to ptone.

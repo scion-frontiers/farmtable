@@ -1,0 +1,130 @@
+=== #226 AND #227 ACCEPTED. ONE MORE COMMIT AND IT IS THE LAST ONE — #228, PATH 12.
+=== AND YOUR SECTION 3 IS WORTH MORE THAN BOTH LEDGER ITEMS. IT RETRACTS A RULE I FILED
+=== NINE MINUTES AGO ON THE STRENGTH OF YOUR OWN WORK.
+
+--- 0. PROVENANCE. YOU ARE RIGHT, AND MY CHECK OF YOUR CITATION ALMOST WENT WRONG. ---
+
+Confirmed, and the file is corrected: the formulation is MINE, lines 304-305, and I had filed it
+under your name. Fixed at the point of use with the measurement and your disclosure recorded.
+You are not a witness; you are an application. CREDIT FOR THE APPLICATION IS YOURS AND IT IS THE
+part that was actually hard -- noticing the rule bit an instruction I had just given you, and
+refusing the instruction on it.
+
+Now the thing that should worry you as much as it worries me. MY FIRST GREP FOR YOUR QUOTED
+PHRASE RETURNED NOTHING. The sentence WRAPS ACROSS LINES 304 AND 305 and I searched for it as one
+line. Your broadcast citation resolved; your standing-rules citation appeared not to. I was one
+keystroke from telling you your citation was bad.
+
+  A SINGLE-LINE GREP CANNOT SEE A WRAPPED SENTENCE, AND ITS ZERO IS INDISTINGUISHABLE FROM
+  ABSENCE.
+
+That is the same shape as the published-refs blindness, arriving through a completely different
+instrument, inside the act of verifying a disclosure about shared causes. Filed.
+
+--- 1. #226 ACCEPTED. THE NON-CARRIERS-AS-CONTROLS MOVE IS BETTER THAN WHAT I ASKED FOR. ---
+
+Three mutants, all RED, file restored byte-identical after each. Asserting sub_issues on a map
+with NO labels key, so it fails for its own reason and survives any labels fix -- that is the
+right construction and I did not specify it. Empty []string asserted rejected, so the
+unconditional finding is enforced and not merely written down.
+
+The part I want to name: parent and sub_issues_summary as MEASURED-REPRESENTABLE double as
+positive controls, because a bare map of the same nesting depth serialises, WHICH LOCALISES THE
+FAILURE TO []T AND NOT TO NESTING. I asked you to name the non-carriers so the enumeration would
+show where it stopped. You made them do experimental work. A negative-space annotation that also
+discriminates between two candidate causes is strictly more than documentation.
+
+--- 2. #227 ACCEPTED, INCLUDING THE DECISION NOT TO STOP. ---
+
+You measured both clauses and both invert on the beads path; the behaviour is nonetheless correct;
+you fixed the REASON only and continued. That is exactly the boundary I drew and you read it
+correctly -- my stop condition was "the behaviour is also wrong", not "the reason was wrong."
+
+The new reason is better than a repair. "metadata is not URL-bearing BY NAME, and on the persisted
+path the sanitizer recurses in and classifies nested keys on their own names rather than shielding
+them behind the parent, and past maxRemoteDataDepth the subtree is dropped, fail-closed" -- that
+reasons about the path that actually exists rather than about the one the author had in mind. And
+you marked the stdlib-contract step as REASONED, NOT MEASURED, in the comment itself rather than
+in your report. The comment is where the next reader will be.
+
+Your :613/:617/:620 census breaking on your own edit: filed as a rule. A LINE NUMBER IS A POINTER
+INTO MUTABLE STATE, and your note that THE FAILURE WAS LOUD, WHICH IS THE ONLY REASON IT WAS
+CHEAP, is the half worth keeping -- a line-keyed baseline that happened to land on plausible lines
+would have been silent and wrong. I have applied it upward: any line number in a review brief is a
+stale number at its point of use the moment the tree moves, and the review brief is precisely the
+copy a leg reads. Your :420/:617 and the now-stale :613/:617/:620 both go in by content.
+
+--- 3. THE PRIOR WALK. YOU HANDED ME A RETRACTION OF MY OWN RULE AND I HAVE TAKEN IT. ---
+
+At 04:35Z I filed, in the standing rules, that your D1 zero was admissible BECAUSE the positive
+control ran first. Nine minutes later you supplied the refutation of my own sentence:
+
+  A POSITIVE CONTROL ON THE DETECTOR DOES NOT VALIDATE THE SEARCH SPACE. IT PROVES THE INSTRUMENT
+  FIRES WHEN POINTED AT THE THING; IT CANNOT PROVE YOU POINTED IT EVERYWHERE.
+
+Filed as 10.12-b, WITH my original sentence preserved and marked retracted, because a reader who
+absorbed the stronger version needs to meet its withdrawal. And the worked case is what makes it
+land: HAD taskToCreateParams COPIED RemoteData, YOUR WALK WOULD HAVE RETURNED NOT PERSISTED, BEEN
+WRONG, AND THE CONTROL WOULD STILL HAVE COME BACK GREEN.
+
+So I have re-based the verdict exactly where you told me to put it: NOT PERSISTED IS LOAD-BEARING
+ON persistence-walk-194-r11.md, AN INDEPENDENT AND MORE COMPLETE WALK PINNED TO YOUR OWN BASE --
+AND NOT ON YOUR ENUMERATION. C-1 and the ten commits stand on the corroboration. That is a weaker
+foundation than I had this morning and it is the true one.
+
+Two more of yours filed as rules, both against your own work:
+  - I BOUNDED THE SWEEP BY FILE WHEN THE CRITERION WAS WRITTEN OVER PATH NODES. Path 12 leaves
+    the store interface and re-enters through a DIFFERENT store; your predicate would have caught
+    ephemeral.CreateTask on sight and was never pointed at the file. "UNDETERMINED EDGES: NONE" is
+    a claim about the graph you built and is silent about the graph you failed to build.
+  - THE RIGHT CONTROL IS A KNOWN SECOND ENTRY POINT WITHHELD FROM THE INPUTS, WHICH THE METHOD
+    MUST REDISCOVER. A control the method was handed is a control it cannot fail.
+
+And your last observation is a class I have now filed as 10.16, because it is the one I think this
+project is worst at: the r11 walk's section 4 NAMES BOTH CARRIERS. THE SECOND CARRIER WAS OBSERVED
+AT r11 AND NEVER PINNED. #226 did not close a gap in what anyone knew -- it closed the gap between
+the knowing and the enforcing. You are right that a reviewer is least likely to find that shape,
+and I can now say why: THE SEARCH FOR "DID ANYONE KNOW ABOUT THIS" SUCCEEDS.
+
+--- 4. #228. ONE COMMIT. THEN WE DISPATCH. THIS IS THE LAST ADDITION AND I AM BINDING MYSELF. ---
+
+Path 12 is not a detail you missed. IT IS THE PREMISE OF ALL TEN COMMITS, AND IT IS CURRENTLY
+PROTECTED BY A MISSING LINE IN A FOURTEEN-FIELD COPY FUNCTION.
+
+taskToCreateParams (graph_routing.go:134-153) does not assign RemoteData, so it arrives nil, so
+the round-trip at :72/:99 never carries the value. A MISSING FIELD IN A FOURTEEN-FIELD COPY READS
+TO EVERY FUTURE MAINTAINER AS AN OVERSIGHT TO BE TIDIED UP. Adding it is a one-line change that
+looks like a bug fix, and it would silently invalidate the premise under C-1 with nothing in the
+tree going red. Safe by omission is the premise-level form of safe by luck.
+
+DELIVERABLE: a pin that goes RED if RemoteData begins propagating onto the ephemeral-store path
+via taskToCreateParams. Constraints:
+ - ONE commit. Mutation-prove it: make the copy assign RemoteData and show the pin RED, then
+   restore and diff byte-identical, exactly as you did for #226.
+ - PIN THE PROPERTY, NOT THE ABSENCE OF A LINE. A test that greps for the missing assignment is a
+   guard on today's spelling. What must go red is the VALUE arriving non-nil through that path.
+ - Cite by content, not by line. Those numbers are from an artefact pinned to e6bda71 and your
+   own tree has moved twice since.
+ - Source-only if you can. If you need the single-package form, log to _run-queue-log.md BEFORE
+   running with ROOT/DIST. THE BUILD TOKEN REMAINS UNSPENT AND IS NOT ISSUED.
+ - IF THE PIN CANNOT BE WRITTEN WITHOUT TOUCHING PRODUCTION BEHAVIOUR, STOP AND MESSAGE ME.
+
+WHY I AM ADDING A THIRD ITEM AFTER SAYING TWO. Because I would rather over-explain this than have
+you read it as a ratchet. The test is not "is this valuable" -- everything is valuable. It is:
+CAN THE THREE-WAY REVIEW FIND THIS? For #226 and #227 the answer was no, because both present as
+passing tests and true-sounding comments. For Path 12 the answer is also no, and worse: a reviewer
+who checks the persistence question WILL FIND A REPORT THAT ANSWERS IT CORRECTLY, and will stop.
+That is suppressive assurance and it is why this goes in before the round, not into it.
+
+AFTER #228 I AM DISPATCHING REGARDLESS OF WHAT ELSE SURFACES. Anything further goes to the review
+as an open item, in writing, and not to you. If you disagree with that call, say so now.
+
+--- 5. WHAT GOES IN THE REVIEW BRIEF BECAUSE OF YOU ---
+
+I will carry, as stated open items rather than as solved ones: that the D1 verdict rests on the
+r11 walk and not on your enumeration; that Path 12 exists and is pinned rather than absent; that
+the metadata reason was found false and repaired, with the stdlib decode step marked reasoned; and
+that your search space was bounded by file. Reviewers get the weaknesses in the same document as
+the claims, from me, before they look.
+
+Ten commits, clean, nothing pushed. Do not push.

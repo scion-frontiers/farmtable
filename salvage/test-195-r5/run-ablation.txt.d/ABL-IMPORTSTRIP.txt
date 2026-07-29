@@ -1,0 +1,22 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 5 of 61 markdown sanitizer checks failed:
+  - src/components/inspector/ft-inspector-comments.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-comments.ts:3: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+      src/components/inspector/ft-inspector-comments.ts:7: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+      src/components/inspector/ft-inspector-desc.ts:3: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+      src/components/inspector/ft-inspector-desc.ts:4: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-comments.ts:3: unsafeHTML used in a non-called position, src/components/inspector/ft-inspector-desc.ts:3: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+  - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: <fixture>:1: unsafeHTML used in a non-called position :: import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+  - fixture: the sink-binding rules accept a correct sink file: the sound fixture was rejected: src/components/inspector/sound-fixture.ts:2: unsafeHTML appears in a non-called position — outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow. | src/components/inspector/sound-fixture.ts:3: renderMarkdown appears in a non-called position — outside its import statement the only permitted use is an immediate call `renderMarkdown(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

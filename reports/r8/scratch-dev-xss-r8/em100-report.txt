@@ -1,0 +1,59 @@
+FYI ACKNOWLEDGED on the r9 tree - not mine, no action taken, I have not touched
+/workspace/farmtable-dev-xss-r9. My tree remains /workspace/farmtable-xss-r8 at
+901670e, clean, still not pushed. Noted on cloning from the local path.
+
+BUT THE RATIONING LIFT LET ME CLOSE AN ITEM I HANDED YOU AS OPEN, AND THE RESULT
+CHANGES A PRIORITY. You are dispatching r9 from MY HEAD, so this lands on them.
+
+I ran the whole-tree Go build I had flagged as owed. It does not pass, and not
+because of anything in my ten commits:
+
+  go build ./...  -> EXIT 1
+  assets.go:5:12: pattern all:web/dist: no matching files found
+  go vet ./...    -> EXIT 1, byte-identical error
+
+  go test ./...   -> 4 packages cannot be built AT ALL:
+    farmtable (root), cmd/farmtable-server, cmd/ft, internal/cli  [setup failed]
+
+EM-100 HAS BEEN CARRIED AS "AN ABSENT DIRECTORY, COSMETIC, PRE-EXISTING". IT IS
+A REPO-WIDE TOOLCHAIN BLOCKER. Two consequences you can act on:
+
+1. The "whole-tree Go build is owed" item I handed you CANNOT BE DISCHARGED BY
+   ANYONE while EM-100 stands. It is not that nobody got to it. It is not
+   possible.
+
+2. make test is go test ./... plus the web suite, so MAKE TEST CANNOT PASS IN A
+   TREE WITHOUT web/dist. Any leg reporting a green make test tonight either
+   built web/dist first or is not reporting what it ran. Given rationing just
+   lifted and several legs are about to build at once, that is worth a spot
+   check. The r9 clone inherits this from my HEAD.
+
+I did NOT build web/dist. EM-100 is routed away, and npm run build would have
+manufactured the exact artefact whose absence is the finding - and would have
+triggered the git-status blindness you warned me about.
+
+THE ONE REAL TEST FAILURE WAS THE FLAKE, AND I TOOK YOUR INSTRUCTION LITERALLY.
+First full run: --- FAIL: TestWatchTasks_CreatedEvent (5.01s). I did not believe
+it. Isolated x3: GREEN at 0.014s / 0.013s / 0.012s. Second full run: internal/
+server GREEN. 5.01s against 0.013s is a timeout, not a logic failure; the test
+is in internal/server/watch_test.go, not in my diff, nothing to do with
+remote_data, capabilities or import. CONFIRMED FLAKE, CONFIRMED NOT MINE. I have
+written it up in the ledger so the next leg that meets this red finds it already
+characterised rather than re-deriving it at midnight.
+
+NET, AND IT IS THE STRONGEST THING THIS LEG CAN SAY ABOUT ITS OWN WORK: across
+two full-suite runs the only REPRODUCIBLE failure in this tree is EM-100.
+Nothing is attributable to my ten commits. That statement only became available
+when you lifted rationing.
+
+CREDENTIAL SELF-AUDIT, prompted by your permanent rule. Ten commits, seven files,
+every one named in its commit message: the r8 project log, convert.go,
+export_import.go, webguard/doc.go, webguard/remotedata_consumers_test.go,
+capabilities.ts, ft-app.ts. Every commit was git commit --only with explicit
+paths. No -A, no -a, no dot, no -u, no glob, no directory pathspec, no stash.
+The only git add in the entire leg named one file in full. Branch diff grepped
+for credential-shaped content: nothing. I am reporting this as a checked result
+rather than as an assurance.
+
+Report and ledger updated: reports/r8/dev-xss-r8.md section 7, and
+reports/_run-queue-log.md cells R8-16..R8-19.

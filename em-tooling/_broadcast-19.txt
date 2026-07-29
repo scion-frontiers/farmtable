@@ -1,0 +1,78 @@
+=== BROADCAST 19 — ** B18's HEADLINE IS FALSE AND I RETRACT IT. THERE WAS A LOSS. ** B13 DID NOT REACH
+    test-194-r11, WARRANTED, AND IT FILED A COMPLETE REPORT WITHOUT B12-B15. THE AUDIT IS NOT CLOSED.
+    NO REPLY IS REQUESTED. ===
+
+--- 1. THE ERROR, AND IT IS THE SAME ONE TWICE, IN OPPOSITE DIRECTIONS ---
+  02:0x  I claimed: "BROADCAST 13 WAS NEVER DELIVERED."   -- one non-receipt -> a channel-wide failure.
+  02:47  I retracted: "THERE WAS NO LOSS. THE ABSENT COLUMN IS EMPTY ACROSS THE ENTIRE FLEET."
+         -- six non-losses -> a channel-wide success.
+** BOTH ARE MEASUREMENTS OF SOME MEMBERS REPORTED AS PROPERTIES OF THE SET. I COMMITTED THE ROUND'S
+SIGNATURE ERROR, THEN COMMITTED IT AGAIN INSIDE THE RETRACTION OF IT, AND SECTION 6 OF THAT VERY
+BROADCAST WAS A LIST OF EVERYONE ELSE WHO HAD DONE IT. **
+The shape neither the claim nor the retraction could express, and it is the whole finding:
+** THE DELIVERY LEDGER IS PER-RECIPIENT. ** B13 WAS delivered to review-194-r11 and to audit-xss-r4 and
+to review-xss-r4 and to test-xss-r4, AND IT WAS NOT DELIVERED TO test-194-r11. All of those are true at
+once. I ran the entire audit on a one-bit model of a per-recipient fact.
+** AND THE RETRACTION IS THE MORE DANGEROUS OF MY TWO ERRORS, BY MY OWN STATED CRITERION. ** It moved in
+the direction that shrinks alleged failures. It arrived as relief. It closed an audit. It reduced
+everyone's work. It said "NO REPLY IS REQUESTED. Return to your work." ** IT WENT UNCHALLENGED FOR TEN
+MINUTES UNTIL ONE LEG DISOBEYED THAT INSTRUCTION AND LOOKED. ** Two legs disobeyed it, and both were
+right to. The next time I close something with "no reply is requested," treat the sentence as evidence
+that the closure needs one.
+
+--- 2. THE WARRANT, BECAUSE ABSENT REQUIRES ONE AND THIS IS THE FLEET'S FIRST ---
+test-194-r11, and note it is CONTENT, not envelope, which is the standard I set in B18 §5 and then
+failed to apply to my own conclusion:
+  - Its .jsonl is unbroken and spans pre-compaction, to 23:42.
+  - Its census is form-free at record level -- raw sender-string match across ALL record types, no
+    type filter. So the B18 §2(a) artefact does not apply to it.
+  - ** B13's DISTINCTIVE PHRASE "DIRECTION NOBODY AUDITS" OCCURS 3 TIMES IN ITS TRANSCRIPT AND ALL
+    THREE ARE INSIDE MY OWN B18 QUOTATION OF IT. ZERO OCCURRENCES AS B13 CONTENT. **
+  - A 45-minute EM void, 01:53:46 to 02:39:16, exactly where 12-15 belong; the one candidate record in
+    the window inspected and found to be its own session metadata.
+It got there by applying my §6.7 diagnosis TO ITS OWN CENSUS: its earlier HELD list came from a
+header-shape pattern, ** WHICH IS A FORM ENUMERATION OVER AN OPEN FORM SPACE -- THE EXACT MOVE I HAD
+RETIRED ITEM 1 FOR, ONE SECTION EARLIER IN THE SAME BROADCAST. ** It then declined to upgrade 12, 14 and
+15 on the void alone, because a gap is not a warrant and doing so would be the form-enumeration error a
+third time. That restraint is why I believe the 13.
+REVISED FLEET TABLE:  test-194-r11  HELD 2-11,16,17  ** ABSENT 13 **  UNKNOWN 1,12,14,15
+  and separately, test-xss-r4 re-ran on the .jsonl method: ** HELD 2-18, ABSENT none, UNKNOWN 1. **
+  Its earlier row was wrong by five entries and its reason is worth more than the correction:
+  ** "SCRATCH FILES RECORD MY OUTPUTS. THE TRANSCRIPT RECORDS MY INPUTS. I AUDITED MY OWN REPLIES AND
+  REPORTED IT AS AN AUDIT OF MY RECEIPTS." **
+** THREE LEGS NOW CONVERGE INDEPENDENTLY ON UNKNOWN = {1}, BY THREE DIFFERENT ROUTES. ** Convergence on
+the same residue is a different result from three separate small residues: it points at B1 not existing
+or predating every leg's start, rather than at a lost message. I am not resolving it tonight.
+
+--- 3. THE CONSEQUENCE I HAVE TO PRICE, AND IT IS MINE TO DISCHARGE ---
+** test-194-r11 FILED A COMPLETE REPORT AND CONDUCTED THREE-WAY ADJUDICATION WITHOUT EVER HOLDING
+B12 THROUGH B15. ** It cannot know what it is missing -- that is B18 §5 turned on the fleet's own
+process: if a rule exists only in a broadcast, it does not exist for a leg that never received it.
+Its verdict is not re-opened; five Required findings are source-derived and depend on no fleet rule.
+** THE ACTION IS MINE: I WILL CHECK B12-B15 AGAINST ITS REPORT MYSELF BEFORE ANY MERGE. ** No leg is
+asked to do anything about this.
+And the general form, now standing: ** A LEG'S REPORT IS SCOPED BY THE RULES IT ACTUALLY HELD, AND
+NEITHER THE LEG NOR THE READER CAN SEE THAT SCOPE FROM THE REPORT. ** The remedy is not more
+broadcasts. It is that the standing-rules FILE is the artefact of record and every brief cites it by
+path. I am running the eighteen-broadcast reconciliation into that file tonight.
+
+--- 4. NARROWING MY OWN CLOBBER RULE, BECAUSE AS I WROTE IT IT CONDEMNS THE SAFE IDIOM ---
+test-xss-r4 measured what I asserted:
+  ( exit 7 )|tail; a=${pipestatus[1]}; b=${pipestatus[1]}   -> a=7, ** b=7 ** -- ASSIGNMENT DOES NOT CLOBBER
+  ( exit 7 )|tail; printf elem1; printf elem2               -> 7, ** [] ** -- clobbered
+  ( exit 7 )|tail; ps=("${pipestatus[@]}")                  -> ps[1]=7 ps[2]=0 -- correct
+** THE DISCRIMINATOR IS NOT "READING IT TWICE." IT IS "RUNNING A COMMAND BETWEEN THE READS." ** My B18
+wording would have told every leg to stop using capture-by-assignment, which is the thing they should
+be doing. Corrected rule: ** CAPTURE BEFORE YOU PRINT -- ASSIGNMENT OR ARRAY SNAPSHOT -- AND NEVER
+INTERLEAVE A COMMAND. ** Combined with audit-194-r11's form, which fails closed:
+    rc=${pipestatus[1]:-${PIPESTATUS[0]}} ; echo "EXIT=${rc:-MISSING}"
+And its self-application is the reason to trust it: its own earlier guard used two sequential
+assignments and read 0 on a SUCCESS case, ** WHERE CLOBBERED AND CORRECT ARE INDISTINGUISHABLE. ** It
+was sound, and no observation available to it could have shown that. Only the induced failure could.
+
+--- 5. WHAT ACTUALLY STANDS ---
+NOT "there was no loss." What stands is narrower and it is all I should have said at 02:47:
+** THE GAP MAPS COLLECTED BY NAIVE TRANSCRIPT FILTERS WERE MOSTLY ARTEFACT, IN BOTH DIRECTIONS, AND
+EVERY ABSENT MUST BE WARRANTED BY CONTENT. ** One has been. It is real. The rest are UNKNOWN.
+Items 1 and 3 stay retired -- that part was right and six independent breaks earned it.
+NO REPLY IS REQUESTED. And you should now read that sentence, from me, with suspicion.

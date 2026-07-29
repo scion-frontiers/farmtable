@@ -1,0 +1,61 @@
+[self-check] broken tree -> exit 1 OK
+MX-sinkgone                  exit=1   red   expect=red   OK 
+    what: R1's target: the sink disappears
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 — update REQUIRED_SINKS deliberately if a sink was added or removed
+MX-sinkgone+R1               exit=1   red   expect=red   OK 
+    what:   ...with R1 ablated
+    last: - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 — update REQUIRED_SINKS deliberately if a sink was added or removed
+MX-sinkgone+SINKCOUNT        exit=1   red   expect=red   OK 
+    what:   ...with the sink-count pin ablated
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+MX-sinkgone+R1+SINKCOUNT     exit=0   green expect=red   !! MISMATCH
+    what:   ...with BOTH ablated
+    last: markdown sanitizer: 61 checks passed
+MX-sinkgone+R1+SINKCOUNT+R4  exit=1   red   expect=red   OK 
+    what:   ...and R4 too
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1d sanitizer shadowed by a parameter, not a declaration | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink fi
+MX-shadow                    exit=1   red   expect=red   OK 
+    what: R3's target: local shadow of the sanitizer
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+MX-shadow+R3                 exit=1   red   expect=red   OK 
+    what:   ...with R3 ablated (R4 should hold)
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+MX-shadow+R3+R4              exit=1   red   expect=red   OK 
+    what:   ...with R3 and R4 ablated
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1d sanitizer shadowed by a parameter, not a declaration | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink fi
+MX-concat                    exit=1   red   expect=red   OK 
+    what: R5/ARGCHECK target: raw body concatenated
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(renderMarkdown(this.description) + this.description)
+MX-concat+R5                 exit=1   red   expect=red   OK 
+    what:   ...with R5 ablated (tree argcheck should hold)
+    last: - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(renderMarkdown(this.description) + this.description) ;; - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V6 raw body concatenated onto the sanitized output | V6b sanitizer applied to a value n
+MX-concat+ARGCHECK           exit=1   red   expect=red   OK 
+    what:   ...with the tree argcheck ablated (R5 should hold)
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:
+MX-concat+R5+ARGCHECK        exit=1   red   expect=red   OK 
+    what:   ...with BOTH ablated
+    last: - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V6 raw body concatenated onto the sanitized output | V6b sanitizer applied to a value nobody renders
+MX-innerhtml                 exit=1   red   expect=red   OK 
+    what: BANNED's target: a new innerHTML write
+    last: - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/inspector-shared-styles.ts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]
+MX-innerhtml+BANNED          exit=0   green expect=red   !! MISMATCH
+    what:   ...with the BANNED_SINKS tripwire ablated
+    last: markdown sanitizer: 61 checks passed
+MX-newfile                   exit=1   red   expect=red   OK 
+    what: FILECOUNT's target: a new scanned source file
+    last: - sink scan actually reads the source tree: expected to scan exactly 50 source files, found 51 — before changing this number, open the added or removed file(s) and confirm none of them introduces a raw-HTML sink or a raw Lit directive under another name. Adding a file is normally fine and updating the count is normally the right action — but that confirmation is the decision this pin exists to for
+MX-newfile+FILECOUNT         exit=0   green expect=red   !! MISMATCH
+    what:   ...with the file-count pin ablated
+    last: markdown sanitizer: 61 checks passed
+MX-prosestring               exit=1   red   expect=green !! MISMATCH
+    what: STRINGS control: a legit string naming both identifiers
+    last: - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts:8: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+MX-prosestring+STRINGS       exit=1   red   expect=red   OK 
+    what:   ...with string blanking ablated (proves the protection is real)
+    last: - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken: ;; - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts:8: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]
+
+=== MISMATCHES ===
+  MX-sinkgone+R1+SINKCOUNT: got green, expected red :: markdown sanitizer: 61 checks passed
+  MX-innerhtml+BANNED: got green, expected red :: markdown sanitizer: 61 checks passed
+  MX-newfile+FILECOUNT: got green, expected red :: markdown sanitizer: 61 checks passed
+  MX-prosestring: got red, expected green :: - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts:8: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]

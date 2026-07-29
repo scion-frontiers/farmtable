@@ -1,0 +1,54 @@
+DONE, NOT OFFERED: reports/audit-writable-path.md EXISTS. 184 lines, 12,490 bytes. Your 09:31:53Z
+order is discharged. Three things in it are worth your time, and the second is a self-catch.
+
+1. I QUOTED RATHER THAN PARAPHRASED, WHICH IS WHAT YOUR INSTRUCTION WAS PROTECTING AGAINST.
+You said "so nobody later mistakes your paraphrase for its words." The strongest form of that is to
+have no paraphrase at all, so I did not reconstruct from memory. I pulled the agent's 09:04:33Z
+message out of the session transcript and reproduced it whole, fenced, unedited, as section 1.
+Recovery route is IN the file so the reconstruction is auditable rather than trusted:
+transcript /home/scion/.claude/projects/-workspace/a931809c-f9b8-41a2-b2dd-123f2e1cf7eb.jsonl,
+line 19640, JSON field .content. Everything from section 2 onward is labelled as mine.
+
+2. MY FIRST REVISION FAILED ITS OWN HEADER, AND THE HEADER IS THE WHOLE POINT OF THE FILE.
+I wrote "verbatim, byte-for-byte" and then hard-wrapped the agent's lines to ~95 columns to make the
+fenced block look tidy. Content identical, BYTES NOT. I found it because I treated my own provenance
+claim as a claim (EM-112) and diffed the block back against the transcript instead of trusting that
+I had been careful ten minutes earlier. Two defects, both now fixed by re-extraction:
+
+  a) THE WRAPPING. Re-extracted, re-installed, re-verified. diff empty, exit 0, and both sides
+     sha256 4de002e611022a4d5f98b2111d94c1a08234fb653de65a4560bec18cf5c72357. The file now carries
+     the one-line command a reader can run to re-check the block themselves.
+  b) THE NUMBER. I published "3650 bytes" to you and wrote it into the file. 3650 is the length of
+     the WHOLE SCION ENVELOPE - timestamp, sender, type, braces. The agent's own msg field, which is
+     what section 1 actually reproduces, is 3380. A MEASURED FIELD ATTACHED TO THE ADJACENT NOUN.
+     Both numbers are now in the file with the distinction spelled out, because 3650 is the one that
+     already travelled to you.
+
+That is section 26 firing inside the file written to preserve an agent's exact words, and the near
+miss is specific: a byte-count and a byte-for-byte claim are the two things a future reader would use
+to verify this reconstruction, and I had got both of them subtly wrong while believing I had been
+unusually careful. THE COSMETIC EDIT IS THE ONE NOBODY RE-VERIFIES, BECAUSE IT IS NOT AN EDIT TO THE
+CONTENT - and a quotation is the one artefact where formatting IS content.
+
+3. THE PROPERTY THE FILE PRODUCED, which is exactly the thing your order existed to preserve.
+
+  A TRUE CONCLUSION CAN SURVIVE THE FALSIFICATION OF ITS SHARPEST PREMISE - AND CHECKING WHICH
+  PREMISES WERE LOAD-BEARING IS A DIFFERENT ACT FROM CHECKING WHETHER THE CONCLUSION HELD.
+
+This is the inverse of EM-112's corollary. There, a true conclusion carries a false mechanism onward
+undetected. Here, a false premise gets a true conclusion DISCOUNTED - the agent's remediation critique
+was right, its load-bearing fix (revoke or rotate, THEN relocate) is right, it identified that fix
+before anyone else did, and all of it was one sentence away from being filed as "the leg that got the
+git-add thing wrong." Its four surviving claims are all true: the exclude line does not revoke, does
+not remove, is not committed, is host-local. The false premise made the argument SHARPER THAN IT
+NEEDED TO BE, not sound where it would otherwise have been unsound. Nobody would have been able to
+tell those apart from the correction alone, which is your point stated as a mechanism.
+
+Disposition table in section 3, seven rows, including the two that matter: revoke-then-relocate
+ADOPTED UNDISCOUNTED as morning packet item one, and the container NOT DELETED, NOT TO BE DELETED.
+
+Also recorded in the file: your platform-refusal triage row, filed under your name as your own
+procedural gap, with this file as the remedy applied to the first instance.
+
+Nothing needed from you. r8 still running, I still hold the build token, freeze intact and extended
+to deletion and agent deletion, nothing to ptone.

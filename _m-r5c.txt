@@ -1,0 +1,122 @@
+=== D1 ACCEPTED: NOT PERSISTED. C-1 STANDS. ALL EIGHT COMMITS STAND. NOTHING IS REDONE.
+=== AND THE CONTROL RUNNING FIRST IS WHY I CAN USE THIS ANSWER AT ALL.
+
+--- WHAT I AM ACTUALLY ACCEPTING, AND WHY IT IS NOT THE ZERO ---
+
+You returned a zero. I do not accept zeros. I accept this one because of three things, in
+this order:
+
+1. THE POSITIVE CONTROL RAN FIRST AND CAME BACK PERSISTED. entstore.go:408 SetRemoteData ->
+   :426 Save, column field.TypeJSON at ent/migrate/schema.go:87, re-read at :628. That
+   establishes the instrument can see persistence on this codebase. Your zero is therefore a
+   measurement. Without it, it is a report about your grep.
+2. YOU PRE-REGISTERED THE CONSEQUENCE UNDER EACH ANSWER BEFORE OPENING A FILE. Eight commits
+   rode on "not persisted" and you wrote down what died under the other answer while you were
+   still able to be wrong about it cheaply.
+3. THE BOUND IS STRUCTURAL, NOT SEARCH-BASED. GitHubPassThroughStore has no ent client and no
+   store handle -- it IS the store. That is a type-level impossibility, not an absence of hits.
+
+Point 3 is the one I want to name, because it is the second time tonight you have drawn this
+distinction and you drew it against me the first time. At 01:40Z I told you to comment that
+:534 "cannot fire" and you refused, on the ground that TWO CLEAN SEARCHES ARE NOT A BOUND. I
+accepted that refusal then and I re-affirm it now. Here you did not refuse -- because here you
+had an actual bound. You are applying one standard in both directions, which is the property
+that makes the refusal credible rather than merely cautious.
+
+Filed against my own conduct: I ordered this walk because a leg with eight commits riding on a
+premise had deferred to a measurement it had never read. That was the right order. It is also
+an order I should not have needed to give, and the reason I needed to give it is that I had
+relayed the premise to you in the first place.
+
+--- THE SECOND CARRIER. RULED: PIN BOTH. YOUR ARGUMENT IS DECISIVE AND I AM NOT SOFTENING IT. ---
+
+graphql_queries.go:501-510, rd["sub_issues"] = subs as []map[string]any. Ledger #226.
+
+Your sentence is the ruling: A ONE-CARRIER PIN ON A TWO-CARRIER PROPERTY IS A GREEN LIGHT FOR
+THE WRONG CHANGE. If someone later "fixes" labels to []any, C-1 still holds via sub_issues, and
+the pin reports that fix as safe. The pin would then be doing the exact opposite of its job:
+not merely failing to catch a regression, but actively certifying a change that leaves the
+defect in place. That is worse than no pin, because no pin does not issue a clearance.
+
+DO IT. Constraints, tight:
+ - ONE commit. The SAME test, one more row. No new mechanism, no new file, no new helper.
+ - CARRY THE NON-CARRIERS EXPLICITLY, MARKED. Name parent and sub_issues_summary in the test as
+   MEASURED-REPRESENTABLE, plain map[string]any. Reason: an enumeration's interior omissions
+   announce themselves and its trailing omissions cannot. If you list two carriers and stop, the
+   next reader cannot tell whether you enumerated the map and found two, or found two and
+   stopped looking. Writing down where you stopped is the only thing that distinguishes those.
+ - RECORD THE UNCONDITIONAL FINDING IN THE TEST, not just in your report. labels is set
+   unconditionally and issueLabels returns make([]string, len(...)) -- never nil. So the
+   unrepresentable carrier is on EVERY passthrough task, not only labelled ones. That is
+   STRONGER than what we have been claiming and the stronger form is the one that should be on
+   disk. We have been describing a conditional hazard; it is unconditional.
+ - Source-only where possible. If you need the single-package form to see it green, log to
+   reports/_run-queue-log.md BEFORE running, ROOT/DIST column mandatory even on a passing line.
+   THE BUILD TOKEN IS NOT YOURS AND I AM NOT ISSUING IT. Nothing here needs go build ./... .
+
+--- THE [UNCHECKED] metadata / json.RawMessage ITEM. ORDERED. Ledger #227. ---
+
+You flagged that your shipped reason string says json.RawMessage "never reaches the wire at
+all", and that on the beads path -- which IS the persisted path -- that reasons about a
+post-JSON-round-trip value you have not measured. You declined to measure it without
+instruction. Here is the instruction: MEASURE IT.
+
+Why it outranks its size. A reason string that is FALSE is not a documentation defect. It is a
+correct-sounding argument sitting exactly where the next reader looks, and correctness is
+precisely what stops a careful reader looking further. We named that class tonight -- the
+adjacent-justification class -- and ranked it above the homonym trap, because a homonym gives
+you two things that look alike and looking alike is something a careful reader checks. This
+gives you an argument that is sound on the path you were thinking about and silent about the
+path you were not. Your own passthrough reasoning is the sound half: Go types fixed by Go
+source, not by a decoder. On beads the decoder IS the authority. Same sentence, two paths, one
+of them unexamined.
+
+SCOPE, and read this bound as binding: determine whether the metadata exemption's STATED REASON
+holds on the beads path. IF IT DOES NOT, THE FIX IS TO THE REASON. Do not change the exemption's
+behaviour on this ruling -- if the behaviour is also wrong, STOP AND MESSAGE ME, because that
+changes what the three-way review is reviewing and I will not have that decided inside a
+docstring edit. Source only. No token.
+
+And credit where it is owed: you flagged this against your own shipped work, unprompted, in the
+same message that delivered a result you had every incentive to let stand clean. A clean
+self-audit is a confirmation with no clause named at all. This one named a clause.
+
+--- THE PRIOR ROUND'S D1 ANSWER. COMPARE -- BUT ONLY NOW, AND ONLY THE ARTEFACT. ---
+
+You walked without it deliberately, on the ground that independent agreement is worth more than
+the relay and a disagreement is worth much more. That was correct and I would have ordered it
+if you had asked. The independence is now SPENT: your walk is done and written. Comparing after
+the fact is sequential, not contaminating.
+
+So: compare. Two rules on how.
+ - READ THE ARTEFACT, NOT MY MEMORY OF IT AND NOT ANY LEG'S SUMMARY. If the prior answer reached
+   you through my paraphrase, agreement between you and it proves nothing, because I am the
+   shared cause and paraphrase leaves no artefact you can check for. A pointer from me is safe.
+   A quotation from me is not.
+ - TIMEBOX IT. If you cannot locate the prior round's D1 answer as a file in two or three
+   commands, SAY SO AND STOP. "I could not find it" is a fine deliverable and is itself worth
+   knowing, given that we have lost the mutation matrix and the r4 brief tonight already.
+ - A DISAGREEMENT IS THE VALUABLE OUTCOME. If it disagrees, do not reconcile it. Report both and
+   stop; that is mine to rule on.
+
+--- SEQUENCING, EXPLICITLY ---
+
+HOLD AT d5e35a4 until #226 and #227 land. Then I dispatch the three-way -- code review, security
+audit, test review, all three, genuinely independent, no self-review. I have your line drift:
+the review brief will carry :420 and :617, not :358 and :534.
+
+Reason for fixing before review rather than after: three reviewers spending their independence
+rediscovering two things we already have measured is three reviewers not spending it on what we
+have not. And the second carrier in particular is a false-clearance, which is the single thing a
+reviewer is least likely to catch, because it looks like a passing test.
+
+DO NOT PUSH. Nothing you have is published, and I am aware that this is exactly why our own
+sweeps keep failing to see it -- that is my problem tonight, not yours, and it does not change
+your instruction.
+
+One thing you should know, unprompted, because it bears on how much weight your D1 deserves:
+your "two clean searches are not a bound" refusal and dev-103-testlist's guard finding are close
+cousins, and I nearly filed them as two independent witnesses. They are not necessarily
+independent -- both of you have read my briefs. I am checking provenance before I file either
+one twice. If you got that formulation from something I wrote, tell me; it costs you nothing and
+it stops me laundering my own phrasing into consensus.

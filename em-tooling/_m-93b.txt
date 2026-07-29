@@ -1,0 +1,59 @@
+=========== TOKEN RECEIVED BACK. YOUR 12 ARE NOT NOISE AND THEY ARE NOT 12 -- THEY ARE A SECOND
+=========== MINTING PATH, AND YOUR OWN EXHAUSTIVE SWEEP MISSED IT. DO NOT PATCH CALL SITES.
+
+--- 1. FIRST: YOU FIXED MY STOP CONDITION AND I AM RECORDING THAT AGAINST ME ---
+** "go build DOES NOT COMPILE _test.go FILES, SO THE BUILD COULD NOT HAVE VALIDATED THE strings
+IMPORT EITHER WAY." ** Correct, and my grant was written as though a green build discharged it.
+** I PRE-REGISTERED A STOP CONDITION AGAINST AN INSTRUMENT THAT CANNOT OBSERVE THE THING THE
+CONDITION IS ABOUT. ** That is form (1) committed by the person enforcing the rule against it.
+What actually discharged it is what you said: internal/server ** COMPILED AND RAN, 0.817s, WITH
+NAMED ASSERTION FAILURES RATHER THAN [setup failed]. ** You distinguished a running suite from a
+suite that never started, which is the distinction the exit code destroys. Recorded as yours.
+
+--- 2. THE 12 ARE THE FINDING, AND THE FINDING IS NOT "12 TESTS NEED UPDATING" ---
+At 03:17Z you swept ** STRUCTURALLY, ON THE CONSTRUCTOR ** -- every test that constructs an empty
+scope set -- because "the vocabulary is open and the constructor is closed." I promoted that to a
+standing rule an hour ago. ** THE SWEEP RETURNED FIVE. THE RUN RETURNED SEVENTEEN. **
+So, and this is the whole of your next task: ** THE CONSTRUCTOR SET WAS NOT CLOSED. THERE IS A
+SECOND WAY TO MINT A SCOPE-LESS TOKEN IN THIS TREE AND YOU HAVE NOT SEEN IT YET ** -- a helper, a
+fixture builder, a struct literal with the field omitted rather than set, a testdata row, a
+default in a setup function. ** THE FIELD BEING ABSENT AND THE FIELD BEING SET EMPTY ARE THE SAME
+RUNTIME VALUE AND ONLY ONE OF THEM CONTAINS YOUR SEARCH TERM. ** That is almost certainly it, and
+it is the exact shape of the miss.
+** DO NOT FIX THE 12 CALL SITES. FIND THE MINTER. ** Then state the population as a MEMBERSHIP
+claim, never a count -- your five was an EXACT count and it was absorbed silently.
+And the general result, which is better than the fix: ** A STRUCTURAL SWEEP ON A CONSTRUCTOR IS
+STILL A VOCABULARY SWEEP IF THE CONSTRUCTOR CAN BE ELIDED. THE ONLY CLOSED ENUMERATION IS THE
+ONE THE COMPILER OR THE RUNTIME PERFORMS -- WHICH IS WHY YOUR RUN FOUND WHAT YOUR GREP COULD NOT. **
+
+--- 3. ADJUDICATION: THE 12 ARE ASSERTING THE VULNERABILITY, THE SAME AS THE 5. NOT AN OVER-DENIAL ---
+[MY RULING, and I am naming the premise so you can break it] Every one reports ** "token holds no
+scopes" **, which is the nil case, not a scope set that merely lacks collection:write. If that
+holds on inspection, ** THE 12 ARE NOT VICTIMS OF AN OVER-DENIAL. THEY ARE TWELVE MORE TESTS THAT
+SILENTLY DEPENDED ON THE ESCALATION, EXACTLY LIKE TestScopedToken_WildcardAllowsEverything. **
+** BREAK THIS IF ANY OF THE 12 MINTS A NON-EMPTY SCOPE SET. ** If even one does, my ruling is
+wrong and the fix genuinely over-denies. Check before you accept it -- I am the adjudicator and
+my acceptances have been wrong twice tonight.
+The consequence is the part worth having: ** THE TEST SUITE IS THE FLEET IN MINIATURE. ** The
+fleet-token repair I have been sequencing ahead of the merge is the identical operation --
+replace an implicit wildcard with an explicit scope set -- and you are about to run it seventeen
+times for free, in a place where it is cheap and reversible, ** BEFORE WE RUN IT ON A LIVE
+DATABASE. THAT IS THE DRY RUN, AND WE GET IT WITHOUT ASKING. ** Report what the repair costs.
+
+--- 4. THE HOLE THAT IS NOT YOURS AND IS THE MORE DANGEROUS ONE ---
+** internal/cli WAS NOT TESTED AT ALL ** -- [setup failed] on web/dist -- ** SO YOUR token.go AND
+user.go CHANGES ARE UNMEASURED, AND THE SUITE EXITED IN A WAY THAT LOOKS LIKE IT MEASURED THEM. **
+Four packages skipped for a reason unrelated to any change. This is #100 biting on a security
+fix: ** A MISSING DEPENDENCY EDGE IN THE Makefile IS NOW CONCEALING WHETHER A PRIVILEGE FIX
+COMPILES. ** I am escalating it as a merge blocker for your branch specifically. You do not need
+to solve it; you need to ** NOT REPORT internal/cli AS PASSING, AND NOT REPORT IT AS FAILING. IT
+IS UNMEASURED, WHICH IS A THIRD VALUE. **
+
+--- 5. FENCE STATUS FOR YOUR NEXT STEPS. IT CHANGED WHILE YOU WERE RUNNING ---
+ptone directed at 03:12Z: ** selective local tests on changed code are now PERMITTED WITHOUT A
+TOKEN. ** So: finding the minter and re-running ** go test ./internal/server/ -run '^TestX$' **
+needs no grant from me. ** LOG IT TO reports/_run-queue-log.md BEFORE YOU RUN IT. ** Anything
+that resolves ./... still needs the token and you must ask. Full text: em-tooling/
+_STANDING-RULES-2026-07-29.md PART 6, section 6.1. Read 6.4 before you interpret any exit code.
+No push. Commit locally, report the SHA.
+=========== END. Token is released to another leg. You are unblocked without it.

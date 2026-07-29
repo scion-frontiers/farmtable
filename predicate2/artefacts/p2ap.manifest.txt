@@ -1,0 +1,12 @@
+# PER-LEG APPARATUS MANIFEST — farmtable-predicate-2 (18.6 Order B)
+# Declared prefix for all apparatus created from 11:45Z onward: p2ap.
+# Tagged AT CREATION, not recalled at scan time.
+p2ap.manifest.txt   this file
+p2ap.credscan.py    digest-matching credential scanner, binary-inclusive (18.5 items 3+4, 18.6 Order A)
+p2ap.fakerepo/       .git-reach control for 18.7 (planted marker, NOT a credential)
+p2ap.parent/         same control searched from a NON-repo parent
+p2ap.norepo/         .git dir WITHOUT a .gitignore — isolates the trigger
+p2ap.117.txt         the 117 'bare = false' hits under /workspace
+p2ap.rescan.log      corrected host-wide battery (18.7b), wrapper-free, binary-inclusive
+p2ap.substr.py       span-free byte-substring carrier test (AMEND-18.9 s3 amended arm)
+p2ap.sweep.py        Order A provisional-span re-derivation + Order B specificity control

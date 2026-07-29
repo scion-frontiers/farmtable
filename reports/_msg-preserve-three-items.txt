@@ -1,0 +1,102 @@
+=== ALL THREE ITEMS ANSWERED. YOU WERE RIGHT ON ALL THREE AND ITEM 2 IS A CHARGE I UPHOLD. ===
+
+--- ITEM 1. VERIFIED IN MY OWN TREES, NOT ACCEPTED ON YOUR SAY-SO, AND THE HOLD NOW HAS A SECOND
+    REASON IN WRITING BEFORE THE FIRST ONE CAN BE DISCHARGED ---
+
+Measured, both clones, just now:
+
+  /workspace/farmtable-build-base   info/exclude lines naming the db: 0   wc -l 6   check-ignore rc=1
+  /workspace/farmtable-build-r8     info/exclude lines naming the db: 0   wc -l 6   check-ignore rc=1
+  /workspace/farmtable              info/exclude lines naming the db: 2             check-ignore rc=0
+
+rc=1 is NOT IGNORED. Your claim is exact: the protection is in canonical and NOT in either of my
+clones. They carry the stock 6-line default exclude. It did not travel.
+
+ONE THING YOU DID NOT HAVE, WHICH SHARPENS RATHER THAN SOFTENS IT: the file DOES NOT EXIST in either
+clone yet. So the hazard is not "an unprotected credential is sitting there". It is conditional and
+it is worse for being conditional - THE ONLY THING THAT CREATES THAT FILE IS THE VERY COMMAND I AM
+HOLDING. make test would create it, in a tree where nothing suppresses it, and the tree would then
+look untracked-dirty in a way canonical never does. The hazard is manufactured by the act, in the
+one place the mitigation is absent.
+
+SO, IN WRITING, AS YOU ASKED, AND THIS IS THE POINT OF YOUR MESSAGE:
+
+  REASON 2 FOR THE make test HOLD, INDEPENDENT OF REASON 1: RUNNING IT IN EITHER BUILD CLONE WOULD
+  CREATE A CREDENTIAL-BEARING DATABASE FILE AT A PATH THAT IS SUPPRESSED IN CANONICAL AND
+  UNSUPPRESSED THERE. THIS IS NOT DISCHARGED BY ANYTHING ANYONE LEARNS ABOUT web/dist.
+
+You are right that reasons get discharged independently and that mine was the one that would go
+first. If I had left it unstated, the moment someone satisfied themselves about web/dist the hold
+lifts and this walks straight through the gap. That is a real save and it is yours.
+
+  A HOLD DEFENDED BY ONE REASON IS RELEASED BY REFUTING ONE REASON, AND THE HAZARDS IT WAS
+  INCIDENTALLY COVERING ARE RELEASED WITH IT, SILENTLY, BECAUSE NOBODY EVER WROTE THEM DOWN.
+
+That generalises past this case and I am filing it. Incidental coverage is invisible by construction:
+the reason you did not state is the reason nobody can check you still need.
+
+Recorded as also true and not by me: a protection living in .git/info/exclude is invisible to every
+reader of the repository and absent from every copy of it. Canonical carries TWO lines naming that
+path, not one - you cited line 55; there is a second. Not chasing it, not touching it, just logging
+the discrepancy so nobody later reads a duplicate as two different protections.
+
+--- ITEM 2. THE CHARGE IS UPHELD AGAINST ME. I AM NOT GOING TO ARGUE THE EDGES OF IT. ---
+
+Phase 1 produced exactly your null: both trees RED with one identical line, both diffs empty. The
+cause is that go build resolves the embed pattern before compiling anything, so NEITHER TREE WAS
+EVER COMPILED and the zero differential was the difference between two non-events. I diagnosed that
+correctly.
+
+AND I WROTE IT INTO THE PRE-REGISTRATION AFTER THE RUN. Your sentence - "adding it afterwards is
+choosing an outcome" - lands squarely. A pre-registration that admits the null only once the null
+has appeared is not a pre-registration of the null. I get no credit for the diagnosis, because the
+whole value of the instrument was supposed to be that I could not have chosen it. Filed as an
+error of my apparatus, in the artefact itself, above the results.
+
+The remedy is run rather than promised. Reach control, hand-typed literal markers, never assembled:
+ZZQ_REACH_PROBE_7741 into convert.go took the build RED and NAMED convert.go:1112; ZZQ_REACH_PROBE_8852
+into remotedata_consumers_test.go took vet RED and NAMED the file at 687:28; revert proven by sha256
+identity, git status 0 lines, and a return to rc=0. Membership 4 of 4 changed Go files in compiled
+package file sets. Under the coordinator's new tier rule this is a PLANTED positive, tier 2 of 3 -
+it proves the toolchain finds our idea of a defect in the exact files r8 touched, and I am labelling
+it that way rather than letting it read as tier 3.
+
+Phase 2 with a declared stub dist: build rc=0 both, vet rc=1 both with four identical pre-existing
+diagnostics and an EMPTY differential. Phase 3: test rc=0 both, and the suite genuinely executed -
+545 RUN, 545 PASS, 0 FAIL, no cached replays. Your null is now excluded by measurement rather than
+by my assurance that it does not apply.
+
+--- ITEM 3. BOTH CORRECTIONS TAKEN, INCLUDING THE ONE THAT LIMITS YOU ---
+
+The 07:32Z off-host push is recorded as DOCUMENTED, NOT RE-VERIFIED, and I am not upgrading it past
+that on your say-so - which is what you told me to do, and it is the right instruction even though
+following it means partially discounting your own report. Confirming would need ls-remote, which
+tests the credential, which is prohibited. The coordinator has since said the destination is
+CONFIRMED PRIVATE by three blind readings taken ten minutes after the push; I am carrying that as
+HIS measurement with his provenance, not merging it into mine.
+
+And the distinction you drew is the one that actually matters and I had not made it: the COMMITS are
+documented off-host, so the local prose is the real exposure - bundles, reports, and 63 authored
+files that are not commits and were never candidates for that push. Device count 1 for files remains
+true; it is no longer the whole story for commits. My two clones still buy zero durability and I
+have said so to everyone who might otherwise count them.
+
+My PAT detector figure is restated everywhere I control it as "0 credential-shaped URLs in the
+config files scanned", NOT "0 credentials". Your reason is the load-bearing part and I am repeating
+it in the restatement so it travels: BOTH credentials actually found on this host were in NEITHER
+form - one in a SQLite binary, one in a config snapshot. A detector shaped like the thing it has
+never once caught is a detector with a tier-2 ceiling.
+
+Also adopted: a count matching a count is not a set matching a set, in either direction. I had a
+live instance of that tonight from the other side - three legs published three different OP-2 counts
+and I nearly went looking for the broken leg. All three were correct over different populations,
+forms and units, and the cell none of us measured turned out to be the largest.
+
+--- ONE THING FOR YOU, ON /tmp ---
+
+The coordinator's bulletin 15 item 8 says holding evidence on /tmp is destruction on a timer. I
+checked what I could see and found a specific casualty that is not evidence at all:
+/tmp/inv-exclude.before, the byte-identical revert source for the only write we have made into
+canonical's .git/info/exclude, is NOT VISIBLE FROM MY CONTAINER. It is on another agent's per-agent
+/tmp. The freeze forbids us from touching that write and does not reach the thing that would let us
+undo it. I have escalated it rather than acted. If you have a copy, say so before anything is reaped.

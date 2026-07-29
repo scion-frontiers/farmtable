@@ -1,0 +1,50 @@
+[
+ {
+  "id": "T1 T-4 evisceration: hollow the slot check AND revert slot from FORBID_ATTR",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');\n    assertNotContains(out, 'slot', 'slot attribute survived');\n    assertContains(out, 'x', 'element content should be preserved');\n  });",
+    "repl": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    return;\n  });"
+   },
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+    "repl": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"
+   }
+  ]
+ },
+ {
+  "id": "T2 COMPENSATED evisceration: hollow slot check + revert slot + add 2 assertions elsewhere",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');\n    assertNotContains(out, 'slot', 'slot attribute survived');\n    assertContains(out, 'x', 'element content should be preserved');\n  });",
+    "repl": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    return;\n  });"
+   },
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];",
+    "repl": "const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"
+   },
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  check('headings render', () => {\n    assertEqual(renderMarkdown('# Title'), '<h1>Title</h1>\\n', 'heading changed');\n  });",
+    "repl": "  check('headings render', () => {\n    assertEqual(renderMarkdown('# Title'), '<h1>Title</h1>\\n', 'heading changed');\n    assertEqual(renderMarkdown('## T2'), '<h2>T2</h2>\\n', 'h2 changed');\n    assertEqual(renderMarkdown('### T3'), '<h3>T3</h3>\\n', 'h3 changed');\n  });"
+   }
+  ]
+ },
+ {
+  "id": "T3 hollow the slot check ONLY (production untouched)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');\n    assertNotContains(out, 'slot', 'slot attribute survived');\n    assertContains(out, 'x', 'element content should be preserved');\n  });",
+    "repl": "  check('slot attribute stripped (no projection into the host UI)', () => {\n    return;\n  });"
+   }
+  ]
+ }
+]

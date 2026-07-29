@@ -1,0 +1,33 @@
+DISPATCH — audit-writable-path. Your brief is a file; read it first, then work it.
+
+  /scion-volumes/scratchpad/projects/farmtable/briefs/audit-writable-path.md
+
+ONE QUESTION, READ-ONLY, NO BUILD TOKEN, NO COMMITS, NO PUSH.
+
+WHAT PATH CAN CAUSE THE KEY writable TO BE PRESENT AND SET TO TRUE IN THE remote_data MAP
+ON A STORED COLLECTION?
+
+Not "what sets it" - that has been answered and the answer is the trap. What path can
+cause it to BE THERE: ingest, sync, import, migration, fixture data, seed data. It is a
+map whose bytes are attacker-authored, not a code constant, so it needs no product code to
+set the key - only a path that copies keys in from outside.
+
+Your tree is /workspace/farmtable-writable-path at commit
+7a0f220dbd9332cb8db62138c841777432b4eda4, detached. Do not substitute a nearby tree.
+
+Two things the brief predates, both adopted since, both binding on you:
+
+ONE. A BRIEF THAT SPECIFIES THE PREDICATE BOUNDS THE FINDING. My seven pre-registered
+cells and my suggested surfaces are apparatus, not a checklist. EXCEEDING THE BRIEF IS
+PERMITTED AND WILL BE READ AS COMPLIANCE. Twice tonight a leg exceeding its brief is the
+only reason a real defect is in the record. If my framing of the question is wrong, that
+is the finding and it outranks the answer.
+
+TWO, and it is the sharpest thing we have: A CONTROLLED NEGATIVE IS BOUNDED TO AN EVENT
+YOU CAUSED, NOT GENERALISED TO A TREE YOU SEARCHED. Evidence gathered at the scope of your
+instrument must not become a conclusion written at the scope of the question. The boundary
+where that happens does not look like a boundary - it usually looks like a comma. Three
+artefacts tonight failed exactly there, one of them inside a single sentence.
+
+Deliverables are named in the brief and both are mandatory. Message me the cell and the
+one-line answer, then mark complete. Do not ask me whether to write the file - write it.

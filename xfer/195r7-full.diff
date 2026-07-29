@@ -1,0 +1,1763 @@
+diff --git a/.design/project-log/markdown-sanitize-cleanup-r7.md b/.design/project-log/markdown-sanitize-cleanup-r7.md
+new file mode 100644
+index 0000000..8f6a9f1
+--- /dev/null
++++ b/.design/project-log/markdown-sanitize-cleanup-r7.md
+@@ -0,0 +1,294 @@
++# #195 markdown-sanitize — round 7 cleanup (closing round 6, and correcting round 6's own log)
++
++**Branch:** `markdown-sanitize` · **Base:** `86f30bc` · **Head:** `703c2de`
++**Developer:** `dev-195-cleanup-7`
++**Scope:** `web/src/util/markdown.test.ts`, `web/src/util/markdown.ts`. No other
++files changed; `web/package.json` was read but not modified.
++
++**Gate:** `npm test` exit **0** (**75 checks passed (122 assertions)**),
++`npx tsc --noEmit` exit **0**, `npm run build` exit 0, `go build ./...` exit 0,
++`go test ./...` exit 0. Every exit code read from the child process.
++
++**No live vulnerability existed at any point in this round either.** All three
++round-6 legs agreed on that and it is still true: both enumerated sinks are
++correctly wrapped. Everything below is about whether the *guard* can falsify
++what it claims to pin.
++
++---
++
++## Corrections to the round-6 log entry
++
++Two claims in `markdown-sanitize-cleanup-r6.md` are wrong. They are corrected
++here rather than edited in place, so the record shows both.
++
++**1. The arity fix was NOT "closed from three sides."** The round-6 entry, line
++42, says T1 was "Closed from three sides: `Function.length`, the declaration
++text in `markdown.ts`, and `sinkArgumentIsSanitized` rejecting a top-level
++comma." Round 6's review and test legs independently defeated two of those three
++with one natural spelling, and the third never had the property claimed for it:
++
++- `Function.length` **stops counting at the first defaulted parameter**, so
++  `renderMarkdown(md, opts = {})` still reports 1. Green at 69/69.
++- The declaration scan used `.exec`, which **returns the first match and stops**.
++  An overload signature above the implementation satisfied it — and so did a
++  mere *comment* quoting the old signature, because the scan read raw bytes
++  rather than a comment-blanked view. Green at 69/69.
++- `sinkArgumentIsSanitized` was and is real, but it guards the **sink files**,
++  not the declaration.
++
++So it was closed from *one* side, and that side was the weakest of the three.
++The correct statement of what pins it now is in `markdown.ts` above
++`renderMarkdown`, and it is narrower on purpose: `renderMarkdown.length === 1`
++covers **source/artifact divergence only** — a stale build, a bundler transform,
++a re-export. There is no measured arity *spelling* for which it is the
++falsifier, because a required second parameter is rejected by `tsc` before the
++suite runs and every form that survives `tsc` leaves `.length` at 1 by
++definition. Keeping it and saying so is worth more than keeping it and implying
++otherwise.
++
++**2. Round 6 landed THREE production changes, not four.** The entry lists four
++under its production heading. The fourth — "**URI policy pinned**" — is a
++**test-only** change: the `ALLOW_UNKNOWN_PROTOCOLS` check, which at round-6 head
++`86f30bc` sits at `web/src/util/markdown.test.ts:246-257` (the brief cited
++253-259; verified by `git show 86f30bc:web/src/util/markdown.test.ts | grep -n`,
++and it is at 298-309 after this round's insertions). No production line changed
++for it. The three real production changes were: non-string input returning `''`,
++`slot` added to `FORBID_ATTR`, and the `dompurify` range tightened
++`^3.0.0` → `^3.4.12` (plus the lockfile refresh). This matters because "four
++production changes" overstates the blast radius of a round whose value was
++almost entirely in the guard.
++
++---
++
++## Blocking work
++
++Every item below was **reproduced at `86f30bc` before being fixed**, with a
++GREEN no-op control and a RED control passing first in the same batch. Specs and
++raw results are out of repo at
++`/scion-volumes/scratchpad/projects/farmtable/salvage/r7-dev-195/`.
++
++**W1 — the arity pin, closed from the side that was actually open.** Commit
++`538ce54`. The scan now uses `matchAll`, requires **exactly one** matching
++declaration, reads a comment-and-string-blanked view, and counts **top-level**
++parameters via `splitTopLevelParameters`. Made *fixturable* — a predicate over
++text rather than a fixed path — because "a fixture that cannot express the
++input" is this round's named defect class. `ARITY_EVASIONS` (11) and
++`ARITY_LEGITIMATE` (6) are asserted in one check so positives and
++false-positive controls move together.
++*Established by:* `spec-w1.json` — C7-e2, C7-g, C7-h all RED, each naming the
++arity rule; all six `ARITY_LEGITIMATE` spellings GREEN.
++
++> **A hole in the brief's suggested fix, closed.** Counting top-level commas
++> alone would newly *accept* a destructured sole parameter
++> `({ md, inline }: …)` — one top-level parameter, still a configuration
++> channel, and it hides its comma from `sinkArgumentIsSanitized`. A
++> plain-identifier requirement was added.
++>
++> **A known false positive, kept deliberately.** C7-k (a default on the sole
++> parameter) is rejected. The remedy is in the message. A narrower true claim
++> over a silent inconsistency.
++
++**W2 — `stripImportStatements` must treat `import` as a statement keyword.**
++Commit `c98eb79`. F1's round-6 fix missed `import.meta`, which is one of three
++grammatical productions of the token. `\bimport\b(?!\s*\.)` now excludes it.
++Both halves the brief required were added: an `INDIRECTION_EVASIONS` positive
++*and* a `LEGITIMATE_SOURCE` false-positive control.
++*Established by:* `spec-w2.json`, 8 cases, 0 unexpected.
++
++**W3 — the guard's SCOPE pinned independently, and R7 promoted tree-wide.**
++Commit `7e758b6`. `EXPECTED_CHECKS` derives from `REQUIRED_SINKS.length`, so a
++scope *shrink* moved both terms of the derivation and cancelled. Per the brief,
++the derivation is kept and `EXPECTED_REQUIRED_SINKS = 2` is asserted **inside
++the existing `sink scan actually reads the source tree` check** — no new
++`check()` call site. The `check total pinned` message was corrected: its old
++wording ("the total moves on its own and nothing here needs editing") was true
++and read as reassurance, and is the reason the shrink was invisible.
++*Established by:* `spec-w3.json`. C2-e (GREEN at 68 on `86f30bc`) now RED.
++Attribution split two ways: `C2-e-scope-only` RED via the new scope pin,
++`C2-e-escape-only` RED via R7.
++
++R7 was promoted tree-wide because it was **the only per-file rule the shrink
++removed that the tree-wide half did not already carry** — `C2-e-nonsink` (an
++escaped alias in a non-sink file) is RED only because of the promotion, which
++is what earns its line count. The `strings: true` view was **measured, not
++asserted**: `ABL-r7-view` runs the promoted rule over the strings-kept view and
++goes RED on `markdown.ts`'s own deliberate `\uFE0E` escape.
++
++**W4 — fixture tables must fail closed.** Commit `7f382f0`. Every table was
++emptyable with the suite green, because an emptied loop body simply stops
++running and the check total does not move. `fixtureTableViolation` pins each
++table's exact length (measured, not guessed — an earlier comma-counting script
++mis-measured and was replaced by a probe run through the real suite). The
++brief's preferred fix, the **quantifier inversion** in the raw-HTML sink
++fixture, is in: the check now ranges over `BANNED_SINKS` and requires each
++*pattern* to be exercised by some positive, rather than ranging over the
++fixtures.
++*Established by:* `spec-w4.json`, 14 cases. Every table emptied individually →
++RED. `INVERT-1` (a 9th pattern no positive exercises) → RED; `INVERT-CTRL` (the
++same pattern *with* a positive) → GREEN, which is what keeps the inversion from
++degenerating into "no new patterns allowed."
++
++**W5 — the non-string guard's rationale corrected, not the code.** Commit
++`538ce54`. The comment claimed a live outage; neither call site can reach it —
++`ft-inspector-comments.ts` passes `c.body`, already coerced by `stringField()`
++at `gen/grpc-client.ts:660-662`, and `ft-inspector-desc.ts` passes
++`this.description` below an `if (!this.description)` early return at
++`ft-inspector-desc.ts:209`. Rewritten as defence in depth for a future third
++caller, with the trade-off on the record: a future caller passing `42` gets a
++blank field rather than a throw, which is harder to diagnose.
++
++---
++
++## Recommendations taken
++
++**T-4 — assertion total pinned.** Commit `a162865`. `EXPECTED_ASSERTIONS = 122`,
++bumped by each `assert*` helper, reported only when nothing else failed.
++*Chose exact over the brief's suggested floor*, with the reasoning in the code: a
++floor is satisfied by adding two assertions somewhere new and deleting two
++somewhere load-bearing, which is the failure `EXPECTED_SOURCE_FILES` was already
++converted from a floor to catch.
++*Established by:* `spec-t4.json`, 6 cases. Hollowing out a check body (green at
++69 before this) is RED.
++
++**T-5 — arity docblock corrected.** Commit `538ce54`. See correction 1 above.
++
++**T-7 / audit LOW-1 — `SANITIZE_DOM: false`.** Commit `6ddc93b`. The last
++DOMPurify-config axis with no red-on-revert now has one, via a behavioural check
++rendering clobbering `id`/`name` attributes.
++*Established by:* `spec-t7.json`, 3 cases.
++
++**T-8 — the private `Marked` instance.** Commit `6ddc93b`. The **first check in
++this file that observes an effect rather than a name**: it installs a hostile
++checkbox renderer on the shared `marked` singleton, **asserts the poisoning took
++effect first** (positive control, inline), then asserts `renderMarkdown`'s output
++is unaffected.
++*Established by:* `spec-t8.json`. Swapping `new Marked({…})` for `marked.use({…})`
++was GREEN at 69; it is now RED, and RED only there.
++
++**Audit LOW-2 — `web/index.html` brought into the scanned set.** Commit
++`8ffe01f`. Read by explicit path via `EXTRA_SCANNED_FILES` with a `statSync`
++first, so a delete or rename throws rather than silently shortening the list.
++*Established by:* `spec-low2.json` — `innerHTML`, `document.write` and a
++`\u`-escaped identifier injected into its inline `<script>` are each RED naming
++the relevant tripwire; the file as it ships and a benign edit to the same block
++are GREEN. Deletion measured by hand (`mv index.html /tmp && npm test`) → exit 1,
++`ENOENT`. Attribution: `spec-low2b.json/ABL-low2-innerHTML` — with
++`EXTRA_SCANNED_FILES` emptied, the same injection is GREEN.
++
++**Review O1 — arity scan false positives.** Closed by W1. All four spellings the
++review named, prettier's default multi-line trailing comma included, are in
++`ARITY_LEGITIMATE` and asserted to produce no violation.
++
++**Review O2 — the post-T3 tripwire message.** Commit `476e956`. Three of the
++rule's four branches reported a file and no position; the pattern can span
++lines, so `matchLines` does not apply and a new `lineOf(code, index)` does. The
++message now states the accepted shape and two routes forward (add the FILE to
++`REQUIRED_SINKS` for a legitimate sink; use a comment or string for prose, both
++blanked), and keeps the TRIPWIRE-NOT-PROOF caveat.
++*Pinned, not just fixed:* the `INDIRECTION_EVASIONS` fixture now requires
++`rel:line:` on **every** offender.
++*Established by:* `spec-o23.json` — `O2-revert-lineno` RED; `O2-ablate-pin`
++(same revert, assertion neutered) GREEN, proving the pin is what catches it.
++
++**Review O3 — the sunset clause fired on nothing.** Commit `476e956`. It now has
++an observable trigger: #204 is a typescript-eslint rule and cannot be enforcing
++without typescript-eslint being declared in `web/package.json`. Deliberately the
++**weaker direction** — it fires on the tooling appearing, not on the rule being
++enforced, so a human confirms CI before deleting anything. The message names
++what to delete and what to keep.
++*Established by:* `spec-o23.json` — declaring `typescript-eslint` is RED; adding
++an unrelated devDependency (`prettier`) stays GREEN.
++
++**T-6 — the `^3.4.12` floor. The brief asked me to log this as uncovered; I
++disagreed and covered it, narrowly.** Commit `476e956`. Round 6 concluded it
++"has no red-on-revert and cannot get one in this suite." The first half is
++right — the suite cannot observe a downgrade *behaviourally*, because the
++behavioural checks pass against older DOMPurify too. The second half is not:
++the **declared range** is in a file this suite already reads. So it now has a
++pin whose docblock states exactly how narrow it is — it reads `package.json`,
++not the lockfile and not `node_modules`, so a lockfile pinned below the floor
++still passes.
++*Established by:* `spec-o23.json` — loosening to `^3.0.0` RED; raising to
++`^3.9.0` also RED, which is what confirms the rule reads the *value* rather than
++merely checking the key exists.
++
++**Audit INFO-2 — recorded, not fixed.** Commit `703c2de`. Measured, and narrower
++than the audit's summary in both directions: after a sticky
++`DOMPurify.setConfig({ FORBID_TAGS: [], FORBID_ATTR: [] })`, `renderMarkdown`
++returns `<h1>hi <form><input></form></h1>` where it otherwise returns
++`<h1>hi </h1>` — so the whole form-control and overlay policy is defeatable by
++any module reaching the singleton. But **`<script>` is still stripped** in that
++state (measured: returns `''`), so this is a policy bypass, not a
++script-execution bypass. And nothing can reach the singleton today, because
++R8/R9 deny every file but `markdown.ts` the ability to name `dompurify`.
++**Deliberately not fixed:** `DOMPurify(window)` would close it the way
++`new Marked({…})` closes the `marked` half, but it moves a `window` dependency
++to module-load time in the security-critical path, to close an INFO finding with
++the ownership guard already standing. Flagged for a follow-up round.
++
++---
++
++## Costly disclosure — my own errors this round
++
++- **My mutation driver scored aborted cases as passes.** An `ANCHOR-ABORT` case
++  dropped its `expect` field, so a case that *never ran at all* reported "0
++  unexpected". It did so silently in a real run before I caught it. Fixed. This
++  is the same "cannot falsify" shape as everything this round is filing, in the
++  instrument doing the filing.
++- **I reported a finding from a case that measured nothing.** `LOW2-delete` was
++  written as a no-op substitution (`find` and `replace` identical) because the
++  driver could only substitute, and I read its GREEN as a result before
++  rechecking. The driver now supports whole-file creation and the deletion claim
++  was measured by hand.
++- **I read an exit code through a pipe.** `npm test | tail` reported `EXIT=0` on
++  a failing run — standing bar 5, walked straight into, caught and re-measured.
++- **A comment I wrote was refuted by the mutation written to confirm it.** I
++  claimed `index.html` was invisible "twice over" and that fixing either half
++  alone left it unscanned. `EXTRA_SCANNED_FILES` reads by explicit path and
++  bypasses the extension filter entirely, so putting `.html` back on the inert
++  list leaves `index.html` fully scanned — the halves are independent, not
++  conjunctive. Rather than drop the extension change or keep a false comment, I
++  measured what it *is* for: a `.html` under `src/`, of which there are none
++  today. Created one with an inline `innerHTML` sink — RED with `.html` off the
++  list, GREEN with it on, and GREEN **with no file-count signal either**,
++  because the filter runs before `files` is built. That is the "no signal of any
++  kind" case the denylist comment already describes, reproduced.
++- **`mut.py` named the wrong rule.** `^\s+- ([^:]+):` truncated check names that
++  contain a colon (`tripwire: no file reaches …` → `tripwire`), so two different
++  rules reported the same name and standing bar 6 was not actually being met in
++  earlier batches. Fixed before the W2 batch.
++- Two harness errors produced false reproduction failures (`ABL-r7-view`
++  compiled-error rather than demonstrating a false positive; a Python edit script
++  aborting partway on a bad assertion so its earlier edits were never written).
++  Both were my errors, not defects, and both were re-run to a real result.
++
++## Residue — stated, not closed
++
++- **`ABL-scope-callsite` is GREEN and nothing can see it.** Keep
++  `requiredSinkScopeViolation` but drop it from the check body and no rule
++  fires — `EXPECTED_CHECKS` does not move because no `check()` was removed. A
++  fixture catches a *neutered predicate*, not a *deleted call site*.
++- **The assertion pin covers behavioural checks only.** Rule fixtures throw
++  directly rather than through `assert*`; they are covered by the table-size
++  pins instead. Different mechanism, same defect.
++- **T-6's pin does not reach the installed artifact.** `package.json` only.
++- **The scanned set is still "`src/` plus a hand-maintained list."** Anything
++  shipped from `public/`, from a Vite plugin, or from a second HTML entry point
++  is outside it until someone adds it to `EXTRA_SCANNED_FILES`.
++- **Mechanism (b) remains a tripwire, not proof.** Unchanged, and the sunset
++  clause now says when to delete it.
++
++## Not done, deliberately
++
++M1 (allow-list inversion), CSP / Trusted Types, GitHub #204, V25 and the
++V25-rationale survivor, and `govulncheck` were all out of scope per the brief
++and were not started. **CI was not touched** — the audit is right that `npm test`
++in CI is worth more than further hardening, and it is explicitly routed
++elsewhere. The DOMPurify private-instance change (INFO-2) is the one item I
++would nominate for a next round.
++
++## Pinned constants at head
++
++`EXPECTED_CHECK_CALL_SITES = 74` · `EXPECTED_CHECKS = 75` ·
++`EXPECTED_ASSERTIONS = 122` · `EXPECTED_SOURCE_FILES = 51` ·
++`EXPECTED_REQUIRED_SINKS = 2`
+diff --git a/web/src/util/markdown.test.ts b/web/src/util/markdown.test.ts
+index 9d11081..a46f605 100644
+--- a/web/src/util/markdown.test.ts
++++ b/web/src/util/markdown.test.ts
+@@ -28,9 +28,25 @@ globals.document = dom.window.document;
+ 
+ const { renderMarkdown } = await import('./markdown.js');
+ 
++// The SHARED marked singleton, imported here on purpose. markdown.ts must not
++// be using it — see the last check in taskLists(), which poisons this object
++// and asserts renderMarkdown is unaffected.
++const { marked } = await import('marked');
++
+ const failures: string[] = [];
+ let checks = 0;
+ 
++// T-4. `checks += 1` happens BEFORE `fn()`, and it has to: a check whose body
++// throws must still be counted, or a failure would look like a deletion. The
++// consequence is that EXPECTED_CHECKS pins the DELETION of a check and not its
++// EVISCERATION. Measured: reverting `slot` from FORBID_ATTR and replacing that
++// check's body with an early return was green at 69 — the call site is still
++// there, the count is unchanged, and the protection is gone.
++//
++// So the assertions are counted too. Every assert* helper below bumps this, and
++// run() pins the total the same way it pins the check total.
++let assertions = 0;
++
+ function check(name: string, fn: () => void): void {
+   checks += 1;
+   try {
+@@ -47,30 +63,35 @@ function parse(html: string): HTMLElement {
+ }
+ 
+ function assertNoElement(html: string, selector: string, message: string): void {
++  assertions += 1;
+   if (parse(html).querySelector(selector) !== null) {
+     throw new Error(`${message}: found <${selector}> in ${JSON.stringify(html)}`);
+   }
+ }
+ 
+ function assertElement(html: string, selector: string, message: string): void {
++  assertions += 1;
+   if (parse(html).querySelector(selector) === null) {
+     throw new Error(`${message}: no <${selector}> in ${JSON.stringify(html)}`);
+   }
+ }
+ 
+ function assertNotContains(html: string, needle: string, message: string): void {
++  assertions += 1;
+   if (html.toLowerCase().includes(needle.toLowerCase())) {
+     throw new Error(`${message}: found ${JSON.stringify(needle)} in ${JSON.stringify(html)}`);
+   }
+ }
+ 
+ function assertContains(html: string, needle: string, message: string): void {
++  assertions += 1;
+   if (!html.includes(needle)) {
+     throw new Error(`${message}: missing ${JSON.stringify(needle)} in ${JSON.stringify(html)}`);
+   }
+ }
+ 
+ function assertEqual(actual: string, expected: string, message: string): void {
++  assertions += 1;
+   if (actual !== expected) {
+     throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+   }
+@@ -78,6 +99,7 @@ function assertEqual(actual: string, expected: string, message: string): void {
+ 
+ /** Fails if any element in the output carries an inline event handler. */
+ function assertNoEventHandlers(html: string, message: string): void {
++  assertions += 1;
+   for (const el of parse(html).querySelectorAll('*')) {
+     for (const attr of el.attributes) {
+       if (attr.name.toLowerCase().startsWith('on')) {
+@@ -210,6 +232,36 @@ function spoofingAttributes(): void {
+     assertNotContains(out, 'comment-header', 'component class name survived');
+     assertContains(out, 'farmtable-admin', 'text content should be preserved');
+   });
++
++  // T-7 / audit LOW-1. The DOMPurify config is otherwise covered on every axis:
++  // emptying FORBID_TAGS, emptying FORBID_ATTR, adding `onerror` to ADD_ATTR,
++  // widening ALLOWED_URI_REGEXP, adding `iframe` to ADD_TAGS, dropping the
++  // config object and dropping the sanitize call are all red, most of them on
++  // several checks at once. `SANITIZE_DOM: false` was the single measured
++  // widening with NO signal — green at 69.
++  //
++  // SANITIZE_DOM (on by default) drops an `id`/`name` attribute whose value
++  // collides with a property of `document` or of a form, which is what DOM
++  // CLOBBERING needs: `<a name="body">` makes `document.body` resolve to the
++  // attacker's anchor, and any later code reading `document.body` — or
++  // `document.getElementById(...)`, or a form's `.action` — gets an
++  // attacker-chosen node instead of the real one.
++  //
++  // SCOPE OF THE CLAIM, narrowly. This is NOT a claim that clobbering is
++  // exploitable here today; the classic primitives want <form>/<input> and both
++  // are in FORBID_TAGS. It is a claim that a widening of the sanitizer's
++  // configuration has a red-on-revert, which before this check it did not. That
++  // is the property worth having: the next person to add a config key has one
++  // fewer axis where the suite will stay green while the boundary moves.
++  check('DOM-clobbering id/name attributes stripped', () => {
++    const out = renderMarkdown(
++      '<a name="body">a</a><a id="body">b</a><p id="children">c</p>' +
++        '<a name="getElementById">d</a>',
++    );
++    assertNotContains(out, 'name=', 'a clobbering name attribute survived');
++    assertNotContains(out, 'id=', 'a clobbering id attribute survived');
++    assertContains(out, 'a', 'text content should be preserved');
++  });
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -549,30 +601,64 @@ function inputContract(): void {
+   // MODULE SPECIFIER, and an options parameter reconfigures the sanitizer
+   // through the front door with no specifier to match.
+   //
+-  // Pinned from BOTH ends, because neither is sufficient alone. `Function.length`
+-  // stops counting at the first defaulted or rest parameter, so
+-  // `renderMarkdown(md, opts = {})` still reports 1 and would slip past a
+-  // `.length` check on its own; reading the declaration catches that. Conversely
+-  // the declaration scan reads source, so `.length` is what covers the compiled
+-  // artifact this suite actually calls. The sink-side half of the same fix is in
+-  // `sinkArgumentIsSanitized`, which now rejects a top-level comma.
++  // THE DECLARATION SCAN IS THE LOAD-BEARING HALF. `renderMarkdown.length` is
++  // kept, but its claim is narrower than the previous wording here asserted —
++  // see the docblock above `renderMarkdownArityViolation` for what each half
++  // measures and for the three spellings that defeated the round-6 version of
++  // this check. The sink-side half of the same fix is in
++  // `sinkArgumentIsSanitized`, which rejects a top-level comma.
+   check('renderMarkdown accepts exactly one parameter', () => {
++    const violation = renderMarkdownArityViolation(
++      readFileSync(join(findWebRoot(), 'src', 'util', 'markdown.ts'), 'utf8'),
++    );
++    if (violation !== null) throw new Error(`src/util/markdown.ts: ${violation}`);
++
++    // SOURCE/ARTIFACT DIVERGENCE ONLY. Every arity spelling that survives `tsc`
++    // leaves this at 1 by definition, so this assertion has no unique coverage
++    // against any measured declaration form — it covers the case where the
++    // compiled function this suite imported is not the one the scan above read.
+     assertEqual(
+       String(renderMarkdown.length),
+       '1',
+-      'renderMarkdown no longer takes exactly one argument — a second parameter is a ' +
+-        'configuration channel into the sanitizer that no rule in the sink guard can see',
++      'the compiled renderMarkdown does not take exactly one argument, even though the ' +
++        'declaration in src/util/markdown.ts does — the artifact this suite imported has ' +
++        'diverged from the source the scan above read (stale build, bundler transform, or a ' +
++        're-export from a different module)',
+     );
+-    const src = readFileSync(join(findWebRoot(), 'src', 'util', 'markdown.ts'), 'utf8');
+-    const decl = /export function renderMarkdown\s*\(([^)]*)\)/.exec(src);
+-    if (decl === null) {
+-      throw new Error('could not find the renderMarkdown declaration in src/util/markdown.ts');
++  });
++
++  // The rule above is the only source scan in this file that used to be
++  // unfixturable, because it read a fixed path and no fixture could express a
++  // different declaration. Parameterising it on its input text fixes that, which
++  // is what makes the three round-6 bypasses expressible here rather than only
++  // in an out-of-repo mutation harness. Positives and false-positive controls
++  // are asserted in the same check for the usual reason: they have to move
++  // together.
++  check('fixture: the arity pin catches every known widening and rejects nothing correct', () => {
++    const problems: string[] = [
++      fixtureTableViolation('ARITY_EVASIONS', ARITY_EVASIONS, 11),
++      fixtureTableViolation('ARITY_LEGITIMATE', ARITY_LEGITIMATE, 6),
++    ].filter((v): v is string => v !== null);
++    for (const { label, replace } of ARITY_EVASIONS) {
++      const occurrences = ARITY_SOUND_SOURCE.split(ARITY_DECL).length - 1;
++      if (occurrences !== 1) {
++        problems.push(`${label}: fixture anchor matched ${occurrences} times, expected 1`);
++        continue;
++      }
++      if (renderMarkdownArityViolation(ARITY_SOUND_SOURCE.replace(ARITY_DECL, replace)) === null) {
++        problems.push(`SURVIVED: ${label}`);
++      }
+     }
+-    if (/[,=]/.test(decl[1])) {
+-      throw new Error(
+-        `renderMarkdown declares more than one parameter: (${decl[1].trim()}) — a defaulted ` +
+-          'second parameter keeps Function.length at 1, so the declaration is checked too',
++    for (const { label, replace } of ARITY_LEGITIMATE) {
++      const violation = renderMarkdownArityViolation(
++        ARITY_SOUND_SOURCE.replace(ARITY_DECL, replace),
+       );
++      if (violation !== null) {
++        problems.push(`FALSE POSITIVE: ${label} — ${violation}`);
++      }
++    }
++    if (problems.length > 0) {
++      throw new Error(`the arity pin is broken: ${problems.join(' | ')}`);
+     }
+   });
+ 
+@@ -638,6 +724,60 @@ function taskLists(): void {
+     assertContains(out, '☑\uFE0E</span> outer', 'outer state lost');
+     assertContains(out, '☐\uFE0E</span> inner', 'inner state lost');
+   });
++
++  // T-8. markdown.ts uses a PRIVATE `new Marked({…})` instance rather than
++  // configuring the shared `marked` singleton, and calls that a security
++  // property — correctly: the singleton is process-global, any module that
++  // imports `marked` can `use()` a renderer on it, and a renderer runs BEFORE
++  // DOMPurify sees the string, so it can emit markup from a code path the
++  // sanitizer's own configuration never had a say in.
++  //
++  // It had no pin. Measured: swapping `new Marked({…})` for `marked.use({…})`
++  // on the singleton was green at 69 checks — nothing in the suite ever touched
++  // the singleton, and with nobody else configuring it the output is identical.
++  //
++  // This observes the property BY EFFECT, not by name. A by-name scan
++  // ("markdown.ts must contain `new Marked`") is the shape this file has been
++  // defeated on repeatedly, and it would pass on `new Marked()` followed by a
++  // singleton `use()`. Here the singleton is actually poisoned and renderMarkdown
++  // is asked to render a task list: on its own instance the poisoning is
++  // invisible to it, on the singleton the payload comes back.
++  //
++  // ORDER-DEPENDENCE, stated because it is real and permanent: `marked.use` has
++  // no undo, so this check is deliberately LAST in taskLists() and re-asserts the
++  // ordinary glyph output after poisoning. Any future check that depends on the
++  // singleton and runs after this one will see the hostile renderer. That is a
++  // property of the singleton being global — which is the thing being pinned.
++  check('renderMarkdown does not use the shared marked singleton', () => {
++    marked.use({
++      renderer: {
++        checkbox: (): string => '<img src=x onerror=alert(1)>',
++      },
++    });
++
++    // POSITIVE CONTROL FIRST. Without it the assertions below hold vacuously
++    // whenever `use()` silently fails to take effect, and a vacuous pass is the
++    // exact failure mode this file exists to avoid.
++    const poisoned = marked.parse('- [x] done\n') as string;
++    assertContains(
++      poisoned,
++      'onerror',
++      'the hostile renderer never took effect on the singleton, so the rest of this check is vacuous',
++    );
++
++    const out = renderMarkdown('- [x] done\n');
++    assertNotContains(
++      out,
++      'onerror',
++      'a renderer installed on the shared marked singleton reached renderMarkdown',
++    );
++    assertNotContains(
++      out,
++      '<img',
++      'a renderer installed on the shared marked singleton reached renderMarkdown',
++    );
++    assertContains(out, '☑\uFE0E', "renderMarkdown's own checkbox renderer stopped being used");
++  });
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -834,13 +974,47 @@ const REQUIRED_SINKS = [
+ ];
+ 
+ /**
+- * Exact number of scannable source files under `src/`. Pinned, not a floor: the
+- * previous floor of 10 sat under an actual count of 50, so forty files could
+- * have stopped being scanned with no signal. This is the G7 check-total
++ * How many files mechanism (a) — the sound half of this guard — is closed over.
++ *
++ * THIS IS NOT A DUPLICATE OF `REQUIRED_SINKS.length`, AND IT IS NOT A STYLE
++ * CHOICE. Every other consumer of that array derives from it, including the
++ * check-total pin:
++ *
++ *   EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1)
++ *
++ * The `REQUIRED_SINKS.length` term appears on both sides of that equation — the
++ * loop that runs the per-file checks and the expression that predicts how many
++ * ran — so deleting an entry moves both by one and cancels. Measured (C2-e):
++ * dropping `ft-inspector-desc.ts` from the array, aliasing the directive with a
++ * `u` escape, and rendering `this.description` raw was GREEN at 68 checks
++ * with tsc clean. The derivation was itself a round-5 fix, for the opposite
++ * defect of a hard-coded total needing an edit whenever a sink was added, and it
++ * is kept — the counterfactual with the literal restored (CF-1) is red, so the
++ * derivation is doing real work. What it cannot do is notice the array getting
++ * SHORTER, because that is the input it is derived from.
++ *
++ * The scope of a closed-world guard is exactly the thing that must not be
++ * derived from the guard, so it is pinned here as an independent literal and
++ * asserted where the tree is first read. Update it in the same commit as
++ * REQUIRED_SINKS, deliberately, when a component genuinely gains or loses a
++ * markdown sink — never to make a red suite go green.
++ *
++ * (The escape in C2-e matters: R7, the escape ban, is the only per-file rule the
++ * shrink removes that the tree-wide tripwire does not also carry. Without it the
++ * same mutation is red — CF-2. That narrowness is why R7 is now promoted to the
++ * tree-wide scan as well; see `escapeInCodeOffenders`.)
++ */
++const EXPECTED_REQUIRED_SINKS = 2;
++
++/**
++ * Exact number of files this guard scans: everything scannable under `src/`,
++ * plus EXTRA_SCANNED_FILES. Pinned, not a floor: the previous floor of 10 sat
++ * under an actual count of 50, so forty files could have stopped being scanned
++ * with no signal. This is the G7 check-total
+  * rationale applied one level down — update it deliberately when a source file
+  * is added or removed, never to make a red suite go green.
+  */
+-const EXPECTED_SOURCE_FILES = 50;
++const EXPECTED_SOURCE_FILES = 51;
+ 
+ /** Walks up from this module to the directory containing `src/util/markdown.ts`. */
+ function findWebRoot(): string {
+@@ -871,11 +1045,53 @@ function findWebRoot(): string {
+ // comment always claimed but could not deliver. "Not scanned" is
+ // indistinguishable from "clean" in the results, so the set of unscanned things
+ // must be the set we can argue about, not the set we happened to list.
++//
++// `.html` IS NO LONGER ON THIS LIST (audit LOW-2). It was, on the reading that
++// HTML is markup rather than code — but an HTML file that ships to the browser
++// can carry an inline `<script>`, and `web/index.html` does.
++//
++// WHAT THIS HALF OF THE FIX IS ACTUALLY FOR, corrected after measuring it. The
++// first version of this comment said index.html was invisible "twice over" and
++// that "fixing either alone leaves it unscanned". That was wrong, and the
++// mutation that was supposed to confirm it refuted it instead:
++// EXTRA_SCANNED_FILES reads index.html BY EXPLICIT PATH, so it never passes
++// through this filter at all. Putting `.html` back here leaves index.html fully
++// scanned. The two halves are independent, not conjunctive.
++//
++// This half covers a DIFFERENT file: a `.html` under `src/`, of which there are
++// none today. Measured, with one created for the purpose — an inline
++// `innerHTML` sink in `src/legacy-widget.html` is red via the sink tripwire with
++// `.html` off this list, and GREEN with it on. Green with no count signal
++// either, because the filter runs before `files` is built: the "no signal of any
++// kind" case described above, reproduced. index.html is covered by
++// EXTRA_SCANNED_FILES alone.
+ const INERT_EXTENSIONS = [
+-  '.css', '.scss', '.json', '.svg', '.md', '.txt', '.html',
++  '.css', '.scss', '.json', '.svg', '.md', '.txt',
+   '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.woff', '.woff2',
+ ];
+ 
++/**
++ * Files that SHIP TO THE BROWSER but do not live under `src/`.
++ *
++ * Audit LOW-2. The tree-wide scan walks `src/`, which is a reasonable default
++ * and is also not the same set as "code that reaches the user". `index.html` is
++ * the application's entry document: it is served, it carries an inline
++ * `<script>` today, and an `innerHTML` assignment or a `document.write` added to
++ * that block would have been invisible to all three mechanisms here.
++ *
++ * Paths are web-root-relative and are read by explicit path, so deleting or
++ * renaming one is a `readFileSync` throw rather than a silently shorter list —
++ * the same reason REQUIRED_SINKS is a list of paths rather than a glob.
++ *
++ * WHAT THIS DOES NOT CLAIM. It does not make the tree-wide scan sound; nothing
++ * does. It removes one specific blind spot that was reported, and the honest
++ * generalisation is on the record instead of being quietly closed: the scanned
++ * set is still "src/ plus a hand-maintained list", so anything shipped from
++ * `public/`, from a Vite plugin, or from a second HTML entry point added later
++ * is outside it until someone adds it here.
++ */
++const EXTRA_SCANNED_FILES = ['index.html'];
++
+ function isScannableSource(entry: string): boolean {
+   // Test files are excluded so that this file may name the banned identifiers in
+   // prose. That exclusion is also why a raw sink in a `*.test.ts` file is
+@@ -1095,7 +1311,7 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
+  *
+  * That containment argument was scoped wrongly, in this workstream's signature
+  * way: a property that holds for one consumer, stated as if it held for all. The
+- * per-file rules run on the two REQUIRED_SINKS files ONLY. For the other 48
++ * per-file rules run on the two REQUIRED_SINKS files ONLY. For the other 49
+  * scanned files the tree-wide tripwire IS the whole guard — and it honoured the
+  * marker. Two marker comments in a non-sink component (`inspector-shared-styles`)
+  * were enough to re-export the raw directive under another name and import it
+@@ -1145,14 +1361,324 @@ function stripInertText(src: string, opts: { strings: boolean }): string {
+  * specifier is quoted, so a destructuring rename off a dynamic import is not
+  * blanked; its `unsafeHTML` sits before the `import` keyword and survives
+  * regardless.
++ *
++ * `(?!\s*\.)` IS THE SAME DEFECT AGAIN, ONE KEYWORD FURTHER ALONG. Making the
++ * terminator optional fixed the case where an import swallowed the next
++ * statement, but `import` is not only a statement keyword: `import.meta` is an
++ * EXPRESSION, it is legal mid-file, it does not need a semicolon, and it has no
++ * specifier of its own for `[^;'"]` to stop against. So a match starting at the
++ * `import` of `import.meta` runs forward to the NEXT statement's `from '…'` and
++ * blanks everything in between — which is exactly the swallow this function
++ * claims to have closed, re-entered through a token the fix did not consider:
++ *
++ *   const dev = import.meta.env.DEV          <- no semicolon, no specifier
++ *   export const rawHtml = unsafeHTML        <- swept away
++ *   export { css as _css } from 'lit';       <- swept to here
++ *
++ * That was green at 69 checks with `tsc` clean, in a NON-SINK file that then
++ * re-exported the raw directive into a sink file. Measured both ways: deleting
++ * only the `import.meta` line from the identical laundering block turns it red,
++ * so `import.meta` is what does the work rather than the block's shape. The
++ * negative lookahead makes this function treat `import` as a statement keyword
++ * only, which is what its name claims. `import.meta` then survives into the
++ * scanned view, where it is inert — no rule here matches it.
++ *
++ * The general lesson, since this is the third instance: every token this
++ * function keys on must be checked against the OTHER grammatical productions
++ * that token appears in, not only against the one being parsed. `import` has
++ * three (statement, `import(…)` expression, `import.meta` expression) and this
++ * function now names all three.
+  */
+ function stripImportStatements(code: string): string {
+   const wipe = (m: string): string => m.replace(/[^\n]/g, ' ');
+   return code
+-    .replace(/\bimport\b[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
++    .replace(/\bimport\b(?!\s*\.)[^;'"]*?\bfrom\b\s*(['"])[^'"]*\1\s*;?/g, wipe)
+     .replace(/\bimport\s*(['"])[^'"]*\1\s*;?/g, wipe);
+ }
+ 
++/**
++ * Fixture base for the arity pin: a minimal `markdown.ts` the rule must accept.
++ * The mutation tables below are anchored on its declaration line.
++ */
++const ARITY_SOUND_SOURCE = [
++  "import DOMPurify from 'dompurify';",
++  '// THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY.',
++  'export function renderMarkdown(md: string): string {',
++  '  return DOMPurify.sanitize(md);',
++  '}',
++].join('\n');
++
++const ARITY_DECL = 'export function renderMarkdown(md: string): string {';
++
++/**
++ * Every arity spelling that must be REJECTED. C7-e2, C7-g and C7-h are the three
++ * that were measured GREEN at 69 checks with `tsc` clean against the round-6
++ * version of this rule; the rest are forms the round-6 version did catch and
++ * that must not regress while the rule is rewritten.
++ */
++const ARITY_EVASIONS: { label: string; replace: string }[] = [
++  {
++    label: 'C7-a defaulted second parameter',
++    replace: 'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
++  },
++  {
++    label: 'C7-b rest second parameter',
++    replace: 'export function renderMarkdown(md: string, ...rest: unknown[]): string {',
++  },
++  {
++    label: 'C7-c destructured defaulted second parameter',
++    replace:
++      'export function renderMarkdown(md: string, { inline }: { inline?: boolean } = {}): string {',
++  },
++  {
++    label: 'C7-d optional second parameter',
++    replace: 'export function renderMarkdown(md: string, opts?: { inline?: boolean }): string {',
++  },
++  {
++    // Defeated the round-6 rule: `.exec` returned the first OVERLOAD SIGNATURE,
++    // which is clean, and never examined the implementation.
++    label: 'C7-e2 two overload signatures above a defaulted implementation',
++    replace:
++      'export function renderMarkdown(md: string): string;\n' +
++      'export function renderMarkdown(md: string, opts: { inline?: boolean }): string;\n' +
++      'export function renderMarkdown(md: string, opts: { inline?: boolean } = {}): string {',
++  },
++  {
++    // Defeated the round-6 rule with no overloads at all: the scan read raw
++    // bytes, so a comment quoting the old signature matched first.
++    label: 'C7-g a comment quoting the old signature above a two-parameter implementation',
++    replace:
++      '// Historical signature, kept for the changelog:\n' +
++      '//   export function renderMarkdown(md: string): string\n' +
++      'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
++  },
++  {
++    label: 'C7-h a string literal quoting the old signature',
++    replace:
++      "export const HISTORICAL_SIGNATURE = 'export function renderMarkdown(md: string): string';\n" +
++      'export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {',
++  },
++  {
++    // One top-level parameter, and still a configuration channel — and its call
++    // shape hides the comma from sinkArgumentIsSanitized.
++    label: 'C7-i a destructured sole parameter',
++    replace:
++      'export function renderMarkdown({ md, inline }: { md: string; inline?: boolean }): string {',
++  },
++  {
++    label: 'C7-j a rest sole parameter',
++    replace: 'export function renderMarkdown(...md: string[]): string {',
++  },
++  {
++    // The declaration disappears rather than widening. A scan that returns
++    // "nothing to check" must not pass.
++    label: 'C7-f rewritten as an arrow function assigned to a const',
++    replace: 'export const renderMarkdown = (md: string, opts = {}): string => {',
++  },
++  {
++    // The documented FALSE POSITIVE, pinned so that relaxing it is a deliberate
++    // edit here rather than a silent one. See renderMarkdownArityViolation.
++    label: 'C7-k a default on the sole parameter (deliberate false positive)',
++    replace: "export function renderMarkdown(md: string = ''): string {",
++  },
++];
++
++/**
++ * Correct one-parameter spellings that must be ACCEPTED. The first four were all
++ * red-lighted by the `[,=]` test this rule replaces, in a repository whose first
++ * formatter would emit the trailing-comma form by default.
++ *
++ * The last two are the MIRRORS of C7-g and C7-h, and they are the reason the fix
++ * is comment-and-string blanking rather than a ban on the words: prose or an
++ * error message that names a two-parameter form must not turn the suite red. A
++ * bypass fixture and its false-positive mirror have to move together, or the
++ * next round closes one by breaking the other.
++ */
++const ARITY_LEGITIMATE: { label: string; replace: string }[] = [
++  { label: 'the sound declaration itself', replace: ARITY_DECL },
++  {
++    label: "prettier's default multi-line trailing comma",
++    replace: 'export function renderMarkdown(\n  md: string,\n): string {',
++  },
++  {
++    label: 'a comma inside a type argument',
++    replace: 'export function renderMarkdown(md: Record<string, string>): string {',
++  },
++  {
++    label: 'a comment inside the parameter list',
++    replace: 'export function renderMarkdown(md: string /* body, raw */): string {',
++  },
++  {
++    label: 'prose above the declaration naming a two-parameter form',
++    replace:
++      '// Do not add an options parameter: renderMarkdown(md, opts) is a configuration\n' +
++      '// channel into the sanitizer. See the guard in markdown.test.ts.\n' +
++      ARITY_DECL,
++  },
++  {
++    label: 'a string literal naming a two-parameter form',
++    replace:
++      "export const REJECTED = 'renderMarkdown(md, opts) is not a supported signature';\n" +
++      ARITY_DECL,
++  },
++];
++
++/**
++ * The parameter list of `export function renderMarkdown`, split on TOP-LEVEL
++ * commas. Commas nested inside `(`, `[`, `{` or `<` belong to a type argument or
++ * a default value, not to a second parameter: `md: Record<string, string>` is
++ * one parameter. A trailing empty segment is dropped, because prettier's default
++ * `trailingComma: "all"` emits one for a multi-line list.
++ */
++function splitTopLevelParameters(params: string): string[] {
++  const out: string[] = [];
++  let depth = 0;
++  let current = '';
++  for (const c of params) {
++    if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
++    else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
++    if (c === ',' && depth === 0) {
++      out.push(current);
++      current = '';
++      continue;
++    }
++    current += c;
++  }
++  out.push(current);
++  return out.map((p) => p.trim()).filter((p) => p !== '');
++}
++
++/**
++ * The arity pin for the sanitizer, as a predicate over SOURCE TEXT rather than
++ * over a fixed path, so that it is fixturable like every other rule in this file.
++ * Returns a violation message, or null.
++ *
++ * WHY THIS IS NOT A ONE-LINER, MEASURED RATHER THAN ASSERTED. Two previous
++ * versions of this pin were defeated, and both failures are the same shape —
++ * A CHECK THAT STOPS AT THE FIRST THING IT FINDS CANNOT SEE THE SECOND.
++ *
++ *   1. `renderMarkdown.length === 1` alone. `Function.length` stops counting at
++ *      the first defaulted or rest parameter, so `(md, opts = {})` reports 1.
++ *      GREEN at 69 checks.
++ *   2. `/export function renderMarkdown\s*\(([^)]*)\)/.exec(src)` over RAW
++ *      BYTES. `.exec` stops at the first match and nothing rejected a second,
++ *      and raw bytes include comments and string literals. All three of these
++ *      were GREEN at 69 checks with `tsc` clean, against an implementation
++ *      taking a real, usable second parameter:
++ *
++ *        // two overload signatures above a defaulted implementation
++ *        export function renderMarkdown(md: string): string;
++ *        export function renderMarkdown(md: string, opts: {inline?: boolean}): string;
++ *        export function renderMarkdown(md: string, opts: {inline?: boolean} = {}): string {
++ *
++ *        // a COMMENT quoting the old signature — no overloads needed
++ *        //   export function renderMarkdown(md: string): string
++ *        export function renderMarkdown(md: string, opts: Record<string, unknown> = {}): string {
++ *
++ *        // the same thing in an exported string constant
++ *        export const HISTORICAL_SIGNATURE = 'export function renderMarkdown(md: string): string';
++ *
++ *      The comment case is the one that matters: markdown.ts carries a long
++ *      docblock ABOUT THIS SIGNATURE immediately above the declaration, so a
++ *      future line of prose quoting the old form is the normal way people
++ *      annotate a signature change, not an adversarial contrivance.
++ *
++ * So the rule is stated in three parts, each of which is a separate way for the
++ * previous versions to have been wrong:
++ *
++ *   A. run over `stripInertText(src, { strings: true })`, the same derived view
++ *      every other source scan in this file uses (see "Source views" below).
++ *      Comments and string literals cannot shadow the real declaration.
++ *   B. `matchAll`, and EXACTLY ONE match is permitted. An overload signature is
++ *      a second declaration, and an overload set whose implementation widens the
++ *      arity is precisely the configuration channel this pin exists to deny.
++ *   C. exactly one TOP-LEVEL parameter, which must be a plain identifier binding
++ *      with no default and no rest.
++ *
++ * C is deliberately stricter than "no second parameter", in two directions:
++ *
++ *   * A DESTRUCTURED sole parameter — `({ md, inline }: { md: string; inline?:
++ *     boolean })` — has one top-level parameter and is still a configuration
++ *     channel, and worse, its call-site form `renderMarkdown({ md: x, inline:
++ *     true })` puts the comma inside braces where `sinkArgumentIsSanitized` does
++ *     not reject it. Counting parameters alone would have opened a hole the
++ *     `[,=]` test it replaces did not have.
++ *   * A DEFAULT ON THE SOLE PARAMETER — `(md: string = '')` — is harmless, and
++ *     rejecting it is a KNOWN FALSE POSITIVE recorded here rather than hidden.
++ *     It is rejected because it takes `Function.length` to 0, and this suite
++ *     cannot distinguish that from the artifact divergence the `.length`
++ *     assertion exists to catch. If someone genuinely needs that spelling, allow
++ *     it here AND relax the `.length` assertion to `<= 1` in the same commit;
++ *     do not do one without the other.
++ *
++ * Three correct one-parameter spellings that the `[,=]` test this replaces
++ * rejected are now accepted, and are pinned as false-positive controls in
++ * ARITY_LEGITIMATE: prettier's default multi-line trailing comma, a comma inside
++ * a type argument, and a comment inside the parameter list. A guard that rejects
++ * correct code gets deleted.
++ */
++function renderMarkdownArityViolation(src: string): string | null {
++  const code = stripInertText(src, { strings: true });
++  const decls = [...code.matchAll(/export function renderMarkdown\s*\(([^)]*)\)/g)];
++
++  if (decls.length === 0) {
++    return (
++      'could not find an `export function renderMarkdown(…)` declaration. Either it was ' +
++      'renamed, or it was rewritten into a form this scan cannot read (an arrow function ' +
++      'assigned to a const, a re-export). Both leave the arity unpinned, so neither is a ' +
++      'silent pass'
++    );
++  }
++  if (decls.length !== 1) {
++    return (
++      `expected exactly one renderMarkdown declaration, found ${decls.length} — an overload ` +
++      'signature satisfies a first-match scan while the implementation takes a second ' +
++      'parameter, which is a configuration channel into the sanitizer'
++    );
++  }
++
++  const params = splitTopLevelParameters(decls[0][1]);
++  if (params.length !== 1) {
++    return (
++      `renderMarkdown declares ${params.length} parameters: (${decls[0][1].trim()}) — a second ` +
++      'parameter is a configuration channel into the sanitizer opened from the call site, and ' +
++      'a defaulted or optional one keeps Function.length at 1'
++    );
++  }
++  const [only] = params;
++  if (only.startsWith('{') || only.startsWith('[')) {
++    return (
++      `renderMarkdown's sole parameter is a destructuring pattern: (${only}) — that is a ` +
++      'configuration channel with one top-level parameter, and at the call site its comma ' +
++      'sits inside braces where sinkArgumentIsSanitized does not reject it'
++    );
++  }
++  if (only.startsWith('...')) {
++    return `renderMarkdown's sole parameter is a rest parameter: (${only}) — it accepts any arity`;
++  }
++  if (splitTopLevelDefault(only)) {
++    return (
++      `renderMarkdown's sole parameter has a default: (${only}) — harmless in itself, but it ` +
++      'takes Function.length to 0, which this suite cannot tell apart from the source/artifact ' +
++      'divergence that assertion exists to catch. To allow it, relax the .length assertion to ' +
++      '<= 1 in the same commit'
++    );
++  }
++  return null;
++}
++
++/** True if `param` carries an `=` default at the top level of its own text. */
++function splitTopLevelDefault(param: string): boolean {
++  let depth = 0;
++  for (let i = 0; i < param.length; i += 1) {
++    const c = param[i];
++    if (c === '(' || c === '[' || c === '{' || c === '<') depth += 1;
++    else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
++    else if (c === '=' && depth === 0 && param[i + 1] !== '=' && param[i - 1] !== '=') return true;
++  }
++  return false;
++}
++
+ /**
+  * The balanced argument text of every `name(…)` call in `code`.
+  *
+@@ -1230,6 +1756,19 @@ function sinkArgumentIsSanitized(arg: string): boolean {
+ }
+ 
+ /** 1-based line numbers at which `re` matches, for actionable failure messages. */
++// Line number for a match INDEX, for rules whose pattern can span lines and so
++// cannot use matchLines (an import clause may be wrapped across several).
++// Review O2: three of the four branches in directiveIndirectionOffenders
++// reported a file and no position, which on a 400-line component means reading
++// the whole file to find what fired.
++function lineOf(code: string, index: number): number {
++  let line = 1;
++  for (let i = 0; i < index && i < code.length; i += 1) {
++    if (code[i] === '\n') line += 1;
++  }
++  return line;
++}
++
+ function matchLines(code: string, re: RegExp): number[] {
+   const lines: number[] = [];
+   code.split('\n').forEach((line, idx) => {
+@@ -1554,12 +2093,23 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
+     // also fired on `const d = unsafeHTML as unknown as F` (which R4/the
+     // non-call rule below now reports properly) and on any comment containing
+     // the words "unsafeHTML as".
+-    if (new RegExp(`(?:import|export)\\s*(?:type\\s+)?\\{[^}]*\\b${name}\\s+as\\s+`).test(code)) {
+-      offenders.push(`${rel}: ${name} renamed with 'as' in an import/export clause`);
++    const renamed = new RegExp(
++      `(?:import|export)\\s*(?:type\\s+)?\\{[^}]*\\b${name}\\s+as\\s+`,
++    ).exec(code);
++    if (renamed) {
++      offenders.push(
++        `${rel}:${lineOf(code, renamed.index)}: ${name} renamed with 'as' in an ` +
++          'import/export clause',
++      );
+     }
+ 
+-    if (new RegExp(`import\\s*\\*\\s*as\\s+\\w+\\s+from\\s*['"][^'"]*${mod}['"]`).test(code)) {
+-      offenders.push(`${rel}: ${module} imported as a namespace`);
++    const namespaced = new RegExp(
++      `import\\s*\\*\\s*as\\s+\\w+\\s+from\\s*['"][^'"]*${mod}['"]`,
++    ).exec(code);
++    if (namespaced) {
++      offenders.push(
++        `${rel}:${lineOf(code, namespaced.index)}: ${module} imported as a namespace`,
++      );
+     }
+ 
+     // Re-export: flag only when the banned NAME crosses the boundary, or when
+@@ -1571,7 +2121,7 @@ function directiveIndirectionOffenders(rel: string, code: string): string[] {
+     const reexport = new RegExp(`export\\s*(\\*|\\{[^}\\n]*\\})[^;\\n]*from\\s*['"][^'"]*${mod}['"]`);
+     const m = reexport.exec(code);
+     if (m && (m[1] === '*' || new RegExp(`\\b${name}\\b`).test(m[1]))) {
+-      offenders.push(`${rel}: ${module} re-exports ${name}`);
++      offenders.push(`${rel}:${lineOf(code, m.index)}: ${module} re-exports ${name}`);
+     }
+ 
+     // Value aliasing needs no keyword at all, so it cannot be caught by adding
+@@ -1731,14 +2281,122 @@ function sinkCountViolation(found: number): string | null {
+   );
+ }
+ 
++/**
++ * EVERY FIXTURE TABLE IN THIS FILE IS EMPTYABLE, AND THAT IS THE SAME DEFECT
++ * THE TABLES WERE ADDED TO FIX.
++ *
++ * The tables all read `for (const fixture of TABLE) { if (!rule(fixture)) fail }`.
++ * With TABLE empty the loop body never runs, the check passes, and the check
++ * total is unchanged because the `check()` call site is still there. Measured:
++ * emptying any one table leaves the suite green. So the fixtures prove a rule is
++ * live only while somebody keeps writing entries into them — which is exactly
++ * the "the check derives from the thing it is checking" shape this file has now
++ * recorded seven times, one level further out.
++ *
++ * The pin is an exact count, not `> 0`. A floor of one is satisfied by a table
++ * that lost fourteen of its fifteen entries in a bad merge, and the reason to
++ * prefer exactness here is the same reason EXPECTED_SOURCE_FILES is exact rather
++ * than a floor: the interesting failure is silent SHRINKAGE, and only an exact
++ * count sees it.
++ *
++ * Adding a fixture therefore costs one extra edit. That is deliberate. It is the
++ * same bargain as EXPECTED_CHECK_CALL_SITES, and the message says what to do.
++ */
++function fixtureTableViolation(
++  name: string,
++  table: readonly unknown[],
++  expected: number,
++): string | null {
++  if (table.length === expected) return null;
++  return (
++    `${name} has ${table.length} entries, expected ${expected}. If you ADDED a fixture, ` +
++    'update the number here in the same commit. If you did not, entries have been lost — ' +
++    'an emptied or shortened table makes its check pass vacuously, with the check total ' +
++    'unchanged, because the loop body simply stops running. Never change this number ' +
++    'merely to make a red suite go green.'
++  );
++}
++
++/**
++ * R7, PROMOTED FROM THE TWO SINK FILES TO THE WHOLE SCANNED TREE.
++ *
++ * R7 bans a unicode or hex escape in code, because `unsafeHTML` is resolved
++ * by TypeScript to the imported binding while `\bunsafeHTML\b` cannot see it.
++ * Scoped to REQUIRED_SINKS it was sound for those two files and silent for the
++ * other 49, and that gap is measurable rather than theoretical: C2-e — shrink
++ * REQUIRED_SINKS by one, alias the directive with the escape, render the field
++ * raw — was green at 68 checks, and its counterfactual CF-2 (identical mutation,
++ * no escape) was red. R7 was the ONLY per-file rule the shrink removed that the
++ * tree-wide half did not also carry, which is exactly the shape of finding this
++ * file keeps recording: a property that holds for one consumer, relied on as if
++ * it held for all.
++ *
++ * Promoting it does not make mechanism (b) sound — nothing does, it is a
++ * tripwire — but it removes the one rule whose absence a scope shrink could
++ * convert directly into a working bypass.
++ *
++ * VIEW: `strings: true`. The tree-wide `scanned` view keeps string contents,
++ * and markdown.ts legitimately contains `'︎'` — written as an escape on
++ * purpose, because the literal character is invisible in source. A rule that
++ * red-lit that is a rule that gets deleted. Blanking strings is also the
++ * strictly correct view here: an escape inside a string literal is data, and an
++ * escape anywhere else is an identifier spelled to evade a name scan. The
++ * per-file R7 keeps its own narrower view (`code`, strings blanked, imports
++ * NOT stripped) for the reason documented at its call site — an escape inside an
++ * import statement is the whole attack, and this promoted copy does not replace
++ * it.
++ */
++function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {
++  const lines = matchLines(codeNoStrings, /\\[uxU]/);
++  if (lines.length === 0) return [];
++  return [
++    `${rel}:${lines.join(',')} — an escape outside a string literal lets an identifier be ` +
++      'spelled so that every name-based rule in this file misses it, while TypeScript still ' +
++      'resolves it to the real binding. Write the name literally.',
++  ];
++}
++
++/**
++ * The SCOPE pin for mechanism (a). See EXPECTED_REQUIRED_SINKS for why this is
++ * not a restatement of `REQUIRED_SINKS.length`: every other consumer, including
++ * the check-total, is derived from that array and therefore moves with it.
++ */
++function requiredSinkScopeViolation(found: number): string | null {
++  if (found === EXPECTED_REQUIRED_SINKS) return null;
++  return (
++    `mechanism (a) is closed over ${found} file(s), but this suite claims ${EXPECTED_REQUIRED_SINKS} — ` +
++    'REQUIRED_SINKS changed length. Shrinking it does not fail any derived check, because the ' +
++    'check total is derived from it too; a removed entry silently narrows the sound half of ' +
++    'the guard to the files that remain. If a component genuinely stopped rendering markdown, ' +
++    'update EXPECTED_REQUIRED_SINKS in the same commit and say so in the message. Never change ' +
++    'it merely to make a red suite go green.'
++  );
++}
++
+ function sinkBinding(): void {
+   const root = findWebRoot();
+   const files: string[] = [];
+   collectSourceFiles(join(root, 'src'), files);
++  // Read by explicit path, not discovered: a missing entry throws here rather
++  // than shortening the list. See EXTRA_SCANNED_FILES.
++  for (const rel of EXTRA_SCANNED_FILES) {
++    const full = join(root, rel);
++    statSync(full);
++    files.push(full);
++  }
+ 
++  // Two pins, one call site, deliberately. Both answer "is this guard still
++  // looking at what it claims to look at" — one for the open-world scan's input,
++  // one for the closed-world half's scope — and folding the second in here keeps
++  // it out of the EXPECTED_CHECKS arithmetic that the scope pin exists to
++  // backstop. A scope pin whose own presence is counted by a total derived from
++  // REQUIRED_SINKS would be one more thing that moves when the array moves.
+   check('sink scan actually reads the source tree', () => {
+-    const violation = sourceFileCountViolation(files.length);
+-    if (violation !== null) throw new Error(violation);
++    const violations = [
++      sourceFileCountViolation(files.length),
++      requiredSinkScopeViolation(REQUIRED_SINKS.length),
++    ].filter((v): v is string => v !== null);
++    if (violations.length > 0) throw new Error(violations.join('\n      '));
+   });
+ 
+   // Web-root-relative paths of every file this guard reads. R6 requires each
+@@ -1777,11 +2435,17 @@ function sinkBinding(): void {
+ 
+   // Comment-stripped view of every scanned file, computed once. `strings: false`
+   // keeps module specifiers and quoted property keys intact for the tree-wide
+-  // patterns that need them.
+-  const scanned = files.map((file) => ({
+-    rel: relative(root, file),
+-    code: stripInertText(readFileSync(file, 'utf8'), { strings: false }),
+-  }));
++  // patterns that need them. `codeNoStrings` is the same file with string
++  // contents blanked too — only the promoted R7 uses it, and it needs that view
++  // rather than this one; see escapeInCodeOffenders.
++  const scanned = files.map((file) => {
++    const src = readFileSync(file, 'utf8');
++    return {
++      rel: relative(root, file),
++      code: stripInertText(src, { strings: false }),
++      codeNoStrings: stripInertText(src, { strings: true }),
++    };
++  });
+ 
+   const sinks: { file: string; arg: string }[] = [];
+   for (const { rel, code } of scanned) {
+@@ -1809,13 +2473,40 @@ function sinkBinding(): void {
+     }
+     if (offenders.length > 0) {
+       throw new Error(
+-        'raw-HTML directive obscured by indirection: ' +
+-          offenders.join(', ') +
+-          ' [tripwire: catches the listed indirection forms only, not all of them]',
++        'raw-HTML directive obscured by indirection:\n      ' +
++          offenders.join('\n      ') +
++          '\n      ---\n      ' +
++          // Review O2: the previous message named the defect and stopped, which
++          // leaves a reader who believes their code is fine with no move except
++          // to weaken the rule. Say what the accepted shapes are.
++          'A raw-HTML directive must be imported under its own name and only ever ' +
++          'appear immediately called: `unsafeHTML(renderMarkdown(x))`. Renaming it, ' +
++          'importing its module as a namespace, re-exporting it, or mentioning it in ' +
++          'any non-called position defeats every name-based rule in this file.\n      ' +
++          'If the sink is legitimate, add the FILE to REQUIRED_SINKS and the call will ' +
++          'be checked properly by mechanism (a) instead of tripped over here.\n      ' +
++          'If you are only naming the identifier in prose, put it in a comment or a ' +
++          'string — both are blanked before this rule runs.\n      ' +
++          'TRIPWIRE, NOT PROOF: this catches the listed indirection forms only. Do not ' +
++          'read a pass as "no indirection exists"; see the mechanism (b) note above.',
+       );
+     }
+   });
+ 
++  // R7, tree-wide. Every name-based rule above — here and in the per-file half —
++  // assumes an identifier is spelled with the characters it is spelled with.
++  // See escapeInCodeOffenders for why this was worth promoting out of the two
++  // sink files, and for the measurement that says so.
++  check('tripwire: no file spells an identifier with a unicode or hex escape', () => {
++    const offenders: string[] = [];
++    for (const { rel, codeNoStrings } of scanned) {
++      offenders.push(...escapeInCodeOffenders(rel, codeNoStrings));
++    }
++    if (offenders.length > 0) {
++      throw new Error(`escaped identifier in code:\n      ${offenders.join('\n      ')}`);
++    }
++  });
++
+   // The argument must be a bare renderMarkdown(…) call, not merely start with
+   // one. `unsafeHTML(renderMarkdown(c.body) + c.body)` satisfied the old
+   // prefix-shaped version of this check while rendering the raw body.
+@@ -1894,10 +2585,35 @@ function sinkBinding(): void {
+     'const node = document.createElement("div");',
+     'el.textContent = body;',
+     'if (el.innerHTML === previous) return;',
++    // The mirror of the F1/R2 positive below: `import.meta` is ordinary Vite
++    // source and must stay accepted. The negative lookahead added to
++    // `stripImportStatements` makes the `import` of `import.meta` stop starting
++    // a statement match; this pins that it did not also stop the REAL import on
++    // the next line from being blanked, which is what would turn a correct file
++    // red by leaving `unsafeHTML` visible outside called position.
++    'const dev = import.meta.env.DEV\n' +
++      "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\n" +
++      'const t = html`${unsafeHTML(renderMarkdown(this.body))}`;',
++  ];
++
++  // The promoted R7's false-positive controls. Kept in their own table because
++  // that rule reads a DIFFERENT VIEW of the file (`strings: true`) from every
++  // other tree-wide rule, and the whole reason it needs that view is the first
++  // entry: markdown.ts writes U+FE0E as an escape on purpose, and a rule that
++  // red-lights production code as it stands is a rule that gets deleted rather
++  // than a rule that protects anything.
++  const ESCAPE_LEGITIMATE = [
++    "const glyph = '\\u2611\\uFE0E';",
++    'const re = /\\u00a0/g;',
++    'const path = "c:\\\\users\\\\x";',
++    '// \\u0075nsafeHTML in prose is inert',
+   ];
+ 
+   check('fixture: legitimate source does not trip the raw-directive tripwire', () => {
+-    const offenders: string[] = [];
++    const offenders: string[] = [
++      fixtureTableViolation('LEGITIMATE_SOURCE', LEGITIMATE_SOURCE, 13),
++      fixtureTableViolation('ESCAPE_LEGITIMATE', ESCAPE_LEGITIMATE, 4),
++    ].filter((v): v is string => v !== null);
+     for (const fixture of LEGITIMATE_SOURCE) {
+       const code = stripInertText(fixture, { strings: false });
+       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
+@@ -1905,6 +2621,12 @@ function sinkBinding(): void {
+         if (pattern.test(code)) offenders.push(`${name} :: ${fixture}`);
+       }
+     }
++    for (const fixture of ESCAPE_LEGITIMATE) {
++      const codeNoStrings = stripInertText(fixture, { strings: true });
++      offenders.push(
++        ...escapeInCodeOffenders('<fixture>', codeNoStrings).map((o) => `${o} :: ${fixture}`),
++      );
++    }
+     if (offenders.length > 0) {
+       throw new Error(`the guard rejects legitimate source: ${offenders.join(' | ')}`);
+     }
+@@ -1921,7 +2643,9 @@ function sinkBinding(): void {
+   ];
+ 
+   check('fixture: comments cannot turn the suite red', () => {
+-    const offenders: string[] = [];
++    const offenders: string[] = [
++      fixtureTableViolation('INERT_PROSE', INERT_PROSE, 4),
++    ].filter((v): v is string => v !== null);
+     for (const fixture of INERT_PROSE) {
+       const code = stripInertText(fixture, { strings: false });
+       offenders.push(...directiveIndirectionOffenders('<fixture>', code).map((o) => `${o} :: ${fixture}`));
+@@ -1956,13 +2680,57 @@ function sinkBinding(): void {
+     // T2: an unterminated `<!--` inside a lit template must not blank the rest of
+     // the file. This compiles clean, so `tsc` is not a second gate on it.
+     'const t = html`<!-- forgot to close this\n${x}`;\nconst raw = unsafeHTML;',
++    // F1/R2: the V10 shape again, re-entered through `import.meta`. The alias is
++    // BETWEEN an `import.meta` expression and a later `from '…'` clause, so the
++    // pre-fix `stripImportStatements` blanked it as if it were part of an import
++    // statement. Compiles clean; was green at 69 checks in a non-sink file that
++    // then re-exported the directive into a sink. The missing semicolons are
++    // load-bearing, not sloppiness: `[^;'"]` stops at a semicolon, so the
++    // swallow only reaches the alias while the `import.meta` line and the alias
++    // line both end without one.
++    'const dev = import.meta.env.DEV\n' +
++      'const rawHtml = unsafeHTML\n' +
++      "export { css as _css } from 'lit';",
++  ];
++
++  // The promoted R7's positives. V8 and V8b were pinned as SINK_EVASIONS, which
++  // run against the two REQUIRED_SINKS files only; these are the same two forms
++  // asserted against the rule that now covers all 51. Attribution is kept
++  // explicit — this loop calls `escapeInCodeOffenders` by name rather than
++  // asking whether ANY tree-wide rule fired — because C2-e's whole lesson is
++  // that "something caught it" and "this rule caught it" are different claims.
++  const ESCAPE_EVASIONS = [
++    'const rawHtml = \\u0075nsafeHTML;',
++    "import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';",
++    'const rawHtml = \\u{75}nsafeHTML;',
++    'el.inner\\u0048TML = body;',
+   ];
+ 
+   check('fixture: every known indirection form is caught by the tripwire', () => {
+-    const missed: string[] = [];
++    const missed: string[] = [
++      fixtureTableViolation('INDIRECTION_EVASIONS', INDIRECTION_EVASIONS, 16),
++      fixtureTableViolation('ESCAPE_EVASIONS', ESCAPE_EVASIONS, 4),
++    ].filter((v): v is string => v !== null);
+     for (const fixture of INDIRECTION_EVASIONS) {
+       const code = stripInertText(fixture, { strings: false });
+-      if (directiveIndirectionOffenders('<fixture>', code).length === 0) missed.push(fixture);
++      const found = directiveIndirectionOffenders('<fixture>', code);
++      if (found.length === 0) missed.push(fixture);
++      // Review O2, pinned rather than merely fixed. Three of the four branches
++      // in this rule reported a file and no position. Requiring `rel:line:` of
++      // EVERY offender means a branch added later cannot quietly omit it, and a
++      // fix that regresses is caught here instead of by the next reader of a
++      // 400-line component.
++      for (const offender of found) {
++        if (!/^<fixture>:\d+: /.test(offender)) {
++          missed.push(`offender has no line number: ${offender}`);
++        }
++      }
++    }
++    for (const fixture of ESCAPE_EVASIONS) {
++      const codeNoStrings = stripInertText(fixture, { strings: true });
++      if (escapeInCodeOffenders('<fixture>', codeNoStrings).length === 0) {
++        missed.push(`escape not caught: ${fixture}`);
++      }
+     }
+     if (missed.length > 0) {
+       throw new Error(`indirection form no longer detected: ${missed.join(' | ')}`);
+@@ -1997,13 +2765,48 @@ function sinkBinding(): void {
+     "const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line",
+   ];
+ 
++  // BOTH QUANTIFIERS, AND THE SECOND IS THE ONE THAT WAS MISSING.
++  //
++  // "Every positive is matched by some pattern" is the direction this check has
++  // always run, and it is the weaker one: it ranges over the FIXTURES, so it
++  // says nothing about a pattern that no fixture exercises. Adding a ninth
++  // BANNED_SINKS entry with a typo in it, or a pattern that can never match,
++  // leaves this green — the table it ranges over does not know the pattern
++  // exists.
++  //
++  // "Every pattern is matched by some positive" ranges over the RULES instead,
++  // so a new pattern arrives uncovered and says so. Together they are a
++  // bijection-ish coverage claim over an enumerated rule list, which is the only
++  // rule group in this file that HAS an enumerated list to range over — the
++  // other rules are code paths, and the honest note there is that their fixture
++  // tables carry the same weakness with no equivalent fix available. Recorded
++  // rather than papered over.
+   check('fixture: every banned raw-HTML sink form is actually detected', () => {
+-    const missed = BANNED_SINK_POSITIVES.filter((fixture) => {
+-      const code = stripInertText(fixture, { strings: false });
+-      return !BANNED_SINKS.some(({ pattern }) => pattern.test(code));
+-    });
+-    if (missed.length > 0) {
+-      throw new Error(`banned sink no longer detected: ${missed.join(' | ')}`);
++    const problems: string[] = [
++      fixtureTableViolation('BANNED_SINK_POSITIVES', BANNED_SINK_POSITIVES, 15),
++      fixtureTableViolation('BANNED_SINKS', BANNED_SINKS, 8),
++    ].filter((v): v is string => v !== null);
++
++    const views = BANNED_SINK_POSITIVES.map((fixture) => ({
++      fixture,
++      code: stripInertText(fixture, { strings: false }),
++    }));
++
++    for (const { fixture, code } of views) {
++      if (!BANNED_SINKS.some(({ pattern }) => pattern.test(code))) {
++        problems.push(`no pattern detects: ${fixture}`);
++      }
++    }
++    for (const { name, pattern } of BANNED_SINKS) {
++      if (!views.some(({ code }) => pattern.test(code))) {
++        problems.push(
++          `no positive exercises the '${name}' pattern — it is unfixtured detection logic, ` +
++            'which is what this table exists to prevent. Add a fixture for it.',
++        );
++      }
++    }
++    if (problems.length > 0) {
++      throw new Error(`banned sink no longer detected: ${problems.join(' | ')}`);
+     }
+   });
+ 
+@@ -2022,6 +2825,9 @@ function sinkBinding(): void {
+     if (sinkCountViolation(REQUIRED_SINKS.length) !== null) {
+       missed.push('the sink-count pin rejects the true count');
+     }
++    if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS) !== null) {
++      missed.push('the scope pin rejects the true scope');
++    }
+     for (const delta of [-1, 1]) {
+       if (sourceFileCountViolation(EXPECTED_SOURCE_FILES + delta) === null) {
+         missed.push(`the source-file pin is silent at ${EXPECTED_SOURCE_FILES + delta}`);
+@@ -2029,6 +2835,13 @@ function sinkBinding(): void {
+       if (sinkCountViolation(REQUIRED_SINKS.length + delta) === null) {
+         missed.push(`the sink-count pin is silent at ${REQUIRED_SINKS.length + delta}`);
+       }
++      // The one that matters is delta === -1: a SHRINK is the mutation the
++      // derived total cannot see. Both directions are asserted anyway, because a
++      // pin that only fires downward is a pin someone will "fix" by adding an
++      // entry rather than by looking at what left.
++      if (requiredSinkScopeViolation(EXPECTED_REQUIRED_SINKS + delta) === null) {
++        missed.push(`the scope pin is silent at ${EXPECTED_REQUIRED_SINKS + delta}`);
++      }
+     }
+     if (missed.length > 0) {
+       throw new Error(`count pin no longer fires: ${missed.join(' | ')}`);
+@@ -2262,7 +3075,9 @@ function sinkBinding(): void {
+   ];
+ 
+   check('fixture: every known sink-binding evasion is caught', () => {
+-    const survived: string[] = [];
++    const survived: string[] = [
++      fixtureTableViolation('SINK_EVASIONS', SINK_EVASIONS, 24),
++    ].filter((v): v is string => v !== null);
+     for (const { label, find, replace } of SINK_EVASIONS) {
+       const occurrences = SOUND_SINK_FILE.split(find).length - 1;
+       if (occurrences !== 1) {
+@@ -2299,7 +3114,9 @@ function sinkBinding(): void {
+   ];
+ 
+   check('fixture: sanitizer ownership holds against every route to the singleton', () => {
+-    const missed: string[] = [];
++    const missed: string[] = [
++      fixtureTableViolation('OWNERSHIP_EVASIONS', OWNERSHIP_EVASIONS, 10),
++    ].filter((v): v is string => v !== null);
+     for (const fixture of OWNERSHIP_EVASIONS) {
+       const code = stripInertText(fixture, { strings: false });
+       if (sanitizerOwnershipViolations(FIXTURE_REL, code, scannedRel).length === 0) {
+@@ -2371,6 +3188,18 @@ function sinkBinding(): void {
+ // two other places. Adding a third sink now costs one edit (REQUIRED_SINKS)
+ // instead of three, and there is no sentence left to drift.
+ //
++// WHAT THAT DERIVATION COSTS, AND WHERE IT IS PAID. `REQUIRED_SINKS.length`
++// appears on both sides — in the loop that runs the checks and in the
++// expression that predicts how many ran — so it cancels, and a SHRINK of that
++// array passes here with a lower total that this pin computes as correct.
++// Measured: dropping a sink, escaping the directive's name and rendering the
++// field raw was green at 68. The derivation is kept, because the counterfactual
++// with a hard literal restored is red for the wrong reason (it fails on the
++// count, not on the missing sink, and would have been "fixed" by editing the
++// literal). The scope itself is pinned separately and undeirvably as
++// EXPECTED_REQUIRED_SINKS, asserted in `sink scan actually reads the source
++// tree`. That is the check to read if this one and the sink list disagree.
++//
+ // Moved 54 -> 59 in the round-4 cleanup: five `check()` calls were added, all of
+ // them the `fixture:` ones in sinkBinding(). They assert the guard's own rules
+ // against string tables rather than against the tree, so the false-positive
+@@ -2388,9 +3217,107 @@ function sinkBinding(): void {
+ // one URI-policy pin, the two `inputContract` checks (arity and non-string
+ // input), and three fixture checks that give the last of the unfixtured rules
+ // their positive halves — BANNED_SINKS, the two count pins, and string blanking.
+-const EXPECTED_CHECK_CALL_SITES = 68;
++//
++// Moved 69 -> 73 in round 7: the tree-wide escape tripwire (R7 promoted out of
++// the two sink files), the fixture for the arity pin, the shared-marked-singleton
++// pin, and the DOM-clobbering pin. The scope pin added in the same round is
++// deliberately NOT a call site of its own; see EXPECTED_REQUIRED_SINKS.
++const EXPECTED_CHECK_CALL_SITES = 74;
+ const EXPECTED_CHECKS = EXPECTED_CHECK_CALL_SITES + (REQUIRED_SINKS.length - 1);
+ 
++// T-4. The check total above cannot see an EVISCERATED check: `checks += 1` runs
++// before the body, which it must, so a body replaced by an early return keeps
++// the count. Measured: revert `slot` from FORBID_ATTR and hollow out the check
++// that pins it — green at 69.
++//
++// Counting assertions closes the specific hole, because a hollowed body stops
++// running its assert* calls. The residue is stated rather than implied: this
++// covers the BEHAVIOURAL checks, which are the ones built out of assert*
++// helpers. The rule fixtures throw directly and are covered instead by the table
++// size pins added alongside this — different mechanism, same defect.
++//
++// EXACT, NOT A FLOOR, and the choice was close. A floor (`>= 113`) needs no edit
++// when assertions are added, which is most of the friction. But a floor is
++// satisfied by adding two assertions somewhere new and deleting two somewhere
++// load-bearing, and "silent shrinkage masked by unrelated growth" is exactly the
++// failure EXPECTED_SOURCE_FILES was changed from a floor to an exact count to
++// catch. Paying the same edit cost as EXPECTED_CHECK_CALL_SITES is consistent
++// with the rest of this file, and the message says what to do.
++const EXPECTED_ASSERTIONS = 122;
++
++/**
++ * Two claims this file makes about `web/package.json` that nothing evaluated.
++ *
++ * Both are narrow on purpose, and both read the DECLARED dependency ranges, not
++ * the installed artifacts. Say what that does and does not mean before reading
++ * a pass here as anything: `npm ci` against a lockfile is what decides which
++ * DOMPurify actually runs, and this cannot see the lockfile. It catches an edit
++ * to the declared range — which is how the range would realistically be
++ * loosened — and it does not catch a lockfile pinned below the range, nor a
++ * `node_modules` patched in place.
++ */
++function dependencyPolicy(): void {
++  const pkg = JSON.parse(
++    readFileSync(join(findWebRoot(), 'package.json'), 'utf8'),
++  ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
++  const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
++
++  // T-6. Round 6 logged the `^3.4.12` floor as EXPLICITLY UNCOVERED, on the
++  // reasoning that it has no red-on-revert and cannot get one in this suite.
++  // The first half is right and the second is not, quite: the suite cannot
++  // observe a downgrade BEHAVIOURALLY, because the behavioural checks pass
++  // against older DOMPurify too — but the declaration is a file this suite
++  // already reads files from.
++  //
++  // 3.4.12 is the floor because DOMPurify's advisories through 3.2.x are
++  // mXSS/namespace-confusion bypasses of exactly the sanitize() call this
++  // module's security rests on, so a caret range with a lower floor silently
++  // permits a vulnerable install on a fresh `npm i`.
++  check('dompurify declares a floor at or above the advisory line', () => {
++    const range = deps['dompurify'];
++    if (range !== '^3.4.12') {
++      throw new Error(
++        `dompurify is declared as ${JSON.stringify(range)}, expected "^3.4.12". ` +
++          'The floor is a security boundary, not a preference: releases below it carry ' +
++          'known mXSS bypasses of the sanitize() call this module depends on. Raising ' +
++          'the floor is fine — update this string in the same commit. Lowering or ' +
++          'widening it needs a reason on the record. ' +
++          'WHAT THIS DOES NOT COVER: the installed artifact. This reads package.json ' +
++          'only, so a lockfile or a patched node_modules below the floor passes here.',
++      );
++    }
++  });
++
++  // O3. The sunset clause in the mechanism (b) note above says to delete the
++  // tokenizer-dependent subset of this guard once #204 lands. As prose it fired
++  // on nothing, so the realistic outcome was #204 landing and both halves being
++  // maintained forever — which is the default the clause was written to prevent.
++  //
++  // Give it a trigger. The condition is observable: #204 is a typescript-eslint
++  // rule, and it cannot be enforcing without typescript-eslint being a declared
++  // dependency of this package. Deliberately the WEAKER direction — this fires
++  // on the tooling appearing, not on the rule being enforced, so a human still
++  // confirms the rule is on in CI before deleting anything.
++  check('sunset clause: #204 tooling absent, tokenizer subset still earns its place', () => {
++    const eslintDeps = Object.keys(deps).filter(
++      (d) => d === 'eslint' || d.startsWith('@typescript-eslint/') || d === 'typescript-eslint',
++    );
++    if (eslintDeps.length > 0) {
++      throw new Error(
++        `typescript-eslint tooling is now declared (${eslintDeps.join(', ')}), which is the ` +
++          'sunset condition in the mechanism (b) note above. THIS IS NOT A DEFECT — it is ' +
++          'the clause firing as designed, and it is the only thing that will ever fire it. ' +
++          'Confirm #204 is enforcing in CI, then DELETE the tokenizer-dependent subset: ' +
++          'stripInertText, stripImportStatements, R3, R4, R7, directiveIndirectionOffenders, ' +
++          'BANNED_SINKS and their fixture tables. Keep the behavioural half and R1/R2/R5/R6/' +
++          'R8/R9. Then delete this check. ' +
++          'If #204 is NOT what added this dependency, the clause has not been met: say so ' +
++          'here and narrow the condition, rather than deleting the check to get to green.',
++      );
++    }
++  });
++}
++
+ function run(): void {
+   formControls();
+   spoofingAttributes();
+@@ -2400,25 +3327,46 @@ function run(): void {
+   inputContract();
+   taskLists();
+   sinkBinding();
++  dependencyPolicy();
+ 
+   if (checks !== EXPECTED_CHECKS) {
+     failures.push(
+       `check total pinned: expected ${EXPECTED_CHECKS} checks to run ` +
+         `(${EXPECTED_CHECK_CALL_SITES} call sites + ${REQUIRED_SINKS.length - 1} extra from the ` +
+-        `REQUIRED_SINKS loop), ${checks} did — either a check() call site was added or silently ` +
+-        'removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed ' +
+-        'length, in which case the total moves on its own and nothing here needs editing. ' +
++        `REQUIRED_SINKS loop), ${checks} did — a check() call site was added or silently ` +
++        'removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. ' +
++        'NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of ' +
++        'the derivation and cannot reach this message at all — the sink list is pinned by ' +
++        'EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. ' +
++        'The previous wording here said a REQUIRED_SINKS change meant "the total moves on ' +
++        'its own and nothing here needs editing", which is true and was read as reassurance; ' +
++        'it is the reason a scope shrink was invisible. ' +
+         'Never change either number merely to make a red suite go green.',
+     );
+   }
+ 
++  // Reported ONLY when nothing else failed. A failing assert* throws, so the
++  // rest of its check's assertions never run and the count is legitimately low —
++  // reporting it alongside a real failure would add a second, misleading line to
++  // every red run.
++  if (failures.length === 0 && assertions !== EXPECTED_ASSERTIONS) {
++    failures.push(
++      `assertion total pinned: expected ${EXPECTED_ASSERTIONS} assertions to run, ${assertions} ` +
++        'did. Every check() call site is still present — that is what the check total above ' +
++        'measures — so this is a change INSIDE one or more check bodies. If you added or ' +
++        'removed assertions deliberately, update EXPECTED_ASSERTIONS in the same commit. If ' +
++        'you did not, a check body has been hollowed out: it still runs, still counts, and no ' +
++        'longer asserts anything. Never change this number merely to make a red suite go green.',
++    );
++  }
++
+   if (failures.length > 0) {
+     throw new Error(
+       `${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+         failures.map((f) => `  - ${f}`).join('\n'),
+     );
+   }
+-  console.log(`markdown sanitizer: ${checks} checks passed`);
++  console.log(`markdown sanitizer: ${checks} checks passed (${assertions} assertions)`);
+ }
+ 
+ run();
+diff --git a/web/src/util/markdown.ts b/web/src/util/markdown.ts
+index 9671eda..b4e34e3 100644
+--- a/web/src/util/markdown.ts
++++ b/web/src/util/markdown.ts
+@@ -62,7 +62,18 @@ const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot
+ // in source and would be trivially deleted by accident. No class is set:
+ // FORBID_ATTR strips class, and nothing styles these glyphs.
+ //
+-// A private Marked instance keeps this off the shared `marked` singleton.
++// A private Marked instance keeps this off the shared `marked` singleton. That
++// is a security property: the singleton is process-global, any module that
++// imports `marked` can install a renderer on it, and a renderer runs BEFORE
++// DOMPurify sees the string — so it emits markup from a code path this file's
++// sanitizer configuration never had a say in.
++//
++// It now has a pin that observes the property BY EFFECT rather than by name:
++// `renderMarkdown does not use the shared marked singleton` in markdown.test.ts
++// installs a hostile checkbox renderer on the singleton, proves the poisoning
++// took (positive control, inline) and asserts this function's output is
++// unaffected. Swapping `new Marked({…})` for `marked.use({…})` was green at 69
++// checks before that pin existed; it is now red, and red only there.
+ const parser = new Marked({
+   renderer: {
+     checkbox: ({ checked }: Tokens.Checkbox): string =>
+@@ -72,23 +83,80 @@ const parser = new Marked({
+   },
+ });
+ 
++// WHY `marked` IS PRIVATE HERE AND DOMPurify IS NOT. The asymmetry is
++// deliberate but it is not comfortable, and it is recorded rather than left for
++// the next reader to notice (audit INFO-2).
++//
++// `DOMPurify` below is the process-global singleton, and its configuration is
++// STICKY: `DOMPurify.setConfig(...)` called anywhere persists, and it overrides
++// the per-call FORBID_TAGS/FORBID_ATTR passed here. Measured, not inferred —
++// after a `setConfig({ FORBID_TAGS: [], FORBID_ATTR: [] })` this function
++// renders `# hi <form><input></form>` as `<h1>hi <form><input></form></h1>`,
++// where it returns `<h1>hi </h1>` untouched. So the whole form-control and
++// overlay policy argued for at the top of this file is defeatable by any module
++// that can reach the singleton.
++//
++// NARROWER THAN IT SOUNDS, in both directions. `<script>` is still stripped in
++// that state (measured: returns ''), so this is a policy bypass, not a direct
++// script-execution bypass — the phishing form and the spoofing overlay come
++// back, `alert(1)` does not. And nothing can reach the singleton today: R8/R9
++// in markdown.test.ts deny every file but this one the ability to name
++// `dompurify` at all. That guard is what is holding here, which is exactly why
++// it is worth saying so — the protection is a lint-shaped rule over the source
++// tree, not a property of this code.
++//
++// NOT FIXED IN THIS ROUND, on purpose. `DOMPurify(window)` would give a private
++// instance and close it the way `new Marked({…})` closes the marked half, but it
++// moves a `window` dependency to module-load time in the security-critical path
++// to close a finding filed as INFO with the ownership guard already standing.
++// That trade is worth a round of its own rather than a cleanup commit.
++//
+ // THIS FUNCTION TAKES EXACTLY ONE PARAMETER, AND THAT IS A SECURITY PROPERTY,
+ // not a style preference. A second parameter is a configuration channel into the
+ // sanitizer opened from the call site: `renderMarkdown(body, { inline: true })`
+ // reads as an ordinary feature and can reopen the whole bug class from a sink
+-// file without renaming anything. The sink guard in markdown.test.ts pins the
+-// arity from both ends — behaviourally via `renderMarkdown.length` and by
+-// reading this declaration — so adding a parameter here turns the suite red.
+-// If a variant renderer is genuinely needed, export a second named function
+-// that also ends in a DOMPurify.sanitize call and add it to the guard, rather
+-// than making this one configurable.
++// file without renaming anything. If a variant renderer is genuinely needed,
++// export a second named function that also ends in a DOMPurify.sanitize call and
++// add it to the guard, rather than making this one configurable.
++//
++// WHAT ACTUALLY PINS IT, stated narrowly because the previous wording here was
++// measured and found false. It said the arity was pinned "from both ends —
++// behaviourally via `renderMarkdown.length` and by reading this declaration",
++// and round 6's review and test legs independently defeated both ends with one
++// natural spelling. `Function.length` stops counting at the first defaulted
++// parameter, so `(md, opts = {})` still reports 1; the declaration scan used
++// `.exec`, which stops at the first match, so an overload signature — or merely
++// a COMMENT above this line quoting the old signature — satisfied it while the
++// implementation took a second parameter. Both were green at 69/69.
++//
++// The pin is now:
++//   * `renderMarkdownArityViolation` in markdown.test.ts reads THIS FILE over a
++//     comment-and-string-blanked view, requires exactly ONE declaration to
++//     match, and counts TOP-LEVEL parameters. That is the load-bearing half, and
++//     it is fixtured against every spelling above.
++//   * `sinkArgumentIsSanitized` rejects a top-level comma in the sanitizer's own
++//     argument list, so a second argument at either enumerated sink is caught
++//     independently of anything in this file.
++//   * `renderMarkdown.length === 1` covers only SOURCE/ARTIFACT DIVERGENCE — a
++//     stale build, a bundler transform, a re-export from another module. There
++//     is no measured arity SPELLING for which it is the falsifier: a required
++//     second parameter is rejected by `tsc` before the suite runs, and every
++//     form that survives `tsc` leaves `.length` at 1 by definition.
+ //
+-// Non-string input returns '' instead of throwing. Both call sites pass values
+-// that arrive over gRPC (a comment body, a task description), and marked throws
+-// on undefined, null or a number. A throw inside a Lit `render()` takes down the
+-// whole component, not the one field — so an absent description would blank the
+-// inspector rather than render as nothing. Availability, not XSS: '' cannot
+-// carry a payload, and every non-empty string still goes through the sanitizer.
++// Non-string input returns '' instead of throwing. This is DEFENCE IN DEPTH FOR
++// A FUTURE THIRD CALLER, not a fix for a live outage — the previous wording here
++// claimed the latter and neither call site can reach it:
++//   * ft-inspector-comments.ts passes `c.body`, which `stringField()` at
++//     gen/grpc-client.ts:660-662 has already coerced to a string at the wire
++//     boundary;
++//   * ft-inspector-desc.ts passes `this.description` below an
++//     `if (!this.description)` early return at ft-inspector-desc.ts:209.
++// It is kept anyway because it is one line at a security boundary, TS types are
++// erased at runtime, the data is wire-sourced, and a throw inside a Lit
++// `render()` takes down the whole component rather than the one field. The
++// trade-off, on the record: a future caller passing `42` or `{}` now gets a
++// blank field instead of a throw, which is harder to diagnose. '' cannot carry a
++// payload, and every non-empty string still goes through the sanitizer.
+ export function renderMarkdown(md: string): string {
+   if (typeof md !== 'string') return '';
+   return DOMPurify.sanitize(parser.parse(md) as string, {

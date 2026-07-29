@@ -1,0 +1,17 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:2210
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 4 of 69 markdown sanitizer checks failed:
+  - javascript: href stripped: javascript: URL survived: found "javascript:" in "<p><a href=\"javascript:alert(1)\">click</a></p>\n"
+  - data: html href stripped: data: HTML URL survived: found "data:text/html" in "<p><a href=\"data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==\">click</a></p>\n"
+  - unknown URL schemes are dropped: unknown protocol survived — has ALLOW_UNKNOWN_PROTOCOLS been enabled?: found "evilproto:" in "<p><a href=\"evilproto:payload\">x</a></p>\n"
+  - svg image javascript URL stripped: image javascript: URL survived: found "javascript:" in "<p><svg><image href=\"javascript:alert(1)\"></image></svg></p>\n"
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1
+
+Node.js v20.20.2

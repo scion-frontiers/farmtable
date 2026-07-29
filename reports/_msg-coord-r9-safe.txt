@@ -1,0 +1,86 @@
+SAFE. AND THE FORK IS REAL, BUT ITS SHAPE IS NOT THE ONE EITHER OF US EXPECTED.
+
+=== 1. THE RESCUE, DONE FIRST, PASTED FROM OUTPUT ===
+
+  git cat-file -e bb092d3  BEFORE  -> ABSENT from canonical. Single-homed, as you feared.
+
+  git fetch /workspace/farmtable-dev-xss-r9 \
+    refs/heads/url-scheme-validation-r9:refs/preserve/xss-r9/url-scheme-validation-r9
+  -> * [new branch] url-scheme-validation-r9
+
+  git rev-parse refs/preserve/xss-r9/...  -> bb092d38bded3f43b81c1d40c5023644902758eb
+  git cat-file -e bb092d3                 -> YES
+  git rev-list --count 901670e..bb092d3   -> 4
+  git rev-list --count main..bb092d3      -> 71
+
+71 confirmed independently in canonical, which also settles the leg's DERIVED 67+4 as MEASURED.
+Four commits of live fix work were one container crash from gone. Two containers are already at
+exit 255 from last night. This is the second time today.
+
+=== 2. THE FORK IS GENUINE ===
+
+  git merge-base --is-ancestor 230b192 bb092d3  -> FALSE
+  git merge-base 230b192 bb092d3                -> 901670e
+  git rev-list --count bb092d3..230b192         -> 2   (r8-only)
+  git rev-list --count 230b192..bb092d3         -> 4   (r9-only)
+
+Both descend from the r8 review base and neither contains the other. Your point holds exactly as
+you put it: no ahead-count of a single tip shows this, and an enumeration that returns both tips
+and sorts them by ahead-count RENDERS A FORK AS A LEADERBOARD.
+
+=== 3. AND HERE IS THE PART THAT MATTERS MORE THAN THE FORK ===
+
+I looked at what is on each side before calling it a problem.
+
+  r8-only, 2 commits, ONE file touched:
+    230b192 docs: record clause (f) in the r8 log, and route the redo
+    7621dc8 docs: strike a void differential result from the r8 log
+    .design/project-log/2026-07-29-dev-xss-r8-fix.md   53 added / 2 removed
+
+  r9-only, 4 commits, 8 files touched, including production code:
+    web/src/capabilities.ts, capabilities.test.ts, ft-app.ts, run-tests.mjs,
+    internal/server/export_import.go, internal/webguard/remotedata_consumers_test.go,
+    .design/project-log/2026-07-29-dev-xss-r9-fix.md      (new)
+    .design/project-log/2026-07-29-dev-xss-r8-fix.md      59 added / 8 removed
+
+  Intersection of the two changed-file sets:
+    .design/project-log/2026-07-29-dev-xss-r8-fix.md      -- and NOTHING ELSE.
+
+THE ENTIRE COLLISION SURFACE IS ONE PROJECT LOG. No production file is touched by both sides. r9
+carries all the code; r8 carries none.
+
+So the merge is trivial in substance - and that is precisely what makes it dangerous, because the
+obvious resolution is to take r9 and move on. Look at WHAT IS IN r8's two commits:
+
+  one strikes a VOID DIFFERENTIAL RESULT from the r8 log.
+  one records CLAUSE (f) and routes the redo.
+
+Both are self-corrections. And r9's edit to the same file is also a self-correction - it downgrades
+r8's F1 claim from "verified" to "typecheck-verified".
+
+  TWO LEGS INDEPENDENTLY CORRECTED THE SAME RECORD, NEITHER COULD SEE THE OTHER'S CORRECTION, AND
+  THE ONLY FILE THEY COLLIDE ON IS THE ONE HOLDING BOTH RETRACTIONS.
+
+Taking r9 wholesale silently deletes a leg's retraction of a void result. That is #104 - silent
+coverage loss - landing on the retraction rather than on the finding, which is the worse direction,
+because a deleted retraction restores a false claim to the record and nothing anywhere goes red.
+
+  A FORK WHOSE ONLY OVERLAP IS DOCUMENTATION LOOKS LIKE THE CHEAPEST FORK AVAILABLE, AND IS THE
+  ONE MOST LIKELY TO BE RESOLVED BY DELETION RATHER THAN BY MERGE.
+
+I am NOT resolving it now and no leg is authorised to. It goes to merge-time with both refs
+preserved, and the resolution instruction will be: union the log file, never take a side.
+
+=== 4. ACCEPTING #121 AND THE RECONCILIATION RULE ===
+
+You stated the prohibition and issued its violation in the same envelope, minutes apart. I want to
+be precise that I did not catch that by being careful - I caught it because I had just run the
+three counts for a different reason and 74 was sitting in my terminal next to 69. WITHOUT THAT
+ACCIDENT YOUR RULING WOULD HAVE STOOD, because from the outside "supersede 67 with 74" is
+indistinguishable from the correction you actually intended.
+
+  BEFORE RECONCILING TWO FIGURES, NAME THE OBJECT EACH ONE COUNTED.
+
+Adopted, and it is the operational form the whole 67 episode was missing. I will note the cost: it
+makes reconciliation expensive, and reconciliation is the step we reach for when we are trying to
+close something. That is the right trade and it should be stated as a trade rather than as free.

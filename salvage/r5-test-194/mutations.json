@@ -1,0 +1,283 @@
+{
+  "MUT_B5": {
+    "desc": "Collapse BOTH set-valued readers back to the round-4 single tiebreak winner",
+    "file": "internal/platform/github/passthrough.go",
+    "pkg": "./internal/server/",
+    "run": "TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose|TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose|TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5",
+    "parents": [
+      "TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose",
+      "TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose",
+      "TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5"
+    ],
+    "edits": [
+      [
+        "\tif stages := s.mapper.AllTerminalLabelStages(t.Labels); len(stages) > 0 {\n\t\treturn stages\n\t}\n\treturn []task.Stage{t.Stage}",
+        "\tif st, ok := s.mapper.TerminalLabelStage(t.Labels); ok {\n\t\treturn []task.Stage{st}\n\t}\n\treturn []task.Stage{t.Stage}"
+      ],
+      [
+        "\tif stages := s.mapper.AllTerminalLabelStages(labels); len(stages) > 0 {\n\t\treturn stages\n\t}",
+        "\tif st, ok := s.mapper.TerminalLabelStage(labels); ok {\n\t\treturn []task.Stage{st}\n\t}"
+      ]
+    ]
+  },
+  "MUT_B6": {
+    "desc": "Drop the prefix requirement: authorizationStage accepts any spelling",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tif !strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), m.matchPrefix()) {\n\t\treturn \"\", false\n\t}\n",
+        ""
+      ]
+    ]
+  },
+  "MUT_B1_GATE": {
+    "desc": "B1: neuter the label-delta gate entirely (never charge a label edit)",
+    "file": "internal/server/server.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\t\tif !store.SameStageSet(before, after) {",
+        "\t\tif false && !store.SameStageSet(before, after) {"
+      ]
+    ]
+  },
+  "MUT_SAMESET_ALWAYS_TRUE": {
+    "desc": "The before != after comparison: SameStageSet always reports 'same'",
+    "file": "internal/store/store.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "func SameStageSet(a, b []task.Stage) bool {\n\tif len(a) != len(b) {",
+        "func SameStageSet(a, b []task.Stage) bool {\n\tif true {\n\t\treturn true\n\t}\n\tif len(a) != len(b) {"
+      ]
+    ]
+  },
+  "MUT_SAMESET_LEN_ONLY": {
+    "desc": "SameStageSet compares CARDINALITY only, not membership (subtle)",
+    "file": "internal/store/store.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tfor i := range a {\n\t\tif a[i] != b[i] {\n\t\t\treturn false\n\t\t}\n\t}\n\treturn true\n}",
+        "\treturn true\n}"
+      ]
+    ]
+  },
+  "MUT_PREFIX_IGNORES_CONFIG": {
+    "desc": "The prefix predicate stops reading the configuration and hardcodes ft:",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tif prefix := strings.ToLower(m.config.PushPrefix); prefix != \"\" {\n\t\treturn prefix\n\t}\n\treturn \"ft:\"",
+        "\treturn \"ft:\""
+      ]
+    ]
+  },
+  "MUT_STORE_FALLBACK": {
+    "desc": "store.go fallback that wraps a singular answer in a one-element set returns nil",
+    "file": "internal/store/store.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\t\tif stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {\n\t\t\treturn stages\n\t\t}\n\t}\n\treturn []task.Stage{LifecycleStage(ctx, s, t)}",
+        "\t\tif stages := stager.LifecycleStages(ctx, t); len(stages) > 0 {\n\t\t\treturn stages\n\t\t}\n\t}\n\treturn nil"
+      ]
+    ]
+  },
+  "MUT_DELTA_FALLBACK": {
+    "desc": "store.go LabelDeltaLifecycleStages fallback returns empty instead of current,current",
+    "file": "internal/store/store.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tcurrent := []task.Stage{LifecycleStage(ctx, s, t)}\n\treturn current, current",
+        "\treturn nil, nil"
+      ]
+    ]
+  },
+  "MUT_ALLTERM_SORT": {
+    "desc": "AllTerminalLabelStages drops its deterministic ordering (map order leaks out)",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tsort.Slice(out, func(i, j int) bool { return out[i] < out[j] })\n\treturn out",
+        "\treturn out"
+      ]
+    ]
+  },
+  "MUT_ALLTERM_ISTERMINAL": {
+    "desc": "AllTerminalLabelStages membership by terminalStagePrecedence-free IsTerminalStage removed",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "if stage, ok := m.authorizationStage(raw); ok && store.IsTerminalStage(stage) {\n\t\t\tpresent[stage] = true",
+        "if stage, ok := m.authorizationStage(raw); ok {\n\t\t\tpresent[stage] = true"
+      ]
+    ]
+  },
+  "MUT_ALLTERM_SORT2": {
+    "desc": "AllTerminalLabelStages orders DESCENDING (still deterministic, opposite order)",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })",
+        "sort.Slice(out, func(i, j int) bool { return out[i] > out[j] })"
+      ]
+    ]
+  },
+  "MUT_ALLTERM_ISTERMINAL2": {
+    "desc": "AllTerminalLabelStages admits EVERY mapped stage, not only terminal ones",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "ok && store.IsTerminalStage(stage) {",
+        "ok && (store.IsTerminalStage(stage) || true) {"
+      ]
+    ]
+  },
+  "MUT_ALLTERM_NILGUARD": {
+    "desc": "AllTerminalLabelStages stops honouring the disabled/nil mapper guard",
+    "file": "internal/platform/github/terminal_label_stages.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tif m == nil || !m.enabled {\n\t\treturn nil\n\t}\n\n\tpresent := make(map[task.Stage]bool, len(labels))",
+        "\tif m == nil {\n\t\treturn nil\n\t}\n\n\tpresent := make(map[task.Stage]bool, len(labels))"
+      ]
+    ]
+  },
+  "MUT_REV9_PHASE": {
+    "desc": "REV9 tripwire: passthrough UpdateTask starts acting on p.Phase (closes the issue)",
+    "file": "internal/platform/github/passthrough.go",
+    "pkg": "./internal/server/ ./internal/platform/github/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tupdated, err := s.gql.updateIssue(ctx, issueID, p.Title, p.Description)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n",
+        "\tupdated, err := s.gql.updateIssue(ctx, issueID, p.Title, p.Description)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif p.Phase != nil && *p.Phase == task.PhaseClosed {\n\t\t_, _ = s.gql.closeIssue(ctx, issueID, githubv4.IssueClosedStateReasonCompleted)\n\t}\n"
+      ]
+    ]
+  },
+  "MUT_B3_PHASE_DERIV": {
+    "desc": "B3 discrimination: phaseForStage stops closing terminal stages (returns open)",
+    "file": "internal/server/convert.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tcase task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:\n\t\treturn task.PhaseClosed",
+        "\tcase task.StageCompleted, task.StageWontFix, task.StageDuplicate, task.StageCancelled:\n\t\treturn task.PhaseOpen"
+      ]
+    ]
+  },
+  "FAULT_CREATEUSER": {
+    "desc": "Fault injection: CreateUser fails ONLY for the updater-agent fixture (simulates the observed infra error)",
+    "file": "internal/store/entstore.go",
+    "pkg": "./internal/server/",
+    "run": "TestUpdateTask_PropagatesActorID|TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose|TestUpdateTask_AddingATerminalLabelRequiresClose",
+    "parents": [],
+    "edits": [
+      [
+        "func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error) {\n\tcreate := s.client.User.Create().",
+        "func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error) {\n\tif p.DisplayName == \"updater-agent\" {\n\t\treturn nil, fmt.Errorf(\"creating user: injected transient failure\")\n\t}\n\tcreate := s.client.User.Create()."
+      ]
+    ]
+  },
+  "FAULT_CREATEUSER_FULLPKG": {
+    "desc": "Same fault, WHOLE package: how many tests never run because the binary died?",
+    "file": "internal/store/entstore.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error) {\n\tcreate := s.client.User.Create().",
+        "func (s *EntStore) CreateUser(ctx context.Context, p CreateUserParams) (*ent.User, error) {\n\tif p.DisplayName == \"updater-agent\" {\n\t\treturn nil, fmt.Errorf(\"creating user: injected transient failure\")\n\t}\n\tcreate := s.client.User.Create()."
+      ]
+    ]
+  },
+  "MUT_NATIVE_SPURIOUS": {
+    "desc": "OVER-restriction: native fallback fabricates a transition (tests the inertness negative control)",
+    "file": "internal/store/store.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tcurrent := []task.Stage{LifecycleStage(ctx, s, t)}\n\treturn current, current",
+        "\tcurrent := []task.Stage{LifecycleStage(ctx, s, t)}\n\treturn current, []task.Stage{task.StageCompleted}"
+      ]
+    ]
+  },
+  "MUT_STATEREASON": {
+    "desc": "OVER-restriction: state_reason is lost (tests the closed-issue floor + seam-agreement pins)",
+    "file": "internal/platform/github/passthrough.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\treason, _ := t.RemoteData[\"state_reason\"].(string)\n\treturn reason",
+        "\treturn \"\""
+      ]
+    ]
+  },
+  "MUT_ISSUESTATE": {
+    "desc": "OVER-restriction: the closed-issue witness ClosedAt is ignored",
+    "file": "internal/platform/github/passthrough.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "func taskIssueState(t *ent.Task) string {\n\tif t.ClosedAt != nil {\n\t\treturn \"closed\"\n\t}\n\treturn \"open\"",
+        "func taskIssueState(t *ent.Task) string {\n\treturn \"open\""
+      ]
+    ]
+  },
+  "MUT_MS_NATIVE_SPURIOUS": {
+    "desc": "OVER-restriction on the fallback that ACTUALLY runs: MultiStore fabricates a transition",
+    "file": "internal/store/multistore.go",
+    "pkg": "./internal/server/",
+    "run": ".",
+    "parents": [],
+    "edits": [
+      [
+        "\tcurrent := []task.Stage{m.LifecycleStage(ctx, t)}\n\treturn current, current",
+        "\tcurrent := []task.Stage{m.LifecycleStage(ctx, t)}\n\treturn current, []task.Stage{task.StageCompleted}"
+      ]
+    ]
+  }
+}

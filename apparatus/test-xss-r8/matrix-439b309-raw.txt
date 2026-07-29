@@ -1,0 +1,19 @@
+round=1 arm=baseline live=pristine      vac_difflines=0    rc=0   GREEN enum=6 exec=6 mine_failed=0/7  others=[none]
+round=1 arm=M-A      live=removed       vac_difflines=3    rc=1   RED   enum=6 exec=6 mine_failed=4/7  others=[none]
+round=1 arm=M-B      live=present       vac_difflines=5    rc=1   RED   enum=6 exec=6 mine_failed=3/7  others=[none]
+round=1 arm=M-C      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=2/7  others=[none]
+round=1 arm=M-D      live=present       vac_difflines=3    rc=0   GREEN enum=6 exec=6 mine_failed=0/7  others=[none]
+round=1 arm=M-E      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=3/7  others=[none]
+round=1 arm=M-F      live=removed       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=2/7  others=[none]
+round=1 arm=M-G      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=6/7  others=[none]
+round=2 arm=baseline live=pristine      vac_difflines=0    rc=0   GREEN enum=6 exec=6 mine_failed=0/7  others=[none]
+round=2 arm=M-A      live=removed       vac_difflines=3    rc=1   RED   enum=6 exec=6 mine_failed=4/7  others=[none]
+round=2 arm=M-B      live=present       vac_difflines=5    rc=1   RED   enum=6 exec=6 mine_failed=3/7  others=[none]
+round=2 arm=M-C      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=2/7  others=[none]
+round=2 arm=M-D      live=present       vac_difflines=3    rc=0   GREEN enum=6 exec=6 mine_failed=0/7  others=[none]
+round=2 arm=M-E      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=3/7  others=[none]
+round=2 arm=M-F      live=removed       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=2/7  others=[none]
+round=2 arm=M-G      live=present       vac_difflines=2    rc=1   RED   enum=6 exec=6 mine_failed=6/7  others=[none]
+--- reverted ---
+?? mutate-tip.sh
+porcelain-clean-check-done

@@ -1,0 +1,166 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 71,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 71 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2798\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 71 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2798:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2803:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-legit",
+    "desc": "empty LEGITIMATE_SOURCE",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: LEGI"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: LEGITIMATE_SOURCE has 0 entries, expected 13. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-escapelegit",
+    "desc": "empty ESCAPE_LEGITIMATE",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: ESCA"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: legitimate source does not trip the raw-directive tripwire: the guard rejects legitimate source: ESCAPE_LEGITIMATE has 0 entries, expected 4. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-prose",
+    "desc": "empty INERT_PROSE",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: comments cannot turn the suite red: the guard rejects prose about itself: INERT_PROSE has 0 entries, "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: comments cannot turn the suite red: the guard rejects prose about itself: INERT_PROSE has 0 entries, expected 4. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-indirection",
+    "desc": "empty INDIRECTION_EVASIONS",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: INDIRECT"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: INDIRECTION_EVASIONS has 0 entries, expected 16. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-escape",
+    "desc": "empty ESCAPE_EVASIONS",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: ESCAPE_E"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: ESCAPE_EVASIONS has 0 entries, expected 4. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-banned",
+    "desc": "empty BANNED_SINK_POSITIVES \u2014 T-3's worked example",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every banned raw-HTML sink form is actually detected: banned sink no longer detected: BANNED_SINK_POS"
+    ],
+    "expect": "RED",
+    "tail": "ke a red suite go green. | no positive exercises the 'innerHTML/outerHTML assignment' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'innerHTML/outerHTML indexed assignment' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'insertAdjacentHTML' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'document.write' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'setHTMLUnsafe' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'createContextualFragment' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'lit unsafeSVG directive' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it. | no positive exercises the 'lit unsafeStatic directive' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-sink",
+    "desc": "empty SINK_EVASIONS",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: SINK_EVASIONS has "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: SINK_EVASIONS has 0 entries, expected 24. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-ownership",
+    "desc": "empty OWNERSHIP_EVASIONS",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: OWNE"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: sanitizer ownership holds against every route to the singleton: sanitizer-ownership rule broken: OWNERSHIP_EVASIONS has 0 entries, expected 10. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-arity",
+    "desc": "empty ARITY_EVASIONS (this round's own table \u2014 it must not be exempt)",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: ARIT"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: ARITY_EVASIONS has 0 entries, expected 11. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "T-EMPTY-aritylegit",
+    "desc": "empty ARITY_LEGITIMATE",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: ARIT"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: ARITY_LEGITIMATE has 0 entries, expected 6. If you ADDED a fixture, update the number here in the same commit. If you did not, entries have been lost \u2014 an emptied or shortened table makes its check pass vacuously, with the check total unchanged, because the loop body simply stops running. Never change this number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "INVERT-1",
+    "desc": "THE QUANTIFIER INVERSION: add a 9th BANNED_SINKS pattern that no positive exercises. Was GREEN before this round \u2014 the old check ranged over the fixtures, so it could not see an unfixtured pattern.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every banned raw-HTML sink form is actually detected: banned sink no longer detected: no positive exe"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2799\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: every banned raw-HTML sink form is actually detected: banned sink no longer detected: no positive exercises the 'Element.setInnerHTMLUnsafe (typo, matches nothing)' pattern \u2014 it is unfixtured detection logic, which is what this table exists to prevent. Add a fixture for it.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2799:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2804:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "INVERT-CTRL",
+    "desc": "CONTROL for the inversion: the same 9th pattern WITH a positive that exercises it must be GREEN. Otherwise the inversion is just 'any new pattern is rejected', which is a rule nobody could live with.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 71,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  }
+]

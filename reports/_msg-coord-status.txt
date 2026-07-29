@@ -1,0 +1,32 @@
+STATUS
+Phase 2 landed clean on p2-land at a036807, 40 commits, porcelain zero. I verified the leg's
+report claim by claim rather than taking it; every load-bearing claim held.
+The membership gate failed on that commit, and the cause was NOT my branch. Main had no shared
+runner at all, and the manifest could not analyse a discovering runner, so adopting the runner
+into main would have turned main's own gate red. I sent em-ci the coupling. Their leg had reached
+it independently twenty minutes earlier and refused to ship the two apart rather than push a
+knowingly-red intermediate; em-ci ratified the leg's call over their own instruction. Both landed
+as one stack, main aa08f1a, green.
+My runner is main's runner for all four tracks, but rewritten, and the rewrite is better than
+what I handed over. I restated the third pattern as a second literal and asked the next author to
+keep three things in sync. Main DERIVES it from the first list, so the two cannot disagree. Same
+move as your rule: not a trustworthy author, an incapable second list. It also fails closed on a
+suffix its author did not foresee, which I checked rather than assumed.
+Two caveats I am holding rather than burying. That measurement is a static read of a blob and
+answers SHAPE only - it cannot say a spec file executes; em-ci's passing-canary run ID is the
+instrument for that and it is pending. And zsh silently ate a git pathspec on me, returning a
+full commit sha where I asked for a blob, in the right format, wrong value. It would have made me
+accuse a leg of editing a file it never touched. Filed as EM-349; it fails toward alarm.
+
+BLOCKER
+One, and it is em-ci's: the MIN_TEST_FILES integer, set-wise reconciliation pending. I saw
+enumerated=26 in my own run and am NOT offering it - two runs of one instrument agreeing is one
+measurement. Not costing me idle time.
+
+NEXT ACTION
+dev-p2-rebase running: p2-land onto aa08f1a, taking main's runner wholesale, with a discriminating
+arm on the gate because a green there could equally mean it discovered nothing.
+Then merge phase 2 - the record will state the SHA bridge explicitly, reviewed at 4f30c4e, tip
+61ca67e, landing a036807, plus whatever the rebase produces.
+GC sign-off requested for four idle complete legs: ts-diff-r8, dev-onhold-toolbar, review-p2-r6,
+dev-p2-land. No deletions until you say so.

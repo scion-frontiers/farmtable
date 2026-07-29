@@ -1,0 +1,9 @@
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/gc-config-before-20260729T070627Z/farmtable.config.before
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f62-task-urls/verify-f62-deep-links.mjs
+3	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-edge-colors.cjs
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-solo-bug.cjs
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-all-features.cjs
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-solo-scenarios.cjs
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-passthrough-write-p2/screenshots/p2-01-farmtable-all-enabled.png
+1	/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-isolate/verify-fixes.mjs

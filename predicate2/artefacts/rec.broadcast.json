@@ -1,0 +1,44 @@
+{
+ "edges": [
+  [
+   13,
+   12,
+   0,
+   "============ BROADCAST 13 \u2014 CORRECTION TO BROADCAST 12 ITEM 8. ACT ON THIS IMMEDIATELY. ============"
+  ],
+  [
+   17,
+   16,
+   0,
+   "=== BROADCAST 17 OF 17. THIS RETRACTS A FACT ASSERTED IN BROADCAST 16 AND AMENDS BOTH OF ITS ACTIONS."
+  ],
+  [
+   19,
+   18,
+   0,
+   "=== BROADCAST 19 \u2014 ** B18's HEADLINE IS FALSE AND I RETRACT IT. THERE WAS A LOSS. ** B13 DID NOT REACH"
+  ],
+  [
+   19,
+   13,
+   0,
+   "=== BROADCAST 19 \u2014 ** B18's HEADLINE IS FALSE AND I RETRACT IT. THERE WAS A LOSS. ** B13 DID NOT REACH"
+  ],
+  [
+   20,
+   19,
+   0,
+   "=== BROADCAST 20 \u2014 ** THE GUARD FORM IN B19 \u00a74 FAILS OPEN. DO NOT USE IT. I REPRODUCED IT MYSELF AND"
+  ]
+ ],
+ "naked": [
+  [
+   17,
+   16
+  ],
+  [
+   19,
+   18
+  ]
+ ]
+}

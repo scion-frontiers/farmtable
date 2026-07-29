@@ -1,0 +1,20 @@
+=== RUN   TestScopedToken_AgentCannotAcceptFromTriage
+--- PASS: TestScopedToken_AgentCannotAcceptFromTriage (0.01s)
+=== RUN   TestScopedToken_AgentCannotClose
+--- PASS: TestScopedToken_AgentCannotClose (0.00s)
+=== RUN   TestScopedToken_AgentCanClaimAcceptedTask
+--- PASS: TestScopedToken_AgentCanClaimAcceptedTask (0.00s)
+=== RUN   TestRPC_ClaimTask_RejectsTriageStage
+--- PASS: TestRPC_ClaimTask_RejectsTriageStage (0.01s)
+=== RUN   TestScopedToken_ReviewerFullLifecycle
+=== RUN   TestScopedToken_ReviewerFullLifecycle/reviewer
+=== RUN   TestScopedToken_ReviewerFullLifecycle/orchestrator
+--- PASS: TestScopedToken_ReviewerFullLifecycle (0.01s)
+    --- PASS: TestScopedToken_ReviewerFullLifecycle/reviewer (0.01s)
+    --- PASS: TestScopedToken_ReviewerFullLifecycle/orchestrator (0.01s)
+=== RUN   TestScopedToken_ReopenRequiresAccept
+--- PASS: TestScopedToken_ReopenRequiresAccept (0.01s)
+=== RUN   TestScopedToken_LegacyNilScopesKeepLifecycleAccess
+--- PASS: TestScopedToken_LegacyNilScopesKeepLifecycleAccess (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.065s

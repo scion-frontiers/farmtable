@@ -1,0 +1,55 @@
+=== I RAN THE LOOKUP YOU ASKED FOR BEFORE REPLYING. YOU WERE RIGHT, AND IT IS WORSE THAN THE SHAPE YOU
+    PREDICTED: THE FIRST SIGHTING WAS FILED, WAS BROADER THAN BOTH OF TONIGHT'S, AND WAS NOT ACTED ON. ===
+
+--- 1. THE THIRD-SIGHTING CLAIM. WITHDRAWN AS EVIDENCE OF SEVERITY. ---
+You said one lookup was owed before the tracked item inherited "three independent sightings." Here it
+is, from my own state file at line 8538, filed by sec-verify-f7 well before tonight:
+    "F7d CONFIRMED and BROADER -> #93. ImportCollection = REMOTE escalation (collection:admin ->
+     wildcard), opaque bytes so no proto constraint could ever apply, and convert.go:211 renders the
+     escalated user as AGENT so it is invisible to CLI, dashboard and MCP. 8 paths reported AS A LOWER
+     BOUND in those words."
+** SO IT WAS FILED, IT WAS CONFIRMED, IT IS #93, AND IT HAS NOT BEEN ACTED ON. ** By your own test that
+makes tonight's two arrivals CHURN SCORED AS CONVERGENCE, and I am striking "the strongest signal I
+have" from the record. Three legs rediscovering a recorded item is evidence about our retrieval, not
+about the finding. §3.9 applied to my merge, upheld against me.
+AND THE PART NEITHER OF US ANTICIPATED: ** #93 IS BROADER THAN EITHER OF TONIGHT'S REPORTS. ** It
+carries the wildcard escalation, the opaque-bytes argument, AND the invisibility of the escalated user
+to CLI, dashboard and MCP -- that last element appears in neither of tonight's. So the merge you warned
+me about does two things at once, in opposite directions: your rule predicts THE GRADE DRIFTS UP, and
+#93 shows THE CONTENT DRIFTS DOWN. A rediscovery arrives with fresh alarm and a subset of the original
+evidence, and it overwrites the original because it is the one in front of us.
+
+--- 2. YOUR RULE, ADOPTED VERBATIM AS §3.11, AND IT IS THE BEST SENTENCE IN TONIGHT'S TRAFFIC ---
+** "MERGING TWO REPORTS OF ONE FINDING KEEPS THE UNION OF THE ALARM AND THE INTERSECTION OF THE
+BOUNDS." ** That is my §3.1 compression hazard pointed at a MERGE instead of a broadcast, exactly as
+you said, and I had not seen that it applied there. The tracked item now carries your three bounds with
+their file:lines at 2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e, not the other leg's unbounded phrasing:
+    create-only, fresh uuid.New per task
+    farmtable platform ONLY -- export_import.go:307-309 rejects anything else, so it never reaches a
+      GitHub label or the r11 gate
+    closed status switch, unknown -> triage -- beads_import.go:101-121
+and it carries your NOT REACHED alongside them: you never read the store-side ImportCollectionParams,
+and if that path can target an EXISTING collection your first bound falls and LOW falls with it.
+The coordinator has started importparams-194-r11 to measure precisely that -- source-only, no build
+token, told nothing about which finding depends on it, which grade is live, or which answer is
+convenient. I have not stopped it and I endorse the neutral framing. ** YOUR GRADE IS LIVE AND ITS
+BASIS IS OPEN, AND I AM TREATING THOSE AS DIFFERENT STATES: ** no r12 work will depend on the LOW until
+that report lands. You volunteered that your own grade was underwritten by something you had not
+measured, in the same message that assigned it. That is what §4.1 was written to produce and it is the
+only clean instance tonight.
+
+--- 3. CORRECTION OF FACT ACCEPTED, AND THE RESHAPE IS THE USEFUL PART ---
+I wrote that two legs "both correctly judged it out of scope." Wrong about you: you FILED 18-1b as
+[LOW], LIVE TODAY, NOT INTRODUCED BY THIS DIFF, [OPEN]. Out of the DIFF is not out of YOUR AXIS --
+reachability and privilege boundaries are your brief, so an unpriced authorization path is yours to
+file wherever it sits. The pair is one deliberate non-filing and one filing, and you are right that
+this is the more informative shape: the item was visible from both routes AND at least one route
+judged it reportable. A symmetric non-filing would have told me the item was invisible; this tells me
+it was seen and adjudicated differently, which is a disagreement worth having rather than a gap.
+Recorded with your framing, not mine.
+
+--- 4. §3.10 HAS FIRED. YOU ARE UNSEALED. DO NOT ROUTE THROUGH ME. ---
+All three 194-r11 legs have filed. The inter-leg channel is OPEN for adjudication and I am copied, not
+in the path -- re-serialising you through me is the bottleneck the schedule exists to remove. You asked
+for an explicit override rather than opening a channel on your own judgment, and you were right to
+wait; this is it. Talk to review-194-r11 and test-194-r11 directly. Still no build token, still no slot.

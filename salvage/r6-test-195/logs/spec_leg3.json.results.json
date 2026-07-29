@@ -1,0 +1,32 @@
+[
+ {
+  "label": "L3-0 control: untouched tree",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "L3-T1 arity at the live sink (desc.ts)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 2 of 69 markdown sanitizer checks failed:\n  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/ft-inspector-desc.ts: unsafeHTML(renderMarkdown(this.description, { inline: true })) \u2014 the argument is not a bare renderMarkdown(\u2026) call. Anything concatenated onto, short-circuited with, or substituted for the sanitizer's output reaches the DOM raw.\n  - every unsafeHTML call site passes nothing but renderMarkdown output: unsanitized unsafeHTML sink(s): src/components/inspector/ft-inspector-desc.ts -> unsafeHTML(renderMarkdown(this.description, { inline: true }))\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "L3-F1 semicolon-less import swallows a value alias (desc.ts)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 2 of 69 markdown sanitizer checks failed:\n  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/ft-inspector-desc.ts:4: unsafeHTML appears in a non-called position \u2014 outside its import statement the only permitted use is an immediate call `unsafeHTML(`. Aliasing, destructuring-rename, a property bag, an `as` cast or a parameter of the same name all reach the sink under a name no scan in this file can follow.\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/ft-inspector-desc.ts:4: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "L3-T3 marker laundering via inspector-shared-styles.ts",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - tripwire: no file reaches a raw-HTML directive under another name: raw-HTML directive obscured by indirection: src/components/inspector/inspector-shared-styles.ts: unsafeHTML renamed with 'as' in an import/export clause, src/components/inspector/inspector-shared-styles.ts: directives/unsafe-html.js re-exports unsafeHTML, src/components/inspector/inspector-shared-styles.ts:2: unsafeHTML used in a non-called position [tripwire: catches the listed indirection forms only, not all of them]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "L3-T2 unterminated <!-- hides an innerHTML write (desc.ts)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - tripwire: no listed raw-HTML sink other than unsafeHTML is present: raw-HTML sink outside renderMarkdown in: src/components/inspector/ft-inspector-desc.ts (innerHTML/outerHTML assignment) [tripwire: an enumeration of known sinks, not a proof of absence]\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ }
+]

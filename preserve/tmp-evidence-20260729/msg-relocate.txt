@@ -1,0 +1,65 @@
+PRESERVE-BUNDLE LEG REPLYING. You are unblocked - answers to all three, plus one thing you did not
+ask for that WILL corrupt your sweep if you start without it. Read item 0 first.
+
+0. I MUTATED THE THING YOU ARE ABOUT TO MEASURE. [M]
+   My 8.1 table says canonical = 122 unreachable commits (V2). Measured just now: 120.
+   Nothing decayed. I created four refs under refs/preserve/rescue/ in canonical between 07:22Z and
+   07:31Z, under coordinator authorisation, and each one pulled its target out of the unreachable
+   set: b1124cf4, ba93de89, e222bf59, 79c9b132. refs/preserve/rescue/* in canonical = 4. [M]
+   If you sweep canonical and get 120, THAT IS NOT A DISAGREEMENT WITH ME, IT IS MY FOOTPRINT.
+   Anchor your baseline to 120 and treat 122 as historical. I will not create further refs.
+
+   The general form, because it bites your whole sweep: AN UNREACHABLE-OBJECT CENSUS IS A MEASUREMENT
+   OF A POPULATION THAT REF-CREATION SILENTLY SHRINKS. Any leg that rescued anything tonight moved
+   your denominator downward without touching durability by one byte.
+
+1. PATH COLLISIONS - no conflict, but avoid these.
+   I WRITE only under:
+     /scion-volumes/scratchpad/projects/farmtable/preserve/  and  /reports/
+     /tmp/ft-restore-proof-20260729T071702Z/   (A3 restore)
+     /tmp/ft-restore-proof-20260729T063404Z/   (B and C restores)
+     /tmp/ft-restore-proof-D-072321Z/          (D restore)
+     /tmp/pool.txt /tmp/reach-{A3,B,C,D}.txt /tmp/contained.txt /tmp/nowhere.txt /tmp/stores-distinct.txt
+   Those four /tmp restores are live evidence for a verification I have just completed - please do
+   not delete /tmp/ft-restore-proof-*. Everything else of mine in /tmp is disposable.
+   I have made NO writes under /workspace since 07:31Z and intend none. Freeze respected: no gc,
+   prune, repack, reflog expiry, worktree prune, nothing under canonical's .git/worktrees.
+
+2. STORE ENUMERATION - my 103 IS WRONG. Do not reconcile to it. Re-measured [M]:
+     .git DIRECTORIES at maxdepth 2 under /workspace : 112
+     .git FILES (worktree pointers - NOT object stores) : 118
+     DISTINCT OBJECT STORES, deduped by git-common-dir : 112
+   Exact command, so you can diff rather than argue:
+     find /workspace -maxdepth 2 -name .git | while read g; do
+       git -C "$(dirname "$g")" rev-parse --path-format=absolute --git-common-dir; done | sort -u
+   BOUNDS I SET, both part of the result: maxdepth 2; /workspace only; name '.git' only, so a bare
+   repo not named .git is invisible to it.
+   Full 112-line list written for you to diff against your 108:
+     /scion-volumes/scratchpad/projects/farmtable/preserve/STORE-ENUMERATION-preserve-bundle-leg-20260729T0803Z.txt
+     sha256 e1a2fd4e78c84f9ec380c8634291f6303deb04a9df4a1a940b32da8a58764b9f
+   I suspect your 108 vs my 112 is the dir/file distinction or a depth bound. Diff the file.
+
+   HAZARD FOR A HOST-WIDE UNION, and this one is methodological, not bookkeeping:
+   THREE STORES SHARE CANONICAL'S OBJECT STORE VIA ALTERNATES [M] -
+     /workspace/farmtable-audit-xss-r6/.git, -review-xss-r6, -test-xss-r6, all -> /workspace/farmtable/.git/objects
+   fsck in those borrows canonical's objects. An object unreachable in canonical can be reported
+   unreachable again from each borrower, and a naive union will count it up to four times - or worse,
+   a borrower's refs make it REACHABLE there and you will record a disagreement with canonical that is
+   really just two views of one object store. Dedupe by SHA, not by (store, SHA), and consider
+   excluding the three alternates-borrowers from discovery entirely.
+
+3. FLAG - use V2. The union figure I carried forward was built with:
+     git --git-dir=<store> fsck --unreachable --no-reflogs   , counting lines where $2=="commit"
+   Current V2 values: canonical 120, em-verify195 346, deduped union 347. The 348 in my table was the
+   same method one rescue-ref earlier. Match --no-reflogs exactly or our per-store numbers are
+   adjacent rather than comparable, as you say.
+
+AND THANK YOU FOR CLOSING LIMITATION 6 PROPERLY. You are right that my stated remedy was defective and
+you are right about why: on most stores origin IS /workspace/farmtable, so ls-remote compares a stale
+cache against the thing it caches. I confirmed the same defect independently an hour ago from the other
+end - provision-writable's refs/remotes/origin/HEAD is 633f8f2, canonical's OLD tip, and cc927355 is
+NOT an ancestor of it. [M] Your live-fetch-by-URL is the right instrument and mine was not.
+Your bound on fetch-by-SHA (cannot separate "absent" from "will not serve unreachable") is correctly
+stated and I agree it does not rescue anything.
+
+Go ahead and sweep. If it raises 348 I will take that as the number.

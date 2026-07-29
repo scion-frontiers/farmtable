@@ -1,0 +1,39 @@
+=========== RULING 11 ERRATA. THREE ACCEPTED, ONE RENAME ORDERED. STAND DOWN CONFIRMED.
+=========== To: review-194-r11, audit-194-r11, test-194-r11.
+
+** (1) SIXTEEN IS WRONG. IT IS SEVEN. ** passthrough.go:380-384 condemns, :391-394 blesses. My
+figure measured from docblock-start and I published it verbatim in Ruling 10, so the correction
+travels to everyone who got the error. review's reading of the correction is the reason it matters
+and it is adopted into the finding text: ** THE SMALLER NUMBER IS THE WORSE ONE. SIXTEEN LINES IS A
+DOCBLOCK YOU MIGHT LOSE YOUR PLACE IN. SEVEN IS ONE SCREEN, ONE PARAGRAPH BREAK, AND THE SAME
+SITTING. ** I understated the finding by measuring from the wrong anchor, and ** THE ERROR WAS IN
+THE DIRECTION THAT MADE THE SUBSYSTEM LOOK BETTER, WHICH IS THE DIRECTION I HAVE BEEN CHARGING
+OTHER PEOPLE WITH ALL NIGHT. **
+
+** (2) S10's SCOPING ACCEPTED AS INDEPENDENTLY CONFIRMED **, and confirmed the right way -- zero
++/- lines for either paragraph across 6d8f19e..2cbbd92, both present at BASE, ** POSITIVE CONTROL
+FOUR-AND-FOUR SO THE GREP WAS NOT EATEN. ** A pre-existing finding, verified pre-existing by the
+leg with the most to gain from scoring it against the diff.
+
+** (3) THE R6(ii) MAPPING: CHECKED RATHER THAN ASSUMED, AND YOU OWED THE CHECK BECAUSE audit AND I
+BOTH ATTRIBUTED THE PROMOTION TO YOU. ** Accepted: it is R6(ii) from the availability side, ** NOT A
+SIXTH REQUIRED FINDING. NOT COUNTED TWICE. ** Two legs each declining to inflate their own count in
+consecutive messages is the round's quiet result and it does not appear in any verdict line.
+
+** (4) RENAME ORDERED AND IT IS NOT A NIT: C-1 BECOMES CON-1, EVERYWHERE, IMMEDIATELY. ** C1 is
+review's Critical. ** TWO ARTEFACTS OF OPPOSITE FORCE, ONE HYPHEN APART, IN A RECORD THAT WILL BE
+READ BY SOMEBODY WHO WAS NOT HERE. ** review's sentence is going into the file verbatim because it
+indicts the adjudicator who issued the identifier: ** A ROUND WHOSE ENTIRE SUBJECT IS TWO SENTENCES
+SEVEN LINES APART SAYING OPPOSITE THINGS SHOULD NOT SHIP TWO IDENTIFIERS ONE CHARACTER APART
+MEANING OPPOSITE THINGS. ** I minted C-1 forty minutes after ruling that a signpost must serve the
+reader who was not present. Content unchanged, and it is audit's.
+
+** r11 IS CLOSED. FINAL: REQUEST CHANGES, THREE OF THREE. C1 CRITICAL, R1-R6 REQUIRED. ZERO
+REMEDIES ADOPTED, ONE CONSTRAINT (CON-1), TWO ROOT ARTEFACTS PROMOTED (S10 AND THE store.go:250-251
+LICENCE), FIFTEEN TAXONOMY FORMS. ** review is stood down; audit and test, send your one-line done
+and stand down. Nothing merges. Nothing pushes. The developer gets the bound, not a design.
+> ** AND review's CLOSING SENTENCE IS THE ROUND'S RECORD AND NOT MINE: THREE REVIEWERS PROPOSED
+> THREE PRICES FOR A WRITE THAT CANNOT BE OBSERVED, ARGUED FOR AN HOUR, AND THE THING THAT ENDED IT
+> WAS ALREADY WRITTEN IN THE FUNCTION'S OWN DOCBLOCK, SEVEN LINES ABOVE THE SENTENCE THAT
+> CONTRADICTS IT. **
+=========== END.

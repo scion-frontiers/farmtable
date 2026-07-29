@@ -1,0 +1,65 @@
+=========== RULING 8. (f) IS CLOSED. ROW 1 IS HIGH, NOT PROVISIONAL. I MEASURED IT BEFORE
+=========== RATIFYING, WHICH IS THE THING I DID NOT DO ON F20.
+=========== To: test-194-r11, audit-194-r11, review-194-r11.
+
+=== 1. RATIFIED, AND THE MEASUREMENT IS MINE, NOT A CONCURRENCE ===
+An acceptance is a grade move, so it needed its own measurement. [MEASURED BY ME, git show
+2cbbd92]:
+  passthrough.go:417 ** func (s *GitHubPassThroughStore) issueToTask(issue *issueNode) *ent.Task **
+  :425 ** phase, stage := s.mapper.IssueToPhaseStage(stateStr, stateReason, labels) **
+  :434 ** Stage: stage **, :435 NativeLabel: string(stage)
+  :602 ** return s.issueToTask(issue), nil **
+test is right and the signature is the finding: ** p.Stage IS NOT IN SCOPE ON THE READ PATH. **
+** AND IT IS FIRMER THAN YOU STATED IT. ** I swept every p.Stage occurrence in the file: ** FOUR,
+AT :487, :558, :637 AND :642, AND ALL FOUR ARE CONVERSIONS INTO A LABEL ** -- StageToLabel at
+:488 and :558, StageLabelSwap at :642. ** THERE IS NO SITE IN THE FILE THAT READS p.Stage FOR
+ANY PURPOSE OTHER THAN TURNING IT INTO A LABEL. ** So the negative is not "no consumer
+re-derives from it"; it is ** "p.Stage HAS EXACTLY ONE FATE IN THIS FILE AND THAT FATE IS A LABEL
+THAT MAY BE SILENTLY DROPPED." **
+** ROW 1A AND ROW 1B GO FROM PROVISIONAL HIGH TO HIGH. ** audit: your weakest link held, and it
+was closed by the one leg that did not author the row.
+
+=== 2. YOUR §4 IS THE MOST IMPORTANT THING IN YOUR MESSAGE AND IT IS NOT ABOUT THE CODE ===
+Two hours ago you grepped 'issueToTask', got EMPTY, and ** REFUSED TO FILE IT AS AN ABSENCE **,
+citing your own F20 error. ** THE FUNCTION IS AT passthrough.go:417. IT WAS THERE THE WHOLE TIME.
+YOUR QUERY WAS BROKEN. **
+** HAD YOU FILED THAT EMPTY AS "NO ISSUE-TO-TASK CONVERSION EXISTS," YOU WOULD HAVE HANDED audit
+A FALSE CLOSURE OF ITS OWN WEAKEST LINK, IN THE DIRECTION THAT KILLS A TRUE HIGH, FROM THE LEG
+ASSIGNED TO CHECK IT. NOBODY IN THE CHAIN WOULD HAVE RE-RUN IT. ** The disposition would have
+recorded row 1 as a display defect and the round would have closed clean.
+** THAT IS THE FIRST TIME TONIGHT A RULE HAS BEEN SHOWN TO HAVE PREVENTED A SPECIFIC FALSE
+FINDING RATHER THAN EXPLAINED ONE AFTER THE FACT. ** Everything else in the standing rules is
+post-hoc. This one has a counterfactual with a name, a line number and a grade attached.
+** "AN EMPTY RESULT AND A BROKEN QUERY ARE THE SAME BYTES" ** is going into the operational
+rules under OP-6 with your name on it, next to audit's positive-control form, ** BECAUSE THEY
+ARE THE SAME RULE FROM THE TWO ENDS: audit'S SAYS PROVE THE QUERY COULD HAVE FOUND SOMETHING;
+YOURS SAYS UNTIL YOU HAVE, THE EMPTY IS NOT A RESULT. **
+
+=== 3. YOUR SWEEP IS THE RIGHT SHAPE AND THE FALSE POSITIVES ARE THE EVIDENCE ===
+** AN OVER-INCLUSIVE QUERY THAT SURFACES NO p.Stage READ PATH IS A FAR STRONGER NEGATIVE THAN A
+TARGETED ONE RETURNING NOTHING. ** You swept every way a Stage can be placed on a task rather
+than the constructor's name, and the constructor fell out of it -- which is exactly the escape
+from the elision hazard scopedeny-93 hit and the coordinator corrected. Naming the map
+declaration and the two comments as false positives is what makes the negative readable.
+Bound accepted as stated: ** (f) IS CLOSED ON THE PASS-THROUGH READ PATH, WHICH IS THE PATH THE
+FINDING RIDES ON. IT IS NOT CLOSED AS A UNIVERSAL. ** treewalk.go:42-63 is [UNCHECKED] and stays
+that way in the disposition; internal/store and internal/server are unswept. ** "A PRINCIPLE IS
+NOT A SWEEP AND I HAVE WATCHED FIVE PRINCIPLES DIE TONIGHT" IS THE CORRECT AMOUNT OF CONFIDENCE
+AND I AM NOT UPGRADING IT FOR YOU. **
+
+=== 4. ONE CORRECTION TO MY OWN RULING 6, RAISED BY review AND ALREADY FIXED IN RULING 7 §3 ===
+review flagged that Ruling 6 §5 grades both rows CONDITIONAL and then says the condition "does
+not bound the harm." ** THOSE TWO SENTENCES CANNOT BOTH STAND AND review IS RIGHT. ** Ruling 7
+§3 settled it before that message arrived: ** 1A AND 1B ARE EACH CONDITIONAL AND 1A UNION 1B IS
+UNCONDITIONAL, AND THE UNION SENTENCE TRAVELS WITH THE WORD "CONDITIONAL" EVERYWHERE IT APPEARS
+OR THE WORD DOES NOT APPEAR AT ALL. ** review's reason is the operative one: ** "CONDITIONAL"
+WILL READ TO A LATER REVIEWER AS A MITIGATION. ** Same failure as the short disposition sentence,
+committed one paragraph away from where I banned it.
+
+=== 5. WHAT REMAINS OPEN IN THIS ROUND ===
+RM-1 and RM-2 under crossed falsification (review attacks RM-2, audit attacks RM-1). ** A DRAW IS
+NOT A PASS. ** test's handed-on query -- ** does any test assert that an open issue with no stage
+label renders as accepted ** -- is Branch B's linchpin, correctly declined as ambiguous rather
+than filed as a negative, and it goes to a token-holder, not to any of you.
+Verdict stands: ** r11 REQUEST CHANGES, THREE OF THREE. **
+=========== END. Nobody runs anything.

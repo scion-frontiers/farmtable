@@ -1,0 +1,63 @@
+{
+  "note": "What is removing '.html' from INERT_EXTENSIONS actually load-bearing FOR? Not index.html — spec-low2b/ABL-low2-inert measured that EXTRA_SCANNED_FILES reads by explicit path and bypasses the extension filter. The extension change can only matter for a .html file UNDER src/, of which there are none today. These cases create one so the claim is measured rather than asserted. Read the FIRED RULE, not just the colour: the file-count pin moves too, so each arm carries its own consistent count.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment — MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 — MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 72;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "SRCHTML-scanned",
+      "desc": "A .html under src/ with an inline sink, count reconciled to 52. With '.html' off the inert list it is walked and scanned: expect RED naming the SINK tripwire (not the count pin).",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/legacy-widget.html",
+          "create": "<div id=\"w\"></div>\n<script>\n  document.getElementById('w').innerHTML = location.hash;\n</script>\n"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_SOURCE_FILES = 51;",
+          "replace": "const EXPECTED_SOURCE_FILES = 52;"
+        }
+      ]
+    },
+    {
+      "id": "SRCHTML-inert",
+      "desc": "ABLATION: the same file, with '.html' back on the inert list and the count left at 51. If it comes out GREEN, the file vanished before `files` was built — no sink signal AND no count signal, which is the exact 'no signal of any kind' failure the denylist comment describes. THIS is what the extension removal buys.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/legacy-widget.html",
+          "create": "<div id=\"w\"></div>\n<script>\n  document.getElementById('w').innerHTML = location.hash;\n</script>\n"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const INERT_EXTENSIONS = [\n  '.css', '.scss', '.json', '.svg', '.md', '.txt',",
+          "replace": "const INERT_EXTENSIONS = [\n  '.html',\n  '.css', '.scss', '.json', '.svg', '.md', '.txt',"
+        }
+      ]
+    }
+  ]
+}

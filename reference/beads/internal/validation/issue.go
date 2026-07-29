@@ -1,0 +1,199 @@
+package validation
+
+import (
+	"fmt"
+
+	"github.com/steveyegge/beads/internal/types"
+)
+
+// IssueValidator validates an issue and returns an error if validation fails.
+// Validators can be composed using Chain() for complex validation logic.
+type IssueValidator func(id string, issue *types.Issue) error
+
+// Chain composes multiple validators into a single validator.
+// Validators are executed in order and the first error stops the chain.
+func Chain(validators ...IssueValidator) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		for _, v := range validators {
+			if err := v(id, issue); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// Exists validates that an issue is not nil.
+func Exists() IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return fmt.Errorf("issue %s not found", id)
+		}
+		return nil
+	}
+}
+
+// NotTemplate validates that an issue is not a template.
+// Templates are read-only and cannot be modified.
+func NotTemplate() IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil // Let Exists() handle nil check if needed
+		}
+		if issue.IsTemplate {
+			return fmt.Errorf("cannot modify template %s: templates are read-only; use 'bd mol pour' to create a work item", id)
+		}
+		return nil
+	}
+}
+
+// NotPinned validates that an issue is not pinned.
+// Returns an error if the issue is pinned, unless force is true.
+func NotPinned(force bool) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil // Let Exists() handle nil check if needed
+		}
+		if !force && issue.Status == types.StatusPinned {
+			return fmt.Errorf("cannot modify pinned issue %s (use --force to override)", id)
+		}
+		return nil
+	}
+}
+
+// AssigneeMatches validates that the actor has authority to close the issue.
+// Authority means the issue is unassigned or the actor matches the current
+// assignee. Returns an error on mismatch unless force is true.
+//
+// Authority is identity-by-string: actor is compared verbatim to assignee, so
+// two principals sharing one actor name both pass. bd has no identity layer,
+// so this matches the existing semantics of the actor field — the guard
+// removes silent cross-actor closes without adding new identity guarantees.
+//
+// This guards against the silent-success bug where actor A closes a bead that
+// was concurrently re-claimed by actor B: storage accepts the close (id-only
+// WHERE clause), so without this check bd reports "✓ Closed" even though A had
+// no authority over the bead. (be-035)
+func AssigneeMatches(actor string, force bool) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil || force {
+			return nil
+		}
+		if issue.Assignee == "" || issue.Assignee == actor {
+			return nil
+		}
+		return fmt.Errorf("cannot close %s: assignee is %q, actor is %q; reclaim or use --force to override", id, issue.Assignee, actor)
+	}
+}
+
+// NotClosed validates that an issue is not already closed.
+func NotClosed() IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil
+		}
+		if issue.Status == types.StatusClosed {
+			return fmt.Errorf("issue %s is already closed", id)
+		}
+		return nil
+	}
+}
+
+// NotHooked validates that an issue is not in hooked status.
+func NotHooked(force bool) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil
+		}
+		if !force && issue.Status == types.StatusHooked {
+			return fmt.Errorf("cannot modify hooked issue %s (use --force to override)", id)
+		}
+		return nil
+	}
+}
+
+// HasStatus validates that an issue has one of the allowed statuses.
+func HasStatus(allowed ...types.Status) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil
+		}
+		for _, status := range allowed {
+			if issue.Status == status {
+				return nil
+			}
+		}
+		return fmt.Errorf("issue %s has status %s, expected one of: %v", id, issue.Status, allowed)
+	}
+}
+
+// HasType validates that an issue has one of the allowed types.
+func HasType(allowed ...types.IssueType) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil {
+			return nil
+		}
+		for _, t := range allowed {
+			if issue.IssueType == t {
+				return nil
+			}
+		}
+		return fmt.Errorf("issue %s has type %s, expected one of: %v", id, issue.IssueType, allowed)
+	}
+}
+
+// EpicHasOpenChildren validates that an epic does not have open children.
+// If the issue is an epic with open children, returns an error unless force is true.
+// Non-epic issues pass through without validation.
+func EpicHasOpenChildren(force bool, openChildCount int) IssueValidator {
+	return func(id string, issue *types.Issue) error {
+		if issue == nil || force {
+			return nil
+		}
+		if issue.IssueType != types.TypeEpic {
+			return nil
+		}
+		if openChildCount > 0 {
+			return fmt.Errorf("epic %s has %d open child issue(s); close children first or use --force to override", id, openChildCount)
+		}
+		return nil
+	}
+}
+
+// forUpdate returns a validator chain for update operations.
+// Validates: issue exists and is not a template.
+func forUpdate() IssueValidator {
+	return Chain(
+		Exists(),
+		NotTemplate(),
+	)
+}
+
+// forClose returns a validator chain for close operations.
+// Validates: issue exists, is not a template, and is not pinned (unless force).
+func forClose(force bool) IssueValidator {
+	return Chain(
+		Exists(),
+		NotTemplate(),
+		NotPinned(force),
+	)
+}
+
+// forDelete returns a validator chain for delete operations.
+// Validates: issue exists and is not a template.
+func forDelete() IssueValidator {
+	return Chain(
+		Exists(),
+		NotTemplate(),
+	)
+}
+
+// forReopen returns a validator chain for reopen operations.
+// Validates: issue exists, is not a template, and is closed.
+func forReopen() IssueValidator {
+	return Chain(
+		Exists(),
+		NotTemplate(),
+		HasStatus(types.StatusClosed),
+	)
+}

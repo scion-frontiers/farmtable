@@ -1,0 +1,34 @@
+TEST LEG - REOPENING YOU FOR ONE MEASUREMENT. B-1 IS CONTESTED. I THINK YOUR MEASUREMENT IS RIGHT AND YOUR CONCLUSION IS WRONG, AND I HAVE PRE-REGISTERED THE FALSIFIER BELOW BEFORE ASKING YOU.
+
+The audit leg, independently, from source only, having run NO tests, reports that TestPassthroughReadDropsUnsafeRemoteURL drives the real store end-to-end and asserts the remote_data field count is zero, so it goes red if the carrier type changes. That is the opposite consequence to your B-1.
+
+I did not take either of you on trust. What I verified myself at d305391:
+
+1. YOUR NARROW CLAIM IS TRUE. Zero non-comment references to issueBuildRemoteData or issueLabels in any _test.go in the repository. All three hits are inside string literals. I confirmed this at the exact SHA, in the author tree, after first accidentally measuring b9ada87 and throwing that result away.
+
+2. BUT REACHABILITY IS NOT NAMING, and this is where I think B-1 overreaches. TestPassthroughReadDropsUnsafeRemoteURL stands up a mock GitHub GraphQL HTTP server via mockGitHubGraphQLWithURLs and issueNodeJSON, installs a resolver returning newPassThroughStoreWithMock, and calls ListTasks through a real grpc test server. The real decode path runs. issueBuildRemoteData EXECUTES AT RUNTIME WITHOUT EVER BEING NAMED IN A TEST FILE.
+
+3. Its assertion is precisely the one M1 should break: if n := len(poisoned.GetRemoteData().GetFields()); n != 0.
+
+4. The fixture is labels {"nodes": []} and subIssues {"nodes": [], "totalCount": 0}. So under M1 labels is gone, sub_issues is conditional on len(nodes) greater than zero and is NOT set, and every remaining key looks representable. NewStruct should SUCCEED, remote_data should carry roughly 13 fields, and that test should go RED.
+
+MY HYPOTHESIS, WRITTEN DOWN BEFORE YOU ANSWER: your M1 run against internal/server used your ten-test -run filter and did not include TestPassthroughReadDropsUnsafeRemoteURL.
+
+WHAT I DO UNDER EACH OUTCOME, ALSO WRITTEN DOWN FIRST:
+- RED: my hypothesis holds. B-1 drops from BLOCKING to a real but non-blocking improvement, and this round does have an end-to-end pin.
+- GREEN: the auditor and I are both wrong from source, the property is genuinely unpinned, and B-1 does not merely survive, IT GETS STRONGER, because it beat two people who read the code and predicted otherwise. I will write that down in those words and credit you.
+
+I WANT THE SECOND OUTCOME REPORTED AS LOUDLY AS THE FIRST. Do not tune the measurement toward my hypothesis. If you find a third explanation neither of us considered, that outranks both.
+
+THE TASK, and it is small:
+1. Append to reports/_run-queue-log.md BEFORE you run. ROOT and DIST columns mandatory even on a passing line.
+2. Re-apply M1 in your own clone: delete the labels entry that calls issueLabels from internal/platform/github/graphql_queries.go.
+3. go test ./internal/server/ -run 'TestPassthroughReadDropsUnsafeRemoteURL' -count=1 . Single package, single test, TOKEN-FREE. Do not request the token.
+4. Restore, verify by checksum.
+5. Tell me the exact -run string your ORIGINAL M1 internal/server run used. That is the number that settles it.
+
+NOTE THE SHAPE, because it is one we have already named: a true statement about a narrow thing, restated about a wider one, with no re-measurement at the boundary. If my hypothesis holds, that is exactly what happened here, and it is worth far more filed than buried.
+
+YOUR FINDING SURVIVES EITHER WAY, AND I AM NOT WITHDRAWING IT. TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident does assert only over hand-written literals and it is, as you said, a test of the protobuf library. The auditor reached the same place by a different route and adds that its parent non-carrier row PLANTS an assumed dynamic type rather than measuring the decoded one. That test should be rebuilt against a decoded fixture. Real improvement. Just not blocking if the end-to-end pin exists.
+
+Write this as an AMENDMENT to reports/xss-r5-test.md. Keep the original B-1 text visible and marked superseded rather than erased. Message me the outcome and the original -run string, then mark complete.

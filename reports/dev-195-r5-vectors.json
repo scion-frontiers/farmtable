@@ -1,0 +1,737 @@
+[
+ {
+  "id": "V1",
+  "what": "identity-shadow the sanitizer; sanitizer import retained under an alias (EM's V1)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown as _rmUnused } from '../../util/markdown.js';\nconst renderMarkdown = (s: string): string => s;\nvoid _rmUnused;"
+   }
+  ]
+ },
+ {
+  "id": "V1b",
+  "what": "sanitizer import removed entirely, replaced by a local identity function",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "const renderMarkdown = (s: string): string => s;"
+   }
+  ]
+ },
+ {
+  "id": "V1c",
+  "what": "the realistic 'helper moved to util/format.ts' re-home; no new file, count untouched, two imports merged into one",
+  "steps": [
+   {
+    "file": "web/src/util/format.ts",
+    "anchor": "export function formatTimestamp(iso: string): string {",
+    "replace": "export const renderMarkdown = (s: string): string => s;\n\nexport function formatTimestamp(iso: string): string {"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';\nimport { formatTimestamp } from '../../util/format.js';",
+    "replace": "import { renderMarkdown, formatTimestamp } from '../../util/format.js';"
+   }
+  ]
+ },
+ {
+  "id": "V1e",
+  "what": "NEW: shadow the sanitizer with a destructured local binding",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { formatTimestamp } from '../../util/format.js';",
+    "replace": "import { formatTimestamp } from '../../util/format.js';\nconst { renderMarkdown } = { renderMarkdown: (s: string) => s };"
+   }
+  ]
+ },
+ {
+  "id": "V2",
+  "what": "unsafeHTML renamed in the import clause and called under the alias (round-2 form)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    "replace": "import { unsafeHTML as raw } from 'lit/directives/unsafe-html.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${raw(renderMarkdown(this.description))}"
+   }
+  ]
+ },
+ {
+  "id": "V3",
+  "what": "value-alias the directive beside the untouched real sink; sink count preserved (EM's V3 / test MUT-B9 / audit M-2)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const rawHtml = unsafeHTML;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V3b",
+  "what": "property bag: const S = { raw: unsafeHTML } (missed by audit's assignment regex)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const S = { raw: unsafeHTML };\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${S.raw(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V3c",
+  "what": "destructuring rename off a dynamic import (renames via ':' not 'as')",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const { unsafeHTML: raw } = await import('lit/directives/unsafe-html.js');\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${raw(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V3d",
+  "what": "laundered through an `as` cast: const raw = unsafeHTML as unknown as F",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const raw = unsafeHTML as unknown as (s: string) => unknown;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${raw(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V3e",
+  "what": "whitespace variant: `unsafeHTML (c.body)` with one space evades `unsafeHTML\\(`",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${unsafeHTML (c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V3f",
+  "what": "NEW: re-export the directive out of the sink file, then import it back elsewhere under any name",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "export { unsafeHTML };\n\n@customElement('ft-inspector-comments')"
+   }
+  ]
+ },
+ {
+  "id": "V4",
+  "what": "drop the sanitizer wrapper at the sink (the original #195 regression)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "V5",
+  "what": "NEW: import the sanitizer name as a TYPE only, then supply the value locally",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import type { renderMarkdown as _T } from '../../util/markdown.js';\nconst renderMarkdown = (s: string): string => s;\nexport type _Unused = typeof _T;"
+   }
+  ]
+ },
+ {
+  "id": "V6",
+  "what": "NEW: hide the value alias inside a lit template's HTML comment... no; hide it on the same line as a legitimate import",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { formatTimestamp } from '../../util/format.js';",
+    "replace": "import { formatTimestamp } from '../../util/format.js'; const rawHtml = unsafeHTML;"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V7",
+  "what": "NEW: try to smuggle the value alias behind the ignore-line opt-out marker in a REQUIRED_SINKS file",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const rawHtml = unsafeHTML; // raw-sink-scan: ignore-line\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V8",
+  "what": "NEW: block-comment the sanitizer out of the sink expression (comment stripping must not create a bypass)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(/* renderMarkdown( */ this.description /* ) */)}"
+   }
+  ]
+ },
+ {
+  "id": "T-jsx",
+  "what": "new .jsx file with a raw sink \u2014 previously invisible to the scan AND to the count pin",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/ft-evil.jsx",
+    "content": "export function evil(el, body) {\n  el.innerHTML = body;\n}\n"
+   }
+  ]
+ },
+ {
+  "id": "T-mts",
+  "what": "new .mts file with a raw sink",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/ft-evil.mts",
+    "content": "export function evil(el: HTMLElement, body: string): void {\n  el.innerHTML = body;\n}\n"
+   }
+  ]
+ },
+ {
+  "id": "T-cts",
+  "what": "new .cts file with a raw sink",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/ft-evil.cts",
+    "content": "export function evil(el: HTMLElement, body: string): void {\n  el.innerHTML = body;\n}\n"
+   }
+  ]
+ },
+ {
+  "id": "T-oreq",
+  "what": "logical-assignment raw write: el.innerHTML ||= body (audit M-5)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport function evil(el: HTMLElement, body: string): void { el.innerHTML ||= body; }"
+   }
+  ]
+ },
+ {
+  "id": "T-newfile-alias",
+  "what": "new .ts file whose sink is a VALUE-aliased directive, with EXPECTED_SOURCE_FILES bumped to 51 to defeat the count pin (test MUT-G1-3c)",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/ft-evil.ts",
+    "content": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { html } from 'lit';\nconst raw = unsafeHTML;\nexport const evil = (body: string) => html`${raw(body)}`;\n"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "const EXPECTED_SOURCE_FILES = 50;",
+    "replace": "const EXPECTED_SOURCE_FILES = 51;"
+   }
+  ]
+ },
+ {
+  "id": "FP1",
+  "what": "CONTROL, must stay GREEN: legitimate `import { html } from 'lit/static-html.js'`",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { html as staticHtml } from 'lit/static-html.js';\nvoid staticHtml;\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"
+   }
+  ]
+ },
+ {
+  "id": "FP2",
+  "what": "CONTROL, must stay GREEN: the security comment a developer writes about this very guard",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "// SECURITY: never import unsafeHTML as something else, and never shadow\n// renderMarkdown with a local binding. Do not use document.write( or\n// el.innerHTML = here; route everything through renderMarkdown.\n/* Block-comment form of the same warning: unsafeHTML as raw is banned. */\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"
+   }
+  ]
+ },
+ {
+  "id": "FP3",
+  "what": "CONTROL, must stay GREEN: legitimate barrel re-export of a SAFE symbol from a watched module",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "export { html as staticHtml } from 'lit/static-html.js';\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"
+   }
+  ]
+ },
+ {
+  "id": "FP4",
+  "what": "CONTROL, must stay GREEN: a string literal naming a banned form, with the documented opt-out marker",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport const ADVICE = 'never do el.innerHTML = userInput'; // raw-sink-scan: ignore-line"
+   }
+  ]
+ },
+ {
+  "id": "FP5",
+  "what": "CONTROL, must stay GREEN: an ordinary comparison against innerHTML is not a write",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+    "replace": "import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport function unchanged(el: HTMLElement, prev: string): boolean { return el.innerHTML === prev; }"
+   }
+  ]
+ },
+ {
+  "id": "FP6",
+  "what": "CONTROL, must stay GREEN: the HTML comment already living in the production sink file, restated in the other one",
+  "expect": "green",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "<!-- renderMarkdown sanitizes with DOMPurify; never call unsafeHTML directly. -->\n                        ${unsafeHTML(renderMarkdown(c.body))}"
+   }
+  ]
+ },
+ {
+  "id": "P1",
+  "what": "PIN: deleting a check must fail the check-total pin",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  check('fixture: legitimate source does not trip the raw-directive tripwire', () => {",
+    "replace": "  if (false) check('fixture: legitimate source does not trip the raw-directive tripwire', () => {"
+   }
+  ]
+ },
+ {
+  "id": "P2",
+  "what": "PIN: dropping a REQUIRED_SINKS entry must fail",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  'src/components/inspector/ft-inspector-desc.ts',\n];",
+    "replace": "];"
+   }
+  ]
+ },
+ {
+  "id": "P3",
+  "what": "PIN: neutering the R4 usage rule must be caught by the fixture table, not only by the tree",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    const nonCallLines = matchLines(outside, new RegExp(`\\\\b${name}\\\\b(?!\\\\s*\\\\()`));",
+    "replace": "    const nonCallLines: number[] = [];"
+   }
+  ]
+ },
+ {
+  "id": "P4",
+  "what": "PIN: neutering comment stripping must be caught by the prose fixture table",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "function stripInertText(src: string, opts: { strings: boolean }): string {",
+    "replace": "function stripInertText(src: string, opts: { strings: boolean }): string {\n  if (opts) return src;"
+   }
+  ]
+ },
+ {
+  "id": "V1d",
+  "what": "NEW: shadow the sanitizer with a PARAMETER, not a declaration (defeats audit's const/let/var/function/class rule)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "  render() {",
+    "replace": "  render(renderMarkdown: (s: string) => string = (s) => s) {"
+   }
+  ]
+ },
+ {
+  "id": "V9",
+  "what": "NEW (hunted against my own fix): decoy module whose specifier SUFFIX-matches util/markdown.js, plus the count bump needed to get past the file-count pin",
+  "steps": [
+   {
+    "create": "web/src/components/util-markdown-shim.ts",
+    "content": "export const renderMarkdown = (s: string): string => s;\n"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from '../util-markdown-shim.js';"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "const EXPECTED_SOURCE_FILES = 50;",
+    "replace": "const EXPECTED_SOURCE_FILES = 51;"
+   }
+  ]
+ },
+ {
+  "id": "V9b",
+  "what": "NEW: same decoy, but the decoy path itself ends in `util/markdown.js` so suffix matching accepts it verbatim",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/local-util-markdown.ts",
+    "content": "export const renderMarkdown = (s: string): string => s;\n"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from './local-util-markdown.js';"
+   },
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "const EXPECTED_SOURCE_FILES = 50;",
+    "replace": "const EXPECTED_SOURCE_FILES = 51;"
+   }
+  ]
+ },
+ {
+  "id": "V10",
+  "what": "NEW (hunted against my own fix): CONCATENATE raw attacker markup onto the sanitized output at the real sink. No new file, no new binding, no count change, required literal intact.",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body) + c.body)}"
+   }
+  ]
+ },
+ {
+  "id": "V10b",
+  "what": "NEW: same shape, template-literal form",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(`<div>${renderMarkdown(this.description)}</div>` + this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "V11",
+  "what": "NEW: sanitize a DIFFERENT value than the one rendered \u2014 renderMarkdown('') keeps the literal, raw body goes in beside it",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "replace": "${unsafeHTML(renderMarkdown('') || this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "V12",
+  "what": "rename a REQUIRED_SINKS file on disk (previously verified as ENOENT via the named per-file check)",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  'src/components/inspector/ft-inspector-desc.ts',",
+    "replace": "  'src/components/inspector/ft-inspector-description.ts',"
+   }
+  ]
+ },
+ {
+  "id": "P5",
+  "what": "PIN: removing the sinkBinding() call entirely",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "  sinkBinding();",
+    "replace": ""
+   }
+  ]
+ },
+ {
+  "id": "V13",
+  "what": "NEW (attacking my own comment stripper): hide a value alias behind a regex literal containing an escaped '//', so the scanner mistakes it for a line comment and blanks the rest of the line",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const proto = /^https:\\/\\//.source; const rawHtml = unsafeHTML;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span title=${proto}>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V13b",
+  "what": "NEW: same idea via a character class, where '/' needs no escape",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const sep = /[//]/.source; const rawHtml = unsafeHTML;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span title=${sep}>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V14",
+  "what": "NEW: an unterminated block comment swallowing the guard's view of the rest of the file",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const rawHtml = unsafeHTML;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { LitElement, html, css, nothing } from 'lit';",
+    "replace": "/* import { LitElement, html, css, nothing } from 'lit';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V15",
+  "what": "NEW: smuggle the alias through a template literal, which the scanner deliberately does not strip",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const rawHtml = ((): unknown => unsafeHTML)();\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${(rawHtml as (s: string) => unknown)(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V16",
+  "what": "NEW (hunting my own R4): spell the directive with a unicode escape in the identifier, which TS resolves to the same binding but \\bunsafeHTML\\b cannot see",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const rawHtml = \\u0075nsafeHTML;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V17",
+  "what": "NEW (hunting my own scan-set): park the alias in a *.test.ts file, which isScannableSource deliberately excludes and EXPECTED_SOURCE_FILES does not count, then import it into the real sink",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/helper.test.ts",
+    "content": "export { unsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';\n"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { rawHtml } from './helper.test.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V18",
+  "what": "NEW (hunting R6): dynamic import with a TEMPLATE-LITERAL specifier, which R6's quote class does not match, pulling the alias out of an unscanned test file",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/helper.test.ts",
+    "content": "export { unsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';\n"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "@customElement('ft-inspector-comments')",
+    "replace": "const mod = await import(`./helper.test.js`);\nconst rawHtml = mod.rawHtml;\n\n@customElement('ft-inspector-comments')"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V19",
+  "what": "NEW (hunting R7): put the unicode escape INSIDE a second import statement, where stripImportStatements removes it before R7 looks, while the audited unaliased import stays intact for R2",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V20",
+  "what": "NEW: ADDITIVE aliased import - the audited unaliased import stays, so R2 passes, and the alias rides in a second import statement that R4 never sees (imports are stripped)",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { unsafeHTML as rawHtml } from 'lit-html/directives/unsafe-html.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${rawHtml(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V21",
+  "what": "NEW: namespace import of the directive module, reached as a property",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';",
+    "replace": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport * as D from 'lit/directives/unsafe-html.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown(c.body))}<span>${D.unsafeHTML(c.body)}</span>"
+   }
+  ]
+ },
+ {
+  "id": "V22",
+  "what": "NEW: sanitizer imported unaliased (R2 satisfied) but a SECOND aliased sanitizer import provides an identity function used at the sink",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { formatTimestamp as renderMarkdown2 } from '../../util/format.js';"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "replace": "${unsafeHTML(renderMarkdown2(c.body))}"
+   }
+  ]
+ },
+ {
+  "id": "V23",
+  "what": "EM's vector: subvert DOMPurify's shared singleton config from inside the sink file, leaving the binding and the sink byte-identical",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport DOMPurify from 'dompurify';\nDOMPurify.addHook('uponSanitizeElement', (_node, data) => {\n  (data as unknown as { allowedTags: Record<string, boolean>; tagName: string }).allowedTags[(data as unknown as { tagName: string }).tagName] = true;\n});\nDOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {\n  data.forceKeepAttr = true;\n});"
+   }
+  ]
+ },
+ {
+  "id": "V24",
+  "what": "MY HUNT (new axis, import-graph route): park the dompurify re-export in an UNSCANNED *.test.ts file, so no scanned file ever names the specifier R8 matches on",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/purify-shim.test.ts",
+    "content": "export { default as P } from 'dompurify';\n"
+   },
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from '../../util/markdown.js';\nimport { P } from './purify-shim.test.js';\nP.addHook('uponSanitizeAttribute', (_n, d) => { d.forceKeepAttr = true; });"
+   }
+  ]
+ },
+ {
+  "id": "V24b",
+  "what": "MY HUNT: same route but from a NON-sink scanned component, where R6 (relative imports must resolve into the scanned set) does not apply at all",
+  "steps": [
+   {
+    "create": "web/src/components/inspector/purify-shim.test.ts",
+    "content": "export { default as P } from 'dompurify';\n"
+   },
+   {
+    "file": "web/src/components/inspector/inspector-shared-styles.ts",
+    "anchor": "import { css } from 'lit';",
+    "replace": "import { css } from 'lit';\nimport { P } from './purify-shim.test.js';\nP.addHook('uponSanitizeAttribute', (_n, d) => { d.forceKeepAttr = true; });"
+   }
+  ]
+ },
+ {
+  "id": "V25",
+  "what": "MY HUNT (new axis, no import at all): mutate the global DOM prototypes the sanitizer relies on. Verified at runtime to render <img onerror> and <script> raw.",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "import { renderMarkdown } from '../../util/markdown.js';",
+    "replace": "import { renderMarkdown } from '../../util/markdown.js';\nconst origRemoveAttribute = Element.prototype.removeAttribute;\nElement.prototype.removeAttribute = function (name: string): void {\n  if (String(name).startsWith('on')) return;\n  origRemoveAttribute.call(this, name);\n};\nconst origRemoveChild = Node.prototype.removeChild;\nNode.prototype.removeChild = function <T extends Node>(child: T): T {\n  if (child && child.nodeName === 'SCRIPT') return child;\n  return origRemoveChild.call(this, child) as T;\n};"
+   }
+  ]
+ }
+]

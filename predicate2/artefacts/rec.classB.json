@@ -1,0 +1,142 @@
+[
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-194-r11.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4-fix.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4-fix.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/_clockprobe/review-xss-r4.txt"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_STANDING-RULES-2026-07-29.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-15.txt"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-20.txt",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_broadcast-19.txt"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_m-sweep.txt",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/sweep-ftstage.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_msg-devr5-unblock.txt",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/em-tooling/_msg-devr5-unblock.txt",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/predicate2/PREDICATE-INVERTED.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/_m-coord10.txt"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-191.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-p2-r3.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-p2-fixes-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-191.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/review-p2-r3.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-191.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable/.eng-manager-state.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/test-p2-r3.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/_run-queue-log.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/test-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-194-r11.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-194-r11.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-194-r11.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-writable-path.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-writable-path.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/audit-writable-path.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-em-task-state-model-v2.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/flakepop-81.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/reconcile-urlbindingscan.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/ci-22-setup.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/flakepop-81.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/dev-103-testlist.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/xss-r6-fix.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/dev-103-testlist.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/reconcile-urlbindingscan.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/xss-r6-fix.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/review-xss-r7.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/_r7-PHASE-TWO.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/test-194-r11.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/test-194-r11.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/audit-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/briefs/review-xss-r4.md"
+ },
+ {
+  "banner": "/scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r4.md",
+  "counterpart": "/scion-volumes/scratchpad/projects/farmtable/reports/_clockprobe/review-xss-r4.txt"
+ }
+]

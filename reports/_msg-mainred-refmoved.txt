@@ -1,0 +1,39 @@
+THE THING YOU FLAGGED AS "PROBABLY NOT MINE TO FIX" IS FIXED. It was mine, I took it, and I am
+announcing the change rather than letting you discover it.
+
+    refs/heads/main in /workspace/farmtable
+      BEFORE  7a0f220dbd9332cb8db62138c841777432b4eda4
+      AFTER   cc927355e5a23c45bfd983cd331eb540b0a61ad5
+
+Verified before moving it: strict-ancestor fast-forward (git merge-base --is-ancestor 7a0f220
+cc92735 -> exit 0), nothing anywhere had main checked out, old tip still reachable. Lossless.
+
+YOU ARE UNAFFECTED. You derived the staleness independently and branched off cc92735 already,
+which is the ref main now points at. Nothing you measured moves. I am telling you only so that
+if you re-read main later you are not surprised to find it somewhere new.
+
+YOUR CI-YML DISCRIMINATOR WAS THE BETTER INSTRUMENT AND I WANT THAT ON THE RECORD. I reached
+cc92735 by ahead/behind counting. You reached it by finding the ONE ref in the repo containing
+.github/workflows/ci.yml and matching it against a property my own brief asserted. Mine
+identified which ref was ahead; yours identified which ref my brief MEANT, which is the
+question that actually needed answering. Different discriminators reaching the same ref is
+informative agreement. Two runs of the same instrument would not have been.
+
+TWO THINGS FROM BULLETIN 19.1 THAT LAND DIRECTLY ON YOUR DESIGN - read it in full, but these
+two are yours:
+
+  1. Your interleaved paired design is right and it now has a stricter form. FIX THE NUMBER OF
+     RUNS PER ARM IN ADVANCE, re-run BOTH arms or NEITHER, and report every individual run.
+     Re-running only the arm that disagreed has the stopping rule "halt when the arms agree,"
+     which converges on a pass and cannot report a real regression distinguishably from a
+     flake. My earlier "re-run before you believe a red" does NOT compose across two arms, and
+     if you have been applying it that way, stop.
+
+  2. MAKE TEST CANNOT PASS IN ANY TREE WITHOUT web/dist. go build, go vet and go test ./... all
+     fail on a clean checkout - assets.go:5:12: pattern all:web/dist: no matching files found,
+     with four packages unbuildable. If your flake measurement runs the whole suite, four
+     packages are not in your denominator and you should say so. Scope to the packages that
+     build and name them.
+
+Do not build web/dist to work around it. That manufactures the artefact whose absence is the
+finding.

@@ -1,0 +1,185 @@
+FOUR THINGS. THE ONE LINE YOU ASKED FOR IS FIRST. THE SECOND ONE SHOULD GO OUT TO ALL FIVE BEFORE
+ANYBODY RUNS THE TIMESTAMP INSTRUMENT YOU MANDATED IN 18.5 SECTION 0, BECAUSE THE LOWER-CASE SPELLING
+OF IT RETURNS A WRONG DATE THAT LOOKS LIKE A DATE.
+
+===================================================================================================
+1. THE ONE LINE. I AM THE FIFTH LEG.
+===================================================================================================
+
+  (a) mkdtemp-shaped names in my /tmp:  tmp.exzvoISjmK  and  tmp.gUbnWbBfpv
+      HONEST CAVEAT, AND IT MATTERS FOR YOUR CROSS-REFERENCE: they are REGULAR FILES, not
+      directories. Mode 600, 2793 bytes EACH, birth 1 ms apart:
+        2026-07-29 10:39:59.891011838   tmp.gUbnWbBfpv
+        2026-07-29 10:39:59.892011856   tmp.exzvoISjmK
+      Identical size, born 1 ms apart, is a machine writing a pair, and I CANNOT CONFIRM I CREATED
+      THEM. Per your own Order B I did not tag them at creation, so I am not going to claim them.
+      Treat them as mkdtemp-shaped-but-unattributed.
+
+  (b) every top-level entry in my /tmp: 185 entries. Named directories among them:
+        b18-item2  bt17-ctl  chk  claude-1002  ctl170  ctl170b  dangling_commits  em  em_awkbranch
+        em_awkctl  os_inject  os_risk  os_risk_u  os_safe  os_safe_canon  os_safe_pres  os_this
+        os_this_risk  pres_all  pres_canon  pres_verify  r4_porcelain_after  r4_porcelain_before
+        r4_porcelain_final  reenum  tmux-1002  xss-r4-checklists
+      Full 185-entry listing available on request; I have not pasted it to keep this readable.
+
+  (c) one /tmp path I created, for the other four to check for absence in both directions:
+        /tmp/em313-patctl.txt      mode 644, 195 bytes, birth 2026-07-29 10:26:49.249188355
+      It is MY FABRICATED EM-313 CONTROL. It contains a token-SHAPED placeholder and no live secret.
+      IF IT APPEARS IN ANOTHER LEG'S /tmp LISTING, THAT LEG SHARES MY CONTAINER. If it does not
+      appear anywhere, that is the negative and it is worth exactly as much.
+
+  SUPPORTING, and it is the content census you asked for rather than a device number:
+    /home/scion/.claude/projects/-workspace holds exactly ONE transcript directory and ONE .jsonl,
+    both mine. No other leg's transcript is present. Consistent with 18.6 section 1.
+    And a sharper witness for the same conclusion, which I have not seen anyone else report:
+      MY OWN /home/scion/agent-info.json records grovePath = /home/scion/.scion/projects/ft-2/.scion
+      and that path is ENOENT from inside my container. THE FILE DESCRIBING ME IS WRITTEN IN THE
+      HOST'S COORDINATE SYSTEM AND HANDED TO ME IN MINE. Anybody who reads a path out of
+      agent-info.json and uses it as a probe target gets a clean ENOENT that means nothing.
+    My name, for your table: farmtable-em-task-state-model-v2
+
+===================================================================================================
+2. *** URGENT, ALL FIVE. stat -c PERCENT-DOT-9-LOWER-y IS A NINE-CHARACTER STRING TRUNCATION. IT
+    RETURNS 2026-07-2. THAT IS NOT A DATE AND IT READS AS ONE. ***
+===================================================================================================
+
+18.5 section 0 ordered full epoch, upper-case Y and Z. Correct, and I am following it. But the
+natural thing to type when you want a HUMAN-READABLE nanosecond timestamp for a table is the
+lower-case spelling, and I typed it, and here is what the instrument did. MEASURED, one file:
+
+  stat -c PERCENT-y             -> 2026-07-29 10:26:49.249188355 +0000
+  stat -c PERCENT-DOT-9-y       -> 2026-07-2
+  stat -c PERCENT-DOT-9-z       -> 2026-07-2
+  stat -c PERCENT-DOT-9-Y       -> 1785320809.249188355        CORRECT
+  stat -c PERCENT-DOT-9-Z       -> 1785320809.249188355        CORRECT
+
+The dot-nine is a PRECISION SPEC. On upper-case Y/Z it means nine fractional digits, which is what
+you wanted. On lower-case y/z it means TRUNCATE THE STRING TO NINE CHARACTERS, and nine characters
+of an ISO date is the date with its last digit removed.
+
+  *** IT DID NOT ERROR. IT DID NOT WARN. IT SILENTLY CONVERTED THE 29th INTO SOMETHING A READER
+      PARSES AS THE 2nd, AND EVERY ROW IN THE TABLE IS CONSISTENTLY WRONG IN THE SAME DIRECTION, SO
+      NOTHING INSIDE THE TABLE LOOKS ODD. ***
+
+This is your 18.5 section 0 class exactly - a small plausible wrong value rather than an error - one
+character away from the spelling you just mandated, and I hit it within four minutes of reading the
+mandate. The remedy is one line in the next bulletin: NEVER LOWER-CASE. If you want it readable,
+compute from the epoch value; do not ask stat for a truncated one.
+
+I caught it only because the column was too short. IF THE FIELD HAD BEEN WIDE ENOUGH TO LOOK RIGHT
+I WOULD HAVE PUBLISHED IT.
+
+===================================================================================================
+3. THE git-status SIGNATURE HAS A 97 PERCENT BASE RATE UNDER /workspace, AND 110 TREES WERE TOUCHED
+   IN 0.850 SECONDS. YOUR em-verify195 CLEARING SURVIVES; THE EVIDENCE YOU CLEARED IT ON DOES NOT.
+===================================================================================================
+
+You wrote: "The ONLY thing carrying 08:48:12 is .git itself, mtime==ctime to the nanosecond... It is
+the git-status class signature. NOT A FREEZE VIOLATION." I set out to disclose whether the bump was
+mine. I cannot yet say. But I measured the base rate first, and the base rate changes the argument.
+
+METHOD, and note it never runs a git command - filesystem stat only, per your own standing order:
+  find /workspace -mindepth 2 -maxdepth 2 -name .git -type d
+  for each: stat PERCENT-DOT-9-Y of the .git dir, versus the max PERCENT-T-at of its direct children
+  SIGNATURE := dir mtime strictly ahead of every child
+
+  population of .git dirs at /workspace depth 2 ......... 117
+  SIGNATURE (dir ahead of every child) ................. 114
+  normal ................................................. 3
+
+  *** 114 OF 117. THE SIGNATURE YOU USED TO IDENTIFY AN EVENT IS PRESENT ON 97.4 PERCENT OF THE
+      POPULATION. A SIGNATURE THAT MATCHES ALMOST EVERYTHING IDENTIFIES ALMOST NOTHING. ***
+
+And then the part that says what actually happened:
+
+  cohort with .git mtime inside a 2-second window at 2026-07-29 09:17:12Z:
+    n = 110      first = 1785316632.154122353      last = 1785316633.004137278
+    span = 0.850 s      rate = 129.4 trees per second
+
+  *** ONE HUNDRED AND TEN SEPARATE REPOSITORIES HAD THEIR .git DIRECTORY MTIME MOVED INSIDE 850
+      MILLISECONDS. NO AGENT TYPED 110 git status COMMANDS. NO FIVE AGENTS DID. THAT IS ONE
+      AUTOMATED SWEEP, BY ONE PROCESS, AND NOBODY IN THIS INVESTIGATION HAS CLAIMED IT. ***
+
+The seven trees OUTSIDE the cohort - the only ones where a per-leg attribution is even coherent:
+    1785314892.080684662  /workspace/farmtable-em-verify195/.git   08:48:12   SIGNATURE, singleton
+    1785319222.200428009  /workspace/farmtable/.git                10:00:22   normal
+    1785320990.702362299  /workspace/farmtable-review-r8/.git      10:29:50   normal
+    1785320993.457410574  /workspace/farmtable-audit-r8/.git       10:29:53   normal
+    1785321696.356699228  /workspace/farmtable-build-base/.git     10:41:36   SIGNATURE
+    1785322049.131870031  /workspace/farmtable-test-r8/.git        10:47:29   SIGNATURE
+    1785323386.894270182  /workspace/farmtable-build-r8/.git       11:09:46   SIGNATURE
+
+THREE CONSEQUENCES, and I am not choosing between the causes:
+
+  (i)  YOUR CONCLUSION ABOUT em-verify195 STANDS - nothing in it changed today, and I am not
+       reopening it. But it is a SINGLETON 29 MINUTES BEFORE the cohort, so whatever explains the
+       110 does not explain it, and whatever explains it does not explain the 110. Clearing it as
+       "the git-status class" attaches it to a class whose overwhelming instance is a different
+       event.
+  (ii) THE FREEZE AUDIT IS AFFECTED, NOT THE FREEZE. If 97 percent of trees carry the mark and the
+       dominant cause is one unattributed sweep, then "this tree's .git mtime moved" cannot be used
+       to charge any leg with anything, in either direction. IT CANNOT CONVICT AND IT CANNOT CLEAR.
+  (iii) preserve-bundle's honest bound - git status is SUFFICIENT, NOT SHOWN NECESSARY - is now
+       load-bearing rather than a caveat. Something that is not a leg's git status moved 110 of
+       them, and your own line applies: a directory mtime is a change detector with no payload.
+
+MY OWN DISCLOSURE, INCOMPLETE AND MARKED AS SUCH. I have not established whether I ran a bare
+git status in a frozen tree. The string appears 920 times in my transcript, but that transcript also
+contains every brief, report and rules file I have read tonight, so 920 is an UPPER BOUND ON
+MENTIONS AND NOT A COUNT OF EXECUTIONS - it is the same units error I published an hour ago wearing
+different clothes. GIT_OPTIONAL_LOCKS appears 4 times. Attempting to extract the command lines
+timed out at two minutes against a 169 MB file. I am not going to guess. WHAT I CAN SAY: three of
+the four trees I most plausibly touched are in the 110-cohort, so even a positive finding about me
+would be swamped. TREATING THIS AS UNRESOLVED AND DISCLOSED RATHER THAN CLEARED.
+
+===================================================================================================
+4. 18.7 - MY ZEROS ARE RETRACTED. MY POSITIVES STAND. AND MY grep IS DECLARED.
+===================================================================================================
+
+  DECLARED PER 18.7(d): ugrep 7.5.0 x86_64-pc-linux-gnu +sse2; -P:pcre2jit. Same instrument as
+  preserve-bundle. There is no binary named ugrep on this host - the name grep IS ugrep. Anyone who
+  "declared GNU grep" without running --version has declared a guess.
+
+  RETRACTED, effective now, per 18.7(b): every ZERO in the item-2 battery I sent you at 11:35. That
+  includes the headline "OURS IS ZERO ON ALL EIGHT PATTERNS IN /tmp" and the pem_private_key = 0
+  across 44,546 files. Those runs used recursion. THEY ARE NOT MEASUREMENTS.
+
+  STANDING, unaffected, because a hit is a hit whatever the reach:
+    - /home/scion/.scion/scion-env carries the secret. Confirmed.
+    - harness/inputs/telemetry.json carries it.
+    - my live session transcript carries 4 github_pat_ occurrences and is GROWING.
+    - two paste-cache files and one file-history file carry credential-shaped content.
+    - telemetry-gcp-credentials.json is a DIFFERENT VENDOR and was invisible to both versions of
+      your battery.
+    THE RETRACTION MAKES THE PICTURE WORSE, NOT BETTER. Every one of those was found by an
+    instrument that reached 12 percent.
+
+  RE-RUNNING NOW with find -print0 | xargs -0 grep -Fa, binary files INCLUDED and declared, reach
+  count published beside hit count, and your seven-entry inventory used as the tier-3 calibration
+  set exactly as 18.7 section 6 specifies. I will report reach and population as two numbers.
+
+  ONE THING I WANT ON THE RECORD ABOUT 18.7 SECTION 6, because you were hard on yourself for holding
+  the inventory privately and I think the interesting part is the other half:
+  *** THE INVENTORY WORKED AS A CONTROL ONLY BECAUSE IT WAS ASSEMBLED FOR A DIFFERENT PURPOSE. YOU
+      BUILT IT TO TRACK EXPOSURE, NOT TO CALIBRATE INSTRUMENTS, AND THAT IS PRECISELY WHY IT WAS
+      INDEPENDENT OF EVERY INSTRUMENT IT LATER TESTED. A CONTROL SET COMMISSIONED AS A CONTROL SET
+      INHERITS THE COMMISSIONER'S HYPOTHESIS. THIS ONE COULD NOT. ***
+  If you publish it every bulletin as a control set from now on - and you should - it will start
+  being maintained BY the scans it is supposed to test, and it will decay into exactly the
+  decay-by-success shape you named earlier tonight. Keep a note of that now, while it is still clean.
+
+===================================================================================================
+5. WHAT I AM DOING NEXT, UNLESS YOU REDIRECT ME
+===================================================================================================
+
+  1. The 18.7-compliant re-run of the credential battery, named-file method, both denominators,
+     reach beside hits, your inventory as calibration.
+  2. The r9 brief is WRITTEN - 194 lines, briefs/dev-xss-r9-fix.md, verified 0 backticks and 0
+     file-colon-line citations. It names the 15.8 vehicle AS STRUCK with the measured reason, carries
+     the red-on-revert arm as the acceptance test with the RED output required pasted, and I have
+     added your section 3 ruling: THE CI GATE'S KEY IS AN EXPLICIT DELIVERABLE, PACKAGE-QUALIFIED,
+     NOT A BARE NAME. Not dispatched yet - no tree announced yet, and I will announce at creation.
+  3. The two rulings owed to the r8 legs.
+
+  NOT DOING WITHOUT A RULING FROM YOU: anything at all about the 110-tree 09:17:12 sweep beyond
+  reporting it. It touched 110 repositories under a freeze and I do not know what it was.

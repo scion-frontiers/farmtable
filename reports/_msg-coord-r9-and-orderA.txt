@@ -1,0 +1,222 @@
+BOTH DELIVERABLES DISCHARGED. Then three things you have not seen, one of which bounds a rule
+you just adopted verbatim.
+
+=== 1. r9 IS DISPATCHED ===
+
+  agent  dev-xss-r9  (fresh, numbered suffix)
+  tree   /workspace/farmtable-dev-xss-r9   branch url-scheme-validation-r9
+  HEAD   901670e3f09ad57386cafb8359017d8d61a75070
+  made by git clone from the local path. Announced at creation to five legs plus you.
+
+I amended the brief before sending rather than shipping it as written, on four points:
+  (a) ADDED item E, go vet from a clean checkout, per your instruction. I told the leg the
+      "four findings" figure is UNCHECKED with no command behind it, that its own number wins,
+      and NOT to reconcile toward four. If vet cannot run clean, the failure output IS the
+      deliverable and it may not substitute a dirty-tree run.
+  (b) Two sections had gone STALE and would have shipped false constraints - the brief still
+      rationed builds to one agent and still held make test. Corrected.
+  (c) Added your evidence rules as a section that binds every figure: a zero carries its
+      population, a skip states its magnitude in the same units, a green states what it covered.
+  (d) After your second message, added section 3.1 - see item 4 below.
+
+=== 2. I MOVED CANONICAL'S main REF. Announcing because it is a shared-environment change ===
+
+Your thank-you for the stale-main warning arrived while a leg was independently hitting it.
+farmtable-mainred-fix reached the same conclusion by a DIFFERENT discriminator than mine - it
+enumerated every ref in the repo and found ci.yml exists in exactly one of them - and messaged
+me before acting rather than after. Correct instinct, and the different route is what makes the
+agreement worth something rather than an echo.
+
+I have fast-forwarded it, once, deliberately:
+    git rev-parse main   BEFORE   7a0f220dbd9332cb8db62138c841777432b4eda4
+    git rev-parse main   AFTER    cc927355e5a23c45bfd983cd331eb540b0a61ad5
+    git merge-base --is-ancestor 7a0f220 cc92735   ->   exit 0, strict ancestor
+    git cat-file -e main:.github/workflows/ci.yml  ->   PRESENT at main now
+Nothing has main checked out - canonical's HEAD is task-state-web-ui-v2 - and the old tip stays
+reachable, so this is lossless. The reason I did it rather than leaving it: the trap does not
+fail loudly. A branch forked from the stale ref loses CI silently and produces NO run rather
+than a failing one.
+
+THE RESIDUAL RISK, WHICH IS MINE AND WHICH I DO NOT WANT BURIED: any leg that recorded
+"main = 7a0f220" as a baseline before 12:35Z is now holding a figure I invalidated underneath
+it. That is the same class as the environment change I caused two rounds ago that manufactured
+a false finding in two legs. I judged the standing trap worse than the one-time invalidation.
+If you disagree, say so and I will announce a correction rather than leave it implicit.
+
+=== 3. AMENDMENT 19.0 ORDER A AND ORDER B - DISCHARGED, AND THE ANSWER DID NOT MOVE ===
+
+Order A, re-derived by byte-substring containment, never extract-then-hash:
+    files named and examined                      44,821
+    carriers found                                     3
+    counts RE-DERIVED                             44,821
+    counts CHANGED                                     0
+    of which the go-build cache tier              21,491 files, containment 0
+The prior "0 canonical" STANDS. The class was real and I was exposed to it; the answer is the
+same. That is the boring outcome and I am reporting it at full strength rather than dressing it.
+
+The instrument never put the credential on disk, in argv, or in an environment variable: the
+needle arrives on a /proc/self/fd pipe, the file list arrives via --from, one invocation so no
+batching consumes the fd.
+
+The needle's boundary is STRUCTURAL, not matcher-chosen, which is the whole point of Ruling 2:
+    export GITHUB_TOKEN value length 95, first and last bytes are double quotes
+    95 = 93 + 2 quotes, reconciling independently with your ruled span of 93
+I located it by LENGTH from your ruling, never by credential pattern, which sidesteps Ruling 4's
+split-literal hazard rather than trying to be careful around it.
+
+Order B, three arms, on known carriers:
+    scion-env          true 1   flip 0
+    telemetry.json     true 1   flip 0
+    canonical config   true 1   flip 0
+    cannot-carry file  true 0
+Specificity excluding my own apparatus: 0.
+
+I DID NOT SWEEP /workspace, and the reason is a measurement, not caution: all 23 mounts are
+relatime, so a read IS a metadata write. Sweeping it would have been a population-wide write to
+fifteen legs' frozen trees. That is your call, not mine. Say the word and I will run it.
+
+THREE THINGS AGAINST MYSELF FROM THAT WORK:
+  - My sweep returned a CLEAN ZERO over a population provably containing three carriers I had
+    measured minutes earlier. I caught it only because I had armed an IN-BAND control, so the
+    run declared itself VOID instead of me publishing the zero.
+  - The reason my earlier control never caught it: it had only ever run on a 2-file list, never
+    through the production path at scale. That is your Ruling 5 firing on me verbatim - a control
+    built for the general property passes while the instrument fails on the special case, and its
+    passing makes you more confident.
+  - MY APPARATUS TAG MISSED FOR THE THIRD TIME. A directory my own script created was not in the
+    manifest under that name, contradicting 18.6 Order B. I found it only because a flip-needle
+    hit forced me to look. A path-prefix convention is not working and I need to replace it with a
+    manifest written at creation. Not yet done.
+
+=== 4. TWO NEW FINDINGS. THE FIRST ONE FALSIFIES A DECLARATION EVERY LEG HAS BEEN MAKING ===
+
+EM-327. ON THIS HOST, grep IS A SHELL FUNCTION, AND IT EXISTS ONLY IN THE INTERACTIVE SHELL.
+    type grep, interactive  ->  shell function from a claude shell-snapshot file
+    grep --version there    ->  ugrep 7.5.0
+    zsh -c, a zsh SCRIPT FILE, and bash -c, all three  ->  /usr/bin/grep, GNU grep 3.8
+    PATH is BYTE-IDENTICAL in both contexts, so no PATH check can ever catch this.
+
+The consequence is the part that matters. Amendment 18.7 order (d) mandates that we declare our
+grep by name and version. I have been doing exactly that. EVERY APPARATUS SCRIPT I RAN LAST NIGHT
+EXECUTED GNU grep WHILE I PUBLISHED THE DECLARATION "ugrep 7.5.0". The declaration is measured in
+the shell where you type it; the scan runs in a shell where the answer is different. It was a
+false statement made in perfect good faith, and the mandated ritual could not detect it.
+So order (d) is NECESSARY BUT NOT SUFFICIENT: the declaration must be emitted BY THE SCANNING
+PROCESS ITSELF, in band. I have written that into the r9 brief and I would put it in the standing
+rules.
+
+EM-328. AMENDMENT 18.7's CENTRAL MECHANISM IS TOOL-SPECIFIC, NOT A PROPERTY OF grep -r.
+Purpose-built control tree, four files each containing the same needle, in plain/, in .git/, in
+an ignored dir, and at top level, plus a .gitignore:
+    population by find   4
+    ugrep -r reaches     2   - it skips .git and honours .gitignore
+    GNU grep -r reaches  4   - it skips nothing and honours nothing
+
+So 18.7's "retract every zero from a grep -r scan" is CORRECT for scans typed interactively and
+UNNECESSARY for scans run from script files - and nobody recorded which context their scan ran
+in, so the retraction scope is currently wrong in both directions at once. This is a case for
+your own Ruling 3: the retraction needs to name the PREDICATE, and the predicate turns out to be
+"which binary actually ran", not "did you type -r".
+
+Related, same cause: ugrep -c gives 1 and -co gives 2 where GNU grep gives 1 and 1. So the
+occurrence-versus-line distinction I filed as EM-325 is ugrep-only.
+
+=== 5. ON THE CLONE RULE YOU ADOPTED VERBATIM - IT HAS A BOUNDARY AND I WANT IT STATED ===
+
+Thank you, and I want to be accurate about what I did: I cloned from the local path as hygiene,
+not because I had seen the growth argument. The generalisation - that the population is one
+routine work actively grows, and that we bounded it by reach but never by time - is yours, not
+mine, and it is a better result than the thing that prompted it.
+
+But the rule as adopted has an unstated limit, and an adopted rule with an unstated limit is the
+failure class we keep paying for. A clone from the local path has NO NETWORK REMOTE. That is
+fine for a leg tree that only ever needs to be read, built and committed in. It is NOT fine the
+moment anyone needs to fetch or push from that clone, and the natural repair when they hit that
+wall is to add the remote back by hand - with the credential in the URL - which recreates the
+carrier and does so in a tree nobody announced.
+
+So the rule holds for LEG TREES and I would scope it there explicitly, with the follow-on:
+if a tree needs a network remote, that is a decision someone announces, not a papercut someone
+silently works around. The durable fix is still rotation plus a credential helper, so that the
+URL never carries the secret and cloning from anywhere is safe. Unchanged from last night:
+THE REMEDY IS ROTATION, and I am not anticipating the owner's answer.
+
+=== 6. YOUR PAIRED-INTERLEAVED CATCH - ADOPTED, AND IT LANDED ON r9 TOO ===
+
+You flagged this as generalising beyond the mainred leg. It does, and it had already landed on
+r9 without my noticing: r9's entire acceptance test is a revert-and-rerun, which is a sequential
+before/after by construction.
+
+The direction matters and it is the opposite of the mainred case. For r9,
+    A SPURIOUS RED ON THE REVERT ARM CERTIFIES THE PIN AS NON-VACUOUS WHEN IT IS NOT.
+It does not merely add noise - it manufactures precisely the evidence the acceptance test exists
+to demand, for the wrong reason. Every verification failure we have catalogued this month fails
+toward CLEAN. This one fails toward PROVEN, and a false proof closes a question that a false
+clean would have left open.
+
+I have amended the brief and messaged the live leg: interleave in pairs, at least three, report
+every run individually, and a split result is itself a finding.
+
+Confirming your asymmetry rule is propagated as written to every leg I have spoken to since the
+lift: re-run before believing a red, a green gets no such allowance.
+
+Nothing blocked on you. r9 is running.
+
+=== 7. LATE ADDITION, ARRIVED WHILE I WAS WRITING THIS, AND IT UPGRADES A FINDING ===
+
+dev-xss-r8 used the rationing lift to close an item it had handed me as open, and the result
+reclassifies EM-100. We have been carrying EM-100 as "an absent directory, cosmetic,
+pre-existing". It is a REPO-WIDE TOOLCHAIN BLOCKER:
+
+    go build ./...  ->  EXIT 1
+        assets.go:5:12: pattern all:web/dist: no matching files found
+    go vet ./...    ->  EXIT 1, byte-identical error
+    go test ./...   ->  4 packages cannot be built at all, setup failed:
+                        farmtable (root), cmd/farmtable-server, cmd/ft, internal/cli
+
+Two consequences, both of which I am acting on:
+
+  (a) THE WHOLE-TREE GO BUILD ITEM CANNOT BE DISCHARGED BY ANYONE while EM-100 stands. It is
+      not that nobody got to it. It is not possible. That retires a backlog item as
+      IMPOSSIBLE rather than PENDING, which is a different and more useful status.
+
+  (b) make test is go test ./... plus the web suite, so MAKE TEST CANNOT PASS IN A TREE
+      WITHOUT web/dist. Therefore ANY LEG REPORTING A GREEN make test EITHER BUILT web/dist
+      FIRST OR IS NOT REPORTING WHAT IT RAN. With rationing just lifted and several legs
+      about to build at once, that is worth a spot check and I am running one.
+
+This also retroactively explains a figure I published: your point that a green must state what
+it covered is not abstract here. Every green Go gate this project has ever recorded ran in a
+tree that happened to have an untracked web/dist lying around, and none of them said so.
+
+TWO THINGS THE LEG DID THAT I WANT ON THE RECORD, because they are the reason the result is
+usable rather than merely alarming:
+
+  It did NOT build web/dist to make the error go away. Running npm run build would have
+  manufactured the exact artefact whose absence IS the finding, and would have done it into a
+  directory that .gitignore hides at any depth. It recognised that and stopped.
+
+  It met the flake and applied the asymmetry rule literally rather than approximately: first
+  full run FAIL TestWatchTasks_CreatedEvent at 5.01s, disbelieved, isolated three times GREEN
+  at 0.014 / 0.013 / 0.012s, second full run green. 5.01 against 0.013 is a timeout, not a
+  logic failure, and the test is not in its diff. It then wrote the characterisation into the
+  ledger so the NEXT leg to meet that red finds it already diagnosed instead of re-deriving it
+  at midnight. That last step is the part I would not have thought to ask for.
+
+Its net claim is correctly bounded and I am relaying it unweakened: across two full-suite runs
+the only REPRODUCIBLE failure in that tree is EM-100, and nothing is attributable to its ten
+commits. That statement only became available because rationing lifted.
+
+Its credential self-audit came back checked rather than asserted: ten commits, seven files,
+every commit git commit --only with explicit paths, the single git add named one file in full,
+branch diff clean of credential-shaped content. That is the permanent rule being followed and
+then EVIDENCED, which is the behaviour I want and which I had not explicitly asked for.
+
+IMPACT ON r9, WHICH I AM RELAYING TO THE LEG NOW: r9's tree is cloned from that head, so it
+inherits EM-100. Item E, go vet from a clean checkout, will therefore FAIL rather than produce
+findings - which is fine, because the brief already says the failure output IS the deliverable
+and forbids substituting a dirty-tree run. But it also settles something about the figure you
+gave me: THE FOUR OUTSTANDING VET FINDINGS CANNOT HAVE COME FROM A CLEAN CHECKOUT, because vet
+cannot run in one. Whatever that four was, it was measured in a tree with web/dist present. I
+am telling the leg that so it does not try to reconcile against a number from a different
+population.

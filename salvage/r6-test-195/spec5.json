@@ -1,0 +1,17 @@
+[
+ {"label":"E1 EVISCERATE one check body (call site kept, assertions removed)","edits":[{"file":"web/src/util/markdown.test.ts","find":"  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');\n    assertNotContains(out, 'slot', 'slot attribute survived');\n    assertContains(out, 'x', 'element content should be preserved');\n  });","replace":"  check('slot attribute stripped (no projection into the host UI)', () => {\n    // assertions removed\n  });"}]},
+ {"label":"E1b EVISCERATE that check AND revert slot from FORBID_ATTR","edits":[
+   {"file":"web/src/util/markdown.test.ts","find":"  check('slot attribute stripped (no projection into the host UI)', () => {\n    const out = renderMarkdown('<div slot=\"footer\">x</div>');\n    assertNotContains(out, 'slot', 'slot attribute survived');\n    assertContains(out, 'x', 'element content should be preserved');\n  });","replace":"  check('slot attribute stripped (no projection into the host UI)', () => {\n    // assertions removed\n  });"},
+   {"file":"web/src/util/markdown.ts","find":"const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download', 'slot'];","replace":"const FORBID_ATTR = ['style', 'class', 'formaction', 'action', 'download'];"}
+ ]},
+ {"label":"E2 EMPTY SINK_BINDINGS","edits":[{"file":"web/src/util/markdown.test.ts","find":"const SINK_BINDINGS = [\n  { name: 'unsafeHTML',","replace":"const SINK_BINDINGS: { name: string; from: string; label: string }[] = [];\nconst _UNUSED_SB = [\n  { name: 'unsafeHTML',"}]},
+ {"label":"E3 EMPTY RAW_DIRECTIVES","edits":[{"file":"web/src/util/markdown.test.ts","find":"const RAW_DIRECTIVES = [\n  { name: 'unsafeHTML',","replace":"const RAW_DIRECTIVES: { name: string; module: string }[] = [];\nconst _UNUSED_RD = [\n  { name: 'unsafeHTML',"}]},
+ {"label":"E4 EMPTY SANITIZER_DEPENDENCIES","edits":[{"file":"web/src/util/markdown.test.ts","find":"const SANITIZER_DEPENDENCIES = ['dompurify', 'marked'];","replace":"const SANITIZER_DEPENDENCIES: string[] = [];"}]},
+ {"label":"E5 add '.ts' to INERT_EXTENSIONS (stop scanning the tree)","edits":[{"file":"web/src/util/markdown.test.ts","find":"const INERT_EXTENSIONS = [\n  '.css',","replace":"const INERT_EXTENSIONS = [\n  '.ts',\n  '.css',"}]},
+ {"label":"E6 EMPTY LEGITIMATE_SOURCE (false-positive control table)","edits":[{"file":"web/src/util/markdown.test.ts","find":"  const LEGITIMATE_SOURCE = [\n    \"import { html } from 'lit/static-html.js';\",","replace":"  const LEGITIMATE_SOURCE: string[] = [];\n  const _UNUSED_LS = [\n    \"import { html } from 'lit/static-html.js';\","}]},
+ {"label":"E7 EMPTY INERT_PROSE (false-positive control table)","edits":[{"file":"web/src/util/markdown.test.ts","find":"  const INERT_PROSE = [\n    '// SECURITY: never import unsafeHTML as something else - it defeats the scan.',","replace":"  const INERT_PROSE: string[] = [];\n  const _UNUSED_IP = [\n    '// SECURITY: never import unsafeHTML as something else - it defeats the scan.',"}]},
+ {"label":"E8 markdown.ts uses the SHARED marked singleton instead of the private instance","tsc":true,"edits":[
+   {"file":"web/src/util/markdown.ts","find":"import { Marked, type Tokens } from 'marked';","replace":"import { marked, type Tokens } from 'marked';"},
+   {"file":"web/src/util/markdown.ts","find":"const parser = new Marked({\n  renderer: {","replace":"const parser = marked.use({\n  renderer: {"}
+ ]}
+]

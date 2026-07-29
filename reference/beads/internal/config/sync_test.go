@@ -1,0 +1,190 @@
+package config
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
+
+func TestGetSovereignty(t *testing.T) {
+	tests := []struct {
+		name           string
+		configValue    string
+		expectedTier   Sovereignty
+		expectsWarning bool
+	}{
+		{
+			name:           "empty returns no restriction",
+			configValue:    "",
+			expectedTier:   SovereigntyNone,
+			expectsWarning: false,
+		},
+		{
+			name:           "T1 is valid",
+			configValue:    "T1",
+			expectedTier:   SovereigntyT1,
+			expectsWarning: false,
+		},
+		{
+			name:           "T2 is valid",
+			configValue:    "T2",
+			expectedTier:   SovereigntyT2,
+			expectsWarning: false,
+		},
+		{
+			name:           "T3 is valid",
+			configValue:    "T3",
+			expectedTier:   SovereigntyT3,
+			expectsWarning: false,
+		},
+		{
+			name:           "T4 is valid",
+			configValue:    "T4",
+			expectedTier:   SovereigntyT4,
+			expectsWarning: false,
+		},
+		{
+			name:           "lowercase is normalized",
+			configValue:    "t1",
+			expectedTier:   SovereigntyT1,
+			expectsWarning: false,
+		},
+		{
+			name:           "whitespace is trimmed",
+			configValue:    "  T2  ",
+			expectedTier:   SovereigntyT2,
+			expectsWarning: false,
+		},
+		{
+			name:           "invalid value returns T1 with warning",
+			configValue:    "T5",
+			expectedTier:   SovereigntyT1,
+			expectsWarning: true,
+		},
+		{
+			name:           "invalid tier 0 returns T1 with warning",
+			configValue:    "T0",
+			expectedTier:   SovereigntyT1,
+			expectsWarning: true,
+		},
+		{
+			name:           "word tier returns T1 with warning",
+			configValue:    "public",
+			expectedTier:   SovereigntyT1,
+			expectsWarning: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset viper for test
+			ResetForTesting()
+			if err := Initialize(); err != nil {
+				t.Fatalf("Initialize failed: %v", err)
+			}
+
+			// Set the config value
+			if tt.configValue != "" {
+				Set("federation.sovereignty", tt.configValue)
+			}
+
+			// Capture warnings using ConfigWarningWriter
+			var buf bytes.Buffer
+			oldWriter := ConfigWarningWriter
+			ConfigWarningWriter = &buf
+			defer func() { ConfigWarningWriter = oldWriter }()
+
+			result := GetSovereignty()
+
+			stderrOutput := buf.String()
+
+			if result != tt.expectedTier {
+				t.Errorf("GetSovereignty() = %q, want %q", result, tt.expectedTier)
+			}
+
+			hasWarning := strings.Contains(stderrOutput, "Warning:")
+			if tt.expectsWarning && !hasWarning {
+				t.Errorf("Expected warning in output, got none. output=%q", stderrOutput)
+			}
+			if !tt.expectsWarning && hasWarning {
+				t.Errorf("Unexpected warning in output: %q", stderrOutput)
+			}
+		})
+	}
+}
+
+func TestConfigWarningsToggle(t *testing.T) {
+	// Test warning toggle using sovereignty (invalid value triggers warning)
+	ResetForTesting()
+	if err := Initialize(); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+
+	Set("federation.sovereignty", "invalid-tier")
+
+	var buf bytes.Buffer
+	oldWriter := ConfigWarningWriter
+	ConfigWarningWriter = &buf
+
+	ConfigWarnings = true
+	_ = GetSovereignty()
+	if !strings.Contains(buf.String(), "Warning:") {
+		t.Error("Expected warning with ConfigWarnings=true, got none")
+	}
+
+	buf.Reset()
+	ConfigWarnings = false
+	_ = GetSovereignty()
+	if strings.Contains(buf.String(), "Warning:") {
+		t.Error("Expected no warning with ConfigWarnings=false, got one")
+	}
+
+	ConfigWarnings = true
+	ConfigWarningWriter = oldWriter
+}
+
+func TestIsValidSovereignty(t *testing.T) {
+	tests := []struct {
+		sovereignty string
+		valid       bool
+	}{
+		{"T1", true},
+		{"T2", true},
+		{"T3", true},
+		{"T4", true},
+		{"t1", true},     // case insensitive
+		{"  T2  ", true}, // whitespace trimmed
+		{"", true},       // empty is valid (no restriction)
+		{"T0", false},
+		{"T5", false},
+		{"public", false},
+	}
+
+	for _, tt := range tests {
+		if got := IsValidSovereignty(tt.sovereignty); got != tt.valid {
+			t.Errorf("IsValidSovereignty(%q) = %v, want %v", tt.sovereignty, got, tt.valid)
+		}
+	}
+}
+
+func TestValidSovereigntyTiers(t *testing.T) {
+	tiers := ValidSovereigntyTiers()
+	if len(tiers) != 4 {
+		t.Errorf("ValidSovereigntyTiers() returned %d tiers, want 4", len(tiers))
+	}
+	expected := []string{"T1", "T2", "T3", "T4"}
+	for i, tier := range tiers {
+		if tier != expected[i] {
+			t.Errorf("ValidSovereigntyTiers()[%d] = %q, want %q", i, tier, expected[i])
+		}
+	}
+}
+
+func TestSovereigntyString(t *testing.T) {
+	if got := SovereigntyT1.String(); got != "T1" {
+		t.Errorf("SovereigntyT1.String() = %q, want %q", got, "T1")
+	}
+	if got := SovereigntyNone.String(); got != "" {
+		t.Errorf("SovereigntyNone.String() = %q, want %q", got, "")
+	}
+}

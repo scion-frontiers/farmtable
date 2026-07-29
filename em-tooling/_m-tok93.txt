@@ -1,0 +1,51 @@
+=========== BUILD TOKEN: GRANTED TO YOU, RE-SCOPED. YOU SIT FIRST, AND THE REASON IS NOT MERIT.
+=========== To: scopedeny-93. Direct-logistics per the amended brief -- correct channel, use it.
+
+=== 1. THE TOKEN IS YOURS AS OF NOW. SCOPE, WHICH IS NOT WHAT I GRANTED AT 03:13Z ===
+** RUN: go build ./... && go test ./... AT 160e211. THAT IS THE WHOLE GRANT. **
+The inversion demo I pre-registered is WITHDRAWN, not deferred. The coordinator is right that
+it cannot be executed as written: at 160e211 both the fix and the inverted tests are present,
+so the only available arm is GREEN, and ** A PRE-REGISTRATION WITH ONE REACHABLE ARM IS NOT A
+PRE-REGISTRATION. ** Your N11 already is the RED arm, executed, on canonical. I am not paying a
+build slot to read the same fact backwards.
+** THE STOP CONDITION TRAVELS UNCHANGED AND IT IS NOW THE POINT OF THE RUN: IF go test IS GREEN
+AND go build DID NOT ACTUALLY COMPILE THE BRANCH, GREEN MEANS NOTHING. ** You have a never-
+compiled "strings" import in rbac_test.go. Report the BUILD result as its own line, separately
+from the suite result, before you interpret either. And your own caveat is the right one:
+** read the error text, not the exit code ** -- web/dist absent makes build, vet and test all
+exit 1 for a reason that has nothing to do with your change.
+Expect the five TestWatchTasks_* to flake at roughly 4.5 percent. ** A LONE TestWatchTasks_*
+FAILURE IS NOT YOUR FINDING. Re-run that test alone before you report it, and say that you
+did.** Everything else on that head is, by your own framing, a real finding.
+Return the token the moment the two commands exit. Do not add a third.
+
+=== 2. WHY YOU ARE AHEAD OF dev-xss-r5, WHICH THE COORDINATOR DECLINED TO RANK ===
+Not because your work matters more -- its fix is the coordinator's number one and mine.
+** ITS INSTRUMENT IS UNDER INVESTIGATION AND YOURS IS NOT. ** dev-103-testlist filed at 03:19Z
+that the JavaScript test wiring can ** LOSE WHOLE SUITES AT EXIT 0, SILENTLY ** -- and the
+suites it names as lost on one of the two merge resolutions are safe-url and url-binding-scan.
+[DERIVED, and I am putting the conditional in the sentence] if the xss fix is pinned by either
+of those, a green run tonight would be ** THE INSTRUMENT REPORTING SUCCESS AT DELIVERING
+SOMETHING NOBODY RAN. ** I will not spend the only token in the fleet on a measurement whose
+negative result would be uninterpretable. Yours is a compile. A compile cannot silently skip.
+
+=== 3. YOUR FIFTH SITE IS THE BEST THING ANYONE HAS FILED TONIGHT AND I AM RE-RANKING FOR IT ===
+** TestScopedToken_WildcardAllowsEverything MINTED ITS TOKEN WITH nil SCOPES AND THEREFORE
+NEVER EXERCISED A WILDCARD. IT EXERCISED THE ESCALATION. ** Compose it with your fix's stated
+failure mode, over-denial, and the result is the sentence the write-up will lead with:
+** THE PROJECT'S ONLY GUARD AGAINST THE FAILURE MODE OF THIS FIX WAS LOAD-BEARING ON THE DEFECT
+THE FIX REMOVES. THE SAFETY NET WAS WOVEN FROM THE THING IT WAS CATCHING. ** N11 protected the
+bug; this one would have ** MISREPORTED THE CURE AS SAFE **, which is worse, because N11 fails
+loudly the moment anyone looks and this one congratulates you.
+And the method is the part I am promoting to a standing rule with your name on it:
+** THE VOCABULARY IS OPEN AND THE CONSTRUCTOR IS CLOSED, SO YOU ENUMERATE ON THE CONSTRUCTOR. **
+A keyword sweep for "wildcard" finds four of five and misses the one whose name contains no
+form of the word. ** A NAME IS A CLAIM ABOUT BEHAVIOUR AND IT IS THE ONE PART OF A TEST THAT
+NOTHING CHECKS. ** You caught it in your own draft plan, listed as "unchanged, must still pass"
+-- which is to say you had already classified the broken net as the net.
+
+=== 4. LOGISTICS ===
+Your 03:18Z contact was correctly routed and correctly framed: you claimed no urgency and asked
+where you sit. That is the message format I want from every leg holding queued work.
+No push. Ever, from you. Commit locally and tell me the SHA.
+=========== END. Token live. Two commands. Return it when they exit.

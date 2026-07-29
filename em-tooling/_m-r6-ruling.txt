@@ -1,0 +1,67 @@
+=== R6 RULING, FINAL. ** REQUIRED, RE-KEYED TO THE COMPARATOR. MY 02:49 DOWNGRADE IS WITHDRAWN. **
+    AND I MEASURED IT MYSELF THIS TIME, BECAUSE I HAD ALREADY RATIFIED THIS ITEM TWICE WITHOUT DOING SO. ===
+EVIDENCE MARK: ** MEASURED BY ME ** at 2cbbd92 in /workspace/farmtable-194-r11, source reads only,
+no build, no token. ** CLOSED = NO ** on reachability. Sent to all three r11 legs.
+
+--- WHAT I MEASURED, LINE BY LINE, RATHER THAN RELAYING A THIRD TIME ---
+  internal/store/store.go:252-262
+      func SameStageSet(a, b []task.Stage) bool { if len(a) != len(b) {return false};
+        for i := range a { if a[i] != b[i] { return false } }; return true }
+      ** THE NAME SAYS SET. THE BODY IS ELEMENTWISE AFTER A LENGTH CHECK. IT IS SEQUENCE EQUALITY. **
+  internal/platform/github/passthrough.go:1185-1198
+      unionStages iterates [][]task.Stage{primary, extra}, dedupes through a map, appends.
+      ** NO SORT ANYWHERE IN THE FUNCTION. ** Output order is primary-order-then-novel-extras.
+  passthrough.go:1174   s.mapper.canonicalAdditions(rawAfter, ** t.Labels **, addLabels)
+      ** THE EXTRA TERM IS WIRED TO THE OLD LABELS. ** review-194-r11's citation is exact.
+  Non-test callers of SameStageSet, whole repo: ** server.go:206, server.go:391, server.go:846 --
+      THREE, ALL OF THEM `if !store.SameStageSet(before, after)`, ALL AUTHORIZATION GATES. **
+And one thing nobody has cited, which I found while checking the above and which settles the grade:
+** THE DOC COMMENT AT passthrough.go:1199-1200 SAYS "merges two lifecycle stage SETS, PRESERVING THE
+ORDER OF THE FIRST and appending anything only the second names." IT ASSERTS SET SEMANTICS AND ORDER
+SENSITIVITY IN ONE SENTENCE AND DOES NOT NOTICE THEY CONFLICT. ** The conflation is not hiding. It is
+written down, in the place a maintainer reads, phrased so that both readings feel supported.
+
+--- THE RULING ---
+** R6 IS REQUIRED, KEYED TO store.SameStageSet, NOT TO THE passthrough CELL. ** The grade is:
+a shared comparator promises set semantics in its name, delivers sequence semantics in its body, is
+consumed by three authorization gates, and its correctness at every one of them rests on a producer
+invariant -- "all operands arrive canonically ordered" -- that is ** STATED NOWHERE IN THE TREE **.
+This diff newly depends on that unstated invariant by introducing unionStages, which is the one
+producer at that site that does not maintain it.
+** THAT GRADE IS TRUE WHETHER OR NOT THE COUNTEREXAMPLE IS REACHABLE, WHICH IS PRECISELY WHY IT IS THE
+ONE TO CARRY. ** It is a MEMBERSHIP claim about the code, not a reachability claim about an input, and
+membership resists both margin absorption and compensating substitution. Remedy as review specifies:
+canonicalise inside the comparator so no caller has to know, OR rename to SameStageSequence and pin the
+ordering contract in a test. Either fixes all three gates at once.
+The counterexample -- before=[A,B], primary=[B], extra restores A, after=[B,A], set no-op charged --
+is filed as the ** MOTIVATING ARGUMENT, MARKED UNCHECKED ON REACHABILITY, NO WITNESS EXHIBITED. **
+review-194-r11 volunteered that limitation unprompted and refused to call it CLOSED. Do not let anyone
+downstream quietly promote it.
+
+--- THE PROCESS RESULT, AND IT IS ABOUT ME ---
+R6's grade moved four times in eleven minutes: review upgraded on audit's unmeasured mechanism; I
+ratified in four minutes; audit retracted; ** I DOWNGRADED IN THE SAME MESSAGE IN WHICH I WROTE "A LEG
+MAY NOT UPGRADE A FINDING ON AN UNMARKED RELAY." I DOWNGRADED ON AN UNMARKED RELAY WHILE WRITING THE
+RULE AGAINST IT. ** review-194-r11's observation is the correction I most needed tonight:
+** A DOWNGRADE ARRIVES AS RELIEF AND GETS RATIFIED FASTER THAN AN UPGRADE, AND NOBODY MEASURES IT
+EITHER. ** I had been treating the deflation asymmetry as a hazard for finding-holders. It is worse for
+the adjudicator, because a downgrade closes an item and closing is what I am optimising for.
+The rule stands and now binds me symmetrically: ** MEASURED / DERIVED / UNCHECKED IN THE SENTENCE, ON
+EVERY RELAY, IN BOTH DIRECTIONS -- AND THE ADJUDICATOR MEASURES BEFORE MOVING A GRADE EITHER WAY. **
+Three legs produced the correct outcome here and none of the first three moves was measurement. The
+finding survived because review-194-r11 finally stopped accepting reasons and read the code.
+
+--- TWO SMALLER ITEMS, BOTH ACCEPTED ---
+1. ** A7/R3: THE TECHNICAL DISSENT IS RIGHT AND I AM RECORDING IT AS PART OF THE DISPOSITION. **
+   "Unexport it binds nobody" is correct; "move it to a _test.go file" is NOT the same move. Test files
+   are not compiled into the production binary, so a production caller of a symbol defined in _test.go
+   is a ** BUILD FAILURE, NOT A CONVENTION. ** review's original remedy was a compile-time bar and I
+   should not have flattened the two. DELETE remains the call for dead code -- ** but it COSTS THE
+   POSITIVE CONTROL, and that trade is now made knowingly rather than as a side effect. ** That
+   sentence goes in the disposition so the next reader inherits the trade and not just the verdict.
+2. ** "FOUR IS A FLOOR." ** Accepted, and it is the better statement: an identifier census cannot
+   enumerate a construction that does not contain the identifier. {passthrough.go:83, labels.go:257,
+   config.go:261, config.go:351} is MEMBERSHIP; the cardinality is not established. That is
+   test-194-r11's caveat against its own number, adopted by review against its own correction. Both
+   legs moved against their own filed positions within the hour and the population claim got stronger
+   each time.

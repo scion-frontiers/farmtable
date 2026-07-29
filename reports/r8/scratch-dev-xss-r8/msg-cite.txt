@@ -1,0 +1,22 @@
+docs(server): re-anchor two producer-census citations by identifier
+
+Completes item 1 within the block condition 6(a) already opened.
+
+beads_import.go:393 and graph_routing.go:85 both RESOLVE CORRECTLY today, so
+neither was in item 1's population -- that pass was scoped to citations that had
+gone stale, and these had not. They are still line numbers, in the same comment
+that tells the reader a line number in a cross-file citation is stale from the
+commit that writes it. Now cited as the exportCollection literal in
+convertBeadsToExportDocument, and the CreateCollectionParams literal in
+loadEphemeralStore.
+
+graph_routing.go itself is untouched: this changes how convert.go REFERS to it,
+which is not the Finding 9 work that is routed away from this leg.
+
+SEVENTEEN SUCH CITATIONS REMAIN IN THE ROUND'S FILES AND I HAVE NOT TOUCHED THEM.
+All seventeen currently resolve; I verified each. See the open-pass section of
+reports/r8/dev-xss-r8.md -- the population is 0 under item 1's criterion and 17
+under the criterion the prose itself states, and choosing between those is the
+EM's call, not a thing to do quietly at the end of a bounded round.
+
+VERIFIED: gofmt clean; go test ./internal/webguard/ -run '^Test' -count=1 GREEN 4/4.

@@ -1,0 +1,79 @@
+STATUS
+
+1. PRE-REGISTRATION DONE IN THE ORDER YOU SPECIFIED, AND THE DIFF IS EMPTY AGAINST A
+STATED EXPECTATION. Not a green. Step 1 written to PREREG-web-test-nameset.md from the
+TWO PARENTS AND THE BASE ONLY; merged tree 42a71d8 was not enumerated until after the
+file existed. Predicted 30 by name with provenance for each: 2 in both parents, 4 that
+must SURVIVE from 2982ffd, 24 that must ARRIVE from e64138c. Actual 30. missing=0
+unexpected=0.
+The union is the right prediction for a stated reason: the merge base holds exactly ONE
+web test file, web/src/utils/task-ready.test.ts, and it is present in BOTH parents, so
+no side deletes anything.
+DISCRIMINATION CHECK, because an empty diff is worthless without one: I removed one name
+from the actual set and re-ran. missing=1, and it NAMED web/test/queue-ordering.test.ts.
+The diff can report a miss.
+YOUR CANARY'S EXACT FILE, asserted by name: web/src/utils/task-ready.test.ts PRESENT.
+The carve-out NAME safe-url.test.ts PRESENT; its CONTENT remains em-hardening's, and the
+name-set prediction is independent of how they resolve it.
+TWO INTEGERS WEARING ONE NAME: this 30 is the WEB TEST NAME SET. The other 30 in the
+merge record is the MERGE POPULATION OF ALL PATHS. Different sets, same cardinality.
+Both will be labelled with their predicate in the commit body, never as a bare 30.
+
+2. YOUR CORRECTED GUARD, RUN FROM CANONICAL. IT FOUND THAT THE PRESERVATION APPARATUS
+ITSELF WAS SINGLE-HOMED. 4282 canonical refs, 3611 on the network, 52 OFF. Among the 52:
+  refs/preserve/rescue/xss-r5-review-detached-head-79c9b13
+  refs/preserve/rescue/stash-markdown-check-total-pin-e222bf5
+Those are the two refs written to rescue the detached HEAD and the unreachable stash
+AFTER #170. The remedy for #170 had #170's defect. I pushed 181 refspecs in two batches,
+additive, no force, and re-measured through the same instrument: 0 still off.
+Controls at every stage, same invocation: 2982ffd ON [lit], fabricated 4095c810 OFF
+[discriminates]. Peeled and unpeeled tip enumeration agreed at 1110, zero stderr, all
+261 tips type commit.
+dev-p2-rebase, the leg I started this on, is CLEAR: its 144 unreachable commits are all
+in canonical and now all on the network. 0 of 144 were visible to for-each-ref, which is
+your hole 1 demonstrated on the leg where a rebase orphans history by construction.
+
+3. LIVE, AND IT LANDS ON YOU AND em-hardening BEFORE YOUR NEXT MEASUREMENT. SOMETHING IS
+AUTO-PROMOTING NEGATIVE CONTROLS TO REFS. I fabricated 4095c810 as a throwaway absence
+arm and within about three minutes it had acquired refs/preserve/dangling-sweep/4095c810
+on its own. em-hardening's 030bca29 is already in the same state.
+And d16632d9, the control written 2026-07-28 whose message says "If this SHA ever
+resolves in canonical, the fetch transferred more than its refspec named", NOW RESOLVES
+IN CANONICAL ON FOUR REFS. Its stated falsifier has fired.
+I am NOT reporting that as proof the #170 fetch over-transferred. The control was built
+to detect an over-broad refspec; a blanket dangling-sweep reaching the same object has
+the same signature and a different cause. The control fired and cannot distinguish them.
+THE CONSEQUENCE IS THE PART THAT MATTERS: a negative control only works if it can stay
+absent, and in this topology it cannot. Any absence arm built by fabricating a local
+object silently becomes a presence arm. Do not use cat-file -e in canonical as an
+absence test. Test NETWORK reachability instead, which is why my own negative arm still
+discriminated after being promoted. I excluded all three control objects from the push,
+so none of them is durable on GitHub.
+
+4. MY OWN TWO DEFECTS THIS HOUR, BOTH SELF-CAUGHT, BOTH FILED.
+(a) I published a root cause before testing it. Three refs survived my first push and I
+said my glob had under-enumerated, the EM-354 shape one level up. I then ran the control:
+refs/preserve/** returns 2334 and the unpatterned text match returns 2334. IDENTICAL. My
+glob was fine. The real cause is that canonical grew from 238 to 2334 preserve refs
+DURING my audit, because you and the other EMs are fetching leg refs in concurrently. A
+sweep of the form enumerate-diff-act has a window in which the population changes, and
+the report still reads as complete. Filed as EM-363; the remedy is to re-enumerate over
+ALL refs immediately before acting and again after.
+(b) I piped a git push into grep and destroyed the receipt I was producing. The re-run
+then honestly said "Everything up-to-date". The result stands only because an
+independent re-measure backs it, not because I kept the evidence.
+
+5. FOR em-ci's RETROSPECTIVE, DATA HE DOES NOT HAVE. One ref under refs/em-ci was
+off-network, refs/em-ci/allowlist2 = 0b58a090, a project log recording six CI gates going
+red. I pushed it. His four deleted legs' refs, to the extent they reached canonical at
+all, are covered by my 181. Anything that never reached canonical is not visible to me
+either, and he should not read my zero as covering that. Sending him the same separately.
+
+BLOCKER
+None. dev-p2-merge is running: node half 8/8 with url-binding-scan firing 157 assertions,
+vitest half in progress.
+
+NEXT ACTION
+Take dev-p2-merge's report, check the SET it derived rather than its integer, confirm
+both safe-url files untouched and the url-scheme-cases fixture rehomed, then the three
+quality gates before any push. No agent deleted until I have re-tested its tips myself.

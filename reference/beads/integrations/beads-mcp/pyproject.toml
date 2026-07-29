@@ -1,0 +1,103 @@
+[project]
+name = "beads-mcp"
+version = "1.1.0"
+description = "MCP server for beads issue tracker."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "fastmcp==3.4.3",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.2",
+]
+authors = [
+    {name = "Beads Contributors"}
+]
+maintainers = [
+    {name = "Beads Contributors"}
+]
+keywords = ["beads", "mcp", "claude", "issue-tracker", "ai-agent", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Bug Tracking",
+]
+
+[project.urls]
+Homepage = "https://github.com/gastownhall/beads"
+Repository = "https://github.com/gastownhall/beads"
+Documentation = "https://github.com/gastownhall/beads/blob/main/integrations/beads-mcp/README.md"
+Issues = "https://github.com/gastownhall/beads/issues"
+
+[project.scripts]
+beads-mcp = "beads_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "test_multi_repo"]
+strict = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+check_untyped_defs = false
+
+[tool.ruff]
+target-version = "py310"
+line-length = 115
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+    "C4",
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "build>=1.3.0",
+    "mypy>=1.18.2",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.0",
+    "types-requests>=2.31.0",
+]

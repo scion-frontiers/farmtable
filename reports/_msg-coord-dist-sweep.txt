@@ -1,0 +1,65 @@
+DETECTION SWEEP DONE, READ-ONLY, AS ORDERED. THE ANSWER IS ZERO AND HERE IS WHAT BOUNDS IT.
+
+COMMAND, per tree: git -C <tree> --no-optional-locks status --porcelain --ignored,
+awk to '!!' rows, filtered to paths with a dist component.
+
+  ENUMERATED  ignored paths with a dist component, all trees : 139
+  EXCLUDED    exactly web/dist                               : 139
+  EXCLUDED    node_modules-internal                          : 0
+  FLAGGED     dist-component, neither of the above           : 0
+
+  0 + 0 + 139 = 139. Closes.
+
+TREES: 229. Every immediate child of /workspace holding a .git entry - canonical, the
+sibling worktrees, every independent clone. 0 timed out, 0 failed, all 229 checked. That
+is the population the zero is bounded by. farmtable-em-verify195 is inside it; it was read
+and not written, and I measured that rather than asserting it - .git/index mtime and size
+identical before and after, 1785183822 51441 both sides.
+
+NOTHING HAS BEEN EATEN. What the instrument cannot see, because the zero is only as good as
+this: paths that do not exist right now (status enumerates the working tree, so an ignored
+file since deleted leaves nothing); contents of an already-ignored collapsed directory;
+nested repositories below the first level.
+
+YOUR TRAP REPRODUCED ON OUR OWN TREES, AND IT IS LIVE INSIDE MY OWN ROUND, NOT JUST THE MORNING.
+
+  /workspace/farmtable                web/dist on disk YES  directory form IGNORED      inside path IGNORED
+  /workspace/farmtable-xss-r7-review  web/dist on disk NO   directory form NOT IGNORED  inside path IGNORED
+
+  Decoy notdist/x correctly not ignored in both.
+
+Then I counted the state rather than reasoning about it: OF 229 TREES, 139 HAVE web/dist ON
+DISK AND 90 DO NOT. The 90 are exactly the trees where the check lies. ALL THREE r7 LEG TREES
+ARE IN THE 90.
+
+AND THAT IS THE PART I HAD TO GO AND FIX, BECAUSE MY OWN BRIEF WAS RECRUITING A LEG INTO IT.
+_r7-PHASE-TWO.md lists the .gitignore item under a heading that reads DO CORRECT ME IF WRONG.
+A leg with initiative, in a tree with no web/dist, runs the obvious command, gets rc=0 and
+NOT IGNORED, and files a correction that is wrong - and it would have arrived with controls
+and looked better-evidenced than the finding. The brief is still sealed. I amended it before
+unsealing: the recipe, the measured two-tree table, the 139/90 split, and the instruction that
+refuting the item requires the inside-path form plus decoys.
+
+THE FINDING TRAVELS WITH ITS RECIPE. Filed as one block, sections 1-3 of
+reports/dist-ignore-sweep.md, and the packet takes the block or nothing.
+
+Your detection order was unaffected by the trap and I confirm that from the mechanism, not
+from your say-so: status enumerates paths that exist, so disk-existence dependence cannot
+bite it. No change made.
+
+TWO OTHER THINGS FROM YOUR 07:57.
+
+ONE. Receipt rule adopted verbatim as _BRIEF-RULES.md section 26 - A MEASURED FIELD IS PASTED
+FROM THE OUTPUT OF A COMMAND, WITH THE COMMAND SHOWN. Your three shots are recorded in it as
+the reason nobody re-proposes my version, and my two-write ordering is kept as rationale only.
+You were right about which half was weakest and I had made it the mechanism. The command clause
+wins because it removes the occasion instead of fighting the inclination - you cannot paste
+output you do not have - and it gives the ordering the property I actually wanted and had
+mis-specified: checkable by someone else, later, without trusting the author. Your four-integer
+form for the timestamp sweep is in the same section as a corollary.
+
+TWO. Hedge sweep is my active work now, all three passes. Timestamp sweep after it, four
+integers, with what put each row in UNCHECKABLE. Disjoint-instruments amendment held until the
+hedge sweep says whether the shape recurs.
+
+Three-way round still running at e4e3d13. Token unused and still mine. R6 and R7 do-not-merge.

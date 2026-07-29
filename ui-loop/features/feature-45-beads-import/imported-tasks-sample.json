@@ -1,0 +1,735 @@
+{
+  "has_more": true,
+  "items": [
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "7fcdf4f1-e3d1-4263-a8e1-0309e455dc64",
+      "name": "Implement Sherlog Traces \u0026 Thoughts UI",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T01:19:08Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "3447f6d3-5cad-461f-b57c-5e365b4e5275",
+      "name": "Add a History Gallery (store metadata in IndexedDB)",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T01:20:20Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "96fe4a01-5382-454c-96db-c246c022b505",
+      "name": "Add Client-Side Image Resizing",
+      "phase": "OPEN",
+      "priority": "LOW",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-20T14:56:37Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "02c26811-ecaf-4a39-ad02-1fedfb2c1c14",
+      "name": "Epic: 'Conversation' (Deep Stacking) Multi-turn Modality",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "epic",
+      "updated_at": "2026-06-12T16:21:46Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "8c07a985-5290-475c-8b9d-20bb7b363125",
+      "name": "Review skills-registry UI and import cloud logo for 'Gemini Omni' branding",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T01:26:32Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "7956e0b6-d8cd-4563-859c-6a115f989a69",
+      "name": "Add ability to delete an item from the history gallery",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:07:38Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "674f2789-4890-4c75-85b6-1cb9cb14b2f3",
+      "name": "Refactor: Create \u003cabra-form\u003e component",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:34:30Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "6043e36c-b85a-40a2-aced-1f3c865a64c9",
+      "name": "Refactor: Create \u003cabra-inspector\u003e component",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:34:30Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "3db38435-c68d-4882-9fb0-4c69cfb9a1a8",
+      "name": "Refactor: Create \u003cabra-gallery\u003e component",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:34:30Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "294f5b35-11d7-4e17-b21f-73f7f722f832",
+      "name": "Refactor: Create \u003cabra-settings-modal\u003e component",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:34:30Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "622aefa5-d96f-4f01-be4d-9f1d7a3189c9",
+      "name": "Refactor: Simplify \u003cabra-app\u003e orchestrator",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:34:30Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "8c29d308-0d02-4946-b087-18d9130f272a",
+      "name": "Bug: panic: runtime error: invalid memory address or nil pointer dereference in Server.handleGenerate (goroutine)",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-15T02:26:14Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "2a2d8937-2aaa-4dd0-90fe-aac000de4d56",
+      "name": "Enforce per-modality media restrictions in \u003cabra-form\u003e",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T14:48:13Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "ac95a449-b305-43ed-86d5-a04f64128e64",
+      "name": "Create go-based test suite for all modalities in tools/",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T14:48:13Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "3a3740e5-69fb-4063-b208-41289e90b32e",
+      "name": "Feature: User identification from IAP",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T15:47:08Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "510a3355-d639-4bb8-ae22-7c78351e640c",
+      "name": "Feature: Unshared (IndexedDB) and shared (GCS) state controls + a gallery tab",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T15:47:08Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "bc400b67-54a3-412a-8679-f7b81d209b1a",
+      "name": "Feature: Define and visualize 'conversation' multi-turn modality",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T19:55:49Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "9c111c69-20c7-438b-8f67-28dae4611873",
+      "name": "Feature: Migrate Local Drafts to Firestore (private visibility)",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T15:58:53Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "e91c0aa6-aac1-445f-a355-1526c808e61d",
+      "name": "Feature: Replace /api/video proxy with Firebase Storage getDownloadURL()",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T15:58:53Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "8745a1f8-4edf-4ec9-8724-d3047ae3c79f",
+      "name": "Feature: Add UI to toggle visibility (Private \u003c-\u003e Team Gallery)",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T15:58:53Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "7caa157f-671d-4492-881a-dca4337b7d56",
+      "name": "Feature: Store generation metadata (duration, size, aspect ratio, reference URIs) in Firestore",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T16:45:46Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "a47f3f06-9075-492c-b88d-9933facce82f",
+      "name": "web - modal or page for history item",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T16:15:13Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "7c1c536d-d246-4a24-9919-b09ebc1695fe",
+      "name": "Feature: Move Gallery to header as a dedicated page",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:15:18Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "6600fc2c-e726-477e-8ab4-49491747ef68",
+      "name": "web - history - doesn't show references",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:15:18Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "6c8e1f86-52fd-4673-b0f2-c25e5ea8241c",
+      "name": "Feature: \"character\" page - users should be able to upload assets grouped by a character label",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-17T01:38:05Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "9ef6239b-729a-46ce-a72c-fab7dbbf3f30",
+      "name": "little login flicker",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "bug",
+      "updated_at": "2026-05-16T17:21:02Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "cbb1cc0d-5465-413d-a5f7-b9e817ca9e67",
+      "name": "lit webcomponent review and refactor",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:21:02Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "7707b014-c5fd-4b66-8ce7-45f3d6d227a3",
+      "name": "user comments per generation",
+      "phase": "CLOSED",
+      "priority": "LOW",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:54:06Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "900be1d0-69d4-498d-ab69-fa8e7bef3848",
+      "name": "templates page",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:34:13Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "5dd58ee9-bce7-4f34-a12e-85109e3d190e",
+      "name": "revew abra-app.ts for length and clartity",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:51:31Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "1053efae-9506-4684-95af-c98de88b7a71",
+      "name": "allow prompt to be copied",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T17:40:18Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "ec5f19a6-81bc-4755-99b9-6311f3cffb62",
+      "name": "explore - video editing/extend for history",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T19:01:44Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "d7a7d2ac-d009-4651-bfd9-2e3c73c5a382",
+      "name": "expand template metadata and editor",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-17T00:14:34Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "2b199893-0371-4bff-92d5-07c1349bd1c0",
+      "name": "Subtask: Independent test for reference_gcs_uris submission",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T19:01:44Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "cd4a65ca-7f41-44bf-a390-e3a9dbed1992",
+      "name": "My Drafts / Team Gallery",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "bug",
+      "updated_at": "2026-05-16T19:59:09Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "03dfcfe0-cddf-49e0-b149-492b8d47c418",
+      "name": "Feature: Upload local reference media to GCS and associate GCS URIs to the generation document for history thumbnails",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T19:12:16Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "4ad2d7de-3659-46da-98e3-f4f92caa9690",
+      "name": "Video player section shimmer while generating",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T23:45:28Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "5c4676f0-f9a4-4a62-9166-8469196963ba",
+      "name": "[BUG] reference URIs are not being recorded properly into the generations document or processed",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T19:20:17Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "107193c6-e65c-4303-a21f-d9b3c02a523d",
+      "name": "play on hover - abra-gallery-card missing mousenter/mouseleave",
+      "phase": "CLOSED",
+      "priority": "HIGH",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "bug",
+      "updated_at": "2026-05-16T19:59:08Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "9a0cbce2-0303-4eb9-afc3-e26f3a33a36d",
+      "name": "Feature: Display thumbnails for requestPayload.input items in history detail",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-17T00:22:59Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "a3f5d8cb-d6b9-471b-b848-b7b55c8cea5a",
+      "name": "initial consent modal",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:42:48Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "0a1aa13f-0c08-4ee8-9941-af93c5c5382c",
+      "name": "Update interactions types and structs to support new steps schema",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:48:13Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "ec5582c5-95bd-4e20-af58-d983fcfcc2e0",
+      "name": "Add independent tests for multi-turn video generation and API schema parsing",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:48:13Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "342b9b5b-744b-47c7-9030-c6c456151ec2",
+      "name": "Phase 1: Componentize Media Chip and Scaffold Chat UI",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T21:07:18Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "20977f7f-d8da-4b66-9cc7-765c18cf4f1d",
+      "name": "Phase 2: Main Stage Carousel for Multi-turn Media",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T21:17:20Z"
+    },
+    {
+      "assignees": [
+        {
+          "id": "2e075808-5bbf-4e90-992a-713ea4ccb1aa",
+          "name": "",
+          "type": ""
+        }
+      ],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "2fd37fd8-b950-4916-858e-77d73fae4f49",
+      "name": "Phase 3: Wire Conversation State and API Payload",
+      "phase": "CLOSED",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "completed",
+      "type": "task",
+      "updated_at": "2026-05-16T23:03:10Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "8bb14a57-26f5-48c0-8e56-92c3116b05d4",
+      "name": "Support polymorphic response_format and migrate legacy configs",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:57:00Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "c01b71cf-c5d0-4138-9846-00d2af20a206",
+      "name": "Add independent tests for new streaming SSE events (step.delta, interaction.created)",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:57:00Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "f3098789-58f7-483a-8f6b-886b40a1e6f7",
+      "name": "Implement Api-Revision header support in interactions Client",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "task",
+      "updated_at": "2026-05-16T19:57:00Z"
+    },
+    {
+      "assignees": [],
+      "collection_id": "1e296e27-ee2c-42e2-8c2f-d06f2af3d8c3",
+      "id": "c4a08d5f-d3e7-4bbb-95df-07f8962e129c",
+      "name": "API Verification and Migration for May 2026 Interactions API",
+      "phase": "OPEN",
+      "priority": "NORMAL",
+      "remote_id": null,
+      "remote_url": null,
+      "stage": "ready",
+      "type": "epic",
+      "updated_at": "2026-06-12T16:21:46Z"
+    }
+  ],
+  "next_cursor": "eyJsYXN0X2lkIjoiYzRhMDhkNWYtZDNlNy00YmJiLTk1ZGYtMDdmODk2MmUxMjljIiwibGFzdF9zb3J0X3ZhbHVlIjoiMjAyNi0wNS0xNlQyMDowMzo0M1oifQ==",
+  "total_count": 537
+}

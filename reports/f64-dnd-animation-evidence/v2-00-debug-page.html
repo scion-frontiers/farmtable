@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en" class=""><head>
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Table</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--sl-color-neutral-0);
+        color: var(--sl-color-neutral-900);
+      }
+    </style>
+    <script>
+      (function() {
+        var stored = localStorage.getItem('ft-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = stored ? stored === 'dark' : prefersDark;
+        if (dark) {
+          document.documentElement.classList.add('sl-theme-dark');
+        } else {
+          document.documentElement.classList.remove('sl-theme-dark');
+        }
+      })();
+    </script>
+  <style type="text/css" data-vite-dev-id="/workspace/farmtable/web/src/styles/theme.css">:root,
+:host,
+.sl-theme-light {
+  color-scheme: light;
+
+  --sl-color-gray-50: hsl(0 0% 97.5%);
+  --sl-color-gray-100: hsl(240 4.8% 95.9%);
+  --sl-color-gray-200: hsl(240 5.9% 90%);
+  --sl-color-gray-300: hsl(240 4.9% 83.9%);
+  --sl-color-gray-400: hsl(240 5% 64.9%);
+  --sl-color-gray-500: hsl(240 3.8% 46.1%);
+  --sl-color-gray-600: hsl(240 5.2% 33.9%);
+  --sl-color-gray-700: hsl(240 5.3% 26.1%);
+  --sl-color-gray-800: hsl(240 3.7% 15.9%);
+  --sl-color-gray-900: hsl(240 5.9% 10%);
+  --sl-color-gray-950: hsl(240 7.3% 8%);
+
+  --sl-color-red-50: hsl(0 85.7% 97.3%);
+  --sl-color-red-100: hsl(0 93.3% 94.1%);
+  --sl-color-red-200: hsl(0 96.3% 89.4%);
+  --sl-color-red-300: hsl(0 93.5% 81.8%);
+  --sl-color-red-400: hsl(0 90.6% 70.8%);
+  --sl-color-red-500: hsl(0 84.2% 60.2%);
+  --sl-color-red-600: hsl(0 72.2% 50.6%);
+  --sl-color-red-700: hsl(0 73.7% 41.8%);
+  --sl-color-red-800: hsl(0 70% 35.3%);
+  --sl-color-red-900: hsl(0 62.8% 30.6%);
+  --sl-color-red-950: hsl(0 60% 19.6%);
+
+  --sl-color-orange-50: hsl(33.3 100% 96.5%);
+  --sl-color-orange-100: hsl(34.3 100% 91.8%);
+  --sl-color-orange-200: hsl(32.1 97.7% 83.1%);
+  --sl-color-orange-300: hsl(30.7 97.2% 72.4%);
+  --sl-color-orange-400: hsl(27 96% 61%);
+  --sl-color-orange-500: hsl(24.6 95% 53.1%);
+  --sl-color-orange-600: hsl(20.5 90.2% 48.2%);
+  --sl-color-orange-700: hsl(17.5 88.3% 40.4%);
+  --sl-color-orange-800: hsl(15 79.1% 33.7%);
+  --sl-color-orange-900: hsl(15.3 74.6% 27.8%);
+  --sl-color-orange-950: hsl(15.2 69.1% 19%);
+
+  --sl-color-amber-50: hsl(48 100% 96.1%);
+  --sl-color-amber-100: hsl(48 96.5% 88.8%);
+  --sl-color-amber-200: hsl(48 96.6% 76.7%);
+  --sl-color-amber-300: hsl(45.9 96.7% 64.5%);
+  --sl-color-amber-400: hsl(43.3 96.4% 56.3%);
+  --sl-color-amber-500: hsl(37.7 92.1% 50.2%);
+  --sl-color-amber-600: hsl(32.1 94.6% 43.7%);
+  --sl-color-amber-700: hsl(26 90.5% 37.1%);
+  --sl-color-amber-800: hsl(22.7 82.5% 31.4%);
+  --sl-color-amber-900: hsl(21.7 77.8% 26.5%);
+  --sl-color-amber-950: hsl(22.9 74.1% 16.7%);
+
+  --sl-color-yellow-50: hsl(54.5 91.7% 95.3%);
+  --sl-color-yellow-100: hsl(54.9 96.7% 88%);
+  --sl-color-yellow-200: hsl(52.8 98.3% 76.9%);
+  --sl-color-yellow-300: hsl(50.4 97.8% 63.5%);
+  --sl-color-yellow-400: hsl(47.9 95.8% 53.1%);
+  --sl-color-yellow-500: hsl(45.4 93.4% 47.5%);
+  --sl-color-yellow-600: hsl(40.6 96.1% 40.4%);
+  --sl-color-yellow-700: hsl(35.5 91.7% 32.9%);
+  --sl-color-yellow-800: hsl(31.8 81% 28.8%);
+  --sl-color-yellow-900: hsl(28.4 72.5% 25.7%);
+  --sl-color-yellow-950: hsl(33.1 69% 13.9%);
+
+  --sl-color-lime-50: hsl(78.3 92% 95.1%);
+  --sl-color-lime-100: hsl(79.6 89.1% 89.2%);
+  --sl-color-lime-200: hsl(80.9 88.5% 79.6%);
+  --sl-color-lime-300: hsl(82 84.5% 67.1%);
+  --sl-color-lime-400: hsl(82.7 78% 55.5%);
+  --sl-color-lime-500: hsl(83.7 80.5% 44.3%);
+  --sl-color-lime-600: hsl(84.8 85.2% 34.5%);
+  --sl-color-lime-700: hsl(85.9 78.4% 27.3%);
+  --sl-color-lime-800: hsl(86.3 69% 22.7%);
+  --sl-color-lime-900: hsl(87.6 61.2% 20.2%);
+  --sl-color-lime-950: hsl(86.5 60.6% 13.9%);
+
+  --sl-color-green-50: hsl(138.5 76.5% 96.7%);
+  --sl-color-green-100: hsl(140.6 84.2% 92.5%);
+  --sl-color-green-200: hsl(141 78.9% 85.1%);
+  --sl-color-green-300: hsl(141.7 76.6% 73.1%);
+  --sl-color-green-400: hsl(141.9 69.2% 58%);
+  --sl-color-green-500: hsl(142.1 70.6% 45.3%);
+  --sl-color-green-600: hsl(142.1 76.2% 36.3%);
+  --sl-color-green-700: hsl(142.4 71.8% 29.2%);
+  --sl-color-green-800: hsl(142.8 64.2% 24.1%);
+  --sl-color-green-900: hsl(143.8 61.2% 20.2%);
+  --sl-color-green-950: hsl(144.3 60.7% 12%);
+
+  --sl-color-emerald-50: hsl(151.8 81% 95.9%);
+  --sl-color-emerald-100: hsl(149.3 80.4% 90%);
+  --sl-color-emerald-200: hsl(152.4 76% 80.4%);
+  --sl-color-emerald-300: hsl(156.2 71.6% 66.9%);
+  --sl-color-emerald-400: hsl(158.1 64.4% 51.6%);
+  --sl-color-emerald-500: hsl(160.1 84.1% 39.4%);
+  --sl-color-emerald-600: hsl(161.4 93.5% 30.4%);
+  --sl-color-emerald-700: hsl(162.9 93.5% 24.3%);
+  --sl-color-emerald-800: hsl(163.1 88.1% 19.8%);
+  --sl-color-emerald-900: hsl(164.

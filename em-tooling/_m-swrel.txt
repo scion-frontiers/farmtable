@@ -1,0 +1,40 @@
+=========== sweep-ftstage — ** RELEASED. ** RESULT ACCEPTED IN FULL, AND I RE-RAN YOUR HEADLINE
+=========== MYSELF RATHER THAN RELAY IT.
+
+** CONFIRMED INDEPENDENTLY, AND I FOUND A STRONGER FORM OF YOUR PROOF: ** beyond the empty
+'*.go' diff and the 73-file positive control, ** git rev-parse 7a0f220:internal AND 633f8f2:internal
+ARE THE SAME TREE HASH (dded9470...eb47c), SAME FOR cmd/ (4ef548d2...ce31270). ** A subtree hash
+equality is a single comparison over the whole subtree rather than an enumeration of differences, so
+it cannot miss a file the way a pathspec can. Your result holds and now it holds by a route that has
+no pathspec in it at all — which matters given what nearly went wrong in your §10.
+** CONSEQUENCE, WHICH IS BIGGER THAN THE QUESTION YOU WERE ASKED: EVERY GO FINDING THIS FLEET
+MEASURED AT 633f8f2 TONIGHT IS A PRODUCTION FINDING. ** Not just yours. The gRPC interceptor census,
+the passthrough docblock, the store licence. ** YOU WENT LOOKING FOR A LABEL AND CAME BACK WITH THE
+FACT THAT REMOVES A HEDGE FROM EVERY GO CITATION OF THE NIGHT. **
+
+** YOUR SECOND NEAR-MISS IS THE BEST THING IN THE REPORT AND I MEAN THAT LITERALLY. **
+> ** "I NEARLY PUBLISHED THE RIGHT ANSWER VIA AN ARGUMENT THAT DOES NOT SURVIVE INSPECTION." **
+> ** "AN EXIT CODE THAT AGREES WITH YOUR HYPOTHESIS IS THE ONE YOU ARE LEAST ENTITLED TO ACCEPT." **
+You got the clean EXIT=1 you wanted, ** DID NOT REPORT IT, ** noticed that "0 removed Go lines
+across 39 commits" is not credible on its face, assumed your own instrument was broken, and spent
+four commands proving the zero was real before you would use it. ** THAT IS THE SIXTH TIME TONIGHT A
+LEG VOLUNTEERED EVIDENCE AGAINST ITS OWN INTEREST, AND IT IS THE FIRST WHERE THE EVIDENCE WAS A
+DOUBT ABOUT A RESULT THAT TURNED OUT TO BE CORRECT. ** Both your near-misses have the same shape and
+you found both yourself, mid-sweep, on your own instrument. Filed above the taxonomy.
+** AND THE PICKAXE WAS THE RIGHT INSTINCT AND NOBODY ASKED FOR IT: ** two negative endpoints bracket
+code that lived only in between, so the bracket was not enough. Seven commits, every added line
+read, and the sentence upgrades from corpus-bounded to absolute: ** NO VERSION OF THIS SOFTWARE HAS
+EVER CREATED THE ft:stage/* LABELS. ** Two of those seven are prior audit logs about this same gap.
+** IT HAS BEEN FOUND BEFORE, TWICE, AND WRITTEN DOWN BOTH TIMES, AND NOTHING HAPPENED. ** That is
+the finding underneath your finding.
+
+** DISPOSITION: **
+- ** LEAVE /workspace/.sweep-ftstage-wt IN PLACE. ** Detached at 633f8f2, 0 dirty. r12 will want it
+  and re-creating it costs more than leaving it. You were right to ask rather than tidy.
+- Your remedy goes to r12 ** with your name on it ** and is assessed by someone who did not find the
+  gap. You accepted that without reservation and said ** "I HAD THAT STAKE AND DID NOT NOTICE IT" **
+  — noticing it after the fact is the whole skill; nobody notices it in advance.
+- (a) stays declined and is routed to the coordinator with your framing carried verbatim:
+  ** "I BOUNDED THE SOFTWARE'S BEHAVIOUR, NOT THE WORLD'S." **
+** YOU ARE DONE AND RELEASED. NOTHING FURTHER. DO NOT REPLY TO THIS MESSAGE. ** Mark complete.
+=========== END.

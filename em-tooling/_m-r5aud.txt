@@ -1,0 +1,85 @@
+ROUND 5 THREE-WAY INDEPENDENT REVIEW - YOU ARE THE SECURITY AUDIT LEG.
+
+READ THE BRIEF FIRST AND IN FULL:
+  /scion-volumes/scratchpad/projects/farmtable/briefs/xss-r5-review.md
+
+It is short. Tree table, how to work, hard constraints, what the change does, a
+disclosed list of known weaknesses, deliverable format. Below is only your part.
+
+YOUR SCRATCH PATH - NOBODY ELSE HAS IT:
+  /workspace/farmtable-xss-r5-audit
+Create it yourself as a git worktree or clone. It does not exist yet. NO TWO LEGS
+MAY EVER SHARE A SCRATCH PATH. If you find another agent's files there, STOP AND
+MESSAGE ME - do not clean it and continue.
+
+YOUR REPORT PATH:
+  /scion-volumes/scratchpad/projects/farmtable/reports/xss-r5-audit.md
+
+YOUR PROJECT LOG ENTRY:
+  .design/project-log/2026-07-29-audit-xss-r5.md
+
+THE SHA: d305391 on branch url-scheme-validation-r5, base e6bda71, 13 commits.
+Open your report by naming your working tree and git rev-parse HEAD. Nothing is
+pushed; the branch lives only in the author's worktree at
+/workspace/farmtable-dev-xss-r5 - fetch from there, DO NOT WRITE TO IT.
+
+YOUR ANGLE. This is an XSS hardening round. You are the leg whose job is to
+assume it does not work.
+
+Findings carry a severity: CRITICAL / HIGH / MEDIUM / LOW / INFO. A CRITICAL or
+HIGH blocks the merge. Say plainly which of your findings block.
+
+THE LOAD-BEARING SECURITY CLAIM IS C-1: that values on the GitHub passthrough
+path carry Go types which are NOT structpb-representable, so a representability
+check is a genuine guard and not a formality. Two carriers are pinned:
+rd labels, a string slice set unconditionally and never nil, and rd sub_issues,
+a slice of maps. ATTACK THAT CLAIM DIRECTLY. If a value can reach that path
+already structpb-representable, the guard is decorative and this round does not
+do what it says. That is the question I most want answered.
+
+Second: sanitization was extended to every write site and every depth. Verify
+BOTH halves. Every write site - and section 4 item 3 of the brief tells you the
+author's own scanner is blind to an entire class of file, so a green from it
+means NOT SCANNED, not CLEARED. And every depth - find the deepest nesting the
+data can actually take and check the guard reaches it.
+
+Third: think about what an attacker controls. This is GitHub-sourced data. Issue
+titles, labels, body text, sub-issue payloads. Trace one attacker-controlled
+string from ingestion to render and tell me every place it is transformed.
+
+WHAT I DO NOT WANT: a checklist of generic web vulnerabilities restated against
+this file set. I want the specific question of whether the specific guard added
+here holds against the specific data this system ingests.
+
+THREE THINGS THE BRIEF SAYS THAT I WILL REPEAT BECAUSE LEGS SKIP THEM:
+
+PASS 1 IS OPEN AND UNSCOPED AND YOU DO NOT READ SECTION 4 UNTIL IT IS DONE. Tag
+every finding PASS-1 or PASS-2. I have primed legs with defect classes all night
+and received those classes back. That is retrieval, not confirmation.
+
+PRE-COMMIT TO YOUR FALSIFIER. Write down what would refute a hypothesis before
+you look. Report the outcome either way. In security work the negative result -
+I suspected this bypass, here is what would have shown it, it is not there - is
+a first-class finding. Write it up as one.
+
+A CLEAN SWEEP IS A RECEIPT ONLY IF IT STATES IN THE SAME BREATH WHAT REMAINS
+DIRTY. If you clear something, name the population you cleared and name what
+your search could not have seen. A narrow true result announced in a security
+context gets remembered as the broad claim.
+
+THE BUILD FENCE IS LIVE AND PROJECT-WIDE. Full builds, full suites, go vet, npm
+test, make anything: TOKEN REQUIRED, EXACTLY ONE EXISTS, I HOLD IT, ASK ME AND
+WAIT. Three of you are running and I grant it SERIALLY. Single-package runs of
+the form go test ./internal/pkg/ -run TestName -count=1 need no token but MUST
+be logged to reports/_run-queue-log.md BEFORE you run them, ROOT and DIST
+columns filled in even on passing lines.
+
+DO NOT PUSH. DO NOT MODIFY PRODUCTION CODE - your independence is the entire
+value you add. To prove an exploit, mutate, measure, restore, and VERIFY THE
+RESTORE BY CHECKSUM. Report to eng-manager only - not the coordinator, not
+ptone. No backticks in scion messages, they execute.
+
+TERMINATION: YOU MUST WRITE YOUR REPORT FILE AND YOUR PROJECT-LOG ENTRY TO DISK,
+MESSAGE eng-manager WITH YOUR VERDICT, YOUR HIGHEST SEVERITY, AND THE REPORT
+BYTE SIZE AND FIRST LINE, AND THEN MARK THE TASK COMPLETE. A finding that exists
+only in your context is a finding that does not exist.

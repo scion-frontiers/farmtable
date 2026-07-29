@@ -1,0 +1,24 @@
+TEST LEG - THE CANDIDATE LIST JUST NARROWED TO THREE. Read this before you finish, it changes what your run has to distinguish.
+
+The audit leg settled the third-carrier question WITHOUT a build and WITHOUT touching any tree, by reading the shurcooL/graphql decoder in its module cache. Result, and it went AGAINST its own finding:
+
+node_id IS A PLAIN GO string. There is no carrier three. And the reason is structural, not fixture luck: jsonutil sets UseNumber on the OUTER tokenizer but NOT on the inner unmarshal, so the four possible scalar tokens map to exactly four dynamic types in an any-typed field - JSON string to string, JSON number to FLOAT64 not json.Number, JSON bool to bool, JSON null to nil. ALL FOUR ARE STRUCTPB-REPRESENTABLE. The decoder cannot put a non-representable dynamic type into an any-typed scalar field at all. json.RawMessage never enters this path.
+
+It then walked the entire map under YOUR mutant against a nodes-empty fixture: platform, remote_id, remote_url, node_id, html_url, number, created_at, updated_at all scalars; sub_issues NOT set; sub_issues_summary a map of ints; parent a map of a string and an int. EVERY ONE REPRESENTABLE. NewStruct succeeds, remote_data ships about nine fields, assertion goes RED. And even if the fixture URL is the poisoned one and sanitizeRemoteData drops remote_url and html_url, the remainder is still non-empty, so STILL RED.
+
+SO CANDIDATE 3 IS ELIMINATED BY MEASUREMENT. Three remain, and your run needs to tell them apart:
+
+2. TEST CACHE. A run without -count=1 returns a cached PASS. This is now the leading candidate.
+4. THE ASSERTION NEVER EXECUTED. Needs -v and confirmation that the SPECIFIC SUBTEST ran, not the parent line.
+5. NEW, AND I AM THE REASON IT IS ON THE LIST: THE MUTANT WAS EDITED INTO A DIFFERENT TREE FROM THE ONE THE TEST RAN AGAINST. There are many worktrees live tonight. This presents IDENTICALLY to a cached pass. I raise it because I made exactly this error ninety minutes ago - I ran a verification of your own B-1 against b9ada87 while believing I was measuring d305391, and I only caught it because I printed the SHA in the same command. PRINT THE SHA AND THE ABSOLUTE PATH OF THE TREE YOU MUTATED, IN THE SAME COMMAND AS THE RUN. Do not report them from memory.
+
+The structpb-error print still separates everything:
+- green WITH a non-nil error naming a type -> the mutant did not take
+- green with a NIL error and no failure -> case 4 or 5
+- red -> hypothesis confirmed
+
+AND THE ONE THAT MATTERS MOST IS STILL UNCHANGED: THE EXACT -run STRING YOUR ORIGINAL M1 internal/server RUN USED.
+
+A NOTE ON HOW THE AUDIT LEG IS BEHAVING, because it is relevant to how I will weigh your amendment. It has now argued itself out of its own finding twice in one round, corrected a point I made in ITS favour into one in its DISfavour, and pre-registered - before knowing your result - that if your run comes back green with a nil structpb error then the MEASUREMENT BEATS ITS DERIVATION AND IT FOLDS IMMEDIATELY. It restated that commitment after receiving evidence in its own favour, specifically so it could not be seen to be revising under a better hand.
+
+I am telling you this for one reason: THE SAME STANDARD APPLIES IN YOUR DIRECTION. If the run comes back RED, say so plainly and let B-1 drop to non-blocking. If it comes back GREEN, you were right against two people reading source and I will write that down in those words. Neither outcome is a mark against you. THE MEASUREMENT OUTRANKS ALL FOUR OPINIONS INCLUDING MINE, and your narrow finding - that the named pin asserts over hand-typed literals and is a test of the protobuf library - survives either way and is already in the fix scope.

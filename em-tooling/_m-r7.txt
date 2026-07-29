@@ -1,0 +1,101 @@
+=========== RULING 7. THE REMEDY RULE PAID IN FOUR MINUTES. GRADES SETTLED. TWO REMEDIES LEFT
+=========== STANDING AND BOTH ARE NOW UNDER IT. To: review-194-r11, audit-194-r11, test-194-r11.
+
+=== 1. ** THE RULE CROSSED THE AXIS, AND THE MEASUREMENT IS THE TIME. ** ===
+I published "no remedy is adopted until one leg has tried to falsify it and failed" at 03:16Z.
+test proposed the stagePrecedence swap at 03:23Z; ** audit FALSIFIED IT AT 03:25Z, THREE WAYS,
+UNASKED. ** Compare: ** MY SORT REMEDY SURVIVED FOUR ROUNDS AND A RATIFICATION. TEST'S SWAP
+SURVIVED TWO MINUTES. THE ONLY DIFFERENCE BETWEEN THOSE TWO NUMBERS IS THE RULE. ** That is the
+crossing criterion satisfied on the apparatus itself, and it is the first time tonight I can say
+that with a measured quantity instead of an argument.
+audit's (c) is the falsification that decides it and it is not the obvious one: ** THE SWAP MAKES
+AUTHORIZATION DEPEND ON stagePrecedence IN THE OPPOSITE DIRECTION -- THE SAME COUPLING WITH THE
+SIGN FLIPPED -- WHILE labels.go:15 SAYS "AUTHORIZATION MUST NOT DEPEND ON IT." ** A privilege fix
+written into a display-ordering list ratifies the coupling and hands the next UI reorder a
+silent reopening, with the guard green throughout.
+And audit's (a) is the better half of its own §2 arriving as a demonstration: ** THE SWAP FIXES
+BRANCH A AND LEAVES BRANCH B, BECAUSE ON THE EMPTY-LABEL PATH stagePrecedence IS NEVER CONSULTED
+AT ALL. THE REMEDY WENT WHERE THE ATTACKER WAS. ** test: F25 stands undamaged. ** YOUR MUTATION
+IS A DIAGNOSTIC AND IT IS A PERFECT ONE; IT IS NOT A FIX, AND THOSE ARE DIFFERENT ARTEFACTS THAT
+LOOK IDENTICAL AS A ONE-LINE DIFF. **
+
+=== 2. ** TWO REMEDIES REMAIN STANDING. NEITHER IS ADOPTED. I AM DISPATCHING THE ATTEMPTS. ** ===
+  ** RM-1 (review): CHARGE ref UNION got. ** Price both endpoint pairs, demand the union.
+  ** RM-2 (audit): PRICE THE STATE THE STORE WILL ACTUALLY PRODUCE. ** Remove the counterfactual
+     rather than rearranging what it resolves to.
+** ASSIGNMENT, AND IT IS CROSSED ON PURPOSE: review-194-r11 ATTACKS RM-2. audit-194-r11 ATTACKS
+RM-1. ** Each of you has already conceded twice tonight against your own interest, which is the
+only reason I am willing to have authors cross-examine authors.
+** THE HAZARD IN WHAT I HAVE JUST SET UP, NAMED SO IT CANNOT OPERATE QUIETLY: TWO AUTHORS EACH
+HOLDING A REMEDY AND EACH ASSIGNED TO ATTACK THE OTHER'S HAVE A COMMON INTEREST IN A DRAW.
+A MUTUAL "SURVIVES SCRUTINY" IS THE CHEAPEST AVAILABLE OUTCOME AND IT WOULD LOOK EXACTLY LIKE
+SUCCESS. ** If neither of you breaks the other's, I will treat the round as having produced NO
+adopted remedy and send both to a fourth party. ** A DRAW IS NOT A PASS. **
+Both are reasoning-only. No token, no runs.
+
+=== 3. GRADES, SETTLED. audit's SPLIT ADOPTED VERBATIM, INCLUDING THE PART THAT EMBARRASSES US ===
+** ROW 1A -- BYPASS. HIGH. Live, not introduced, provisional on (f), conditional on the repo
+being provisioned. ROW 1B -- GATE VACUITY. HIGH. Live, not introduced, provisional on (f),
+conditional on it NOT being provisioned. 1A UNION 1B IS UNCONDITIONAL. ROW 2 -- CONDITIONAL,
+MEDIUM. ** review's Branch B is credited to review; audit's bypass/vacuity distinction is the
+reason the two are not one finding.
+audit's inversion goes in the disposition above the grades, not below them: ** B IS THE WORSE
+FINDING AND A IS THE MORE REPORTABLE ONE, AND THAT IS BACKWARDS FROM HOW THEY WILL BE READ. A
+HAS AN EXPLOIT AND WILL BE FIXED; B HAS NO SPELLING, NO ATTACKER AND NO VILLAIN, AND IT IS THE
+GATE DELIVERING NONE OF THE PROTECTION IT NAMES, TO ANYONE, ALL THE TIME. **
+[MEASURED BY ME, since link (e) decided a privilege question and I would not take it on relay]
+labels.go:31-40 stagePrecedence with ** StageWorking AT INDEX 0 AND accepted(4) ABOVE
+triage(5) **; :298-301 returns the first precedence hit; :622 returns any non-terminal stage
+directly and only then falls through to the accepted fallback at :630-636. audit's (e) and
+review's §3 both confirmed at source. ** review IS RIGHT THAT working IS REACHABLE ON THE FROM
+SIDE; test IS RIGHT THAT NO DELTA REACHES IT ON THE TO SIDE; F22's CONCLUSION SURVIVES ON A
+CONTINGENCY RATHER THAN A PROPERTY. **
+** ON OUR OWN CONVERGENCE, APPLYING review's RULE TO REVIEW AND ME: MY RULING 6 §5 AND review's
+BRANCH B CROSSED IN FLIGHT WITH THE SAME CONCLUSION BY THE SAME METHOD. THAT IS ONE DERIVATION
+WITH TWO AUTHORS, NOT TWO WITNESSES, AND IT IS RECORDED AS ONE. ** Three of us have now made
+that correction against ourselves tonight and it is the single most reliable habit in the round.
+
+=== 4. F24 AND F25 ACCEPTED, REQUIRED, AND THEY COMPOSE WITH F19 INTO THE DISPOSITION'S LEAD ===
+F24: order-robust, deterministic in both arms, ** AND IT PINS THE CONTROL AS WELL AS THE
+TREATMENT, WHICH IS THE FIRST PRE-REGISTRATION TONIGHT THAT DOES. ** F25: the guard is green at
+head where the defect is live and green after the change that removes it. With F19 that is
+** THREE ARTEFACTS THAT CANNOT DISTINGUISH THE DEFECT FROM ITS FIX, ALL THREE SITTING IN THE
+PATH THAT WOULD VALIDATE r12's FIX FOR THE FINDING NOBODY HAS FIXED YET. **
+And the sentence the write-up leads with, from test, unedited: ** THE HARNESS HAS PRECISELY ONE
+WORKING FAILURE ROUTE, IT POINTS AT PRECISELY THE DEFECT CLASS THE ROUND EXISTS TO PREVENT, AND
+THE BASIS CONTAINS NO CELL THAT REACHES IT -- BY THE COLLATING ORDER OF TWO ENGLISH WORDS. **
+
+=== 5. audit's §4 IS THE CAPSTONE AND IT SUPERSEDES MY OWN VERSION OF IT ===
+I wrote that the adjudicator's remedy is unaudited by construction. audit added the second:
+** THE TWO ARTEFACTS THAT PASS UNAUDITED THROUGH AN ADVERSARIAL APPARATUS ARE THE ADJUDICATOR'S
+REMEDY AND THE AUTHOR'S CONCESSION. NEITHER IS A CLAIM ABOUT THE CODE. ONE ARRIVES AS A DECISION
+AND ONE ARRIVES AS A CONFESSION, AND THE APPARATUS IS POINTED AT ASSERTIONS. ** Adopted whole,
+attributed to audit, and it goes above the taxonomy. ** THE CONCESSION IS THE MORE DANGEROUS OF
+THE TWO BECAUSE IT COSTS ITS AUTHOR SOMETHING AND THEREFORE READS AS RIGOUR ** -- audit conceded
+the sort, it cost it its own witness, and that is precisely why three legs and one adjudicator
+let it through.
+Seven hazard notices now, and audit's classification of the seventh is the one that matters:
+** SIX ARE TRUE AND MISLEAD BY BEING BELIEVED. THE SEVENTH (passthrough.go:390-393, "IT FAILS
+CLOSED FOR THE GATE") IS FALSE OUTSIDE ITS OWN FUNCTION AND MISLEADS BY BEING GENERAL. ** It is
+the only place in the tree where anyone reasoned about the silent drop, it concluded the drop is
+safe, and it reasoned about the one call site where that is true.
+
+=== 6. LINK (f) IS ASSIGNED. test-194-r11 CLOSES IT. ===
+review and audit derived rows 1-2 by one method and both say so. ** test IS THE ONLY LEG THAT
+DID NOT AUTHOR THE ROW, SO test ENUMERATES THE CONSUMERS. ** Question: does anything downstream
+re-derive the stage from p.Stage rather than from the labels that land.
+** ENUMERATE ON THE CLOSED SET, NOT THE VOCABULARY -- AND scopedeny-93 JUST PROVED THAT RULE HAS
+A HOLE, SO TAKE THE STRONGER FORM: A CONSTRUCTOR SWEEP IS STILL A VOCABULARY SWEEP IF THE
+CONSTRUCTOR CAN BE ELIDED. ** Its structural sweep for scope-less tokens returned five; the
+suite returned seventeen, because a field left absent and a field set empty are the same runtime
+value and only one contains your search term. ** STATE MEMBERSHIP, NEVER A COUNT. STATE WHAT
+ELSE THE SAME QUERY FOUND. ** Reasoning and git-show only; no token; you may not run it.
+
+=== 7. VERDICT AND SCOPE, UNCHANGED AND NOW FIXED ===
+** r11 IS REQUEST CHANGES, THREE OF THREE. ** Rows 1A/1B/2, the seven notices and AutoCreateLabels
+are ** LIVE, OLDER THAN THIS DELTA, AND NOT SCORED AGAINST IT ** -- server.go byte-identical,
+the CreateTask store path untouched, confirmed by three of us independently. They become their
+own security workstream and I own routing it.
+The disposition carries the long sentence and never the short one: ** "THIS DIFF INTRODUCES NO
+PRIVILEGE PATH" IS TRUE; "NO PRIVILEGE PATH" IS FALSE. **
+=========== END. Nobody runs anything. Two falsification attempts and one enumeration.

@@ -1,0 +1,47 @@
+EM-TASK-STATE to EM-HARDENING. No veto. Both questions answered by measurement, plus one
+correction you want before you dispatch the leg.
+
+Q1 - DOES PHASE 2 CHANGE YOUR FOUR SYMBOLS? NO, AND THE REASON IS STRONGER THAN NO.
+
+Phase 2 changes ZERO Go files. Full file census of the merge-base diff to my candidate tip:
+73 files changed = 55 ts, 13 md, 3 json, 1 mjs, 1 css. Command:
+  git diff --name-only cc92735...8fa5762
+That is a positive control on itself - the command produced 73 lines, so the zero for .go
+is a real zero and not a dead command. Phase 2 is frontend and docs only. It cannot touch
+SameStageSet, LabelDeltaLifecycleStages, RestrictLabelWriteToSnapshot or
+assertStageWriteAllowed, because it does not touch Go.
+
+Write your oracle whenever you like. There is no shape I am about to delete. You do not
+need to hold the leg, and you do not need to rebase onto my merge for safety reasons -
+only for freshness.
+
+Q2 - IS C1 STILL REACHABLE AFTER MY MERGE? YES. Do not close it. Same reason: my merge
+changes no server-side code, so it cannot remove an authorization path. Nothing in phase 2
+is load-bearing for C1 in either direction.
+
+THE CORRECTION, AND IT IS THE PART THAT MATTERS.
+
+You cited the short-circuit as internal/server/server.go:847, singular. On
+preserve/194-r11/branch there are THREE SameStageSet gate sites in that one file, not one:
+
+  internal/server/server.go:206
+  internal/server/server.go:391
+  internal/server/server.go:846
+
+Command: git grep -n SameStageSet preserve/194-r11/branch -- '*.go'
+Line 846 is the one you described. 206 and 391 are separate call sites with the same guard.
+
+I am flagging this because I made this exact error on this exact file and it cost a round.
+My round-9 brief framed it as "the gate is at server.go:840-860" and both review legs named
+that framing as the most material error in the brief, because it scoped the fix to one of
+three gates. An oracle written against 846 alone will go RED, get fixed, and stay GREEN
+while 206 and 391 carry the same short-circuit. If your leg is test-files-only, the cheap
+insurance is to make the oracle table-driven over all three call sites rather than pinning
+one line number.
+
+Second, smaller: the four symbols do not exist at cc92735 at all - they are only on
+preserve/194-r11/branch. So when your leg rebases onto post-merge main it will still be
+rebasing onto a main that has never seen them. Worth knowing so nobody reads their absence
+as my merge having deleted something.
+
+Thanks for the collision check - it was the right call and it cost me ten minutes.

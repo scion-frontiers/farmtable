@@ -1,0 +1,47 @@
+Two things, one ask and one finding you should have. Both are about the seam between
+your main at 43bd206 and my phase 2 branch.
+
+THE ASK - THE MANIFEST FLOOR NUMBER, AND ITS PREDICATE
+
+I own raising MIN_TEST_FILES (scripts/ci-suite-manifest.mjs line 35) in my landing commit.
+It reads 1 today, because at main the whole JS test population is one file. My line
+carries 26 by your checker's count and 22 vitest + 4 node by mine. I am not shipping a
+number I reconciled myself into a gate whose entire job is exactness.
+
+So: what is the reconciled count, and what is the PREDICATE behind it - what exactly does
+one unit of MIN_TEST_FILES count? A tracked test file, a manifest entry, or an executed
+suite? Your gate now runs 501 package-qualified entries, so the unit clearly is not what
+it was when the constant was written. I need the predicate more than the integer, because
+the predicate is what tells me whether 26 and 22+4 are even the same population or two
+correct counts of two different things.
+
+If you have not reconciled it yet, say so plainly and I will hold the merge rather than
+ship the floor unraised. A floor of 1 on a line carrying 26 silently permits a 25-file
+collapse, so unraised is not an option I will take by default.
+
+One thing to flag on your side: line 486's own remedy text coaches a contributor to LOWER
+MIN_TEST_FILES in the same commit. That is the exact reciprocal of the correct move, and
+it is the convenient direction. Worth changing while you own that file.
+
+THE FINDING - A LATENT FAIL-CLOSED MISMATCH YOUR MAIN CHANGE CREATED, POPULATION ZERO
+
+Not a complaint, and nothing is broken today. You widened web/tsconfig.test.json to four
+patterns: test.ts, test.tsx, spec.ts, spec.tsx. Phase 2 widened the same file to one,
+test.ts, and added a runner, web/scripts/run-node-tests.mjs, that fail-closes when
+compiled.length does not equal sources.length. The runner's own sources walk globs test.ts
+only.
+
+Merge those two and tsc compiles files the runner never counts. The counts diverge and CI
+goes red pointing at nothing obvious. I measured the population of your three extra
+patterns on both sides: zero, zero, zero. Positive control, web/src has 53 files at main
+and 59 at phase 2, so the walk did run.
+
+Zero population is why this would merge green and surface weeks later on the first spec.ts
+anyone writes. I am resolving it on my side by widening the runner's glob to match your
+four patterns, so both halves of the coupled pair move together, and positive-controlling
+it with a throwaway failing spec.ts. Flagging it because the same trap sits in front of
+anyone else who rebases onto your tsconfig change.
+
+Separately and in your favour: your rm -rf .tmp-test fix is already in phase 2's runner,
+derived independently, same reasoning in the comment. Taking phase 2's package.json side
+does not drop it.

@@ -1,0 +1,160 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 70 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C7-a",
+    "desc": "defaulted second parameter",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown accepts exactly one parameter"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: src/util/markdown.ts: renderMarkdown declares 2 parameters: (md: string, opts: Record<string, unknown> = {}) \u2014 a second parameter is a configuration channel into the sanitizer opened from the call site, and a defaulted or optional one keeps Function.length at 1\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C7-e2",
+    "desc": "R1/T-1: two overload signatures + defaulted impl \u2014 was GREEN at 86f30bc",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown accepts exactly one parameter"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: src/util/markdown.ts: expected exactly one renderMarkdown declaration, found 3 \u2014 an overload signature satisfies a first-match scan while the implementation takes a second parameter, which is a configuration channel into the sanitizer\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C7-g",
+    "desc": "T-1: comment decoy \u2014 was GREEN at 86f30bc",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown accepts exactly one parameter"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: src/util/markdown.ts: renderMarkdown declares 2 parameters: (md: string, opts: Record<string, unknown> = {}) \u2014 a second parameter is a configuration channel into the sanitizer opened from the call site, and a defaulted or optional one keeps Function.length at 1\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C7-h",
+    "desc": "T-1: string-literal decoy \u2014 was GREEN at 86f30bc",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown accepts exactly one parameter"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: src/util/markdown.ts: renderMarkdown declares 2 parameters: (md: string, opts: Record<string, unknown> = {}) \u2014 a second parameter is a configuration channel into the sanitizer opened from the call site, and a defaulted or optional one keeps Function.length at 1\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C7-i",
+    "desc": "destructured sole parameter (one top-level parameter, still a config channel)",
+    "result": "RED",
+    "exit": 2,
+    "checks": null,
+    "fired": [],
+    "expect": "RED",
+    "tail": "nline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(496,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(503,22): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(510,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(517,22): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(524,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(622,30): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(643,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(655,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\nsrc/util/markdown.test.ts(667,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ md: string; inline?: boolean | undefined; }'.\n"
+  },
+  {
+    "id": "C7-f",
+    "desc": "declaration rewritten as an arrow const \u2014 the scan must not pass on 'nothing found'",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "renderMarkdown accepts exactly one parameter"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: src/util/markdown.ts: could not find an `export function renderMarkdown(\u2026)` declaration. Either it was renamed, or it was rewritten into a form this scan cannot read (an arrow function assigned to a const, a re-export). Both leave the arity unpinned, so neither is a silent pass\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "FP-trailing-comma",
+    "desc": "FALSE-POSITIVE CONTROL: prettier's default trailing comma must stay GREEN (it was RED at 86f30bc)",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "FP-prose",
+    "desc": "FALSE-POSITIVE CONTROL: prose naming a two-parameter form above a correct declaration must stay GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "FP-param-comment",
+    "desc": "FALSE-POSITIVE CONTROL: a comment inside the parameter list must stay GREEN (it was RED at 86f30bc)",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 70,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "ABL-1",
+    "desc": "ABLATION: neuter renderMarkdownArityViolation to always return null. The new fixture check must catch it, or the fixture is decorative.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2502\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: SURVIVED: C7-a defaulted second parameter | SURVIVED: C7-b rest second parameter | SURVIVED: C7-c destructured defaulted second parameter | SURVIVED: C7-d optional second parameter | SURVIVED: C7-e2 two overload signatures above a defaulted implementation | SURVIVED: C7-g a comment quoting the old signature above a two-parameter implementation | SURVIVED: C7-h a string literal quoting the old signature | SURVIVED: C7-i a destructured sole parameter | SURVIVED: C7-j a rest sole parameter | SURVIVED: C7-f rewritten as an arrow function assigned to a const | SURVIVED: C7-k a default on the sole parameter (deliberate false positive)\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2502:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2507:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-2",
+    "desc": "ABLATION: revert the scan to raw bytes (drop stripInertText). The C7-g/C7-h fixtures must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: FALSE POSITIVE: a comment inside the parameter list \u2014 renderMarkdown declares 2 parameters: (md: string /* body, raw */) \u2014 a second parameter is a configuration channel into the sanitizer opened from the call site, and a defaulted or optional one keeps Function.length at 1\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-3",
+    "desc": "ABLATION: revert to first-match-only (accept any number of declarations). The C7-e2 fixture must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2500\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 70 markdown sanitizer checks failed:\n  - fixture: the arity pin catches every known widening and rejects nothing correct: the arity pin is broken: SURVIVED: C7-e2 two overload signatures above a defaulted implementation\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2500:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2505:1\n\nNode.js v20.20.2\n"
+  }
+]

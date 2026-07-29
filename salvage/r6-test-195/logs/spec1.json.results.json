@@ -1,0 +1,86 @@
+[
+ {
+  "label": "CTRL-0 untouched tree (driver must see green)",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed"
+ },
+ {
+  "label": "CTRL-1 EXPECTED_CHECK_CALL_SITES bumped to 99 (driver must see red)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 69 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-a delete one whole check() call site",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2206\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 68 markdown sanitizer checks failed:\n  - check total pinned: expected 69 checks to run (68 call sites + 1 extra from the REQUIRED_SINKS loop), 68 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2206:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2211:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-b duplicate one check() call site",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2214\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 70 markdown sanitizer checks failed:\n  - check total pinned: expected 69 checks to run (68 call sites + 1 extra from the REQUIRED_SINKS loop), 70 did \u2014 either a check() call site was added or silently removed, in which case update EXPECTED_CHECK_CALL_SITES, or REQUIRED_SINKS changed length, in which case the total moves on its own and nothing here needs editing. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2214:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2219:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-c ADD a third REQUIRED_SINKS entry (real file, no sink)",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2211\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 2 of 70 markdown sanitizer checks failed:\n  - src/components/inspector/inspector-shared-styles.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/inspector-shared-styles.ts: no longer contains unsafeHTML(renderMarkdown( \u2014 the sanitizer wrapper is gone\n      src/components/inspector/inspector-shared-styles.ts: does not import unsafeHTML unaliased from lit's unsafe-html directive module (a specifier ending 'directives/unsafe-html.js') \u2014 the name may therefore resolve to something other than the audited one\n      src/components/inspector/inspector-shared-styles.ts: does not import renderMarkdown unaliased from the sanitizer module (a specifier ending 'util/markdown.js') \u2014 the name may therefore resolve to something other than the audited one\n  - unsafeHTML call sites are still found: expected exactly 3 unsafeHTML call sites, found 2 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2211:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2216:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-d REMOVE the desc entry from REQUIRED_SINKS only",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2209\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 68 markdown sanitizer checks failed:\n  - unsafeHTML call sites are still found: expected exactly 1 unsafeHTML call sites, found 2 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2209:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2214:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-f EMPTY REQUIRED_SINKS entirely",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2207\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 67 markdown sanitizer checks failed:\n  - unsafeHTML call sites are still found: expected exactly 0 unsafeHTML call sites, found 2 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2207:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2212:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C2-e SCOPE SHRINK: drop desc from REQUIRED_SINKS + render it raw via a unicode-escaped alias",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 68 checks passed\n[tsc --noEmit exit=0]"
+ },
+ {
+  "label": "C7-a arity: (md, opts = {}) defaulted second parameter",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: renderMarkdown declares more than one parameter: (md: string, opts: Record<string, unknown> = {}) \u2014 a defaulted second parameter keeps Function.length at 1, so the declaration is checked too\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C7-b arity: (md, ...rest) rest parameter",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: renderMarkdown declares more than one parameter: (md: string, ...rest: unknown[]) \u2014 a defaulted second parameter keeps Function.length at 1, so the declaration is checked too\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C7-c arity: (md, {inline} = {}) destructured defaulted second parameter",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: renderMarkdown declares more than one parameter: (md: string, { inline }: { inline?: boolean } = {}) \u2014 a defaulted second parameter keeps Function.length at 1, so the declaration is checked too\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2"
+ },
+ {
+  "label": "C7-d arity: plain REQUIRED second parameter (md, opts: object)",
+  "exit": 2,
+  "verdict": "RED",
+  "tail": "src/util/markdown.test.ts(463,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(468,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(475,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(481,19): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(489,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(496,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(503,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(510,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(517,7): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(524,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(591,15): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(612,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(624,17): error TS2554: Expected 2 arguments, but got 1.\nsrc/util/markdown.test.ts(636,17): error TS2554: Expected 2 arguments, but got 1."
+ },
+ {
+  "label": "C7-e arity: OVERLOAD SIGNATURE first + defaulted second param in the implementation",
+  "exit": 0,
+  "verdict": "GREEN",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nmarkdown sanitizer: 69 checks passed\n[tsc --noEmit exit=0]"
+ },
+ {
+  "label": "C7-f arity: exported as a const arrow with a second defaulted param",
+  "exit": 1,
+  "verdict": "RED",
+  "tail": "> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2210\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\nError: 1 of 69 markdown sanitizer checks failed:\n  - renderMarkdown accepts exactly one parameter: could not find the renderMarkdown declaration in src/util/markdown.ts\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2210:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2215:1\nNode.js v20.20.2\n[tsc --noEmit exit=0]"
+ }
+]

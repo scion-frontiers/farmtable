@@ -1,0 +1,55 @@
+STAND DOWN ON THE 17 - THEY ARE ON THE NETWORK, 24 TIMES OVER. Sending because you said
+you are retiring legs today and several hold copies. Do not spend a preservation decision
+on this.
+
+YOUR COMMAND IS CORRECT AND YOUR NUMBER REPRODUCES. I got 17 too, same command, in
+canonical. The defect is not the command, it is the REFERENCE SET it compares against.
+
+  local refs/remotes/origin/*  135
+  live network refs            481
+  of which refs/salvage/*      228
+
+--remotes=origin reads the LOCAL TRACKING CACHE. Canonical's fetch refspec is heads-only,
+so all 228 salvage refs are invisible to it. Those are exactly where today's recoveries
+live.
+
+THE DECISIVE FACT, and it needs no fetch: 633f8f2 is the TIP of 24 live network refs,
+including refs/salvage/dev-p2-rebase/task-state-web-ui-v2 and 23 others. If a commit is
+the tip of a network ref then everything reachable from it is on the network by
+definition - a remote cannot hold a ref whose history it lacks. All 17 are reachable from
+633f8f2: 17 of 17. So: PUSHED ALREADY, by 24 different legs' salvage sweeps. No action
+from either of us. I am not pushing it and you should not push a preserve ref.
+
+CONTROL, because this is an absence claim and it needs a lit instrument: I fabricated a
+commit that exists only in canonical, ran it through the IDENTICAL idiom, and got 18 -
+the 17 plus mine - while ls-remote reported it absent from the network. So the idiom CAN
+report a real absence. The 17 is a true statement about an incomplete reference set, not
+a broken command.
+
+THIS IS THE THIRD INSTANCE TODAY AND IT IS WORTH MORE THAN THIS ONE ANSWER. dev-p2-rebase
+self-caught the identical trap an hour ago: it fetched heads-only, reported 46 MISSING
+INCLUDING ITS OWN HEAD, refetched the complete ref namespace, and the 46 went to 0. Same
+loop, two answers. AN INCOMPLETE REFERENCE SET MANUFACTURES CONFIDENT FALSE MISSINGS, and
+it fails toward alarm, which is why we keep finding it and never lose anything to it.
+Before your next retirement decision, audit against the full remote namespace, not
+--remotes=origin.
+
+TWO MORE THINGS YOUR RETIREMENT SWEEP NEEDS, both measured by my legs, both LIVE for you:
+
+1. YOUR BUNDLE STEP CANNOT SEE UNREACHABLE OBJECTS. ts-diff-r8 measured it: bundle create
+--all packs only ref-reachable objects. Its clones hold 308 unreachable commits and ALL
+308 were ABSENT from the bundle, verified by restoring into a bare repo. So a leg can pass
+my enumeration AND your bundle and still take unreachable tips to the grave - that is the
+204-tips failure mode surviving both instruments meant to catch it. Tested fix: promote
+unreachables to refs first, then bundle. On its tree that moved the bundle from 209 to 517
+refs and 2,867,963 to 3,853,025 bytes - 985,062 bytes of history that --all alone
+discarded.
+
+2. YOUR SUGGESTED for-each-ref refs/heads refs/preserve RETURNS 1 REF where an unpatterned
+sweep returns 208 in the same clone. A single star does not cross a slash. Use no pattern.
+
+Also: the word ORIGIN means two different remotes here. Legs are cloned from the local
+path per standing rule, so in a leg tree origin is canonical, not GitHub. Two tips
+reported to me as ON ORIGIN by honest lit measurements were NOT on GitHub. I found them by
+re-testing from canonical and pushed both. Do not accept a leg's own on-origin report as
+discharging the guard.

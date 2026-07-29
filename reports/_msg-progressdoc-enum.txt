@@ -1,0 +1,69 @@
+ENUMERATION RUN. FROM COMMANDS. Your second question was the right one to ask and the answer to
+it is no - I had NOT run a full enumeration, and the number I would have given you from memory
+was wrong. Both your one-liners, then the correction that matters more than either.
+
+Q1. Is task-state-web-ui-v2 a fourth branch, separate from the three in review?
+    NO. [MEASURED] It is an ANCESTOR of one of them - scopedeny-93-deny-unrecognised-type is
+    that same branch plus 8 commits. The 39 commits are INSIDE a branch already in review, not
+    beside it. Saying "three branches plus the interface branch" counts them twice.
+
+Q2. Is the total three, four, or something not enumerated?
+    FIVE. [MEASURED] Not three, not four.
+
+=== THE FIFTH, AND IT IS THE LARGEST ===
+
+[MEASURED] There is a body of work 78 commits ahead of main that IS NOT ON ANY BRANCH. It exists
+in the repository only under a preservation ref. A branch enumeration - the exact command you
+and the coordinator asked me for - returns nothing for it. It is the label-permissions security
+workstream, it is bigger than any of the four branches, and it has been absent from every count
+anyone has given today, mine included.
+
+I want to be exact about why you did not have it: nobody hid it and nobody was careless. THE
+INSTRUMENT EVERYONE WAS REACHING FOR CANNOT SEE IT. Asking "what branches are unmerged" is a
+question whose shape excludes work that is not on a branch.
+
+=== WHAT SECTION 4 SHOULD SAY ===
+
+Your current text says "three branches" and "none of the three advances the refactor". Both need
+to change, and the second is the one with teeth.
+
+FIRST: the count. Five bodies of unmerged work. One of the five is not a branch and was missing
+from every previous count. Two of what looked like separate branches are the same commit under
+two names.
+
+SECOND, AND THIS IS THE MATERIAL CORRECTION: "none of the three advances the refactor" is now
+FALSE, and it is false in a way that bears on the owner's decision. The refactor's remaining
+interface work is not merely unmerged - [MEASURED] it sits UNDERNEATH one of the security
+branches on the same line of development, with the security work stacked on top.
+
+Read the direction carefully, because it is the opposite of the reassuring version and I have
+already been wrong once today in the reassuring direction. This does NOT mean the refactor is
+nearly done. It means:
+
+  - if he leaves the hardening on the critical path, that security branch will drag all 39
+    commits of interface work in with it whenever it lands, whether he planned that or not;
+  - if he splits the refactor out to ship independently, that requires separating two things
+    that are currently one line of development. [INFERRED, NOT MEASURED - flagging it as such
+    because it is an inference from an ancestry relation and nobody has attempted it] That
+    separation is unbudgeted work and might be easy or might not.
+
+Suggested wording, no identifiers, adjust to your voice:
+
+  "The remaining interface work is not sitting on its own. It is underneath one of the security
+   branches on the same line of development. That cuts both ways: leaving the hardening in front
+   means the interface work lands with it when it lands, and pulling the interface work out to
+   ship on its own means separating them first, which we have not costed."
+
+=== ONE THING I AM DELIBERATELY NOT TELLING YOU ===
+
+[UNMEASURED] There are 111 older branches that are not ancestors of main. I do not know whether
+any of them carries live work. This project squash-merges, which permanently makes a merged
+branch a non-ancestor, so the obvious test does not answer the question. I ran a diff at a
+sample of six, realised it answers a different question, and threw the rows away rather than
+give you a number I would have to withdraw. All 111 are at least 55 commits behind and none was
+touched in the last two days. If you say anything about them, say UNMEASURED. Do not say zero,
+and do not let the absence of a number read as an absence of work - that is precisely how the
+fifth item stayed invisible.
+
+Nothing here is load-bearing until you have a reason to trust it. If any of it conflicts with
+something you have measured, yours wins and I want to hear about it.

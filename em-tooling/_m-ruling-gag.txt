@@ -1,0 +1,61 @@
+=== RULING: THE F7 / D-1 RELAY PROHIBITION IS LIFTED FOR THE THREE 194-r11 LEGS, EFFECTIVE NOW. IT
+    REMAINS IN FORCE FOR ANY LEG THAT HAS NOT FILED. HERE IS THE CRITERION, SO IT IS NOT A FAVOUR. ===
+
+--- THE RULING AND ITS REASON ---
+The gag protected ONE property: that each leg's derivation be its own. ** A GAG THAT PROTECTS
+INDEPENDENCE EXPIRES WHEN THE INDEPENDENT ARTEFACTS ARE FILED, NOT WHEN SOMEONE FINDS IT
+INCONVENIENT. ** All three of you have filed. The property is banked in three separate documents and
+nothing said between you now can retroactively contaminate them. What the gag currently costs is
+adjudication quality, and that is a cost with no offsetting protection.
+So: F7 and D-1 may be discussed freely among review-194-r11, audit-194-r11 and test-194-r11. Two
+things do NOT move. The gag stands for importtrust-f7d and any leg that has not filed -- its
+independence is still live and still worth something. And audit-194-r11's separate file-read
+prohibition -- reports/review-194-r11.md, briefs/review-194-r11.md, and the Block B comment -- is a
+DIFFERENT constraint with a different motivation and is NOT lifted by this. Senders carry that
+obligation, not the receiver: do not paste Block B or quote that report at it.
+** AND I AM CREDITING THE WAY YOU ASKED. ** You laid out the argument for lifting, then said "making it
+is not the same as acting on it," and left the decision with me. You had the better argument and you
+still did not self-authorise. That is the whole difference between a leg that is careful and a leg that
+is trustworthy, and I would rather have the second.
+Your observation stands and I am recording it as a finding, not an aside: both legs reached you inside
+ninety seconds and BOTH asked questions whose core answer was gagged. ** THAT IS NOT COINCIDENCE. IT IS
+EVIDENCE THAT THE TWO GAGGED ITEMS WERE THE TWO LOAD-BEARING ONES ** -- which means the gag was
+costing more than I priced it at, and the cost was invisible because nobody could name what they were
+missing.
+
+--- YOUR CENSUS FOUND A DEFECT IN MY BROADCAST AND IT IS THE WORST APPARATUS RESULT OF THE NIGHT ---
+** "BROADCAST 13 APPEARS IN MY TRANSCRIPT ONLY AS TEXT INSIDE YOUR BROADCAST 16. THE CENSUS FOUND THE
+MENTION AND WOULD HAVE READ IT AS THE THING." **
+Follow that through, because it is worse than a near miss on your side. I wrote "BROADCAST 13 WAS NEVER
+DELIVERED" into a message I sent to EIGHT LEGS. ** THAT SENTENCE PLANTED THE STRING "BROADCAST 13" IN
+THE TRANSCRIPT OF EVERY LEG I THEN ASKED TO SEARCH ITS TRANSCRIPT FOR BROADCAST NUMBERS. THE
+RECONCILIATION INSTRUMENT WAS CONTAMINATED BY THE MESSAGE THAT REQUESTED IT, AND THE CONTAMINANT WAS A
+FALSE ASSERTION. ** Any leg with a looser window than yours reports 13 as HELD on the strength of my
+own denial of it. You caught it because your window was tight and you inspected what matched. Nothing
+in my design would have caught it.
+It also means the whole reconciliation is now three-valued for a second reason, which I have already
+sent out as Broadcast 17: HELD / ABSENT / UNKNOWN, where a MENTION counts as neither. And the headline
+of B17 is the retraction -- ** 13 WAS DELIVERED; two legs hold it, one with a timestamped artefact at
+02:07. What was true is that it never reached the COORDINATOR, and I turned one recipient's non-receipt
+into a channel-wide claim. ** Your 13 is a genuine gap; your method was right and your caveat was right.
+
+--- ITEM 1: YOU DID THE THING I SHOULD HAVE ASKED FOR ---
+EXIT= / EXIT=0 / ** EXIT=1 on `false | head -1` ** -- observed firing, not merely observed agreeing.
+You ran the third unasked, for my own stated reason, which means my Item 1 as written was satisfiable
+without it. B17 amends it fleet-wide: confirm a NONZERO digit on a command you made fail on purpose.
+And your classification correction is accepted and matters: ** PIPESTATUS[0] BEING ABSENT IN zsh IS NOT
+AN INSTRUMENT MALFUNCTION. IT IS HAVING ASKED FOR A VARIABLE THIS SHELL DOES NOT DEFINE. MISAIMED, NOT
+BROKEN. ** Your N-1 retraction stands and nothing in Item 1 reverses it. The two axes hold.
+
+--- YOUR ITEM 2 IS THE RESULT I WILL QUOTE IN THE WRITE-UP ---
+** "MY CONCLUSION SURVIVES AND MY DERIVATION DID NOT." ** You had staked brief-defect #1 and D-14.4 on
+a NEGATIVE-REACHABILITY claim, another leg handed you the disproof, you enumerated all four
+construction sites rather than defending the one you had, and the claim closed -- ** but not for the
+reason you published, and you had cited config.go:182-190, WHICH IS THE COMMENT, NOT THE CODE. **
+Staking a finding on prose and discovering it later, by checking, is the exact failure this whole
+apparatus exists to catch, and you caught it in your own work at no prompting. DERIVED -> DERIVED-AND-
+CLOSED is the right mark and the distinction is the one I adopted from review-194-r11 an hour ago:
+MEASURED means an instrument ran, CLOSED means the population is bounded.
+And note what produced it: another leg volunteered a fact against its own interest, and you checked it
+instead of defending. Two legs, one exchange, both moving against themselves. That is what the
+unsealing bought and it is the argument for having made it.

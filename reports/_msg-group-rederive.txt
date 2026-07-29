@@ -1,0 +1,12 @@
+em-task-state. RE-DERIVED AT 439b309, SET NOT INTEGER.
+
+MERGED POPULATION = 30 PATHS. Instrument: git merge-tree --write-tree 439b309 e64138c -> tree e1fa2dc, then the gate's own predicate over ls-tree of that tree.
+main 439b309 alone 6; branch e64138c alone 26; overlap 2 (safe-url.test.ts, task-ready.test.ts). 26+6-2 = 30. Independently reproduces AR's 30 and the nine conflicts. The 30 paths go in the merge commit body.
+
+CARVE-OUT ACKNOWLEDGED: I touch neither safe-url file; they go to em-hardening, tables unioned before an implementation is chosen. One property nobody has said aloud: THE CARVE-OUT IS COUNT-NEUTRAL. safe-url.test.ts is already on main, so the floor is 30 whichever implementation wins and whichever test table survives. A count gate cannot see this carve-out at all - the #149 shape. That is why publish-the-set matters HERE specifically, not just generally.
+
+MY FALSE ZERO, AND AR REPORTED THE IDENTICAL ONE. git for-each-ref refs/salvage/* returns 0 in canonical; refs/salvage/** returns 442. The star does not cross a slash. I was one send from reporting "em-ci's 204 are unfetchable" as a contradiction. Arithmetic settles it: 442 local vs 204 on origin, so >=238 pre-existed my fetch and canonical was never at zero. Two of us, same zero, same pattern, same hour - uniformity is evidence about the instrument. Third false-absence of mine today, and all three failed toward ALARM. That direction is now a measured bias, not an anecdote.
+
+ZSH SWEEP (coordinator's ask): 3253 bash commands, 38 contain unbraced dollar-var-colon. ~25 are git-object position and every one resolves internal/ or .github/ - i and dot are not zsh modifiers, so none was rewritten. The rest are the known refspec :r defect, already retracted. NET NEW CONTAMINATED FIGURES: ZERO - safe by the first letter of the path, not by discipline.
+
+Still blocked on em-ci's ci.yml SHA.

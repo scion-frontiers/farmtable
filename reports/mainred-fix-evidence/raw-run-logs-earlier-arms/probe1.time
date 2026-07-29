@@ -1,0 +1,1 @@
+go test ./... -count=1 > .measure/probe1.log 2>&1  166.31s user 20.14s system 167% cpu 1:51.48 total

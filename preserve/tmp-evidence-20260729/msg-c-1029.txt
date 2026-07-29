@@ -1,0 +1,52 @@
+*** THE RESTORE PROOF WAS ITSELF A RECEIPT. I FOUND IT BY RE-RUNNING THE VERIFICATION SOMEWHERE A
+READER EXISTS, AND IT CHANGES WHAT SECTION 24(a) SAYS. ***
+
+relocate pointed out that /tmp is PER-AGENT here - it sees zero of my restore-proof directories. So
+the proof underpinning the entire deliverable was ASSERTED, NOT PUBLISHED, and it sat on ephemeral
+storage. I re-ran the whole thing from a bundle on the persistent device and wrote the transcript to
+preserve/RESTORE-VERIFICATION-20260729T1027Z.log, st_dev 2049.
+
+THE RE-RUN FAILED AT A STEP NOBODY HAD EVER RUN:
+
+  git clone <bundle> restored  ->  HEAD = task-state-web-ui-v2
+  does that branch contain web/src/util/url-binding-scan.test.ts?   NO. ZERO MATCHES.
+  the path exists on 2 of 207 refs - url-scheme-validation-r5 and r6, both the target blob.
+
+  A RESTORE THAT VERIFIES BY OBJECT ID PROVES THE BYTES SURVIVED. IT DOES NOT PROVE ANYONE CAN FIND
+  THEM. PRESENT, REACHABLE AND CHECKED OUT ARE THREE DIFFERENT PROPERTIES. Every restore check
+  tonight asked the first. The packet sentence "verified by content hash" would have been read as
+  the third.
+
+Somebody restoring in a hurry clones the bundle, does not find the file, and concludes THE BUNDLE IS
+MISSING THE WORK. The brief said a backup file is a receipt because a later reader cannot tell it
+from the data being safe. THE DELIVERABLE I BUILT TO ESCAPE THAT WAS AN INSTANCE OF IT ONE LEVEL
+DOWN: I proved bytes survive and never proved a person could reach them.
+
+  THE RECOVERY INSTRUCTION IS PART OF THE ARTEFACT AND IT WAS NOT IN IT. A BUNDLE PLUS A HASH IS A
+  RECEIPT FOR BYTES. A BUNDLE PLUS THE BRANCH NAME IS A BACKUP.
+
+FIXED AND, PER THE EXECUTION GATE YOU MANDATED THIS HOUR, EXECUTED RATHER THAN WRITTEN:
+  git checkout -b recovered origin/url-scheme-validation-r6
+  -> present, 68066 bytes, hash-object c8cb6993581fa202c44cf702f41680fa96442a78, MATCH,
+     sha256 5b20f783b42fdb713499afc6b4470286e3ea7937629edcc02579021196ba4b76.
+Your gate caught a defect in a RECOVERY PROCEDURE on its first application outside apparatus rules.
+I would extend it: NO RECOVERY INSTRUCTION IS PUBLISHED UNTIL SOMEONE HAS RUN IT FROM THE ARTEFACT.
+
+ALSO DONE, from relocate's other point: a five-line banner now sits at the TOP of
+00-READ-FIRST-...md stating that nothing in the directory is off-host, that OFFHOST-MANIFEST.md names
+a property it does not have, and that MY OWN filename's DO-NOT-MOVE-OFF-HOST describes a prohibition
+rather than an accomplished state. I did NOT edit relocate's file - it is theirs.
+  AN ARTEFACT NAMED FOR A PROPERTY IS READ AS EVIDENCE OF THE PROPERTY, AND NOBODY STATS A FILE TO
+  CHECK. That is relocate's and it indicts the whole naming scheme of the preserve directory.
+
+SECTION 24(a) AMENDED: the restore answer is YES; it is LOGICAL recoverability, via a NAMED BRANCH,
+on ONE disk. All three qualifiers are load-bearing and none of them was in the sentence you asked me
+to write ninety minutes ago.
+
+ANNOUNCING A CREATION per the EM's standing order: /tmp/ft-restore-published-20260729T1027Z/restored,
+an own-store clone from a bundle. UNDER /tmp, NOT /workspace, so the census is unaffected - 115
+own-store clones under /workspace, 127 registrations, unchanged. If a sweep reaches into /tmp and
+finds one more, it is mine.
+
+Report 2498 lines MEASURED. Freeze intact, nothing deleted or moved, no config writes, nothing to
+ptone.

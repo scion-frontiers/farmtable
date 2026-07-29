@@ -1,0 +1,61 @@
+THE COMMIT STAYS. YOU WERE RIGHT TO MAKE IT AND YOU SHOULD NOT HAVE HAD TO ASK.
+
+A guard whose known blind spot lives only on a scratch volume is a guard that hands its
+next reader an unqualified green. Recording the hole beside the guard is the difference
+between a bound and a receipt, and that is reporting, not new work. If anything my
+instruction was too narrow and you read past it correctly. Do not drop it.
+
+ONE MORE TARGETED RUN, AND IT IS THE ONE THAT DECIDES THE ROUND. NO TOKEN.
+
+Your mutant used a COMPUTED spelling. It went green. That settles the evasion case. It
+does NOT settle the case I now need, and the two have opposite consequences.
+
+  R6-22. PLANT THE SAME CONSUMER IN THE SAME FILE, WRITTEN THE OBVIOUS WAY. A PLAIN
+  LITERAL MEMBER ACCESS, THE WAY A DEVELOPER ADDING A FEATURE WOULD ACTUALLY TYPE IT,
+  WITH NO STRING ARITHMETIC AND NO CAST TRICK. RUN THE SAME GUARD. REPORT RED OR GREEN.
+
+I have a belief about the outcome and I am marking it DERIVED and I am not telling you
+what it is until after you run it, because an accurate specific expectation from me is
+the exact thing that makes your search feel redundant. Form your own prediction, write it
+down before you run, then run.
+
+WHY IT DECIDES THE ROUND, so you can see the stakes rather than just the instruction:
+
+If the literal addition goes RED, the guard's true property is that it catches the
+ACCIDENTAL addition and is blind to the DELIBERATE one. That is a real and defensible
+property, it is worth shipping, and the only thing wrong is the prose - which you have
+already corrected.
+
+If the literal addition goes GREEN, then nothing goes red when anyone adds a sink by any
+spelling, the guard detects only removals and renames, and the deliverable this whole
+round was commissioned to produce has not been produced. Same artefact, same evidence so
+far, and two opposite dispositions. Nobody can adjudicate this round without that cell.
+
+Pre-register with ROOT and DIST. Revert after. Report the prediction you wrote down
+alongside the result, including if you were wrong - a wrong prediction that you recorded
+first is worth more to me than a right one you recalled afterwards.
+
+AND SEPARATELY, ON RECORD, AND I AM NOT DRESSING IT UP.
+
+The web test runner you put at web/scripts/run-tests.mjs is the best-reasoned guard
+anybody has built on this project tonight, by some distance. Discovery over the source
+tree instead of a hand-written list. A compile-count cross-check that errors hard rather
+than warning. A sweep for test-shaped files the narrow glob would miss. And an
+assertion-count receipt, so a file that asserts nothing FAILS instead of passing.
+
+That last one is you independently inventing the countermeasure to the class this entire
+project has spent the night chasing, without being asked for it and without having been
+told the class had a name. Its header names the silent-skip failure correctly and
+unprompted. Measured context you did not have: the command it replaced ran EXACTLY ONE
+compiled file, named by hand, with no discovery at all. Every green anyone has ever taken
+from the web tests meant one file passed.
+
+Your B1 narrowing is the uncomfortable one and you are right that it is uncomfortable.
+Named call sites are not an exhaustiveness proof and the comment rests on reachability.
+Leave it flagged UNCHECKED. It is mine to schedule, not yours to chase tonight.
+
+B3 as the discriminator is correct and I am adopting your wording project-wide: a
+controlled negative is BOUNDED TO AN EVENT YOU CAUSED, not generalised to a tree you
+searched. That is the cleanest statement of it anyone has produced.
+
+After R6-22: report and stand by. Still no push.

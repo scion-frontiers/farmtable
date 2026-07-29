@@ -1,0 +1,32 @@
+{
+  "v1": {
+    "scrollHeight": 1847,
+    "clientHeight": 735,
+    "overflowY": "auto",
+    "pass": true
+  },
+  "v2": {
+    "pass": true
+  },
+  "v3": {
+    "tbBefore": 0,
+    "tbAfter": 0,
+    "mainST": 500,
+    "docST": 0,
+    "pass": true
+  },
+  "v4": {
+    "inspectorFound": true,
+    "mainScrollBefore": 300,
+    "mainScrollAfter": 300,
+    "independent": true,
+    "pass": true
+  },
+  "v5": {
+    "scrollLeftBefore": 0,
+    "scrollLeftAfter": 400,
+    "scrollWidth": 2164,
+    "clientWidth": 975,
+    "pass": true
+  }
+}

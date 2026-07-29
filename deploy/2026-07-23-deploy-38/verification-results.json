@@ -1,0 +1,56 @@
+[
+  {
+    "check": "d-label",
+    "action": "Button label reads \"Solo\" (not \"Isolate\")",
+    "pass": true,
+    "detail": "Button text: \"Solo\". Contains \"Solo\": true. Contains \"Isolate\": false"
+  },
+  {
+    "check": "a",
+    "action": "Solo button appears and is enabled for selected task",
+    "pass": true,
+    "detail": "Button found, enabled. Selected task: \"foobar\" (direct children: 1, total descendants: 1, parent: 51dae6ed-7173-4da7-b7ff-f4e51682330f)"
+  },
+  {
+    "check": "b",
+    "action": "Solo filters tree to selected task + descendants",
+    "pass": true,
+    "detail": "Before Solo: 37 nodes. After Solo: 2 nodes. Selected: \"foobar\" (expected: 1 + 1 descendants). Solo button active: true. Visible nodes in Solo mode: [\"foobar\",\"my-new-task\"]"
+  },
+  {
+    "check": "c",
+    "action": "Solo toggle off returns to full tree",
+    "pass": true,
+    "detail": "After toggling Solo off: 37 nodes (same as before: 37). Solo active: false"
+  },
+  {
+    "check": "d-console",
+    "action": "No console errors during Solo toggle",
+    "pass": true,
+    "detail": "Zero relevant console errors (0 filtered)"
+  },
+  {
+    "check": "e1",
+    "action": "Tree view renders correctly (SVG + nodes + edges)",
+    "pass": true,
+    "detail": "SVG: true, nodes: 37, edges: 5, viewBox: 1715 -1380 4850 3120"
+  },
+  {
+    "check": "e2",
+    "action": "Minimap is present",
+    "pass": true,
+    "detail": "Minimap found: true"
+  },
+  {
+    "check": "e3",
+    "action": "Node selection (highlight) works",
+    "pass": true,
+    "detail": "Clicked: \"Test task from real client\". Selected: \"Test task from real client\". selected=true"
+  },
+  {
+    "check": "e4",
+    "action": "Zoom (mouse wheel) changes viewBox",
+    "pass": true,
+    "detail": "Before: \"342.0418652888858 -356.15392465135653 1328.431886873748 854.578863308473\", After: \"402.38363234650626 -317.3094308646077 1207.6653517034072 776.8898757349754\". Changed: true"
+  }
+]

@@ -1,0 +1,469 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"slices"
+	"strings"
+
+	"github.com/steveyegge/beads/cmd/bd/doctor"
+	"github.com/steveyegge/beads/cmd/bd/doctor/fix"
+	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/steveyegge/beads/internal/ui"
+	"golang.org/x/term"
+)
+
+// previewFixes shows what would be fixed without applying changes
+func previewFixes(result doctorResult) {
+	// Collect all fixable issues
+	var fixableIssues []doctorCheck
+	for _, check := range result.Checks {
+		if (check.Status == statusWarning || check.Status == statusError) && check.Fix != "" {
+			fixableIssues = append(fixableIssues, check)
+		}
+	}
+
+	if len(fixableIssues) == 0 {
+		fmt.Println("\n✓ No fixable issues found (dry-run)")
+		return
+	}
+
+	fmt.Println("\n[DRY-RUN] The following issues would be fixed with --fix:")
+	fmt.Println()
+
+	for i, issue := range fixableIssues {
+		// Show the issue details
+		fmt.Printf("  %d. %s\n", i+1, issue.Name)
+		if issue.Status == statusError {
+			fmt.Printf("     Status: %s\n", ui.RenderFail("ERROR"))
+		} else {
+			fmt.Printf("     Status: %s\n", ui.RenderWarn("WARNING"))
+		}
+		fmt.Printf("     Issue:  %s\n", issue.Message)
+		if issue.Detail != "" {
+			fmt.Printf("     Detail: %s\n", issue.Detail)
+		}
+		fmt.Printf("     Fix:    %s\n", issue.Fix)
+		fmt.Println()
+	}
+
+	fmt.Printf("[DRY-RUN] Would attempt to fix %d issue(s)\n", len(fixableIssues))
+	fmt.Println("Run 'bd doctor --fix' to apply these fixes")
+}
+
+func applyFixes(result doctorResult) {
+	// Collect all fixable issues
+	var fixableIssues []doctorCheck
+	for _, check := range result.Checks {
+		if (check.Status == statusWarning || check.Status == statusError) && check.Fix != "" {
+			fixableIssues = append(fixableIssues, check)
+		}
+	}
+
+	if len(fixableIssues) == 0 {
+		fmt.Println("\nNo fixable issues found.")
+		return
+	}
+
+	// Show what will be fixed
+	fmt.Println("\nFixable issues:")
+	for i, issue := range fixableIssues {
+		fmt.Printf("  %d. %s: %s\n", i+1, issue.Name, issue.Message)
+	}
+
+	// Interactive mode - confirm each fix individually
+	if doctorInteractive {
+		applyFixesInteractive(result.Path, fixableIssues)
+		return
+	}
+
+	// Ask for confirmation (skip if --yes flag is set or stdin is non-interactive)
+	if !doctorYes {
+		// Detect non-interactive stdin (e.g., piped input in CI/automation)
+		isInteractive := term.IsTerminal(int(os.Stdin.Fd()))
+		if !isInteractive {
+			// In non-interactive mode without --yes, skip with helpful message
+			fmt.Fprintf(os.Stderr, "\n%s Running in non-interactive mode\n", ui.RenderWarn("⚠"))
+			fmt.Fprintf(os.Stderr, "  To auto-fix issues without prompting, use: %s\n\n", ui.RenderAccent("bd doctor --fix --yes"))
+			return
+		}
+
+		fmt.Printf("\nThis will attempt to fix %d issue(s). Continue? (Y/n): ", len(fixableIssues))
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+			return
+		}
+
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response != "" && response != "y" && response != "yes" {
+			fmt.Println("Fix canceled.")
+			return
+		}
+	}
+
+	// Apply fixes
+	fmt.Println("\nApplying fixes...")
+	applyFixList(result.Path, fixableIssues)
+}
+
+// applyFixesInteractive prompts for each fix individually
+func applyFixesInteractive(path string, issues []doctorCheck) {
+	// Detect non-interactive stdin before attempting to prompt
+	isInteractive := term.IsTerminal(int(os.Stdin.Fd()))
+	if !isInteractive {
+		fmt.Fprintf(os.Stderr, "\n%s Interactive mode requires a terminal\n", ui.RenderWarn("⚠"))
+		fmt.Fprintf(os.Stderr, "  Use 'bd doctor --fix --yes' for non-interactive mode\n\n")
+		return
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	applyAll := false
+	var approvedFixes []doctorCheck
+
+	fmt.Println("\nReview each fix:")
+	fmt.Println("  [y]es - apply this fix")
+	fmt.Println("  [n]o  - skip this fix")
+	fmt.Println("  [a]ll - apply all remaining fixes")
+	fmt.Println("  [q]uit - stop without applying more fixes")
+	fmt.Println()
+
+	for i, issue := range issues {
+		// Show issue details
+		fmt.Printf("(%d/%d) %s\n", i+1, len(issues), issue.Name)
+		if issue.Status == statusError {
+			fmt.Printf("  Status: %s\n", ui.RenderFail("ERROR"))
+		} else {
+			fmt.Printf("  Status: %s\n", ui.RenderWarn("WARNING"))
+		}
+		fmt.Printf("  Issue:  %s\n", issue.Message)
+		if issue.Detail != "" {
+			fmt.Printf("  Detail: %s\n", issue.Detail)
+		}
+		fmt.Printf("  Fix:    %s\n", issue.Fix)
+
+		// Check if we should apply all remaining
+		if applyAll {
+			fmt.Println("  → Auto-approved (apply all)")
+			approvedFixes = append(approvedFixes, issue)
+			continue
+		}
+
+		// Prompt for this fix
+		fmt.Print("\n  Apply this fix? [y/n/a/q]: ")
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+			if len(approvedFixes) > 0 {
+				fmt.Printf("\nApplying %d previously approved fix(es) before exit...\n", len(approvedFixes))
+				applyFixList(path, approvedFixes)
+			}
+			return
+		}
+
+		response = strings.TrimSpace(strings.ToLower(response))
+		switch response {
+		case "y", "yes":
+			approvedFixes = append(approvedFixes, issue)
+			fmt.Println("  → Approved")
+		case "n", "no", "":
+			fmt.Println("  → Skipped")
+		case "a", "all":
+			applyAll = true
+			approvedFixes = append(approvedFixes, issue)
+			fmt.Println("  → Approved (applying all remaining)")
+		case "q", "quit":
+			fmt.Println("  → Quit")
+			if len(approvedFixes) > 0 {
+				fmt.Printf("\nApplying %d approved fix(es)...\n", len(approvedFixes))
+				applyFixList(path, approvedFixes)
+			} else {
+				fmt.Println("\nNo fixes applied.")
+			}
+			return
+		default:
+			// Treat unknown input as skip
+			fmt.Println("  → Skipped (unrecognized input)")
+		}
+		fmt.Println()
+	}
+
+	// Apply all approved fixes
+	if len(approvedFixes) > 0 {
+		fmt.Printf("\nApplying %d approved fix(es)...\n", len(approvedFixes))
+		applyFixList(path, approvedFixes)
+	} else {
+		fmt.Println("\nNo fixes approved.")
+	}
+}
+
+// orderDoctorFixes sorts doctor fixes in place into a dependency-aware apply
+// order. Extracted from applyFixList so the ordering invariants are unit
+// testable without a live database — notably that "Blocked State" (the full
+// is_blocked recompute) runs after every graph-mutating fix, so it recomputes
+// from the corrected graph rather than a pre-repair one (bd-6dnrw.37).
+func orderDoctorFixes(fixes []doctorCheck) {
+	// Apply fixes in a dependency-aware order.
+	// Rough dependency chain:
+	// gitignore (fast, security-critical) → permissions/lock cleanup → config sanity → DB integrity/migrations.
+	order := []string{
+		"Gitignore",
+		"Project Gitignore",
+		"Metadata Config",
+		"Lock Files",
+		"Circuit Breaker",
+		"Permissions",
+		"Database Config",
+		"Config Values",
+		"Database Integrity",
+		"Database",
+		"Fresh Clone",
+		"Schema Compatibility",
+		"Project Identity",
+	}
+	priority := make(map[string]int, len(order)+1)
+	for i, name := range order {
+		priority[name] = i
+	}
+	// "Blocked State" recomputes is_blocked from the dependency graph, so it must
+	// run after every graph-mutating fix (Dependency Keys, Orphaned/Child-Parent
+	// Dependencies, Cross-Table Duplicates). Those are all unlisted and share the
+	// default priority below, and their relative order would otherwise be decided
+	// by check-append order alone. Pin Blocked State to an explicit terminal
+	// priority so it is provably last regardless of append order (bd-6dnrw.37).
+	const defaultPriority = 1000
+	priority["Blocked State"] = defaultPriority + 1
+	slices.SortStableFunc(fixes, func(a, b doctorCheck) int {
+		pa, oka := priority[a.Name]
+		if !oka {
+			pa = defaultPriority
+		}
+		pb, okb := priority[b.Name]
+		if !okb {
+			pb = defaultPriority
+		}
+		if pa < pb {
+			return -1
+		}
+		if pa > pb {
+			return 1
+		}
+		return 0
+	})
+}
+
+// applyFixList applies a list of fixes and reports results
+func applyFixList(path string, fixes []doctorCheck) {
+	orderDoctorFixes(fixes)
+
+	fixedCount := 0
+	errorCount := 0
+
+	for _, check := range fixes {
+		fmt.Printf("\nFixing %s...\n", check.Name)
+
+		var err error
+		switch check.Name {
+		case "Metadata Config":
+			err = fix.FixMissingMetadataJSON(path)
+		case "Gitignore":
+			err = doctor.FixGitignore(path)
+		case "Project Gitignore":
+			// Stealth / no-git-ops repos must not get a tracked .gitignore; route the patterns into
+			// .git/info/exclude instead (matches bd init --stealth) and strip any beads section a
+			// previous run leaked into the tracked .gitignore so stealth leaves no trace.
+			if isStealthRepo(path) {
+				if err = addProjectPatternsToGitExclude(path, doctor.ProjectGitignorePatterns, false); err == nil {
+					_, err = removeBeadsProjectGitignoreSection(path)
+				}
+			} else {
+				err = doctor.FixProjectGitignore(path)
+			}
+		case "Redirect Tracking":
+			err = doctor.FixRedirectTracking(path)
+		case "Last-Touched Tracking":
+			err = doctor.FixLastTouchedTracking(path)
+		case "Tracked Runtime Files":
+			err = doctor.FixTrackedRuntimeFiles(path)
+		case "Git Hooks":
+			err = fix.GitHooks(path)
+		case "Sync Divergence":
+			fmt.Printf("  ⚠ Sync divergence fix removed (Dolt-native sync)\n")
+			continue
+		case "Permissions":
+			err = fix.Permissions(path)
+		case "Database":
+			err = fix.DatabaseVersionWithBdVersion(path, Version)
+			// Also repair any other missing metadata fields (bd_version, repo_id, clone_id)
+			if mErr := fix.FixMissingMetadata(path, Version); mErr != nil && err == nil {
+				err = mErr
+			}
+		case "Database Integrity":
+			// Corruption detected - backup and reinitialize
+			err = fix.DatabaseIntegrity(path)
+		case "Schema Compatibility":
+			err = fix.SchemaCompatibility(path)
+		case "Repo Fingerprint":
+			err = fix.RepoFingerprint(path, doctorYes)
+			// Also repair any other missing metadata fields (bd_version, repo_id, clone_id)
+			if mErr := fix.FixMissingMetadata(path, Version); mErr != nil && err == nil {
+				err = mErr
+			}
+		case "Database Config":
+			err = fix.DatabaseConfig(path)
+		case "JSONL Config":
+			fmt.Printf("  ⚠ JSONL config migration removed (Dolt-native sync)\n")
+			continue
+		case "Untracked Files":
+			fmt.Printf("  ⚠ Untracked JSONL fix removed (Dolt-native storage)\n")
+			continue
+		case "Cross-Table Duplicates":
+			err = fix.CrossTableDuplicates(path, doctorVerbose)
+		case "Orphaned Dependencies":
+			err = fix.OrphanedDependencies(path, doctorVerbose)
+		case "Dependency Keys":
+			err = fix.DependencyKeys(path, doctorVerbose)
+		case "Blocked State":
+			// bd-6dnrw.37: full is_blocked recompute. Pinned to a terminal
+			// priority in the sort above so it runs after every graph-mutating
+			// fix, recomputing from the corrected graph.
+			err = fix.RecomputeBlocked(path)
+		case "Child-Parent Dependencies":
+			// Requires explicit opt-in flag (destructive, may remove intentional deps)
+			if !doctorFixChildParent {
+				fmt.Printf("  ⚠ Child→parent deps require explicit opt-in: bd doctor --fix --fix-child-parent\n")
+				continue
+			}
+			err = fix.ChildParentDependencies(path, doctorVerbose)
+		case "Duplicate Issues":
+			// No auto-fix: duplicates require user review
+			fmt.Printf("  ⚠ Run 'bd duplicates' to review and merge duplicates\n")
+			continue
+		case "Test Pollution":
+			// No auto-fix: test cleanup requires user review
+			fmt.Printf("  ⚠ Run 'bd doctor --check=pollution' to review and clean test issues\n")
+			continue
+		case "Git Conflicts":
+			// No auto-fix: git conflicts require manual resolution
+			fmt.Printf("  ⚠ Resolve conflicts manually\n")
+			continue
+		case "Stale Closed Issues":
+			// consolidate cleanup into doctor --fix
+			err = fix.StaleClosedIssues(path)
+		case "Compaction Candidates":
+			// No auto-fix: compaction requires agent review
+			fmt.Printf("  ⚠ Run 'bd compact --analyze' to review candidates\n")
+			continue
+		case "Large Database":
+			// No auto-fix: pruning deletes data, must be user-controlled
+			fmt.Printf("  ⚠ Run 'bd cleanup --older-than 90' to prune old closed issues\n")
+			continue
+		case "Legacy MQ Files":
+			err = doctor.FixStaleMQFiles(path)
+		case "Patrol Pollution":
+			err = fix.PatrolPollution(path)
+		case "Lock Files":
+			err = fix.StaleLockFiles(path)
+		case "Circuit Breaker":
+			dolt.CleanStaleCircuitBreakerFiles()
+			fmt.Printf("  %s Cleared stale circuit breaker files\n", ui.RenderPass("✓"))
+		case "Fresh Clone":
+			err = fix.FreshCloneImport(path, Version)
+		case "Pending Migrations":
+			err = fixPendingMigrations(path)
+		case "Config Values":
+			err = fix.ConfigValues(path)
+		case "Classic Artifacts":
+			err = fix.ClassicArtifacts(path)
+		case "Btrfs NoCOW (dolt)":
+			// Applies FS_NOCOW_FL to .beads/ and any existing dolt data
+			// subdirs. Prints the returned message (which includes the
+			// "relocate existing files" warning) so the user sees why the
+			// fix is incomplete on its own.
+			var msg string
+			msg, err = doctor.FixBtrfsNoCOW(path)
+			if err == nil && msg != "" {
+				fmt.Print(msg)
+				if !strings.HasSuffix(msg, "\n") {
+					fmt.Println()
+				}
+			}
+		case "Project Identity":
+			err = fix.FixProjectIdentity(path)
+		case "Dolt Schema":
+			// GH#2160: Pre-#2142 migrations may have wrong database configured.
+			// Probe the server and backfill dolt_database in metadata.json.
+			err = fix.FixMissingDoltDatabase(path)
+		case "Dolt Format":
+			err = fix.DoltFormat(path)
+		case "Corrupt Manifest":
+			// GH#3290 / bd-6dnrw.6: destructive backup+reinit, gated here so it
+			// only ever runs on explicit doctor --fix confirmation.
+			var backups []string
+			backups, err = doltserver.RecoverCorruptManifest(doctor.ResolveBeadsDirForRepo(path))
+			for _, b := range backups {
+				fmt.Printf("  Backed up corrupt dolt database to %s and reinitialized\n", b)
+			}
+		default:
+			fmt.Printf("  ⚠ No automatic fix available for %s\n", check.Name)
+			fmt.Printf("  Manual fix: %s\n", check.Fix)
+			continue
+		}
+
+		if err != nil {
+			errorCount++
+			fmt.Printf("  %s Error: %v\n", ui.RenderFail("✗"), err)
+			fmt.Printf("  Manual fix: %s\n", check.Fix)
+		} else {
+			fixedCount++
+			fmt.Printf("  %s Fixed\n", ui.RenderPass("✓"))
+		}
+	}
+
+	// Summary
+	fmt.Printf("\nFix summary: %d fixed, %d errors\n", fixedCount, errorCount)
+	if errorCount > 0 {
+		fmt.Println("\nSome fixes failed. Please review the errors above and apply manual fixes as needed.")
+	}
+}
+
+func fixPendingMigrations(path string) error {
+	pending := doctor.DetectPendingMigrations(path)
+	if len(pending) == 0 {
+		return nil
+	}
+
+	for _, migration := range pending {
+		switch migration.Name {
+		case "hooks":
+			plan, err := doctor.PlanHookMigration(path)
+			if err != nil {
+				return fmt.Errorf("building hook migration plan: %w", err)
+			}
+
+			execPlan := buildHookMigrationExecutionPlan(plan)
+			if len(execPlan.BlockingErrors) > 0 {
+				return fmt.Errorf("hook migration is blocked:\n- %s", strings.Join(execPlan.BlockingErrors, "\n- "))
+			}
+
+			summary, err := applyHookMigrationExecution(execPlan)
+			if err != nil {
+				return fmt.Errorf("applying hook migration: %w", err)
+			}
+
+			fmt.Printf(
+				"  Hook migration applied: %d hook(s) written, %d artifact(s) retired, %d artifact(s) skipped\n",
+				summary.WrittenHookCount,
+				summary.RetiredCount,
+				summary.SkippedCount,
+			)
+		default:
+			return fmt.Errorf("no automatic fix available for pending migration %q", migration.Name)
+		}
+	}
+
+	return nil
+}

@@ -1,0 +1,14 @@
+C0-document.write	RED	tsc-clean	(suite red)
+C1-dompurify-import	GREEN	tsc-clean	75 checks passed
+E1-writeln	GREEN	tsc-clean	75 checks passed
+E2-ownerDocument	GREEN	tsc-clean	75 checks passed
+E3-optional-call	GREEN	tsc-clean	75 checks passed
+E4-computed-write	GREEN	tsc-clean	75 checks passed
+E5-DOMParser	GREEN	tsc-clean	75 checks passed
+E6-srcdoc	GREEN	tsc-clean	75 checks passed
+E7-setAttribute-on	GREEN	tsc-clean	75 checks passed
+E8-Object.assign	GREEN	tsc-clean	75 checks passed
+E9-split-specifier	GREEN	tsc-clean	75 checks passed
+E10-multiline-eq	RED	tsc-clean	(suite red)
+E11-parseHTMLUnsafe	GREEN	tsc-clean	75 checks passed
+E12-execCommand	GREEN	tsc-clean	75 checks passed

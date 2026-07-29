@@ -1,0 +1,122 @@
+SECOND-PHRASING SWEEP: ZERO NEW HAZARDS. THE FILTER FOUND THE CONTROLS, NOT THE HAZARDS —
+THIRD TIME TONIGHT. THEN THE HOMONYM, WHERE YOU WERE RIGHT AND I MATCHED ON A BASENAME.
+
+=== 1. THE SWEEP, UNDRESSED ===
+
+Population widened as ordered: briefs 381 + reports 307 + em-tooling 172 = 860 files.
+
+Verb phrasing, three instruments, and I am reporting the two failures because their
+counts would have looked like findings:
+
+  verb words alone (remove|rm|clear|reclaim|teardown|archive|stale|orphan|garbage|
+  disposable|free up|no longer needed)          -> 6,243 lines   USELESS
+  verb + durable noun on the same line          -> 4,915 lines / 384 of 860 files  USELESS
+  imperative-shaped                             -> 24 lines / 16 files
+
+The middle one is the instructive failure. A filter matching 384 of 860 files is not a
+filter. "stale" matched "stale citations", "tree" matched "treewalk", "orphan" matched
+"orphan-scan", "drop" matched "drop-log". A FILTER THAT MATCHES HALF THE CORPUS IS NOT A
+FILTER, and it is the mirror of the one that matches nothing.
+
+Of the 16 imperative-shaped files, 12 are instruction surfaces:
+
+  ENUMERATED 12 = ALREADY-BANNERED 11 + NOT-BANNERED 1
+
+and the 1 is briefs/_BRIEF-RULES.md, which is §29 QUOTING the hazard as its own evidence.
+
+So: THE SECOND PHRASING FOUND ZERO NEW HAZARDS. The 13 banners already covered every
+instruction surface the verb phrasing reaches. That is the result and I am not dressing
+it up. It does NOT mean the corpus is clean — it means these two phrasings agree, and
+two phrasings that agree are still two phrasings.
+
+=== 2. THE GAP I CHECKED ANYWAY, AND IT INVERTED ===
+
+Bare command forms carry no hazard vocabulary at all, so I swept them separately:
+rm -rf, git worktree remove, git gc, git prune, git branch -D, --prune.
+
+  196 lines / 66 files; 22 on instruction surfaces; 18 not bannered.
+
+18 looked bad. Classified per line:
+
+  ENUMERATED 18 = PROHIBITION 13 + BENIGN-BUILD-ARTEFACT 4 + CANDIDATE 1
+
+The 13 are the freeze WORKING. Verbatim from the hits:
+  "NO `git gc`, NO `git prune`, anywhere. Measured blast radius in canonical: 57"
+  "NO git gc. NO git prune. NO git repack. NOWHERE, NOT EVEN IN A TEMPORARY CLONE"
+  "DO NOT RUN git gc, git prune, git repack, git reflog expire"
+  "NO force. NO --delete. NO --mirror. NO --prune."
+
+The 4 benign are rm -rf against .tmp-test and web/dist — build artefacts, one of them a
+declared POSITIVE CONTROL in a pre-registration. No durable tree named in any of them.
+
+THIRD INSTANCE OF THE POLARITY TRAP TONIGHT, and this is the sharpest form of it: A
+FILTER AIMED AT DESTRUCTION VOCABULARY PREFERENTIALLY FINDS THE CONTROLS THAT FORBID
+DESTRUCTION, because a prohibition must NAME the thing it forbids and an instruction
+need not. My first classifier scored this 13-as-2 and I caught it only because the
+"OTHER" list it printed was visibly full of the word NO. An automated bannering pass
+driven by that instrument would have stamped a hazard warning on 13 statements of the
+freeze itself.
+
+=== 3. THE ONE CANDIDATE IS THE BEST RESULT OF THE SWEEP, AND IT IS AGAINST ME ===
+
+_BRIEF-RULES.md §29 cites `farmtable-em-f23.md:26` as its evidence. The string is at
+line 28. It moved because I BANNERED that file — the remedy §29 prescribes — and the
+banner is two lines.
+
+  §29's EVIDENCE CITATION WAS FALSIFIED BY COMPLYING WITH §29.
+
+Identical shape to the five stale citations that blocked xss-r7, which I also authored:
+an instruction to annotate at file:NNN is self-invalidating, and the more thorough the
+annotation the more wrong the number. Two independent instances, both mine, so it is
+structural and not a lapse. §30 is now written: ASK FOR ANNOTATIONS BY IDENTIFIER,
+NEVER BY LINE NUMBER. Citation fixed by quoted string, with the drift recorded above it
+rather than erased — the correction IS the evidence.
+
+=== 4. THE HOMONYM — YOU WERE RIGHT, I MATCHED ON A BASENAME ===
+
+Measured, both paths, `stat` + `head -1`:
+
+  /workspace/farmtable/.eng-manager-state.md
+    756,039 bytes, 12,521 lines, mtime 2026-07-29 08:06
+    first line: <!-- DURABLE HEAD - READ FIRST, EVERY SESSION -->
+    xss-r7 mentions: 1
+    -> THIS IS MINE. This is my actual continuity file.
+
+  /workspace/.eng-manager-state.md
+    3,275 bytes, 66 lines, mtime 2026-07-28 11:24, unchanged since birth
+    first line: # Eng-Manager State - Auth Improvements Workstream
+    self-declared Last Updated: 2026-07-26 22:39 UTC
+    xss-r7 mentions: 0
+    -> NOT MINE. Another agent's Auth Improvements file, stale about three days.
+
+YOU ORDERED IT BY PATH AND THE PATH WAS RIGHT, so my continuity file is in the copy and
+nothing was lost. But my "both already in your copy" was a basename match and it would
+have made the 3,275-byte file look covered on my say-so.
+
+Two things I want on the record rather than passed over:
+
+(a) My own standing instructions ALREADY disambiguate these two paths explicitly. I had
+    the answer in front of me and collapsed them anyway. That is the same shape as the
+    dispatch-slug error, where both spellings were live in my own corpus and I shipped
+    the wrong one. TWICE NOW THE CORRECT VALUE WAS ALREADY IN MY POSSESSION.
+
+(b) You found it by noticing a 231x size difference between two things I had named
+    ninety minutes apart. That is the magnitude check, applied to my output, by you.
+    It is the check I ran prospectively on my own input earlier tonight and did not run
+    on this.
+
+=== 5. ON YOUR SELF-CHARGE ===
+
+A POPULATION WITHOUT ITS PREDICATE IS A NUMBER WEARING RIGOUR'S CLOTHES. Adopted, and I
+am the one who supplied the specimen. One correction to the framing: you accepted the
+number, but I OFFERED it without its predicate, and the offering is the defect. The rule
+should bind the producer first.
+
+Your praise point is the load-bearing half and I would rather it were not softened by my
+agreeing with it. Apply it here too: this message reports a ZERO and a self-charge, and
+those are the two shapes least likely to be examined.
+
+=== 6. WHAT I HAVE NOT DONE ===
+
+The hedge sweep is next, per your ordering. The 22 are not mine, understood, untouched.
+No deletions, no prunes, no worktree changes. .gitignore unchanged.

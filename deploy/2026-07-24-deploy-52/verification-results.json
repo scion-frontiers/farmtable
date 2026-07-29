@@ -1,0 +1,72 @@
+[
+  {
+    "check": "4a-solo-no-cross-edges",
+    "action": "Solo mode: selected task shows ONLY direct chain edges (no cross-edges)",
+    "pass": true,
+    "detail": "Rendered edges: 7. Orange (blocking): 2. Purple (blocked): 5. Dashed/cross: 0 (expected 0). Other: 0 (expected 0). Selected task: 717ab19c-e86f-4c51-8126-fc16a8f81ef7. isolateMode: true. Nodes: 5. Node titles: , , , , ",
+    "timestamp": "2026-07-24T23:14:10.173Z"
+  },
+  {
+    "check": "4a-correct-repro-task",
+    "action": "Verified using the EXACT original repro task (D16-Run-Tests)",
+    "pass": true,
+    "detail": "Selected task ID: 717ab19c-e86f-4c51-8126-fc16a8f81ef7 (expected 717ab19c-e86f-4c51-8126-fc16a8f81ef7). Task match: true. Matching node title: not found among rendered nodes. All node titles:  |  |  |  | ",
+    "timestamp": "2026-07-24T23:14:10.173Z"
+  },
+  {
+    "check": "5-non-solo-all-edges",
+    "action": "Non-Solo Dependency View renders ALL edges including cross-edges",
+    "pass": true,
+    "detail": "Non-Solo edges: 27 (should be ≥ Solo's 7). Non-Solo nodes: 36. isolateMode: false (expected false). Orange: 0, Purple: 0, Dashed: 0, Other: 27",
+    "timestamp": "2026-07-24T23:14:16.434Z"
+  },
+  {
+    "check": "6a-dependency-culling",
+    "action": "Dependency View loads with viewport culling (Perf Phase 2 from deploy-49)",
+    "pass": true,
+    "detail": "Layout nodes: 36, DOM nodes: 36. Edges: 27 layout, 27 DOM. Culling correct (DOM ≤ layout): true. Scale: 0.396",
+    "timestamp": "2026-07-24T23:14:22.610Z"
+  },
+  {
+    "check": "6b-tree-default-lr",
+    "action": "Tree View defaults to LR layout, no ?layoutdir= param",
+    "pass": true,
+    "detail": "Orientation: LR (expected LR). layoutdir param: null (expected null). Node count: 37. Orientation btn icon: arrow-clockwise",
+    "timestamp": "2026-07-24T23:14:28.886Z"
+  },
+  {
+    "check": "6b-tree-toggle-tb",
+    "action": "Tree View toggles to TB, URL shows ?layoutdir=TB",
+    "pass": true,
+    "detail": "Orientation: TB (expected TB). layoutdir: TB (expected TB)",
+    "timestamp": "2026-07-24T23:14:30.966Z"
+  },
+  {
+    "check": "6b-tree-toggle-back-lr",
+    "action": "Tree View toggles back to LR, URL param removed",
+    "pass": true,
+    "detail": "Orientation: LR (expected LR). layoutdir: null (expected null)",
+    "timestamp": "2026-07-24T23:14:32.982Z"
+  },
+  {
+    "check": "6c-closed-task-solo-regression",
+    "action": "CLOSED task Solo mode still shows relationships (deploy-51 regression)",
+    "pass": true,
+    "detail": "hasNoDepsMessage: false (expected false). Layout nodes: 6. Layout edges: 5. Selected task: 9f7731a8-a23d-493d-86eb-2ac5d39f5e7a. isClosed: true. closedTasksInLayout: 1",
+    "timestamp": "2026-07-24T23:14:41.277Z"
+  },
+  {
+    "check": "6d-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-24T23:14:45.496Z"
+  },
+  {
+    "check": "6e-console-errors",
+    "action": "No relevant console errors",
+    "pass": true,
+    "detail": "Total console errors: 2, relevant: 0. Clean",
+    "timestamp": "2026-07-24T23:14:45.559Z"
+  }
+]

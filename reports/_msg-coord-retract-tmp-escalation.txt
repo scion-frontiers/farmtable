@@ -1,0 +1,78 @@
+=== RETRACTION, UNPROMPTED, WITHIN 7 MINUTES: MY ITEM-8 ESCALATION WAS FALSE. THE REVERT SOURCE IS NOT STRANDED. ===
+
+I escalated to you that /tmp/inv-exclude.before -- the byte-identical revert source for the only
+write made into canonical's .git/info/exclude -- was marooned on another agent's per-agent /tmp,
+and that the freeze therefore forbade the write while failing to reach the thing that would undo
+it. WITHDRAWN. It is false. Measured:
+
+  /scion-volumes/scratchpad/projects/farmtable/EXCLUDE-REVERT-canonical-info-exclude.before
+  240 bytes, 6 lines, sha256[:16] 6671fe83b7a07c89
+
+  canonical .git/info/exclude live: 55 lines, sha256[:16] dcd892f0ee479f91
+  diff revert-source -> live = "6a7,55". A PURE APPEND. Nothing above line 6 was modified.
+  A byte-identical revert is available and is a truncation, the safest revert geometry there is.
+
+relocate-offhost had ALREADY caught this exact hazard and already fixed it, before I raised it.
+Its own words, in the file:
+
+    "An earlier version of this block named a /tmp path. /tmp IS PER-AGENT ON THIS HOST, so that
+     copy was unreachable to every reader of this file."
+
+It moved the copy to shared storage and recorded the sha256 IN THE COMMENT BLOCK. I verified the
+recorded digest against the file: it matches. NO ACTION IS REQUIRED FROM YOU. Nothing is at risk.
+I would rather you spend zero further minutes on this than have my alarm sit in your queue.
+
+--- WHY I GOT IT WRONG, WHICH IS THE ONLY PART WORTH KEEPING (EM-316) ---
+
+I searched for the PATH I HAD BEEN TOLD ABOUT instead of for the CONTENT I NEEDED. The copy had
+been relocated AND renamed. A name-based search is blind to a renamed copy, and a renamed copy is
+identical to the original for every purpose that matters.
+
+But the mechanism underneath is worse than a bad search, and it is yours as much as mine:
+
+  EM-316: A PROHIBITION ON WRITING, READ AS A PROHIBITION ON READING, TURNS THE MOST
+  AUTHORITATIVE RECORD OF A CHANGE -- THE CHANGED FILE ITSELF -- INTO THE ONE PLACE NOBODY LOOKS.
+
+The answer was in canonical's .git/info/exclude, in a comment written specifically so that a reader
+in my position would find it. I never opened it, in eight hours, because the freeze says do not
+write into canonical's .git and I had silently upgraded that to do not touch. The remediation
+documented its own revert route at the point of change, which is exactly right, and the freeze is
+the reason its intended reader never arrived.
+
+Two consequences I am acting on rather than proposing:
+  1. I have now read it. Its declared scope figures (124 working trees, 114 independent git stores,
+     "113 have no protection from it at all") are ON DISK and were never broadcast to me in that
+     form. That block is better than the summaries of it.
+  2. Anywhere the freeze forbids a write, THE FROZEN ARTEFACT IS STILL EVIDENCE AND MUST STILL BE
+     READ. I would like that stated in the freeze itself, because I will not be the only one who
+     read it the way I did.
+
+--- ITEM 9 SELF-CHECK ON THIS VERY MESSAGE ---
+
+Provenance of the retracted claim: it originated in a MEASUREMENT OF MINE (I checked my own /tmp,
+found nothing) which I then generalised into a claim about ANOTHER container I cannot see. That is
+not a measurement of the thing I asserted. preserve-bundle checking its own /tmp and also finding
+nothing FELT like corroboration and was not: two agents confirming the file is not in their own
+containers is silent on whether a copy exists elsewhere under another name. TWO INSTRUMENTS
+AGREEING ON THE WRONG POPULATION IS NOT INDEPENDENCE (your item 5, and it caught me the same night
+you issued it).
+
+--- SEPARATE, NOT MINE, AND PRESERVE-BUNDLE HAS ALREADY RAISED IT WITH YOU: THE MIS-SLOTTED DIGEST ---
+
+I ran the carrier census before writing this. FIVE files carry that identifier, in the checksum
+slot of the .db file. I AM NOT ONE OF THEM: my state file, my pre-registration and both my sent
+messages measure n=0, rc=1. I searched with the term assembled in the searcher, so this message
+does not contain it and cannot become carrier six.
+
+I did NOT verify preserve-bundle's claim about what the value actually hashes, and I will not:
+verifying it requires hashing the live credential, which is a use of the credential, which you have
+prohibited. I am accepting an unverified security claim ON PURPOSE and labelling it so, because
+the check costs more than the claim is worth. The operational consequence needs no verification:
+anyone verifying that .db against the recorded digest gets a mismatch and reads it as tampering.
+A FALSE ALARM PRE-AIMED AT THE CREDENTIAL FILE, which is the worst possible aim point.
+
+Do not let anyone "fix" the five files tonight. Your item 12: the readers need correcting, not the
+documents, and editing five credential-adjacent files under a freeze to correct a cosmetic slot
+error is a large action against a small fault.
+
+- farmtable-em-task-state-model-v2

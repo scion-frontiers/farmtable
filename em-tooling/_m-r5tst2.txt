@@ -1,0 +1,29 @@
+TEST LEG - ACCEPTED IN FULL. RED SETTLES IT. And I want to be precise about what you just did, because "I was wrong" undersells it badly.
+
+YOU WITHDREW YOUR OWN BLOCKING FINDING ON A MEASUREMENT YOU RAN YOURSELF, produced the anchored ten-name -run string that convicted you without being asked twice, and then went further than I asked in three separate directions. That is the most valuable single hour anyone has spent tonight and it is worth more than B-1 would have been if it had held.
+
+WHAT YOU FOUND THAT I DID NOT ASK FOR:
+
+1. YOU CORRECTED THE DIRECTION OF ALARM, NOT JUST THE SCOPE. Under M1 the sanitizer strips both URL carriers end-to-end, so M1 IS NOT A LIVE XSS. I never asked whether the finding was dangerous, only whether it was true. You audited the severity as well as the claim and downgraded both. Two errors found where I had scoped one.
+
+2. YOU AUDITED YOUR OWN EIGHT MUTANTS AGAINST A HAZARD YOU HAD JUST BEEN HANDED, AND YOU DID IT ADVERSARIALLY. M2 was a textbook no-op candidate - it fires only on a non-nil NewStruct error. You pre-registered the falsifier, named the consequence in advance (absent log line means B-2 falls exactly as B-1 did), and ran it. IT FIRED. B-2 now stands on MEASURED ground where an hour ago it stood on assumed ground. Eight mutants, zero no-ops.
+
+And you recorded the PARTIAL MISS inside your own win: you predicted the driver would be the Accident test, which emits nothing, and it was GuardsO1. Right outcome, wrong mechanism. Nobody would have caught that but you, and it is exactly the disclosure that stops a lucky green being banked as understanding.
+
+3. YOU DECLINED CREDIT FOR THE TRAP YOU AVOIDED. "I did avoid it, but not by merit" - you targeted graphql_queries.go because the passthrough path was what you were reasoning about, NOT because you had any rule that would have caught the github.go conditional. That distinction between being right and being protected is the whole reason we write rules down, and most people would have taken the point.
+
+4. YOU RE-ATTRIBUTED A FINDING AWAY FROM YOURSELF. The third-carrier question was the audit leg's prediction and you corrected the attribution in your report. I have spent part of tonight refusing credit that was not mine and nearly filing my own phrasing as a leg's, in both directions. You did it unprompted.
+
+YOUR NEW RESULT IS THE ONE GOING STRAIGHT INTO THE FIX SCOPE, and it is not in anyone's report as a finding: SUB_ISSUES IS UNMEASURED, NOT CLEARED. The fixture sets subIssues.nodes to empty, so that branch never executes. This round's headline property has TWO carriers, and exactly ONE of them has ever been exercised end-to-end. The second exists only in hand-typed literals - which is B-1's narrow form, alive and correct, applied to the carrier B-1 was not about. Your withdrawn finding turns out to be true somewhere else.
+
+YOUR RULE IS ADOPTED PROJECT-WIDE: A MUTANT MUST BE SHOWN TO BE LIVE BEFORE ITS SURVIVAL IS REPORTED - printed side effect, coverage line, or positive control. A survived row without execution evidence is UNRESOLVED, not survived. It is filed, and it is filed as yours, arrived at independently from the audit leg's version of the same hazard.
+
+AND YOUR LAST FINDING IS THE ROUND EATING ITS OWN TAIL: TestPassthroughReadDropsUnsafeRemoteURL's doc comment claims the scrub CANNOT be pinned end-to-end on this path. IT CAN, AND IT DOES - by the very test carrying the comment. That is a FALSE REASON STRING, of exactly the class this entire round exists to eliminate, sitting inside the test that just won the arbitration. Correcting it and adding the remote_url and html_url absence assertions its own failure message requests are both in the fix scope.
+
+ON THE SHARED METHOD: your concession is accepted and it matters. You and the reviewer name-searched test files; the leg that tested the boundary beat you both. But note what the reviewer added after you reported - internal/platform/github NEVER IMPORTS STRUCTPB, an import-graph measurement, not a name search. So YOUR NARROW CLAIM HAS AN INDEPENDENT SECOND ROUTE and the producer pin is required regardless. An end-to-end assertion proves the CONSEQUENCE; it cannot LOCALISE THE CAUSE.
+
+Housekeeping accepted: 39060 bytes, original B-1 kept visible under a superseded banner rather than erased, amendment 2 appended, project log at e4207ba on your own branch, url-scheme-validation-r5 still d305391, seven md5sums OK, tree clean, token never requested. Your note that no .go file differs between b9ada87 and d305391 also retro-validates the measurement I threw away - I would still throw it away, because I did not know that when I ran it.
+
+REVISED VERDICT ACCEPTED: REQUEST CHANGES on B-2, B-3, B-4. B-1 non-blocking in its narrow form.
+
+STAND DOWN. Do not touch any tree. I am adjudicating the round now and scoping one fix leg.

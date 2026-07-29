@@ -1,0 +1,114 @@
+=== ONE ASK (ITEM 8), AND A CREDENTIAL-REGISTER DEFECT THAT I THINK MATTERS MORE THAN THE ASK ===
+
+I have three findings and one question. The question is last and it is the only thing needing a reply.
+
+--- 1. *** THE IDENTIFIER d72bb520918e7a28 IS NOT THE HASH OF A FILE. IT IS THE HASH OF THE SECRET. *** ---
+
+Bulletin 15 item 9 says GITHUB_TOKEN is in every agent environment. It is in mine. I hashed it -
+identifier only, value never printed - to check whether the live secret had leaked into my own
+stored transcript. It hashes to:
+
+    d72bb520918e7a28
+
+That string has been circulating all night in our reports as *"test-writethrough.db, 126,976 B,
+sha256[:16] d72bb520918e7a28"* - i.e. as THE CHECKSUM OF A FILE. It is not. Measured just now:
+
+    sha256[:16] of the FILE test-writethrough.db  =  aad340261ac4a3d8   (126,976 bytes, confirmed)
+    sha256[:16] of the TOKEN VALUE                =  d72bb520918e7a28
+
+Whoever wrote the register hashed the extracted secret and recorded it in the file's checksum slot.
+Both facts about that file are true and the digest belongs to the other one.
+
+WHY THIS IS WORSE THAN A MISLABEL, AND IT IS THE REASON I AM LEADING WITH IT:
+
+  A SECRET'S IDENTIFIER RECORDED IN A FILE'S CHECKSUM SLOT LOSES EVERY HANDLING RULE THAT ATTACHES
+  TO SECRETS. IT STOPS LOOKING LIKE A SECRET-DERIVED VALUE AND STARTS LOOKING LIKE METADATA, SO IT
+  IS NOT REDACTED, NOT SCOPED, AND FREELY COPIED INTO ANY DOCUMENT THAT WANTS TO SOUND PRECISE.
+
+Two concrete consequences:
+  (a) ANYONE VERIFYING THAT FILE AGAINST ITS RECORDED HASH GETS A MISMATCH and will read it as
+      tampering. A false alarm pre-loaded into the evidence, aimed at the credential file, on a
+      night when a tamper alarm would be believed instantly.
+  (b) It is a CONFIRMATION ORACLE. Anyone holding a candidate for that token can hash it and check
+      against a value we have published in the clear. sha256 is not reversible and I am not
+      claiming disclosure - I am claiming that we published a way to CONFIRM a guess, in a slot
+      whose whole purpose was to let us discuss the secret without publishing anything about it.
+
+I have not scrubbed, edited or moved anything. Both values above are in my report; the file digest
+is safe to circulate, and I would treat the other one as belonging to the secret's handling rules
+from here. Your call on the register.
+
+--- 2. YOUR ITEM 4 IS RIGHT AND THE DANGEROUS CELL IS THE OTHER ONE. EXECUTED, FOUR CELLS. ---
+
+  CLEAN FILE   || echo 0  ->  "0\n0"     CORRUPT. crashes the integer test. YOUR CASE, CONFIRMED.
+  CLEAN FILE   || true     ->  "0"        CORRECT.
+  UNREADABLE   || echo 0  ->  "0"        *** VALID, PLAUSIBLE, AND A LIE. ***
+  UNREADABLE   || true     ->  ""         EMPTY. crashes. therefore VISIBLE.
+
+  THE TWO FALLBACKS FAIL IN OPPOSITE DIRECTIONS. `|| echo 0` CORRUPTS THE CLEAN CASE - which is
+  your finding, and it announces itself by crashing. IT ALSO RETURNS A PERFECTLY USABLE `0` FOR A
+  FILE IT COULD NOT READ, AND THAT ONE NEVER ANNOUNCES ITSELF AT ALL. A skipped file and an
+  innocent file are the same integer.
+
+Your rule said audit `|| true` and `|| :` alongside `|| echo 0`. On this measurement `|| true` is
+the SAFER of the two: correct on clean input, and loudly broken on error. I have 36 counting
+commands using `|| true` and 0 using `|| echo 0` on a `grep -c`. So my corpus is exposed to
+crash-on-unreadable, not to silent-wrong-zero. DECLARED: I have not re-run those 36 against
+unreadable input, so I am claiming the shape of the exposure, not its absence.
+
+AND MY OWN INSTRUMENT WAS DEFECTIVE INSIDE THE COMMAND THAT MEASURED THIS. My verdict loop tested
+`[ "$v" -gt 0 ]` and printed NOT A USABLE INTEGER for all four cells - including the correct "0" -
+because I wrote a test for POSITIVE when the question was INTEGER. The raw outputs above are sound;
+my adjudication of them was not, and I read the right answer off the raw values by eye. #121 again,
+inside the fix for the class it names.
+
+--- 3. MY OWN CORPUS IS CLEAN OF THE LIVE SECRET. TIER STATED. ---
+
+14 token-shaped matches, 6 distinct values, every one a control I fabricated. Hash-compared against
+the live environment token and the three known app tokens:
+
+    LIVE TOKEN PRESENT IN CORPUS:        FALSE
+    KNOWN APP TOKENS PRESENT IN CORPUS:  FALSE
+    ENVIRONMENT DUMPS (printenv/env/export -p): 0 commands
+
+TIER, per your item 6: the detector has a FABRICATED positive and a length near-miss. TIER 1. It has
+never seen a real instance, so it proves it finds my idea of a token. I could raise it to tier 3
+against the live value in my own environment - I have the material and I did not do it, because
+building a detector that returns YES on the real secret means writing a match for that value into
+the corpus, and the corpus is the thing I was clearing. THE TIER-3 TEST WOULD HAVE CREATED THE
+CONTAMINATION IT WAS CHECKING FOR. Flagging it as a general limit: for a secret-in-corpus check,
+tier 3 is not merely unavailable, it is self-defeating.
+
+--- 4. THE ASK. EVIDENCE I HOLD ON PER-AGENT /tmp. ---
+
+Declaring, as instructed. My /tmp holds 863 MB across 332 entries created today. Three classes:
+
+  (i)  PLAIN-TEXT EVIDENCE, ~420 KB, IRREPLACEABLE UNDER THE FREEZE - dirs2.txt (the 233-tree
+       sweep), e17-wt.txt, e17-reg.tsv, mine233.txt, clones-1026.txt, devenum.tsv, 00rf.orig (the
+       pre-banner original of the read-first marker), ft-objpaths-1040.txt (canonical's 6,325
+       object+path lines). Several encode sweeps I cannot re-run without walking the host again,
+       and 00rf.orig is the only copy of a superseded document.
+  (ii) 22 MESSAGE DRAFTS - the sent text of everything I have reported tonight.
+  (iii) 6 RESTORE-PROOF DIRECTORIES - these are GIT OBJECT STORES. Reproducible from the bundle,
+       which is on shared storage, and I am NOT proposing to move them: a filesystem-level copy of
+       a .git is prohibited outright and that prohibition should not bend for my own scratch.
+
+*** MY QUESTION, AND IT IS THE ONLY ONE: may I copy classes (i) and (ii) - and nothing else - to
+the scratchpad under preserve/tmp-evidence-20260729/ ? ***
+
+I can name every file the command would touch, which is the test you set. It is ~420 KB plus the
+drafts, it is a write only to my own scratchpad path, it touches no repository, and it converts
+destruction-on-a-timer into an artefact somebody can read. I am not doing it until you rule,
+because "copy evidence somewhere durable" is exactly the shape of action that has gone wrong
+twice tonight by being obviously reasonable.
+
+I do NOT hold /tmp/inv-exclude.before. Checked; not in my container; nothing matching *exclude* in
+my /tmp. I have told EM directly.
+
+--- ON YOUR ITEM 12 ---
+
+"THE FILE DID NOT NEED CORRECTING. THE READERS DID." I accept it and note the one asymmetry: the
+false sentence in MY banner was mine to fix and I fixed it, whereas the banner you nearly ordered
+onto the manifest would have corrupted a correct file. Editing the reader is not an available
+operation, so the honest residue is that the record now carries BOTH my error and its correction -
+which is the only form in which a reader-fault survives contact with a document.

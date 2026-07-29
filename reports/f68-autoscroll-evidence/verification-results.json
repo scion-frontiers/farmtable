@@ -1,0 +1,227 @@
+{
+  "feature": "F68 — Kanban Auto-Scroll During Drag",
+  "timestamp": "2026-07-24T23:16:54.445Z",
+  "checks": [
+    {
+      "check": "setup",
+      "action": "Board has horizontal overflow",
+      "pass": true,
+      "detail": "scrollWidth=2164, clientWidth=900, columns=8, overflow=true",
+      "timestamp": "2026-07-24T23:16:51.181Z"
+    },
+    {
+      "check": "right-scroll",
+      "action": "Right-edge dragover increases scrollLeft",
+      "pass": true,
+      "detail": "scrollLeft went from 0.0 to 200.0 (delta = +200.0px over 8 dragover steps)",
+      "timestamp": "2026-07-24T23:16:51.719Z"
+    },
+    {
+      "check": "left-scroll",
+      "action": "Left-edge dragover decreases scrollLeft",
+      "pass": true,
+      "detail": "scrollLeft went from 200.0 to 8.0 (delta = -192.0px over 8 dragover steps)",
+      "timestamp": "2026-07-24T23:16:52.253Z"
+    },
+    {
+      "check": "stop-on-center",
+      "action": "Scroll stops when pointer moves away from edge",
+      "pass": true,
+      "detail": "After moving to center: scrollLeft=96.0, after 200ms wait: scrollLeft=96.0 (stopped=true)",
+      "timestamp": "2026-07-24T23:16:52.734Z"
+    },
+    {
+      "check": "stop-on-dragend",
+      "action": "Scroll stops after dragend event",
+      "pass": true,
+      "detail": "Before dragend: scrollLeft=96.0, 200ms after dragend: scrollLeft=96.0 (stopped=true)",
+      "timestamp": "2026-07-24T23:16:53.190Z"
+    },
+    {
+      "check": "speed-scaling",
+      "action": "Closer to edge scrolls faster than near threshold",
+      "pass": true,
+      "detail": "Edge(5px) delta=209.0px > Threshold(45px) delta=54.0px",
+      "timestamp": "2026-07-24T23:16:54.402Z"
+    },
+    {
+      "check": "no-scroll-outside-threshold",
+      "action": "No scroll when pointer is outside 50px threshold",
+      "pass": true,
+      "detail": "Outside(60px) delta=0.0px (expected ≈0)",
+      "timestamp": "2026-07-24T23:16:54.402Z"
+    },
+    {
+      "check": "drop-regression",
+      "action": "Drop on column fires stage-change event (no regression)",
+      "pass": true,
+      "detail": "stageChangeReceived=true, detail={\"taskId\":\"task-1\",\"stage\":2}",
+      "timestamp": "2026-07-24T23:16:54.405Z"
+    }
+  ],
+  "rawData": {
+    "boardSetup": {
+      "scrollWidth": 2164,
+      "clientWidth": 900,
+      "scrollLeft": 0,
+      "isOverflowing": true,
+      "columnCount": 8,
+      "boardRect": {
+        "left": 0,
+        "right": 900,
+        "width": 900
+      }
+    },
+    "rightScroll": {
+      "log": [
+        {
+          "step": "initial",
+          "scrollLeft": 0
+        },
+        {
+          "step": "dragover-right-0",
+          "scrollLeft": 32
+        },
+        {
+          "step": "dragover-right-1",
+          "scrollLeft": 56
+        },
+        {
+          "step": "dragover-right-2",
+          "scrollLeft": 80
+        },
+        {
+          "step": "dragover-right-3",
+          "scrollLeft": 104
+        },
+        {
+          "step": "dragover-right-4",
+          "scrollLeft": 128
+        },
+        {
+          "step": "dragover-right-5",
+          "scrollLeft": 152
+        },
+        {
+          "step": "dragover-right-6",
+          "scrollLeft": 176
+        },
+        {
+          "step": "dragover-right-7",
+          "scrollLeft": 200
+        },
+        {
+          "step": "after-dragend",
+          "scrollLeft": 200
+        }
+      ],
+      "boardWidth": 900,
+      "scrollWidth": 2164
+    },
+    "leftScroll": {
+      "log": [
+        {
+          "step": "initial",
+          "scrollLeft": 200
+        },
+        {
+          "step": "dragover-left-0",
+          "scrollLeft": 176
+        },
+        {
+          "step": "dragover-left-1",
+          "scrollLeft": 152
+        },
+        {
+          "step": "dragover-left-2",
+          "scrollLeft": 128
+        },
+        {
+          "step": "dragover-left-3",
+          "scrollLeft": 104
+        },
+        {
+          "step": "dragover-left-4",
+          "scrollLeft": 80
+        },
+        {
+          "step": "dragover-left-5",
+          "scrollLeft": 56
+        },
+        {
+          "step": "dragover-left-6",
+          "scrollLeft": 32
+        },
+        {
+          "step": "dragover-left-7",
+          "scrollLeft": 8
+        },
+        {
+          "step": "after-dragend",
+          "scrollLeft": 8
+        }
+      ]
+    },
+    "stopOnCenter": {
+      "log": [
+        {
+          "step": "after-edge-dragover",
+          "scrollLeft": 96
+        },
+        {
+          "step": "after-center-dragover",
+          "scrollLeft": 96
+        },
+        {
+          "step": "after-200ms-wait",
+          "scrollLeft": 96
+        }
+      ],
+      "scrollStopped": true
+    },
+    "stopOnDragend": {
+      "log": [
+        {
+          "step": "before-dragend",
+          "scrollLeft": 96
+        },
+        {
+          "step": "after-dragend-200ms",
+          "scrollLeft": 96
+        }
+      ],
+      "scrollStopped": true
+    },
+    "speedScaling": {
+      "atEdge": {
+        "label": "at-edge-5px",
+        "clientX": 895,
+        "delta": 209
+      },
+      "atThreshold": {
+        "label": "near-threshold-45px",
+        "clientX": 855,
+        "delta": 54
+      },
+      "outside": {
+        "label": "outside-60px",
+        "clientX": 840,
+        "delta": 0
+      }
+    },
+    "dropRegression": {
+      "stageChangeReceived": true,
+      "stageChangeDetail": {
+        "taskId": "task-1",
+        "stage": 2
+      },
+      "targetStage": 2
+    }
+  },
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "allPass": true
+  }
+}

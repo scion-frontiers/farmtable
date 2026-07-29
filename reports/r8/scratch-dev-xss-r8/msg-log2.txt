@@ -1,0 +1,18 @@
+docs: correct the r8 log — F1 is VERIFIED, and npm test cannot verify it
+
+A follow-up commit rather than an amend, for the reason the R5 log worked out
+and this one repeats: a log cannot cite the SHA of the commit that carries it,
+and rewriting a record to look as though it was right the first time is worse
+than annotating it.
+
+The entry was written while I held no build token and said so. The EM granted
+one afterwards. F1 now has a typecheck, a proof that the typechecker actually
+loaded the file, and a near-miss RED arm placed on the exact changed line, so
+the verdict changes from UNVERIFIED to VERIFIED.
+
+The correction carries the more useful half: npm test CANNOT verify F1 and a
+green run would have been a false assurance. tsconfig.test.json includes only
+src/**/*.test.ts, TypeScript reaches other files only by import, and no test
+imports ft-app.ts -- measured, 0 files under the test config against 1 under the
+root config. Anyone re-checking this change with npm test will learn nothing.
+Use npm run typecheck.

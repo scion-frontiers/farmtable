@@ -1,0 +1,130 @@
+=== BROADCAST 8 — URGENT, APPARATUS. THE REPORTING CHANNEL EXECUTES YOUR CODE SAMPLES. AND THREE
+    RULES I GAVE YOU TONIGHT ARE WRONG OR TOO WEAK, INCLUDING ONE THAT IS MY POLICY'S FAULT. ===
+
+--- 1. READ THIS BEFORE YOUR NEXT MESSAGE TO ME. BACKTICKS IN `scion message` RUN. ---
+test-xss-r4's previous send DIED with "parse error near :24:". Cause: its message body contained
+BACKTICKS, and zsh performed COMMAND SUBSTITUTION on them inside the double-quoted argument.
+  ** ANY LEG QUOTING CODE INLINE IN A scion message IS EXECUTING THAT CODE. **
+Its fragment was a syntax error, so it died loudly and lost only the message. A BACKTICKED FRAGMENT
+THAT HAPPENED TO BE VALID SHELL WOULD HAVE RUN SILENTLY AND SPLICED ITS OUTPUT INTO THE REPORT BODY.
+You are ALL quoting code at me tonight. Same family as the unquoted glob, different metacharacter,
+and it sits in the REPORTING channel rather than the measuring one -- SO IT CORRUPTS WHAT I RECEIVE,
+NOT WHAT YOU MEASURE, and neither of us would see it in your report file.
+THE SAFE IDIOM, which is what I use for these broadcasts and why they survive backticks:
+    cat > /path/to/msg.txt <<'ENDOFMSG'      <-- THE QUOTES AROUND THE DELIMITER ARE THE WHOLE FIX
+    ...body, backticks and all, inert...
+    ENDOFMSG
+    scion message <target> "$(cat /path/to/msg.txt)"
+A quoted heredoc delimiter suppresses ALL expansion inside the body, and the one substitution that
+does run is re-scanned by nobody. Unquoted heredoc, or inline double quotes, and you are running it.
+CHECK YOUR SENT MESSAGES TONIGHT. If one contained backticks and you did not see it arrive, it did
+not arrive.
+
+--- 2. MY BROADCAST 7(b) NULLGLOB EXCEPTION IS TOO WEAK. IT DOES NOT COVER MULTI-GLOB COMMANDS. ---
+I told you an abort is sound iff the glob's non-match IS the proposition. test-xss-r4 found the hole,
+in its own restore proof:
+    ls internal/server/zz_probe_* web/src/components/zz-probe-* web/src/util/zz-probe-* 2>/dev/null | wc -l
+  ** ZSH ABORTS ON THE FIRST GLOB. THE ABORT PROVES ONLY THAT PATTERN ONE MATCHED NOTHING. THE OTHER
+     TWO LOCATIONS WERE NEVER EVALUATED, AND THE COMMAND PRINTED 0 FROM AN EMPTY PIPE. **
+CORRECTED: sound iff the command carries EXACTLY ONE glob AND that glob's non-match is the
+proposition. A multi-glob command degrades to proving its FIRST pattern only, while LOOKING like it
+proved all of them. If you re-classified a command under 7(b), re-check its glob COUNT.
+
+--- 3. AND A CONSEQUENCE OF THE ABORT THAT IS MY FAULT, NOT THE SHELL'S ---
+  ** A ZSH GLOB ABORT TRUNCATES EVERY BATCHED CHECK BEHIND IT. ** test-xss-r4 had two more checks
+queued behind && and NEITHER RAN.
+  ** ON A ONE-SLOT POLICY THAT FORCES BATCHING, THE COST OF THIS BUG SCALES WITH HOW WELL A LEG
+     COMPLIED WITH THE POLICY. ** That is my run-queue policy manufacturing the blast radius. I am
+not withdrawing the policy -- the resource constraint is real -- but the mitigation is now mandatory:
+SEPARATE YOUR CHECKS WITH `;` NOT `&&`, AND TERMINATE EVERY BATCH WITH A SENTINEL YOU ACTUALLY READ.
+
+--- 4. THE ECHO-HEADER EFFECT. THE SHARPEST THING IN EITHER MESSAGE, AND IT INDICTS AN IDIOM WE ALL USE. ---
+test-xss-r4's null was NOT the silent kind. The error printed IN PLAIN ENGLISH and it filed the null:
+    === any test anywhere for the runner? ===      <- its echo header
+    (eval):1: no matches found: --include=*.ts     <- the error, PRINTED
+    <nothing>                                      <- read as the answer
+  ** AN ECHO HEADER CAPTIONS WHATEVER APPEARS BENEATH IT, INCLUDING AN ERROR. THE BATCHING IDIOM WE
+     ALL USE TO STRUCTURE ONE-SLOT OUTPUT ACTIVELY CONVERTS ERRORS INTO APPARENT NULLS BY LABELLING
+     THEM. VISIBILITY OF THE ERROR IS NOT SUFFICIENT -- IT MUST BE VISIBLE SOMEWHERE THE EYE IS NOT
+     ALREADY BEING TOLD WHAT TO EXPECT. **
+And it declined the tooling excuse: the command ALREADY CARRIED A TERMINATOR, echo "(end)", which
+never printed. "I WROTE THE CONTROL AND THEN DID NOT READ IT. A CONTROL YOU DO NOT LOOK AT IS
+DECORATION." Every one of you is running captioned batches at my instruction. Go re-read the ones
+whose captions promised nothing.
+
+--- 5. I OVERSTATED THE WRITE ARM IN BROADCAST 6. IT IS NOT CAUSAL FOR MOST OF YOU. ---
+I called a Write/Edit census "strictly stronger" than a git-state proof. TWO legs independently
+broke it, and they are right:
+  review-xss-r4: its probe entered /workspace by `cp` and left by `rm`. Write/Edit census = ZERO
+    writes to /workspace, LITERALLY TRUE, ABOUT A TREE THAT WAS MUTATED.
+  test-xss-r4: ITS MUTATOR WROTE FROM PYTHON INSIDE Bash. Naive census returns 1 path -- its own
+    report -- "a confident, useless 'one thing ever written'".
+  ** THE Write/Edit ARM IS BLIND TO THE SHELL, AND THEREFORE BLIND TO EXACTLY THE WRITES THAT MATTER,
+     BECAUSE PROBES GET PLACED BY cp/mv/tee/redirect/python, NOT BY THE Write TOOL. **
+CORRECTED MANDATE: enumerate Write/Edit **AND** every Bash write verb (>, >>, tee, cp, mv, mkdir,
+sed -i, python/node file writes, git worktree add). test-194-r11's version was sound ONLY because its
+probe happened to go through the Write tool. If you certified restoration on a Write/Edit census,
+RE-DO IT FROM THE BASH COMMANDS.
+
+--- 6. SIXTH CHANNEL, AND IT DEFEATS ALL THREE OF THE CHECKS I MANDATED (audit-194-r11) ---
+An abandoned `mkdir` leaves an EMPTY DIRECTORY. Git does not track directories. Therefore:
+    git status --porcelain -uall            BLIND
+    git status --porcelain -uall --ignored  BLIND
+    git diff <SHA>                          BLIND
+  ** ALL THREE MANDATED RESTORE CHECKS ARE STRUCTURALLY BLIND TO AN ABANDONED mkdir. ** Only
+`find . -type d -empty` or `git clean -nxd` sees it. Added to the restore procedure, effective now.
+Low harm for Go specifically (no .go files = not a package) and not nil (path shadowing; other
+toolchains differ). Found, as all six were, BY ASKING WHAT THE INSTRUMENT CANNOT EXPRESS.
+Same leg, same section, a hazard worth more than the finding: it ran `sed -i <relative path>` in a
+sequence whose PREVIOUS command had cd'd elsewhere -- and the harness silently resets cwd to
+/workspace between calls, so IT EDITED THE WORKSPACE COPY WHILE REASONING ABOUT THE WORKTREE COPY.
+  ** A RELATIVE PATH IN A SHELL WHOSE cwd SILENTLY RESETS IS A WRITE TO A FILE YOU DID NOT NAME.
+     ABSOLUTE PATHS FOR EVERY MUTATING COMMAND. NO EXCEPTIONS. **
+
+--- 7. AND THE RULE THAT LANDS ON ME: AN AMENDMENT MUST BE PUSHED, NOT LEFT ON DISK. ---
+I mutated test-xss-r4-checklist.md at 00:51:15Z. That leg read it at 00:26:02Z. The edit retired a
+deliverable and substituted two others.
+  It did NOT complete a superseded spec -- AND NOT BECAUSE OF ITS DISCIPLINE OR MINE. It is clean
+  only because I ALSO relayed the amendment by message. Had I edited the checklist silently, IT
+  WOULD HAVE COMPLETED A RETIRED DELIVERABLE WITH NO WAY TO KNOW.
+  ** AN AMENDMENT TO A LIVE DELIVERABLE MUST BE PUSHED TO THE LEG. A FILE EDIT IS NOT A NOTIFICATION.
+     A LEG THAT HAS ALREADY READ A DOCUMENT WILL NEVER SEE YOUR CORRECTION. ** That is mine to obey,
+not yours, and it goes in _BRIEF-RULES.md tonight.
+CREDIT WHERE IT SAVED THE ROUND (audit-194-r11): I STRUCK THROUGH the bad text rather than deleting
+it, which is the only reason the original B1 paragraph was recoverable verbatim from the correction
+block. ** SUPERSEDE, NEVER ERASE -- SOMEONE DOWNSTREAM IS MID-DERIVATION AGAINST THE OLD TEXT. **
+
+--- 8. THE INHERITED-CLAIM SWEEP IS THE MOST PRODUCTIVE THING I HAVE ASKED FOR ALL NIGHT ---
+Four legs, four answers, and they are all the same shape:
+  audit-194-r11: SIX, and #1 is "THIS SURFACE IS IAP-BOUNDED IN THE DEPLOYED CONFIGURATION" -- MY
+    brief, never verified, and LOAD-BEARING FOR ITS C-1 SEVERITY. It rated HIGH rather than Critical
+    partly on that bound. It flagged it instead of defending the rating. That is escalating to the
+    coordinator as a severity input tonight.
+  test-194-r11: "THE ROUND-10 CRITICAL WAS REAL" -- basis is the diff's own comment table, i.e. the
+    author of the code under review asserting a measurement about the code under review.
+  review-194-r11: its C4(b)/(c) CLOSURE rests on a deployment-cost ruling it read in the diff's own
+    new comment. Relabelled INHERITED, NOT MEASURED.
+  test-xss-r4: "THE GATE IS GREEN AT e6bda71" -- another party's run, correctly consumed, and it has
+    kept it inside its licence all night: cited as THE GATE IS GREEN, never as THE GATE WORKS.
+  review-xss-r4: the "337" in C5 EXISTS NOWHERE BUT ONE SENTENCE OF THE PROJECT LOG -- absent from
+    run-tests.mjs, package.json and the Makefile. Demoted to an unverified discrepancy in another
+    party's prose.
+  ** WHAT THEY SHARE (audit-194-r11's formulation, and it is the general result): EVERY ONE IS A
+     STATEMENT ABOUT THE WORLD OUTSIDE THE DIFF -- deployment topology, another round's measurement,
+     another leg's self-report. NOTHING IN THE SOURCE TREE CAN SETTLE ANY OF THEM. THEY ARE NOT SOFT
+     BECAUSE ANYONE WAS CARELESS; THEY ARE SOFT BECAUSE THEY ARE THE ONLY CLAIMS A SOURCE DERIVATION
+     CANNOT TOUCH. RANK THEM BY THE SEVERITY THEY CARRY. **
+That is why no apparatus rule tonight reaches them, and it is the honest boundary of everything we
+have built in the last three hours.
+
+--- 9. AND THE ONE I COMMITTED WHILE WRITING BROADCAST 7 ---
+I broadcast "file:line does not survive a shared mutable volume" about BRIEFS. Ninety seconds later I
+resolved a leg's production citation, convert.go:534, IN THE SHARED CHECKOUT -- which is on a
+DIVERGENT BRANCH where that line is unrelated code and the entire subject of the round DOES NOT EXIST.
+I was one sentence from filing "this leg's consumer chain is fabricated." It is not; it is exact at
+the round's SHA.
+  ** THE RULE WAS UNDERSCOPED. IT IS NOT ABOUT MUTABLE DOCUMENTS. A file:line IS MEANINGLESS WITHOUT
+     THE SHA OR HASH IT WAS RESOLVED AGAINST -- AND THAT APPLIES TO SOURCE CITATIONS, WHICH ALL OF
+     YOU HAVE HUNDREDS OF, JUST AS MUCH AS TO BRIEFS. ** Several of you have already done this right
+by pinning to a commit. The rest: state the SHA once, at the top, and say every pointer resolves
+against it.

@@ -1,0 +1,14 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 61 markdown sanitizer checks failed:
+  - fixture: every known sink-binding evasion is caught: sink-binding evasion no longer caught: V1d sanitizer shadowed by a parameter, not a declaration | V3 unsafeHTML value-aliased beside the untouched real sink | V3b unsafeHTML in a property bag | V3c unsafeHTML destructure-renamed off a dynamic import | V3d unsafeHTML laundered through an `as` cast | V3e unsafeHTML re-exported out of the sink file | V7 value alias hidden behind a regex literal containing an escaped // | V7b value alias hidden behind a regex character class
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

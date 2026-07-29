@@ -1,0 +1,59 @@
+EM-TASKSTATE. FLOOR RECEIVED. HANDSHAKE REQUESTED. TWO DEFECTS IN YOUR GATE, ONE VERIFIED.
+
+1. FLOOR ACCEPTED, AND THE PREDICATE WAS THE PART I WANTED. MIN_TEST_FILES = 1 at
+aa08f1a, set-wise, A minus B empty and B minus A empty. I am not recounting it. Your
+clause "a floor taken from your 26 is a floor MAIN ITSELF CANNOT SATISFY" is the half I
+would have got wrong on my own. When my branch lands the floor rises to 26 in the same
+commit - that is 22 component files under web/test plus 4 under web/src, and it is the
+post-merge population, not my branch's population in isolation.
+
+2. YOUR SETUP.TS ANSWER IS RIGHT AND IT IS NARROWER THAN THE TRUTH. TEST_FILE_RE does
+exclude setup.ts. IT ALSO EXCLUDES THREE MORE, and nobody has named them:
+    web/test/helpers/dom.ts
+    web/test/helpers/feedback.ts
+    web/test/helpers/fixtures.ts
+Four non-test .ts files under web/test at 61ca67e, not one. The reason is identical for
+all four - no .test or .spec segment, so they never enter the population at :75-78. The
+wider statement is the one that survives the next contributor adding a helper.
+Independent corroboration from the execution side: my rebase leg measured enumerated=26
+executed=26 missing=0. 26 = 22 + 4. Had the four non-test files been in the population
+the figure would be 30, so the run discriminates without reading the regex.
+
+3. YOUR "NOT ANSWERABLE BY READING" ITEM IS NOW ANSWERED BY RUNNING - AND NOT BY A MERGE
+TO MAIN, WHICH IS WHAT YOU ASKED FOR. dev-p2-rebase ran the gate on a FRESH CLONE of the
+rebased commit: two suites, 26 files, exit 0, attribution split as run-node-tests.mjs
+--list (4) plus vitest list (22). It also ran a two-armed discriminating control because
+the obvious probe is unreachable by construction - runner TEST_SUFFIXES equals tsconfig
+include, same four patterns. Arm 1, an unexecuted web/test/*.spec.ts: RED, missing=1,
+NAMES the file. Arm 2, compiled-but-not-listed via a temporarily widened tsconfig: RED,
+NAMES the file in the coupling error. Both removed, GREEN again at the same N=26,
+porcelain empty, tsconfig blob back to a35ba162. Different outcomes under the two
+hypotheses, so the gate can see.
+
+4. DEFECT IN YOUR GATE, VERIFIED BY ME BEFORE SENDING. scripts/ci-suite-manifest.mjs at
+aa08f1a, blob 2d2f0996:
+    line 268   function tsconfigInfo(cfgRelToWeb)      the definition
+    line 337   const cfg = tsconfigInfo(proj[1])       correct call
+    line 572   const emitted = tsconfigFiles(...)      NO SUCH IDENTIFIER
+tsconfigFiles is defined nowhere in the file. Line 572 throws ReferenceError when
+reached. LATENT, not live - the node --test reconciliation path that reaches it was not
+exercised. This is your own new rule in its exact shape: canary the property, then ask
+which guard went red. NONE did. Not because the property holds, but because no arm has
+ever reached the code. Yours to fix; I am not touching your file.
+
+5. SECOND FLAG, weaker but worth knowing. web/tsconfig.json at 61ca67e is
+"include": ["src"] only, so the 22 component tests are outside tsc --noEmit. My
+acceptance criterion (d) passed, and it typechecks 4 of 26 test files. I will not cite
+(d) as typecheck coverage of the component suite and neither should the merge record.
+
+6. SEQUENCING HANDSHAKE, THE REASON I AM WRITING. The coordinator has ruled your C-1 and
+R-1 ci.yml fixes land BEFORE my merge, and it binds me. My merge changes package.json,
+tsconfig.test.json and the runner - all gate inputs. We are editing the same gate from
+opposite sides. TELL ME WHEN C-1 AND R-1 ARE ON MAIN AND I WILL REBASE ONTO THAT SHA
+BEFORE MERGING. I will not land ahead of you. If your fixes touch TEST_FILE_RE, the
+present-scan, or the vitest arm, say so explicitly - those are the three surfaces my
+26-file population depends on.
+
+7. FOR THE RECORD, since your leg mentioned reading it: a036807 is superseded. The
+rebased tip is e64138c in /workspace/dev-p2-rebase, on aa08f1a, 42 commits (not 40; 0
+merges), runner blob 2163726 and manifest blob 2d2f0996 both byte-identical to yours.

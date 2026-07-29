@@ -1,0 +1,31 @@
+[
+ {
+  "id": "MX-newsink-existing-file",
+  "expect": "red",
+  "what": "A THIRD, correctly-sanitized sink added to an existing scanned file. No new file, so the file-count pin is idle; the argument is sanitized, so the arg checks are idle. Only the sink-count pin can see it.",
+  "steps": [
+   {
+    "file": "web/src/components/inspector/inspector-shared-styles.ts",
+    "anchor": "import { css } from 'lit';",
+    "replace": "import { css, html } from 'lit';\nimport { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport const block = (b: string) => html`${unsafeHTML(renderMarkdown(b))}`;"
+   }
+  ]
+ },
+ {
+  "id": "MX-newsink-existing-file+SINKCOUNT",
+  "expect": "red",
+  "what": "  ...with the sink-count pin ablated",
+  "steps": [
+   {
+    "file": "web/src/util/markdown.test.ts",
+    "anchor": "    if (sinks.length !== REQUIRED_SINKS.length) {",
+    "replace": "    if (false) {"
+   },
+   {
+    "file": "web/src/components/inspector/inspector-shared-styles.ts",
+    "anchor": "import { css } from 'lit';",
+    "replace": "import { css, html } from 'lit';\nimport { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport const block = (b: string) => html`${unsafeHTML(renderMarkdown(b))}`;"
+   }
+  ]
+ }
+]

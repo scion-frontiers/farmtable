@@ -1,0 +1,736 @@
+ts-diff-r8 REF ENUMERATION - 2026-07-29T15:34:05Z
+Full sweep, NO pattern used (git for-each-ref --format='%(objectname) %(refname)')
+Both clones cloned from local path /workspace/farmtable. Zero commits authored by this leg.
+
+############ /tmp/tsdiff/base  HEAD=e4e3d1352809428a5dfe386bb53c0b18a562332f ############
+# ref count: 208  | all objects verified present in /workspace/farmtable
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/heads/task-state-web-ui-v2  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/HEAD  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/attention-view  [ON-ORIGIN-PATH: YES]
+8656fe03ddf6ca2b52cab98d2150e139edd941cf refs/remotes/origin/auth-stage4-deploy-prep  [ON-ORIGIN-PATH: YES]
+d701613d5941a2d8348b2e54690cb31d06368ef5 refs/remotes/origin/auth-stage4-predeploy-fixes  [ON-ORIGIN-PATH: YES]
+345406a60cca325f064aee3b8edadfabf2b92a67 refs/remotes/origin/auth/stage1-mandatory-enforcement  [ON-ORIGIN-PATH: YES]
+a1c1e7a58da6972464f74ea750bda1829c0c2caa refs/remotes/origin/auth/stage2-web-dashboard-auth  [ON-ORIGIN-PATH: YES]
+bd9be402c5c47ccbecd43705854494b8d3acfb3a refs/remotes/origin/auth/stage3-identity-aware-ops  [ON-ORIGIN-PATH: YES]
+7cd046b3e81a63152ec296dd5bb8ac42dbbcce3d refs/remotes/origin/auth/stage4-scoped-tokens-rbac  [ON-ORIGIN-PATH: YES]
+36d98aef93f7f844e0fbc8486e99bcb4f719ba23 refs/remotes/origin/auth/stage5-oauth-iap-proxy  [ON-ORIGIN-PATH: YES]
+bc37487b1d975c7b8bff419f8dc509200d06d958 refs/remotes/origin/auth/stage6-credential-improvements  [ON-ORIGIN-PATH: YES]
+8665535c2ac200a8cecb8a5890b97b59bf66c438 refs/remotes/origin/auth/wire-stage5-stage6  [ON-ORIGIN-PATH: YES]
+5c05b0d5fd85f09defb255589ef2e70bb61907cc refs/remotes/origin/auth/wiring-review-fixes  [ON-ORIGIN-PATH: YES]
+3585f2e1b844ff0a8489396d6d3ff38f15416d05 refs/remotes/origin/b7-read-only-work  [ON-ORIGIN-PATH: YES]
+8dfd5b867c11cc4f73e88ffb478e3cc220ebf6cc refs/remotes/origin/deploy-10-snapshot  [ON-ORIGIN-PATH: YES]
+8ac4bc02af2998466d4aa7f0eccf91f81947bddb refs/remotes/origin/deploy-11-snapshot  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/deploy-12-snapshot  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/deploy-13-snapshot  [ON-ORIGIN-PATH: YES]
+b2a812309dc4259f36d4f913d0fda9fa703f6239 refs/remotes/origin/deploy-14-snapshot  [ON-ORIGIN-PATH: YES]
+2ac0945ec601668dec1b6aa0a77b6791f26132c5 refs/remotes/origin/deploy-15-snapshot  [ON-ORIGIN-PATH: YES]
+2f15c921e352ab8b604b02df4b3634705663f695 refs/remotes/origin/deploy-16-snapshot  [ON-ORIGIN-PATH: YES]
+2095838bcbe45d8e3f594a1dd18dd518b7680729 refs/remotes/origin/deploy-17-snapshot  [ON-ORIGIN-PATH: YES]
+aa0feb2fd79f7486a27fb6df5a050fb094e026d5 refs/remotes/origin/deploy-18-snapshot  [ON-ORIGIN-PATH: YES]
+cb19a2f05cfca32b053d62c82f7e63b1d0759485 refs/remotes/origin/deploy-19-snapshot  [ON-ORIGIN-PATH: YES]
+2c973dc52b6eba6243a23dac8460c3b35256343d refs/remotes/origin/deploy-20-snapshot  [ON-ORIGIN-PATH: YES]
+7a2e742ec083f1f48179c16e6d1b6a3297d30883 refs/remotes/origin/deploy-21-snapshot  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/deploy-22-snapshot  [ON-ORIGIN-PATH: YES]
+68149446ff4094b6d6661b7ebf587d7ae8ab07c8 refs/remotes/origin/deploy-23-snapshot  [ON-ORIGIN-PATH: YES]
+277ae614135abff79171b6bd023ddc34f0ddf971 refs/remotes/origin/deploy-24-snapshot  [ON-ORIGIN-PATH: YES]
+71dfe8866e5828fcf8f3a9cdfd16ebe9689f9b85 refs/remotes/origin/deploy-25-snapshot  [ON-ORIGIN-PATH: YES]
+0596714a8e62a784960bc5551973f7e5e50bd59b refs/remotes/origin/deploy-26-snapshot  [ON-ORIGIN-PATH: YES]
+40f8d82bcfdebab656a7b2cd912d580c4c628fac refs/remotes/origin/deploy-27-snapshot  [ON-ORIGIN-PATH: YES]
+5ca903745168374aa2805d466f0ed53fbcf21003 refs/remotes/origin/deploy-28-snapshot  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/deploy-29-snapshot  [ON-ORIGIN-PATH: YES]
+696caccc9e0c3a3c435b922faf0bb331cdead145 refs/remotes/origin/deploy-30-snapshot  [ON-ORIGIN-PATH: YES]
+b50075339c42357be10a95aae7df43cd8eada61f refs/remotes/origin/deploy-31-snapshot  [ON-ORIGIN-PATH: YES]
+7d64230c47d1ba48daf9d7cbeeeeb3b890ff2887 refs/remotes/origin/deploy-32-snapshot  [ON-ORIGIN-PATH: YES]
+c957f7e69bd7ace7d04ed35271c1ead897f56857 refs/remotes/origin/deploy-33-snapshot  [ON-ORIGIN-PATH: YES]
+befeffda43f1c69fa81b6fcb9c2449500ead1703 refs/remotes/origin/deploy-34-snapshot  [ON-ORIGIN-PATH: YES]
+5b05b0191a5eee2b5c23dc8281d26a917ce0061a refs/remotes/origin/deploy-35-snapshot  [ON-ORIGIN-PATH: YES]
+8665535c2ac200a8cecb8a5890b97b59bf66c438 refs/remotes/origin/deploy-36-snapshot  [ON-ORIGIN-PATH: YES]
+5c05b0d5fd85f09defb255589ef2e70bb61907cc refs/remotes/origin/deploy-37-snapshot  [ON-ORIGIN-PATH: YES]
+0cf1f4b4c16422937917299bde8823344486e270 refs/remotes/origin/deploy-38-snapshot  [ON-ORIGIN-PATH: YES]
+cc9d1180264b98ee401b1fd5b5efd62345ac4692 refs/remotes/origin/deploy-39-snapshot  [ON-ORIGIN-PATH: YES]
+aff98a2be87e3a08b1e594b05654ed8c20c9bb74 refs/remotes/origin/deploy-40-snapshot  [ON-ORIGIN-PATH: YES]
+65deb12ef92c00a40d2b8b6b4d66b1e2712798f5 refs/remotes/origin/deploy-41-snapshot  [ON-ORIGIN-PATH: YES]
+eef367b29fcca7b224c31184549bc545db3f71fe refs/remotes/origin/deploy-42-snapshot  [ON-ORIGIN-PATH: YES]
+b67ac9de7e79a02ece8bc5f95355e2e50320666e refs/remotes/origin/deploy-43-snapshot  [ON-ORIGIN-PATH: YES]
+e5218539d576be5a8788da9d410aac4ef0b8a134 refs/remotes/origin/deploy-44-snapshot  [ON-ORIGIN-PATH: YES]
+7b94440b5878b03c6ee8301f0d9f1dc4336788ce refs/remotes/origin/deploy-45-snapshot  [ON-ORIGIN-PATH: YES]
+44056dea0a9cf5987b03a1160d4bce1db6ffb4ce refs/remotes/origin/deploy-46-snapshot  [ON-ORIGIN-PATH: YES]
+d1a061cc217e1f5c23953bb1b744e8cf444ebad6 refs/remotes/origin/deploy-47-snapshot  [ON-ORIGIN-PATH: YES]
+0533f0ab39fa2719cb27cc474a32c34a56cf5bd6 refs/remotes/origin/deploy-48-snapshot  [ON-ORIGIN-PATH: YES]
+cdfa1bf076aefe36a6038e8007dff6345f75663f refs/remotes/origin/deploy-49-snapshot  [ON-ORIGIN-PATH: YES]
+b06528a48fcaac29886e894131c3ba8857670988 refs/remotes/origin/deploy-50-snapshot  [ON-ORIGIN-PATH: YES]
+42ced660a4e445c6ce2bcbf7fc93f1a2d8df3ce0 refs/remotes/origin/deploy-51-snapshot  [ON-ORIGIN-PATH: YES]
+758de9f7b26003b8f86577e89109b77c8c590206 refs/remotes/origin/deploy-52-snapshot  [ON-ORIGIN-PATH: YES]
+773fb008b17f42ddf5157b882b1ad423accfd45c refs/remotes/origin/deploy-53-snapshot  [ON-ORIGIN-PATH: YES]
+0697a71176722e23c1be40c19b57ab6c2191ac22 refs/remotes/origin/deploy-54-snapshot  [ON-ORIGIN-PATH: YES]
+5c0e5cf281b261f50dc5e7499bc3a4f0a2bfdd30 refs/remotes/origin/deploy-55-snapshot  [ON-ORIGIN-PATH: YES]
+798efc5d8030e23de0a5f00946a4ea7ce8427885 refs/remotes/origin/deploy-9-snapshot  [ON-ORIGIN-PATH: YES]
+582793ea1d7e8fcf9c0be28390a553abf2c7916f refs/remotes/origin/deploy-task-state-phase1-live  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/auth-review  [ON-ORIGIN-PATH: YES]
+c6519ab9a2643b14a4027756577036b21d1bf932 refs/remotes/origin/explore/decomposer-rerun  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/explore/dnd-broken-investigation  [ON-ORIGIN-PATH: YES]
+7a2e742ec083f1f48179c16e6d1b6a3297d30883 refs/remotes/origin/explore/f46-missing  [ON-ORIGIN-PATH: YES]
+79776b1f9f2d26b94871096fa4387445ffbd303e refs/remotes/origin/explore/graph-redraw  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/explore/issue-76-validation  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/explore/issue-77-validation  [ON-ORIGIN-PATH: YES]
+8dfd5b867c11cc4f73e88ffb478e3cc220ebf6cc refs/remotes/origin/explore/local-test-protocol  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/passthrough-write  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/explore/reciprocal-relationship  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/explore/relationship-model  [ON-ORIGIN-PATH: YES]
+5ca903745168374aa2805d466f0ed53fbcf21003 refs/remotes/origin/explore/sync-flicker  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/tree-lines  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/explore/triage-dnd-investigation  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-cloudsql-fix2  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f61-rename  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f61-review-2  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f62-review  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f63-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-f65-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-f66-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-perf-phase1-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-periodic-redraw-review  [ON-ORIGIN-PATH: YES]
+71e980fbc6077ff4e8e5e60ab66693a2e291a769 refs/remotes/origin/feat/add-task-ui  [ON-ORIGIN-PATH: YES]
+f25e7e5fe5562242b0a11ca1d07b42f021c0d72b refs/remotes/origin/feat/cli-integration-tests  [ON-ORIGIN-PATH: YES]
+2915bbb73e8b4c5414e44ce90dc8d1cc673cf672 refs/remotes/origin/feat/collection-export-import  [ON-ORIGIN-PATH: YES]
+fa9e58a0d3479506ca5c491ffb5f34a286fcf361 refs/remotes/origin/feat/collection-picker  [ON-ORIGIN-PATH: YES]
+08788c7eccb00f77ac18d67df27237200ea8ecf1 refs/remotes/origin/feat/collection-settings-modal  [ON-ORIGIN-PATH: YES]
+7fee9ced55cb8a94cfb5e78161e1b4db57797bb3 refs/remotes/origin/feat/collection-url-routing  [ON-ORIGIN-PATH: YES]
+56bd5130277fe28b1b5087d8766007233234f121 refs/remotes/origin/feat/column-count-tooltip  [ON-ORIGIN-PATH: YES]
+53b30624a05c4ea66c4e4af7ea298961232f1298 refs/remotes/origin/feat/column-filter-counts  [ON-ORIGIN-PATH: YES]
+c20b3ff813fbdabb6807ad2c1c021d1f9423fce9 refs/remotes/origin/feat/decomposer-extras  [ON-ORIGIN-PATH: YES]
+e3e10d911c8b647e2e33e34ef04eb0b6e268603c refs/remotes/origin/feat/decomposer-iap-audience-flag  [ON-ORIGIN-PATH: YES]
+45f7cf0f95c639d0cdb44645ff4e638d0bb3d817 refs/remotes/origin/feat/decomposer-improvements  [ON-ORIGIN-PATH: YES]
+68e0c89dc60c52c1151ebde3cffda452e896f066 refs/remotes/origin/feat/empty-filter-message  [ON-ORIGIN-PATH: YES]
+7ba5cbdd28202200db84dec8c4487bfc53220619 refs/remotes/origin/feat/export-import-web-ui  [ON-ORIGIN-PATH: YES]
+408f66e55bf0df3ce2d98dd1b678b9c115120a33 refs/remotes/origin/feat/extstore-a1-linkedaccount-schema  [ON-ORIGIN-PATH: YES]
+f82873f7fff4d6881d9d5375150a09c732706db5 refs/remotes/origin/feat/extstore-a2-proto-rpcs  [ON-ORIGIN-PATH: YES]
+22f1e10171b64f6bb4c63dcf9ee1232544e95452 refs/remotes/origin/feat/extstore-a3-remote-data  [ON-ORIGIN-PATH: YES]
+9566ffaa5b69b8935e6980a781ae292bde356d7b refs/remotes/origin/feat/extstore-a4-linkedaccount-store  [ON-ORIGIN-PATH: YES]
+24f51da2b6b50872fac4d37c60449f0bb4cae70a refs/remotes/origin/feat/extstore-a5-linkedaccount-rpcs  [ON-ORIGIN-PATH: YES]
+705b8c2121a3a41714a17ddb781e7607766fefb8 refs/remotes/origin/feat/extstore-a6-multistore  [ON-ORIGIN-PATH: YES]
+c539aef0379559f34a7680e2e67316bfdebda4c2 refs/remotes/origin/feat/extstore-a7-cli-link-unlink  [ON-ORIGIN-PATH: YES]
+086ff6b66ff4c65be91183af6888416219f70725 refs/remotes/origin/feat/extstore-a8-multistore-wiring  [ON-ORIGIN-PATH: YES]
+777da7f9ec7731235d25723cdb8a3cc7e17751a9 refs/remotes/origin/feat/extstore-b1b5-passthrough  [ON-ORIGIN-PATH: YES]
+31d67075540d8dfca358238a7bfe626d46599b04 refs/remotes/origin/feat/extstore-b2-taskToProto  [ON-ORIGIN-PATH: YES]
+78e400ee31d6f7ce0e07853bc02b834a31f7496b refs/remotes/origin/feat/extstore-b3-lazy-registration  [ON-ORIGIN-PATH: YES]
+17205ebe228e15a13a87f0026fbaf1c0568e91e3 refs/remotes/origin/feat/extstore-b4-watchtasks-guard  [ON-ORIGIN-PATH: YES]
+0d72f31d0f3e699845572091c3c25d61d26e9ee1 refs/remotes/origin/feat/extstore-b6-collection-selector  [ON-ORIGIN-PATH: YES]
+d95a755949837b47c5cdafca235bc854107fd90e refs/remotes/origin/feat/extstore-b7-read-only-mode  [ON-ORIGIN-PATH: YES]
+3270c1a342556c25b74ffccb62032a9bf47a2ff2 refs/remotes/origin/feat/extstore-b8-poll-refresh  [ON-ORIGIN-PATH: YES]
+25b235791c3887e6cbef5decbd0752128860c850 refs/remotes/origin/feat/extstore-c1-ephemeral  [ON-ORIGIN-PATH: YES]
+a72444716765833f374c49af6650c22eb24a6368 refs/remotes/origin/feat/extstore-c2-graph-check  [ON-ORIGIN-PATH: YES]
+2f938303daee7556a15db999cd70429357e2f8da refs/remotes/origin/feat/extstore-c3-graph-routing  [ON-ORIGIN-PATH: YES]
+2d99af3cfee7c3daea38e1ca9446a464b002bd01 refs/remotes/origin/feat/extstore-c4-graph-test  [ON-ORIGIN-PATH: YES]
+54c0a9316de928b1dabecd6be45f11f65d3d3020 refs/remotes/origin/feat/extstore-e1-e2e-test  [ON-ORIGIN-PATH: YES]
+21d4abb79e2507f0f035fd1cc694b69b40bf4469 refs/remotes/origin/feat/f35-inspector-title-constant  [ON-ORIGIN-PATH: YES]
+3e727168c790aae883c4998899d00c95a05db01c refs/remotes/origin/feat/f36-main-content-scroll  [ON-ORIGIN-PATH: YES]
+6aeed20eb187d2d39afaa178c8517bb54a09cf58 refs/remotes/origin/feat/f37-scroll-to-item  [ON-ORIGIN-PATH: YES]
+47fd58badbf3bbce667eaee9b1100c266bcdb833 refs/remotes/origin/feat/f38-independent-scroll  [ON-ORIGIN-PATH: YES]
+ef9f9e88865ae970afe24219c7aea47d275a7826 refs/remotes/origin/feat/f39-independent-scroll-v3  [ON-ORIGIN-PATH: YES]
+27265af319be306090b68bb4c46328e53c821858 refs/remotes/origin/feat/f40-inspector-scroll  [ON-ORIGIN-PATH: YES]
+28fc26f6519be36acde3bee5b0a3938cba9c7e0a refs/remotes/origin/feat/f41-tree-center-animation  [ON-ORIGIN-PATH: YES]
+354291425fad27503f85ca4aef4d7c4659e63ee0 refs/remotes/origin/feat/f43-tree-parent-child-only  [ON-ORIGIN-PATH: YES]
+101a4d4e90bce6c78fb64329bee75ddef896f4a7 refs/remotes/origin/feat/f44-dependency-view  [ON-ORIGIN-PATH: YES]
+1251e7a082256ef80af3b8e2e426421e627de9b4 refs/remotes/origin/feat/f45-beads-import  [ON-ORIGIN-PATH: YES]
+ab75471d056543dca67298e398345e1f4162f7b2 refs/remotes/origin/feat/f46-relationships-add-remove  [ON-ORIGIN-PATH: YES]
+24dc954ccd8aad4764571ebe599101c222bee51a refs/remotes/origin/feat/f48-dependency-view-dnd  [ON-ORIGIN-PATH: YES]
+495bc0817c861a966191e2a559fa0547076d2dbb refs/remotes/origin/feat/f50-landing-page-scroll-newproject  [ON-ORIGIN-PATH: YES]
+118bc458c8eab859a3bce896e24d43d20fec8a6a refs/remotes/origin/feat/f54-tree-minimap  [ON-ORIGIN-PATH: YES]
+4893de1d6334431d48a624e4f2497e83d4767e62 refs/remotes/origin/feat/f56-zoom-and-highlight  [ON-ORIGIN-PATH: YES]
+a8c8bde29d277f8b30e4d0bdc9f8401707b48577 refs/remotes/origin/feat/f59-iap-token-header  [ON-ORIGIN-PATH: YES]
+a45f33e2fc6bb2cdb614130a488c84176f5c3bf1 refs/remotes/origin/feat/filter-chips  [ON-ORIGIN-PATH: YES]
+451b78479e60a5baab5c3fb5f95388f2da3f25ea refs/remotes/origin/feat/filtered-count-badge  [ON-ORIGIN-PATH: YES]
+9c84d93f1a5c662f73c77bc8d4bcbf8e3a258aca refs/remotes/origin/feat/inline-card-edit  [ON-ORIGIN-PATH: YES]
+04535a6cede15deabafa4d3b7ac441c902ce3f89 refs/remotes/origin/feat/inspector-assignee-edit  [ON-ORIGIN-PATH: YES]
+4856f4c33e684313788763dd0509044195af3bd9 refs/remotes/origin/feat/inspector-editor-reliability  [ON-ORIGIN-PATH: YES]
+07c07208f65ed0e29ee9e6b2b8b8a766877bd551 refs/remotes/origin/feat/inspector-keyboard-nav  [ON-ORIGIN-PATH: YES]
+598a2c751d655af802879ee8e492947345b988ed refs/remotes/origin/feat/inspector-label-edit  [ON-ORIGIN-PATH: YES]
+e43559ff9b22d52db5bb7c0d78e05a1fcbb64f22 refs/remotes/origin/feat/inspector-priority-edit  [ON-ORIGIN-PATH: YES]
+df0a76efda0df7c353aad2aa37dbb86c5ab3474f refs/remotes/origin/feat/kanban-keyboard-nav  [ON-ORIGIN-PATH: YES]
+d622196766476344cb3306072ef8bd92576d448c refs/remotes/origin/feat/new-collection-modal  [ON-ORIGIN-PATH: YES]
+7dee6ff55c69efb5587ae754823d3a93450b50df refs/remotes/origin/feat/passthrough-write-p1  [ON-ORIGIN-PATH: YES]
+51d39a200979f77d721ba707965b02e8518d7ab0 refs/remotes/origin/feat/passthrough-write-p2  [ON-ORIGIN-PATH: YES]
+d0f2322a91374f707eecc1d406c87961eceb3c39 refs/remotes/origin/feat/passthrough-write-p3  [ON-ORIGIN-PATH: YES]
+5538fbfb07c0fdc9c4940eaa0fe6ab8ac6dbb685 refs/remotes/origin/feat/per-column-create  [ON-ORIGIN-PATH: YES]
+994f8012607ec8524e22aeac340b4b2e0ee78bc8 refs/remotes/origin/feat/prompt-variants  [ON-ORIGIN-PATH: YES]
+9f4291bec9b728de01580a7887385d247b3aee94 refs/remotes/origin/feat/shortcut-overlay  [ON-ORIGIN-PATH: YES]
+36278501116309c61a415b94832c71c3cf22050b refs/remotes/origin/feat/task-detail-panel  [ON-ORIGIN-PATH: YES]
+285b93466ab5e76b501cab6765be01b1e5ca8bd9 refs/remotes/origin/feat/toolbar-filters  [ON-ORIGIN-PATH: YES]
+b98dd9edafd38f7e340cb9dbdac2bbf3a48ec0a8 refs/remotes/origin/feature-67-tree-orientation  [ON-ORIGIN-PATH: YES]
+9625850cb66f6ad21a8fb48f07b3cc52ff09f316 refs/remotes/origin/feature-67-tweak-default-lr  [ON-ORIGIN-PATH: YES]
+1d6ac9aa35759fac15272c30f6c67c8c2e20c940 refs/remotes/origin/feature-68-kanban-autoscroll  [ON-ORIGIN-PATH: YES]
+0b85bbdab7dc4b38eff7c01979b0e7f0d70f974d refs/remotes/origin/feature-69-inspector-external-link  [ON-ORIGIN-PATH: YES]
+b0ff5c3f5e2476a1fa10353349a5091fe23f5b19 refs/remotes/origin/feature-70-favicon  [ON-ORIGIN-PATH: YES]
+6777380a41a3fd32e820432b320aa39485a9e03c refs/remotes/origin/feature-71-minimap-damping  [ON-ORIGIN-PATH: YES]
+42e1266d925d5c67cbb99060bddc603a3d25a781 refs/remotes/origin/feature/f61-isolate-mode  [ON-ORIGIN-PATH: YES]
+ddcb53d5a7b811aeeab23eb43bfb05d0da926de2 refs/remotes/origin/feature/f61-v2-fixes  [ON-ORIGIN-PATH: YES]
+e4eb41fde2032475b967fc7deeb51db1cf266722 refs/remotes/origin/feature/f62-task-deep-links  [ON-ORIGIN-PATH: YES]
+6bbbd9847eaea3f45b6cf76d84d89d79afa0f510 refs/remotes/origin/feature/f63-default-dashboard  [ON-ORIGIN-PATH: YES]
+65bcd0f882bff4c4f0125e07ed46df457cc7e0d3 refs/remotes/origin/feature/f64-dnd-animation  [ON-ORIGIN-PATH: YES]
+4b219786ea08088d72bb764b3a5ef8b1fa823e77 refs/remotes/origin/feature/f65-dashboard-ready-count  [ON-ORIGIN-PATH: YES]
+709ded90410a9cf8cf2064bd355b20ccc0642c5b refs/remotes/origin/feature/f66-solo-sticky  [ON-ORIGIN-PATH: YES]
+526ea52b5d5ad423f58cd741d385c363434bc241 refs/remotes/origin/fix-dependency-closed-solo  [ON-ORIGIN-PATH: YES]
+0dcf18e909336855ccf9d98030c6bf8ee1489b16 refs/remotes/origin/fix-solo-crossedge  [ON-ORIGIN-PATH: YES]
+b26dd5284b7b719c98d41928137410539e50954d refs/remotes/origin/fix/cloudsql-connection-pool  [ON-ORIGIN-PATH: YES]
+b4df4311e67ce9922a8e6d458f373cd546d9f69d refs/remotes/origin/fix/decomposer-terminal-self-assess  [ON-ORIGIN-PATH: YES]
+4602156432fc7077fbd9b0376d8af18e77979255 refs/remotes/origin/fix/f42-kanban-dnd-deadzone  [ON-ORIGIN-PATH: YES]
+79c03163afa5196e074aeebdd940112169a2a12a refs/remotes/origin/fix/f47-ready-queue-alignment  [ON-ORIGIN-PATH: YES]
+e9207f13c9160290a2411890e7380e10d9806f2c refs/remotes/origin/fix/f49-reciprocal-relationship-sync  [ON-ORIGIN-PATH: YES]
+93fec41e92dc168bc8d1de71f42b342c6d1950c2 refs/remotes/origin/fix/f51-dependency-view-layout  [ON-ORIGIN-PATH: YES]
+c084837612669b27b48bb71572dddbe361170656 refs/remotes/origin/fix/f52-palette-search  [ON-ORIGIN-PATH: YES]
+834ebe71a56c4e69958d8da4d2de6501d6539ec3 refs/remotes/origin/fix/f57-issue-76-bottlenecks  [ON-ORIGIN-PATH: YES]
+de8166ba39ef6e28139ba082c9a9159ad8c55718 refs/remotes/origin/fix/f58-combined-pan-zoom-animation  [ON-ORIGIN-PATH: YES]
+e49fab2424b811aa2adb3d7c2134d9f2c0d6c2ba refs/remotes/origin/fix/f60-graph-poll-redraw  [ON-ORIGIN-PATH: YES]
+4426fcc8eb61d6b107ff5b3c8950bcc62b84eecf refs/remotes/origin/fix/passthrough-spinner  [ON-ORIGIN-PATH: YES]
+4a4d6ed6dfaac39a3ea021f105a6be761a341988 refs/remotes/origin/fix/perf-phase1-getchildren-depth  [ON-ORIGIN-PATH: YES]
+de88567d8685a39b7fb6d5299cfa47536d3975cc refs/remotes/origin/fix/periodic-redraw-v2  [ON-ORIGIN-PATH: YES]
+b4ac5ac98f12272753cc2e8d27c5bbc2a650748b refs/remotes/origin/fix/tree-view-infinite-growth  [ON-ORIGIN-PATH: YES]
+cf7c847f648fa0deff2a003803ae2b1de6ce2559 refs/remotes/origin/fixes-r3  [ON-ORIGIN-PATH: YES]
+85f8b4d9970af4f98e1cd2cce5023e8383034a03 refs/remotes/origin/fixes-r4  [ON-ORIGIN-PATH: YES]
+cc927355e5a23c45bfd983cd331eb540b0a61ad5 refs/remotes/origin/main  [ON-ORIGIN-PATH: YES]
+8430eb0dfe7bd0da5572dee58b6fc90f014bc2ff refs/remotes/origin/perf-phase2-viewport-culling  [ON-ORIGIN-PATH: YES]
+c68d35aec35df6c0ffbfdaff76436f5a01280c90 refs/remotes/origin/polish-r2  [ON-ORIGIN-PATH: YES]
+42e1266d925d5c67cbb99060bddc603a3d25a781 refs/remotes/origin/pr-140-review  [ON-ORIGIN-PATH: YES]
+3133cbdc6086f587a0fb1618c2557c87978e864c refs/remotes/origin/pr-149-review  [ON-ORIGIN-PATH: YES]
+89db5f8ac18cf26f385cc33d1cb2207fd43b91bf refs/remotes/origin/pr-154  [ON-ORIGIN-PATH: YES]
+fbeedc189c1e1de41af5450c0fe2a7dbde962820 refs/remotes/origin/rank-reorder  [ON-ORIGIN-PATH: YES]
+8ee0df218390623d66ec1cd46d7c9660dcff2cc1 refs/remotes/origin/review-f62  [ON-ORIGIN-PATH: YES]
+4b219786ea08088d72bb764b3a5ef8b1fa823e77 refs/remotes/origin/review-f65  [ON-ORIGIN-PATH: YES]
+89973f89ce2e092cbfb2be3114bc13c494368345 refs/remotes/origin/scopedeny-93-deny-unrecognised-type  [ON-ORIGIN-PATH: YES]
+a2442ffa98fefc6fbb408e774344960e991f58cb refs/remotes/origin/task-state-core  [ON-ORIGIN-PATH: YES]
+7a0f220dbd9332cb8db62138c841777432b4eda4 refs/remotes/origin/task-state-hotfix-179-r2  [ON-ORIGIN-PATH: YES]
+e522e04c3021cd90714b707f7a87c4c3f692c0f2 refs/remotes/origin/task-state-predeploy-migration  [ON-ORIGIN-PATH: YES]
+7a0f220dbd9332cb8db62138c841777432b4eda4 refs/remotes/origin/task-state-web-ui  [ON-ORIGIN-PATH: YES]
+fe8e212e6e5f054f725ceacf652c2516b885c59e refs/remotes/origin/task-state-web-ui-tests  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/task-state-web-ui-v2  [ON-ORIGIN-PATH: YES]
+d5db8c446fa9942fa17028b81d1cf4b9858d41a6 refs/remotes/origin/terminal-predicate  [ON-ORIGIN-PATH: YES]
+9ec3275efddf1b42796bebdf61836ed271db93b4 refs/remotes/origin/test-list-reconcile-103  [ON-ORIGIN-PATH: YES]
+7524504fa81046b59d0873f49d16436156d99da9 refs/remotes/origin/tests-r3  [ON-ORIGIN-PATH: YES]
+d305391ee6dc473f5e7bf202167221e15cf52e10 refs/remotes/origin/url-scheme-validation-r5  [ON-ORIGIN-PATH: YES]
+e4e3d1352809428a5dfe386bb53c0b18a562332f refs/remotes/origin/url-scheme-validation-r6  [ON-ORIGIN-PATH: YES]
+7621dc833a7679930449c07cd438ef589ca5b7fe refs/remotes/origin/url-scheme-validation-r8  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/worktree-agent-a2c3f443e6e14aef4  [ON-ORIGIN-PATH: YES]
+8c3062d0636b7936200926d9f63ab12609f5e3a2 refs/remotes/origin/worktree-agent-a9a8ff1994a656cac  [ON-ORIGIN-PATH: YES]
+b8c43fcdc4c190f2d7bf25083af069e2a0ba9dbe refs/remotes/origin/worktree-anthropic-vertex  [ON-ORIGIN-PATH: YES]
+
+############ /tmp/tsdiff/head  HEAD=901670e3f09ad57386cafb8359017d8d61a75070 ############
+# ref count: 208  | all objects verified present in /workspace/farmtable
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/heads/task-state-web-ui-v2  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/HEAD  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/attention-view  [ON-ORIGIN-PATH: YES]
+8656fe03ddf6ca2b52cab98d2150e139edd941cf refs/remotes/origin/auth-stage4-deploy-prep  [ON-ORIGIN-PATH: YES]
+d701613d5941a2d8348b2e54690cb31d06368ef5 refs/remotes/origin/auth-stage4-predeploy-fixes  [ON-ORIGIN-PATH: YES]
+345406a60cca325f064aee3b8edadfabf2b92a67 refs/remotes/origin/auth/stage1-mandatory-enforcement  [ON-ORIGIN-PATH: YES]
+a1c1e7a58da6972464f74ea750bda1829c0c2caa refs/remotes/origin/auth/stage2-web-dashboard-auth  [ON-ORIGIN-PATH: YES]
+bd9be402c5c47ccbecd43705854494b8d3acfb3a refs/remotes/origin/auth/stage3-identity-aware-ops  [ON-ORIGIN-PATH: YES]
+7cd046b3e81a63152ec296dd5bb8ac42dbbcce3d refs/remotes/origin/auth/stage4-scoped-tokens-rbac  [ON-ORIGIN-PATH: YES]
+36d98aef93f7f844e0fbc8486e99bcb4f719ba23 refs/remotes/origin/auth/stage5-oauth-iap-proxy  [ON-ORIGIN-PATH: YES]
+bc37487b1d975c7b8bff419f8dc509200d06d958 refs/remotes/origin/auth/stage6-credential-improvements  [ON-ORIGIN-PATH: YES]
+8665535c2ac200a8cecb8a5890b97b59bf66c438 refs/remotes/origin/auth/wire-stage5-stage6  [ON-ORIGIN-PATH: YES]
+5c05b0d5fd85f09defb255589ef2e70bb61907cc refs/remotes/origin/auth/wiring-review-fixes  [ON-ORIGIN-PATH: YES]
+3585f2e1b844ff0a8489396d6d3ff38f15416d05 refs/remotes/origin/b7-read-only-work  [ON-ORIGIN-PATH: YES]
+8dfd5b867c11cc4f73e88ffb478e3cc220ebf6cc refs/remotes/origin/deploy-10-snapshot  [ON-ORIGIN-PATH: YES]
+8ac4bc02af2998466d4aa7f0eccf91f81947bddb refs/remotes/origin/deploy-11-snapshot  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/deploy-12-snapshot  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/deploy-13-snapshot  [ON-ORIGIN-PATH: YES]
+b2a812309dc4259f36d4f913d0fda9fa703f6239 refs/remotes/origin/deploy-14-snapshot  [ON-ORIGIN-PATH: YES]
+2ac0945ec601668dec1b6aa0a77b6791f26132c5 refs/remotes/origin/deploy-15-snapshot  [ON-ORIGIN-PATH: YES]
+2f15c921e352ab8b604b02df4b3634705663f695 refs/remotes/origin/deploy-16-snapshot  [ON-ORIGIN-PATH: YES]
+2095838bcbe45d8e3f594a1dd18dd518b7680729 refs/remotes/origin/deploy-17-snapshot  [ON-ORIGIN-PATH: YES]
+aa0feb2fd79f7486a27fb6df5a050fb094e026d5 refs/remotes/origin/deploy-18-snapshot  [ON-ORIGIN-PATH: YES]
+cb19a2f05cfca32b053d62c82f7e63b1d0759485 refs/remotes/origin/deploy-19-snapshot  [ON-ORIGIN-PATH: YES]
+2c973dc52b6eba6243a23dac8460c3b35256343d refs/remotes/origin/deploy-20-snapshot  [ON-ORIGIN-PATH: YES]
+7a2e742ec083f1f48179c16e6d1b6a3297d30883 refs/remotes/origin/deploy-21-snapshot  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/deploy-22-snapshot  [ON-ORIGIN-PATH: YES]
+68149446ff4094b6d6661b7ebf587d7ae8ab07c8 refs/remotes/origin/deploy-23-snapshot  [ON-ORIGIN-PATH: YES]
+277ae614135abff79171b6bd023ddc34f0ddf971 refs/remotes/origin/deploy-24-snapshot  [ON-ORIGIN-PATH: YES]
+71dfe8866e5828fcf8f3a9cdfd16ebe9689f9b85 refs/remotes/origin/deploy-25-snapshot  [ON-ORIGIN-PATH: YES]
+0596714a8e62a784960bc5551973f7e5e50bd59b refs/remotes/origin/deploy-26-snapshot  [ON-ORIGIN-PATH: YES]
+40f8d82bcfdebab656a7b2cd912d580c4c628fac refs/remotes/origin/deploy-27-snapshot  [ON-ORIGIN-PATH: YES]
+5ca903745168374aa2805d466f0ed53fbcf21003 refs/remotes/origin/deploy-28-snapshot  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/deploy-29-snapshot  [ON-ORIGIN-PATH: YES]
+696caccc9e0c3a3c435b922faf0bb331cdead145 refs/remotes/origin/deploy-30-snapshot  [ON-ORIGIN-PATH: YES]
+b50075339c42357be10a95aae7df43cd8eada61f refs/remotes/origin/deploy-31-snapshot  [ON-ORIGIN-PATH: YES]
+7d64230c47d1ba48daf9d7cbeeeeb3b890ff2887 refs/remotes/origin/deploy-32-snapshot  [ON-ORIGIN-PATH: YES]
+c957f7e69bd7ace7d04ed35271c1ead897f56857 refs/remotes/origin/deploy-33-snapshot  [ON-ORIGIN-PATH: YES]
+befeffda43f1c69fa81b6fcb9c2449500ead1703 refs/remotes/origin/deploy-34-snapshot  [ON-ORIGIN-PATH: YES]
+5b05b0191a5eee2b5c23dc8281d26a917ce0061a refs/remotes/origin/deploy-35-snapshot  [ON-ORIGIN-PATH: YES]
+8665535c2ac200a8cecb8a5890b97b59bf66c438 refs/remotes/origin/deploy-36-snapshot  [ON-ORIGIN-PATH: YES]
+5c05b0d5fd85f09defb255589ef2e70bb61907cc refs/remotes/origin/deploy-37-snapshot  [ON-ORIGIN-PATH: YES]
+0cf1f4b4c16422937917299bde8823344486e270 refs/remotes/origin/deploy-38-snapshot  [ON-ORIGIN-PATH: YES]
+cc9d1180264b98ee401b1fd5b5efd62345ac4692 refs/remotes/origin/deploy-39-snapshot  [ON-ORIGIN-PATH: YES]
+aff98a2be87e3a08b1e594b05654ed8c20c9bb74 refs/remotes/origin/deploy-40-snapshot  [ON-ORIGIN-PATH: YES]
+65deb12ef92c00a40d2b8b6b4d66b1e2712798f5 refs/remotes/origin/deploy-41-snapshot  [ON-ORIGIN-PATH: YES]
+eef367b29fcca7b224c31184549bc545db3f71fe refs/remotes/origin/deploy-42-snapshot  [ON-ORIGIN-PATH: YES]
+b67ac9de7e79a02ece8bc5f95355e2e50320666e refs/remotes/origin/deploy-43-snapshot  [ON-ORIGIN-PATH: YES]
+e5218539d576be5a8788da9d410aac4ef0b8a134 refs/remotes/origin/deploy-44-snapshot  [ON-ORIGIN-PATH: YES]
+7b94440b5878b03c6ee8301f0d9f1dc4336788ce refs/remotes/origin/deploy-45-snapshot  [ON-ORIGIN-PATH: YES]
+44056dea0a9cf5987b03a1160d4bce1db6ffb4ce refs/remotes/origin/deploy-46-snapshot  [ON-ORIGIN-PATH: YES]
+d1a061cc217e1f5c23953bb1b744e8cf444ebad6 refs/remotes/origin/deploy-47-snapshot  [ON-ORIGIN-PATH: YES]
+0533f0ab39fa2719cb27cc474a32c34a56cf5bd6 refs/remotes/origin/deploy-48-snapshot  [ON-ORIGIN-PATH: YES]
+cdfa1bf076aefe36a6038e8007dff6345f75663f refs/remotes/origin/deploy-49-snapshot  [ON-ORIGIN-PATH: YES]
+b06528a48fcaac29886e894131c3ba8857670988 refs/remotes/origin/deploy-50-snapshot  [ON-ORIGIN-PATH: YES]
+42ced660a4e445c6ce2bcbf7fc93f1a2d8df3ce0 refs/remotes/origin/deploy-51-snapshot  [ON-ORIGIN-PATH: YES]
+758de9f7b26003b8f86577e89109b77c8c590206 refs/remotes/origin/deploy-52-snapshot  [ON-ORIGIN-PATH: YES]
+773fb008b17f42ddf5157b882b1ad423accfd45c refs/remotes/origin/deploy-53-snapshot  [ON-ORIGIN-PATH: YES]
+0697a71176722e23c1be40c19b57ab6c2191ac22 refs/remotes/origin/deploy-54-snapshot  [ON-ORIGIN-PATH: YES]
+5c0e5cf281b261f50dc5e7499bc3a4f0a2bfdd30 refs/remotes/origin/deploy-55-snapshot  [ON-ORIGIN-PATH: YES]
+798efc5d8030e23de0a5f00946a4ea7ce8427885 refs/remotes/origin/deploy-9-snapshot  [ON-ORIGIN-PATH: YES]
+582793ea1d7e8fcf9c0be28390a553abf2c7916f refs/remotes/origin/deploy-task-state-phase1-live  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/auth-review  [ON-ORIGIN-PATH: YES]
+c6519ab9a2643b14a4027756577036b21d1bf932 refs/remotes/origin/explore/decomposer-rerun  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/explore/dnd-broken-investigation  [ON-ORIGIN-PATH: YES]
+7a2e742ec083f1f48179c16e6d1b6a3297d30883 refs/remotes/origin/explore/f46-missing  [ON-ORIGIN-PATH: YES]
+79776b1f9f2d26b94871096fa4387445ffbd303e refs/remotes/origin/explore/graph-redraw  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/explore/issue-76-validation  [ON-ORIGIN-PATH: YES]
+f1a86dca6a855ee9bf4b7179dae305b6ef3e3580 refs/remotes/origin/explore/issue-77-validation  [ON-ORIGIN-PATH: YES]
+8dfd5b867c11cc4f73e88ffb478e3cc220ebf6cc refs/remotes/origin/explore/local-test-protocol  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/passthrough-write  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/explore/reciprocal-relationship  [ON-ORIGIN-PATH: YES]
+b8ee51f8afdabd2708f8eaba00c3d4d448a6fd3a refs/remotes/origin/explore/relationship-model  [ON-ORIGIN-PATH: YES]
+5ca903745168374aa2805d466f0ed53fbcf21003 refs/remotes/origin/explore/sync-flicker  [ON-ORIGIN-PATH: YES]
+6cddeb432638cf37346524878ab5150d06abce65 refs/remotes/origin/explore/tree-lines  [ON-ORIGIN-PATH: YES]
+146b3be8a1aa3f04c360f9e9c98b47452e35cec2 refs/remotes/origin/explore/triage-dnd-investigation  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-cloudsql-fix2  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f61-rename  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f61-review-2  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f62-review  [ON-ORIGIN-PATH: YES]
+5d197fe8116221f62ab6eaf1849b6ac499389a1c refs/remotes/origin/farmtable-f63-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-f65-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-f66-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-perf-phase1-review  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/farmtable-periodic-redraw-review  [ON-ORIGIN-PATH: YES]
+71e980fbc6077ff4e8e5e60ab66693a2e291a769 refs/remotes/origin/feat/add-task-ui  [ON-ORIGIN-PATH: YES]
+f25e7e5fe5562242b0a11ca1d07b42f021c0d72b refs/remotes/origin/feat/cli-integration-tests  [ON-ORIGIN-PATH: YES]
+2915bbb73e8b4c5414e44ce90dc8d1cc673cf672 refs/remotes/origin/feat/collection-export-import  [ON-ORIGIN-PATH: YES]
+fa9e58a0d3479506ca5c491ffb5f34a286fcf361 refs/remotes/origin/feat/collection-picker  [ON-ORIGIN-PATH: YES]
+08788c7eccb00f77ac18d67df27237200ea8ecf1 refs/remotes/origin/feat/collection-settings-modal  [ON-ORIGIN-PATH: YES]
+7fee9ced55cb8a94cfb5e78161e1b4db57797bb3 refs/remotes/origin/feat/collection-url-routing  [ON-ORIGIN-PATH: YES]
+56bd5130277fe28b1b5087d8766007233234f121 refs/remotes/origin/feat/column-count-tooltip  [ON-ORIGIN-PATH: YES]
+53b30624a05c4ea66c4e4af7ea298961232f1298 refs/remotes/origin/feat/column-filter-counts  [ON-ORIGIN-PATH: YES]
+c20b3ff813fbdabb6807ad2c1c021d1f9423fce9 refs/remotes/origin/feat/decomposer-extras  [ON-ORIGIN-PATH: YES]
+e3e10d911c8b647e2e33e34ef04eb0b6e268603c refs/remotes/origin/feat/decomposer-iap-audience-flag  [ON-ORIGIN-PATH: YES]
+45f7cf0f95c639d0cdb44645ff4e638d0bb3d817 refs/remotes/origin/feat/decomposer-improvements  [ON-ORIGIN-PATH: YES]
+68e0c89dc60c52c1151ebde3cffda452e896f066 refs/remotes/origin/feat/empty-filter-message  [ON-ORIGIN-PATH: YES]
+7ba5cbdd28202200db84dec8c4487bfc53220619 refs/remotes/origin/feat/export-import-web-ui  [ON-ORIGIN-PATH: YES]
+408f66e55bf0df3ce2d98dd1b678b9c115120a33 refs/remotes/origin/feat/extstore-a1-linkedaccount-schema  [ON-ORIGIN-PATH: YES]
+f82873f7fff4d6881d9d5375150a09c732706db5 refs/remotes/origin/feat/extstore-a2-proto-rpcs  [ON-ORIGIN-PATH: YES]
+22f1e10171b64f6bb4c63dcf9ee1232544e95452 refs/remotes/origin/feat/extstore-a3-remote-data  [ON-ORIGIN-PATH: YES]
+9566ffaa5b69b8935e6980a781ae292bde356d7b refs/remotes/origin/feat/extstore-a4-linkedaccount-store  [ON-ORIGIN-PATH: YES]
+24f51da2b6b50872fac4d37c60449f0bb4cae70a refs/remotes/origin/feat/extstore-a5-linkedaccount-rpcs  [ON-ORIGIN-PATH: YES]
+705b8c2121a3a41714a17ddb781e7607766fefb8 refs/remotes/origin/feat/extstore-a6-multistore  [ON-ORIGIN-PATH: YES]
+c539aef0379559f34a7680e2e67316bfdebda4c2 refs/remotes/origin/feat/extstore-a7-cli-link-unlink  [ON-ORIGIN-PATH: YES]
+086ff6b66ff4c65be91183af6888416219f70725 refs/remotes/origin/feat/extstore-a8-multistore-wiring  [ON-ORIGIN-PATH: YES]
+777da7f9ec7731235d25723cdb8a3cc7e17751a9 refs/remotes/origin/feat/extstore-b1b5-passthrough  [ON-ORIGIN-PATH: YES]
+31d67075540d8dfca358238a7bfe626d46599b04 refs/remotes/origin/feat/extstore-b2-taskToProto  [ON-ORIGIN-PATH: YES]
+78e400ee31d6f7ce0e07853bc02b834a31f7496b refs/remotes/origin/feat/extstore-b3-lazy-registration  [ON-ORIGIN-PATH: YES]
+17205ebe228e15a13a87f0026fbaf1c0568e91e3 refs/remotes/origin/feat/extstore-b4-watchtasks-guard  [ON-ORIGIN-PATH: YES]
+0d72f31d0f3e699845572091c3c25d61d26e9ee1 refs/remotes/origin/feat/extstore-b6-collection-selector  [ON-ORIGIN-PATH: YES]
+d95a755949837b47c5cdafca235bc854107fd90e refs/remotes/origin/feat/extstore-b7-read-only-mode  [ON-ORIGIN-PATH: YES]
+3270c1a342556c25b74ffccb62032a9bf47a2ff2 refs/remotes/origin/feat/extstore-b8-poll-refresh  [ON-ORIGIN-PATH: YES]
+25b235791c3887e6cbef5decbd0752128860c850 refs/remotes/origin/feat/extstore-c1-ephemeral  [ON-ORIGIN-PATH: YES]
+a72444716765833f374c49af6650c22eb24a6368 refs/remotes/origin/feat/extstore-c2-graph-check  [ON-ORIGIN-PATH: YES]
+2f938303daee7556a15db999cd70429357e2f8da refs/remotes/origin/feat/extstore-c3-graph-routing  [ON-ORIGIN-PATH: YES]
+2d99af3cfee7c3daea38e1ca9446a464b002bd01 refs/remotes/origin/feat/extstore-c4-graph-test  [ON-ORIGIN-PATH: YES]
+54c0a9316de928b1dabecd6be45f11f65d3d3020 refs/remotes/origin/feat/extstore-e1-e2e-test  [ON-ORIGIN-PATH: YES]
+21d4abb79e2507f0f035fd1cc694b69b40bf4469 refs/remotes/origin/feat/f35-inspector-title-constant  [ON-ORIGIN-PATH: YES]
+3e727168c790aae883c4998899d00c95a05db01c refs/remotes/origin/feat/f36-main-content-scroll  [ON-ORIGIN-PATH: YES]
+6aeed20eb187d2d39afaa178c8517bb54a09cf58 refs/remotes/origin/feat/f37-scroll-to-item  [ON-ORIGIN-PATH: YES]
+47fd58badbf3bbce667eaee9b1100c266bcdb833 refs/remotes/origin/feat/f38-independent-scroll  [ON-ORIGIN-PATH: YES]
+ef9f9e88865ae970afe24219c7aea47d275a7826 refs/remotes/origin/feat/f39-independent-scroll-v3  [ON-ORIGIN-PATH: YES]
+27265af319be306090b68bb4c46328e53c821858 refs/remotes/origin/feat/f40-inspector-scroll  [ON-ORIGIN-PATH: YES]
+28fc26f6519be36acde3bee5b0a3938cba9c7e0a refs/remotes/origin/feat/f41-tree-center-animation  [ON-ORIGIN-PATH: YES]
+354291425fad27503f85ca4aef4d7c4659e63ee0 refs/remotes/origin/feat/f43-tree-parent-child-only  [ON-ORIGIN-PATH: YES]
+101a4d4e90bce6c78fb64329bee75ddef896f4a7 refs/remotes/origin/feat/f44-dependency-view  [ON-ORIGIN-PATH: YES]
+1251e7a082256ef80af3b8e2e426421e627de9b4 refs/remotes/origin/feat/f45-beads-import  [ON-ORIGIN-PATH: YES]
+ab75471d056543dca67298e398345e1f4162f7b2 refs/remotes/origin/feat/f46-relationships-add-remove  [ON-ORIGIN-PATH: YES]
+24dc954ccd8aad4764571ebe599101c222bee51a refs/remotes/origin/feat/f48-dependency-view-dnd  [ON-ORIGIN-PATH: YES]
+495bc0817c861a966191e2a559fa0547076d2dbb refs/remotes/origin/feat/f50-landing-page-scroll-newproject  [ON-ORIGIN-PATH: YES]
+118bc458c8eab859a3bce896e24d43d20fec8a6a refs/remotes/origin/feat/f54-tree-minimap  [ON-ORIGIN-PATH: YES]
+4893de1d6334431d48a624e4f2497e83d4767e62 refs/remotes/origin/feat/f56-zoom-and-highlight  [ON-ORIGIN-PATH: YES]
+a8c8bde29d277f8b30e4d0bdc9f8401707b48577 refs/remotes/origin/feat/f59-iap-token-header  [ON-ORIGIN-PATH: YES]
+a45f33e2fc6bb2cdb614130a488c84176f5c3bf1 refs/remotes/origin/feat/filter-chips  [ON-ORIGIN-PATH: YES]
+451b78479e60a5baab5c3fb5f95388f2da3f25ea refs/remotes/origin/feat/filtered-count-badge  [ON-ORIGIN-PATH: YES]
+9c84d93f1a5c662f73c77bc8d4bcbf8e3a258aca refs/remotes/origin/feat/inline-card-edit  [ON-ORIGIN-PATH: YES]
+04535a6cede15deabafa4d3b7ac441c902ce3f89 refs/remotes/origin/feat/inspector-assignee-edit  [ON-ORIGIN-PATH: YES]
+4856f4c33e684313788763dd0509044195af3bd9 refs/remotes/origin/feat/inspector-editor-reliability  [ON-ORIGIN-PATH: YES]
+07c07208f65ed0e29ee9e6b2b8b8a766877bd551 refs/remotes/origin/feat/inspector-keyboard-nav  [ON-ORIGIN-PATH: YES]
+598a2c751d655af802879ee8e492947345b988ed refs/remotes/origin/feat/inspector-label-edit  [ON-ORIGIN-PATH: YES]
+e43559ff9b22d52db5bb7c0d78e05a1fcbb64f22 refs/remotes/origin/feat/inspector-priority-edit  [ON-ORIGIN-PATH: YES]
+df0a76efda0df7c353aad2aa37dbb86c5ab3474f refs/remotes/origin/feat/kanban-keyboard-nav  [ON-ORIGIN-PATH: YES]
+d622196766476344cb3306072ef8bd92576d448c refs/remotes/origin/feat/new-collection-modal  [ON-ORIGIN-PATH: YES]
+7dee6ff55c69efb5587ae754823d3a93450b50df refs/remotes/origin/feat/passthrough-write-p1  [ON-ORIGIN-PATH: YES]
+51d39a200979f77d721ba707965b02e8518d7ab0 refs/remotes/origin/feat/passthrough-write-p2  [ON-ORIGIN-PATH: YES]
+d0f2322a91374f707eecc1d406c87961eceb3c39 refs/remotes/origin/feat/passthrough-write-p3  [ON-ORIGIN-PATH: YES]
+5538fbfb07c0fdc9c4940eaa0fe6ab8ac6dbb685 refs/remotes/origin/feat/per-column-create  [ON-ORIGIN-PATH: YES]
+994f8012607ec8524e22aeac340b4b2e0ee78bc8 refs/remotes/origin/feat/prompt-variants  [ON-ORIGIN-PATH: YES]
+9f4291bec9b728de01580a7887385d247b3aee94 refs/remotes/origin/feat/shortcut-overlay  [ON-ORIGIN-PATH: YES]
+36278501116309c61a415b94832c71c3cf22050b refs/remotes/origin/feat/task-detail-panel  [ON-ORIGIN-PATH: YES]
+285b93466ab5e76b501cab6765be01b1e5ca8bd9 refs/remotes/origin/feat/toolbar-filters  [ON-ORIGIN-PATH: YES]
+b98dd9edafd38f7e340cb9dbdac2bbf3a48ec0a8 refs/remotes/origin/feature-67-tree-orientation  [ON-ORIGIN-PATH: YES]
+9625850cb66f6ad21a8fb48f07b3cc52ff09f316 refs/remotes/origin/feature-67-tweak-default-lr  [ON-ORIGIN-PATH: YES]
+1d6ac9aa35759fac15272c30f6c67c8c2e20c940 refs/remotes/origin/feature-68-kanban-autoscroll  [ON-ORIGIN-PATH: YES]
+0b85bbdab7dc4b38eff7c01979b0e7f0d70f974d refs/remotes/origin/feature-69-inspector-external-link  [ON-ORIGIN-PATH: YES]
+b0ff5c3f5e2476a1fa10353349a5091fe23f5b19 refs/remotes/origin/feature-70-favicon  [ON-ORIGIN-PATH: YES]
+6777380a41a3fd32e820432b320aa39485a9e03c refs/remotes/origin/feature-71-minimap-damping  [ON-ORIGIN-PATH: YES]
+42e1266d925d5c67cbb99060bddc603a3d25a781 refs/remotes/origin/feature/f61-isolate-mode  [ON-ORIGIN-PATH: YES]
+ddcb53d5a7b811aeeab23eb43bfb05d0da926de2 refs/remotes/origin/feature/f61-v2-fixes  [ON-ORIGIN-PATH: YES]
+e4eb41fde2032475b967fc7deeb51db1cf266722 refs/remotes/origin/feature/f62-task-deep-links  [ON-ORIGIN-PATH: YES]
+6bbbd9847eaea3f45b6cf76d84d89d79afa0f510 refs/remotes/origin/feature/f63-default-dashboard  [ON-ORIGIN-PATH: YES]
+65bcd0f882bff4c4f0125e07ed46df457cc7e0d3 refs/remotes/origin/feature/f64-dnd-animation  [ON-ORIGIN-PATH: YES]
+4b219786ea08088d72bb764b3a5ef8b1fa823e77 refs/remotes/origin/feature/f65-dashboard-ready-count  [ON-ORIGIN-PATH: YES]
+709ded90410a9cf8cf2064bd355b20ccc0642c5b refs/remotes/origin/feature/f66-solo-sticky  [ON-ORIGIN-PATH: YES]
+526ea52b5d5ad423f58cd741d385c363434bc241 refs/remotes/origin/fix-dependency-closed-solo  [ON-ORIGIN-PATH: YES]
+0dcf18e909336855ccf9d98030c6bf8ee1489b16 refs/remotes/origin/fix-solo-crossedge  [ON-ORIGIN-PATH: YES]
+b26dd5284b7b719c98d41928137410539e50954d refs/remotes/origin/fix/cloudsql-connection-pool  [ON-ORIGIN-PATH: YES]
+b4df4311e67ce9922a8e6d458f373cd546d9f69d refs/remotes/origin/fix/decomposer-terminal-self-assess  [ON-ORIGIN-PATH: YES]
+4602156432fc7077fbd9b0376d8af18e77979255 refs/remotes/origin/fix/f42-kanban-dnd-deadzone  [ON-ORIGIN-PATH: YES]
+79c03163afa5196e074aeebdd940112169a2a12a refs/remotes/origin/fix/f47-ready-queue-alignment  [ON-ORIGIN-PATH: YES]
+e9207f13c9160290a2411890e7380e10d9806f2c refs/remotes/origin/fix/f49-reciprocal-relationship-sync  [ON-ORIGIN-PATH: YES]
+93fec41e92dc168bc8d1de71f42b342c6d1950c2 refs/remotes/origin/fix/f51-dependency-view-layout  [ON-ORIGIN-PATH: YES]
+c084837612669b27b48bb71572dddbe361170656 refs/remotes/origin/fix/f52-palette-search  [ON-ORIGIN-PATH: YES]
+834ebe71a56c4e69958d8da4d2de6501d6539ec3 refs/remotes/origin/fix/f57-issue-76-bottlenecks  [ON-ORIGIN-PATH: YES]
+de8166ba39ef6e28139ba082c9a9159ad8c55718 refs/remotes/origin/fix/f58-combined-pan-zoom-animation  [ON-ORIGIN-PATH: YES]
+e49fab2424b811aa2adb3d7c2134d9f2c0d6c2ba refs/remotes/origin/fix/f60-graph-poll-redraw  [ON-ORIGIN-PATH: YES]
+4426fcc8eb61d6b107ff5b3c8950bcc62b84eecf refs/remotes/origin/fix/passthrough-spinner  [ON-ORIGIN-PATH: YES]
+4a4d6ed6dfaac39a3ea021f105a6be761a341988 refs/remotes/origin/fix/perf-phase1-getchildren-depth  [ON-ORIGIN-PATH: YES]
+de88567d8685a39b7fb6d5299cfa47536d3975cc refs/remotes/origin/fix/periodic-redraw-v2  [ON-ORIGIN-PATH: YES]
+b4ac5ac98f12272753cc2e8d27c5bbc2a650748b refs/remotes/origin/fix/tree-view-infinite-growth  [ON-ORIGIN-PATH: YES]
+cf7c847f648fa0deff2a003803ae2b1de6ce2559 refs/remotes/origin/fixes-r3  [ON-ORIGIN-PATH: YES]
+85f8b4d9970af4f98e1cd2cce5023e8383034a03 refs/remotes/origin/fixes-r4  [ON-ORIGIN-PATH: YES]
+cc927355e5a23c45bfd983cd331eb540b0a61ad5 refs/remotes/origin/main  [ON-ORIGIN-PATH: YES]
+8430eb0dfe7bd0da5572dee58b6fc90f014bc2ff refs/remotes/origin/perf-phase2-viewport-culling  [ON-ORIGIN-PATH: YES]
+c68d35aec35df6c0ffbfdaff76436f5a01280c90 refs/remotes/origin/polish-r2  [ON-ORIGIN-PATH: YES]
+42e1266d925d5c67cbb99060bddc603a3d25a781 refs/remotes/origin/pr-140-review  [ON-ORIGIN-PATH: YES]
+3133cbdc6086f587a0fb1618c2557c87978e864c refs/remotes/origin/pr-149-review  [ON-ORIGIN-PATH: YES]
+89db5f8ac18cf26f385cc33d1cb2207fd43b91bf refs/remotes/origin/pr-154  [ON-ORIGIN-PATH: YES]
+fbeedc189c1e1de41af5450c0fe2a7dbde962820 refs/remotes/origin/rank-reorder  [ON-ORIGIN-PATH: YES]
+8ee0df218390623d66ec1cd46d7c9660dcff2cc1 refs/remotes/origin/review-f62  [ON-ORIGIN-PATH: YES]
+4b219786ea08088d72bb764b3a5ef8b1fa823e77 refs/remotes/origin/review-f65  [ON-ORIGIN-PATH: YES]
+89973f89ce2e092cbfb2be3114bc13c494368345 refs/remotes/origin/scopedeny-93-deny-unrecognised-type  [ON-ORIGIN-PATH: YES]
+a2442ffa98fefc6fbb408e774344960e991f58cb refs/remotes/origin/task-state-core  [ON-ORIGIN-PATH: YES]
+7a0f220dbd9332cb8db62138c841777432b4eda4 refs/remotes/origin/task-state-hotfix-179-r2  [ON-ORIGIN-PATH: YES]
+e522e04c3021cd90714b707f7a87c4c3f692c0f2 refs/remotes/origin/task-state-predeploy-migration  [ON-ORIGIN-PATH: YES]
+7a0f220dbd9332cb8db62138c841777432b4eda4 refs/remotes/origin/task-state-web-ui  [ON-ORIGIN-PATH: YES]
+fe8e212e6e5f054f725ceacf652c2516b885c59e refs/remotes/origin/task-state-web-ui-tests  [ON-ORIGIN-PATH: YES]
+633f8f269bcf9225b62d3c7c119f8166eda9ae64 refs/remotes/origin/task-state-web-ui-v2  [ON-ORIGIN-PATH: YES]
+d5db8c446fa9942fa17028b81d1cf4b9858d41a6 refs/remotes/origin/terminal-predicate  [ON-ORIGIN-PATH: YES]
+9ec3275efddf1b42796bebdf61836ed271db93b4 refs/remotes/origin/test-list-reconcile-103  [ON-ORIGIN-PATH: YES]
+7524504fa81046b59d0873f49d16436156d99da9 refs/remotes/origin/tests-r3  [ON-ORIGIN-PATH: YES]
+d305391ee6dc473f5e7bf202167221e15cf52e10 refs/remotes/origin/url-scheme-validation-r5  [ON-ORIGIN-PATH: YES]
+e4e3d1352809428a5dfe386bb53c0b18a562332f refs/remotes/origin/url-scheme-validation-r6  [ON-ORIGIN-PATH: YES]
+7621dc833a7679930449c07cd438ef589ca5b7fe refs/remotes/origin/url-scheme-validation-r8  [ON-ORIGIN-PATH: YES]
+dcf5aa34e8a3111b931c2fcf73782e0fee4f5f43 refs/remotes/origin/worktree-agent-a2c3f443e6e14aef4  [ON-ORIGIN-PATH: YES]
+8c3062d0636b7936200926d9f63ab12609f5e3a2 refs/remotes/origin/worktree-agent-a9a8ff1994a656cac  [ON-ORIGIN-PATH: YES]
+b8c43fcdc4c190f2d7bf25083af069e2a0ba9dbe refs/remotes/origin/worktree-anthropic-vertex  [ON-ORIGIN-PATH: YES]
+
+############ UNREACHABLE COMMITS (not returned by for-each-ref) ############
+# 308 per clone, identical sets, ALL present in /workspace/farmtable, none authored here.
+00755260c42e14e9dac7d0f7041f60ea55085b32
+038abb73f67194c48bad223bf04a43a9334fd137
+03ab6b63287b29b079afac30f7a0fb345052a521
+03bd15597cc42cfd4bfb6b0ca7a3a3927ddfcdee
+045a0c226a8f816351480aa69237f34fb3de801c
+05708244f7bc6b38ee7f6ab880b4c4d05ef84802
+058a973557cd797034fb51932d8ab1ed3667b8aa
+06e751c45791163d04836b430a9c1cecf9bf0113
+06f01d7d6555a311fcd0728eac40335e654c1de6
+0854f3ce66d8e86cdf07be84f5b51b4de0c87030
+089fac7dd1f37554f9af061aebf00785964995a0
+08edea7c5312bcefe20953ef556a9e505f878f63
+0a68ae5b1d00b101938de3ba7313ea293aa44b61
+0b4c18d7ace20ecf1f8779ce726707627415151d
+0b539d76720ec20bb40b76d171d91a70e226375d
+0b8772111830a329145fce7a670ffc4c15d93a7d
+0ba257eb99e0284a147266d59944dca44a71b1c6
+0d7c36dd8ecf430c812fee696f6e108cad72be07
+0f162512f55d45554f923ca39d875dc14f120fff
+0f1c55b35fdd35248d354b333e9bdd97f2b6dace
+0f4f5b4d50741e4400bb5ff7058f60d744ed08ba
+102f9096b40fa0a6a1928d77ec6f5c451738e459
+106afb9b74611794f6099b207e605440613829dd
+11b30c1347879f670f92b301ff5c28a545309f82
+128d5a63821a95953217db397330531c993070a0
+131fb3604140940f96d82d0f38a7d745bc49d6a2
+137adcee0e698cc181060f6e1d80f7624ba8abe4
+13c4630ccce0bac20e7fa41d3b73356eae16809c
+1407de5f691cecf6d929783d4ab8011f0d28f8a3
+14a2909d700388a309fe2d1073d641431a5cef22
+14dac971a6c6d0765e93d0f69c0eda318a964e40
+158c8ae963faa5eef032e0857ecbc40d6a7c681a
+159f7f0d3a415972552e40e20d614db5239bdcd1
+15b7247c7745c661cbd45a0a35024bb36eff5c05
+15b7f3f1c7a5618fb58e2fceb4b7e03e43cce62b
+15d785accfb067bd2436727a9b6e68050524b55b
+15f6fae43a639b25755f79f90883d6a8580609ed
+168c520ffa6e445ff157628d0e8c0c150a8399fb
+18d49518566c630157d46e105492829b28389323
+1a73f3bf60524542e0f43f05d3684c39e9efe857
+1ab1bb6d4b62c3c0a44ed8c1479b25850435c55d
+1ab7f145c8a0f12e6f4212bc83924b9acc1d6fed
+1c2c7860122ac8c034be8bd2217126e539725b91
+1d4442f1982b6e03233f1517106d0c369af1afe6
+1d889ba533f59716694c0df89fd92dca7e32adf6
+1f067aa3ee24a0d846d5a1d34fd3ed19519e356c
+1f3ba2dab6890b098d72b96bd4c8398112db204d
+1f51118a88a3202a3c1aee3fb41bbe052ae554f1
+203271ed39791c54dda7a2e4d0cc6dab02e8f4fe
+224bd8fbdba3cdefb373021cd22745f74dbfbd2c
+2280c87c6a463776daf907d6805b340b7af9a005
+24bda4b72e2674e572cd7f8d19a3b8a367de6775
+25f961f0c8ad5087c99993f659a497c3e2cea1cd
+27e0ee00f4a789978fa96083ca00db186bcb6b72
+287a7d4cadc08c8e7e7d316ddbc3c1ea1c45b666
+295b2e921c39a5f3063363f4e483960e6ea3af87
+2965baf1de75b3665b6746e7de353bfd9023d5e7
+2a455a118a242a0c8e00f1b93ccf95a43c2147c8
+2cbbd9288c70dc81f9a07d1bdc4c1fc96e2d0c6e
+2d3c4d7347e95f0c4a6e07f3108690e2894bc63e
+2d849a43bdc380de0b813b84dd9a6471eaea8857
+2ddced8c0373385390192f71a32d4ede4c5044a1
+2eb9b996d7a61fcfcb4da7833daa70a0f7984833
+2f2183601ec6d5d7a5cb5d78e0d353d939f397bc
+2f38b755ec1b39ee19a0911f920aaff5f3d1ccdf
+2f912bbee2f4cfc2f40f2650164a56c69a697fb9
+32f4b01d1de54ecdc5eb16c6eec7bea92e8d9d74
+347cd08c69ac6fb363998de8587fe79390cadb0a
+361f5270523a13e56ccb58d5026772ad0107d822
+362fc4041595835cefb4fbdd332747783b880f49
+3675bb90ea13a82b4f7be1530ef4063ca6c7a579
+367f1904326f47fdd0b10b84570156b1706b6283
+36ceab8a28f81e6f7c58610d6add1048a534d1a7
+37b360288156a2f722f1a4e83094fa9398229646
+3b7ce985a8e27dbe9cdd5800314189f8018a95b6
+3bef89c708eba41102cd7886cfe3c70340ed5e31
+3c512d3f760b5cecfff11ed8009733a482ac483d
+3dcef7b458c475aa68b1e7107f636b0850a96715
+3f1be6186ea3e5a313d604fd815bd6f7aec653db
+3f62148291995143322705b684784a41ac1ab6ec
+3fc5e700ebf27222cbb753b18f2939f41b1023e1
+40348bbe79a55488632f9772487a84e74313cc38
+409e1171608a0d47e5114ab59bdce5c8fe610fb0
+40b0aeae0172ca1dc01d5b433ca1038fb9c74a93
+42f03224bd1dfb081681c19ebce60808e4ebf09a
+4361390bed865ce6b45476e30081d1f0ebfd3b28
+43c13d9df6640ddefeeee6016580c4087b75b512
+440117d6e526a11df59afc7617aeade92f80c6b4
+444d25bae169675305a2468dd115bdc8c9a80850
+44e73f2b5bc3ebe4078b4a59ebc43d2c7f12cb26
+45591edd84fc4b41b41e620d2688daafecee940b
+45aa995288d6cd910295ee7c44abe721fb400ef4
+46bf4bc94cce977aec010eddf495e9bd6a13062f
+48085392c6b3704912f05c2faf89b38216b4af59
+49c1c7e3dfda95d685a23863f9b6e1bdd934941e
+4ac117ec2d4009993dd6eef1e5aac36e3dd42069
+4acc02d8cfa3b3ad613002e476a519fc88974a19
+4af70511c70c6c8d22019f2c87951fe1d6f4cd25
+4bbcb396ac62e013eb7b8a518286cd66d0e3b635
+4dc8271f51d56fae508a04a3bd98d5ec2289172a
+4df2d1e10690ffcd7899c7a1dda7521c96aa472d
+4dff18b860c298259005537015fa49cd05524e89
+4e551eb44c662a3e09ca4ce9455fb524d3bed47b
+4ea2fc84c3378605c7fd119f36cda1e1e6df4f57
+4f8c586f6d08c91f0bc6a210b00b6a20e7287030
+4fb7f437b18cb52e7b75e662512362e61886e131
+5226e6320bdf18375a2e08f0adb56a6976a72fad
+52ea5fccc5f9d1dd572092b640f90a496f10d623
+537a8a9fb1bfd3c4a830ade6b1a51c84210fc217
+53edc464064aa7135bf6c3a5485acd2af621980e
+5458c43493b59d9957d87f33094a0973b23b514c
+547de0a3da50d3482a760c90065c0b9dbb3aeb31
+55711989b01222c630ed341faae8a1299b627b74
+55f284d0a73b64841b9cfe04d37b13971e802df2
+57da2ff6ef72135591ae0c751157e8e75e062906
+57ddd30a69c8176d951681d4ee080f544c63807a
+58481fb494afa8ad5eca60721e45d259bf29c9d2
+5a2c0cde271c971ea4218cf95b5047ec480314b5
+5bd675c1a0e4d33a7daeabfd4170bd069cdb4f74
+5d65c6ecc11312b64816d3cb93de044d5cdf8ee3
+5db3937ffe7c8bbcaab963e25be90abaa89074c0
+601a6ea15c8d169c330833527b758e9151d9a155
+6039377d2f05a1fb02a26792b8bc4509b9c9feaa
+605bdd1fdbc533121739ae03d6f2c55eafa50fd4
+607726da58158311a0ed46bbff55f4d786337395
+61e621c6204c95d1fc24fe4512654135b0fb011a
+629d9213e6dfedb63a89857de44ca73b4f9384c1
+6382b373290cddb65cb2807fae38d169e70cfce5
+644eed9bec9233e5e7b1c54e301317d7c27c1906
+651da265783ce8cbfda5d902e2a3f640ef345529
+6640dffe2bb234b558ff600f12fd64b5ddb677a2
+6798143fb6cc25bf36f9e82aff11a75abcd487b8
+690cbe605bfe0166d8e8078b1201ef5b70f4ea8d
+69284d6e78ac74f70acaf10e7a8ea08792fbb803
+6c28467c0d717e54a6f60e6892664346950c77a7
+6cd45fb687a7692a7d19558a7b5aec066021f81d
+6ced24e53234da12def832c46df1c2be906fc038
+6d2feb025e590e6302b53a3f9f1ed58a7e28b744
+6d8f19e11f4ddbfdc313301199006d3f7c76eb1c
+6e3aa5361e7f5d2f161a3477b410504e87fe3282
+6e817ac541d3326bd835e5acd3c087af3920f507
+6e98097098b67bcba69920021b1c394462e01afd
+6eca2ef45f273943dd6df135b29a263c0c7eb657
+6f081739946a61355bb0e079d6fbc4917cbeea65
+72c736cda7d36ceb263b4f7d5ace11cde09f12a9
+75c785253f7129fcbaa5c5ce799cd7ff12a6ea87
+76d174430d1f3f85ca9617d6256335abbaaa4271
+77405efb33f064e11098668183f5d3a6e5b220cb
+780f428463fd6ee6508751cc6b635a0a1294d271
+794bdce34c5b7e8a952f16f1080911630fc0c795
+7986d088f17c5aa0e2d86843ea4bc0910bf83792
+79c9b132dc6b07d54425c9cdf8a49f80c7e2cf41
+7ae69ffd6220699777037ab88aa20d51c97327c2
+7c2b59370d24dd70c9c27f2db0bab81b322196b4
+7de04f2114351fddfff118ad48f77a177746778a
+7e2e4ea43465fd1bedc4138266a80b33fb5d66c0
+7e53739cf9037ee3f4ba622b71c9ee2e4be1a900
+7f7193d20798e521072c17897a1cd1c8650b24b1
+806b164978d24f6f46bdfc0cf0de1e057581b985
+806ed76322e293641ca6abbd240ab1c312a6b8ee
+8098f297bd66e4a18d6cf7a4a1d54c7ebb778a00
+81148b6e815c3c6767f1a87c450153c2a0eb9ad9
+85aca30facbead470b1919cf2edbec22a8a9432b
+8630dc466304971ec0a47c3eab02c5550da76618
+89306d0a68daeb1ea2691763d66d2b3f04b956f4
+896d7178daf6ed04a353f76032d0ddbdda2632f6
+89d3cbbc599773a91e5b590ee62129036965a2fc
+8a331d6dfd2ca5173bce88079c8f2ab2284f307e
+8ae5da387af2d16ae0ab7d981ceda4af7cfc72f4
+8af43ef55825250eb72de4476d284dd22e776d43
+8d18e7aa6eaf015169113e4ee6756adea2313388
+8d23eba388fe49dfb1446301ce1ffffae0507e63
+8dd932a09bbf90e1a912b3b4b7fea5bff7c0aa12
+8fa5762d9e923134ae15e027409a74230ea2b927
+90d940d1f21790459cb2abdd9a25dc9d9617ffea
+90fcab88f848271c10e0e66db5cb2801cfb31b90
+9190676074e213882eb6c6c87c8f077a329b908d
+93ae12432099401d290b7c1c7000c63b8d9cdf62
+94c0aa9445600b474b85005b213076840db1e48c
+95c66a40e2392f6753b09b64c8aed079239ae78a
+9791b0470daecedfc6a365e7333fdabf88fa4a1c
+9820e15ffc3cd79af1c5979cf00810d150cc3b5d
+9837216b929d0f65e23e537465decd7bcb0768b3
+988cc5e0b9bdd6bd0426118dfeb5e9815319b6f7
+9a538c20aaf1a072ce4eef4648811d214630b959
+9b175dc20fa8ba03e71ac8fe0105b066c047d45e
+9b522608e92b97dc40863865809eb4bca5527921
+9bc5e2c61822941688fd9076ce744e93625df7c6
+9e5df41fdf273c364a71e325877dc20f3ac1d5e0
+9f5dec3f77e526d5ccc78dce6e589a479521876e
+9f98ad81a461c006eca6950a5938826f836d47d0
+9fba706ee7726b396c32600ed84f60ff635c5afa
+a08addce6c2e812f9168e17b6788d72d6dfb6c9d
+a0f80c471df0c027aa3249a8b0999b27bdd4545d
+a2cced01ea87d5b4cacd7ae2cc591a663cf5d2a5
+a396cbbfc5da820c9afb1ee3794846a86c9abc11
+a3a18c6ba6ad6db1d15afc115b6dff0a9bf57d59
+a50b653a96250aa61c8476ef6a8e2c6ff9421b62
+a6a2801a8160bc6275a4ed14c7ab1d90f31adc88
+a6c4219e688f83e4b5d52968b268af7386b73b08
+a6c5c0d928dc2f668a07e09622e6719c09241326
+a70d3d1ac911129ff523645a6664b9d9466dc8f3
+a7dd7caa73c06b3999e2772e1802537757319b41
+a80a16c770fa8393d710aff411f7c68bd5699dff
+a98d162e00f55e73e92d55f6938cb5e404a53d8f
+a9c68d8efbddde262f9fdf66f539310279042823
+abfc1edf32ac45e25697f8fe92f587860a24e104
+ac973539e89a13ac6eec9c709e5ef87793b0c7be
+acd64cca0af5b68297f46cab82ffeb1dc54e600c
+aee69b3a821b700954ff91349a3569f0e7669e1f
+aef3a15055cef1ae05048f2bda03ad845e143684
+af93cb07243be3d32d0ca47842110fe207472dde
+afd183dfb8a8f62a83278bc29bcf40bb46baa3d0
+b0d2ee03d5ea360ca31fd1c90fb50ab0264dbd20
+b1124cf4fd8e67f05905df9c44b6ec8447888b08
+b1b6997707b23870c925dac26dbe580f2bb2f927
+b22949f428fd84282019f29f366b902c66a7a495
+b2d4e754a1314805533f2e54cc435e37531de3db
+b2f3f270be46d8f353dc4ca95e0c93ab815601e6
+b313d970ba24277b78db38480a1b34c7842da044
+b37269cb51a168c90c86aca74f7151a8bc01190c
+b4753b47b6d8108bf3722c09bc61bf2376f52c50
+b4a8b614108330688b86636efb5353c421516e76
+b50be87f65480192423a62a921b6a5432565e960
+b523e6b95e8fac16fdaacf187d5e9d0b0491431b
+b6ad1d422fc7a1d2f6beca75d96bb595740f7a09
+b8d7c5548fb952e7b2afe60d97c7ade797aa69ed
+b9c401544ac08bbad7f111c965b7a7ec995a6685
+b9de062d5d0d0762a3da47016d4af7216dcfb813
+ba93de89684e18a6c5d075dd035e14cd3ea10541
+bae8abcc3ca715c31b93ae7a9fee12484425c416
+baf999a1cda8d1a389e70900ad210a330347a111
+bc9320088b9cf3400da95d15bd642ccdc0aa66de
+bcd40a4b2b35670ab0822e27922324e91ff7c18c
+bd9226f3d7bc99e1a4fd0e985bf27415d9e6324d
+be1b77d863cccc9bccb992ddb3134b1743e0a406
+be22f018bc449141d0347859f9fe65b8f74b1515
+bf77aca45ac1dcbe4bc53654d1684f204c4c5254
+c0c8797be33932a6a0c5616c65841fa176adae5d
+c1ec1ba9b00f00b298de97f80dad62015ce4866e
+c1fe817b6ec32acb419e6716e4a085fd8bb58101
+c25b7c3e7e5579dcb70254f8f425c37c0826eccf
+c27625cd3167a6afc8efc739a28bc288ecfca25f
+c4136643695cd17854593b4b50008877b08da159
+c62d0293d9c8f87bca051b2478e3f4aab585f1dd
+c78935f6fb8bd5e7080137042e8c49d97abf46e4
+c8cb4e09714dd5cee4a8b6c7ba2db41328f486fb
+c973a51bee294acef0cbb12ab16d4e396585c440
+ca39dff1da4fceceadbeaba8dbe6a92b443a9fa0
+cc6d6239b5f6229836480f3a871242afb851a0de
+cc953e467baa90c953e6345dd412a1c8920ff3e2
+cd4b9ce9f7bc8ed98195c9cee1f247d9758fe3de
+cfe1d27572b24ce13b579d5edc7dc8f1f9eb1ca2
+d0398103037fe12694cfccdcdf539d70db7ffa5f
+d12a4de698cf4993b02305a9a84cf7b91187c41d
+d16632d9a240742adaf4b3bee2798978fe228f9c
+d215cd4724cf116ab93dddfbb3957ec18a1570bf
+d252f3d723aeade9e5d684e3bfe53392a9f9b4cd
+d33e39014d3c5674a27c50573294835d7df9cbbb
+d5dffec57067580f6784d20b4566d70f56f075b2
+d5e50f07cd8f209f691395ab6793fa526283063c
+d6690afd4f84d61a935529f09229921c47a6182b
+d6d91c26204d3cffae8f69e266e8a12e988e890a
+d71096cccf8f7d23948e4ad7388febdd10ca9c1c
+d7314cfe3694a94b8e0da99d91704b95339c4505
+d768d0d21937b7cab8708da8127f9bf4ea8b1a0d
+d957cdf49ccdaf6ce306d1383ed14a48d4e94740
+da1861e19e6b9205732295b2e41474d0be41c392
+db30214f2c3c48247ad4145ded4dc3613cb591e8
+dbe84c1dd88a1c9d8f167d329c2c36e80f40b284
+dd988fe498888691d915ffccb79b44c43020a374
+df14b5265163ab4f69ecbe83813b256316098c2a
+df7e8007ee38bc9bdced109aa1f20bd9071eb4e4
+e0f0e159e9ad89f3bd4fcb4832ff1495083c668f
+e1ce33c174cb74b818f91fc0a4b2121cd69efb12
+e222bf59b01934fa92792e07b5f86acef4c756b1
+e448f32601a17d025692bcf24bab1842179f6382
+e4877f417b1697c704d52d0328f74b8ad84a955e
+e4f6f275d6587defc60610d2fd595534b5fba379
+e55ac40fc2d0a2e9ee3fb70e03e81782be8637de
+e5d8b48f845a2b2f2cc846cef56c269030b32a05
+e60519fd850175bd6c8ab091132890b19c640c0c
+e67bae42c0a70b6aff2b2fa3e9b7cd5714301ed9
+e6a7fcd65ea4ae01bfca83ffaab34e21891fb443
+e85635b32b4c412403ae884e0e4b6108622cd0ef
+e87f1bc1ea6432e507cab26c4d6bb224f14b801d
+e8ed0b6ec0a262692a54e5a6fd35c2f73e88f568
+e993b4a2aeb384bb56ae7150ed9c39f1aebd7cd2
+ea4ba5e896fdc5fd7c1f43d3f783b99f52194857
+ea6b8654a84ca1966c612025ce020758d343d7e4
+ea8ac390dad3d2401d65608684e5d6623ab15ac5
+eae434d2603d584631a166a31a1b421b50936afb
+eb2797fc8d4e87c2f424a5899c573b4a284bcfd3
+ed94d77a0f0edaa7bdd36493d736bb65212f292f
+ede1c28c26be04a53448975abc3a26384f4f5b37
+f1b1065e0de06483cb6adf279eba8e67cbcf4855
+f1e47059b715b1c7dfa419b90f32b2c1c532658c
+f33a26f55cc05568f05921f4c3160f87674bfad7
+f4e9a6113e58cf68e572e32702d3789ab998485c
+f55be11f0ed461e0a3ffb021f858f4d465d9abf6
+f56e5eb0aa8f4f253a9b6b6c7b5a8828d7fd485d
+f6806566aa86f4a11d5f507831d66863cd449bec
+f6b3f317912e3c5859d0ae38cc85508edadb56bd
+f7555e191bf07d7419d175b9454e6cf3d7301234
+f8cd8053d8020dae132d00067c8d8175988b3589
+fb7672386376571fe350eac6af76155a565245d6
+fe8f586052a7454a0f02ac0e7ef0ee31221f3b28
+fee3d765e9ae4efd015f7b469e3158411b202670

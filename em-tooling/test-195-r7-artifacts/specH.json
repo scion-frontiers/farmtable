@@ -1,0 +1,169 @@
+[
+ {
+  "id": "H1 comments sink renders raw body (drop renderMarkdown)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-comments.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(c.body))}",
+    "repl": "${unsafeHTML(c.body)}"
+   }
+  ]
+ },
+ {
+  "id": "H2 desc sink renders raw description",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "H3 desc sink: value-alias the directive (const raw = unsafeHTML)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nconst rawHtml = unsafeHTML;"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${rawHtml(this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "H4 desc sink: unicode-escape alias (R7)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nconst rawHtml = \\u0075nsafeHTML;"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${rawHtml(this.description)}"
+   }
+  ]
+ },
+ {
+  "id": "H5 desc sink: concatenate onto sanitized output (R5)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(renderMarkdown(this.description) + '<br>')}"
+   }
+  ]
+ },
+ {
+  "id": "H6 desc sink: wrap sanitizer output in an unlisted helper (R5)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nconst wrap = (s: string): string => s;"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(wrap(renderMarkdown(this.description)))}"
+   }
+  ]
+ },
+ {
+  "id": "H7 desc file imports DOMPurify directly (R8/R9 ownership)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import DOMPurify from 'dompurify';\nimport { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(DOMPurify.sanitize(this.description))}"
+   }
+  ]
+ },
+ {
+  "id": "H8 desc file imports marked directly (R8/R9 ownership)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { marked } from 'marked';\nimport { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(renderMarkdown(this.description))}${marked ? nothing : nothing}"
+   }
+  ]
+ },
+ {
+  "id": "H9 desc file: innerHTML assignment (BANNED_SINKS #1)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(el: HTMLElement, s: string): void { el.innerHTML = s; }"
+   }
+  ]
+ },
+ {
+  "id": "H10 desc file: document.write (BANNED_SINKS #4)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nexport function legacy(s: string): void { document.write(s); }"
+   }
+  ]
+ },
+ {
+  "id": "H11 scope shrink: drop ft-inspector-desc from REQUIRED_SINKS",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  'src/components/inspector/ft-inspector-desc.ts',\n",
+    "repl": ""
+   }
+  ]
+ },
+ {
+  "id": "H12 C2-e replay: scope shrink + escape alias + raw render",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  'src/components/inspector/ft-inspector-desc.ts',\n",
+    "repl": ""
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';\nconst rawHtml = \\u0075nsafeHTML;"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${rawHtml(this.description)}"
+   }
+  ]
+ }
+]

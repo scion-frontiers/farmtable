@@ -1,0 +1,71 @@
+=== RUN   TestProbeA_ConfiguredTerminalAliasUnderB6
+=== RUN   TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_bare__label_bare
+    zz_probe_r5test_test.go:119: PROBE_A key="shipped" label="shipped" | lifecycle="accepted" available=true reasons=[] | display="completed",true | AllTerminalLabelStages=[]
+=== RUN   TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_bare__label_prefixed
+    zz_probe_r5test_test.go:119: PROBE_A key="shipped" label="ft:shipped" | lifecycle="completed" available=false reasons=[terminal] | display="completed",true | AllTerminalLabelStages=[completed]
+=== RUN   TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_prefixed__label_prefixed
+    zz_probe_r5test_test.go:119: PROBE_A key="ft:shipped" label="ft:shipped" | lifecycle="accepted" available=true reasons=[] | display="",false | AllTerminalLabelStages=[]
+=== RUN   TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_prefixed__label_bare
+    zz_probe_r5test_test.go:119: PROBE_A key="ft:shipped" label="shipped" | lifecycle="accepted" available=true reasons=[] | display="",false | AllTerminalLabelStages=[]
+--- PASS: TestProbeA_ConfiguredTerminalAliasUnderB6 (0.02s)
+    --- PASS: TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_bare__label_bare (0.00s)
+    --- PASS: TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_bare__label_prefixed (0.00s)
+    --- PASS: TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_prefixed__label_prefixed (0.00s)
+    --- PASS: TestProbeA_ConfiguredTerminalAliasUnderB6/config_key_prefixed__label_bare (0.00s)
+=== RUN   TestProbeB_MultiLabelDelta
+=== RUN   TestProbeB_MultiLabelDelta/add_two_terminals_at_once
+    zz_probe_r5test_test.go:172: PROBE_B add_two_terminals_at_once | before="accepted" err=rpc error: code = PermissionDenied desc = missing required scope "task:close" after="accepted" labels=[ft:stage/accepted]
+=== RUN   TestProbeB_MultiLabelDelta/remove_two_terminals_at_once
+    zz_probe_r5test_test.go:172: PROBE_B remove_two_terminals_at_once | before="completed" err=rpc error: code = PermissionDenied desc = missing required scope "task:accept" after="completed" labels=[ft:stage/completed ft:stage/wont_fix]
+=== RUN   TestProbeB_MultiLabelDelta/swap_in_one_request
+    zz_probe_r5test_test.go:172: PROBE_B swap_in_one_request | before="wont_fix" err=rpc error: code = PermissionDenied desc = missing required scope "task:close" after="wont_fix" labels=[ft:stage/wont_fix]
+=== RUN   TestProbeB_MultiLabelDelta/same_label_in_add_and_remove
+    zz_probe_r5test_test.go:172: PROBE_B same_label_in_add_and_remove | before="accepted" err=<nil> after="accepted" labels=[ft:stage/accepted]
+=== RUN   TestProbeB_MultiLabelDelta/three_terminals_end_to_end
+    zz_probe_r5test_test.go:172: PROBE_B three_terminals_end_to_end | before="completed" err=rpc error: code = PermissionDenied desc = missing required scope "task:close" after="completed" labels=[ft:stage/completed ft:stage/wont_fix ft:stage/duplicate]
+--- PASS: TestProbeB_MultiLabelDelta (0.02s)
+    --- PASS: TestProbeB_MultiLabelDelta/add_two_terminals_at_once (0.00s)
+    --- PASS: TestProbeB_MultiLabelDelta/remove_two_terminals_at_once (0.00s)
+    --- PASS: TestProbeB_MultiLabelDelta/swap_in_one_request (0.00s)
+    --- PASS: TestProbeB_MultiLabelDelta/same_label_in_add_and_remove (0.01s)
+    --- PASS: TestProbeB_MultiLabelDelta/three_terminals_end_to_end (0.00s)
+=== RUN   TestProbeC_HighCardinalityEndToEnd
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card2_to_completed
+    zz_probe_r5test_test.go:195: PROBE_C card=2 dest=completed | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card2_to_wont_fix
+    zz_probe_r5test_test.go:195: PROBE_C card=2 dest=wont_fix | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card2_to_duplicate
+    zz_probe_r5test_test.go:195: PROBE_C card=2 dest=duplicate | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card2_to_cancelled
+    zz_probe_r5test_test.go:195: PROBE_C card=2 dest=cancelled | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card3_to_completed
+    zz_probe_r5test_test.go:195: PROBE_C card=3 dest=completed | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card3_to_wont_fix
+    zz_probe_r5test_test.go:195: PROBE_C card=3 dest=wont_fix | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card3_to_duplicate
+    zz_probe_r5test_test.go:195: PROBE_C card=3 dest=duplicate | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card3_to_cancelled
+    zz_probe_r5test_test.go:195: PROBE_C card=3 dest=cancelled | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card4_to_completed
+    zz_probe_r5test_test.go:195: PROBE_C card=4 dest=completed | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card4_to_wont_fix
+    zz_probe_r5test_test.go:195: PROBE_C card=4 dest=wont_fix | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card4_to_duplicate
+    zz_probe_r5test_test.go:195: PROBE_C card=4 dest=duplicate | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+=== RUN   TestProbeC_HighCardinalityEndToEnd/card4_to_cancelled
+    zz_probe_r5test_test.go:195: PROBE_C card=4 dest=cancelled | agentScopes err=rpc error: code = PermissionDenied desc = missing required scope "task:close"
+--- PASS: TestProbeC_HighCardinalityEndToEnd (0.04s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card2_to_completed (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card2_to_wont_fix (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card2_to_duplicate (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card2_to_cancelled (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card3_to_completed (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card3_to_wont_fix (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card3_to_duplicate (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card3_to_cancelled (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card4_to_completed (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card4_to_wont_fix (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card4_to_duplicate (0.00s)
+    --- PASS: TestProbeC_HighCardinalityEndToEnd/card4_to_cancelled (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/server	0.087s

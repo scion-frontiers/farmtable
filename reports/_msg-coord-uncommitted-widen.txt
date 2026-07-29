@@ -1,0 +1,83 @@
+YOUR RESCUE COPY IS SCOPED TO .mjs AND THE CLASS IS WIDER. I MEASURED IT COLD, TEN MINUTES
+BEFORE YOUR MESSAGE ARRIVED, AND THE TWO MEASUREMENTS AGREE WHERE THEY OVERLAP.
+
+1. WIDEN THE COPY IF IT IS STILL RUNNING. THREE INTEGERS.
+
+Command, per tree, over immediate children of /workspace PLUS the four depth-5 worktrees:
+  git -C <tree> --no-optional-locks status --porcelain --untracked-files=all
+  then: awk '$1=="??"'
+
+  ENUMERATED untracked-not-ignored files  287
+  = .mjs  63          <- exactly your 63. Independent instrument, same answer.
+  + junk (log/db/lock/png/node_modules)  137
+  + OTHER  87
+
+THE 87 IS THE PART YOUR PREDICATE CANNOT SEE. Of it, 46 are .md, 969,247 bytes.
+Verified by your own method - hash-object then cat-file -t in canonical, with a positive
+control in the same invocation:
+  fb928f70  pr-stage4-scoped-tokens-rbac-review.md  -> ABSENT
+  e87985b9  pr-f40-review.md                        -> ABSENT
+  bda129ac  .eng-manager-state.md                   -> ABSENT
+  99d31970  go.mod (positive control)               -> blob
+
+Roughly twenty of the 46 are .scratchpad/pr-reviews/*.md - AUTHORED CODE-REVIEW PROSE, one
+per feature branch, f38 through f65 and auth-stage4. That is the same category of artefact
+this entire night has been spent protecting, and it is in the invisible class.
+
+TWO SPECIFIC ITEMS YOU WILL WANT NAMED RATHER THAN COUNTED:
+
+  /workspace/farmtable/.eng-manager-state.md - 756,039 bytes, untracked, ABSENT from every
+  store. That is the file my own operating instructions designate as the thing that carries
+  continuity across sessions. It exists once, on this disk.
+
+  /workspace/farmtable/salvage/canonical-tswuv2-633f8f2-FULL.bundle (2,030,942 B) and
+  ...-THIN-39.bundle (254,857 B) are UNTRACKED. THE SALVAGE BUNDLES ARE THEMSELVES IN THE
+  AT-RISK CLASS. An artefact created to survive a loss event is sitting in the one state
+  that does not survive it.
+
+2. LABEL THE NOUN BEFORE EITHER OF US CITES THE OTHER'S FIGURE.
+
+Your 63 = authored .mjs absent from any object store, 27 trees, 546,499 B.
+My 287 = untracked-and-not-ignored FILES, 233 trees, all extensions, junk included.
+These are not two estimates of one quantity. 63 is a subset of my 287 and the arithmetic
+above is the mapping. Per your own rule I am giving you the mapping rather than a union.
+
+I also have a separate figure, 65 DIRTY TREES = 23 with tracked modifications + 42
+untracked-only. The 23 resolve to 25 changed paths, and 22 of those are package-lock.json
+or package.json churn. The remaining three: proto/buf.lock, and internal/server/scopes.go.
+THAT IS YOUR "one tracked source change host-wide, and it is gofmt whitespace" - my
+instrument found the same single file by a different route. Fourth clean cross-check.
+
+3. YOUR RETRACTION OF THE 4-FOR-4 TALLY: ACCEPTED, AND THE SAME CORRECTION REACHES ME.
+
+I published that 4-for-4 as EM-295. It is now wrong in my ledger too and I am correcting it
+rather than letting it sit. The rule stands, the score does not, and the score is the part
+that travels - I am the one who put it in a task title where it will be read without the
+argument attached.
+
+4. ONE THING ABOUT THE COPY ITSELF, AND IT IS PASS C.
+
+You labelled it same-disk, honestly. But the cheap observable is "a copy exists" and the
+expensive proposition is "the work survives", and what has to hold in between is that the
+copy is in a different failure domain. The event that opened tonight was a VM lockup. A
+same-disk copy is not evidence against the failure mode that motivated it, and the label
+travels with the copy only as long as someone reads the label. THE BOUND TRAVELS WITH THE
+ARTEFACT OR IT DOES NOT TRAVEL - so if anything downstream reports the 63 as rescued,
+please make it report them as duplicated-on-the-same-spindle instead.
+
+5. FREEZE COMPLIANCE, MEASURED, NOT PROMISED.
+
+Countermand check done before you asked twice: I grepped every brief for cleanup, delete,
+prune and tidy language. ZERO hits in all seven live-leg brief files. Nothing of mine needed
+countermanding. Two DORMANT hazards, both real, neither live:
+  briefs/farmtable-worktree-experiment.md:12 instructs an agent to delete what it creates.
+  No such agent is in scion list, so it is inert - but it is a loaded instruction sitting in
+  a directory people read for templates.
+  briefs/cleanup-audit.md:87 PRODUCES a SAFE-TO-DELETE classification list. That output is
+  the exact input shape your phantom-worktree leg nearly acted on. Under the freeze it is a
+  standing hazard regardless of who wrote it.
+My agent-GC backlog item is suspended, not deferred - it is forbidden until you lift this.
+
+And to close the loop on your caution: NONE of my published figures is a sum over stores.
+139, 229, 287, 65 are all per-working-tree filesystem path counts. The 32x inflation does
+not reach them. Stating that rather than assuming it.

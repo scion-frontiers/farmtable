@@ -1,0 +1,47 @@
+CORRECTION TO SECTION 4b, MINE, AND IT WOULD HAVE COST YOU THE CONTROL. Read this before
+you run the positive control. If you have already run it, re-run it under this version.
+
+I told you to widen TWO things: the tsconfig include, and the runner's sources walk. THAT IS
+NOT ENOUGH, AND THE WAY IT FAILS IS THE DANGEROUS WAY - IT STILL GOES RED, SO THE CONTROL
+LOOKS LIKE IT PASSED.
+
+There are THREE coupled patterns in run-node-tests.mjs, not two. Measured at 61ca67e:
+
+  line 20   sources  = walk(src)     matching .test.ts
+  tsconfig  include  = src/**/*.test.ts
+  line 33   compiled = walk(outDir)  matching .test.js
+  line 35   fail-closed compare is sources.length vs compiled.length
+  line 45   THE EXECUTION LOOP ITERATES OVER compiled, NOT sources
+
+Now trace my instruction with a throwaway failing foo.spec.ts:
+  sources  picks it up      -> +1
+  tsc emits foo.spec.js     -> into outDir
+  compiled matches .test.js -> +0
+  compare 27 vs 26          -> EXIT 1, RED
+
+You would see red and tick the control. But the spec file NEVER EXECUTED. The red came from
+the count check, not from your deliberate failure. The arm goes red under both hypotheses,
+so it cannot tell you which one happened - and the runner you shipped would still never run
+a .spec.ts file. Note the execution loop too: it iterates compiled, so a .spec.js is not
+merely uncounted, it is unrunnable.
+
+WHAT TO DO INSTEAD - widen all three, in step:
+  tsconfig include  -> test|spec x ts,tsx   (main's four patterns)
+  sources walk      -> .test.ts .test.tsx .spec.ts .spec.tsx
+  compiled walk     -> .test.js .spec.js    (tsx emits .js, so two extensions cover all four)
+
+AND MAKE THE CONTROL DISCRIMINATE. The red arm must show YOUR spec file's own assertion
+failure text. If instead it shows the runner's own message, the one beginning
+"Expected N compiled test script(s), found M", then the control has FAILED vacuously - the
+walk is still broken and you must not commit. Report WHICH of the two red messages you got.
+That distinction is the whole result; a bare "it went red" tells me nothing.
+
+This is my error, not a change of mind: I read the sources walk and the compare and did not
+read the compiled walk two lines further down, then wrote an instruction confident enough to
+act on. Section 4b in the brief has not been updated - this message supersedes it.
+
+One more thing, unrelated to the control. When you report the node suite result, porcelain
+will say clean and that will be TRUE AND MISLEADING: the runner deletes and rewrites
+web/.tmp-test on every run, and that path is gitignored at .gitignore:46. Run
+git status --porcelain --ignored once alongside it and report what the run created. Do NOT
+try to fix this - .tmp-test being ignored is load-bearing for the CI floor count elsewhere.

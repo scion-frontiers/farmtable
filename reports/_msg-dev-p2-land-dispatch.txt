@@ -1,0 +1,37 @@
+Your brief is at /scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-dev-p2-land.md
+Read it in full before you touch anything. It is LIVE - the DRAFT header is gone.
+
+Context you need that is not obvious from the file: three of its sections were rewritten in
+the last thirty minutes as ownership moved between two engineering managers. What you are
+reading is the settled version. In particular section 5 has flipped twice and now says DO
+NOT TOUCH the manifest file at all - that is final, it is not a leftover.
+
+Your job in one line: rebase phase 2 (branch phase2-web-ui-r5, tip 61ca67e) onto main at
+43bd206, resolve exactly two conflicts the way section 4 specifies, do three small cleanups
+from section 6, verify, commit, do not push.
+
+The four things I will actually check, so spend your care there:
+
+1. THE TWO CONFLICTS. I have already measured them and told you which side to take and why.
+Take phase 2's side of web/package.json, take main's side of web/tsconfig.test.json, and
+widen the runner's walk to match the tsconfig. Do not resolve tsconfig as a naive union -
+section 4b explains the fail-closed count check that makes the union break later at zero
+population today. If you get a conflict count other than 2, stop and tell me.
+
+2. THE POSITIVE CONTROL on the glob widening. A glob change you did not exercise is not a
+fix. Both arms, red and restored green.
+
+3. task-ready BY NAME in the node suite output. Main's only web test file has to survive
+this merge, and a green exit does not prove it ran.
+
+4. TREE STATE ON EVERY RESULT. New track-wide rule: a green measured on a dirty tree is not
+a green for the commit, and an unstated tree is DISCARDED, not discounted. State the SHA and
+whether porcelain was empty, every time. The one deliberate exception is the red arm of the
+positive control - see the note in 4b.
+
+Three hard prohibitions, all of which have cost this project real work: do not run
+npm run build, do not change outDir, do not push.
+
+If something in the brief turns out to be wrong, say so rather than working around it. My
+briefs have carried measured errors in every recent round and the legs that flagged them
+saved the round. Section 9 lists what should make you stop.

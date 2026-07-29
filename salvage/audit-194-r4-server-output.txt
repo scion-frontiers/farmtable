@@ -1,0 +1,183 @@
+=== RUN   TestAUDIT_Z4_0_HarnessIsStateful
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:241:     add    : [ft:stage/wont_fix] -> [ft:stage/accepted ft:stage/wont_fix]  OK
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/wont_fix -> [ft:stage/accepted]
+    zzz_audit_r4_server_test.go:259:     remove : [ft:stage/accepted ft:stage/wont_fix] -> [ft:stage/accepted]  OK
+    zzz_audit_r4_server_test.go:260:     HARNESS PROVEN STATEFUL IN BOTH DIRECTIONS
+--- PASS: TestAUDIT_Z4_0_HarnessIsStateful (0.01s)
+=== RUN   TestAUDIT_Z4A_Round3PocReproduction
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> []
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/in_review -> [ft:stage/in_review]
+    zzz_audit_r4_server_test.go:318: positive control: accepted -> in_review ALLOWED, labels=[ft:stage/in_review] (the probe CAN observe success)
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/completed ft:stage/triage]           dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/completed ft:stage/accepted]         dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/completed ft:stage/working]          dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/completed ft:stage/in_review]        dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/wont_fix ft:stage/triage]            dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/wont_fix ft:stage/accepted]          dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/wont_fix ft:stage/working]           dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/wont_fix ft:stage/in_review]         dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/duplicate ft:stage/triage]           dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/duplicate ft:stage/accepted]         dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/duplicate ft:stage/working]          dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/duplicate ft:stage/in_review]        dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/cancelled ft:stage/triage]           dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/cancelled ft:stage/accepted]         dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/cancelled ft:stage/working]          dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:333:   ok  start=[ft:stage/cancelled ft:stage/in_review]        dest=accepted -> DENIED
+    zzz_audit_r4_server_test.go:337: Z4A cells=16 BYPASS LINES=0
+--- PASS: TestAUDIT_Z4A_Round3PocReproduction (0.07s)
+=== RUN   TestAUDIT_Z4B_DestinationVaryingMatrix
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> triage     clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> accepted   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> working    clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> in_review  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> in_qa      clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> deploying  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> completed  clean=true  masked=true  chain=true 
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> wont_fix   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> duplicate  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_r4_server_test.go:391:     completed  -> cancelled  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> triage     clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> accepted   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> working    clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> in_review  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> in_qa      clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> deploying  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> completed  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> wont_fix   clean=true  masked=true  chain=true 
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> duplicate  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:391:     wont_fix   -> cancelled  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> triage     clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> accepted   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> working    clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> in_review  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> in_qa      clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> deploying  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> completed  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> wont_fix   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> duplicate  clean=true  masked=true  chain=true 
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:391:     duplicate  -> cancelled  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> triage     clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> accepted   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> working    clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> in_review  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> in_qa      clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> deploying  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> completed  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> wont_fix   clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> duplicate  clean=false masked=false chain=false
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/accepted -> [ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:391:     cancelled  -> cancelled  clean=true  masked=true  chain=true 
+    zzz_audit_r4_server_test.go:400: Z4B cells=40 clean_allow=4 clean_deny=36 BYPASS LINES=0
+    zzz_audit_r4_server_test.go:408: CLEAN-COLUMN ALLOW: completed -> completed
+    zzz_audit_r4_server_test.go:408: CLEAN-COLUMN ALLOW: wont_fix -> wont_fix
+    zzz_audit_r4_server_test.go:408: CLEAN-COLUMN ALLOW: duplicate -> duplicate
+    zzz_audit_r4_server_test.go:408: CLEAN-COLUMN ALLOW: cancelled -> cancelled
+--- PASS: TestAUDIT_Z4B_DestinationVaryingMatrix (0.62s)
+=== RUN   TestAUDIT_Z4C_AttackerChoosesTheSource
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/wont_fix -> [ft:stage/completed ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:481:   denied  completed  -> wont_fix   (rank 0 -> 1, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/duplicate -> [ft:stage/completed ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:481:   denied  completed  -> duplicate  (rank 0 -> 2, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/completed]
+    zzz_audit_r4_server_test.go:481:   denied  completed  -> cancelled  (rank 0 -> 3, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/completed -> [ft:stage/completed ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/wont_fix -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: wont_fix -> completed ALLOWED; final labels=[ft:stage/completed] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/duplicate -> [ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:481:   denied  wont_fix   -> duplicate  (rank 1 -> 2, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:481:   denied  wont_fix   -> cancelled  (rank 1 -> 3, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/completed -> [ft:stage/completed ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/duplicate -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: duplicate -> completed ALLOWED; final labels=[ft:stage/completed] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/wont_fix -> [ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/duplicate -> [ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: duplicate -> wont_fix ALLOWED; final labels=[ft:stage/wont_fix] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:481:   denied  duplicate  -> cancelled  (rank 2 -> 3, cannot outrank)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/completed -> [ft:stage/cancelled ft:stage/completed]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: cancelled -> completed ALLOWED; final labels=[ft:stage/completed] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/wont_fix -> [ft:stage/cancelled ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: cancelled -> wont_fix ALLOWED; final labels=[ft:stage/wont_fix] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/duplicate -> [ft:stage/cancelled ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:476: TERMINAL->TERMINAL CONVERSION WITH task:write ONLY: cancelled -> duplicate ALLOWED; final labels=[ft:stage/duplicate] (old terminal present=false, new terminal present=true)
+    zzz_audit_r4_server_test.go:486: Z4C ordered pairs=12 CONVERTED=6 denied=6 prediction_misses=0
+    zzz_audit_r4_server_test.go:488: Z4C mechanism: the attacker can only ever LOWER the winning rank, so the reachable set is exactly {(from,to) : rank(to) < rank(from)} under terminalStagePrecedence = [completed wont_fix duplicate cancelled]. The ORDER of that list therefore selects which terminal->terminal conversions a task:write holder can perform. It is not a neutral tiebreak.
+--- FAIL: TestAUDIT_Z4C_AttackerChoosesTheSource (0.12s)
+=== RUN   TestAUDIT_Z4D_ForensicRecord
+    zzz_audit_r4_server_test.go:506: precondition on GitHub: labels=[ft:stage/cancelled]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/completed -> [ft:stage/cancelled ft:stage/completed]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:515: after conversion:      labels=[ft:stage/completed]
+    zzz_audit_r4_server_test.go:522: GetTask.stage=TASK_STAGE_ACCEPTED labels=[ft:stage/completed]
+    zzz_audit_r4_server_test.go:523: GetTaskResponse.changes -> n=0  (the API surface PROMISES a change list here)
+    zzz_audit_r4_server_test.go:537: ListAllChangesForTask -> n=0 err=list all changes for task: not implemented
+    zzz_audit_r4_server_test.go:562: NATIVE control ListAllChangesForTask -> n=1 err=<nil>
+    zzz_audit_r4_server_test.go:564:     native change: field=stage old="accepted" new="in_review"
+    zzz_audit_r4_server_test.go:570: CONTROL HELD: native tasks DO produce durable change rows. The absence on the GitHub-backed task is a real asymmetry, not a harness artefact.
+--- PASS: TestAUDIT_Z4D_ForensicRecord (0.01s)
+=== RUN   TestAUDIT_Z4E_NoLabelWriteNeeded
+    zzz_audit_r4_server_test.go:603: control: single ft:stage/cancelled -> duplicate DENIED (as it must be)
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [duplicate]
+    zzz_audit_r4_server_test.go:131:         [github] +ft:stage/duplicate -> [duplicate ft:stage/duplicate]
+    zzz_audit_r4_server_test.go:608: NO-WRITE CONVERSION: start=[ft:stage/cancelled duplicate] ask=duplicate -> ALLOWED with task:write only; final labels=[duplicate ft:stage/duplicate]  [human adds stock duplicate to a cancelled task]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/cancelled -> [ft:stage/completed]
+    zzz_audit_r4_server_test.go:608: NO-WRITE CONVERSION: start=[ft:stage/cancelled ft:stage/completed] ask=completed -> ALLOWED with task:write only; final labels=[ft:stage/completed]  [partial swap leaves cancelled+completed]
+    zzz_audit_r4_server_test.go:139:         [github] -ft:stage/duplicate -> [ft:stage/wont_fix]
+    zzz_audit_r4_server_test.go:608: NO-WRITE CONVERSION: start=[ft:stage/duplicate ft:stage/wont_fix] ask=wont_fix -> ALLOWED with task:write only; final labels=[ft:stage/wont_fix]  [partial swap leaves duplicate+wont_fix]
+--- FAIL: TestAUDIT_Z4E_NoLabelWriteNeeded (0.02s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.865s
+FAIL

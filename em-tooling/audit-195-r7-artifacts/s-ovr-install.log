@@ -1,0 +1,3 @@
+npm error code EOVERRIDE
+npm error Override for dompurify@^3.4.12 conflicts with direct dependency
+npm error A complete log of this run can be found in: /home/scion/.npm/_logs/2026-07-28T05_33_23_047Z-debug-0.log

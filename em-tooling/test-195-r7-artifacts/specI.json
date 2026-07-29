@@ -1,0 +1,123 @@
+[
+ {
+  "id": "I1 neuter the document.write BANNED_SINKS pattern",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "{ name: 'document.write', pattern: /document\\.write\\s*\\(/ },",
+    "repl": "{ name: 'document.write', pattern: /document\\.wrIIte\\s*\\(/ },"
+   }
+  ]
+ },
+ {
+  "id": "I2 delete the setHTMLUnsafe entry from BANNED_SINKS",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  { name: 'setHTMLUnsafe', pattern: /setHTMLUnsafe\\s*\\(/ },\n",
+    "repl": ""
+   }
+  ]
+ },
+ {
+  "id": "I3 delete one BANNED_SINK_POSITIVES fixture",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "    'el.outerHTML = body;',\n",
+    "repl": ""
+   }
+  ]
+ },
+ {
+  "id": "I4 neuter sinkArgumentIsSanitized (always accept)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function sinkArgumentIsSanitized(arg: string): boolean {",
+    "repl": "function sinkArgumentIsSanitized(arg: string): boolean {\n  void arg;\n  return true;"
+   }
+  ]
+ },
+ {
+  "id": "I5 neuter renderMarkdownArityViolation (never report)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function renderMarkdownArityViolation(src: string): string | null {",
+    "repl": "function renderMarkdownArityViolation(src: string): string | null {\n  void src;\n  return null;"
+   }
+  ]
+ },
+ {
+  "id": "I6 neuter sourceFileCountViolation (never report)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function sourceFileCountViolation(found: number): string | null {",
+    "repl": "function sourceFileCountViolation(found: number): string | null {\n  void found;\n  return null;"
+   }
+  ]
+ },
+ {
+  "id": "I7 neuter requiredSinkScopeViolation (never report)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function requiredSinkScopeViolation(found: number): string | null {",
+    "repl": "function requiredSinkScopeViolation(found: number): string | null {\n  void found;\n  return null;"
+   }
+  ]
+ },
+ {
+  "id": "I8 neuter sinkCountViolation (never report)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function sinkCountViolation(found: number): string | null {",
+    "repl": "function sinkCountViolation(found: number): string | null {\n  void found;\n  return null;"
+   }
+  ]
+ },
+ {
+  "id": "I9 neuter escapeInCodeOffenders (tree-wide R7)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {",
+    "repl": "function escapeInCodeOffenders(rel: string, codeNoStrings: string): string[] {\n  void rel; void codeNoStrings;\n  return [];"
+   }
+  ]
+ },
+ {
+  "id": "I10 neuter directiveIndirectionOffenders",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function directiveIndirectionOffenders(rel: string, code: string): string[] {",
+    "repl": "function directiveIndirectionOffenders(rel: string, code: string): string[] {\n  void rel; void code;\n  return [];"
+   }
+  ]
+ },
+ {
+  "id": "I11 neuter fixtureTableViolation (the table-size meta-pin)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {",
+    "repl": "function fixtureTableViolation(\n  name: string,\n  table: readonly unknown[],\n  expected: number,\n): string | null {\n  void name; void table; void expected;\n  return null;"
+   }
+  ]
+ }
+]

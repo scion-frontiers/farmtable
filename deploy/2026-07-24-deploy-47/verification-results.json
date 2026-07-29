@@ -1,0 +1,101 @@
+{
+  "testDate": "2026-07-24T19:44:00Z",
+  "deployRevision": "farmtable-00054-jrj",
+  "commitSha": "d1a061cc217e1f5c23953bb1b744e8cf444ebad6",
+  "feature": "Periodic Redraw Fix (PR #151)",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 13,
+  "failCount": 0,
+  "totalChecks": 13,
+  "checks": [
+    {
+      "check": "a-no-redraw-poll-cycles",
+      "action": "No UI re-renders across 3 poll cycles on external collection",
+      "pass": true,
+      "detail": "Total significant (childList) mutations across 3 cycles: 0. Per cycle: [0, 0, 0]. Total all mutations: [0, 0, 0]. Duration covered: ~60 seconds (3 poll cycles). Collection: github-mirror-scion-frontiers-farmtable-20260720"
+    },
+    {
+      "check": "a-store-equality-stable",
+      "action": "Task store contents identical between poll cycles (upsert equality works)",
+      "pass": true,
+      "detail": "Changed tasks: cycle1->2: 0, cycle2->3: 0. Total tasks: 52. No changes detected"
+    },
+    {
+      "check": "b-closedAt-stable",
+      "action": "Closed GitHub issues have stable closedAt timestamps between polls",
+      "pass": true,
+      "detail": "Checked 4 closed tasks. All stable: true. Sample: [{\"id\":\"f02dd56c-3030-5a11-94db-ca55823b1c64\",\"closedAt_before\":\"2026-07-22T21:33:58.000Z\",\"closedAt_after\":\"2026-07-22T21:33:58.000Z\",\"stable\":true},{\"id\":\"90379e1f-696f-5060-a106-2cb44b8eea94\",\"closedAt_before\":\"2026-07-22T21:03:09.000Z\",\"closedAt_after\":\"2026-07-22T21:03:09.000Z\",\"stable\":true},{\"id\":\"ca66b6f4-31a7-5cb7-83e3-844bfdbc22a7\",\"closedAt_before\":\"2026-07-15T21:08:06.000Z\",\"closedAt_after\":\"2026-07-15T21:08:06.000Z\",\"stable\":true}]"
+    },
+    {
+      "check": "b-closedAt-has-value",
+      "action": "Closed tasks have non-null closedAt values",
+      "pass": true,
+      "detail": "Sample closedAt values: 2026-07-22T21:33:58.000Z; 2026-07-22T21:03:09.000Z; 2026-07-15T21:08:06.000Z"
+    },
+    {
+      "check": "c-native-no-flicker",
+      "action": "Native (non-GitHub) collection has no flicker/re-render during poll cycles",
+      "pass": true,
+      "detail": "Significant mutations: 0, Total mutations: 0, Duration: 20022ms. Collection: default, Tasks: 37"
+    },
+    {
+      "check": "c-native-store-stable",
+      "action": "Native collection task store contents stable between polls",
+      "pass": true,
+      "detail": "Changed tasks: 0 / 37"
+    },
+    {
+      "check": "c-native-view-loads",
+      "action": "Native collection tree view loads correctly",
+      "pass": true,
+      "detail": "View: tree, Tasks: 37"
+    },
+    {
+      "check": "d-solo-regression",
+      "action": "Feature 66 Solo mode still works (regression check)",
+      "pass": true,
+      "detail": "Solo ON: isolateBtnActive=true, isolateMode=true, app.isolateMode=true, Solo nodes: 8, Full nodes: 37, Test task: 717ab19c-e86f-4c51-8126-fc16a8f81ef7, BLOCKS: 2, BLOCKED_BY: 3"
+    },
+    {
+      "check": "e-tree-view-normal",
+      "action": "Normal Tree View loads correctly",
+      "pass": true,
+      "detail": "View: tree"
+    },
+    {
+      "check": "e-dashboard-normal",
+      "action": "Dashboard loads correctly",
+      "pass": true,
+      "detail": "View: dashboard"
+    },
+    {
+      "check": "e-default-view-routing",
+      "action": "Default-view routing (Feature 63) works",
+      "pass": true,
+      "detail": "Default view: dashboard"
+    },
+    {
+      "check": "e-task-deep-link",
+      "action": "Task deep-link (Feature 62) works",
+      "pass": true,
+      "detail": "View: tree, selectedTask: 717ab19c-e86f-4c51-8126-fc16a8f81ef7, expected: 717ab19c-e86f-4c51-8126-fc16a8f81ef7"
+    },
+    {
+      "check": "console-errors",
+      "action": "No relevant console errors during entire verification",
+      "pass": true,
+      "detail": "Zero relevant console errors (2 total, all filtered)"
+    }
+  ],
+  "externalCollection": {
+    "id": "466c2baa-334e-439c-b9f9-abbe89eb8aae",
+    "name": "github-mirror-scion-frontiers-farmtable-20260720",
+    "platform": 2
+  },
+  "nativeCollection": {
+    "id": "1e0f02d1-99cd-46bc-a739-bac0fde60710",
+    "name": "default",
+    "platform": 1
+  }
+}

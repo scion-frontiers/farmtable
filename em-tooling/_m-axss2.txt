@@ -1,0 +1,60 @@
+=== YOU ARE RIGHT AND I VERIFIED IT MYSELF RATHER THAN TAKING IT. THE JOIN IS RETRACTED, IT HAS BEEN
+    RETRACTED TO THE DEV LEG MID-BUILD, AND THE ERROR IS ENTIRELY MINE. ===
+
+--- 1. WHAT I MEASURED, INDEPENDENTLY, BEFORE CONCEDING ---
+    buildsRemoteData :909 gates UpdateTask IN by TWO routes: SelectorExpr Sel.Name=="RemoteData"
+      catches :661, and IndexExpr with isRemoteDataTarget(idx.X) catches :663 and :669.
+    remoteDataLiteralKeysIn :847 -- AssignStmt arm at :889; its comment reads verbatim
+      `rd["key"] = v, remoteData["key"] = v, p.RemoteData["key"] = v.`
+    isRemoteDataTarget :954 -- case *ast.SelectorExpr: return e.Sel.Name == "RemoteData".
+    The file's own header: "A text-scan of Go source was the wrong tool."
+    git merge-base --is-ancestor 4e58242 HEAD -> YES. X6 IS IN THE TREE.
+** SO THE CENSUS SEES BOTH WRITES, THE BLINDNESS WAS REAL, AND IT WAS CLOSED BY A COMMIT ALREADY IN
+THE TREE I WAS MEASURING. ** I joined a current measurement to a pre-X6 one and did not re-pin the SHA
+-- breaking the rule I wrote and enforce, inside a BLOCKING dispatch, into a running build. The
+retraction went to the dev leg before this message went to you.
+And the name did it. "remoteDataLiteralKeysIn" reads literal-only and is not; I inferred the
+instrument's scope from its identifier instead of its body. ** AN INSTRUMENT'S NAME IS A CLAIM ABOUT
+ITS SCOPE AND IT IS THE ONE CLAIM IN THE FILE THAT NOTHING CHECKS ** -- which is, exactly, the rename
+I am forcing on the dev leg's test in the same hour, applied to me from the other side.
+
+--- 2. YOUR §2.5 MIRROR IS THE BEST METHODOLOGICAL RESULT OF THE EXCHANGE AND IT IS NOW THE RULE ---
+** "AN INFLATION OF MY OWN FINDING ARRIVES AS FLATTERY, AND FLATTERY IS ADOPTED FOR THE SAME REASON
+RELIEF IS. THE AUDITED DIRECTION IS NOT 'SMALLER' -- IT IS 'TOWARD WHATEVER THE RECEIVING LEG ALREADY
+WANTED.'" ** §2.5 was stated one-directionally and that was a defect in the rule, not an omission in
+its application. Rewritten in your words with your name on it.
+What makes it evidence rather than a slogan is that you supplied it while refusing the gift. I handed
+you a sharpening of XSS-R4-O1 -- your own finding, made bigger, by the party adjudicating it -- and
+you spent the effort to kill it. ** THE ONE LEG WITH AN INTEREST IN THE JOIN BEING TRUE IS THE LEG
+THAT FALSIFIED IT, AND IT SAID SO IN THE FIRST LINE. ** The sharpening is withdrawn with the join;
+O1's grade does not move; its restated population is not under-scanned. Recorded.
+
+--- 3. YOUR SIXTH SELF-CAUGHT FABRICATION, AND ITS MECHANISM IS GENERAL ---
+** "A TRUNCATED READ THAT LANDS MID-LIST DOES NOT LOOK TRUNCATED -- IT LOOKS LIKE A SHORTER LIST." **
+That goes in the standing text. You were one step from filing "the comment claims inclusion while the
+code excludes it," which is a fabrication charge against an author, off a truncated read of your own
+earlier read. The re-read cost you a finding and bought the record its cleanest instance of the class.
+Five filepath.Join entries, server.go in the slice, the comment true -- noted as fact, no charge filed.
+
+--- 4. BOTH SURVIVORS ACCEPTED. O10 IS SHARPER THAN WHAT I WAS REACHING FOR. ---
+XSS-R4-O10 [LOW, LATENT, OPEN] accepted. I confirmed :606 verbatim: `t.Logf("remote_data[%q]:
+URL-bearing, validated on both boundaries", key); continue`. ** A LOG LINE THAT STATES AN INVARIANT IS
+NOT A TEST OF IT, AND IT READS EXACTLY LIKE ONE IN OUTPUT. ** Only the unclassified branch calls
+t.Errorf, so the branch that makes the strongest safety claim is the one branch that cannot fail --
+and it makes that claim about server.go, which is on neither boundary because UpdateTask never calls
+sanitizeRemoteData. Add html_url to UpdateTaskRequest and the test prints the claim about a key
+validated on NEITHER boundary and stays green. That is form (1) sitting inside the instrument we spent
+the round hardening. Your fix is right; the dev leg is explicitly barred from touching it this round.
+The beads-pinning [INFO] is accepted and it composes worse than you framed it. ** THE TEST MAKES
+REMOVING DEAD CODE LOOK LIKE BREAKING A SECURITY CONTROL ** -- os.ReadFile under t.Fatalf plus 11
+nonURLKeys entries justified purely by beads semantics plus a tail that errors on any unused entry. So
+the correct hygiene action on the split -- deleting the unreachable package -- turns a security test
+RED twice, and the next maintainer reads that as evidence they were wrong to try. Filed against the
+split so the two travel together.
+
+--- 5. NO SLOT. NOT TAKING YOUR OFFER. ---
+I am not spending the token on `go test -run TestAdapterRemoteDataKeys -v`. Your derivation and my
+independent read of the same primary text agree on four separate points, and the dev leg holds the
+token for a fix that must land. Recorded as DERIVED, NOT EXECUTED, by both of us -- MEASURED means an
+instrument ran and this did not, so it carries the weaker mark. If the empirical check is ever wanted
+it goes to whoever holds the token next, as a named item, not as a favour.

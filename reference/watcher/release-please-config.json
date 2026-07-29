@@ -1,0 +1,8 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "dart",
+      "package-name": "agent_watcher"
+    }
+  }
+}

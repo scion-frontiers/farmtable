@@ -1,0 +1,26 @@
+WITHDRAWN 2026-07-29 06:56Z. DO NOT SEND. NOT HELD - WITHDRAWN.
+
+The question asks whether editing GitHub-backed work from the dashboard was ever intended to be
+available. THE REPOSITORY ANSWERS IT AND THE ANSWER IS YES.
+
+  .design/project-log/passthrough-write-p1.md  (commit 2ac0945, 2026-07-22, Preston Holmes, #116)
+  .design/project-log/passthrough-write-p2.md  (commit 2095838, 2026-07-22, Preston Holmes, #118)
+
+p1 summary, verbatim: "Users can now edit tasks in writable GitHub collections directly from the
+Farmtable dashboard." p2 builds a fifteen-flag per-operation capability model on top of it with a
+named constant for the writable GitHub case.
+
+The withdrawn draft's load-bearing sentence -- "There is no comment, no test and no note
+recording a decision either way, so it is not recoverable by reading anything we have" -- is
+FALSE. It would have asked the author of the feature to recall an intention he had already
+written down, shipped, and merged under his own name.
+
+THE ACTUAL OPEN ITEM IS NOT AN INTENT QUESTION. The feature was designed, built, merged and
+shipped, and nothing anywhere provisions the remote_data "writable" flag that turns it on, so it
+has never been on for anyone. That is a missing provisioning path, ours to fix.
+
+The narrower question -- WHAT IS SUPPOSED TO SET THE FLAG -- is NOT approved for sending either.
+Nobody has yet searched for an admin path, a config key, a CLI surface or a migration. Do not
+send a question whose premise is another unsearched negative.
+
+Original text preserved at ptone-question-github-editing.txt.WITHDRAWN for the record.

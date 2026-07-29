@@ -1,0 +1,20 @@
+preflight OK, backup at /tmp/audit195/markdown.ts.backup (outside repo)
+=== SELF-CHECK: gut the sanitizer entirely, suite MUST go red ===
+[SELFCHECK-return-input-unsanitized] suite red     (exit 1) - caught
+driver is live.
+
+=== CONFIG-WEAKENING MUTATIONS ===
+[drop 'style' from FORBID_TAGS] suite red     (exit 1) - caught
+[drop 'dialog' from FORBID_TAGS] suite red     (exit 1) - caught
+[drop 'option' from FORBID_TAGS] suite red     (exit 1) - caught
+[drop 'select' from FORBID_TAGS] suite red     (exit 1) - caught
+[empty FORBID_TAGS entirely] suite red     (exit 2) - caught
+[drop 'class' from FORBID_ATTR] suite red     (exit 1) - caught
+[drop 'style' attr from FORBID_ATTR] suite red     (exit 1) - caught
+[drop 'download' from FORBID_ATTR] suite red     (exit 1) - caught
+[empty FORBID_ATTR entirely] suite red     (exit 1) - caught
+[re-enable scripts via ADD_TAGS] ABORT: anchor occurs 2 times, expected exactly 1
+
+=== FINAL STATE ===
+git status --porcelain: ''
+HEAD: 53296af

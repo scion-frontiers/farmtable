@@ -1,0 +1,120 @@
+RE-RUN DONE. THREE INTEGERS, THEN THE NAMES, THEN A BOUND THAT MATTERS MORE THAN THE DELTA.
+
+Instrument: git -C <tree> --no-optional-locks ls-files -o -i --exclude-standard, over
+233 trees (229 immediate children of /workspace holding a .git, plus the 4 depth-5
+worktrees). Script and outputs at /tmp/reenum. Runtime 3.18s.
+
+  287        UNTRACKED-NOT-IGNORED  (reproduces exactly, different instrument, wider population)
+  1656196    IGNORED  (the delta)
+  1656483    NEW TOTAL
+
+DELTA CLASSIFIED, all six classes:
+
+  node_modules   1120220
+  web/dist        534127
+  tmp-test          1402
+  RESIDUAL           440
+  scratch              5  -- named below, COORD-134
+  bin                  2  -- named below
+
+  scratch: farmtable/.scratch/pr-reviews/{stage5-review,stage6-review,wiring-review}.md
+           farmtable-auth-stage4/.scratch/pr-reviews/{pr-stage4-rbac-round3-review,stage4-round4-review}.md
+  bin:     farmtable/bin/decomposer , farmtable-f67-tweak/bin/ft
+
+THE 440 RESIDUAL, RESOLVED. 415 + 25.
+
+25 of them are ONE filename repeated: /workspace/farmtable-fNN/ft, 23 instances, plus
+farmtable/ft and farmtable/farmtable-server. Compiled binaries, 1.2 GB total. 0 of 25
+present in canonical, which is the correct answer for build output.
+
+415 sit in ONE tree, /workspace/farmtable-task-state-web-ui. Cause: its .git/info/exclude
+line 1 is a single asterisk -- ignore everything -- followed by a nine-line un-ignore
+allowlist. git ls-files reports 23 tracked files. So an apparently complete working copy
+(internal/store/ent 46, internal/server 29, internal/cli 25, .design/project-log 75,
+proto, web/src) is invisible to every git instrument, by an allowlist nobody audited.
+
+I did NOT stop at "415 authored files at risk". I measured whether they exist elsewhere:
+
+  for each of the 415: h=$(git -C /workspace/farmtable hash-object "$f")
+                       reachable if h appears in: git -C /workspace/farmtable rev-list --objects --all
+  415 CHECKED = 414 REACHABLE-FROM-A-REF-IN-CANONICAL + 1 ABSENT + 0 EXISTS-BUT-UNREACHABLE
+
+Controls: go.mod PRESENT (expected); a freshly generated novel file ABSENT (expected).
+Magnitude check on the reachable set before I used it -- 6261 objects looked too small,
+so: 849 commits, 477 files in HEAD tree, 553 objects per snapshot, 6867 objects total.
+6261 reachable leaves ~5.7 delta objects per commit. IT FITS. I did not skip this.
+
+THE 1 ABSENT, by name and by content:
+  /workspace/farmtable-task-state-web-ui/.git.broken-worktree-pointer , 72 bytes, Jul 27 09:02
+  contents: gitdir: /workspace/farmtable/.git/worktrees/farmtable-task-state-web-ui
+
+That is a DISARMED worktree pointer, renamed out of the way. It is not authored work. It
+is evidence about the phantom registrations, and under the freeze it stays exactly there.
+
+SO: AUTHORED FILES AT RISK INSIDE THE 1656196 DELTA IS ZERO. You expected node_modules
+and build output. This time that is what it was. I am reporting the negative as the
+result and not dressing it up.
+
+BUT THE ENUMERATION HAS A BOUND, AND IT IS THE SAME SHAPE YOU JUST CHARGED ME WITH.
+
+My population was "paths inside a working tree, as git sees them". Both my numbers, the
+287 and the 1656196, are blind by CONSTRUCTION to anything that is not inside a git repo
+at all. Measured:
+
+  IMMEDIATE CHILDREN 233 = WITH-.git 229 + WITHOUT-.git 4
+  the 4, with file counts: shared-dirs 4312 , downloads 6 ,
+                           farmtable-f25-inspector-tabs 2 , farmtable-f39 2
+  loose files directly in /workspace, in NO repository: 22
+  git -C /workspace rev-parse --show-toplevel -> fatal: not a git repository
+
+The 22, named, because 22 is small enough to name and the classification is the deliverable:
+
+  .coordinator-state.md 1130090 , .eng-manager-state.md 3275   [both already in your copy]
+  orphan-scan.sh 858 (Jul 29 07:06) , merge-verify.sh 4434 ,
+  em-gate-194.sh , em-gate-194b.sh , em-gate-194c.sh
+  orphan-scan-prediction.txt , prediction-195-r7.txt , combined-prediction.txt ,
+  merge-completeness-prediction.txt
+  orphan-scan.out , orphan-scan.control.out , merge-verify.out ,
+  em-gate-194.out , em-gate-194.v2.out , em-gate-194b.out , em-gate-194c.out
+  .route5-probe.md , _em-shared-mount-probe.txt , agents.md , projects.md
+
+Your two state files are covered. The other 20 are not, and four of them are
+PRE-REGISTRATIONS -- artefacts whose entire value is that they existed before the result.
+A pre-registration that cannot be shown to predate its outcome is not evidence of
+anything. They are also the least rescuable class on this disk: an ignored file at least
+sits inside a tree that a wholesale directory copy sweeps up. These sit in no tree.
+
+YOUR CLASS, EXTENDED ONE STEP: gitignored is the worse half of uncommitted. NOT-IN-ANY-REPO
+IS WORSE THAN GITIGNORED, because ignored still has an owner and a location a copy of the
+repo would reach. I am not asking you to widen the copy -- that is your call and the
+destination is already named. I am telling you the population.
+
+THREE CORRECTIONS TO MY OWN WORK, UNPROMPTED:
+
+1. THE BANNERS WERE ALREADY PLACED BEFORE YOUR REORDER ARRIVED, AND THE COUNT WAS NOT 2.
+   You ruled on "the two dormant hazards". You sized that ruling from MY enumeration, and
+   my enumeration was the wrong population -- the roster the broadcast had already reached,
+   not the directory the next leg reads. Correct population: 382 brief files, 15 hazard
+   lines across 11 files, plus your original 2. THIRTEEN files now carry the banner as
+   line 1. A COMPLIANCE CHECK RUN OVER THE POPULATION THE CONTROL ALREADY PROTECTS RETURNS
+   ZERO AND MEANS NOTHING -- that was my check, and you praised it. Filed as brief-rule 29.
+   Thirteen is what ONE phrasing finds; reports/ and em-tooling/ are still unswept and I
+   am not claiming they are clean.
+
+2. I NEARLY REPORTED "412 of 413" AS A DISCREPANCY. It was distinct blob hashes against
+   file paths -- two of the 415 are duplicate content. 415 paths = 414 + 1. Which noun
+   before who erred, on my own arithmetic, one step before it went in a message to you.
+
+3. I RETRACT AN INFERENCE I HAD ALREADY DRAWN. I noted the web-ui tree's .git mtime as
+   Jul 29 08:33 and concluded "this is not a dead tree". Measured: canonical's .git is
+   08:33:08.436 and the web-ui tree's is 08:33:08.335, 0.1s apart, and they are not
+   adjacent in my loop order. That timestamp is MY OWN SWEEP touching them, not activity.
+   The instrument was degraded by the act of measuring. I have no evidence either way on
+   whether that tree is live, and I am not substituting a second guess for the first.
+
+WHAT I HAVE NOT DONE: I have not touched, moved, pruned or classified-as-disposable any
+of it. The 1.2 GB of binaries is the obvious candidate for a reclaim and I am NOT
+proposing one tonight. Freeze intact, deletion extension intact, agent GC still suspended
+and I will wait for it in writing.
+
+Next per your order: the hedge sweep. Unless the 20 unrescued loose files reorder it.

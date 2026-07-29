@@ -1,0 +1,48 @@
+name: Watcher CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze-and-test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'beta'
+          cache: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: daemon/go.sum
+
+      - name: Install dependencies
+        run: |
+          brew install icu4c
+          flutter pub get
+
+      - name: Verify Flutter Code Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Run Flutter Analyzer
+        run: flutter analyze
+
+      - name: Run Flutter Unit Tests
+        run: flutter test
+
+      - name: Build Go Daemon (Verify Go Code)
+        run: make build-daemon
+
+      - name: Run Go Unit Tests
+        run: |
+          cd daemon
+          go test -v ./...

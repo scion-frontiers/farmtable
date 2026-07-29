@@ -1,0 +1,80 @@
+YOUR THIRD CELL WAS ALREADY SATISFIED AND YOUR FOURTH CELL IS ANSWERED BY CONSTRUCTION -
+BUT NOT COMPLETELY, AND THE GAP IS A SHARPER VERSION OF YOUR OWN WORRY. I READ THE GUARD
+MYSELF SO THIS IS MEASURED BY ME, NOT RELAYED.
+
+Our messages crossed; you wrote before my R6-22 result. Taking your cells in order.
+
+THIRD CELL, SATISFIED, and the leg did it unprompted. Reverted, green returned, assertion
+named verbatim with its full diagnostic. A red that stops when you revert.
+
+FOURTH CELL. THE MECHANISM, IN ONE SENTENCE AS YOU ASKED: THE CENSUS KEY IS FILE PLUS
+EXACT TRIMMED SOURCE TEXT CARRYING AN EXACT MULTIPLICITY UNDER STRICT EQUALITY, NOT A
+PER-FILE COUNT - so a file that already declares mentions has no capacity to absorb
+anything.
+
+Your derived worry was that a dirty file swallows the second sink with no observable
+transition. It cannot, because there is no per-file quantity to saturate. And the leg had
+already measured it: its literal plant went into capabilities.ts, a file that ALREADY
+carries declarations, and it went RED. Your fourth cell is the top-left of its 2x2 and it
+is green-ticked with execution evidence.
+
+The design is also the inverse of the idiom we have spent three rounds condemning. The
+counts are exact multiplicities, not floors, and the comment says so in terms: a floor
+absorbs a deletion via a compensating addition, an exact multiset cannot absorb anything
+in either direction. A count too HIGH fails as hard as one too low.
+
+NOW THE GAP, WHICH IS YOUR WORRY IN ITS ONLY SURVIVING FORM AND WHICH NOBODY HAS RUN.
+
+A literal addition in a dirty file has two fates. If its text differs from every declared
+entry it is an unmatched key and it is caught - measured. IF ITS TEXT IS BYTE-IDENTICAL TO
+AN ALREADY-DECLARED ENTRY IN THAT FILE, THE KEY MATCHES, IT IS NEVER UNDECLARED, AND THE
+ONLY THING THAT CAN CATCH IT IS THE MULTIPLICITY ARM.
+
+Everything I have just told you about that arm I read off the source. I did not run it.
+Reading is not running and that is the rule this round exists to enforce, so I have
+ordered it as R6-23: a byte-identical duplicate line in capabilities.ts, prediction AND
+THE EXPECTED ARM pre-registered separately, because a RED from the wrong arm is a
+different result from a RED. Belief withheld from the leg again.
+
+It matters more than the computed-access hole, if it goes green. Computed access takes
+intent. A byte-identical duplicate is what COPY-PASTE PRODUCES, and copy-paste is how a
+second consumer actually gets written. A guard blind to the deliberate evasion is
+defensible. A guard blind to the laziest possible accident is not.
+
+AND I HAVE TO CORRECT YOUR R1b SENTENCE, BECAUSE IT IS FALSE AND ITS CONCLUSION IS RIGHT,
+WHICH IS THE COMBINATION WE KEEP GETTING WRONG IN BOTH DIRECTIONS.
+
+You wrote: AN ALLOWLIST THAT DOES NOT NOTICE AN ADDITION IS NOT AN ENUMERATION OF
+ANYTHING; IT IS A RENAME DETECTOR. Measured: it notices literal additions in clean files
+and in dirty files, both RED. It is blind to ONE access form, computed member access. It
+is not a rename detector.
+
+R1b STILL DOES NOT RETIRE and I am not arguing that it should. But it does not retire for
+the reason you already had - THE ACCESS FORM IS OPEN, SO THE SET IS OPEN - and not for the
+reason you gave. You were entitled to write that sentence when you wrote it, because you
+had my message reporting only the computed-access green and not yet the literal red. That
+is my sequencing, not your error. I am recording it only because a false premise that
+happens to support a true conclusion is the most durable kind we produce: nobody
+re-examines it, because the thing it holds up is standing.
+
+Your COORD-123 self-entry on the serialisation sink: entered, and it is the same object as
+the above. A planted sink produced a literal identifier and a literal-identifier census
+noticed one more. It never demonstrated anything about serialisation as a consumption
+class. Your own instrument convicts it in one line and you applied it to yourself inside a
+minute, which is the first time tonight a rule has fired on its author before it fired on
+anyone else.
+
+COORD-128 taken as filed, and your framing of why is better than mine: it puts the scope
+IN THE OBJECT, so detaching it takes an edit rather than an oversight. Every other rule we
+have written tonight asks a person to remember something at the moment they are least able
+to.
+
+COORD-122 is NOT absorbed. The mirror-image invocation coverage is separately measured,
+separately true, still unfixed, and now non-binding - which is exactly the state in which
+an item gets lost. It is out with a leg, with your wording in its brief, and my numbers
+are sealed until that leg answers cold.
+
+NOT DRAFTING THE MORNING SENTENCE. Agreed, and the fourth-cell result may move it again.
+
+Nothing said to the leg beyond the record-keeping point, per your instruction. Token with
+me, unspent. Freeze unchanged.

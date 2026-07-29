@@ -1,0 +1,86 @@
+digraph G {
+    node [shape=box, style="filled,rounded", fillcolor="#EDEDF4", color="#C4C6D0", fontname="Helvetica", fontcolor="#191C20"];
+    edge [fontname="Helvetica", fontsize=10, color="#74777F", fontcolor="#44474E"];
+    bgcolor="#F9F9FF";
+    
+    subgraph cluster_mac_app {
+        label = "macOS Application Bundle (Watcher.app)";
+        style = rounded;
+        color = "#415F91";
+        fontcolor = "#415F91";
+        
+        "Flutter/Dart UI" [shape=note, style="filled,rounded", fillcolor="#415F91", fontcolor="#FFFFFF", color="#415F91"];
+        "BeadsService" [shape=component];
+        "PlannerService" [shape=component];
+        "TmuxService" [shape=component];
+        
+        "Flutter/Dart UI" -> "BeadsService" [label=" User Actions\n(Drag, Click)"];
+        "Flutter/Dart UI" -> "PlannerService" [label=" Trigger AI"];
+        "PlannerService" -> "TmuxService" [label=" Orchestrate\nTerminal"];
+    }
+
+    subgraph cluster_system_env {
+        label = "User macOS Environment";
+        style = rounded;
+        color = "#565F71";
+        fontcolor = "#565F71";
+        
+        "Ghostty_iTerm2" [label="Ghostty / iTerm2", shape=box, style="filled,rounded", fillcolor="#000000", fontcolor="#FFFFFF", color="#000000"];
+        "tmux server" [shape=Mrecord, style="filled,rounded", fillcolor="#51A15E", fontcolor="#FFFFFF", color="#51A15E"];
+        "gemini-cli (Node)" [shape=Mrecord, style="filled,rounded", fillcolor="#705575", fontcolor="#FFFFFF", color="#705575"];
+    }
+
+    subgraph cluster_daemon {
+        label = "Sidecar Daemons (Child Processes)";
+        style = rounded;
+        color = "#565F71";
+        fontcolor = "#565F71";
+        
+        "watcher-daemon (Go)" [shape=Mrecord, style="filled,rounded", fillcolor="#415F91", fontcolor="#FFFFFF", color="#415F91"];
+    }
+    
+    subgraph cluster_db {
+        label = "Project Workspace (~/projects/...)";
+        style = rounded;
+        color = "#565F71";
+        fontcolor = "#565F71";
+        
+        "dolt sql-server" [shape=cylinder, style="filled", fillcolor="#BA1A1A", fontcolor="#FFFFFF", color="#BA1A1A"];
+        ".beads/dolt/ (Disk)" [shape=folder];
+        "File Watcher (fsevents)" [shape=oval, style="filled,dashed", fillcolor="#F3F3FA"];
+        ".beads/ai_done" [shape=note, style="dashed", fillcolor="#FFFFFF"];
+    }
+    
+    subgraph cluster_cloud {
+        label = "Cloud";
+        style = rounded;
+        color = "#565F71";
+        fontcolor = "#565F71";
+        
+        "GCS Bucket (gs://)" [shape=cylinder];
+        "Gemini LLM" [shape=ellipse, style="filled,dashed", fillcolor="#D6E3FF", fontcolor="#001B3E", color="#415F91"];
+    }
+
+    // IPC & Network Connections
+    "BeadsService" -> "watcher-daemon (Go)" [label=" JSON-RPC\n(stdin/stdout)"];
+    
+    // Tmux / AI Execution path
+    "TmuxService" -> "Ghostty_iTerm2" [label=" Launch & Focus\n(open -a / AppleScript)"];
+    "TmuxService" -> "tmux server" [label=" send-keys\n(via process shell)"];
+    "Ghostty_iTerm2" -> "tmux server" [label=" attach session"];
+    "tmux server" -> "gemini-cli (Node)" [label=" Hosts execution"];
+    "gemini-cli (Node)" -> ".beads/ai_done" [label=" Writes completion\nlockfile & markdown"];
+    "PlannerService" -> ".beads/ai_done" [label=" Async polling"];
+    
+    "watcher-daemon (Go)" -> "dolt sql-server" [label=" 1. Pre-boot Cleanup\n(bd dolt killall)"];
+    "watcher-daemon (Go)" -> "dolt sql-server" [label=" 2. MySQL Wire Protocol\n(TCP localhost)"];
+    "dolt sql-server" -> ".beads/dolt/ (Disk)" [label=" Read/Write"];
+    
+    // Cloud Connections
+    "watcher-daemon (Go)" -> "GCS Bucket (gs://)" [label=" Sync (Pull/Push)\nvia bd CLI shell-out"];
+    "gemini-cli (Node)" -> "Gemini LLM" [label=" gRPC/REST"];
+    
+    // Reactive UI Loop
+    ".beads/dolt/ (Disk)" -> "File Watcher (fsevents)" [label=" Changes"];
+    "File Watcher (fsevents)" -> "BeadsService" [label=" Trigger get_graph"];
+}

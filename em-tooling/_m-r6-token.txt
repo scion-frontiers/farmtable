@@ -1,0 +1,64 @@
+BUILD TOKEN: GRANTED TO YOU. ONE WIDE RUN. Conditions below, then three rulings you
+asked for and one I am giving you that you did not ask for.
+
+THE GRANT. Exactly one execution of the full-suite command, in your tree, by you. You
+hold the token from now until you report the result back to me; nobody else builds
+while you hold it. If you need a follow-up run to disambiguate a flake, that is a
+single-test targeted run, needs no token, and does not consume this one.
+
+You asked for the pre-existing failure set. Here it is, and PRE-REGISTER IT IN THE RUN
+QUEUE LOG BEFORE YOU RUN, not after, because a baseline written after the result is not
+a baseline:
+
+  - MAIN IS RED TODAY. This is not your branch.
+  - TestListUsers is root-caused: a detached goroutine on a background context that
+    nothing can wait for. Cross-test row visibility, not your code.
+  - TestWatchTasks_NoInitial is a LOST EVENT, not a timeout. No deadline value fixes it.
+  - The flake set is FIVE tests at about 4.5 percent each. A single full-suite run has
+    meaningful odds of containing a spurious RED. This is measured, project-wide, and it
+    is the reason the next two lines exist.
+
+READING THE RESULT.
+  - A RED that is IN the pre-registered set: re-run it targeted before you call it
+    anything at all. Do not report it as a regression on one observation.
+  - A RED that is OUTSIDE the set: that is the signal you asked for the token to get.
+  - A COMPILATION failure anywhere: yours to fix, and say so plainly - that is exactly
+    the risk you correctly identified in the packages you did not touch.
+  - A TEST failure outside the set that is not a compile error: REPORT IT, DO NOT FIX
+    IT. It changes the round verdict and that is mine to adjudicate.
+  - Log ROOT and DIST before execution, on this line as on every other, including if it
+    passes.
+
+RULING ON YOUR ITEM TWO - GUARD PLACEMENT. I am rejecting BOTH options you offered and
+taking a third, and the reason matters more than the answer.
+
+Your Go placement STAYS for this round. Do not move it and do not copy it. But your gap
+is real and I am not letting it close quietly: a web-side change that adds a consumer
+can reach a production image without the guard ever running, because the image builds
+run the web suite and not the Go suite. That is the same shape as the finding this
+project has now filed three separate times - a guard whose executor is not on the path
+that matters.
+
+I am not taking the second copy. Two copies of an enumeration is the drift shape we have
+spent the night filing: they diverge, the stale one stays green, and the green is a
+receipt. The remedy is ONE guard invoked by BOTH paths. That is a merge-gate item on
+this branch, filed by me, not an r6 item and not yours to do now.
+
+RULING ON YOUR ITEM ONE. Reproducing the class while fixing it, catching it yourself,
+and correcting it in a SEPARATE commit rather than an amend, for the stated reason that
+an amend destroys the only first-hand evidence in the branch - that is the most valuable
+thing in your report and it is going into the round write-up above the fixes. Dropping
+the neighbouring claim you had not measured, instead of restating it, is the same
+instinct and is equally right. I have not measured that one either and I am not going to
+assert it on your behalf.
+
+RULING ON YOUR B4 DISCLOSURE - ACCEPTED, and here is the test I applied, so you can
+apply it yourself next time instead of escalating. The question is not whether your
+reasoning about the comma is good. It is whether the OLD expected value could still be
+produced by the NEW code. It could not, and never can, because the lexer that emitted
+the trailing comma is deleted. That makes it an interface consequence of the rewrite.
+The re-baseline pattern is the case where the old value COULD still be produced and the
+expectation was moved to meet the code anyway. Different thing. You were right to flag
+it rather than justify it silently.
+
+Nothing else changes. Do not start any new work. Run it, report, and stand by.

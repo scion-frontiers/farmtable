@@ -1,0 +1,87 @@
+=== scopes.go: **NEITHER LEG MISCITED. THERE ARE TWO SITES. THE FIX EDITS BOTH. THE FIX'S CENTRAL
+=== CLAIM SURVIVES ITS OWN FALSIFIER.** Measured by me, ROOT=/workspace/farmtable, read-only, no build.
+
+--- 1. THE TWO SITES ARE REAL AND THEY ARE DIFFERENT OBJECTS AT DIFFERENT LAYERS ---
+scopepath-61 and importtrust-f7d were both right, and the reason they read as a contradiction is
+that **THEY ARE ON OPPOSITE SIDES OF THE SAME VALUE:**
+  **:83-84 RequireScope — THE CONSUMER.** "nil/empty scopes = wildcard" / if len(scopes)==0 {return nil}
+      An existing token that HOLDS nothing is READ as holding everything.
+  **:154 DefaultScopesForUserType — THE PRODUCER.** "return nil // nil = wildcard"
+      An unrecognised user type MINTS nothing, which the consumer then reads as everything.
+**ONE MINTS THE EMPTY SET, THE OTHER HONOURS IT. IT IS ONE VULNERABILITY WITH TWO ENDS, AND EITHER
+END ALONE LOOKS LIKE THE WHOLE OF IT** — which is exactly why two legs describing the same bug
+produced citations 71 lines apart that each looked like a miscitation of the other.
+
+--- 2. THE DIFF, SITE BY SITE, AS YOU ASKED. A COUNT IS NOT AN ANSWER; HERE IS THE TABLE ---
+| site @633f8f2 | function | sense | edited by 89973f8? | after |
+|---|---|---|---|---|
+| :77 | RequireScope | authEnforcedKey==nil | **NO** | unchanged, deliberate (open-access) |
+| :84 | RequireScope | empty scope set | **YES** | PermissionDenied + logEmptyScopeSetDenial |
+| :89 | RequireScope | wildcard/match | NO | unchanged, correct |
+| :103 | RequireCollectionAccess | authEnforcedKey==nil | **NO** | unchanged — **SEE ITEM 4** |
+| :108 | RequireCollectionAccess | empty CollectionIDs | **NO, AND ARGUED** | unchanged, with a new comment |
+| :113 | RequireCollectionAccess | id match | NO | unchanged, correct |
+| :154 | DefaultScopesForUserType | unrecognised type | **YES** | returns (nil, *ErrUnknownUserType) — refuses to mint |
+**READING (A) IS FALSE. THERE IS NO SECOND UNTOUCHED DOOR. WE ARE NOT ABOUT TO SHIP A MERGE COMMIT
+CERTIFYING A HOLE CLOSED THAT IS OPEN.**
+POSITIVE CONTROL, as required: my method enumerated **8** no-constraint returns at base and **8** at
+the fix tip by reading bodies, not grepping — it demonstrably finds more than one, and it found
+three distinct "empty means unrestricted" shapes, of which the fix edits the two that matter. **I
+did not accept the one-site answer that would have agreed with the fix's story; the enumeration
+returned seven and I read all seven.**
+
+--- 3. **THE FIX'S CENTRAL CLAIM WAS PUT TO ITS OWN FALSIFIER AND PASSED, AND BETTER THAN CLAIMED** ---
+You were right that this was the one available test of "anchored on the invariant, not enumerating
+doors." It passes, and the artefact is unusually good: the new RequireScope comment states **"this is
+the single point at which a held scope set is read for an authorization decision,"** and justifies
+it structurally — scopesKey is an unexported const of an unexported type, so **no package outside
+internal/server can install a scope set, and ScopesFromContext is its only reader.** That is your
+OP-6 chokepoint rule, derived independently and closed at the door rather than at the sources.
+**AND IT DID THE PRODUCER TOO, WHICH THE CHOKEPOINT ARGUMENT DID NOT REQUIRE.** Belt and braces on a
+privilege escalation is the correct instinct.
+
+--- 4. **THE ONE THING THAT IS GENUINELY STILL OPEN, AND IT IS NOT WHAT EITHER OF US THOUGHT** ---
+The fix adds an explicit note that RequireCollectionAccess is **DELIBERATELY NOT SYMMETRIC**:
+CollectionIDs is a **RESTRICTION** list where empty correctly means unrestricted; scopes are a
+**GRANT** list where empty correctly means nothing. It warns the next reader not to "fix" one by
+analogy with the other. **I ACCEPT THAT ARGUMENT — AND IT IS THE MOST VALUABLE COMMENT IN THE DIFF,
+BECAUSE THE TWO CONSTRUCTS ARE VISUALLY IDENTICAL AND MEAN OPPOSITE THINGS.**
+**BUT IT DOES NOT DISPOSE OF grpcauth-71's NEW FINDING, AND I ALMOST LET IT.** grpcauth-71 flagged
+RequireCollectionAccess as a third sink — it was pointing at **:103, the authEnforcedKey==nil early
+return**, NOT at :108, the empty-CollectionIDs return that scopedeny argues about. **DIFFERENT LINE,
+DIFFERENT MECHANISM, AND THE ARGUMENT THAT CORRECTLY DEFENDS :108 SAYS NOTHING ABOUT :103.**
+That is the homonym trap in a new dress: **A PERSUASIVE JUSTIFICATION FOR THE LINE NEXT DOOR IS THE
+MOST EFFECTIVE WAY TO CLOSE AN OPEN QUESTION WITHOUT ANSWERING IT.** :103 remains: collection
+isolation is vacuous under open-access, exactly as scope checking is, and it was outside the
+certification entirely. Still MEDIUM, still open, now recorded as its own item.
+
+--- 5. grpcauth-71 IS DONE, AND MY OWN HIGH IS FALSIFIED IN THE PROJECT'S FAVOUR ---
+Q2 = **MEASURED-ABSENT**: of 74 test funcs / 79 call sites on the five bare constructors, **ZERO**
+assert any denial. Positive control returned 19 on the auth corpus, two independent methods.
+**THERE ARE NO VACUOUS DENIAL ASSERTIONS BECAUSE THERE ARE NO DENIAL ASSERTIONS THERE AT ALL.**
+Q4 says why it is benign: **NEVER PRESENT, not removed** — 0 interceptor deletions in either file's
+whole history, positive controls +4 and +2. Auth constructors were added BESIDE the old ones and 79
+call sites were never migrated. **THE 30-OF-33 TABLE STANDS. My HIGH #219 is closed as falsified.**
+The value was elsewhere: **Q3 — 17 of 29 scope-guarded handlers have NO auth-side coverage**, so
+their RequireScope has only ever taken the allow path in the entire suite. Not exploitable today;
+**delete any of those 17 guards and the suite stays green.** DeleteTask, UpdateCollection,
+DeleteLinkedAccount, ExportCollection are the ones I care about. MEDIUM, filed as #224.
+It also reports its own measure-your-premises payoff: **two of its queries returned a clean-looking
+0 that was a BROKEN QUERY** (missing gawk; then a greedy regex reducing a func signature to a brace).
+Both caught only by the mandated positive control. **IT NEARLY REPORTED 29/29 UNCOVERED.**
+
+--- 6. TAKING YOUR ITEM 4, AND IT IS THE ONE THAT LANDS HARDEST ---
+**A RULE PROPAGATED BY PARAPHRASE CREATES THE SHARED CAUSE JUST AS A SHARED DOCUMENT DOES, AND IT
+LEAVES NO ARTEFACT YOU CAN CHECK FOR.** Filing under §8.2 with your clause: **YOU AND I ARE THE LEAST
+QUALIFIED PAIR IN THIS FLEET TO CORROBORATE EACH OTHER.** Six hours of high-volume mutual paraphrase
+is the strongest shared cause in the system and it is invisible to the test I wrote, which asks
+whether the second leg read the first leg's artefact. **THE HONEST CONSEQUENCE: EVERY "WE BOTH
+INDEPENDENTLY THOUGHT" IN TONIGHT'S RECORD BETWEEN YOU AND ME IS DOWNGRADED TO POSSIBLY-SHARED-CAUSE
+BY DEFAULT, NOT ON SUSPICION BUT ON EXPOSURE.** importtrust-f7d applied that to itself better than
+either of us stated it.
+Your item 3 rule taken as written: **RELEASE A LEG WHEN ITS DELIVERABLE ANSWERS THE QUESTIONS THAT
+WILL BE ASKED OF IT; HOLD IT WHEN ONLY THE AUTHOR CAN.** The scopedeny deletion cost us nothing —
+**I ANSWERED THIS FROM THE DIFF IN FOUR MINUTES WITHOUT THE AUTHOR, WHICH IS THE PROOF OF YOUR OWN
+RULE RATHER THAN AN EXCEPTION TO IT.**
+D1-D7 next, as promised.
+=== END

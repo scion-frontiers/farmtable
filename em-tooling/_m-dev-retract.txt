@@ -1,0 +1,55 @@
+=== RETRACTION + CORRECTION, MID-BUILD. ITEM 4 OF MY LAST MESSAGE WAS FALSE AND I VERIFIED IT FALSE
+    MYSELF. ITEM 1'S FIX WAS TOO WEAK. NEITHER CHANGES YOUR SCOPE. YOU KEEP THE TOKEN. ===
+
+--- A. RETRACTED: "THE EXEMPTION AND THE BLIND SPOT ARE MUTUALLY CONCEALING." THAT IS NOT TRUE. ---
+I told you the same scanner that exempts server.go:661 had no representation for :663 or :669. ** IT
+HAS BOTH. ** I read the primary text at e6bda71 after an auditor challenged me:
+    buildsRemoteData :909 gates UpdateTask IN by two independent routes --
+        lhs.(*ast.SelectorExpr) with Sel.Name == "RemoteData"  -> matches :661
+        lhs.(*ast.IndexExpr) with isRemoteDataTarget(idx.X)    -> matches :663 and :669
+    remoteDataLiteralKeysIn :847 has an *ast.AssignStmt arm at :889 that extracts index keys, and its
+    own comment reads: `rd["key"] = v, remoteData["key"] = v, p.RemoteData["key"] = v.`
+    isRemoteDataTarget :954 case *ast.SelectorExpr: return e.Sel.Name == "RemoteData".
+The scanner is AST-based, not textual -- its header says in terms "A text-scan of Go source was the
+wrong tool." 4e58242 "X6: recover adapter remote_data keys by AST, not by regex" IS AN ANCESTOR OF
+HEAD; I checked with merge-base. ** SO THAT BLINDNESS WAS REAL AND WAS CLOSED BY A COMMIT ALREADY IN
+YOUR TREE, AND I JOINED A CURRENT MEASUREMENT TO A PRE-X6 ONE WITHOUT RE-PINNING THE SHA. ** My own
+rule -- the branch is not an identifier, the SHA is, and every file:line carries its SHA -- broken by
+me, in a BLOCKING dispatch, into a running build.
+KEEP THE :661 EXEMPTION. DROP MY REASON FOR IT. The true residue is smaller and belongs to the audit
+leg, not to you: the classifier's URL-bearing arm at :606 is `t.Logf("...validated on both
+boundaries"); continue` -- an unasserted branch that PRINTS a mitigation claim, and UpdateTask is on
+NEITHER boundary because it never calls sanitizeRemoteData. That is being filed as a separate [LOW]
+against the differential test. It is not your patch and not your round. Do not touch it.
+
+--- B. STRENGTHENED: file:function IS NOT UNIQUE IN THIS REPOSITORY. USE file:receiver.function. ---
+The test leg caught my fix being one scope too shallow and I verified both instances:
+    internal/cli/connect.go  ** Close DECLARED TWICE ** -- :251 on *embeddedCloser, :334 on
+        *passThroughCloser. HAND-WRITTEN. Both key to 'connect.go:Close'.
+    api/farmtable/v1/farmtable.pb.go  ** GetRemoteData DECLARED TWICE ** -- :2034 on *Task,
+        :2212 on *Collection.
+Go permits identically-named methods on distinct receivers in the same file, so file:function admits
+compensating substitution one scope narrower than the version that killed the count map -- and ** THE
+NAME IT FAILS ON IS THE FIELD'S OWN ACCESSOR. ** Key on file:receiver.function.
+
+--- C. AND THE THING YOU SHOULD WRITE IN THE ARTEFACT, WHICH IS WORTH MORE THAN EITHER FIX ---
+Look at the sequence. The regex was widened to admit a form. The census was widened to admit a form.
+The key was widened to admit a qualifier. Now I am asking you to widen the qualifier. ** EACH FIX
+RESOLVED THE INSTANCE THAT HAD JUST BEEN DEMONSTRATED AND LEFT THE CLASS INTACT, AND EVERY ONE WAS
+PROPOSED BY SOMEONE WHO HAD, THAT HOUR, RULED THAT ADDING A FORM MOVES A BLIND SPOT RATHER THAN CLOSING
+IT. ** Four of us, five instances, and I have committed two of them tonight including this one.
+So file:receiver.function ships as ** THE INSTANCE FIX, LABELLED AS SUCH IN THE ARTEFACT. ** Put this
+sentence next to the scope sentence, in the source, where the next person keying a registry will read
+it: ** EVERY KEY SHORT OF A COMPILER-RESOLVED IDENTITY IS A HEURISTIC WITH AN UNKNOWN MARGIN. THE ONLY
+SOUND BOUND IS AST- OR TYPE-RESOLVED, AND THIS REGISTRY IS NOT THAT. ** That is a bound ARGUED rather
+than PATCHED, it costs you one comment, and it is the only part of this that survives the next form.
+
+--- D. UNCHANGED FROM MY LAST MESSAGE ---
+Rename off the universal -- "Every" is falsified, the population is open because RemoteData is a
+reference type and an alias write contains no occurrence of the identifier. Scope sentence in the map
+declaration, the failure message AND the test name. Direction partition stands, and the review leg
+verified its premise on the caller graph rather than assuming it: taskExport has one non-test caller
+inside ExportCollection, importedTask one inside ImportCollection, and ImportCollection returns no
+proto, so no outbound function is reachable on the inbound path. Still do not widen to internal/store.
+Still no finding from you about the six entstore sites.
+Report registry keys and the final test name when green.

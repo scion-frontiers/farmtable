@@ -1,0 +1,35 @@
+Item 4: doc.go states no limit count, and the third limit is written down
+
+"TWO LIMITS ON THE CENSUS" is replaced by an explicitly OPEN, uncounted list.
+The brief allowed "state the real number or state none"; none is the right
+answer here, because this block's own neighbouring comments say a count is the
+part that rots, and this count had already rotted in the delivered artefact.
+
+The third limit is now recorded (audit-xss-r7 F10, underlying limit credited
+there to review-xss-r6 PO-7): the census reads web/ and nothing else, so it
+covers PROTO-shape changes and not PAYLOAD-shape changes. Verified in tree:
+
+  $ grep -rn 'func issueBuildRemoteData\|func sanitizeRemoteData' --include='*.go' .
+  internal/platform/github/graphql_queries.go:476:func issueBuildRemoteData(...)
+  internal/server/urlvalidate.go:250:func sanitizeRemoteData(...)
+
+Neither is under web/, and webRoot() anchors the walk at <module root>/web, so
+a key added in either is invisible to this package. That matters specifically
+because the file's placement argument says the guard is in Go to catch a Go
+developer changing the server-side shape of remote_data -- and this is the half
+of that developer's change it does not see.
+
+The compounding fact is reproduced rather than repeated:
+
+  $ grep -c 'Collection\|writable' internal/platform/github/remotedata_representability_test.go
+  0
+
+so the collection capability gate is pinned at neither end. Recorded, not
+closed: closing it needs a guard over the Go payload producers, a different
+population from the one this package reads.
+
+This also discharges the round-7 "act or log" instruction that the r7
+adjudication recorded as having received NEITHER (the proto-shape vs
+payload-shape item, its ENUMERATED 14 = DELIVERED 13 + GAP 1). It is logged.
+
+Comments only. No behavioural change.

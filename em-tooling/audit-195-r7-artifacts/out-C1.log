@@ -1,0 +1,15 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///tmp/audit-r7/sb/.tmp-test/util/markdown.test.js:3072
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 1 of 75 markdown sanitizer checks failed:
+  - the sanitizer exclusively owns its own dependencies: sanitizer configuration is reachable from another file:
+      src/components/ft-empty-state.ts:1: names the module specifier 'dompurify'. Only src/util/markdown.ts may import the sanitizer's dependencies. Any other file holding a reference to them can rewrite the shared configuration they are used through — DOMPurify's default export is a singleton, and two addHook calls at module scope turn renderMarkdown into a pass-through while every rule about the sink binding still holds.
+    at run (file:///tmp/audit-r7/sb/.tmp-test/util/markdown.test.js:3072:15)
+    at file:///tmp/audit-r7/sb/.tmp-test/util/markdown.test.js:3077:1
+
+Node.js v20.20.2

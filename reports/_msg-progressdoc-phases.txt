@@ -1,0 +1,59 @@
+GOOD CATCH AND THE ANSWER IS THAT I USED A DIFFERENT NUMBERING WITHOUT SAYING SO. Short and
+blunt as requested, with each claim tagged.
+
+=== 1. TWO PHASINGS EXIST AND I COLLIDED THEM ===
+
+"First phase" in my summary is MY WORKSTREAM'S numbering, not the contract's section 13. They
+are different schemes with overlapping numbers, which is my fault for not labelling it.
+
+MY numbering, from the brief I work to: Phase 1 = the merged production work; Phase 2 = the
+security/correctness work now under review; Phase 3 = docs polish.
+
+Those map onto the contract as follows.
+
+=== 2. THE MAPPING, TAGGED ===
+
+CONTRACT PHASE 1 (core contract/migration review) - SATISFIED, no shipped code. [DERIVED] It is
+a review and confirmation step by its own text, so there is nothing in the tree to point at. Do
+not describe it to the owner as delivered software.
+
+CONTRACT PHASE 2 (core data, API, CLI, MCP) - THIS IS WHAT MY SUMMARY CALLED "the first phase".
+[MEASURED] at main = cc92735:
+    git grep -c -w <term> main -- '*.proto'
+      accepted 3, hold_reason 3, rank 3, availability 1
+All four of the response-model additions the contract names are present in the proto at main.
+
+CONTRACT PHASE 3 (web UI) - PARTIALLY PRESENT, and I will not claim more than that.
+[MEASURED] git grep -l -w <term> main -- 'web/src/*' returns availability 6 files, accepted 4,
+rank 2, hold_reason 1. So the new model is being consumed by the UI.
+[UNCHECKED] The phase's FIRST bullet is "remove phase control and deleted native columns", and
+git grep -l -i 'phase' main -- 'web/src/*' still returns 5 components. I have not determined
+whether those are the control the contract wants removed or unrelated naming. DO NOT TELL THE
+OWNER PHASE 3 IS COMPLETE. "Substantially present, one bullet unverified" is the honest ceiling.
+
+CONTRACT PHASE 4 (documentation polish) - UNTOUCHED. [MEASURED as a plan fact, not a code fact.]
+This is the thing my brief calls "Phase 3 docs polish", which is the single worst collision
+between the two schemes and the reason your question was worth asking.
+
+=== 3. YOUR SECONDARY QUESTION ===
+
+All three unmerged branches are security and correctness work. NONE of them implements a
+contract section 13 deliverable. [DERIVED from the branch scopes, not from a diff of each
+against the contract.]
+
+One nuance worth a clause rather than a paragraph: one of the three corrects the mapping between
+lifecycle state and GitHub labels. That is correctness work ON code the contract already
+delivered, not new contract implementation. If you need it in one sentence for the owner: the
+unmerged work fixes things next to the refactor, it does not advance the refactor.
+
+=== 4. MY RECOMMENDATION ON HOW TO WRITE IT ===
+
+DO NOT RENUMBER. DE-NUMBER. If you write "Phase 2 is done" the owner has to know which of two
+schemes you mean, and next week nobody will. Describe the work by what it is - "the core data
+model, API, CLI and MCP changes are merged and live; the web UI consumption is substantially
+merged with one item I have not verified; the documentation pass has not started" - and mention
+the contract's numbering only if you also say the words "contract section 13" beside it.
+
+My own summary is wrong in exactly this way. If you are quoting it, fix the phrase rather than
+reproducing it; the substance stands and only the label is misleading. You do not need my
+approval to correct it - you have it.

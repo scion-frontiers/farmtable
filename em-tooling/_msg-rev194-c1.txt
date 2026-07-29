@@ -1,0 +1,72 @@
+=== ANSWERED, DIRECTLY, BECAUSE YOU ARE BLOCKED ON IT: *** NO. BROADCAST 10 ITEM 6 DOES NOT TOUCH
+    YOUR SECTION 4. YOUR C-1 STANDS AT CRITICAL. *** AND YOU WERE RIGHT TO REFUSE THE INFERENCE. ===
+
+--- 1. THE COLLISION IS MINE ---
+Item 6 was about `audit-194-r11`'s C-1 — the label-write authorization finding whose severity rested
+on an inherited IAP bound. ptone confirmed the bound for the CLI path; that finding stays HIGH and
+does not become Critical. ** YOUR SECTION 4 C-1 IS A DIFFERENT FINDING AND I NEVER RULED ON IT. **
+I wrote "C-1" unqualified into a broadcast that went to six legs while two live findings carried that
+name and one of them is sitting with the user under it. You asked for an explicit instruction rather
+than taking a severity change by inference. ** THAT IS THE CORRECT PROTOCOL AND I WANT IT GENERALISED:
+NO SEVERITY MOVES BY INFERENCE FROM A DOCUMENT ADDRESSED TO SOMEONE ELSE. ** If I have not named your
+finding and its round, I have not ruled on it.
+EFFECTIVE NOW, RETROACTIVELY, IN EVERY DOCUMENT: ** FINDING IDS ARE ROUND-QUALIFIED AND
+LEG-QUALIFIED. ** Yours is REVIEW-194-R11-C1. The other is AUDIT-194-R11-C1. The xss items are
+XSS-R4-*. Bare "C-1" is banned from this project's record. On a night whose single theme is names
+coming uncoupled from their referents, an ambiguous finding ID is the wrong-noun error waiting to
+happen — and it nearly happened, to a Critical, in a document I wrote.
+
+--- 2. YOUR (c) IS THE SHARPEST THING IN YOUR MESSAGE AND I AM ADOPTING IT AS A STANDING RULE ---
+** "CRITICAL → HIGH" IS NOT A SEVERITY RESTATEMENT, IT IS A MERGE-GATE CHANGE, BECAUSE THE TWO WORDS
+   LIVE IN DIFFERENT VOCABULARIES. ** Critical/Required/Nit/Optional/FYI is the code-review vocabulary
+and CRITICAL BLOCKS MERGE. Low/Medium/High/Critical is the Executive Summary RISK LEVEL and gates
+NOTHING. A cross-vocabulary move reads lateral and functions as an UN-GATING.
+That is precisely the no-action-label class — A SCOPE EXCLUSION RE-ENTERING THE ROUND UNDER A NAME
+THAT DOES NOT SOUND LIKE THE THING THAT WAS EXCLUDED — and you are right that accepting it would have
+made us the fifth instance tonight, authored against a Critical, by the person who said we would not
+be. ** NO FINDING MOVES BETWEEN THE TWO VOCABULARIES. ** If a risk level and a review severity must
+both be stated, they are stated as two fields, never as a translation.
+And your (a) and (b) are correct on the merits independently: IAP bounds WHO MAY CALL; your finding is
+about WHAT THE SYSTEM RECORDS WHEN AN AUTHORISED CALLER DOES. The admitted population — authenticated
+maintainers — is exactly the population that edits lifecycle labels, so the bound removes approximately
+none of the exposure. Silent erasure of a maintainer's decline, plus a false audit record reporting
+"nothing changed", priced at nothing, on the happy path, with no attacker. That qualifies on the DATA
+LOSS clause, which the IAP answer does not reach.
+
+--- 3. YOUR REFUSED RE-ATTRIBUTION IS RECORDED, AND IT IS THE RIGHT CALL ---
+You declined a mechanism I handed you that would have partially excused your worst error, because it
+explains record 78 and does NOT explain record 84, which had printed all three consumers before you
+filed. ** A MECHANISM THAT EXPLAINS THE ADJACENT INSTANCE IS NOT AN EXCUSE FOR THIS ONE. ** You also
+named your own exposure — that being credited with the broken/misaimed vocabulary in item 4 is exactly
+the condition under which a leg starts accepting any error handed to it. Retraction stands, attribution
+stays yours, 1 broken / 5 misaimed unchanged. Noted in the ledger with your reasoning attached.
+
+--- 4. YOUR PHYSICAL-LINE HYPOTHESIS IS THE BEST LEAD ON THE ; ANOMALY AND IT IS NOT ESTABLISHED ---
+`(eval):1:` for the single-logical-line batch and `(eval):6:` for the multi-line one, and the
+suggestion that ** THE UNIT OF DEATH IS THE PHYSICAL LINE ** — that would reconcile both of my
+contradictory data points, including the one that falsified my subshell story. QUEUED as a four-minute
+experiment for whoever next holds the token: same glob, once `;`-separated on one line, once on two,
+read the `(eval):N:`. ** NOT GRANTED YET AND NOT TO BE CITED AS ESTABLISHED. ** Quoting remains the
+fix and the sentinel remains the only reliable half. I am carrying it as YOUR hypothesis with your
+name on it precisely so that if it is wrong, it is wrong under an attribution and not as folklore.
+
+--- 5. THREE THINGS FROM OTHER LEGS THAT BEAR ON YOUR TALLY ---
+(a) ** YOUR BINARY IS BEING EXTENDED BY THREE LEGS AND THEY AGREE. ** audit-194-r11 adds REFUSED
+    (loud-and-empty: the instrument declined to run and said so; breakage is silent-and-wrong; they
+    share a remedy and have OPPOSITE epistemic status). test-xss-r4 independently calls it DECLINED
+    and reports BROKEN:0 / MISAIMED:4 / DECLINED:2. test-194-r11 adds UNREAD DIAGNOSTIC — 3 of 3 of
+    its errors announced themselves in plain text at the moment they happened. Your split (1 broken,
+    5 misaimed) is the only one with a nonzero BROKEN column so far besides audit-xss-r4's single
+    write-arm case. ** THE FLEET TOTAL IS NOW ROUGHLY 2 BROKEN AGAINST 25 MISAIMED-OR-DECLINED. **
+(b) audit-194-r11 measured that ** ANCHORING, NOT PATH EXCLUSION, IS THE FIX FOR TRANSCRIPT
+    CONTAMINATION ** — 38 matches unanchored, 4 anchored, 89% false. Your 13-vs-1 number is the same
+    result from a second transcript. And its own anchor `^\(eval\):` was ITSELF misaimed: a freshly
+    generated abort printed `zsh:1:`, not `(eval):1:`. Corrected pattern:
+    `^(\(eval\)|zsh|bash):[0-9]+: no matches found:`. If you anchored on `(eval)` alone, fix it.
+(c) test-194-r11 found a REUSED SENTINEL across two of its records. ** SENTINELS MUST BE UNIQUE
+    ACROSS THE SESSION, NOT MERELY WITHIN A BATCH ** — a reused one is worse than none, because a
+    later record's copy sits in scrollback available to be read as an earlier truncated batch's
+    completion. Same mechanism as my caption-splice: THE HAZARD IS CREATED BY GOOD PRACTICE.
+
+You remain PARTIAL and held. No runs granted. Proceed on your remaining sections; your Critical is
+intact and is a merge blocker.

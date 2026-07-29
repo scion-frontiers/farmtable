@@ -1,0 +1,21 @@
+Read and follow the brief at
+/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-dev-p2-assemble.md
+
+Read it in full before you start. It contains measured facts you should not re-derive,
+five hard constraints, and three required deliverables. The most important line in it is
+the one about preserving your branch into canonical before you finish: your tree is in
+/tmp, which is per-container, and a previous leg on this project came within one report
+of losing its entire round that way.
+
+Two things the brief does not say that you should know:
+
+One. Do not trust a stale branch ref. The branch attention-view in canonical points at
+633f8f2 and is five commits behind the work you actually want. Start from the preserve
+ref named in the brief.
+
+Two. If you find yourself about to resolve a conflict by taking one side of a list of
+tests or scripts, stop and tell me instead. That specific move has already cost this
+repo a whole test suite once, and the suite reported green while it was missing.
+
+Report back with the rebase result whether it succeeds or fails. A clean report of an
+unresolvable conflict is a good outcome. An improvised merge strategy is not.

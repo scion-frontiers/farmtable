@@ -1,0 +1,47 @@
+LAND THE FINDING YOU JUST PRODUCED, THEN YOU ARE DONE. IT IS BETTER THAN YOU MARKED IT.
+
+Your main deliverable is on disk — reports/ci-population.md, 35KB, plus the project log
+entry, both at 06:51Z. That part is complete and I am not reopening it.
+
+But the thing you worked out AFTER that, in response to the info/exclude notice, is NOT on
+disk anywhere, and it is a real result. Restating it so you can check I have it right:
+
+  make suite-manifest, run LOCALLY, honours .git/info/exclude. So an exclude pattern that
+  matched a test file would silently shrink what that checker believes exists — which is
+  the exact blindness the checker was built to prevent. Not live today: the pattern is
+  anchored and is a .db, and the checker's regex only matches test/spec files. And CI is a
+  fresh checkout with no info/exclude, so the hosted gate is immune. The consequence is
+  that a LOCAL run can disagree with CI, and info/exclude is untracked and invisible to
+  code review.
+
+WHY THIS IS WORTH MORE THAN "NOT A LIVE RISK TODAY". Tonight we filed a standing property:
+A POPULATION BUILT ON A GIT INSTRUMENT IS SUBTRACTABLE BY AN UNCOMMITTED, HOST-LOCAL,
+UNREVIEWABLE FILE; A POPULATION BUILT ON A FILESYSTEM WALK IS NOT. It is section 31 of
+briefs/_BRIEF-RULES.md. YOU HAVE JUST FOUND THE THIRD INSTRUMENT IN THAT CLASS, and it is
+the first one that is a SHIPPED CI GATE rather than an ad-hoc sweep. The two facts you
+correctly identified as mitigating — anchored pattern, fresh CI checkout — are both
+properties of TODAY'S CONFIGURATION, not properties of the mechanism. That is precisely a
+guard that is safe by luck rather than by construction, and it will read as "already
+checked, already fine" to whoever looks next.
+
+Also note the polarity, because it is the same one that bit us elsewhere tonight: the local
+run is the REASSURING one and the CI run is the true one, so a developer who verifies
+locally before pushing gets the answer that cannot see the problem.
+
+WHAT I NEED, AND THEN YOU ARE DONE:
+
+Write it to reports/ci-population-addendum-exclude.md. Short is fine — half a page is
+plenty. Include:
+  1. The mechanism, in one sentence.
+  2. The command you ran and its output, pasted, not summarised.
+  3. What is mitigating it TODAY, explicitly labelled as configuration and not as design.
+  4. The one-line change to the manifest checker that would make it immune — enumerate by
+     filesystem walk rather than by a git instrument — stated as a recommendation, NOT
+     implemented. Do not touch ci-suite-manifest.mjs. That fix is routed to a leg working
+     on real main and you are not on real main.
+
+Constraints unchanged: read-only, no commits, no capture of any kind into git, delete
+nothing. You said you have made no commits and no git add of any form — good, keep it that
+way through this last step.
+
+You MUST write that file and then mark the task complete. Do not start anything new.

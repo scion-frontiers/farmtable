@@ -1,0 +1,94 @@
+STOP THE PRODUCT QUESTION. DO NOT LET IT GO TO HIM. THE REPOSITORY ANSWERS IT, THE ANSWER IS YES,
+AND THE PERSON WHO ANSWERED IT IS HIM.
+
+Two project-log documents, both authored by Preston Holmes, both merged pull requests, both dated
+seven days ago. The first says, in the summary and not in a footnote: USERS CAN NOW EDIT TASKS IN
+WRITABLE GITHUB COLLECTIONS DIRECTLY FROM THE FARMTABLE DASHBOARD. The second implements a
+fifteen-flag per-operation capability model on top of it and names a constant for the writable
+GitHub case specifically. Commits verified by me at the main SHA I was holding, with author and
+date, not inferred from a range.
+
+The question I drafted asserts, as its closing premise, that there is no comment, no test and no
+note recording a decision either way and that it is therefore not recoverable by reading anything
+we have. THAT SENTENCE IS FALSE AND IT IS THE LOAD-BEARING ONE. Everything else in the draft was
+built to justify spending a human judgement we did not need to spend. I would have asked a man to
+recall an intention he had already written down and shipped under his own name.
+
+HOW IT WAS FOUND, BECAUSE THE MECHANISM IS WORSE THAN THE ERROR. The audit leg reported the two
+design documents. It reported them accurately. It reported them AS A POPULATION COUNT - five
+files matched the key, three TypeScript sources and two design docs - inside a section about
+whether stored data could carry the flag. The leg was answering a question about data. The
+documents were the answer to a question about intent that lived in a different brief the leg had
+never seen. NOBODY WAS WRONG AND THE ANSWER STILL SAT UNREAD FOR THREE MINUTES.
+
+  A FACT ENTERS THE RECORD IN THE SHAPE OF THE QUESTION THAT SURFACED IT, AND IT IS INVISIBLE
+  TO EVERY OTHER QUESTION UNTIL SOMEBODY HOLDS BOTH BRIEFS AT ONCE.
+
+That is not COORD-123 and it is not the receipt class. It is the compartment cost of the
+independence we bought on purpose. I am the only role that holds every brief, so this is a
+failure mode of MY position specifically, and its signature is a leg reporting something as a
+COUNT when another brief needed it as CONTENT.
+
+WHAT THE REAL FINDING IS, NOW THAT THE INTENT IS SETTLED. The feature was designed, built,
+reviewed, merged and shipped, and NOTHING ANYWHERE PROVISIONS THE FLAG THAT TURNS IT ON. It has
+therefore never been on for anyone. That is not an ambiguity about intent, it is a feature with
+no provisioning path, and it is ours to fix rather than his to adjudicate. The only question left
+that a human could usefully answer is far narrower - WHAT IS SUPPOSED TO SET IT - and I am not
+sending that either until somebody has looked for an admin path, a config key or a migration,
+because I have now been wrong once today about what the code does not contain.
+
+THE SECURITY HALF SEPARATES CLEANLY AND I AM NOT ADOPTING THE LEG'S SEVERITY. Measured, by me,
+at that SHA: the key is read in exactly two TypeScript files and in ZERO Go files. There is no
+server-side notion of a read-only collection. The nine operations are gated by scopes only. The
+leg called this High on the ground that the badge advertises an enforcement that does not exist.
+I think that is the right observation and possibly the wrong severity, because the design
+documents show the gate was INTENDED to be presentational - write-through goes through the
+passthrough store by design. UI-ONLY BY OVERSIGHT AND UI-ONLY BY DESIGN LOOK IDENTICAL FROM THE
+CODE AND THE DOCUMENTS DISCRIMINATE THEM. Severity unadjudicated, held, not relayed as High.
+
+Two bounds that travel with the above. The stored-data limb is still unmeasured - no database was
+opened - so IT IS ALWAYS NO remains unproven in the only place that counts, and I have the exact
+query that would settle it. And every measurement in this section was taken at the SHA I believed
+was main, which the CI leg has just told me is twelve commits stale.
+
+ROUND SIX IS ADJUDICATED AND THE THREE-WAY IS GOING OUT AT c108acbcfa2357862576092469828709bb6c4090.
+
+R6-23 RED VIA THE MULTIPLICITY ARM. Outcome and arm both pre-registered, both correct, and the
+leg established that neither Errorf can mask the other BEFORE using the undeclared arm's silence
+as evidence. A count floor would have passed this: one required, two found. R6-24 GREEN. YOUR
+DERIVATION HELD AND I STILL DO NOT REGRET RUNNING IT. Pure addition proved mechanically before
+execution, and the control is the best available - the same guard, the same file, the same
+command, red minutes earlier.
+
+The leg took R6-17 out of the table itself and named the defect as presentation rather than
+labelling. Corrected, additions only: literal differing text RED UNDECLARED in both file states;
+literal byte-identical RED MULTIPLICITY where an entry exists to duplicate; computed spelling
+GREEN in both. The file-has-entries axis does not exist for the computed row, because a computed
+line emits no census entry and therefore never reaches the part of the guard that knows which
+file it is in.
+
+SHIPPING SENTENCE, FINAL: CATCHES THE ACCIDENTAL ADDITION; NEVER OBSERVED CATCHING A DELIBERATE
+ONE. Two fix-round items, neither touched under the freeze: the in-tree 2x2 amendment, and a
+header that reads SITE(S) NO LONGER MATCH while firing on a site that matches twice.
+
+MY OWN INSTRUMENT MANUFACTURED A GREEN AND I WANT IT ON THE RECORD AHEAD OF ANYTHING I SAY ABOUT
+ANYONE ELSE'S. I ran a build inside a subshell that ended with an echo of the exit code. The
+subshell's status became the echo's. The orchestration harness notified me BUILD COMPLETED, EXIT
+CODE 0. The build had failed with exit 2. I only caught it because I went looking for the output
+directory and it was not there. A WRAPPER WRITTEN TO REPORT AN EXIT CODE REPLACED IT.
+
+Also measured, and it inverts a comparison I would have made by counting: canonical's web
+dependency tree has 110 top-level entries and is MISSING a type package the build requires; a
+clean install from the lockfile has 79 and HAS it. THE LARGER POPULATION IS NOT A SUPERSET. The
+build fails against 110 and succeeds against 79.
+
+THE CI LEG CONTRADICTS MY SEALED PREMISE AND IT IS RIGHT. Real main is twelve commits ahead of
+the SHA every one of my trees calls main, a workflow file exists, and CI EXISTS - the escalation
+I have been carrying is falsified. Round six was never pushed, so the workflow cannot see it. And
+the leg predicts a merge blocker I would not have found: main kept a hand-written test list and
+added a checker for it, round six replaced the hand-list with discovery, and the checker fails
+closed on the discovery runner. Sealed numbers versus cold numbers, three of eleven did not
+reproduce, and the reason is staleness in MY refs rather than error in its work. Full reconcile
+follows; I am dispatching the three-way first.
+
+Token still with me, spent only by me, logged with ROOT and DIST. Freeze unchanged.

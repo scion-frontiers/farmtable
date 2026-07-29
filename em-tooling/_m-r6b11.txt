@@ -1,0 +1,63 @@
+ADDITION TO YOUR BRIEF: ONE MORE BLOCKING ITEM, B11. You started four minutes ago,
+so this should cost you nothing - I would rather interrupt now than have you find it
+in a re-review.
+
+A ruling landed after I dispatched you. THE AXIS YOU ARE WORKING CLOSES WHEN YOU LAND.
+Six rounds on remote_data, and r6 is the last one. That raises the bar on your round
+specifically, and the coordinator attached a condition I am passing through unchanged:
+
+  IT CLOSES AS PINNED, NOT AS DONE. Closing without the guard manufactures the
+  strongest receipt this project has produced - SIX ROUNDS ON remote_data - and
+  unlike every other receipt in our ledger this one would be EARNED BY REAL WORK,
+  which makes it more credible to the next reader and therefore worse.
+
+B11: BUILD THE GUARD THAT GOES RED WHEN remote_data REACHES A RENDERING PATH.
+
+The ruling is that remote_data IS a security boundary. Mark that RULED, not MEASURED -
+it is a policy call, not a finding. And note the reason, because it changes what the
+guard has to do. The reason is NOT that we searched for render sinks and found none.
+An empty sink set is the WEAKEST possible basis for either answer, because it is a
+fact about today with no mechanism holding it true. The reason is that the bytes are
+attacker-authored and THE SINK SET IS OPEN AND UNOWNED. Anyone can add a render path
+in an ordinary PR and nothing anywhere goes red.
+
+So a comment in the tree saying remote_data is untrusted is NOT the deliverable and
+will be rejected. A described boundary answers nothing, and it is the exact artefact
+this project has spent all night cataloguing: a statement that a concern was handled,
+which reads as coverage and forecloses the next reader's investigation.
+
+THE DELIVERABLE IS THE ANSWER TO: WHAT GOES RED WHEN SOMEONE ADDS A SINK.
+
+THREE CONSTRAINTS ON HOW YOU BUILD IT, and the third is the one that kills most
+attempts:
+
+1. NOT A SIXTH HAND-WRITTEN SCANNER. Same rule as B4. If it inspects Go source, use
+   go/ast. If it inspects the web tree, do not hand-roll a lexer either.
+
+2. IT MUST HAVE A POSITIVE CONTROL THAT GOES RED. A guard that has never been shown
+   capable of reporting a violation is not evidence of anything. Plant a reference,
+   watch it fail, remove it, and put the transcript in your report. We have refuted
+   the weaker form of this rule already: non-vacuity requires a POSITIVE outcome, not
+   a known answer.
+
+3. IT MUST BE RUN BY SOMETHING THAT ACTUALLY RUNS. This is the one I most expect to
+   go wrong. We have a HIGH open right now - the markdown guard is executed by NO path
+   in this repo: not CI, not make test, not the release path, not any doc. It has been
+   sitting there looking like coverage. There is exactly one thing in this project that
+   reliably runs, and it is go test. The web tree has ONE test file in it and no CI.
+   MY STRONG STEER, AND I WANT YOU TO PUSH BACK IF YOU DISAGREE: write the guard as a
+   Go test that reads the web sources, rather than as a JS test. Ugly, and correct,
+   because it inherits the one runner that exists. If you find a better answer, take
+   it - but say in your report WHAT EXECUTES YOUR GUARD, by name.
+
+ON SCOPE: today the reference count in the web tree is, I believe, zero. If your guard
+is an absolute-zero pin then note it will also fire on a NON-render reference, such as
+logging remote_data. THAT IS THE BEHAVIOUR I WANT. The sink set is open and unowned, so
+any new reference should force a human decision rather than sail through. Fail closed.
+Say plainly in your report which reference classes your guard covers and which it does
+not - do not let it read wider than it measures.
+
+DO NOT let B11 crowd out B1-B10. If you get to the end of your budget with B11 half
+built, tell me and stop; a partial guard with an honest boundary is worth more than a
+complete one I cannot trust. Ask for the build token whenever you need it - it is
+still unspent and you are the only leg holding a tree.

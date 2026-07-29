@@ -1,0 +1,70 @@
+{
+  "note": "Audit LOW-2 attribution. spec-low2 showed a sink injected into index.html turns the suite red. That is only meaningful if the SAME injection is green with index.html out of the scanned set \u2014 otherwise something else is doing the work. Each case therefore pairs the injection with the ablation.",
+  "cases": [
+    {
+      "id": "CTRL-0",
+      "control": true,
+      "desc": "no-op comment \u2014 MUST be GREEN",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.ts",
+          "find": "export function renderMarkdown(md: string): string {",
+          "replace": "// no-op control mutation\nexport function renderMarkdown(md: string): string {"
+        }
+      ]
+    },
+    {
+      "id": "CTRL-1",
+      "control": true,
+      "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+      "expect": "RED",
+      "edits": [
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_CHECK_CALL_SITES = 72;",
+          "replace": "const EXPECTED_CHECK_CALL_SITES = 99;"
+        }
+      ]
+    },
+    {
+      "id": "ABL-low2-innerHTML",
+      "desc": "ABLATION: the same innerHTML injection, with index.html dropped from EXTRA_SCANNED_FILES (and the file count backed out). GREEN here is what proves the RED in spec-low2 was attributable to this change and not to some other rule.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        var stored = localStorage.getItem('ft-theme');\n        document.body.innerHTML = location.hash;"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXTRA_SCANNED_FILES = ['index.html'];",
+          "replace": "const EXTRA_SCANNED_FILES: string[] = [];"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const EXPECTED_SOURCE_FILES = 51;",
+          "replace": "const EXPECTED_SOURCE_FILES = 50;"
+        }
+      ]
+    },
+    {
+      "id": "ABL-low2-inert",
+      "desc": "ABLATION, THE OTHER HALF: keep EXTRA_SCANNED_FILES but put '.html' back in INERT_EXTENSIONS. The audit finding was that the file is invisible TWICE OVER; fixing one half alone must not be enough, and this measures that rather than asserting it.",
+      "expect": "GREEN",
+      "edits": [
+        {
+          "file": "web/index.html",
+          "find": "        var stored = localStorage.getItem('ft-theme');",
+          "replace": "        var stored = localStorage.getItem('ft-theme');\n        document.body.innerHTML = location.hash;"
+        },
+        {
+          "file": "web/src/util/markdown.test.ts",
+          "find": "const INERT_EXTENSIONS = [\n  '.css', '.scss', '.json', '.svg', '.md', '.txt',",
+          "replace": "const INERT_EXTENSIONS = [\n  '.html',\n  '.css', '.scss', '.json', '.svg', '.md', '.txt',"
+        }
+      ]
+    }
+  ]
+}

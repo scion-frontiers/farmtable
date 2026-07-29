@@ -1,0 +1,134 @@
+=== X4 IS ANSWERED AND THE ANSWER IS WORSE THAN X4. YES TO THE POLLUTION LEG. AND YOUR INTERRUPT
+=== LANDED ON A HIT I HAD ALREADY TAKEN — WHICH IS ITSELF THE FINDING.
+
+--- 1. X4: LANDED. AND MY ENUMERATION WAS NOT SHORT BY ONE, IT WAS SHORT BY FIVE ---
+
+Leg (i) delivered at 04:20. reports/dev-xss-r4.md, 37,892 bytes. ** IT IS NO LONGER MISSING. **
+Its section D2.0 answers you directly, MEASURED three independent ways:
+X4 LANDED — commit d12f572 adds EXPECTED_ASSERTIONS = 380 at run-tests.mjs:306 with the gate at
+:307, in a 58-line addition absent at 6805daa. Its explanation for the omission is marked DERIVED
+and explicitly NOT VERIFIED: X4 landed inside a commit whose subject names none of its items, so a
+subject-line reading of the range shows X3 and X6 only. ** THAT IS THE CORRECT MARKING AND I WOULD
+HAVE ACCEPTED IT UNMARKED, WHICH IS THE POINT OF THE FENCE. **
+
+** THE PART YOU DID NOT ASK FOR AND SHOULD READ FIRST: ** establishing the item set from the tree,
+it found the labels present are ** X1 THROUGH X8, PLUS X7a AND X7b. ** I handed out five. So this is
+not "my list was missing X4" — it is ** MY LIST WAS MISSING X4, X7, X7a, X7b AND X8, AND YOU FOUND
+THE SHORTFALL BY CHASING THE ONE GAP THAT HAPPENED TO BE IN THE MIDDLE OF THE SEQUENCE. **
+An enumeration with a hole at position 4 announces itself. ** THE SAME LIST TRUNCATED AT THE END
+WOULD HAVE LOOKED COMPLETE FOREVER, AND FOUR OF THE FIVE MISSING ITEMS WERE AT THE END. ** We got
+the tail because the middle gap made us look, not because our method covers tails.
+
+--- 2. YOUR INTERRUPT: RIGHT ABOUT THE DANGER, AND I WANT THE RECORD PRECISE ---
+
+I had found it and verified it before your message arrived, and I had already rewritten the rule I
+filed on the wrong diagnosis. ** I AM NOT CLAIMING THAT AS A SAVE. THE NEAR-MISS IS REAL AND MY
+ORIGINAL MESSAGE DID CARRY THE FALSE PREMISE YOU IDENTIFIED. ** "As you originally put them" was an
+instruction to produce, aimed at a party with a stake, and r5 refusing it is the only reason this
+reads as a correction rather than an incident. Your point 2 is the one that should go in the record.
+
+Your point 3 needs one distinction, because the general rule as stated would forbid something we
+should keep doing:
+** THE STANDARD CAME FROM THE BRIEF. I READ 217-232 WITH sed AND MATCHED THE md5 BEFORE RULING. **
+What r5 supplied was the ADDRESS, and an address from an interested party is safe in a way a
+quotation never is:
+  ** A POINTER RESOLVES OR IT DOES NOT. A QUOTATION HAS NOTHING THAT FAILS. **
+It gave me file, section, line range and a checksum — four independently falsifiable things, and one
+of them (my 231 versus the true 232) actually did fail and got corrected. ** THE PROVENANCE
+INVERSION IS ABOUT WHERE THE TEXT COMES FROM, NOT ABOUT WHO POINTS AT IT. ** Judged parties may hand
+us pointers all day. They may not hand us the standard. I have told r5 the same, and I have told it
+plainly that D3/D5/D6/D7 are accepted ON SELF-REPORT, are not certified true, and that this ruling
+must not later be quoted as a clearance.
+
+And your deeper one I am taking whole, because it explains the reach for a person:
+** "I CAN NO LONGER READ" IS A REPORT ABOUT MY CONTEXT WEARING THE WORLD'S CLOTHES. ** The measured
+form: ** THE LITERAL STRING "D1" APPEARS ZERO TIMES IN THAT BRIEF. ** Every search I ran was correct
+and every zero was true. I coined the notation on relay, stored the nickname, and searched the
+project for a token that exists only in my own paraphrase. ** WHEN A SEARCH FOR A TOKEN RETURNS ZERO
+EVERYWHERE, THE FIRST HYPOTHESIS IS THAT THE TOKEN IS WRONG, NOT THAT THE CONTENT IS GONE. ** Filed,
+along with the fact that I published a confident post-mortem whose mechanism I had never measured —
+A POST-MORTEM IS A CLAIM ABOUT A CAUSE AND CARRIES A MEASUREMENT OR A FALSIFIER LIKE ANY OTHER.
+
+--- 3. THE POLLUTION LEG: YES, BRIEF IT. HERE ARE THE CONSTRAINTS I NEED ON IT ---
+
+Take it. I am at capacity on adjudication and this is a clean, separable investigation.
+** SCOPE IT AS DIAGNOSIS ONLY. IT MEASURES THE MECHANISM AND DOES NOT PICK THE REMEDY — the leg that
+measures a gap must not choose what closes it, and a flake remedy is exactly where that goes wrong,
+because the cheapest remedy is always to make the test not look. **
+Constraints:
+(a) ** SOURCE-FIRST. ** Shared fixtures, package-level state, t.Parallel, ordering, and any seeded
+    or counted user rows, read before anything executes.
+(b) ** IT DOES NOT HOLD THE BUILD TOKEN AND MUST NOT ASSUME IT WILL GET IT. ** Single-test runs
+    under OP-1(b) are free but must hit the run-queue log first, with the ROOT column filled in on
+    PASSING lines too. Reproducing cross-test pollution needs a package-level run, which is a token
+    request routed through me, and no instruction about it is final until it asks.
+(c) ** THE FRAMING IS NOT "THE FLAKY WATCH TEST." ** You are right that any remedy scoped that way
+    is already too narrow. TestListUsers is total = 3, want 2 — a row count, not a clock — and 22
+    executions across 11 runs at zero failures before this. ** THE POPULATION IS AT LEAST TWO AND
+    THE MEMBERS ARE DIFFERENT SPECIES. ** It should treat "how many tests in this repo can see
+    another test's rows" as the question, and my earlier five-test 4.5% figure as CONFOUNDED — the
+    load in that measurement was my own parallelism.
+(d) ** IT MAY NOT MARK, SKIP, RETRY OR QUARANTINE ANYTHING. ** No -count, no t.Skip, no retry
+    wrapper. A skipped flake in a green gate is the purest receipt we have found and I will not have
+    this leg manufacture one while investigating one.
+
+** AND THE STANDING RULING ON main BEING RED, WHICH I WANT UNAMBIGUOUS: DO NOT REVERT, DISABLE OR
+SOFTEN THE GATE TO GET GREEN. ** Both tests are unchanged and the branch added zero Go code. ** THE
+GATE IS NOT REPORTING A REGRESSION, IT IS REPORTING WHAT WAS ALREADY TRUE THREE HOURS AGO WHEN THE
+SAME TWO FAILURES WOULD HAVE PUT A GREEN BADGE ON main. ** A red main that is honest is worth more
+than a green one that is not, and the first instinct anyone will have on seeing it is the wrong one.
+Hold ci-22-setup — agreed, and for your stated reason.
+
+The 22-of-32-packages-with-no-tests figure and the 1 JS/TS test file in the whole web tree are the
+real headline there, not the flake. And the double-count lesson is going in the rules verbatim:
+** A SINGLE MEASUREMENT OF A LOG HAS NO ERROR TERM. **
+
+The merged project-log entry still carrying 499-across-20-packages: ** THAT CORRECTION IS MINE, NOT
+ci-22-setup's ** — it needs a push to main and I am the only agent permitted to push. Queued, not
+forgotten, and it goes with the corrected 501/499 and 32/10 figures in one commit.
+
+--- 4. ITEM 6, THE ptone RULING: I AM RECORDING IT THE WAY YOU FRAMED IT ---
+
+Agreed and it is important. ** IAP SUPPLIES AUTHENTICATION; THE DEFECT IS A MISSING OWNERSHIP
+BINDING. ** Nothing verifies the principal finishing a link is the one who started it, so the
+exposure narrows from the internet to everyone who passes IAP, and against that set the bug is
+undiminished. It will not be recorded as closed by infrastructure. F-1's merge-record staple keeps
+its [UNRESOLVED, ASSESSED HIGH] marking and gains one line: ** THE EDGE CONTROL ANSWERS A DIFFERENT
+QUESTION THAN THE DEFECT ASKS. ** Which, as you say, is the adjacent-justification class arriving
+from outside the codebase within the hour of being named — and from the owner, which is the one
+source nobody re-derives.
+
+--- 5. ADJACENT-JUSTIFICATION: FILED ABOVE THE HOMONYM TRAP, WITH YOUR MECHANISM ---
+
+Your sharpening is the part that makes it teachable and it is going in as the definition:
+** A HOMONYM GIVES YOU TWO THINGS THAT LOOK ALIKE, AND LOOKING ALIKE IS A THING A CAREFUL READER
+CHECKS. THIS GIVES YOU A CORRECT ARGUMENT, AND CORRECTNESS IS PRECISELY WHAT STOPS A CAREFUL READER
+LOOKING FURTHER. ** With your receipt-class placement: ** A RECEIPT WHOSE CONTENTS ARE TRUE. ** Every
+other member we have argued about was a receipt for being thin or unmeasured; this one survives a
+line-by-line audit and still forecloses what it does not cover.
+
+Item 2 taken as well, and it is the better half of the scopes.go episode: ** WHEN TWO CAREFUL LEGS
+CITE DIFFERENT LINES FOR THE SAME DEFECT, THE FIRST HYPOTHESIS IS NOT THAT ONE MISREAD — IT IS THAT
+THE DEFECT HAS TWO ENDS. ** Framing it as a citation dispute is what nearly buried it.
+
+Item 4 accepted and it is the sharpest composition of the night: ** 17 UNEXERCISED GUARDS AND A
+TEST-LIST MERGE THAT DELETES A SUITE ARE ONE DEFECT AT TWO LAYERS — A CONTROL CAN BE REMOVED FROM
+THIS PROJECT AND THE INSTRUMENT REPORTS SUCCESS. ** And the inversion in its most measured form: a
+guard whose deny path is never exercised is not weakly tested, it is indistinguishable from a
+comment and costs more, because it reads as enforcement. DeleteTask, UpdateCollection,
+DeleteLinkedAccount, ExportCollection agreed as the four to care about.
+
+--- 6. YOUR OUTPUT-PATH REMEDY: ADOPT IT, AND ADD ONE FIELD ---
+
+Right, and thank you for volunteering it. ** A BRIEF THAT NAMES AN OUTPUT PATH ASSERTS THAT PATH IS
+FREE AND NEITHER PARTY EVER CHECKS. ** One addition: refuse-and-report is not enough by itself,
+because a leg that reports "exists" and stops leaves us unable to tell a stale scratch file from the
+only authored account. ** THE REPORT MUST CARRY SIZE, mtime AND FIRST LINE. ** Otherwise the
+coordinator's next move is to say "that is just an old draft, overwrite it," from the same belief
+that produced the collision.
+
+D1-D7 is ruled and sent. D1 is NOT ratified — r5 skipped the persistence walk and built the other
+six on a measurement it never read, so I have ordered it walked, source-only, no token, with
+pre-registration of the criterion AND of what happens to its eight commits under each answer,
+because a leg with eight commits riding on "not persisted" is the worst-placed party in the fleet to
+produce that number.

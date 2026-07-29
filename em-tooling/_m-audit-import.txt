@@ -1,0 +1,72 @@
+BOUNDED READ-ONLY QUESTION, ROUTED TO YOU BY NAME. No build, no run, no tree
+modification. The fence is live and you are not getting the token. If answering
+properly needs execution, say so and stop - a declared non-answer is the correct
+output here and it will not be scored against you.
+
+WHERE THIS CAME FROM. I asked the review leg to measure the consumer population of the
+task-serving surface, because a claim of mine had been narrowed and I wanted the
+population enumerated rather than assumed. It found something none of the three r5 legs
+could have found, and it deliberately declined to chase the consequence, flagging it to
+you instead. Its words: this is exactly where it overclaimed once already and it was not
+doing it twice. That restraint is why the question reaches you clean, so treat the
+premise as given and the conclusion as wide open.
+
+THE PREMISE, MEASURED BY THAT LEG, read-only, at d305391:
+
+  The Lit dashboard reads COLLECTION remote_data in two places as a WRITE-AUTHORIZATION
+  GATE. capabilities.ts getCapabilities and ft-app.ts isCollectionWritable both branch
+  on the writable key: true selects the GitHub capability set, otherwise everything is
+  disabled. The value is branched on, never rendered. A capability sink, not a render
+  sink.
+
+  AND: nothing in the tree writes that key. Zero non-test matches in Go, none in web/src
+  outside generated code. So either the branch is dead today, or the flag arrives from
+  outside the tree. The one in-tree path identified as able to persist an
+  externally-authored collection remote_data is ImportCollection, entstore.go:2117, fed
+  from an import document via export_import.go.
+
+WHAT I AM ASKING YOU, AND ONLY THIS:
+
+  Q1. Can an import document cause a GITHUB-platform collection to carry a remote_data
+      value chosen by the document's author? Trace it. The interesting sub-question is
+      whether platform is taken from the document or from anything server-side, and
+      whether an import can target an EXISTING collection or only create one.
+
+  Q2. Is ImportCollection reachable by a principal who should not have write authority
+      over the collection it touches? Both are marked UNCHECKED by the leg that raised
+      them. Neither is asserted.
+
+  Q3. Given Q1 and Q2, is the writable key a security boundary? This is the question the
+      r5 audit round already told me to decide explicitly and I have not. It is now
+      concrete rather than abstract, so decide it on evidence.
+
+THREE THINGS THAT BEAR ON THIS AND ARE NOT MINE TO WITHHOLD:
+
+  a) ImportCollection is ALREADY carrying an open HIGH from an earlier workstream: a
+     remote privilege escalation to wildcard scopes. Do NOT treat that as confirming
+     anything here. Two findings on one function are two findings. I am telling you
+     because you would find it and wonder whether I knew.
+
+  b) A separate open item concerns a free row on an authorization path, and a third
+     concerns the same import surface. If your trace lands on either, say so - a
+     convergence measured from a third route is worth more than any of the three
+     alone, and I would rather you name it than avoid it for fear of double-counting.
+
+  c) The obvious story here is: attacker imports a collection with writable true, the
+     dashboard lights up the GitHub buttons, escalation. I am handing you that story
+     SPECIFICALLY SO YOU CAN TRY TO KILL IT. It has an obvious weakness - a client-side
+     capability flag is a UI affordance, and whether it grants anything depends entirely
+     on whether the server independently authorizes the operations those buttons invoke.
+     If the server gates them properly, this is a cosmetic UI lie and not an escalation.
+     THAT IS THE MEASUREMENT THAT DECIDES SEVERITY. Do not let my framing set it.
+
+PRE-REGISTER, BEFORE YOU LOOK, in your report: what you will conclude if Q1 is yes and
+Q2 is no; if Q1 is no; and if both are yes but the server gates every capability the
+flag unlocks. Write those three down first. The reason is on the record from your own
+round: separate your verdict from your support for it, and pre-commit to your response
+to every outcome including the one that withdraws your own headline.
+
+DELIVERABLE: reports/xss-r5-import-writable.md. Findings with severity and the evidence
+for each, UNCHECKED marked as UNCHECKED, and your three pre-registered branches at the
+top with which one fired. Severity is yours to measure; BLOCKING is my call, not yours.
+Also write a project log entry. You MUST write that file and then mark the task complete.

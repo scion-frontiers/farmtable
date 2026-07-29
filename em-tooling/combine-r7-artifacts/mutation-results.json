@@ -1,0 +1,141 @@
+{
+  "baseline_gh_total": 150,
+  "mutations": [
+    {
+      "name": "PC (positive control)",
+      "probe": "TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/platform/github/",
+      "pkg_exit": 1,
+      "blast": 14,
+      "pkg_total": 150,
+      "failing": [
+        "TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled",
+        "TestPassThroughClaimTask_BareStockLabelIsNotATerminalSignal",
+        "TestPassThroughClaimTask_ClearingTheStaleLabelRestoresClaimability",
+        "TestPassThroughCloseTask_BestEffortFailuresAreLogged",
+        "TestPassThroughCloseTask_ClaimedThenClosedIsUnavailable",
+        "TestPassThroughCloseTask_WontFixSwapsToWontFixLabel",
+        "TestSingularSinksAreBlindToTheTerminalTiebreak_PositiveControl",
+        "TestSpellingCollision_IsInvisibleToTheStageSetGate",
+        "TestStageLabelSwap",
+        "TestStageLabelSwap_DoesNotDeleteAHumansStockLabel",
+        "TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn",
+        "TestStageLabelSwap_NoExistingStage",
+        "TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader",
+        "TestStageLabelSwap_UnderACustomPushPrefix"
+      ]
+    },
+    {
+      "name": "M8",
+      "probe": "TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/platform/github/",
+      "pkg_exit": 1,
+      "blast": 29,
+      "pkg_total": 150,
+      "failing": [
+        "TestAliasKeyNormalisation_CollapsesDistinctKeys",
+        "TestAliasKeyNormalisation_WidensTheCollisionForPrefixedKeysOnly",
+        "TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically",
+        "TestAudit_ReopenAfterCloseIsDisplayedOpenButNotScheduled",
+        "TestComputeReady_IsNotBlindedByAMaskingLabel",
+        "TestComputeReady_TerminalWithholdIsPrefixGated",
+        "TestConfiguredStageAliases_DoublePrefixIsNotAWayIn",
+        "TestConfiguredStageAliases_KeySpellingIsNormalised",
+        "TestConfiguredStageAliases_UnderACustomPushPrefix",
+        "TestDefaultConfig_AdmitsTwoDistinctLabelsForOneStage",
+        "TestF7Cell_IsNonEmptyOnBothSidesSoTheEmptySetGuardCannotFire",
+        "TestLifecycleStageConsumers_MustCollapseEveryTerminalStageToOneAnswer",
+        "TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore",
+        "TestPassThroughClaimTask_TerminalLabelledIssueIsNotClaimable",
+        "TestPassThroughCloseTask_BestEffortFailuresAreLogged",
+        "TestPassThroughCloseTask_ClaimedThenClosedIsUnavailable",
+        "TestPassThroughCloseTask_WontFixSwapsToWontFixLabel",
+        "TestPassThroughStore_OpenTerminalLabelledIssueIsDisplayedOpenButNotScheduled",
+        "TestPushPrefix_ResolutionIsSharedByReaderAndWriter",
+        "TestPushPrefix_TheHarnessCanSeeADisagreement",
+        "TestSingularSinksAreBlindToTheTerminalTiebreak",
+        "TestSpellingCollision_IsInvisibleToTheStageSetGate",
+        "TestStageLabelSwap",
+        "TestStageLabelSwap_DoesNotDeleteLabelsFarmTableDoesNotOwn",
+        "TestStageLabelSwap_OwnershipMatchesTheAuthorizationReader",
+        "TestStageLabelSwap_UnderACustomPushPrefix",
+        "TestTerminalLabelStage_Cardinality",
+        "TestTerminalLabelStage_DisabledMapperDeclines",
+        "TestTerminalLabelStage_MaskedByEveryNonTerminalLabel"
+      ]
+    },
+    {
+      "name": "MS1",
+      "probe": "TestLifecycleStageSetStager_EmptySideIsDetectable",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/platform/github/",
+      "pkg_exit": 1,
+      "blast": 4,
+      "pkg_total": 150,
+      "failing": [
+        "TestLifecycleStageSetStager_EmptySideIsDetectable",
+        "TestLifecycleStageSetStager_NeverReturnsAnEmptySide",
+        "TestLifecycleStageSetStager_NilMapperStillAnswers",
+        "TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore"
+      ]
+    },
+    {
+      "name": "MA1",
+      "probe": "TestLifecycleStageSetStager_EmptySideIsDetectable",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/platform/github/",
+      "pkg_exit": 1,
+      "blast": 9,
+      "pkg_total": 150,
+      "failing": [
+        "TestAllTerminalLabelStages_ReportsEveryPresentStageDeterministically",
+        "TestComputeReadyAndBlocked_HonourTheConfiguredHoldPrefix",
+        "TestComputeReady_OpenNonTerminalLabelledIssueIsReady",
+        "TestComputeReady_StillOffersRealWork",
+        "TestComputeReady_TerminalWithholdIsPrefixGated",
+        "TestConfiguredStageAliases_DoNotBypassTheTerminalPredicate",
+        "TestConfiguredStageAliases_DoublePrefixIsNotAWayIn",
+        "TestLifecycleStageSetStager_EmptySideIsDetectable",
+        "TestNewPlatformResolver_ThreadsTheConfiguredPrefixIntoTheStore"
+      ]
+    },
+    {
+      "name": "MCA",
+      "probe": "TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/store/",
+      "pkg_exit": 1,
+      "blast": 1,
+      "pkg_total": 121,
+      "failing": [
+        "TestLifecycleStageHelpers_NonImplementerIsAnsweredNotRejected"
+      ]
+    },
+    {
+      "name": "MCB",
+      "probe": "TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer",
+      "probe_exit": 1,
+      "probe_state": "RED",
+      "expect": "RED",
+      "pkg": "./internal/store/",
+      "pkg_exit": 1,
+      "blast": 1,
+      "pkg_total": 121,
+      "failing": [
+        "TestMultiStore_UnroutedCollectionStillGetsTheOneElementAnswer"
+      ]
+    }
+  ]
+}

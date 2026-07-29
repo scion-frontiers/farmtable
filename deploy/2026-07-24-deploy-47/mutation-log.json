@@ -1,0 +1,30 @@
+{
+  "collection": {
+    "id": "466c2baa-334e-439c-b9f9-abbe89eb8aae",
+    "name": "github-mirror-scion-frontiers-farmtable-20260720",
+    "platform": 2,
+    "remoteId": "scion-frontiers/farmtable",
+    "source": null,
+    "external": true,
+    "linkedRepoUrl": null
+  },
+  "cycle1": {
+    "duration": 20012,
+    "total": 0,
+    "significant": 0,
+    "mutations": []
+  },
+  "cycle2": {
+    "duration": 20024,
+    "total": 0,
+    "significant": 0,
+    "mutations": []
+  },
+  "cycle3": {
+    "duration": 20080,
+    "total": 0,
+    "significant": 0,
+    "mutations": []
+  },
+  "totalSignificant": 0
+}

@@ -1,0 +1,14 @@
+docs: project log for the r8 XSS fix leg
+
+In-tree durable record for round 8. Names the five items, the two conditions
+left open because they are routed to other legs, and the fact that F1 is
+committed UNVERIFIED for want of a build token.
+
+Carries the correction the r7 log owes: its summary said "all non-blocking items
+done" when one was outstanding. That line is left standing in the r7 file --
+it is the durable record of a closed round -- and corrected here instead.
+
+Records the two findings from the open unscoped pass that outweigh the checklist:
+neither conjunct of the security argument is well pinned (the browser half has
+zero coverage; the Go half is pinned anonymously), and grep-as-oracle produced
+four separate errors in this round, three of them mine.

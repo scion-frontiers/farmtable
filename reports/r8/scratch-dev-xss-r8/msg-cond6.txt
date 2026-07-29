@@ -1,0 +1,47 @@
+docs(server,web): distinguish the planted key from writable (audit condition 6a)
+
+Condition 6 of the r7 audit has two halves and only one is mine.
+
+WHAT I DID NOT DO. The other half -- a note in graph_routing.go that its
+farmtable early return is load-bearing -- is audit Finding 9, which is ROUTED
+AWAY from this leg. graph_routing.go is untouched and absent from this diff.
+
+WHAT WAS WRONG. Both r7 conjunct comments generalised from `writable` to "the
+planted key": capabilities.ts said the FARMTABLE early return "means the
+FARMTABLE path never consults the planted key". That is a claim about EVERY key.
+The evidence supports one only about `writable`. The larger claim is false --
+collection remote_data does have a functional Go reader.
+
+THE CENSUS, which is the substance of the fix:
+
+  COLLECTION-SCOPE remote_data READERS IN GO
+  ENUMERATED 8 = FLAGGED 1 + EXCLUDED 7
+  instrument: grep -rn 'RemoteData\[' --include='*.go' internal/ | grep -v _test.go
+              then resolve each receiver's type, which grep cannot do
+
+  FLAGGED 1 -- reads a COLLECTION's map:
+    collectionSupportsGraph (internal/server/graph_support.go), key graph_queries.
+  EXCLUDED 7 -- read a TASK's map, or write a params struct and never read it:
+    taskToProto x3 (platform, remote_id, remote_url), BeadsAdapter and
+    GitHubAdapter buildRemoteIDIndex (remote_id each), UpdateTask x2 (writes).
+
+So `writable` has no functional Go reader, but a planted `graph_queries` IS
+consulted in Go, and is inert only because of a third farmtable early return the
+two-conjunct model does not contain. convert.go now records this under a SHA as
+an as-of-this-commit observation, in the same style as the producer census
+beside it; capabilities.ts now says "the planted WRITABLE key" and names the
+counterexample rather than implying none exists.
+
+VERIFICATION.
+  PRE-REGISTERED R8-08 AS RED BEFORE RUNNING IT, and it was red exactly as
+  predicted: the new capabilities.ts line contains the phrase "collection
+  remote_data", so the web census must flag it. One test, one line, other three
+  green. Closed with one allowlist entry carrying its reason -- the route the
+  guard's own failure message prescribes -- then GREEN 4/4.
+
+  This is the SECOND time this round that servicing this guard tripped it. Both
+  times the guard was right. Logged as such rather than smoothed over.
+
+  gofmt clean on both Go files. npm test NOT run: no build token. This commit is
+  comments only in the TypeScript, so the unverified surface is unchanged from
+  af9ea8c.

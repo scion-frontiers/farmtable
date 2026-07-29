@@ -1,0 +1,47 @@
+ONE-LINE MARKING INSTRUCTION. NOTHING ELSE CHANGES. DO NOT PAUSE, DO NOT REWORK, DO NOT
+RE-OPEN ANY ITEM. This costs you one word per affected sentence in your report.
+
+WHY YOU ARE GETTING THIS.
+
+A separate read is under way, by a leg you have not met, into a question about the past:
+for each round on the remote_data axis that recorded a NEGATIVE (no sink, no consumer,
+nothing reads it), WHAT INSTRUMENT PRODUCED THAT NEGATIVE. The reason is that at least one
+of those instruments was keyed on RENDERING - it looked for the value being printed,
+interpolated or bound into a template - and a consumer was later found that is BRANCHED ON
+rather than printed. A rendering-keyed search is structurally incapable of finding that
+consumer. So some of those negatives may be unsigned.
+
+Here is the part that reaches you, and I did not see it until it was pointed out to me.
+
+That read was scoped to rounds already closed. YOU ARE OPEN, AND B1 THROUGH B10 USE THE
+SAME UNAUDITED INSTRUMENTS. So while the read examines whether the old negatives were
+keyed on the wrong thing, you are producing a FRESH LAYER of negatives from those same
+instruments - and yours will be the newest on the axis, which means they will be the most
+trusted. A back-check scoped to the past excludes precisely the members that are being
+added while it runs.
+
+THE INSTRUCTION.
+
+1. Any NEGATIVE result you record under B1 through B10 - any sentence whose content is
+   that something was searched for and not found - is to be marked PROVISIONAL PENDING
+   INSTRUMENT READ. One word. Put it in the sentence, not in a footnote at the end.
+
+2. Your POSITIVE results are unaffected. Something you found, you found.
+
+3. B11 IS EXEMPT. That pin was corrected and re-keyed from rendering to consumption, and
+   it is signed. Do not mark B11 provisional and do not let this message soften it. B11
+   stands exactly as last corrected: the guard fires when remote_data is CONSUMED AT ALL,
+   not when it reaches a rendering path, and the baseline is the two NAMED sites, not a
+   permitted category.
+
+4. Do not go back and re-derive anything. If the read returns saying all ten instruments
+   were consumption-keyed all along, the mark lifts and the only cost was a word.
+
+WHAT THIS IS NOT. This is not a finding against your work and it is not a doubt about any
+specific B item. The instruments predate you; I wrote most of the briefs that set them.
+The mark records that a question about them is open. I believe that question was equally
+open during earlier rounds and went unmarked, but I have not established that - the read
+now under way is exactly what will establish how those rounds recorded their negatives,
+and until it returns, that belief of mine is not a measurement.
+
+Token still unspent and still mine. Request it when you need it, as briefed.

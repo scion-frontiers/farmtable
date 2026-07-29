@@ -1,0 +1,79 @@
+THE POPULATION MEASUREMENT YOU ORDERED CAME BACK, AND THE NARROWED CLAIM YOU AND I
+AGREED ON TWO HOURS AGO IS ALSO FALSE. Not narrower than the truth this time. False.
+My own record already contained the refutation when I wrote it, and when you ratified it.
+
+THE FALSIFIER DID NOT FIRE, AND I WANT THAT STATED BEFORE THE RESULT, because the
+result is the kind that makes people say it did. You pre-registered: IF THE CSP LEG
+FINDS A remote_data RENDER SINK WHILE WORKING THE MARKDOWN PATH, RULINGS 1 AND 2
+INVERT. Three conditions. Not the CSP leg - the review leg. Not the markdown path - a
+consumer enumeration. AND NOT A RENDER SINK. Zero of three. The falsifier is intact
+and unfired, and I am not going to cash it just because something arrived.
+
+WHAT ARRIVED. The Lit dashboard DOES read remote_data. Collection remote_data, in two
+places, as a WRITE-AUTHORIZATION GATE - a flag branched on to choose between the
+GitHub capability set and everything-disabled. Never printed, never interpolated,
+never bound into a template. A CAPABILITY SINK. A render-sink search is STRUCTURALLY
+INCAPABLE of finding one. Three legs hunted render sinks, found none, and were right.
+
+NOW THE PART THAT IS MINE. Two hours before I wrote "nothing in the Lit dashboard
+reads remote_data," I FILED A MEASUREMENT NAMING BOTH OF THOSE CALL SITES BY FILE AND
+LINE. My own ledger entry, my own words, withdrawing a HIGH: the field that can fail
+has no consumer, the field that HAS TWO CONSUMERS cannot fail - and it cites them.
+Then I wrote the opposite, in an escalation, and you ratified the narrowing, and
+neither of us re-read the entry that refutes it.
+
+SO THE MECHANISM IS WORSE THAN WE SCORED IT. You caught me restating a narrow result
+as a wide one. The remedy - narrow it back to what was measured - produced a sentence
+that was STILL FALSE, because the narrowing was derived from the overreach rather than
+from a measurement. We corrected the SCOPE of the claim and never re-checked its
+TRUTH. That is your own no-re-measurement-at-the-boundary, with the correction itself
+as the thing that crossed the boundary unmeasured. My ledger has a rule for this,
+filed by me, unapplied: A CORRECTION IS A CLAIM LIKE ANY OTHER.
+
+AND A NEW ONE, WHICH I THINK IS THE RESULT OF THE NIGHT ON METHOD:
+
+  A PRE-REGISTERED FALSIFIER INHERITS THE VOCABULARY OF WHOEVER REGISTERED IT.
+
+Yours said RENDER SINK. Render-sink was the frame whose narrowness was the defect. So
+the falsifier was written in the exact language it needed to escape, and the finding
+that bears on it walked straight past. Pre-registration protects against motivated
+reading of a result. It does NOT protect against the result arriving in a shape the
+registration cannot name. This does not weaken 10.24 - it bounds it, and I would
+rather have the bound than the receipt.
+
+WHAT I DID NOT CHARGE MYSELF WITH, having checked first. The withdrawal of that HIGH
+STANDS. Collection remote_data is JSON-decoded, so every value it can hold is
+representable by construction - the defect and the consumer really are on opposite
+fields. The review leg also partially closed the residual I declared at the time. I
+checked before writing this because after two corrections in one hour the reflex is
+to over-correct, and a false confession costs a true finding.
+
+MY READ, AND IT IS YOURS TO OVERRULE:
+
+  RULING 1 IS STRENGTHENED, NOT INVERTED. You ruled remote_data a security boundary
+  on the grounds that the sink set is OPEN AND UNOWNED, explicitly NOT on an empty
+  sink inventory. An authorization-relevant consumer has now been measured. The ruling
+  was right for a reason that has since acquired evidence, and that is the best
+  possible outcome for a ruling.
+
+  RULING 2 SURVIVES WITH ITS DELIVERABLE CORRECTED. You said AS PINNED, NOT AS DONE,
+  and the pin was the deliverable. The pin I specified was wrong - I told the leg to
+  fire on remote_data reaching a RENDERING path, and told it the web-tree count was
+  zero. Both false. Corrected and dispatched: the guard fires on remote_data being
+  CONSUMED AT ALL, with the two known capability sites as a named allowlist rather
+  than an absolute-zero pin. Not a permitted category - two named sites with reasons,
+  because a category grants the next one for free and that is how we got here.
+
+ALREADY MOVING, not asking: r6 leg corrected on both counts, including that the
+collection half is not inert and its shipped comment describes the wrong consequence -
+the real one is a silent capability downgrade in the UI. The import-and-writable
+question the review leg deliberately refused to open is routed to the audit leg with
+the obvious escalation story handed over explicitly SO IT CAN BE KILLED, and with
+three branches pre-registered before it looks.
+
+ONE THING I WANT YOUR CALL ON. The measured fact is that NOTHING IN THE TREE WRITES
+THAT FLAG - so the gate either is dead or is fed from outside. If the audit finds it
+dead, we have an authorization branch that has never once taken its allow path, which
+is the same shape as the 17 unexercised scope guards already open on another axis.
+That may be one finding wearing two hats rather than two findings, and if it is, I
+would rather merge them before either gets remediated separately.

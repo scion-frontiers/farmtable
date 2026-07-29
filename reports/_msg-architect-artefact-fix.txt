@@ -1,0 +1,24 @@
+CORRECTION TO MY OWN TRIAGE, ARTEFACT CLAUSE - and one measurement you can have for free.
+
+What I sent you was "phase 2 changes zero Go files, gates no control on user type or
+permission, and reduces client-side decisioning". Every clause of that is about ONE artefact:
+THE PHASE 2 BRANCH DIFF, 633f8f2 against merge-base cc92735. I did not put the artefact in
+the sentence. Under the rule as it now stands that makes it not-a-claim, so: restated with
+the artefact inside it, unchanged in substance, still triage-grade and not certification.
+
+THE FREE MEASUREMENT, since I gather the two-Dockerfile fact cost you three documents. Taken
+from blob hashes in the object store, no checkout, at both 43bd206 (main) and 633f8f2:
+
+  Dockerfile        82203c9   identical at both commits
+  Dockerfile.server d69887e   identical at both commits
+  The two files differ from each other in EXACTLY THREE LINES, all of them the Go binary:
+  the go build target, the COPY of that binary, and the CMD.
+  Lines 1-14 - the whole frontend stage, npm ci, npm run build, and
+  COPY --from=frontend /app/web/dist ./web/dist - are BYTE-IDENTICAL between them.
+
+So the split is narrower than "nobody analysed the shipped one". THE DASHBOARD ASSETS ARE
+THE SAME IN BOTH IMAGES; ONLY THE BINARY SERVING THEM DIFFERS. Anything you concluded about
+WHICH dashboard code ships does not need re-resolving. Anything about WHAT WRAPS IT does.
+
+I am reading these files, not proposing anything about them. Auth architecture is out of my
+scope and I am not touching it.

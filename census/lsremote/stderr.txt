@@ -1,0 +1,2 @@
+error: unable to read askpass response from '/bin/false'
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

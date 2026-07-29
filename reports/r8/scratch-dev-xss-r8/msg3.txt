@@ -1,0 +1,29 @@
+Item 3: drop the producer count from capabilities.ts
+
+The committing occurrence of "the two producers" is removed. The sentence now
+states the CONJUNCTION (platform GITHUB *and* remote_data writable=true in one
+object, which no producer yields) and points at the convert.go census by
+identifier, which is what convert.go's own rule asks for.
+
+"two" and "both" were false on the census's own terms: three producers named
+there can carry platform GITHUB -- the CreateCollection RPC and
+EntStore.ImportCollection, both caller-controlled, and syntheticCollection,
+always GITHUB.
+
+convert.go IS NOT CHANGED, and this is a deliberate departure from the brief,
+which asked for prose corrections in both files. Its occurrence is the
+PROHIBITION ("WHY THERE IS NO NUMBER IN THE PARAGRAPH ABOVE, AND PLEASE DO NOT
+ADD ONE / An earlier draft of this comment said 'the two producers'"). It is
+already correct; editing it would remove a rule, not a defect.
+
+MEASUREMENT NOTE, because the brief asks for the grep and the grep is
+misleading. `grep -rn 'two producers'` still returns 2. It returned 2 before.
+The count cannot fall, because a prohibition has to quote the phrase it
+forbids. What changed is the composition:
+
+  before: 2 = 1 prohibiting + 1 committing
+  after:  2 = 2 prohibiting + 0 committing
+
+The discriminating command is `grep -rn -B1 'two producers'`, which shows each
+occurrence sitting under a line that announces it as a prohibition. A bare
+count is not an oracle for this property.

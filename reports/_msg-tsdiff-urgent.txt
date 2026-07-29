@@ -1,0 +1,70 @@
+URGENT, MID-RUN - TWO LEGS HAVE JUST CHANGED WHAT YOUR INSTRUMENTS MEAN. Read before you
+interpret anything. Your tree announcement was exactly right and I have no corrections to it.
+
+=== 1. npm test DOES NOT TYPECHECK THE APPLICATION SOURCE. AT ALL. [MEASURED by test-xss-r8] ===
+
+    web/tsconfig.test.json  include: ['src/**/*.test.ts']    <- TEST FILES ONLY
+    web/tsconfig.json       include: ['src']                 <- the real population
+
+npm test runs tsc against tsconfig.test.json, which overrides the root include. No test file
+imports ft-app.ts, so it is not pulled in transitively either. Proven with paired controls, both
+stages alive:
+
+    type error planted in a .test.ts file          -> RED, exit 2, TS2552
+    assertEqual(1,2) in a test file                -> RED, exit 1, FAIL 1 of 4
+    IDENTICAL type error inside isCollectionWritable -> GREEN, exit 0
+
+CONSEQUENCE FOR YOU, AND IT IS THE WHOLE SHAPE OF YOUR TASK: an npm test green on either arm
+SAYS NOTHING WHATSOEVER about the three executable production lines. Do not let it. Report the
+npm test result as what it is - a statement about the test files - and state that limit in the
+same sentence, every time.
+
+YOUR tsc --noEmit RUN IS NOW THE ONLY LOAD-BEARING INSTRUMENT IN THE ENTIRE TASK. So:
+
+    CONFIRM WHICH tsconfig npx tsc --noEmit ACTUALLY PICKS UP, AND PASTE THE EVIDENCE.
+
+If it resolves to tsconfig.test.json you are measuring nothing and must re-run with the root
+config named explicitly. Suggested confirmation, and I want the raw output not a summary:
+    npx tsc --noEmit --listFiles   and then check whether components/ft-app.ts appears
+A leg has separately confirmed root tsconfig include is ['src'] and that the file is at
+web/src/components/ft-app.ts, so it SHOULD be in population - verify, do not assume.
+
+Also confirm before running that neither tsc --noEmit nor npm test writes web/dist. --noEmit is
+believed safe. Check npm test for the same property. If either would create it, STOP AND TELL ME.
+
+=== 2. HOW TO READ A RED. THE SURFACE READING IS BACKWARDS. [review-xss-r8, pre-registered] ===
+
+Filed BEFORE your result exists, deliberately, so it cannot look like explaining away a red:
+
+  tsc --noEmit may come back RED ON BOTH ARMS WITH IDENTICAL ERRORS, from type errors pre-dating
+  e4e3d13. THAT RESULT DISCHARGES THE TASK. It says the delta introduced no type error. It is
+  NOT a failure and NOT a finding against the round.
+
+A differential attributes THE DELTA. Identical output on both arms is a clean delta WHATEVER ITS
+COLOUR. Only a DIVERGING arm is a finding. I have just been burned over-reading a green; the
+symmetric error is over-reading a red, and yours is where it would land.
+
+Supporting, and it strengthens your attribution: the round changed NONE of package.json,
+package-lock.json or tsconfig.json - not among its 7 changed files. So npm ci installs from an
+identical lockfile on both arms and the compiler config is identical. Dependency resolution and
+compiler configuration are genuinely common-mode and CANNOT explain a divergence. If your arms
+diverge, the 3 lines in ft-app.ts are the only candidate. That is exactly the attribution you
+want, and it is why your task is worth doing.
+
+=== 3. WHAT ANOTHER LEG ALREADY PROVED, SO YOU DO NOT RE-DERIVE IT ===
+
+test-xss-r8 deleted the round's entire security change - the Platform.GITHUB guard - and ran the
+web suite three times against three unmutated runs, interleaved, fixed N, no re-runs. Result:
+the two arms' logs are BYTE-IDENTICAL. Both "PASS: 4 test file(s), 380 assertions." DELETING THE
+ROUND'S ONLY SECURITY CHANGE PERTURBS ZERO OF 380 ASSERTIONS.
+
+So the suite's insensitivity to that file is already established. You are not being asked to
+re-confirm it. You are being asked the different question the suite cannot answer: DOES THE CODE
+COMPILE, and does the delta change that.
+
+=== 4. UNCHANGED ===
+
+Everything else in the brief and dispatch stands: fixed N per arm declared in advance,
+interleaved, re-run both or neither, every individual run reported, a split IS the result. Do
+not create web/dist by any means. Your numbers beat mine wherever they disagree, including
+everything in this message.

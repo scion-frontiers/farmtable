@@ -1,0 +1,22 @@
+
+> farmtable-web@0.0.1 test
+> rm -rf .tmp-test && tsc -p tsconfig.test.json && node scripts/run-tests.mjs
+
+Discovered 4 test file(s).
+
+--- src/util/assertions.test.ts
+assertions: ok
+#assertions 9
+
+--- src/util/safe-url.test.ts
+safe-url: ok
+#assertions 204
+
+--- src/util/url-binding-scan.test.ts
+url-binding-scan: ok
+#assertions 157
+
+--- src/utils/task-ready.test.ts
+#assertions 10
+
+PASS: 4 test file(s), 380 assertions.

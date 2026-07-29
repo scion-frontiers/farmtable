@@ -1,0 +1,7 @@
+089fac7 Log the #194 round-6 leg B server and store work
+b523e6b Salvage four of eleven round-5 audit probes (#194 B7)
+b2d4e75 Characterize the two-labels-one-stage collapse the gate cannot see (#194 r6)
+644eed9 Make the terminal-label swap expressible, and measure it (#194 B6)
+1a73f3b Gate creation-time labels that reach a terminal stage (#194 round 6 B1, audit A-1)
+a2cced0 Make the lifecycle stage-set seam fail closed, and keep one copy of the rule (#194 round 6, B2 + B4 + B5; review F6, F7; audit A-3)
+ca39dff Stop identity_test.go silently truncating the package run (#194 B3, test T-4)

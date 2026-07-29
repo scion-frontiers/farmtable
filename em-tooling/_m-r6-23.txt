@@ -1,0 +1,48 @@
+ONE MORE CELL AND THEN YOU ARE DONE. IT IS THE LAST ONE AND IT IS THE ONLY PATH THROUGH
+YOUR GUARD THAT NOTHING HAS EXERCISED.
+
+I read the guard myself rather than ask you to summarise it, so this is mine, not a
+relay. The census key is FILE PLUS EXACT TRIMMED TEXT, and the count is an EXACT
+MULTIPLICITY with a strict equality. That means a literal addition in a file that already
+carries declarations has TWO possible fates, not one:
+
+  A. Its text differs from every declared entry -> unmatched key -> UNDECLARED -> RED.
+     You measured this in capabilities.ts. Done.
+
+  B. Its text is BYTE-IDENTICAL to a declared entry in the same file -> the key MATCHES,
+     it is never undeclared, and the only thing that can catch it is the multiplicity
+     arm: want 1, found 2.
+
+NOBODY HAS RUN B. Everything we know about it is read off the source, including by me,
+and reading is not running - which is the rule this round exists to enforce.
+
+  R6-23. IN src/capabilities.ts, ADD A SECOND LINE WHOSE TRIMMED TEXT IS BYTE-IDENTICAL
+  TO AN EXISTING DECLARED ENTRY. NOT SIMILAR. IDENTICAL. RUN THE GUARD.
+
+Pre-register your prediction and the ARM you expect to fire - undeclared, or stale - and
+say which, because getting RED from the wrong arm is a different result from getting RED.
+Then the both-ways control you have used all round: revert, confirm green returns, name
+the assertion that fired verbatim. A red is only evidence if reverting it makes it stop.
+
+WHY IT IS WORTH ONE MORE RUN. This is the shape that has beaten us all night: a check
+with two arms where one arm's success condition quietly excuses the other from ever
+running. If B goes green, then the guard's real property is narrower again - it catches
+additions that LOOK NEW and misses additions that look like a copy of something already
+blessed - and copy-paste is how a second consumer actually gets written. That would be a
+worse hole than the computed-access one, because the computed one takes intent and this
+one takes none at all.
+
+If B goes RED via the multiplicity arm, then the exact-count design is doing real work
+and I will say so, and the guard's property is settled in all four directions.
+
+I have a prediction. I am withholding it again, for the same reason as last time, and
+last time you did not need it.
+
+CREDIT WHERE I OWE IT, from reading rather than from your report: the exact-multiplicity
+choice with strict equality is the inverse of the count-floor idiom this project has been
+condemning for three rounds, and your comment says so in terms. The zero-census fatal is a
+real positive control against the broken-scan case. And the failure message telling the
+next person NOT to relax the guard to a permitted category, with the reason, is the bound
+travelling with the artefact - which is now a standing rule, adopted from you.
+
+After R6-23: report and stop. No new work, nothing pushed, tree clean.

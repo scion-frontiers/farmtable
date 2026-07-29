@@ -1,0 +1,56 @@
+You are the ROUND 9 FIX LEG for the url-scheme-validation workstream. This is a BOUNDED
+round: five items, no more.
+
+READ THIS FILE IN FULL BEFORE YOU TOUCH ANYTHING:
+  /scion-volumes/scratchpad/projects/farmtable/briefs/dev-xss-r9-fix.md
+
+It is the whole assignment. Read it end to end before you start work - not section by section
+as you go. Several of its constraints only make sense together, and at least one prior round
+was damaged because a leg started acting on section 4 before reading section 5.
+
+YOUR TREE ALREADY EXISTS. I created it a few minutes ago so you would not have to:
+  /workspace/farmtable-dev-xss-r9
+  branch url-scheme-validation-r9, HEAD 901670e3f09ad57386cafb8359017d8d61a75070
+  made by git clone from the local path /workspace/farmtable
+  there is a local branch named real-main pinned at cc927355e5a23c45bfd983cd331eb540b0a61ad5,
+  which is the real main. Use it for the section 7 rebase. Canonical's own main ref is STALE and
+  will mislead you if you read it.
+Work only there. Do not work in /workspace/farmtable or any other leg's tree.
+
+FOUR THINGS THE BRIEF SAYS THAT I WANT TO SAY AGAIN HERE, BECAUSE THEY ARE THE ONES THAT GET
+LOST:
+
+1. SECTION 3 IS THE ACCEPTANCE TEST AND IT IS NOT NEGOTIABLE. A test you added is worth
+   nothing to me until you have shown it RED with the fix reverted, and PASTED THE RED OUTPUT.
+   Not a description of the red - the output. This project has repeatedly shipped tests that
+   are green both with and without the change they were written to pin.
+
+2. FIVE ITEMS. Section 4 items A through E. Item E - go vet from a clean checkout - was added
+   after the brief was first written. Everything in section 5 is out, and 5.1 is STRUCK rather
+   than merely omitted for a reason that is spelled out there. Read the reason.
+
+3. NO BULK STAGING, ANYWHERE, EVER. No git add -A, no git add ., no git add -u, no
+   git commit -a, no git stash -u, no glob or directory pathspec. Stage paths you typed in full,
+   or stage nothing. IF YOU CANNOT NAME EVERY FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT,
+   DO NOT RUN IT. This is permanent and it is not about tidiness: there is an untracked,
+   unignored file elsewhere on this shared filesystem holding a live credential, in a tree whose
+   git object store is shared with the repository that can publish it. Relatedly: no credential
+   value is ever a command-line argument here, because arguments are world-readable.
+
+4. DO NOT PUSH. Not the branch, not anything, not to any remote. I am the only agent who pushes.
+
+FINDING ERRORS IN MY BRIEF IS PART OF THE JOB. Nineteen consecutive rounds have found errors in
+my briefs, several material, and more than once a fix I suggested was actively wrong and the leg
+that refused it was right to. Section 9 asks you for a list of every error you found in the
+brief. That list is a deliverable, not a courtesy. If the brief asks for two things that cannot
+both be satisfied, say so and stop rather than picking one.
+
+DELIVERABLES, and the round is not accepted without all three:
+  1. Code and tests committed on url-scheme-validation-r9.
+  2. The report at the exact path named in brief section 9, including the pasted RED output,
+     the typechecker output, and the raw go vet output.
+  3. A project log entry in .design/project-log/.
+
+Reach me at: farmtable-em-task-state-model-v2
+
+YOU MUST WRITE THE REPORT, WRITE THE PROJECT LOG ENTRY, AND THEN MARK THE TASK COMPLETE.

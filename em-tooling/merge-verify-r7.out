@@ -1,0 +1,73 @@
+
+===== IDENTITY =====
+HEAD(merged)=15b7247c7745c661cbd45a0a35024bb36eff5c05
+branch=label-write-scope-r7
+
+===== P0 -- BASE is a genuine ancestor of BOTH legs (never diff two tips blind) =====
+ancestor OK: BASE -> legA
+ancestor OK: BASE -> legB
+merge-base(legA,legB)=6ced24e53234da12def832c46df1c2be906fc038
+
+===== P5 -- every leg commit is an ancestor of the merge =====
+ancestor OK: cc953e467baa90c953e6345dd412a1c8920ff3e2
+ancestor OK: 4df2d1e10690ffcd7899c7a1dda7521c96aa472d
+commits: legA=5 legB=2 merged(incl 2 merge commits)=9
+commit arithmetic OK: 5 + 2 + 2 merge commits = 9
+
+===== SHA-level commit preservation (compare SHAs, never counts) =====
+--- leg commits NOT present in merged history (must be empty):
+--- non-merge commits in merged history from NEITHER leg (must be empty):
+commit SHA sets match exactly
+
+===== FILE SETS =====
+legA files=12  legB files=6  merged files=18
+
+===== P1 -- overlap A n B =====
+overlap_count=0
+
+===== P4 -- merged set == A u B =====
+union_count=18 merged_count=18
+--- in merge but in NEITHER leg:
+--- in a leg but NOT in merge (dropped content):
+merged changed-file set is exactly the union, both directions
+
+===== POSITIVE CONTROL -- the comparator must be able to say NO =====
+control file (modified by leg A): cmd/farmtable-server/main.go
+  merged blob 457cd7d7cea1bf389a2e800cefcb0b15e571f593
+  base   blob 304d754f0c304b46aad8b9438dc984535208ef04
+POSITIVE CONTROL PASSED: comparator reported MISMATCH on merged-vs-base
+
+===== POSITIVE CONTROL 2 -- same, on the leg B side =====
+control file (modified by leg B): internal/platform/github/empty_stage_set_contract_test.go
+  merged blob d5e0b6c40c065be1dce457a7554095db62fe182d
+  base   blob 33cdc735e94f2f878d08e03656711a1d579a6a0b
+POSITIVE CONTROL 2 PASSED: comparator reported MISMATCH on merged-vs-base
+
+===== P2/P3 -- blob-identity of every changed file against its owning leg =====
+ok(A)   .design/project-log/label-write-scope-r7a-authz.md         11244b97
+ok(B)   .design/project-log/label-write-scope-r7b-tests.md         182df5de
+ok(A)   cmd/farmtable-server/main.go                               457cd7d7
+ok(A)   internal/cli/connect.go                                    1b2447b1
+ok(A)   internal/platform/github/config.go                         3a6fba95
+ok(B)   internal/platform/github/empty_stage_set_contract_test.go  d5e0b6c4
+ok(B)   internal/platform/github/labels.go                         2afaa226
+ok(B)   internal/platform/github/lifecycle_stage_consumers_test.go cb7a55f4
+ok(A)   internal/platform/github/passthrough.go                    db99329b
+ok(A)   internal/platform/github/resolver.go                       19ed7f85
+ok(A)   internal/platform/github/resolver_test.go                  144b1b14
+ok(B)   internal/platform/github/stage_label_swap_scope_test.go    7222e398
+ok(A)   internal/server/authz_label_write_scope_test.go            9762572b
+ok(A)   internal/server/authz_terminal_reopen_test.go              e47f5903
+ok(A)   internal/server/server.go                                  e1c239c3
+ok(B)   internal/store/lifecycle_stage_set_test.go                 4ee3b0f2
+ok(A)   internal/store/multistore.go                               d3a26164
+ok(A)   internal/store/store.go                                    468a853d
+files_checked=18  mismatches=0
+
+===== CROSS-CHECK -- unchanged files really are unchanged =====
+untouched_checked=451  drifted=0
+
+===== VERDICT =====
+MERGE VERIFIED: disjoint legs; all 18 changed blobs byte-identical to owning leg;
+                all 451 untouched blobs byte-identical to base;
+                both positive controls reported MISMATCH as required.

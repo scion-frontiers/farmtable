@@ -1,0 +1,12 @@
+{
+  "check": "d5",
+  "action": "Web dashboard loads data with session cookie (session-to-bearer middleware)",
+  "pass": true,
+  "detail": "gRPC-web requests: 1 (all succeeded). Shadow DOM content: found (text length=85).",
+  "grpcRequests": [
+    {
+      "url": "https://farmtable-486315127503.us-central1.run.app/farmtable.v1.FarmTableService/ListCollections",
+      "status": 200
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+=== DISPATCH: test-xss-r8 — THREE-WAY INDEPENDENT REVIEW OF url-scheme-validation-r8 ===
+
+You are one of three legs reviewing the same commit independently. You do not know who the other two
+are, you must not contact them, and I read all three reports before I decide anything.
+
+COMMIT UNDER REVIEW: 901670e3f09ad57386cafb8359017d8d61a75070
+BRANCH:              url-scheme-validation-r8
+RANGE:               e4e3d13..901670e, ten commits, 7 files, 476 insertions / 40 deletions
+YOUR TREE:           /workspace/farmtable-test-r8
+                     Already cloned and checked out at 901670e. It is yours alone. Do not leave it.
+
+READ IN THIS ORDER, AND THE ORDER IS LOAD-BEARING:
+
+  1. /scion-volumes/scratchpad/projects/farmtable/briefs/_r8-COMMON.md
+     Apparatus, prohibitions, the build-token protocol, and the ways this host's shell will lie to
+     you. It contains NO findings and NO targeting. Read all of it before you run anything.
+
+  2. /scion-volumes/scratchpad/projects/farmtable/briefs/test-xss-r8.md
+     Your role brief. What I want from your axis specifically.
+
+  3. DO YOUR COLD PASS. WRITE IT TO DISK.
+
+  4. ONLY THEN: /scion-volumes/scratchpad/projects/farmtable/briefs/_r8-PHASE-TWO.md
+     Prior findings, the fix leg's self-reports, and what is already known. Opening this before your
+     cold pass is on disk destroys the cold pass, and the cold pass is the most valuable thing you
+     produce. I split these two files deliberately: in an earlier round I buried targeting inside the
+     file the dispatch ordered read first, and it cost us the independent pass.
+
+FOUR THINGS THAT WILL GET YOUR WORK REJECTED IF YOU MISS THEM:
+
+  * DO NOT PUSH. DO NOT MODIFY PRODUCTION CODE. Your independence depends on the second one.
+  * NO BULK CAPTURE INTO GIT. No add -A, no add ., no add -u, no commit -a, no stash -u, no glob or
+    directory pathspec. IF YOU CANNOT NAME EVERY FILE THE COMMAND WILL TOUCH BEFORE YOU RUN IT, DO
+    NOT RUN IT.
+  * EXACTLY ONE BUILD TOKEN EXISTS PROJECT-WIDE AND I HOLD IT. Do not run go build, go test, go vet,
+    make, npm, tsc or vite without asking me first. Reading, grepping and git inspection are free.
+  * DO NOT CREATE ANY NEW CLONE, WORKTREE OR OBJECT STORE, and DO NOT DELETE OR TIDY ANYTHING
+    ANYWHERE. Four instruments are taking a census of every git object on this host tonight and a
+    durability freeze is in force. If you need another tree, ask me and I will create and announce it.
+
+DELIVERABLES. YOU ARE NOT DONE UNTIL ALL THREE EXIST ON DISK:
+
+  1. /scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r8.md
+     Opening with an explicit VERDICT: APPROVE / APPROVE WITH CONDITIONS / REQUEST CHANGES.
+  2. /scion-volumes/scratchpad/projects/farmtable/reports/test-xss-r8-project-log.md
+  3. An INSTRUMENT section inside your report: for every sweep or count, the exact command, the
+     flags, and what its controls were. If a control was absent, say so.
+
+Tag every figure MEASURED, DERIVED or UNCHECKED. Paste measured fields from command output with the
+command shown. Cite code by identifier, never by line number. UNCHECKED is a respectable answer and I
+would rather have it than a clean claim.
+
+A DISAGREEMENT IS A RESULT AND I WANT IT, NOT A CONSENSUS. Two legs disagreeing on a wire fact has
+been more useful on this project than three legs agreeing. That includes disagreeing with me: my
+briefs have contained measurable errors in every round so far, one of them last round on a premise I
+had never checked, and the leg that caught it did better work than the leg that would have complied.
+
+IF A RULE IN MY BRIEF CANNOT BE SATISFIED, SAY SO AND STOP. Do not implement it and declare yourself
+blind.
+
+Round 6 and round 7 REMAIN DO NOT MERGE, and round 8 does not change that. You are not deciding
+whether this ships. You are deciding what is true about it.
+
+YOU MUST WRITE ALL THREE DELIVERABLES TO DISK, MESSAGE ME A SHORT SUMMARY WITH YOUR VERDICT AND YOUR
+FINDING COUNT BY SEVERITY, AND THEN MARK YOUR TASK COMPLETE.
+
+Reach me at: farmtable-em-task-state-model-v2

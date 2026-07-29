@@ -1,0 +1,1784 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/steveyegge/beads/internal/config"
+	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/steveyegge/beads/internal/storage"
+)
+
+func TestDoltShowConfigNotInRepo(t *testing.T) {
+	// Change to a temp dir without .beads
+	tmpDir := t.TempDir()
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	// showDoltConfig should exit with error - test by checking it doesn't panic
+	// In real use, it calls os.Exit(1). We can't test that directly,
+	// so we verify the function doesn't panic when .beads is missing.
+	defer func() {
+		if r := recover(); r != nil {
+			// Expected - os.Exit may cause issues in test
+		}
+	}()
+
+	// This will call os.Exit(1), which we can't easily intercept in Go tests
+	// Just verify the setup is correct
+	if _, err := os.Stat(filepath.Join(tmpDir, ".beads")); !os.IsNotExist(err) {
+		t.Error("expected .beads to not exist")
+	}
+}
+
+func TestDoltShowConfigDefaultMode(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with Dolt backend
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	cfg.DoltDatabase = "testdb"
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the rig's .beads (which happens in worktree environments).
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	t.Run("text output", func(t *testing.T) {
+		origJsonOutput := jsonOutput
+		defer func() { jsonOutput = origJsonOutput }()
+		jsonOutput = false
+
+		output := captureDoltShowOutput(t)
+
+		if output == "" {
+			t.Skip("output capture failed")
+		}
+
+		if !containsAny(output, "testdb", "Database") {
+			t.Errorf("output should show database name: %s", output)
+		}
+		// Default mode is embedded; show embedded engine info instead of
+		// server connection details.
+		if !containsAny(output, "embedded", "Data") {
+			t.Errorf("output should show embedded mode info: %s", output)
+		}
+	})
+
+	t.Run("json output", func(t *testing.T) {
+		origJsonOutput := jsonOutput
+		defer func() { jsonOutput = origJsonOutput }()
+		jsonOutput = true
+
+		output := captureDoltShowOutput(t)
+
+		if output == "" {
+			t.Skip("output capture failed")
+		}
+
+		var result map[string]any
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			t.Skipf("output not pure JSON: %s", output)
+		}
+
+		if result["backend"] != "dolt" {
+			t.Errorf("expected backend 'dolt', got %v", result["backend"])
+		}
+		if result["database"] != "testdb" {
+			t.Errorf("expected database 'testdb', got %v", result["database"])
+		}
+		if embedded, ok := result["embedded"].(bool); !ok || !embedded {
+			t.Errorf("expected embedded=true in JSON output, got %v", result["embedded"])
+		}
+		// mode field should no longer be present
+		if _, ok := result["mode"]; ok {
+			t.Error("mode field should no longer be in JSON output")
+		}
+	})
+}
+
+func TestDoltShowConfigServerMode(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with Dolt backend in server mode
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	cfg.DoltMode = configfile.DoltModeServer
+	cfg.DoltDatabase = "myproject"
+	cfg.DoltServerHost = "192.168.1.100"
+	cfg.DoltServerPort = 3308
+	cfg.DoltServerUser = "testuser"
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the rig's .beads (which happens in worktree environments).
+	t.Setenv("BEADS_DIR", beadsDir)
+	// Clear test server port override so GetDoltServerPort() returns metadata.json value
+	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	t.Run("text output", func(t *testing.T) {
+		origJsonOutput := jsonOutput
+		defer func() { jsonOutput = origJsonOutput }()
+		jsonOutput = false
+
+		output := captureDoltShowOutput(t)
+
+		if output == "" {
+			t.Skip("output capture failed")
+		}
+
+		if !containsAny(output, "192.168.1.100", "Host") {
+			t.Errorf("output should show host: %s", output)
+		}
+		if !containsAny(output, "3308", "Port") {
+			t.Errorf("output should show port: %s", output)
+		}
+		if !containsAny(output, "testuser", "User") {
+			t.Errorf("output should show user: %s", output)
+		}
+	})
+
+	t.Run("json output", func(t *testing.T) {
+		origJsonOutput := jsonOutput
+		defer func() { jsonOutput = origJsonOutput }()
+		jsonOutput = true
+
+		output := captureDoltShowOutput(t)
+
+		if output == "" {
+			t.Skip("output capture failed")
+		}
+
+		var result map[string]any
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			t.Skipf("output not pure JSON: %s", output)
+		}
+
+		if result["host"] != "192.168.1.100" {
+			t.Errorf("expected host '192.168.1.100', got %v", result["host"])
+		}
+		// Port comes back as float64 from JSON
+		if port, ok := result["port"].(float64); !ok || int(port) != 3308 {
+			t.Errorf("expected port 3308, got %v", result["port"])
+		}
+		if result["user"] != "testuser" {
+			t.Errorf("expected user 'testuser', got %v", result["user"])
+		}
+	})
+}
+
+func TestDoltSetConfigValidation(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with Dolt backend
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the rig's .beads (which happens in worktree environments).
+	// Without this, setDoltConfig writes test values to the production
+	// metadata.json, corrupting the Dolt server connection config.
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	t.Run("set database", func(t *testing.T) {
+		setDoltConfig("database", "mydb", false)
+
+		loadedCfg, err := configfile.Load(beadsDir)
+		if err != nil {
+			t.Fatalf("failed to load config: %v", err)
+		}
+		if loadedCfg.DoltDatabase != "mydb" {
+			t.Errorf("expected database 'mydb', got %s", loadedCfg.DoltDatabase)
+		}
+	})
+
+	t.Run("set host", func(t *testing.T) {
+		setDoltConfig("host", "10.0.0.1", false)
+
+		loadedCfg, err := configfile.Load(beadsDir)
+		if err != nil {
+			t.Fatalf("failed to load config: %v", err)
+		}
+		if loadedCfg.DoltServerHost != "10.0.0.1" {
+			t.Errorf("expected host '10.0.0.1', got %s", loadedCfg.DoltServerHost)
+		}
+	})
+
+	t.Run("set port", func(t *testing.T) {
+		setDoltConfig("port", "3309", false)
+
+		loadedCfg, err := configfile.Load(beadsDir)
+		if err != nil {
+			t.Fatalf("failed to load config: %v", err)
+		}
+		if loadedCfg.DoltServerPort != 3309 {
+			t.Errorf("expected port 3309, got %d", loadedCfg.DoltServerPort)
+		}
+	})
+
+	t.Run("set user", func(t *testing.T) {
+		setDoltConfig("user", "admin", false)
+
+		loadedCfg, err := configfile.Load(beadsDir)
+		if err != nil {
+			t.Fatalf("failed to load config: %v", err)
+		}
+		if loadedCfg.DoltServerUser != "admin" {
+			t.Errorf("expected user 'admin', got %s", loadedCfg.DoltServerUser)
+		}
+	})
+}
+
+func TestDoltSetConfigJSONOutput(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the rig's .beads (which happens in worktree environments).
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	origJsonOutput := jsonOutput
+	defer func() { jsonOutput = origJsonOutput }()
+	jsonOutput = true
+
+	output := captureDoltSetOutput(t, "database", "myproject", false)
+
+	if output == "" {
+		t.Skip("output capture failed")
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		t.Skipf("output not pure JSON: %s", output)
+	}
+
+	if result["key"] != "database" {
+		t.Errorf("expected key 'database', got %v", result["key"])
+	}
+	if result["value"] != "myproject" {
+		t.Errorf("expected value 'myproject', got %v", result["value"])
+	}
+	if result["location"] != "metadata.json" {
+		t.Errorf("expected location 'metadata.json', got %v", result["location"])
+	}
+}
+
+func TestDoltSetConfigWithUpdateConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Create config.yaml
+	configYamlPath := filepath.Join(beadsDir, "config.yaml")
+	if err := os.WriteFile(configYamlPath, []byte("prefix: test\n"), 0644); err != nil {
+		t.Fatalf("failed to create config.yaml: %v", err)
+	}
+
+	// Override BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the rig's .beads (which happens in worktree environments).
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	origJsonOutput := jsonOutput
+	defer func() { jsonOutput = origJsonOutput }()
+	jsonOutput = true
+
+	// Set with --update-config
+	output := captureDoltSetOutput(t, "database", "myproject", true)
+
+	if output == "" {
+		t.Skip("output capture failed")
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		t.Skipf("output not pure JSON: %s", output)
+	}
+
+	if result["config_yaml_updated"] != true {
+		t.Errorf("expected config_yaml_updated true, got %v", result["config_yaml_updated"])
+	}
+}
+
+func TestTestServerConnection(t *testing.T) {
+	// Test the testServerConnection function with various configs
+	t.Run("unreachable host", func(t *testing.T) {
+		// Use a short dial timeout to avoid slow hangs in CI where
+		// 192.0.2.1 (RFC 5737 TEST-NET) may not get a fast rejection.
+		old := serverDialTimeout
+		serverDialTimeout = 500 * time.Millisecond
+		t.Cleanup(func() { serverDialTimeout = old })
+
+		cfg := configfile.DefaultConfig()
+		cfg.DoltServerHost = "192.0.2.1" // RFC 5737 TEST-NET, guaranteed unreachable
+		cfg.DoltServerPort = 3307
+
+		result := testServerConnection(cfg.DoltServerHost, cfg.DoltServerPort)
+		if result {
+			t.Error("expected connection to fail for unreachable host")
+		}
+	})
+
+	t.Run("localhost with unlikely port", func(t *testing.T) {
+		// Clear test server port override so GetDoltServerPort() returns 59999
+		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		cfg := configfile.DefaultConfig()
+		cfg.DoltServerHost = "127.0.0.1"
+		cfg.DoltServerPort = 59999 // Unlikely to be in use
+
+		result := testServerConnection(cfg.DoltServerHost, cfg.DoltServerPort)
+		if result {
+			t.Error("expected connection to fail for unused port")
+		}
+	})
+
+	t.Run("IPv6 localhost with unlikely port", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		cfg.DoltServerHost = "::1"
+		cfg.DoltServerPort = 59998 // Unlikely to be in use
+
+		result := testServerConnection(cfg.DoltServerHost, cfg.DoltServerPort)
+		if result {
+			t.Error("expected connection to fail for unused port on IPv6")
+		}
+	})
+}
+
+func TestDoltConfigGetters(t *testing.T) {
+	t.Run("GetDoltMode defaults", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		if cfg.GetDoltMode() != configfile.DoltModeEmbedded {
+			t.Errorf("expected default mode 'embedded', got %s", cfg.GetDoltMode())
+		}
+	})
+
+	t.Run("GetDoltDatabase defaults", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		if cfg.GetDoltDatabase() != configfile.DefaultDoltDatabase {
+			t.Errorf("expected default database '%s', got %s",
+				configfile.DefaultDoltDatabase, cfg.GetDoltDatabase())
+		}
+	})
+
+	t.Run("GetDoltServerHost defaults", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		if cfg.GetDoltServerHost() != configfile.DefaultDoltServerHost {
+			t.Errorf("expected default host '%s', got %s",
+				configfile.DefaultDoltServerHost, cfg.GetDoltServerHost())
+		}
+	})
+
+	t.Run("GetDoltServerPort defaults", func(t *testing.T) {
+		// Clear test server port overrides so GetDoltServerPort() returns the struct default
+		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		t.Setenv("BEADS_DOLT_PORT", "")
+		cfg := configfile.DefaultConfig()
+		if cfg.GetDoltServerPort() != configfile.DefaultDoltServerPort {
+			t.Errorf("expected default port %d, got %d",
+				configfile.DefaultDoltServerPort, cfg.GetDoltServerPort())
+		}
+	})
+
+	t.Run("GetDoltServerUser defaults", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		if cfg.GetDoltServerUser() != configfile.DefaultDoltServerUser {
+			t.Errorf("expected default user '%s', got %s",
+				configfile.DefaultDoltServerUser, cfg.GetDoltServerUser())
+		}
+	})
+
+	t.Run("IsDoltServerMode", func(t *testing.T) {
+		cfg := configfile.DefaultConfig()
+		if cfg.IsDoltServerMode() {
+			t.Error("expected IsDoltServerMode to be false for default config")
+		}
+
+		// IsDoltServerMode requires BOTH backend=dolt AND mode=server
+		cfg.Backend = configfile.BackendDolt
+		cfg.DoltMode = configfile.DoltModeServer
+		if !cfg.IsDoltServerMode() {
+			t.Error("expected IsDoltServerMode to be true when backend is dolt and mode is server")
+		}
+	})
+}
+
+func TestDoltConfigEnvironmentOverrides(t *testing.T) {
+	// Test that environment variables override config values
+	cfg := configfile.DefaultConfig()
+	cfg.DoltDatabase = "configdb"
+	cfg.DoltServerHost = "confighost"
+	cfg.DoltServerPort = 1234
+	cfg.DoltServerUser = "configuser"
+
+	// Note: GetDoltMode() does NOT support env var override
+	// Only database, host, port, user support env overrides
+
+	t.Run("BEADS_DOLT_SERVER_DATABASE overrides", func(t *testing.T) {
+		os.Setenv("BEADS_DOLT_SERVER_DATABASE", "envdb")
+		defer os.Unsetenv("BEADS_DOLT_SERVER_DATABASE")
+
+		if cfg.GetDoltDatabase() != "envdb" {
+			t.Errorf("expected env override to 'envdb', got %s", cfg.GetDoltDatabase())
+		}
+	})
+
+	t.Run("BEADS_DOLT_SERVER_HOST overrides", func(t *testing.T) {
+		os.Setenv("BEADS_DOLT_SERVER_HOST", "envhost")
+		defer os.Unsetenv("BEADS_DOLT_SERVER_HOST")
+
+		if cfg.GetDoltServerHost() != "envhost" {
+			t.Errorf("expected env override to 'envhost', got %s", cfg.GetDoltServerHost())
+		}
+	})
+
+	t.Run("BEADS_DOLT_SERVER_PORT overrides", func(t *testing.T) {
+		os.Setenv("BEADS_DOLT_SERVER_PORT", "9999")
+		defer os.Unsetenv("BEADS_DOLT_SERVER_PORT")
+
+		if cfg.GetDoltServerPort() != 9999 {
+			t.Errorf("expected env override to 9999, got %d", cfg.GetDoltServerPort())
+		}
+	})
+
+	t.Run("BEADS_DOLT_SERVER_USER overrides", func(t *testing.T) {
+		os.Setenv("BEADS_DOLT_SERVER_USER", "envuser")
+		defer os.Unsetenv("BEADS_DOLT_SERVER_USER")
+
+		if cfg.GetDoltServerUser() != "envuser" {
+			t.Errorf("expected env override to 'envuser', got %s", cfg.GetDoltServerUser())
+		}
+	})
+}
+
+func TestDoltServerIsRunning(t *testing.T) {
+	// Clear GT_ROOT so IsRunning doesn't find the orchestrator daemon's real PID file.
+	if old, ok := os.LookupEnv("GT_ROOT"); ok {
+		os.Unsetenv("GT_ROOT")
+		t.Cleanup(func() { os.Setenv("GT_ROOT", old) })
+	}
+
+	t.Run("no server running", func(t *testing.T) {
+		beadsDir := t.TempDir()
+		state, err := doltserver.IsRunning(beadsDir)
+		if err != nil {
+			t.Fatalf("IsRunning error: %v", err)
+		}
+		if state.Running {
+			t.Error("expected Running=false when no PID file exists")
+		}
+	})
+
+	t.Run("stale PID file", func(t *testing.T) {
+		beadsDir := t.TempDir()
+		pidFile := filepath.Join(beadsDir, "dolt-server.pid")
+		os.WriteFile(pidFile, []byte("99999999"), 0600)
+		state, err := doltserver.IsRunning(beadsDir)
+		if err != nil {
+			t.Fatalf("IsRunning error: %v", err)
+		}
+		if state.Running {
+			t.Error("expected Running=false for stale PID")
+		}
+	})
+
+	t.Run("corrupt PID file", func(t *testing.T) {
+		beadsDir := t.TempDir()
+		pidFile := filepath.Join(beadsDir, "dolt-server.pid")
+		os.WriteFile(pidFile, []byte("not-a-number"), 0600)
+		state, err := doltserver.IsRunning(beadsDir)
+		if err != nil {
+			t.Fatalf("IsRunning error: %v", err)
+		}
+		if state.Running {
+			t.Error("expected Running=false for corrupt PID file")
+		}
+	})
+}
+
+// Helper functions
+
+func captureDoltShowOutput(t *testing.T) string {
+	t.Helper()
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	os.Stderr = w
+
+	defer func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+		if rec := recover(); rec != nil {
+			// Ignore panics from os.Exit
+		}
+	}()
+
+	showDoltConfig(false)
+
+	w.Close()
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+
+	return buf.String()
+}
+
+func captureDoltSetOutput(t *testing.T, key, value string, updateConfig bool) string {
+	t.Helper()
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	os.Stderr = w
+
+	defer func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+		if rec := recover(); rec != nil {
+			// Ignore panics from os.Exit
+		}
+	}()
+
+	setDoltConfig(key, value, updateConfig)
+
+	w.Close()
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+
+	return buf.String()
+}
+
+// TestSetDoltConfigWorktreeIsolation verifies that setDoltConfig writes to
+// BEADS_DIR (the test temp directory), not the main repo's .beads directory.
+// This is a regression test for bd-la2cl: test values (10.0.0.1:3309, mydb)
+// were being written to the production metadata.json in worktree environments
+// because FindBeadsDir() resolves to the main repo root.
+func TestSetDoltConfigWorktreeIsolation(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with Dolt backend
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	cfg.DoltMode = configfile.DoltModeServer
+	cfg.DoltServerHost = "127.0.0.1"
+	cfg.DoltServerPort = 3307
+	cfg.DoltDatabase = "beads"
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// CRITICAL: Set BEADS_DIR so FindBeadsDir() returns our temp .beads,
+	// not the main repo's .beads (which happens in worktree environments).
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	// Write test values via setDoltConfig
+	setDoltConfig("host", "192.168.99.99", false)
+	setDoltConfig("port", "9999", false)
+	setDoltConfig("database", "testdb", false)
+
+	// Verify values were written to the TEMP directory's metadata.json
+	loadedCfg, err := configfile.Load(beadsDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if loadedCfg.DoltServerHost != "192.168.99.99" {
+		t.Errorf("test values not written to temp beadsDir: host = %s", loadedCfg.DoltServerHost)
+	}
+
+	// Verify the main repo's metadata.json was NOT modified.
+	// FindBeadsDir() without BEADS_DIR override would return the main repo's .beads.
+	// We can't easily test this in all environments, but we verify by checking that
+	// the values we wrote don't match the "known bad" test values from the original bug.
+	if loadedCfg.DoltServerHost == "10.0.0.1" && loadedCfg.DoltServerPort == 3309 {
+		t.Error("REGRESSION: test values match the known-bad production corruption values (10.0.0.1:3309)")
+	}
+}
+
+// TestSetDataDirBlockedInServerMode verifies GH#2438: setting data-dir in
+// server mode is rejected because it silently disconnects from the configured
+// database, causing commands to operate on the wrong (often empty) DB.
+//
+// We verify the guard exists by checking that IsDoltServerMode() would trigger
+// the rejection (the actual os.Exit(1) in setDoltConfig can't be caught in tests).
+// Then we verify the config was NOT changed by calling setDoltConfig only when
+// we know it would succeed.
+func TestSetDataDirBlockedInServerMode(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with Dolt server mode
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	cfg.DoltMode = configfile.DoltModeServer
+	cfg.DoltDatabase = "beads_CodeWriter7"
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	// Verify precondition: this config IS in server mode
+	if !cfg.IsDoltServerMode() {
+		t.Fatal("expected IsDoltServerMode() = true for test config")
+	}
+
+	// The guard in setDoltConfig checks: value != "" && cfg.IsDoltServerMode()
+	// We can't call setDoltConfig directly (os.Exit(1) terminates the test),
+	// but we can verify the guard condition matches.
+	value := "/tmp/some-dir"
+	if !(value != "" && cfg.IsDoltServerMode()) {
+		t.Error("expected guard condition to be true: data-dir set + server mode")
+	}
+
+	// Also verify clearing data-dir is NOT blocked (value == "")
+	if "" != "" && cfg.IsDoltServerMode() {
+		t.Error("clearing data-dir should not be blocked")
+	}
+}
+
+// TestSetDataDirAllowedClear verifies GH#2438: clearing data-dir is always
+// allowed, even in server mode (it restores correct behavior).
+func TestSetDataDirAllowedClear(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("failed to create .beads dir: %v", err)
+	}
+
+	// Create metadata.json with server mode and a stale data-dir
+	cfg := configfile.DefaultConfig()
+	cfg.Backend = configfile.BackendDolt
+	cfg.DoltMode = configfile.DoltModeServer
+	cfg.DoltDatabase = "beads_CodeWriter7"
+	cfg.DoltDataDir = "/old/stale/path"
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	t.Setenv("BEADS_DIR", beadsDir)
+
+	oldCwd, _ := os.Getwd()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() { _ = os.Chdir(oldCwd) }()
+
+	// Clearing data-dir should succeed even in server mode
+	setDoltConfig("data-dir", "", false)
+
+	loadedCfg, err := configfile.Load(beadsDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if loadedCfg.DoltDataDir != "" {
+		t.Errorf("data-dir should have been cleared, got: %s", loadedCfg.DoltDataDir)
+	}
+}
+
+// TestDoltPushPullCommitNeedStore verifies GH#2042: bd dolt push/pull/commit
+// must NOT be skipped by the noDbCommands check in PersistentPreRun.
+// When the store is nil (because no database is available), these commands
+// should report "no store available" rather than silently doing nothing.
+func TestDoltPushPullCommitNeedStore(t *testing.T) {
+	// Save original state
+	originalStore := store
+	defer func() { store = originalStore }()
+
+	// Set store to nil to simulate missing store initialization
+	store = nil
+
+	// Ensure cmdCtx.Store is also nil
+	originalCmdCtx := cmdCtx
+	cmdCtx = &CommandContext{}
+	defer func() { cmdCtx = originalCmdCtx }()
+
+	// Verify that getStore() returns nil (confirming the store wasn't initialized)
+	if getStore() != nil {
+		t.Fatal("expected getStore() to return nil with no database")
+	}
+
+	// Verify push, pull, commit are registered under doltCmd
+	storeSubcommands := []string{"push", "pull", "commit"}
+	for _, name := range storeSubcommands {
+		found := false
+		for _, cmd := range doltCmd.Commands() {
+			if cmd.Name() == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected dolt subcommand %q to be registered", name)
+		}
+	}
+
+	// The key verification: needsStoreDoltSubcommands in PersistentPreRun
+	// lists push, pull, and commit. When these commands run, PersistentPreRun
+	// will NOT return early (unlike show/set/test which skip via the "dolt"
+	// parent entry in noDbCommands). This means the store will be initialized.
+	//
+	// We can't easily invoke PersistentPreRun in a unit test without a real
+	// database, but we verify the structural requirement: these commands check
+	// for nil store and report "no store available" when it's missing.
+}
+
+// TestDoltConfigSubcommandsSkipStore verifies that dolt config/diagnostic
+// subcommands (show, set, test, start, stop, status) don't require the store.
+// These commands manage their own config loading and should work without
+// PersistentPreRun's store initialization.
+func TestDoltConfigSubcommandsSkipStore(t *testing.T) {
+	// Verify these are registered as children of doltCmd
+	configSubcommands := []string{"show", "set", "test", "start", "stop", "status"}
+	for _, name := range configSubcommands {
+		found := false
+		for _, cmd := range doltCmd.Commands() {
+			if cmd.Name() == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected dolt subcommand %q to be registered", name)
+		}
+	}
+
+	// Verify that push, pull, commit are also registered (they need the store)
+	storeSubcommands := []string{"push", "pull", "commit"}
+	for _, name := range storeSubcommands {
+		found := false
+		for _, cmd := range doltCmd.Commands() {
+			if cmd.Name() == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected dolt subcommand %q to be registered", name)
+		}
+	}
+}
+
+// TestDoltRemoteSubcommandsNeedStore verifies GH#2224: bd dolt remote add/list/remove
+// must reach store initialization despite their Cobra parent being "remote" (not "dolt").
+// These commands call getStore() and would break if "remote" were ever added to noDbCommands
+// without the grandchild guard in PersistentPreRun.
+func TestDoltRemoteSubcommandsNeedStore(t *testing.T) {
+	// Verify remote subcommands are registered under doltRemoteCmd (not directly under doltCmd)
+	remoteSubcommands := []string{"add", "list", "remove"}
+	for _, name := range remoteSubcommands {
+		found := false
+		for _, cmd := range doltRemoteCmd.Commands() {
+			if cmd.Name() == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected remote subcommand %q to be registered under doltRemoteCmd", name)
+		}
+	}
+
+	// Verify doltRemoteCmd itself is registered under doltCmd
+	found := false
+	for _, cmd := range doltCmd.Commands() {
+		if cmd.Name() == "remote" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("expected doltRemoteCmd to be registered under doltCmd")
+	}
+
+	// Verify parent-name resolution: for "bd dolt remote add", the Cobra parent
+	// is "remote" (not "dolt"), which means the needsStoreDoltSubcommands check
+	// won't match. The needsStoreDoltGrandchildren guard must handle this.
+	for _, sub := range doltRemoteCmd.Commands() {
+		parentName := sub.Parent().Name()
+		if parentName != "remote" {
+			t.Errorf("expected parent of %q to be \"remote\", got %q", sub.Name(), parentName)
+		}
+	}
+}
+
+// TestHooksSubcommandsSkipStore verifies that all hooks subcommands (run,
+// install, uninstall, list) skip DB initialization in PersistentPreRun.
+// Regression test for: pre-commit hook SIGSEGV when Dolt SQL Server is
+// running — 'bd hooks run pre-commit' fell through to store init because
+// the parent "hooks" was in noDbCommands but the subcommand "run" was not,
+// and only the "dolt" parent was special-cased.
+func TestHooksSubcommandsSkipStore(t *testing.T) {
+	// All hooks subcommands should be registered under hooksCmd
+	expectedSubs := []string{"run", "install", "uninstall", "list"}
+	for _, name := range expectedSubs {
+		found := false
+		for _, cmd := range hooksCmd.Commands() {
+			if cmd.Name() == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected hooks subcommand %q to be registered", name)
+		}
+	}
+
+	// Verify that hooksCmd is registered under rootCmd and its parent
+	// relationship means PersistentPreRun will see parent "hooks" in
+	// noDbCommands. The critical check: "hooks" must be in the noDbCommands
+	// list so that ALL subcommands (including "run") skip store init.
+	found := false
+	for _, cmd := range rootCmd.Commands() {
+		if cmd.Name() == "hooks" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("hooks command not registered under root")
+	}
+
+	// Verify that "run" is a subcommand of "hooks" (not a top-level command)
+	// so the parent-based noDbCommands check works correctly.
+	if hooksRunCmd.Parent() == nil {
+		t.Error("hooksRunCmd has no parent — must be registered under hooksCmd for noDbCommands parent check to work")
+	} else if hooksRunCmd.Parent().Name() != "hooks" {
+		t.Errorf("hooksRunCmd parent is %q, want %q", hooksRunCmd.Parent().Name(), "hooks")
+	}
+}
+
+func TestExtractSSHHost(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{"git+ssh://git@github.com/org/repo.git", "github.com"},
+		{"ssh://git@github.com/org/repo.git", "github.com"},
+		{"git@github.com:org/repo.git", "github.com"},
+		{"git+ssh://github.com/org/repo", "github.com"},
+		{"ssh://user@host.example.com:2222/path", "host.example.com"},
+		{"git@bitbucket.org:team/repo.git", "bitbucket.org"},
+		{"git+ssh://git@192.168.1.100/db", "192.168.1.100"},
+		{"git@10.0.0.1:repo.git", "10.0.0.1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			if got := extractSSHHost(tt.url); got != tt.want {
+				t.Errorf("extractSSHHost(%q) = %q, want %q", tt.url, got, tt.want)
+			}
+		})
+	}
+}
+
+func containsAny(s string, substrs ...string) bool {
+	for _, sub := range substrs {
+		if strings.Contains(s, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestHTTPURLToTCPAddr(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		// Standard HTTPS
+		{"https://example.com/path", "example.com:443"},
+		// Standard HTTP
+		{"http://example.com/path", "example.com:80"},
+		// Explicit port
+		{"https://example.com:8443/path", "example.com:8443"},
+		{"http://example.com:9090/path", "example.com:9090"},
+		// IPv6 with port
+		{"https://[::1]:8080/path", "[::1]:8080"},
+		// IPv6 without port — should get default 443
+		{"https://[::1]/path", "[::1]:443"},
+		// IPv6 HTTP without port
+		{"http://[::1]/path", "[::1]:80"},
+		// No path
+		{"https://example.com", "example.com:443"},
+		// IPv6 no path with port
+		{"https://[fe80::1]:3000", "[fe80::1]:3000"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			got := httpURLToTCPAddr(tt.url)
+			if got != tt.want {
+				t.Errorf("httpURLToTCPAddr(%q) = %q, want %q", tt.url, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsDivergedHistoryErr(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"unrelated error", fmt.Errorf("connection refused"), false},
+		{"remote not found", fmt.Errorf("remote 'origin' not found"), false},
+		{"no common ancestor", fmt.Errorf("Error 1105 (HY000): unknown push error; no common ancestor"), true},
+		{"no common ancestor lowercase", fmt.Errorf("no common ancestor"), true},
+		{"can't find common ancestor", fmt.Errorf("can't find common ancestor for merge"), true},
+		{"cannot find common ancestor", fmt.Errorf("cannot find common ancestor"), true},
+		{"wrapped error", fmt.Errorf("failed to push to origin/main: %w", fmt.Errorf("no common ancestor")), true},
+		{"mixed case", fmt.Errorf("No Common Ancestor found"), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isDivergedHistoryErr(tt.err)
+			if got != tt.want {
+				t.Errorf("isDivergedHistoryErr(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAncestorPKMismatchErr(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"unrelated error", fmt.Errorf("connection refused"), false},
+		{"diverged history", fmt.Errorf("no common ancestor"), false},
+		{"row conflict", fmt.Errorf("merge has unresolved conflicts"), false},
+		{"ancestor PK variant", fmt.Errorf("error: cannot merge because table dependencies has different primary keys in its common ancestor"), true},
+		{"head PK variant", fmt.Errorf("error: cannot merge because table dependencies has different primary keys"), true},
+		{"wrapped", fmt.Errorf("pull failed: %w", fmt.Errorf("error: cannot merge because table issues has different primary keys in its common ancestor")), true},
+		{"sql error envelope", fmt.Errorf("Error 1105 (HY000): error: cannot merge because table dependencies has different primary keys in its common ancestor"), true},
+		{"mixed case", fmt.Errorf("Cannot Merge Because Table dependencies Has Different Primary Keys"), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isAncestorPKMismatchErr(tt.err)
+			if got != tt.want {
+				t.Errorf("isAncestorPKMismatchErr(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAncestorPKMismatchTable(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"nil error", nil, ""},
+		{"no match", fmt.Errorf("no common ancestor"), ""},
+		{"ancestor variant", fmt.Errorf("error: cannot merge because table dependencies has different primary keys in its common ancestor"), "dependencies"},
+		{"head variant", fmt.Errorf("error: cannot merge because table wisp_dependencies has different primary keys"), "wisp_dependencies"},
+		{"sql error envelope", fmt.Errorf("Error 1105 (HY000): error: cannot merge because table issues has different primary keys in its common ancestor"), "issues"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ancestorPKMismatchTable(tt.err)
+			if got != tt.want {
+				t.Errorf("ancestorPKMismatchTable(%v) = %q, want %q", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsRemoteNotFoundErr(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"unrelated error", fmt.Errorf("connection refused"), false},
+		{"remote not found", fmt.Errorf("remote 'origin' not found"), true},
+		{"no common ancestor", fmt.Errorf("no common ancestor"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isRemoteNotFoundErr(tt.err)
+			if got != tt.want {
+				t.Errorf("isRemoteNotFoundErr(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+type fakeRemoteLister struct {
+	remotes []storage.RemoteInfo
+	err     error
+}
+
+func (f fakeRemoteLister) ListRemotes(context.Context) ([]storage.RemoteInfo, error) {
+	return f.remotes, f.err
+}
+
+// fakeProbingRemoteLister also implements persistedRemoteProber, like the
+// server-mode DoltStore.
+type fakeProbingRemoteLister struct {
+	fakeRemoteLister
+	persisted bool
+}
+
+func (f fakeProbingRemoteLister) HasPersistedRemote() bool {
+	return f.persisted
+}
+
+// bd-6dnrw.7: the exit-0 "no remote configured" skip must only fire when
+// dolt_remotes is actually empty. A remote-not-found error with remotes
+// configured (deleted remote-side repo, missing branch, typo) is a real sync
+// failure and must stay on the exit-1 path. bd-578h9.10: an empty table is
+// still not proof at server cold start — a remote persisted on disk
+// (repo_state.json, GH#2118) must also veto the skip.
+func TestIsConfirmedNoRemote(t *testing.T) {
+	ctx := context.Background()
+	notFound := fmt.Errorf("remote 'origin' not found")
+	tests := []struct {
+		name   string
+		err    error
+		lister remoteLister
+		want   bool
+	}{
+		{"no remotes configured", notFound, fakeRemoteLister{}, true},
+		{"remotes exist", notFound, fakeRemoteLister{remotes: []storage.RemoteInfo{{Name: "origin"}}}, false},
+		{"list fails", notFound, fakeRemoteLister{err: fmt.Errorf("server unreachable")}, false},
+		{"unrelated error", fmt.Errorf("connection refused"), fakeRemoteLister{}, false},
+		{"nil error", nil, fakeRemoteLister{}, false},
+		{"empty table but remote persisted on disk", notFound, fakeProbingRemoteLister{persisted: true}, false},
+		{"empty table and no persisted remote", notFound, fakeProbingRemoteLister{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isConfirmedNoRemote(ctx, tt.lister, tt.err)
+			if got != tt.want {
+				t.Errorf("isConfirmedNoRemote(%v, %#v) = %v, want %v",
+					tt.err, tt.lister, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPrintNoRemoteGuidance(t *testing.T) {
+	// Capture stdout output
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	printNoRemoteGuidance()
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "No remote is configured") {
+		t.Error("expected guidance to mention 'No remote is configured'")
+	}
+	if !strings.Contains(output, "skipping") {
+		t.Error("expected guidance to indicate the operation was skipped, not failed")
+	}
+	if !strings.Contains(output, "bd dolt remote add") {
+		t.Error("expected guidance to mention how to add a remote")
+	}
+}
+
+func TestPrintDivergedHistoryGuidance(t *testing.T) {
+	// Capture stderr output
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	printDivergedHistoryGuidance("push")
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	// Verify key recovery options are mentioned
+	if !strings.Contains(output, "diverged") {
+		t.Error("expected guidance to mention 'diverged'")
+	}
+	if !strings.Contains(output, "bd bootstrap") {
+		t.Error("expected guidance to mention 'bd bootstrap'")
+	}
+	if !strings.Contains(output, "bd dolt push --force") {
+		t.Error("expected guidance to mention 'bd dolt push --force'")
+	}
+	if !strings.Contains(output, "rm -rf .beads/dolt") {
+		t.Error("expected guidance to mention manual recovery")
+	}
+}
+
+func TestPrintAncestorPKMismatchGuidance(t *testing.T) {
+	// Capture stderr output
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	printAncestorPKMismatchGuidance(fmt.Errorf("error: cannot merge because table dependencies has different primary keys in its common ancestor"))
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, `table "dependencies"`) {
+		t.Error("expected guidance to name the refused table")
+	}
+	if !strings.Contains(output, "schema fork") {
+		t.Error("expected guidance to explain this is a schema fork")
+	}
+	if !strings.Contains(output, "Retrying will not help") {
+		t.Error("expected guidance to say retrying cannot converge the clones")
+	}
+	if !strings.Contains(output, "bd dolt push --force") {
+		t.Error("expected guidance to mention making the canonical clone authoritative")
+	}
+	if !strings.Contains(output, "bd export --all") {
+		t.Error("expected guidance to mention saving local-only work")
+	}
+	if !strings.Contains(output, "bd bootstrap") {
+		t.Error("expected guidance to mention re-cloning via bd bootstrap")
+	}
+	if !strings.Contains(output, "docs/recovery/init-safety.md#pk-fork-refused") {
+		t.Error("expected guidance to link the full recovery playbook")
+	}
+}
+
+func TestIsLocalHost(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		want bool
+	}{
+		{"empty defaults to local", "", true},
+		{"localhost literal", "localhost", true},
+		{"uppercase Localhost", "Localhost", true},
+		{"IPv4 loopback", "127.0.0.1", true},
+		{"IPv6 loopback", "::1", true},
+		{"all-zeros bind", "0.0.0.0", true},
+		{"surrounding whitespace", "  127.0.0.1  ", true},
+		{"public IPv4", "20.150.139.92", false},
+		{"named remote", "dolt.example.com", false},
+		{"private LAN IPv4", "192.168.1.10", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isLocalHost(tc.host); got != tc.want {
+				t.Errorf("isLocalHost(%q) = %v, want %v", tc.host, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRunExternalDoltStatus_Unreachable exercises the external-server
+// status path (bd-q35w) against an unreachable port. This covers the DSN
+// build, ping failure branch, and both output modes (text + JSON) without
+// needing a running Dolt server.
+func TestRunExternalDoltStatus_Unreachable(t *testing.T) {
+	// Force the resolved port to 1 (guaranteed unreachable on loopback).
+	t.Setenv("BEADS_DOLT_SERVER_PORT", "1")
+
+	beadsDir := t.TempDir()
+	// Use 127.0.0.1 so the OS RSTs the connect() fast (connection refused)
+	// rather than taking the 5s DSN timeout against a routable-but-silent
+	// host. runExternalDoltStatus does not consult isLocalHost itself.
+	cfg := &configfile.Config{
+		DoltMode:       "server",
+		DoltServerHost: "127.0.0.1",
+		DoltServerUser: "root",
+		DoltDatabase:   "beads_ext",
+		DoltServerTLS:  true,
+	}
+
+	t.Run("text output", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = false
+
+		out := captureStdout(t, func() error { runExternalDoltStatus(beadsDir, cfg); return nil })
+
+		for _, want := range []string{
+			"not reachable (external)",
+			"Host:",
+			"127.0.0.1",
+			"Database:",
+			"beads_ext",
+			"User:",
+			"root",
+			"TLS:",
+			"true",
+			"Error:",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("expected output to contain %q, got:\n%s", want, out)
+			}
+		}
+	})
+
+	t.Run("json output", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = true
+
+		out := captureStdout(t, func() error { runExternalDoltStatus(beadsDir, cfg); return nil })
+
+		var result map[string]any
+		if err := json.Unmarshal([]byte(out), &result); err != nil {
+			t.Fatalf("expected valid JSON output, got error %v, raw: %s", err, out)
+		}
+
+		if result["mode"] != "external" {
+			t.Errorf("mode = %v, want %q", result["mode"], "external")
+		}
+		if result["running"] != false {
+			t.Errorf("running = %v, want false", result["running"])
+		}
+		if result["host"] != "127.0.0.1" {
+			t.Errorf("host = %v, want %q", result["host"], "127.0.0.1")
+		}
+		if result["database"] != "beads_ext" {
+			t.Errorf("database = %v, want %q", result["database"], "beads_ext")
+		}
+		if result["user"] != "root" {
+			t.Errorf("user = %v, want %q", result["user"], "root")
+		}
+		if result["tls"] != true {
+			t.Errorf("tls = %v, want true", result["tls"])
+		}
+		if _, ok := result["error"]; !ok {
+			t.Error("expected 'error' field in JSON output for unreachable server")
+		}
+	})
+}
+
+// TestShouldUseExternalDoltStatus covers the routing predicate for
+// `bd dolt status`. The predicate decides whether to ping the configured
+// SQL endpoint (externally-managed server) or read the local PID file
+// (bd-managed server). Scenarios that qualify as externally-managed:
+// shared-server mode (GH#3218), non-local hosts, and local hosts where bd
+// does not own the lifecycle (auto-start disabled — be-0eyj). Other
+// configurations should keep the PID-file path so bd-managed servers
+// continue to report PID/log/data.
+func TestShouldUseExternalDoltStatus(t *testing.T) {
+	tests := []struct {
+		name              string
+		cfg               *configfile.Config
+		autoStartDisabled bool
+		sharedServerMode  bool
+		want              bool
+	}{
+		{
+			name:              "nil config falls back to PID-file path",
+			cfg:               nil,
+			autoStartDisabled: false,
+			want:              false,
+		},
+		{
+			name: "embedded mode never uses external status",
+			cfg: &configfile.Config{
+				Backend:  "dolt",
+				DoltMode: "embedded",
+			},
+			autoStartDisabled: true, // even with auto-start off
+			want:              false,
+		},
+		{
+			name: "server mode + remote host always uses external status",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "dolt.example.com",
+			},
+			autoStartDisabled: false,
+			want:              true,
+		},
+		{
+			name: "server mode + remote host + auto-start disabled",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "192.168.1.50",
+			},
+			autoStartDisabled: true,
+			want:              true,
+		},
+		{
+			name: "server mode + local host + auto-start enabled keeps PID-file path",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "127.0.0.1",
+			},
+			autoStartDisabled: false,
+			want:              false,
+		},
+		{
+			// GH#3218: a shared server on localhost with bd auto-start
+			// ENABLED previously fell through to the PID-file path and
+			// reported "not running" though bd could connect fine. Shared
+			// mode means bd never owns the lifecycle, so probe SQL.
+			name: "server mode + local host + auto-start enabled + shared-server routes to external (GH#3218)",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "127.0.0.1",
+			},
+			autoStartDisabled: false,
+			sharedServerMode:  true,
+			want:              true,
+		},
+		{
+			name: "server mode + empty host + shared-server routes to external (GH#3218)",
+			cfg: &configfile.Config{
+				Backend:  "dolt",
+				DoltMode: "server",
+			},
+			autoStartDisabled: false,
+			sharedServerMode:  true,
+			want:              true,
+		},
+		{
+			// GH#2946/#3218: shared-server mode (e.g. dolt.shared-server:
+			// true in config.yaml) wins over a stale metadata.json that
+			// still pins dolt_mode="embedded". IsDoltServerMode() does not
+			// consult dolt.shared-server, so without the shared-server
+			// branch preceding the server-mode guard this workspace would
+			// fall through to the PID-file "not running" path.
+			name: "shared-server flag wins over stale embedded metadata (GH#2946/#3218)",
+			cfg: &configfile.Config{
+				Backend:  "dolt",
+				DoltMode: "embedded",
+			},
+			autoStartDisabled: false,
+			sharedServerMode:  true,
+			want:              true,
+		},
+		{
+			// Proxied-server mode is excluded from the shared-server
+			// override (matches main.go's !psm guard): bd talks through the
+			// proxy, so keep the non-external path even if the shared-server
+			// flag is also set.
+			name: "proxied-server mode + shared-server flag stays non-external",
+			cfg: &configfile.Config{
+				Backend:  "dolt",
+				DoltMode: configfile.DoltModeProxiedServer,
+			},
+			autoStartDisabled: false,
+			sharedServerMode:  true,
+			want:              false,
+		},
+		{
+			name: "server mode + local host + auto-start disabled routes to external (be-0eyj)",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "127.0.0.1",
+			},
+			autoStartDisabled: true,
+			want:              true,
+		},
+		{
+			name: "server mode + empty host (defaults to local) + auto-start disabled",
+			cfg: &configfile.Config{
+				Backend:  "dolt",
+				DoltMode: "server",
+				// DoltServerHost empty → defaults to 127.0.0.1
+			},
+			autoStartDisabled: true,
+			want:              true,
+		},
+		{
+			name: "server mode + localhost literal + auto-start disabled",
+			cfg: &configfile.Config{
+				Backend:        "dolt",
+				DoltMode:       "server",
+				DoltServerHost: "localhost",
+			},
+			autoStartDisabled: true,
+			want:              true,
+		},
+	}
+
+	// Make sure ambient env doesn't perturb cfg.IsDoltServerMode() lookups.
+	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldUseExternalDoltStatus(tc.cfg, tc.autoStartDisabled, tc.sharedServerMode)
+			if got != tc.want {
+				t.Errorf("shouldUseExternalDoltStatus = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestRenderLocalDoltStatus exercises the bd-managed (PID-file) output
+// path that doltStatusCmd takes when bd owns the server lifecycle. The
+// externally-managed path is covered by TestRunExternalDoltStatus_Unreachable;
+// this test closes the test-plan gap noted in the PR #3550 review by
+// asserting that the preserved local path still reports PID/Port/Data/Logs
+// (text mode) and a State-shaped JSON payload distinct from the external
+// {"mode":"external", ...} shape.
+func TestRenderLocalDoltStatus(t *testing.T) {
+	// Clear ambient mode/host so DefaultConfig and IsSharedServerMode are
+	// deterministic regardless of how the test runner is invoked.
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
+	t.Setenv("BEADS_DOLT_SERVER_HOST", "")
+	// Pin the expected port so the not-running text branch is host-agnostic.
+	t.Setenv("BEADS_DOLT_SERVER_PORT", "13306")
+
+	t.Run("nil state prints not running with expected port", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = false
+
+		serverDir := t.TempDir()
+		out := captureStdout(t, func() error {
+			renderLocalDoltStatus(nil, serverDir)
+			return nil
+		})
+
+		for _, want := range []string{
+			"Dolt server: not running",
+			"Expected port: 13306",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("expected output to contain %q, got:\n%s", want, out)
+			}
+		}
+	})
+
+	t.Run("Running:false prints not running", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = false
+
+		serverDir := t.TempDir()
+		state := &doltserver.State{Running: false}
+		out := captureStdout(t, func() error {
+			renderLocalDoltStatus(state, serverDir)
+			return nil
+		})
+
+		if !strings.Contains(out, "Dolt server: not running") {
+			t.Errorf("expected 'not running', got:\n%s", out)
+		}
+	})
+
+	t.Run("Running:true prints PID/Port/Data/Logs", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = false
+
+		serverDir := t.TempDir()
+		state := &doltserver.State{
+			Running: true,
+			PID:     12345,
+			Port:    28231,
+			DataDir: "/tmp/data",
+		}
+		out := captureStdout(t, func() error {
+			renderLocalDoltStatus(state, serverDir)
+			return nil
+		})
+
+		for _, want := range []string{
+			"Dolt server: running",
+			"PID:  12345",
+			"Port: 28231",
+			"Data: /tmp/data",
+			"Logs:",
+			"dolt-server.log",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("expected output to contain %q, got:\n%s", want, out)
+			}
+		}
+		// Without BEADS_DOLT_SHARED_SERVER set, the shared-server line
+		// must NOT appear — guards against accidental coupling.
+		if strings.Contains(out, "Mode: shared server") {
+			t.Errorf("did not expect shared-server line in non-shared mode, got:\n%s", out)
+		}
+	})
+
+	t.Run("Running:true under shared-server mode adds Mode line", func(t *testing.T) {
+		t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = false
+
+		serverDir := t.TempDir()
+		state := &doltserver.State{
+			Running: true,
+			PID:     1,
+			Port:    2,
+			DataDir: serverDir,
+		}
+		out := captureStdout(t, func() error {
+			renderLocalDoltStatus(state, serverDir)
+			return nil
+		})
+
+		if !strings.Contains(out, "Mode: shared server") {
+			t.Errorf("expected shared-server line under BEADS_DOLT_SHARED_SERVER=1, got:\n%s", out)
+		}
+	})
+
+	t.Run("json output produces State-shaped payload (no mode=external)", func(t *testing.T) {
+		orig := jsonOutput
+		defer func() { jsonOutput = orig }()
+		jsonOutput = true
+
+		serverDir := t.TempDir()
+		state := &doltserver.State{
+			Running: true,
+			PID:     7777,
+			Port:    28231,
+			DataDir: "/var/data",
+		}
+		out := captureStdout(t, func() error {
+			renderLocalDoltStatus(state, serverDir)
+			return nil
+		})
+
+		var result map[string]any
+		if err := json.Unmarshal([]byte(out), &result); err != nil {
+			t.Fatalf("expected valid JSON, got error %v, raw: %s", err, out)
+		}
+
+		if result["running"] != true {
+			t.Errorf("running = %v, want true", result["running"])
+		}
+		if v, _ := result["pid"].(float64); int(v) != 7777 {
+			t.Errorf("pid = %v, want 7777", result["pid"])
+		}
+		if v, _ := result["port"].(float64); int(v) != 28231 {
+			t.Errorf("port = %v, want 28231", result["port"])
+		}
+		if result["data_dir"] != "/var/data" {
+			t.Errorf("data_dir = %v, want /var/data", result["data_dir"])
+		}
+		// Crucial: the bd-managed path must NOT report mode=external —
+		// that is the externally-managed shape introduced in this PR for
+		// the SQL-probe routing only.
+		if result["mode"] == "external" {
+			t.Errorf("did not expect mode=external on bd-managed path, got:\n%s", out)
+		}
+	})
+}
+
+// minimalPullStore implements storage.DoltStorage by embedding the interface
+// (all methods panic on nil) with Pull overridden for controlled testing.
+type minimalPullStore struct {
+	storage.DoltStorage
+	pullCalled bool
+	pullErr    error
+}
+
+func (m *minimalPullStore) Pull(ctx context.Context) error {
+	m.pullCalled = true
+	return m.pullErr
+}
+
+// ListRemotes is exercised by current main's pull failure handling
+// (isConfirmedNoRemote -> st.ListRemotes during error classification). The
+// embedded nil DoltStorage would panic, so report "no remotes": this keeps a
+// simulated pull failure on the benign no-remote path (clean exit) while still
+// proving the no-push guard does not short-circuit bd dolt pull.
+func (m *minimalPullStore) ListRemotes(context.Context) ([]storage.RemoteInfo, error) {
+	return nil, nil
+}
+
+// minimalPushStore implements storage.DoltStorage by embedding the interface
+// (all methods panic on nil) with Push and ForcePush overridden for controlled testing.
+type minimalPushStore struct {
+	storage.DoltStorage
+	pushCalled bool
+}
+
+func (m *minimalPushStore) Push(ctx context.Context) error {
+	m.pushCalled = true
+	return nil
+}
+
+func (m *minimalPushStore) ForcePush(ctx context.Context) error {
+	m.pushCalled = true
+	return nil
+}
+
+func TestNoPushSkipsDoltPush(t *testing.T) {
+	// no-push guard must exit with a skip message and must NOT call the store's
+	// Push() when no-push: true. Regression guard for PR #4212 guard at
+	// cmd/bd/dolt.go:247-249.
+
+	// Cannot be parallel: modifies process-global store and config.
+	saveAndRestoreGlobals(t)
+	resetCommandContext()
+
+	fake := &minimalPushStore{}
+	store = fake
+
+	t.Setenv("BD_NO_PUSH", "true")
+	config.ResetForTesting()
+	t.Cleanup(func() { config.ResetForTesting() })
+	if err := config.Initialize(); err != nil {
+		t.Fatalf("config.Initialize: %v", err)
+	}
+	if !config.GetBool("no-push") {
+		t.Fatal("test setup: BD_NO_PUSH=true must make no-push=true")
+	}
+
+	out := captureStdout(t, func() error {
+		return doltPushCmd.RunE(doltPushCmd, nil)
+	})
+
+	if fake.pushCalled {
+		t.Error("bd dolt push must not call Push() when no-push: true; Push() was called")
+	}
+	if !strings.Contains(out, "skipping push") {
+		t.Errorf("expected 'skipping push' output, got: %q", out)
+	}
+}
+
+func TestNoPushDoesNotSkipDoltPull(t *testing.T) {
+	// no-push is a push-only guard. bd dolt pull must contact the remote even when
+	// no-push: true — contributor clones need to receive upstream updates.
+	// Regression guard for be-ve2x6 (PR #4212, maphew review-4382359270).
+
+	// Cannot be parallel: modifies process-global store and config.
+	saveAndRestoreGlobals(t)
+	resetCommandContext()
+
+	fake := &minimalPullStore{
+		// Return "remote not found" so the command exits cleanly without os.Exit.
+		pullErr: errors.New("remote not found"),
+	}
+	store = fake
+
+	t.Setenv("BD_NO_PUSH", "true")
+	config.ResetForTesting()
+	t.Cleanup(func() { config.ResetForTesting() })
+	if err := config.Initialize(); err != nil {
+		t.Fatalf("config.Initialize: %v", err)
+	}
+	if !config.GetBool("no-push") {
+		t.Fatal("test setup: BD_NO_PUSH=true must make no-push=true")
+	}
+
+	out := captureStdout(t, func() error {
+		return doltPullCmd.RunE(doltPullCmd, nil)
+	})
+
+	if !fake.pullCalled {
+		t.Error("bd dolt pull must attempt the pull even when no-push: true; Pull() was not called")
+	}
+	if strings.Contains(out, "skipping pull") {
+		t.Errorf("bd dolt pull must not skip under no-push: true; got output: %q", out)
+	}
+	if !strings.Contains(out, "Pulling from Dolt remote") {
+		t.Errorf("expected pull attempt output, got: %q", out)
+	}
+}

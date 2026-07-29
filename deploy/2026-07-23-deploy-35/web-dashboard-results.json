@@ -1,0 +1,44 @@
+[
+  {
+    "check": "d1",
+    "action": "Load dashboard without ?token= param",
+    "pass": true,
+    "detail": "Dashboard loaded (HTTP 200). URL: https://farmtable-486315127503.us-central1.run.app/. App renders correctly."
+  },
+  {
+    "check": "d2",
+    "action": "Login via /api/auth/session POST",
+    "pass": true,
+    "detail": "Login successful. userId=a948da6d-10cb-4d5c-8167-b1a35de52946."
+  },
+  {
+    "check": "d3",
+    "action": "Verify farmtable_session cookie is set",
+    "pass": true,
+    "detail": "Cookie found: name=farmtable_session, httpOnly=true, secure=true, sameSite=Lax"
+  },
+  {
+    "check": "d4",
+    "action": "GET /api/auth/session returns active session",
+    "pass": true,
+    "detail": "Session active. userId=a948da6d-10cb-4d5c-8167-b1a35de52946"
+  },
+  {
+    "check": "d5",
+    "action": "Web dashboard loads data with session cookie (RBAC unchanged)",
+    "pass": true,
+    "detail": "gRPC-web ListCollections returned HTTP 200. Shadow DOM rendered ft-collection-list. Session-to-bearer middleware works post-RBAC. (Initial textContent check was false negative due to Shadow DOM; verified via gRPC-web network interception.)"
+  },
+  {
+    "check": "d6",
+    "action": "Logout via DELETE /api/auth/session",
+    "pass": true,
+    "detail": "Logout successful. Response: {\"status\":\"ok\"}"
+  },
+  {
+    "check": "d7",
+    "action": "Session invalidated after logout",
+    "pass": true,
+    "detail": "GET /api/auth/session returns 401 after logout. Session properly cleared."
+  }
+]

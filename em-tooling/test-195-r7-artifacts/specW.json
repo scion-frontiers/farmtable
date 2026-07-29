@@ -1,0 +1,56 @@
+[
+ {
+  "id": "W1 parser.parse -> parser.parseInline",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "parser.parse(md) as string",
+    "repl": "parser.parseInline(md) as string"
+   }
+  ]
+ },
+ {
+  "id": "W2 swap the FORBID_TAGS / FORBID_ATTR bindings",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS: FORBID_ATTR,\n    FORBID_ATTR: FORBID_TAGS,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "W3 add a SECOND unsanitized exported renderer to markdown.ts (unused)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}\n\nexport function renderMarkdownInline(md: string): string {\n  return parser.parse(md) as string;\n}\n"
+   }
+  ]
+ },
+ {
+  "id": "W4 same, and the desc sink calls it instead",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}\n\nexport function renderMarkdownInline(md: string): string {\n  return parser.parse(md) as string;\n}\n"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown } from '../../util/markdown.js';",
+    "repl": "import { unsafeHTML } from 'lit/directives/unsafe-html.js';\nimport { renderMarkdown, renderMarkdownInline } from '../../util/markdown.js';"
+   },
+   {
+    "file": "src/components/inspector/ft-inspector-desc.ts",
+    "anchor": "${unsafeHTML(renderMarkdown(this.description))}",
+    "repl": "${unsafeHTML(renderMarkdownInline(this.description))}${renderMarkdown('')}"
+   }
+  ]
+ }
+]

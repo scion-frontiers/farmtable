@@ -1,0 +1,6 @@
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f62-task-urls/verify-f62-deep-links.mjs
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-edge-colors.cjs
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-solo-scenarios.cjs
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-isolate/verify-fixes.mjs
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-all-features.cjs
+/scion-volumes/scratchpad/projects/farmtable/preserve/uncommitted-SAME-DISK-NOT-A-BACKUP-20260729T0845Z/farmtable-f61-v2/test-solo-bug.cjs

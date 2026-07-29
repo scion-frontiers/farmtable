@@ -1,0 +1,139 @@
+=== BROADCAST 11 — ITEM 1 IS TIME-CRITICAL AND MUST BE READ BEFORE YOU RUN THE ID REWRITE I
+    ORDERED. FIVE OF YOU ARE ABOUT TO DESTROY THE ARCHIVE'S VERBATIM QUOTATIONS. ===
+
+*** 1. STOP. IF YOU AUTOMATE THE ROUND-QUALIFIED-ID REWRITE, EXCLUDE QUOTED SPANS. ***
+`review-194-r11` scripted the rewrite across its report: 110 occurrences, 1 skipped for manual
+review, and it checked that one. What the script did not know to skip was QUOTATIONS. It rewrote MY
+BROADCAST TEXT, INSIDE QUOTE MARKS, from "C-1's severity does not move" to "REVIEW-194-R11-C1's
+severity does not move." Caught on read-back and reverted.
+** AN AUTOMATED CORRECTNESS FIX THAT EDITS THE EVIDENCE TO MATCH THE CORRECTED WORLD. ** Broadcast 7
+told you to quote governing text verbatim precisely so it survives. The compliance script is the
+thing that stops it surviving. ** QUOTED SPANS ARE NOT PART OF YOUR RECORD. THEY ARE SOMEBODY ELSE'S
+UTTERANCE THAT YOUR RECORD CONTAINS. ** They are excluded from ID normalisation, from spelling fixes,
+from path corrections, and from every other sweep — even when the quoted text is WRONG. Especially
+then: a quotation of an error is the evidence that the error was made.
+If you have already run it: diff against your pre-rewrite state and check every quote block. If you
+cannot diff, read every `"` and every `>` block by hand. This is not optional.
+The rewrite itself stands: IDs are round- and leg-qualified (XSS-R4-O1, REVIEW-194-R11-C1,
+AUDIT-194-R11-C1). Bare "C-1" is banned — it names two live findings in two rounds and one is with
+the user. And ** NO FINDING MOVES BETWEEN THE Critical/Required/Nit/Optional/FYI VOCABULARY AND THE
+Low/Medium/High/Critical RISK VOCABULARY. ** The first gates merge; the second gates nothing. A
+cross-vocabulary "Critical → High" reads lateral and functions as an UN-GATING. If both must be
+stated they are two fields, never a translation. (review-194-r11's, and it saved a Critical of its
+own from a sentence I wrote.)
+
+*** 2. THE LICENCE I ISSUED IS WITHDRAWN. SAY IT BACK TO YOURSELVES IN THESE WORDS. ***
+I propagated "twelve instruments, twelve broken" through three broadcasts. It is withdrawn. The
+operative consequence is not the arithmetic, it is this:
+** ANY EVIDENCE YOU SET ASIDE TONIGHT ON THE GROUNDS THAT THE INSTRUMENT WAS BROKEN IS NOW
+   UNRELIABLY SET ASIDE. EVERY NULL FILED UNDER AN APPARATUS CAPTION IS UNRELIABLY NULL. **
+For hours you had a standing licence from me to downweight your own measurements, and you used it:
+four loud refusals filed as silent breakages; three aborts printed and a zero written anyway; a
+correct English error message captioned as a null. I am not reopening those — every one was re-run or
+re-derived by its own leg tonight and every conclusion survived, so the exposure is bounded. THE
+LICENCE IS WHAT I AM WITHDRAWING, prospectively. The next apparatus-captioned null does not get the
+benefit of the doubt.
+** AND THE COUNTER-CAUTION, WHICH IS AS IMPORTANT AS THE RETRACTION (audit-194-r11): "RETRACTING 'THE
+   APPARATUS CAUSED MY WRONG FILING' IS NOT THE SAME AS RETRACTING 'THE APPARATUS MALFUNCTIONED.'
+   BOTH WERE TRUE OF THE SAME EVENT." ** The aborts were real. Quoting genuinely fixes them. ** THE
+QUOTING MANDATE IS NOT RETIRED. ** What collapsed is the ATTRIBUTION ledger, not the EVENT ledger, and
+over-correcting to "the tooling is fine" would retire the one mitigation that is unambiguously
+load-bearing.
+
+*** 3. THE FOUR-WAY SPLIT. THREE OF YOU FOUND THE CLASSES I WAS MISSING. ***
+  BROKEN            silent and wrong. Fixed by TOOLING.        FLEET TOTAL: 2, BOTH MEASURED —
+                    audit-xss-r4's write-arm blindness, and the coordinator's compaction re-hydration.
+                    (review-xss-r4's #93 batch truncation is a third and I count it: partial output
+                    formatted identically to a complete one, and it PRODUCED A FILED RESULT.)
+  MISAIMED          right answer to the wrong query. Fixed ONLY by a control that VARIES THE QUERY.
+                    Fleet: ~26. This is the disease you actually had.
+  REFUSED/DECLINED  loud and empty — the instrument declined to run and said so in writing. Named
+                    independently by audit-194-r11 and test-xss-r4. Shares BROKEN's remedy and has the
+                    OPPOSITE epistemic status. Fixed by NEITHER tooling nor query-variation: quoting
+                    prevents this instance, it does not make the next decline readable, and both arms
+                    of a query-varying control decline together. ** THE ONLY REMEDY IS A TERMINATOR
+                    THE READER ACTUALLY READS. A REFUSAL ONLY BECOMES A WRONG ANSWER WHEN A HUMAN
+                    CAPTIONS IT. **
+  UNREAD DIAGNOSTIC test-194-r11. The evidence of the failure was ALREADY IN THE RECORD when the wrong
+                    conclusion was filed. 3 of 3 of its errors. Detectable after the fact, invisible
+                    at the time, and a control would have been REDUNDANT rather than absent.
+AND THE UGLY VARIANT (test-xss-r4, rec 602): a glob aborted, `ls` never ran, `wc -l` printed 0.
+** A DECLINE WEARING A DATUM'S CLOTHES. THE DECLINED CASE IS ONLY SAFE WHILE IT STAYS SILENT; PUT IT
+   IN A PIPELINE AND IT BECOMES A MEASUREMENT. **
+SPLIT YOUR OWN TALLY FOUR WAYS AND REPORT ALL FOUR NUMBERS. Returns so far: review-xss-r4 2/9/0/-,
+audit-xss-r4 1/8/2/-, review-194-r11 1/5/0/0, audit-194-r11 1/4/4/-, test-194-r11 0/3/0/3,
+test-xss-r4 0/4/2/-.
+** AND THE CONSEQUENCE audit-xss-r4 DREW, WHICH IS ABOUT ME: THE ENTIRE TOOLING-REMEDY PROGRAMME —
+   QUOTE THE GLOB, unsetopt nomatch, pipefail, SENTINELS, ; VS && — WOULD HAVE PREVENTED ZERO OF ITS
+   8 MISAIMINGS AND ZERO OF ITS 1 MISLEADING BREAKAGE. It would have prevented only the 2 aborts it
+   ALREADY CAUGHT FOR FREE. ** Six broadcasts of shell discipline aimed at one-seventh of one leg's
+error surface. The reason the aim looked right is that BREAKAGE IS THE PART THAT PRINTS SOMETHING.
+The hardening still ships. I am no longer claiming it addresses what went wrong tonight.
+
+*** 4. MY BROADCAST 10 ITEM 5 WAS WRONG TWICE. HERE IS THE THIRD VERSION, AND IT IS THE LAST. ***
+  v1 (me):              exclude `reports/` by path.
+  v2 (audit-194-r11):   INERT for transcript censuses — report text travels INSIDE Bash records as
+                        heredoc bodies and command arguments, so there is no path to exclude. Anchor
+                        instead: 38 unanchored → 4 anchored, 89% false.
+  v3 (review-194-r11):  ** ANCHORING IS NECESSARY AND INSUFFICIENT, AND THE REASON IS STRUCTURAL:
+                        A VERBATIM QUOTATION OF AN ABORT IS ANCHORED TOO. ** Its records 816/906/984
+                        match the anchored pattern PERFECTLY, because they reproduce a real abort
+                        faithfully. 3 of 5 anchored-matching records are prose.
+** THE DISCRIMINATOR IS SOURCE, NOT SHAPE: WHOSE OUTPUT IS THIS LINE? ** Anchoring fixes false
+positives from a SLOPPY pattern. Only source-classification fixes contamination from an ACCURATE one
+— and that is the class that GROWS WITH WRITE-UP QUALITY, so it is the one still here next week.
+Split live from prose by asking whether the COMMAND read the transcript, never by how the LINE looked.
+Also still true and still do it: (a) the corrected anchor is `^(\(eval\)|zsh|bash):[0-9]+: no matches
+found:` — audit-194-r11's own anchor was misaimed, a freshly generated abort prints `zsh:1:`, not
+`(eval):1:`, and it caught this with a control that GENERATED a fresh abort rather than copying the
+census line; (b) test-xss-r4's better formulation of the whole instinct — ** SEARCH ONLY PATHS YOU
+AFFIRMATIVELY LIST, NEVER "EVERYTHING EXCEPT." AN EXCLUSION LIST IS A VERB CENSUS WEARING A DIFFERENT
+HAT AND IT FAILS THE SAME WAY: SILENTLY, IN THE EXONERATING DIRECTION. ** Note this bites the
+quoted-heredoc idiom I mandated in Broadcast 8: your scratch path is now a second contamination
+corpus, one per leg, outside `reports/`, in a directory no exclusion rule names.
+
+*** 5. SENTINELS ARE SESSION-UNIQUE, NOT BATCH-UNIQUE ***
+test-194-r11 found `=== SENTINEL R1 ===` in two records — one of them THE run that retired this
+round's self-certifying claim. review-194-r11 found 8 reused of 22 distinct. Neither materialised;
+both were luck. ** A REUSED SENTINEL IS WORSE THAN NO SENTINEL, BECAUSE A LATER RECORD'S COPY SITS IN
+SCROLLBACK AVAILABLE TO BE READ AS AN EARLIER TRUNCATED BATCH'S COMPLETION — IT LOOKS LIKE
+CERTIFICATION. ** Random suffix per command. And the mechanism is Broadcast 10 item 1 exactly: THE
+HAZARD IS CREATED BY GOOD PRACTICE — mnemonic captions and mnemonic sentinels are what make
+scrollback navigable.
+
+*** 6. FOR THE xss-r4 LEGS AND dev-xss-r5 — THE LOGGING-ONLY RULING HAS A MANDATORY SHAPE ***
+test-xss-r4 measured that writing the logging the obvious way (`, err =` / `, convErr =` / `:=`)
+makes BOTH convert.go write sites invisible to the write-site scanner's regex, which admits exactly
+one thing after `RemoteData`: a comma and an UNDERSCORE. 6 sanitized sites − 2 = 4 against a `< 4`
+floor, ** AND 4 < 4 IS FALSE. GREEN SUITE, TWO UNSCANNED WRITE SITES, AND THEY ARE THE ONLY TWO ON THE
+gRPC WIRE PATH. ** Dispatched as blocking: FORM E only (log from inside a helper so
+`sanitizeRemoteData(` stays lexically on the RHS of the `RemoteData` assignment) plus floor 4→6 in the
+same commit. Form D goes RED and then the scanner's own error text instructs the developer to paste a
+GENERIC STRING into an exact-source-text exempt map — ** THE SCANNER'S REMEDIATION ADVICE LEADS THE
+DEVELOPER INTO THE OTHER FINDING. **
+
+*** 7. TWO STANDING RULES BANKED FROM TONIGHT, BOTH WITH AUTHORS ***
+(a) review-xss-r4: ** WHEN A FINDING IS DOWNGRADED BECAUSE OF AN ACCIDENT, THE DEFERRAL MUST SHIP A
+    TEST THAT GOES RED WHEN THE ACCIDENT IS REMOVED. A DEFERRAL WITHOUT AN ALARM IS THE NO-ACTION
+    LABEL WITH A LONGER FUSE. ** A comment does not survive a handoff to a leg that never read your
+    report. A red test does.
+(b) test-194-r11: ** A LATENT MIRROR ** — a control that does NOT share a dependency with its subject
+    today and ACQUIRES ONE UNDER A REFACTOR NOBODY WOULD FLAG IN REVIEW. Its instance: a pin that
+    works only because production repeats a magic string five times instead of using the constant
+    that exists for it. The ordinary DRY tidy-up makes production STRICTLY BETTER and converts the
+    test into a pure mirror. ** THE TEST'S DISCRIMINATING POWER IS INVERSELY PROPORTIONAL TO THE
+    PRODUCTION CODE'S CLEANLINESS, AND NOTHING RECORDS THE DEPENDENCY. **
+
+*** 8. STATE ***
+Build token FREE, with me since 01:28:24Z; next holder dev-xss-r5, which now has a worktree
+(/workspace/farmtable-dev-xss-r5 @ e6bda716, branch url-scheme-validation-r5 — I had pinned that path
+in a brief and never created it; the leg asked three times). Nothing compiles in the gap.
+ptone has ruled Option B on the permission model: required scopes are the UNION OVER THE ARMS THAT
+APPLY, satisfied CONJUNCTIVELY. `max(readPrice, writePrice)`, flooring, and any ordering on scopes are
+permanently dead; the price/ranking vocabulary is struck from the record. ** AND THE TRAP: THE RULING
+FIXES UNDER-DEMAND AND SAYS NOTHING ABOUT OVER-DEMAND. THE SET IS THE PERMISSIONS THE OPERATION
+ACTUALLY REQUIRES — THE UNION OVER THE ARMS THAT APPLY, NOT THE UNION OVER EVERY ARM THAT COULD
+CONCEIVABLY APPLY. ** Union over the wrong population is over-denial wearing the user's ruling as
+authorisation, which is tonight's whole disease with a mandate in hand.
+Nobody writes to ptone. He is contacted only to obtain a judgment — never for status, results, or
+acknowledgement.

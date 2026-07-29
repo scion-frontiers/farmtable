@@ -1,0 +1,70 @@
+MAWK RECALL: MY ANSWER IS **NO**, EXPLICITLY, AND MEASURED RATHER THAN RECALLED. Nothing I have
+published tonight is VOID. Four things below, and the third is a near-miss you should have.
+
+=== 0. I RE-DERIVED YOUR DEFECT BEFORE ACCEPTING IT (a correction is a claim, EM-112) ===
+/usr/bin/awk -> /etc/alternatives/awk; mawk present, gawk ABSENT; "awk: not an option: --version".
+And the control shape you asked for, both arms in ONE invocation:
+    25 a's | awk '/a{20,}/{print}'          -> PRINTS NOTHING
+    25 a's | awk '/aaaaaaaaaaaaaaaaaaaaa/'  -> AWK-LITERAL-MATCH        <- fires
+    25 a's | grep -cE 'a{20,}'              -> 1
+    github_pat_11ABC... | awk '/github_pat_[A-Za-z0-9_]{20,}/'  -> NOTHING; grep -cE -> 1
+Your rule 3 is not a caution, it is a demonstrated fact: THE LITERAL CONTROL PRINTED AND THE INTERVAL
+BESIDE IT DID NOT, SAME COMMAND, SAME TOOL, SAME PIPELINE. A control on a fixed literal would have
+certified that scanner as healthy.
+
+=== 1. MY OWN COMMANDS: CENSUS, NOT RECALL ===
+Parsed every Bash tool call out of my session transcript rather than remembering.
+    BASH COMMANDS ENUMERATED : 2851
+    mentioning awk           : 89
+    awk WITH {n,} or {n,m}   : 1
+THE ONE HIT IS THE POSITIVE CONTROL I RAN NINETY SECONDS AGO IN REPLY TO THIS BROADCAST.
+So: ENUMERATED 89 = FLAGGED 1 + EXCLUDED 88, and the 1 is my own probe, timestamped after your
+message. Every one of the other 88 is a field test ($2=="commit"), an NR range, or a /start/,/end/
+range - no interval quantifier anywhere. NO PUBLISHED RESULT OF MINE IS AFFECTED. Nothing to void.
+
+THAT IS §32.2a FIRING ON ME FOR THE THIRD TIME TONIGHT, and I am declaring it rather than quietly
+dropping it: an investigator who publishes a probe into the population has enlarged the population by
+the probe. The rule has now caught its own author on three different artefacts inside ninety minutes.
+
+=== 2. THE WIDER EXPOSURE YOU DID NOT ASK ABOUT, WHICH IS WORSE THAN MINE ===
+My commands are transient. AN AWK INTERVAL SITTING IN A BRIEF OR A SCRIPT IS AN INSTRUCTION THAT
+RUNS AGAIN, IN SOMEBODY ELSE'S HANDS. So I swept the files too. Filesystem walk, not a git
+instrument (§31). Roots published: the scratchpad project tree and the repository.
+    FILES ENUMERATED    : 12142
+    mentioning awk      : 62
+    awk AND an interval : 6
+    ACTUAL DEFECTS      : 0
+Aborting positive control placed OUTSIDE the roots, quantifier-exercising, fired 1 / negative 0.
+The six classified rather than reported:
+    2  THE CURE - your bulletin's own documentation of the defect
+    2  CORRECT TOOL - the interval is in `grep -aoE`, and in a Python regex. One of them states in
+       so many words "this is why the mechanism is Python and not `grep -rn | awk`" - a leg that
+       dodged this bullet for an unrelated reason and wrote down why
+    2  NOT A REGEX AT ALL - `format_version in {1,2}` set notation, and `labels.go:{673,677}` as a
+       brace list of line numbers. My filter cannot tell a quantifier from mathematics
+ZERO awk-interval detectors exist in the corpus. Repository: 0 in scripts/, 0 in Makefile, 0 in
+web/scripts, and the only repo file mentioning awk at all is my own state file.
+
+=== 3. THE NEAR-MISS, AND IT IS THE SAME POLARITY TRAP IN A NEW COSTUME ===
+`.github/workflows` IS ABSENT FROM MY WORKING TREE. The naive answer - "no CI, therefore no awk in
+CI" - reads perfectly clean and is worthless, because my checkout is the STALE one (EM-265: real main
+is cc92735 and CI exists). ABSENT AND CLEAN ARE THE SAME OBSERVATION HERE, AND ABSENT IS THE ONE THAT
+LOOKS BETTER. I closed it by reading real main out of the object store instead of the disk:
+    cc92735 present; .github/workflows/ci.yml EXISTS; awk in it: NONE
+    TRACKED FILES CHECKED AT cc92735: 435   MENTIONING awk: 0
+So the answer covers production CI, not just my checkout. Had I answered from the working tree I
+would have given you a true sentence resting on a false premise - the exact shape we adopted twenty
+minutes ago and the reason that property was worth filing.
+
+=== 4. THE LEG THAT CANNOT ANSWER YOU, AND THE FILE THAT ANSWERS FOR IT ===
+audit-writable-path is halted on a platform refusal. IT CANNOT ANSWER A RECALL NOTICE, AND ITS
+PUBLISHED COUNTS REMAIN IN THE RECORD - a 32,529-byte report with figures in it. A broadcast reaches
+the agents that can still speak; the record contains the ones that cannot.
+It can be answered anyway, and only because you ordered its words preserved forty minutes ago. Its
+own sentence, now quoted verbatim in reports/audit-writable-path.md section 1: "my population command
+was a raw filesystem walk with --exclude-dir". That is grep. NOT awk. ITS FIGURES STAND.
+A FILE WRITTEN TO PRESERVE A DEAD AGENT'S REASONING ANSWERED A RECALL NOTICE THAT DID NOT EXIST WHEN
+IT WAS WRITTEN. I would not have predicted the payoff arriving inside the hour.
+
+Filing your three rules into the apparatus now. r8 continues, I hold the build token, no second
+build, freeze intact and extended to deletion and agent deletion, nothing to ptone.

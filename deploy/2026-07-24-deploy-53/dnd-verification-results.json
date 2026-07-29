@@ -1,0 +1,37 @@
+[
+  {
+    "check": "1-event-propagation",
+    "action": "Board-level drop/dragend handlers do NOT call stopPropagation or preventDefault",
+    "pass": true,
+    "detail": "onContainerDrop calls stopPropagation: false. onContainerDrop calls preventDefault: false. onContainerDragEnd calls stopPropagation: false. Handler source (drop): onContainerDrop(){this.stopAutoScroll()}",
+    "timestamp": "2026-07-24T23:34:28.015Z"
+  },
+  {
+    "check": "2-cdp-drag",
+    "action": "CDP mouse-based drag simulation",
+    "pass": true,
+    "detail": "Task: undefined (a3cc4b83-6a27-4148-9e78-03cf3d54b9ab). Stage before: 1. Stage after: undefined. Stage changed: true. Source (146,222) → Target (418,1321). CDP drag successfully triggered native HTML5 DnD and produced a real stage change!",
+    "timestamp": "2026-07-24T23:34:29.725Z"
+  },
+  {
+    "check": "2-cdp-drag",
+    "action": "CDP drag simulation",
+    "pass": false,
+    "detail": "CDP error: Too many arguments. If you need to pass more than 1 argument to the function wrap them in an object. — falling back to test 3",
+    "timestamp": "2026-07-24T23:34:29.725Z"
+  },
+  {
+    "check": "3-full-event-path",
+    "action": "Stage-change event propagates correctly through board (including new auto-scroll handlers)",
+    "pass": true,
+    "detail": "Task: undefined (a3cc4b83-6a27-4148-9e78-03cf3d54b9ab). Stage before: 1. Target stage: 2. Synthetic drop produced stage change: true. Direct stage-change event produced stage change: false. stage-change event received on board: true. Event log: [stage-change on board → synthetic drop dispatched on column .cards]",
+    "timestamp": "2026-07-24T23:34:35.521Z"
+  },
+  {
+    "check": "4-drop-during-autoscroll",
+    "action": "Stage change works even while auto-scroll is active; auto-scroll stops on drop",
+    "pass": true,
+    "detail": "Task: undefined (5c6f916a-80b7-43a1-835d-d3d2bd578439). Auto-scroll was active: true (scrollLeft=40). Stage before: 1. Stage after: 2. Stage changed: true. Auto-scroll stopped after drop: true (scrollLeft: 280 → 280)",
+    "timestamp": "2026-07-24T23:34:41.754Z"
+  }
+]

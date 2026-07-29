@@ -1,0 +1,59 @@
+go: downloading github.com/spf13/cobra v1.10.2
+go: downloading github.com/mark3labs/mcp-go v0.52.0
+go: downloading google.golang.org/genai v1.64.0
+go: downloading github.com/go-jose/go-jose/v4 v4.1.4
+go: downloading github.com/gorilla/sessions v1.4.0
+go: downloading github.com/improbable-eng/grpc-web v0.15.0
+go: downloading github.com/spf13/pflag v1.0.10
+go: downloading cloud.google.com/go/auth v0.9.3
+go: downloading cloud.google.com/go v0.116.0
+go: downloading github.com/gorilla/websocket v1.5.3
+go: downloading github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+go: downloading github.com/google/jsonschema-go v0.4.2
+go: downloading github.com/spf13/cast v1.10.0
+go: downloading github.com/yosida95/uritemplate/v3 v3.0.2
+go: downloading github.com/gorilla/securecookie v1.1.2
+go: downloading cloud.google.com/go/compute/metadata v0.9.0
+go: downloading github.com/cenkalti/backoff/v4 v4.1.1
+go: downloading github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f
+go: downloading github.com/rs/cors v1.7.0
+go: downloading nhooyr.io/websocket v1.8.6
+go: downloading go.opencensus.io v0.24.0
+go: downloading github.com/google/s2a-go v0.1.8
+go: downloading github.com/googleapis/enterprise-certificate-proxy v0.3.4
+go: downloading github.com/klauspost/compress v1.11.7
+go: downloading github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+go: downloading golang.org/x/crypto v0.51.0
+?   	github.com/farmtable-io/farmtable	[no test files]
+?   	github.com/farmtable-io/farmtable/api/farmtable/v1	[no test files]
+?   	github.com/farmtable-io/farmtable/cmd/decomposer	[no test files]
+ok  	github.com/farmtable-io/farmtable/cmd/farmtable-server	0.009s
+?   	github.com/farmtable-io/farmtable/cmd/ft	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/cli	0.014s
+?   	github.com/farmtable-io/farmtable/internal/convert	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/decomposer	0.008s
+ok  	github.com/farmtable-io/farmtable/internal/mcp	0.008s
+?   	github.com/farmtable-io/farmtable/internal/platform	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/platform/beads	0.012s
+ok  	github.com/farmtable-io/farmtable/internal/platform/github	0.016s
+ok  	github.com/farmtable-io/farmtable/internal/server	0.650s
+ok  	github.com/farmtable-io/farmtable/internal/serverapp	0.056s
+ok  	github.com/farmtable-io/farmtable/internal/store	0.333s
+?   	github.com/farmtable-io/farmtable/internal/store/ent	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/apitoken	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/change	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/collection	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/comment	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/enttest	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/hook	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/linkedaccount	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/migrate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/predicate	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/relationship	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/runtime	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/task	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/ent/user	[no test files]
+?   	github.com/farmtable-io/farmtable/internal/store/schema	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/streaming	0.909s
+?   	github.com/farmtable-io/farmtable/internal/testutil	[no test files]
+ok  	github.com/farmtable-io/farmtable/internal/webguard	0.008s

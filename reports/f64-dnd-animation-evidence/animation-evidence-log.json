@@ -1,0 +1,1024 @@
+[
+  {
+    "timestamp": 1784853576294,
+    "phase": "BEFORE",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 150,
+        "y": 1280,
+        "name": "Task Delta"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      }
+    },
+    "viewport": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853576350,
+    "phase": "DND_DISPATCH",
+    "success": true
+  },
+  {
+    "timestamp": 1784853576414,
+    "phase": "02-frame-16ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 156.37,
+        "y": 1260.88,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": false,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853576546,
+    "phase": "03-frame-100ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 235.92,
+        "y": 1022.24,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": false,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853576697,
+    "phase": "04-frame-200ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 398.78,
+        "y": 533.67,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": false,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853576847,
+    "phase": "05-frame-300ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 469.28,
+        "y": 322.17,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": true,
+      "edgeAnimating": false,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853576999,
+    "phase": "06-frame-400ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": true,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0.3,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577147,
+    "phase": "07-node-done-500ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": true,
+      "animatingEdge": {
+        "from": "cc8f2feb-45bd-4417-9da5-8f6cba5ff618",
+        "to": "143ed336-ef5d-4ace-b6e9-f8bd7101bba6"
+      },
+      "edgeProgress": 0.94,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577297,
+    "phase": "08-edge-draw-600ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577446,
+    "phase": "09-edge-draw-700ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577596,
+    "phase": "10-edge-done-800ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577845,
+    "phase": "11-complete-1000ms",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "anim": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577848,
+    "phase": "FINAL",
+    "positions": {
+      "34e2fa0e-089a-4e3f-971b-76fbb534b2d5": {
+        "x": 150,
+        "y": 80,
+        "name": "Task Alpha"
+      },
+      "d33973cb-0f66-436c-aff9-38ca13e917f4": {
+        "x": 150,
+        "y": 200,
+        "name": "Task Beta"
+      },
+      "151ae37c-d295-42ec-a660-d80df18e37d3": {
+        "x": 150,
+        "y": 320,
+        "name": "Task Gamma"
+      },
+      "191eae3f-955c-4932-8079-da545c4c19c9": {
+        "x": 150,
+        "y": 440,
+        "name": "Task Delta"
+      },
+      "1eaa8cc0-2b9d-45ce-a01f-1408adcef922": {
+        "x": 150,
+        "y": 560,
+        "name": "Task Alpha"
+      },
+      "72bdcef3-0ec4-4384-812d-299365974c31": {
+        "x": 150,
+        "y": 680,
+        "name": "Task Beta"
+      },
+      "a78bab98-3201-4112-8e33-d368c328275c": {
+        "x": 150,
+        "y": 800,
+        "name": "Task Gamma"
+      },
+      "44c707b7-dc23-4690-9e82-f05fa21024b7": {
+        "x": 150,
+        "y": 920,
+        "name": "Task Delta"
+      },
+      "885c9957-ebeb-4b51-b4dd-fbfb97fd4a51": {
+        "x": 150,
+        "y": 1040,
+        "name": "Test Task"
+      },
+      "cc8f2feb-45bd-4417-9da5-8f6cba5ff618": {
+        "x": 150,
+        "y": 1160,
+        "name": "Task Alpha"
+      },
+      "c0ed37ea-20db-4ed2-9e45-3320545aa03b": {
+        "x": 470,
+        "y": 80,
+        "name": "Task Beta"
+      },
+      "5cf43f4e-83e2-44b7-a00b-53791a53c1b2": {
+        "x": 470,
+        "y": 200,
+        "name": "Task Gamma"
+      },
+      "143ed336-ef5d-4ace-b6e9-f8bd7101bba6": {
+        "x": 470,
+        "y": 320,
+        "name": "Task Delta"
+      }
+    },
+    "viewport": {
+      "nodeAnimating": false,
+      "edgeAnimating": false,
+      "animatingEdge": null,
+      "edgeProgress": 0,
+      "panX": -927.08,
+      "panY": 0,
+      "scale": 0.504
+    }
+  },
+  {
+    "timestamp": 1784853577848,
+    "phase": "VERIFY_BLOCKING_NODE",
+    "graphBefore": {
+      "x": 150,
+      "y": 1160,
+      "name": "Task Alpha"
+    },
+    "graphAfter": {
+      "x": 150,
+      "y": 1160,
+      "name": "Task Alpha"
+    },
+    "screenDrift": 0,
+    "verdict": "PASS"
+  },
+  {
+    "timestamp": 1784853577849,
+    "phase": "VERIFY_BLOCKED_NODE",
+    "before": {
+      "x": 150,
+      "y": 1280,
+      "name": "Task Delta"
+    },
+    "after": {
+      "x": 470,
+      "y": 320,
+      "name": "Task Delta"
+    },
+    "distance": 1011.9288512538814,
+    "verdict": "PASS"
+  },
+  {
+    "timestamp": 1784853577849,
+    "phase": "VERIFY_VIEWPORT",
+    "scaleBefore": 0.504,
+    "scaleAfter": 0.504,
+    "verdict": "PASS"
+  }
+]

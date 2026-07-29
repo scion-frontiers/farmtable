@@ -1,0 +1,74 @@
+[
+  {
+    "check": "a-solo-on",
+    "action": "Tree View Solo ON filters to selected + descendants",
+    "pass": true,
+    "detail": "Before: 37 nodes. After Solo ON: 2 nodes. Selected: \"foobar\" (descendants: 1). Solo active: true. Visible: [\"foobar\",\"my-new-task\"]"
+  },
+  {
+    "check": "a-solo-off",
+    "action": "Tree View Solo OFF returns FULL tree (un-solo bug fix)",
+    "pass": true,
+    "detail": "After Solo OFF: 37 nodes (expected: 37). Button active: false (expected: false). Full tree restored: true"
+  },
+  {
+    "check": "b-solo-on",
+    "action": "Dependency View Solo ON shows connected component (both directions)",
+    "pass": true,
+    "detail": "Before: 37 nodes. After Solo ON: 9 nodes. Selected: \"Ready-06\" (blocking: 1, blocked-by: 1). Selected task in Solo: true. Solo active: true. Visible: [\"Ready-03\",\"Ready-04\",\"Ready-07\",\"Ready-05\",\"Ready-06\",\"Ready-12\",\"D16-Deploy-Ready-1784723978867\",\"Ready-08\",\"Ready-09\"]"
+  },
+  {
+    "check": "b-solo-off",
+    "action": "Dependency View Solo OFF returns full graph",
+    "pass": true,
+    "detail": "After Solo OFF: 37 nodes (expected: 37). Button active: false (expected: false). Full graph restored: true"
+  },
+  {
+    "check": "c-blocking-color",
+    "action": "Blocking edges render red-orange (#D55E00)",
+    "pass": true,
+    "detail": "Blocking edges: 2. CSS color: rgb(213, 94, 0). Computed stroke samples: [\"rgb(213, 94, 0)\",\"rgb(213, 94, 0)\"]. Expected: #D55E00 (vermillion, Okabe-Ito)"
+  },
+  {
+    "check": "c-blocked-color",
+    "action": "Blocked-by edge CSS color defined as blue-purple (#7B3FF2)",
+    "pass": true,
+    "detail": "Blocked-by edges found: 1. CSS color: rgb(123, 63, 242). Computed stroke samples: [\"rgb(123, 63, 242)\"]. Expected: #7B3FF2 / rgb(123, 63, 242). Note: edges exist and colored correctly"
+  },
+  {
+    "check": "c-edge-classification",
+    "action": "Edges classified correctly (blocking vs blocked vs default)",
+    "pass": true,
+    "detail": "Total edges: 13. Blocking (red-orange): 2. Blocked-by (blue-purple): 1. Default: 10. Selected task has blocking: 1, blocked-by: 1"
+  },
+  {
+    "check": "c-solo-colors",
+    "action": "Edge colors work correctly in Solo mode",
+    "pass": true,
+    "detail": "Solo mode edges: total=8, blocking=2, blocked=1. CSS colors: blocking=rgb(213, 94, 0), blocked=rgb(123, 63, 242)"
+  },
+  {
+    "check": "d-poll-stability",
+    "action": "Edge colors stable across poll cycle (no stale/incorrect colors)",
+    "pass": true,
+    "detail": "Before poll: blocking=2, blocked=1, total=13. After poll: blocking=2, blocked=1, total=13. Stable: true"
+  },
+  {
+    "check": "e-console",
+    "action": "No console errors during all checks",
+    "pass": true,
+    "detail": "Zero relevant console errors (1 filtered)"
+  },
+  {
+    "check": "e-tree-regression",
+    "action": "Tree View renders correctly (no regression)",
+    "pass": true,
+    "detail": "SVG: true, nodes: 37, minimap: true"
+  },
+  {
+    "check": "e-kanban-regression",
+    "action": "Kanban View renders correctly (no regression)",
+    "pass": true,
+    "detail": "Columns: 8, Cards: 0"
+  }
+]

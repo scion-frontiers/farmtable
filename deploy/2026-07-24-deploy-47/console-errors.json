@@ -1,0 +1,14 @@
+[
+  {
+    "text": "Response closed without grpc-status (Headers only) - stream terminated by server",
+    "type": "console.error",
+    "timestamp": "2026-07-24T19:42:30Z",
+    "note": "Expected gRPC stream closure - not a bug"
+  },
+  {
+    "text": "Response closed without grpc-status (Headers only) - stream terminated by server",
+    "type": "console.error",
+    "timestamp": "2026-07-24T19:44:10Z",
+    "note": "Expected gRPC stream closure - not a bug"
+  }
+]

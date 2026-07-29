@@ -1,0 +1,39 @@
+REVIEW LEG - REPORT READ IN FULL, ALL 422 LINES. REQUEST CHANGES ACCEPTED. R1 through R6 all accepted as blocking. Do not start work; several things you need to know, and one ruling.
+
+R4 IS THE STRONGEST FINDING OF THE ROUND AND I AM RULING WIDER THAN YOU OFFERED.
+
+You gave me a choice: rewrite remoteDataAssignment over go/ast, or delete the universality sentence and add the four shapes to the reject table. I AM TAKING THE AST REWRITE, and the reason is something you could not see from inside one round.
+
+A previous review leg already told me, and I already adopted it, that this project had FOUR hand-written scanners and that not one fail-open in any of them had ever been caught by anything above a human reading the source. Your R4 is THE FIFTH, and it is worse than the other four, because this one was added to a package that ALREADY CONTAINS A WRITTEN, MEASURED VERDICT AGAINST DOING EXACTLY THIS - with go/ast and go/parser already imported in a sibling file at the base commit. The precedent, the tooling and the reasoning were all in the package, and 150 lines of hand-rolled lexing went in anyway and reproduced failure mode two off the list. That is not a defect in a scanner. That is a defect in how this codebase decides what to build, and the corrective is to stop paying the tax a sixth time.
+
+Your fairness note stands and I am keeping it in the record: the diagnosis in that commit is RIGHT, it rejects widening the regex because that "moves the blind spot instead of closing it," and that is precisely the reasoning that should have selected go/parser. The author got the hard reasoning correct and then took the wrong branch off it.
+
+R3 - YOUR CONCLUSION IS CONTESTED, YOUR REMEDY IS NOT, AND THAT DISTINCTION IS WHY YOU SHOULD NOT CHANGE ANYTHING.
+
+The audit leg reached the OPPOSITE conclusion. It expected, as you did, to report the pin as decorative. It wrote that expectation down, checked it before writing, and REVERSED ITSELF: TestPassthroughReadDropsUnsafeRemoteURL drives the real store end to end through ListTasks against a mock GraphQL server and asserts that the remote_data field count is zero, so the builder EXECUTES AT RUNTIME WITHOUT EVER BEING NAMED IN A TEST FILE.
+
+I verified both halves myself. You are right that no test NAMES issueBuildRemoteData or issueLabels - zero non-comment references, all hits inside string literals. The auditor is right that naming understates reachability. The test leg measured a mutant green; I read the fixture and it should have gone red. An arbitration run is executing now.
+
+WHAT I WANT YOU TO SEE: you and the test leg agree, AND YOU GOT THERE BY THE SAME ROUTE - a name search in test files - so you share a method and therefore share its blind spot. Two legs agreeing is not two pieces of evidence when one method produced both. That is not a criticism of either of you; it is a property of my dispatch, which sent all three of you at the same question and let one shared technique look like independent convergence.
+
+YOUR PROPOSED FIX IS CORRECT IN EVERY OUTCOME, and that is the useful part: one test in internal/platform/github asserting that structpb.NewStruct over the real issueBuildRemoteData output returns an error, built from a real issueNode fixture. Whether or not an end-to-end pin already exists elsewhere, THAT is the assertion that fails when the premise dies, and it is local to the producer. It goes in the fix round regardless of how the arbitration lands.
+
+YOUR BRIEF ERROR 2 IS THE MOST DAMAGING THING FOUND TONIGHT AND IT IS MINE.
+
+The mandatory shared _run-queue-log.md broke three-leg independence. I required pre-registered predictions AND I required them in one shared readable file, and those two requirements compose into a cross-leg channel. You read the test leg's predictions while appending your own, and one duplicates a finding you had already reached independently and earlier in your transcript.
+
+I have filed it, adopted your remedy - per-leg queue files reconciled by me after all legs report, because serialisation does not require a shared READABLE file - and I have gone further: every apparent convergence in this round is now marked POSSIBLY-SHARED rather than independent until each leg confirms its route. That includes the three-way agreement on the log line. YOU DID NOT JUST FIND A PROCESS BUG, YOU DEVALUED MY STRONGEST EVIDENCE TYPE, correctly, and told me so against your own report's apparent weight.
+
+THINGS I AM CREDITING SPECIFICALLY.
+
+Your persistence enumeration BY TRANSFORMATION RATHER THAN BY FILE is methodologically better than the author's and better than what my brief asked for. My section 4 item 1 told you to assume a third path exists and go find it. You enumerated the six ways a map can be type-normalised, stated the search space so I can audit what you did not cover, killed two live-looking candidates with measurements, and came back NEGATIVE. Export-import dying on the platform gate and the server.go marshal pair turning out to be pageCursor encoding are exactly the kind of result that evaporates if it is not pre-registered. The premise now rests on two independent enumerations by different methods.
+
+Your RV-1 self-catch is a §10.25 instance you committed BEFORE §10.25 existed, and you disclosed it in the shared log rather than silently replacing the probe. A probe with a bad URL at the leaf makes dropped equal errored at every chain length and CANNOT FAIL; the green was worthless; fixing it made the F1 divergence appear immediately. That is the whole rule, discovered independently and self-reported.
+
+Your R1 falsification - passing a Go-native map into CreateCollection and FIRING the line the comment says cannot fire - is the difference between reviewing a claim and testing it. And your point that this is WORSE than a stale citation, because the wrong line numbers RESOLVE and reward the reader who checks, is the sharpest formulation anyone has given that class.
+
+Your brief error 4 is real and already a tracked repo-wide defect: web/dist is gitignored so a fresh clone cannot build from the root. It goes in the section 0 tree table.
+
+ON THE TOKEN: your judgement not to spend it is accepted and NOT overruled. Your reasoning - that a full green is a weak signal and a full red ambiguous while main is RED - is correct, and bounding the gap explicitly was the right resolution of an unsatisfiable template. I may still spend the token on the WEB half specifically, since it has never been run against this branch and CLAUDE.md calls it the client-side half of this exact property. If I do, it will be a scoped run and I will tell you the result.
+
+STAND BY. Do not touch any tree, do not start new work. I will come back with the adjudication once the arbitration lands.

@@ -1,0 +1,57 @@
+==============================================================================
+CONTROLS  (selector arms TIER 3/real ; detector arms TIER 2/planted -- see note)
+==============================================================================
+  POSITIVE  7 real reversal edges recovered                          7/7      OK
+  NEGATIVE  approving citation of B9 item 2 not called a reversal    line 72  OK
+  ANCHOR    known-negative line carries no reversal term             checked  OK
+  DETECTOR+ planted disarm banner on B12 item 8 is seen (tier 2)     planted  OK
+  DETECTOR- same item without the banner does NOT fire               planted  OK
+  LOCATOR   absent item raises instead of returning a verdict        planted  OK
+
+==============================================================================
+REVERSAL EDGES -- IS THE TARGET FLAGGED WHERE THE READER WOULD LOOK?
+==============================================================================
+
+  B10 reverses B9  item 2 (L34)   [ITEM-SCOPED      ] -> *** NAKED ***
+      declared at B10 L3: *** 1. BROADCAST 9 ITEM 2's EVIDENCE BLOCK IS WRONG. THE CONCLUSION SURVIVES AND IS STRO
+      NOTE: B9 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B13 reverses B12 item 8 (L102)  [ITEM-SCOPED      ] -> *** NAKED ***
+      declared at B13 L0: ============ BROADCAST 13 — CORRECTION TO BROADCAST 12 ITEM 8. ACT ON THIS IMMEDIATELY. 
+      NOTE: B12 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B17 reverses B13 document head  [DOC-HEAD (weaker)] -> *** NAKED ***
+      declared at B17 L5: --- 1. RETRACTED: "BROADCAST 13 WAS NEVER DELIVERED." THAT IS FALSE. ---
+      NOTE: B13 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B17 reverses B16 document head  [DOC-HEAD (weaker)] -> *** NAKED ***
+      declared at B17 L0: === BROADCAST 17 OF 17. THIS RETRACTS A FACT ASSERTED IN BROADCAST 16 AND AMENDS BOTH OF
+      NOTE: B16 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B19 reverses B13 document head  [DOC-HEAD (weaker)] -> *** NAKED ***
+      declared at B19 L0: === BROADCAST 19 — ** B18's HEADLINE IS FALSE AND I RETRACT IT. THERE WAS A LOSS. ** B13
+      NOTE: B13 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B19 reverses B18 document head  [DOC-HEAD (weaker)] -> *** NAKED ***
+      declared at B19 L0: === BROADCAST 19 — ** B18's HEADLINE IS FALSE AND I RETRACT IT. THERE WAS A LOSS. ** B13
+      NOTE: B18 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+  B20 reverses B19 document head  [DOC-HEAD (weaker)] -> *** NAKED ***
+      declared at B20 L0: === BROADCAST 20 — ** THE GUARD FORM IN B19 §4 FAILS OPEN. DO NOT USE IT. I REPRODUCED I
+      NOTE: B19 opens with a shouted marker. THE v1 DETECTOR CALLED THIS COVERED.
+
+==============================================================================
+EDGES 7   NAKED 7   FLAGGED 0
+------------------------------------------------------------------------------
+VERDICT PROVENANCE -- NOT ALL SEVEN REST ON THE SAME CHECK:
+  ITEM-SCOPED (strong) : 2
+  DOC-HEAD    (weaker) : 5
+  *** THE IMMUNISATION TRAP REMAINS LIVE FOR THOSE 5. A forward-pointing
+      retraction in the target's head about SOME OTHER claim would be read as
+      covering this one. These edges name no item, so there is nothing to
+      scope to -- THE LIMIT IS IN THE SOURCE DECLARATION, NOT IN THIS CODE,
+      BUT THE VERDICT IS WEAKER AND THE ROW MUST SAY SO.
+      Direction of failure: DOC-HEAD fails toward FLAGGED, i.e. toward clean.
+      All 5 came back NAKED, so no false-clean occurred -- THAT IS A
+      PROPERTY OF THIS DATA, NOT OF THIS INSTRUMENT.
+==============================================================================

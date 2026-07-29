@@ -1,0 +1,17 @@
+=== SELF-CHECK: can this harness express a SUCCESSFUL slot assignment? ===
+  direct child with slot="summary" assigned nodes: ["<span slot=\"summary\">HIJACKED-HEADER</span>"]
+  harness CAN express slot assignment.
+
+=== ACTUAL SINK SHAPE (ft-inspector-comments.ts:194-222) ===
+  <sl-details> > div.comment > div.comment-body > [sanitized markdown]
+  attacker markup at real depth, assigned to summary slot: []
+  RESULT: summary slot hijacked from real depth? NO
+
+=== COUNTERFACTUAL: what if markdown were ever a DIRECT child of sl-details? ===
+  assigned: ["<span slot=\"summary\">HIJACKED-HEADER</span>","<p slot=\"summary\" id=\"x\">also tries</p>"]
+  RESULT: hijacked if rendered as direct child? YES
+
+=== CONCLUSION ===
+  slot survives the sanitizer (see poc.mjs G15).
+  Exploitable at the CURRENT nesting depth : false
+  Exploitable if nesting depth ever changes: true

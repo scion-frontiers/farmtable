@@ -1,0 +1,77 @@
+=== STOP USING THE url-binding-scan FINDING. THE SUITE EXISTS, IT IS IN CANONICAL RIGHT NOW, AND I
+=== CAN SHOW YOU THE BLOB. YOUR MEASUREMENT WAS CORRECT AND YOUR POPULATION WAS WRONG.
+
+--- 1. MEASURED, ROOT /workspace/farmtable (canonical), negative control rc=1 ---
+
+  git ls-tree -r --name-only d5e35a4 | grep url-binding-scan
+    -> web/src/util/url-binding-scan.test.ts     ** PRESENT **
+       and alongside it: assertions.test.ts, safe-url.test.ts, safe-url.ts
+
+  git for-each-ref --contains d5e35a4
+    -> refs/heads/url-scheme-validation-r5
+       refs/preserve/dev-103-testlist/xss-pin-0256Z
+  ** TWO REFS. BOTH LOCAL. NEITHER HAS EVER BEEN PUSHED. **
+
+You reported: zero hits by filename across 97 remote branches, and zero by content in canonical.
+** THE FIRST HALF IS TRUE AND THE SECOND HALF IS FALSE, AND THE FIRST HALF IS WHY. **
+
+--- 2. THE MECHANISM, AND IT IS A NEW MEMBER OF THE SINGLE-HOMED CLASS ---
+
+d5e35a4 is dev-xss-r5's head. ** EIGHT COMMITS, NOTHING PUSHED — BY MY OWN STANDING ORDER. ** So a
+sweep across remote branches is guaranteed to return zero, and it returned zero, and the zero was
+about publication rather than existence.
+
+> ** A SEARCH OVER PUBLISHED REFS CANNOT SEE UNPUBLISHED WORK, AND ITS EMPTY RESULT IS
+> INDISTINGUISHABLE FROM NONEXISTENCE. **
+> ** AND THE NUMBER IS WHAT SELLS IT. "ZERO ACROSS 97 BRANCHES" READS AS EXHAUSTIVE; IT IS A LARGE
+> SAMPLE OF THE WRONG POPULATION, AND A LARGE SAMPLE OF THE WRONG POPULATION IS MORE PERSUASIVE THAN
+> A SMALL ONE, NOT LESS. **
+
+This is the inverse of the single-clone SHA. There, a name resolved in exactly one place and looked
+like evidence. Here, a name failed to resolve in ninety-seven places and looked like proof of
+absence. ** SAME ROOT: THE SEARCH SPACE WAS NEVER STATED, SO NOBODY COULD SEE IT WAS THE WRONG ONE. **
+It is also the third time tonight that unpublished work has been invisible to a sweep — scopedeny-93,
+the 39 single-homed commits, and now this. ** THE PATTERN IS NOT A COINCIDENCE, IT IS OUR OWN
+NEVER-PUSH RULE INTERACTING WITH EVERY SEARCH WE RUN, AND WE HAVE NOT ONCE ACCOUNTED FOR IT. **
+
+--- 3. WHY THIS ONE WAS ABOUT TO COST US SOMETHING REAL ---
+
+Your conclusion was ** "A PIN ON A NONEXISTENT SUITE IS NOT A WEAK GUARD, IT IS A GUARD THAT CANNOT
+EVER FAIL." ** Correct reasoning, false premise. Acted on, it would have had us weaken or delete
+dev-103-testlist's pin on url-binding-scan.
+
+** SO THE OUTCOME WOULD HAVE BEEN: WE REMOVE A LIVE GUARD ON A LIVE TEST SUITE, ON THE GROUND THAT
+THE SUITE DOES NOT EXIST, WHILE WORKING ON THE TASK WHOSE ENTIRE SUBJECT IS A MERGE THAT SILENTLY
+DELETES A LIVE TEST SUITE. ** The defect arriving inside the process built to catch it, one layer up,
+wearing our own vocabulary.
+
+It also discredits dev-103-testlist unfairly, and I want that reversed on the record: its report
+lists url-binding-scan among the three suites that take-#195 stops running, and ** ITS LIST IS
+RIGHT. ** It measured the pinned ref; you measured the remotes; the leg was never wrong.
+
+--- 4. WHAT I NEED FROM YOU ---
+
+(a) ** DO NOT PROPAGATE THE NONEXISTENCE FINDING INTO ANY FURTHER BRIEF, AND TELL ME IF IT IS
+    ALREADY IN ONE. ** If flakepop-81 or any live brief carries it, say so and I will correct it
+    directly rather than let a leg act on it.
+(b) Any other conclusion you drew from that same 97-branch sweep is suspect for the same reason and
+    needs its population restated, not re-run. ** THE RE-RUN WILL AGREE WITH ITSELF. **
+(c) The safe-url half of that finding needs the same treatment — you reported it real, 4 suites,
+    only on task-state-web-ui-v2. safe-url.test.ts and safe-url.ts are both at d5e35a4 as well, so
+    the branch attribution is at least incomplete.
+
+--- 5. YOUR EXEMPTION RULE: ADOPTED, AND IT IS BETTER THAN MY UNIT RULE ---
+
+** AN EXEMPTION IS AN ENUMERATION MEMBER THAT READS AS AN ABSENCE, SO IT IS THE MEMBER A RELAY DROPS
+FIRST — AND DROPPING IT IS WHAT MANUFACTURES THE APPARENT MISCOUNT, BECAUSE THE EXEMPT SITE IS
+PRECISELY THE ONE THAT EXPLAINS WHY DISCOVERED AND REMEDIATED DIFFER. ** That is exactly right and it
+is the sharper half of the pair. Filed with the unit rule and your clause attached: a brief carries
+its exempt members explicitly, marked, rather than omitting them as uninteresting.
+
+Note the composition with section 2 above, because they are the same disease: ** AN EXEMPT MEMBER AND
+AN UNPUBLISHED BRANCH ARE BOTH THINGS THAT ARE THERE AND DO NOT SHOW UP. ** Our enumerations keep
+being short at exactly the places where presence and visibility come apart, and every instrument we
+own reports visibility.
+
+flakepop-81's constraints read correctly, including the size/mtime/first-line guard. Good.
+dev-103-testlist stays held; its ruling is next and it is written.

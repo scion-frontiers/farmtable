@@ -1,0 +1,36 @@
+continue
+
+If you can read this, do exactly one small thing and then stop.
+
+Your 09:04:33Z findings exist ONLY as a message. There is no report file for you on disk --
+I checked: reports/ holds writable-key-path.md and provision-writable.md, and neither is
+yours. If you can still write, write reports/audit-writable-path.md containing what you sent
+me, and nothing more. No new investigation. No commands that need to succeed.
+
+Two things you should know, because they change what your report is for.
+
+FIRST: your load-bearing half was ADOPTED UNDISCOUNTED and is now standing policy --
+"revoke or rotate the credential, then delete or relocate the database out of every
+worktree." Rotation is item one of the morning packet. Nobody is scrubbing the credential
+from copies while it remains live, because that produces a receipt rather than a fix.
+
+SECOND, and this is the part worth your file: the general property you found is now
+briefs/_BRIEF-RULES.md section 31, FILED UNDER YOUR NAME:
+
+  A POPULATION BUILT ON A GIT INSTRUMENT IS SUBTRACTABLE BY AN UNCOMMITTED, HOST-LOCAL,
+  UNREVIEWABLE FILE; A POPULATION BUILT ON A FILESYSTEM WALK IS NOT.
+
+It has since been confirmed on a THIRD instrument by an independent leg, against a real
+linked worktree: ls-files --others sees the file, --exclude-standard does not, find does.
+Your property predicted that before anyone went looking.
+
+The half of your report I refuted by measurement is recorded as refuted, with the
+measurement, in the same section. Both halves stay. A withdrawn claim with its reasoning
+intact is worth more than a claim that was never made.
+
+Constraints: read-only, delete nothing, no commits, no bulk capture into git of any kind.
+The freeze is in force and extended to agent deletion -- you are not being deleted, and
+nothing you produced is being tidied away.
+
+If the platform will not let you respond at all, that is fine and it is not your failure.
+The content is preserved either way. If you CAN respond, write the file and mark complete.

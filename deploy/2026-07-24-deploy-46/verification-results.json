@@ -1,0 +1,127 @@
+{
+  "testDate": "2026-07-24T19:25:12.294Z",
+  "deployRevision": "farmtable-00053-brh",
+  "commitSha": "44056dea0a9cf5987b03a1160d4bce1db6ffb4ce",
+  "feature": "Feature 66 — Sticky Solo state + BFS fix (PR #150)",
+  "serviceUrl": "https://farmtable-486315127503.us-central1.run.app",
+  "result": "ALL PASS",
+  "passCount": 20,
+  "failCount": 0,
+  "totalChecks": 20,
+  "collectionUsed": {
+    "id": "1e0f02d1-99cd-46bc-a739-bac0fde60710",
+    "name": "default"
+  },
+  "testTask": {
+    "id": "717ab19c-e86f-4c51-8126-fc16a8f81ef7",
+    "blocksCount": 2,
+    "blockedByCount": 3,
+    "totalRels": 5
+  },
+  "expectedReachable": {
+    "selectedTaskId": "717ab19c-e86f-4c51-8126-fc16a8f81ef7",
+    "reachableCount": 8
+  },
+  "checks": [
+    {
+      "check": "a-solo-directed-reachability",
+      "pass": true,
+      "detail": "Solo nodes: 8, Expected: 8, Full graph: 37"
+    },
+    {
+      "check": "a-solo-button-active",
+      "pass": true,
+      "detail": "isolateBtnActive: true"
+    },
+    {
+      "check": "a-solo-url-param",
+      "pass": true,
+      "detail": "URL contains solo=1"
+    },
+    {
+      "check": "b-solo-sticky-tree-view",
+      "pass": true,
+      "detail": "app.isolateMode: true, hierNav.isolateMode: true, isolateBtnActive: true"
+    },
+    {
+      "check": "c-solo-still-on-dependency",
+      "pass": true,
+      "detail": "isolateBtnActive: true, isolateMode: true"
+    },
+    {
+      "check": "c-solo-still-filtered",
+      "pass": true,
+      "detail": "Solo nodes on return: 8, Expected: 8"
+    },
+    {
+      "check": "d-solo-off-dependency",
+      "pass": true,
+      "detail": "isolateBtnActive: false, isolateMode: false"
+    },
+    {
+      "check": "d-solo-url-removed",
+      "pass": true,
+      "detail": "URL no longer contains solo=1"
+    },
+    {
+      "check": "d-full-graph-restored",
+      "pass": true,
+      "detail": "Nodes after unsolo: 37"
+    },
+    {
+      "check": "d-solo-off-tree-view",
+      "pass": true,
+      "detail": "app.isolateMode: false, hierNav.isolateMode: false"
+    },
+    {
+      "check": "e-dashboard-no-solo",
+      "pass": true,
+      "detail": "No Solo button or isolateMode in dashboard"
+    },
+    {
+      "check": "e-ready-queue-no-solo",
+      "pass": true,
+      "detail": "No Solo button or isolateMode in ready-queue"
+    },
+    {
+      "check": "e-kanban-no-solo",
+      "pass": true,
+      "detail": "No Solo button or isolateMode in kanban"
+    },
+    {
+      "check": "f-deep-link-solo",
+      "pass": true,
+      "detail": "isolateMode: true, isolateBtnActive: true, nodeCount: 8"
+    },
+    {
+      "check": "f-deep-link-filtered",
+      "pass": true,
+      "detail": "Deep-link nodes: 8, Expected: 8"
+    },
+    {
+      "check": "g-tree-view-normal",
+      "pass": true,
+      "detail": "View: tree, nodes: 37"
+    },
+    {
+      "check": "g-dep-view-normal",
+      "pass": true,
+      "detail": "View: dependencies, nodeCount: 37, no unintended Solo"
+    },
+    {
+      "check": "g-task-deep-link",
+      "pass": true,
+      "detail": "Feature 62 task deep-link works"
+    },
+    {
+      "check": "g-default-view-routing",
+      "pass": true,
+      "detail": "Default view: dashboard"
+    },
+    {
+      "check": "console-errors",
+      "pass": true,
+      "detail": "Zero relevant console errors (2 total, all gRPC stream closures)"
+    }
+  ]
+}

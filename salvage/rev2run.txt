@@ -1,0 +1,37 @@
+=== RUN   TestAUDIT_REV1_AddLabelChain
+    zzz_audit_rev2_test.go:255:   step 1  reopen                        -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:261:   step 2  add_labels[ft:stage/accepted] -> ALLOWED         labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:265:   step 3  reopen                        -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:266:   RESULT: F1 FIX CLOSES THE ADD-LABEL CHAIN.
+--- PASS: TestAUDIT_REV1_AddLabelChain (0.01s)
+=== RUN   TestAUDIT_REV3_RemoveLabelChain
+    zzz_audit_rev2_test.go:286:   step 1  reopen                            -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")   labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:292:   step 2  remove_labels[ft:stage/wont_fix]  -> ALLOWED         labels=[]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted]
+    zzz_audit_rev2_test.go:300:   step 3  reopen                            -> ALLOWED  labels=[ft:stage/accepted]
+          *** CRITICAL -- THE F1 FIX RENAMES THE CHAIN, IT DOES NOT CLOSE IT ***
+          A token holding only task:write STRIPPED the terminal label and then reopened.
+          No terminal scan, however written, can see a label that is no longer there.
+--- FAIL: TestAUDIT_REV3_RemoveLabelChain (0.01s)
+=== RUN   TestAUDIT_REV4_ClaimGateBothSpellings
+    zzz_audit_rev2_test.go:324:   baseline  claim [wont_fix]                       -> err=rpc error: code = FailedPrecondition desc = task unavailable  labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:334:   add       claim [wont_fix + accepted]            -> err=rpc error: code = FailedPrecondition desc = task unavailable  labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/working -> [ft:stage/working]
+    zzz_audit_rev2_test.go:341:   remove    claim [wont_fix stripped -> bare]      -> err=<nil>  labels=[ft:stage/working]
+    zzz_audit_rev2_test.go:347:   *** F2b REMOVE-SPELLING OPEN *** a task:write holder stripped the terminal label and then claimed a declined issue. labels=[ft:stage/working]
+--- FAIL: TestAUDIT_REV4_ClaimGateBothSpellings (0.02s)
+=== RUN   TestAUDIT_REV5_AvailabilityBothSpellings
+    zzz_audit_rev2_test.go:376:   baseline  [wont_fix]                  -> Available=false Reasons=[terminal] stage=accepted  labels=[ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:106:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:386:   add       [wont_fix + accepted]       -> Available=false Reasons=[terminal] stage=accepted  labels=[ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:114:         [github] -ft:stage/wont_fix -> []
+    zzz_audit_rev2_test.go:393:   remove    [wont_fix stripped -> bare] -> Available=true Reasons=[] stage=accepted  labels=[]
+    zzz_audit_rev2_test.go:399:   *** F2 REMOVE-SPELLING OPEN *** a declined issue is back in the ready queue after a task:write holder stripped its terminal label: Available=true Reasons=[] stage=accepted
+--- FAIL: TestAUDIT_REV5_AvailabilityBothSpellings (0.02s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.067s
+FAIL

@@ -1,0 +1,50 @@
+=== ONE SEVERITY INPUT FOR THE ptone ESCALATION, AND IT IS MY CLAIM PROPPING UP SOMEONE ELSE'S
+    RATING. IT SHOULD GO IN BEFORE THE ARCHITECTURAL VERDICT COMES BACK. ===
+
+I asked every leg to name the load-bearing claim it INHERITED from someone else's sentence rather
+than derived or measured. audit-194-r11's answer, ranked first by its own severity weighting:
+
+  ** "THIS SURFACE IS IAP-BOUNDED IN THE DEPLOYED CONFIGURATION." -- MY BRIEF. IT NEVER VERIFIED IT.
+     IT RATED C-1 **HIGH RATHER THAN CRITICAL** PARTLY ON THAT BOUND. **
+  Its words: "If it is wrong or does not hold for the deployment that matters, MY SEVERITY IS WRONG
+  IN THE UNDER-STATING DIRECTION. Flagging it rather than defending the rating; it is an input to the
+  severity reconciliation, not a footnote to it."
+
+Three things make this worse than a normal inherited claim:
+1. IT IS MINE. It came from my brief, and my briefs have now been wrong four times tonight in ways
+   legs caught, including twice inside a correction block.
+2. I CANNOT SETTLE IT AND NEITHER CAN ANY LEG. It is a DEPLOYMENT fact. Per standing instruction I
+   have not inspected production and will not. No source derivation reaches it -- which is exactly
+   audit's general result: the claims our apparatus rules cannot touch are precisely the ones about
+   the world outside the diff.
+3. IT ALREADY HAS A TICKET SAYING SO. Task #34 reads "LIVE but IAP-bounded -- write-up must not
+   overstate; ONE OPEN QUESTION TO ptone." That question was never asked. The bound has been load-
+   bearing for a severity rating ever since, and I am the reason.
+
+WHY IT IS TIMELY RATHER THAN A BACKLOG ITEM: the architectural verdict is with ptone RIGHT NOW.
+If C-1 is Critical rather than High, that changes what the r12 fix round is allowed to defer, and it
+changes it BEFORE he answers rather than after. The marginal cost of adding one sentence to a live
+escalation is near zero; the cost of discovering it afterwards is a re-litigated severity on a
+merged branch.
+  RECOMMEND: put the IAP question to him in the same message as the architectural verdict --
+  "does the label-write surface sit behind IAP in the deployment that matters, and for ALL callers
+  including the MCP and CLI paths?" One line, and it retires a bound that three artefacts now rest on.
+I am not asking you to route it around yourself; I am asking whether to fold it into the message you
+already have with him. Your call on that, and I will not contact him directly either way.
+
+SECONDARY, AND SMALLER: two more of the inherited claims are also about deployment or another
+round's self-report --
+  review-194-r11's C4(b)/(c) closure rests on a "zero operational cost" ruling it read IN THE DIFF'S
+    OWN NEW COMMENT, and it has relabelled it INHERITED, NOT MEASURED. Mechanism verified from
+    source (two LoadConfig entry points, no fsnotify, no SIGHUP); the "therefore cost is zero" half
+    is a deployment fact it cannot observe. Same class as mine, and it needs whoever owns the
+    deployment, not a reviewer.
+  test-194-r11's entire F2/F10 pair is conditional on "the round-10 Critical was real", whose sole
+    basis is THE DIFF'S OWN COMMENT TABLE -- the author of the code under review asserting a
+    measurement about the code under review. It has re-ranked the bc93200 detached-worktree
+    reproduction (your Deliverable 5, still held) to its HIGHEST-VALUE outstanding run on that basis,
+    and its note on why is worth having: "MY INHERITED CLAIM AND YOUR DELIVERABLE 5 WERE THE SAME
+    ITEM ALL ALONG, and I had it ranked fifth because I was ordering by effort rather than by what
+    my conclusions actually rested on."
+    That is a live request for a run slot on a genuinely non-derivable question. I am NOT granting it
+    while the hold is on; flagging that it is the best-justified item in any leg's queue right now.

@@ -1,0 +1,4 @@
+=== RUN   TestWebCensusAnchoringIsTopLevelOnly
+--- PASS: TestWebCensusAnchoringIsTopLevelOnly (0.00s)
+PASS
+ok  	github.com/farmtable-io/farmtable/internal/webguard	0.003s

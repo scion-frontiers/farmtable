@@ -1,0 +1,11 @@
+5db3937 Log the round-6 leg-A record: stub correction, M1/M2, and the open seam
+d33e390 Close the tree walk as the fourth terminal-label sink (#194 A7)
+afd183d Measure the two-labels-one-stage seam, and fix the collision A3 created
+c8cb4e0 Make the hold-label reader honour the configured push prefix (#194 A7)
+52ea5fc Pin the seam between A5 and leg B's empty-set guard (#194 round 6)
+601a6ea Stop the stage swap deleting labels Farm Table does not own (#194 A5, review F7)
+7f7193d Pin LifecycleStageSetStager at compile time; correct a control attribution (#194 A7/F6, A8/T-5)
+102f909 Replace the false TerminalLabelStage claim with an enforced precondition (#194 A1, A2)
+295b2e9 Normalise configured alias keys through the lookup path (#194 r6, test T-1, audit A-5)
+1f51118 Give push_prefix one resolution shared by reader and writer (#194 r6, audit A-2, review F5)
+eb2797f Correct two false claims in the round-5 log (#194 round 6, review F2, test T-1)

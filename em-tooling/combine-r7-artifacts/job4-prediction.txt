@@ -1,0 +1,69 @@
+PREDICTION — Job 4: does leg B contain leg A's bypass-assertion shape?
+======================================================================
+Written by dev-194-combine-r7 BEFORE running either Job 4 probe.
+Tree: /workspace @ label-write-scope-r7 (15b7247).
+
+THE SHAPE BEING HUNTED (leg A's finding, restated as a testable property):
+  an assertion that observes an outcome through a path that BYPASSES the
+  component under test, so that TOTAL FAILURE of that component is
+  indistinguishable from success.
+
+Leg A's instance had two ingredients:
+  (i)  the outcome was observed via the mock's internal state, which the mock
+       updated on RECEIPT of the request; and
+  (ii) the component's own failure signal (the githubv4 unmarshal error) was
+       discarded into `_`.
+Both were needed. (i) alone is normal fixture design.
+
+STRUCTURAL SCAN ALREADY DONE (static, no measurement):
+  leg B's 4 files hold 16 top-level tests.
+  - empty_stage_set_contract_test.go (3), lifecycle_stage_consumers_test.go (3),
+    lifecycle_stage_set_test.go (5): no transport, no fake, no discarded error.
+    These call pure functions and assert on RETURNED values. Ingredient (i) is
+    absent by construction. I predict NO instance in these 12 tests.
+  - stage_label_swap_scope_test.go (5): four are pure-mapper tests. ONE,
+    TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel, drives the real
+    s.UpdateTask against newFakeIssueRepo and observes via fake.hasLabel(...).
+    This is the only candidate in leg B's work.
+  - The package fake (close_label_swap_test.go, NOT a leg B file) answers label
+    mutations with the production selection set
+    {"data":{"...Labelable":{"labelable":{"labels":{"nodes":[]}}}}}, not with
+    {"clientMutationId":null}. So leg A's LITERAL defect is absent here.
+
+PROBE J4-PC — reproduce leg A's EXACT defect in this package's fake.
+  Change only the two mutation RESPONSE payloads to {"clientMutationId":null},
+  leaving the fake's state mutation in place. That is leg A's server-mock
+  situation exactly: side channel still works, client unmarshal fails.
+  PREDICT on the COMBINED tree: TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel
+    goes RED, at its `t.Fatalf("UpdateTask: %v", err)` line -- because leg A's
+    writeLabelSwap now RETURNS the error, so ingredient (ii) is gone.
+  PREDICT on LEG B ALONE (4df2d1e): the same test stays GREEN, because on that
+    tree the stage-arm label-write error is still discarded. If both come out
+    as predicted, then leg B's test WAS vulnerable to the shape and leg A's
+    un-discarding is precisely what closed it -- a real interaction between the
+    legs that neither could measure alone.
+
+PROBE J4-A — neutralise the production REMOVAL path.
+  Make writeLabelSwap ignore its `remove` argument entirely (total failure of
+  the component whose absence the test is asserting).
+  PREDICT: TestUpdateTask_DoesNotDestroyAThirdPartyTerminalLabel stays GREEN.
+    Reason: the test asserts a NEGATIVE ("duplicate" survives). A dead removal
+    path satisfies that assertion vacuously. Its in-test CONTROL block does not
+    rescue it, because that control calls fake.removeLabelByID(...) DIRECTLY,
+    in-process -- it proves the FAKE can drop a label, not that the PRODUCTION
+    path can reach it. The control therefore bypasses exactly the component
+    whose liveness it is supposed to establish.
+    The test also never asserts on fake.removeCalls, which the fake tracks and
+    which would have distinguished the two cases for free.
+  PREDICT: other tests in the package that assert a label IS removed go RED, so
+    the SUITE still catches a dead removal path even though this test does not.
+    I expect these to include the CloseTask/StageLabelSwap write tests.
+
+BOTTOM LINE I EXPECT TO REPORT:
+  Leg A's literal defect ({"clientMutationId":null}) is NOT present in leg B's
+  work. But ONE leg B assertion has the underlying shape in the weaker form:
+  vacuous under total failure of its component, with a control that bypasses
+  that component. It is not invisible package-wide, which is what makes it
+  weaker than leg A's instance. I will report it as a real but non-blocking
+  finding and will NOT fix it (brief: report, do not fix).
+  If J4-A comes out RED instead, I was wrong and I will say so.

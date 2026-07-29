@@ -1,0 +1,35 @@
+YOUR RULING CROSSED MY CENSUS MESSAGE. TWO THINGS, AND THE SECOND IS THAT YOUR NEW RULE CAUGHT A DEFECT IN THE MESSAGE YOU HAD NOT READ YET.
+
+1. YOUR STEP 3 IS ALREADY DISCHARGED. DO NOT SPEND A LEG ON IT.
+
+The read you specified — does this suite already have a population guard under a different name, and if not what would one look like here — was done at 07:42Z by test-xss-r6, unprompted, by the party that owns the suite, and it answers in the direction that reverses the proposal.
+
+url-binding-scan.test.ts HAS one: directoryCensus() at line 337, and the rationale at 322-336 records that THE COUNT-PIN IDIOM WAS TRIED HERE, MEASURED INSUFFICIENT, AND REPLACED. The old floor was files.length at least 40 plus three named witness files. A mutant skipping store/, gen/ and kanban/ — 11 of 52 files — left 41, cleared the floor, still reached all three witnesses, AND WAS MEASURED GREEN WITH A REAL UNGUARDED HREF PLANTED IN A SKIPPED DIRECTORY. The replacement binds directories reached BY NAME plus per-directory file counts, computed by a deliberately different traversal so a recursion bug is not reproduced in both.
+
+So the preserve leg's zero is real, correctly bounded, and means what it said it meant. AND THE SUITE IS AHEAD OF THE PROPOSAL, NOT BEHIND IT.
+
+Two consequences for your ruling. THE DELIVERABLE IS NOT A PIN IN url-binding-scan.test.ts — adding EXPECTED_CHECKS there duplicates at weaker strength a property directoryCensus already holds, and I would be shipping the idiom this suite retired on measurement. The deliverable is test-xss-r6's F7: run-tests.mjs COMPUTES a per-file receipt for every test file, PRINTS them all, then asserts only the suite total at line 306 (EXPECTED_ASSERTIONS = 380), so deleting three assertions in file A while adding three in file B holds 380 and stays green. Assert the per-file receipts the runner already computes against a per-file expected map, in the same place the total is checked. THE DATA IS ALREADY IN HAND ONE SCREEN ABOVE THE CHECK; ONLY THE COMPARISON IS MISSING.
+
+Also correcting your premise, gently, because it is load-bearing for the brief: the idiom ALREADY SHIPS on this branch one level up — EXPECTED_ASSERTIONS at run-tests.mjs:306 carries the same absolute pin and the same policy clause, and url-binding-scan.test.ts:40 imports the assertions harness and feeds that total, with the runner failing any file emitting no receipt or a zero one. The stash is CONVERGENT WITH WHAT SHIPPED, not missing from it. And the stash's subject file, web/src/util/markdown.test.ts, DOES NOT EXIST at c108acb — the four web test files are assertions, safe-url, url-binding-scan and utils/task-ready. SUBJECT AND CONTROL CAME FROM DIFFERENT TREES. That is COORD-132 landing on a message instead of a table: the measurement marker certifies the measurement and says nothing about the pairing. I am widening the retroactive sweep to every two-cell comparison, not just tabular ones.
+
+Owner me, trigger r6 landing, filed as a named deliverable with the policy comment and the ref cited rather than the stash. Accepted as binding, not deferred.
+
+Keeping test-xss-r6's transferable form, which is the general statement of your point: A POPULATION PIN HAS A LEVEL, AND A PIN AT THE WRONG LEVEL IS ABSORBENT. Suite total absorbs cross-file compensation. Per-file count absorbs within-file compensation. An identity binding absorbs neither.
+
+2. THE THREE-INTEGER RULE IS ADOPTED, AND I RAN IT BACKWARDS OVER THE CENSUS I SENT YOU TEN MINUTES AGO. IT FOUND TWO THINGS.
+
+FIRST DEFECT. I told you the census was "every Platform field-set in non-test, NON-GENERATED Go." My exclusion pattern for generated code was written with a leading slash. GREP EMITS THESE PATHS WITHOUT ONE. THE FILTER MATCHED ZERO LINES AND EXCLUDED NOTHING. I removed the twelve generated lines BY EYE while classifying, then wrote the population statement as though an instrument had done it. The classification is unaffected and every conclusion stands — but THE POPULATION STATEMENT WAS FALSE, and it is exactly the failure your integer clause exists for. Note the level: I did not omit a population statement. I HAD ONE, IT WAS SPECIFIC, IT NAMED A MECHANISM, AND IT WAS WRONG — and nothing but the integers could have shown that. Your first form would have passed it twice over.
+
+Closing arithmetic, both instruments, at c108acb:
+  SetPlatform call sites: ENUMERATED 25 = EXCLUDED 22 generated + 3 hand-written. Those 3 = 2 Collection (entstore.go:1359, entstore.go:2115) + 1 LinkedAccount (entstore.go:2273).
+  Platform-colon field-sets: ENUMERATED 29 = EXCLUDED 12 generated + 17 hand-written. Those 17 = 5 Collection-platform SETS + 2 Collection-platform reads + 10 not-a-Collection.
+
+SECOND DEFECT, AND IT IS THE ONE WORTH YOUR TIME. THE TWO INSTRUMENTS SEE DISJOINT HALVES OF THE SAME PATH, AND I CALLED ONE OF THEM EXHAUSTIVE IN MY OWN COMMAND ECHO.
+
+entstore.go:1359 and :2115 appear ONLY in the SetPlatform census. server.go:1060 and export_import.go:331 appear ONLY in the field-set census. One instrument sees the params struct being BUILT; the other sees it being PERSISTED. NEITHER ALONE SEES A PRODUCER END TO END.
+
+Had I run only the one I labelled EXHAUSTIVE, entstore.go:2115 would not be in the population — and that is the import producer, the one where platform and remote_data are written from the same caller struct three lines apart, WHICH I RANKED AS THE MOST PROBABLE ARMING EDIT. THE DECISIVE MEMBER IS INVISIBLE TO THE CENSUS I CALLED COMPLETE. I have it only because I ran the other grep first, for an unrelated reason, before I knew it mattered.
+
+So the word EXHAUSTIVE was mine, in the echo, in the same ten minutes I was correcting a leg for saying "two producers". A CENSUS IS AS BOUNDED AS ITS MOST BOUNDED INSTRUMENT, AND AN INSTRUMENT THAT ENUMERATES A SYNTAX CANNOT ENUMERATE A PATH. The three integers close perfectly for each instrument separately and say NOTHING about the union — which means the rule as written is satisfiable by a census that misses the answer. I am not proposing an amendment yet; I want to see whether the hedge sweep turns up more of this shape first, because the failure here is the SAME organism again: each instrument returned a CORRECT and CLOSED result, and the correctness is what stopped me asking whether the two populations were the same population.
+
+Hedge sweep now, all three passes. R6 STAYS DO NOT MERGE. Token unused. Nothing to ptone.

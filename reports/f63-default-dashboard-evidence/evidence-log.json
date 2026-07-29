@@ -1,0 +1,121 @@
+{
+  "feature": "F63 — Default to Dashboard View + Reorder View Switcher",
+  "date": "2026-07-23T23:34:30.795Z",
+  "previousDefault": "kanban",
+  "newDefault": "dashboard",
+  "iconChange": {
+    "from": "bar-chart-line",
+    "to": "grid",
+    "library": "Shoelace/Bootstrap Icons v2.15.0"
+  },
+  "viewSwitcherOrder": {
+    "previous": [
+      "kanban",
+      "tree",
+      "dependencies",
+      "ready-queue",
+      "dashboard"
+    ],
+    "new": [
+      "dashboard",
+      "kanban",
+      "tree",
+      "dependencies",
+      "ready-queue"
+    ]
+  },
+  "codeChanges": [
+    {
+      "file": "web/src/components/ft-app.ts",
+      "change": "Changed default view from kanban to dashboard in property initializer and applyRoute() fallback"
+    },
+    {
+      "file": "web/src/components/ft-toolbar.ts",
+      "change": "Moved Dashboard radio button to first position (before Kanban) and changed icon from bar-chart-line to grid"
+    }
+  ],
+  "checks": [
+    {
+      "timestamp": "2026-07-23T23:34:21.842Z",
+      "check": "default-view-no-param",
+      "url": "http://localhost:4175/?collection=test-col-1",
+      "expected": "dashboard",
+      "actual": "dashboard",
+      "result": "PASS"
+    },
+    {
+      "timestamp": "2026-07-23T23:34:21.867Z",
+      "check": "view-switcher-order",
+      "expected": [
+        "dashboard",
+        "kanban",
+        "tree",
+        "dependencies",
+        "ready-queue"
+      ],
+      "actual": [
+        "dashboard",
+        "kanban",
+        "tree",
+        "dependencies",
+        "ready-queue"
+      ],
+      "result": "PASS"
+    },
+    {
+      "timestamp": "2026-07-23T23:34:21.867Z",
+      "check": "dashboard-icon",
+      "expected": "grid",
+      "actual": "grid",
+      "result": "PASS"
+    },
+    {
+      "timestamp": "2026-07-23T23:34:21.867Z",
+      "check": "all-view-icons",
+      "views": [
+        {
+          "value": "dashboard",
+          "icon": "grid"
+        },
+        {
+          "value": "kanban",
+          "icon": "kanban"
+        },
+        {
+          "value": "tree",
+          "icon": "diagram-3"
+        },
+        {
+          "value": "dependencies",
+          "icon": "diagram-3"
+        },
+        {
+          "value": "ready-queue",
+          "icon": "list-check"
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-07-23T23:34:26.374Z",
+      "check": "explicit-view-kanban",
+      "url": "http://localhost:4175/?collection=test-col-1&view=kanban",
+      "expected": "kanban",
+      "actual": "kanban",
+      "result": "PASS"
+    },
+    {
+      "timestamp": "2026-07-23T23:34:30.795Z",
+      "check": "explicit-view-tree",
+      "url": "http://localhost:4175/?collection=test-col-1&view=tree",
+      "expected": "tree",
+      "actual": "tree",
+      "result": "PASS (from component state)"
+    }
+  ],
+  "screenshots": [
+    "01-default-view-no-param.png",
+    "02-view-switcher-reordered.png",
+    "03-explicit-kanban-view.png",
+    "04-explicit-tree-view.png"
+  ]
+}

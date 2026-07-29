@@ -1,0 +1,638 @@
+package github
+
+// AUDIT HARNESS — audit-194-r7. NOT production code. Deleted after the run.
+//
+// Standing bars honoured:
+//   - every negative claim is preceded by a POSITIVE CONTROL through the same
+//     detector, so "no exploit" is only ever reported by a detector that has
+//     just been shown to report one;
+//   - every harness ABORTS (t.Fatal) on a failed prerequisite rather than
+//     printing a confident number derived from a broken setup.
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/shurcooL/githubv4"
+
+	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared detector.
+//
+// Models ONE UpdateTask request from a caller holding only task:write, against
+// a snapshot, and reports whether a lifecycle-stage label the gate never priced
+// gets destroyed (or re-applied) on GitHub.
+//
+// restrict=false reproduces the PRE-FIX path (A-4). restrict=true is HEAD.
+// Both share every other step, so a difference in verdict is attributable to
+// the control and to nothing else.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type verdict struct {
+	exploit bool
+	detail  string
+}
+
+// detect returns whether `removeReq` / `addReq` reach a real GitHub label
+// mutation touching a label the SNAPSHOT did not account for.
+func detect(t *testing.T, s *GitHubPassThroughStore, snapshotLabels []string, addReq, removeReq []string, restrict bool) verdict {
+	t.Helper()
+
+	snap := &ent.Task{Labels: snapshotLabels}
+
+	add, remove := addReq, removeReq
+	if restrict {
+		add, remove = s.RestrictLabelWriteToSnapshot(context.Background(), snap, addReq, removeReq)
+	}
+
+	// The write step, exactly as writeLabelSwap performs it.
+	removeIDs := s.labelNamesToIDs(remove)
+	addIDs := s.labelNamesToIDs(add)
+
+	// Which real repository labels would actually be mutated?
+	present := map[string]bool{}
+	for _, l := range snapshotLabels {
+		present[labelMatchKey(l)] = true
+	}
+
+	var hits []string
+	for _, id := range removeIDs {
+		name := s.nameForID(id)
+		// A removal is UNPRICED iff the snapshot did not carry that label:
+		// LabelDeltaLifecycleStages reports before == after for it, so the
+		// gate charged nothing, yet the write destroys it.
+		if !present[labelMatchKey(name)] && isStageLabelName(name) {
+			hits = append(hits, "UNPRICED REMOVE of "+name)
+		}
+	}
+	for _, id := range addIDs {
+		name := s.nameForID(id)
+		// An addition is UNPRICED iff the snapshot already carried it.
+		if present[labelMatchKey(name)] && isStageLabelName(name) {
+			hits = append(hits, "UNPRICED RE-ADD of "+name)
+		}
+	}
+
+	return verdict{exploit: len(hits) > 0, detail: strings.Join(hits, "; ")}
+}
+
+func isStageLabelName(n string) bool {
+	return strings.Contains(strings.ToLower(n), "stage/")
+}
+
+// nameForID reverses the label index, for reporting only.
+func (s *GitHubPassThroughStore) nameForID(want githubv4.ID) string {
+	for name, id := range s.labelIndex {
+		if id == want {
+			return name
+		}
+	}
+	return "<unknown>"
+}
+
+// storeWithLabels builds a store whose repository defines exactly these labels.
+func storeWithLabels(t *testing.T, names ...string) *GitHubPassThroughStore {
+	t.Helper()
+	s := &GitHubPassThroughStore{labelIndex: map[string]githubv4.ID{}}
+	for i, n := range names {
+		s.labelIndex[strings.ToLower(n)] = githubv4.ID(fmt.Sprintf("LBL_%d", i))
+	}
+	if len(s.labelIndex) != len(names) {
+		t.Fatalf("ABORT: label index collapsed %d names to %d keys", len(names), len(s.labelIndex))
+	}
+	return s
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §1 — does the A-4 fix close A-4, and can it be disabled by omission,
+//       empty values, case, whitespace, or homoglyphs?
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestAudit_A4(t *testing.T) {
+	const target = "ft:stage/wont_fix"
+	repoLabels := []string{target, "ft:stage/completed", "bug", "priority:high"}
+
+	// Snapshot deliberately does NOT carry the target: that is the whole A-4
+	// shape — the gate prices nothing, the write destroys a maintainer's label.
+	snapshot := []string{"ft:stage/accepted", "bug"}
+
+	// ---- POSITIVE CONTROL -------------------------------------------------
+	// The detector MUST be able to report a successful exploit. Same inputs,
+	// control disabled (the pre-fix code path).
+	s := storeWithLabels(t, repoLabels...)
+	pc := detect(t, s, snapshot, nil, []string{target}, false)
+	if !pc.exploit {
+		t.Fatalf("ABORT: positive control did not fire. The detector cannot "+
+			"report a successful exploit, so every negative result below is void. got=%+v", pc)
+	}
+	t.Logf("POSITIVE CONTROL fired (pre-fix path): %s", pc.detail)
+
+	// ---- The same request, with the control on ---------------------------
+	if v := detect(t, s, snapshot, nil, []string{target}, true); v.exploit {
+		t.Errorf("BYPASS: baseline A-4 still exploitable at HEAD: %s", v.detail)
+	} else {
+		t.Logf("baseline A-4 blocked at HEAD")
+	}
+
+	// ---- Evasion attempts -------------------------------------------------
+	// Each is a spelling of `target` intended to slip past labelMatchKey while
+	// still resolving through labelNamesToIDs to the target's real label ID.
+	evasions := []struct{ name, payload string }{
+		{"exact", "ft:stage/wont_fix"},
+		{"upper", "FT:STAGE/WONT_FIX"},
+		{"mixed case", "Ft:Stage/Wont_Fix"},
+		{"leading space", " ft:stage/wont_fix"},
+		{"trailing space", "ft:stage/wont_fix "},
+		{"both spaces", "  ft:stage/wont_fix  "},
+		{"tab wrapped", "\tft:stage/wont_fix\t"},
+		{"newline wrapped", "\nft:stage/wont_fix\n"},
+		{"NBSP wrapped", " ft:stage/wont_fix "},
+		{"empty string", ""},
+		{"whitespace only", "   "},
+		{"turkish dotless i", "ft:stage/wont_fıx"},
+		{"turkish dotted I", "FT:STAGE/WONT_FİX"},
+		{"kelvin sign", "ft:stage/wont_fixK"},
+		{"cyrillic o homoglyph", "ft:stage/wоnt_fix"},
+		{"fullwidth", "ｆｔ:stage/wont_fix"},
+		{"combining", "ft:stage/wont_fix́"},
+		{"trailing NUL", "ft:stage/wont_fix\x00"},
+		{"zero width space", "ft:stage/wont​_fix"},
+	}
+
+	bypasses := 0
+	for _, e := range evasions {
+		v := detect(t, s, snapshot, nil, []string{e.payload}, true)
+		if v.exploit {
+			bypasses++
+			t.Errorf("BYPASS via %s (%q): %s", e.name, e.payload, v.detail)
+		}
+	}
+	t.Logf("remove-side evasions attempted=%d bypasses=%d", len(evasions), bypasses)
+
+	// ---- The re-add half --------------------------------------------------
+	// Snapshot DOES carry the label; re-adding it is priced at nothing, and
+	// pre-fix it re-applied a label another actor had since removed.
+	snapCarries := []string{target, "bug"}
+	pc2 := detect(t, s, snapCarries, []string{target}, nil, false)
+	if !pc2.exploit {
+		t.Fatalf("ABORT: re-add positive control did not fire; re-add results are void. got=%+v", pc2)
+	}
+	t.Logf("POSITIVE CONTROL fired (re-add, pre-fix): %s", pc2.detail)
+
+	readds := 0
+	for _, e := range evasions {
+		v := detect(t, s, snapCarries, []string{e.payload}, nil, true)
+		if v.exploit {
+			readds++
+			t.Errorf("RE-ADD BYPASS via %s (%q): %s", e.name, e.payload, v.detail)
+		}
+	}
+	t.Logf("re-add evasions attempted=%d bypasses=%d", len(evasions), readds)
+
+	// ---- Disable-by-omission ---------------------------------------------
+	// Leg A's stated bar: is there a field whose ABSENCE turns the control off?
+	// The control takes no caller-supplied parameter at all; the only inputs
+	// are the snapshot (server-side) and the label lists it filters. Assert the
+	// degenerate snapshot fails CLOSED on the remove side.
+	if v := detect(t, s, nil, nil, []string{target}, true); v.exploit {
+		t.Errorf("BYPASS: empty snapshot re-opens remove side: %s", v.detail)
+	}
+	if v := detect(t, s, []string{}, nil, []string{target}, true); v.exploit {
+		t.Errorf("BYPASS: zero-length snapshot re-opens remove side: %s", v.detail)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §3 — confirm or kill leg A's UNCONFIRMED lead:
+//      PriorityLabelSwap / TypeLabelSwap as ungated stage-label writes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestAudit_PriorityTypeSwapCollision(t *testing.T) {
+	issue := []string{"ft:stage/wont_fix", "priority:low", "bug"}
+
+	// ---- Part 1: DEFAULT config. Can a collision exist at all? ------------
+	def := NewLabelMapper(LabelConfig{Enabled: true})
+
+	// Prerequisite: the mapper must be live, or every "no collision" below is
+	// vacuous because both swaps early-return on !m.enabled.
+	if a, r := def.StageLabelSwap(issue, task.StageCompleted); len(a) == 0 && len(r) == 0 {
+		t.Fatalf("ABORT: default mapper is inert (enabled=%v); collision results would be vacuous", def.enabled)
+	}
+
+	_, remP := def.PriorityLabelSwap(issue, task.PriorityHigh)
+	_, remT := def.TypeLabelSwap(issue, "feature")
+	t.Logf("DEFAULT config: PriorityLabelSwap removes %v; TypeLabelSwap removes %v", remP, remT)
+	for _, r := range append(append([]string{}, remP...), remT...) {
+		if isStageLabelName(r) {
+			t.Errorf("CONFIRMED under DEFAULT config: swap removes stage label %q", r)
+		}
+	}
+
+	// The unknown-type case: TypeToLabel returns "" so nothing is added, but
+	// the REMOVE loop still runs on a caller-controlled open-ended string.
+	_, remUnknown := def.TypeLabelSwap(issue, "totally-unknown-type-"+t.Name())
+	t.Logf("DEFAULT config, unknown type: TypeLabelSwap removes %v", remUnknown)
+
+	// ---- Part 2: can an operator config COLLIDE, and does Validate stop it? --
+	// stripForMatch("ft:stage/wont_fix") == "wont_fix", which is also the key
+	// the DEFAULT stage table uses. So a Types/Priorities entry spelled as a
+	// stage label lands on the same lookup key in a DIFFERENT table.
+	probe := NewLabelMapper(LabelConfig{Enabled: true})
+	if got := probe.stripForMatch("ft:stage/wont_fix"); got != "wont_fix" {
+		t.Fatalf("ABORT: stripForMatch(%q)=%q, expected %q; the collision premise is wrong",
+			"ft:stage/wont_fix", got, "wont_fix")
+	}
+
+	colliding := GitHubConfig{}
+	colliding.GitHub.Labels = LabelConfig{
+		Enabled: true,
+		// An operator mapping their triage labels onto Farm Table types.
+		Types:      map[string]string{"ft:stage/wont_fix": "bug"},
+		Priorities: map[string]string{"ft:stage/completed": "high"},
+	}
+
+	if err := colliding.Validate(); err != nil {
+		t.Logf("KILLED: Validate REJECTS the colliding config: %v", err)
+		return
+	}
+	t.Logf("Validate ACCEPTS a config whose types/priorities keys normalise onto stage keys")
+
+	m := NewLabelMapper(colliding.GitHub.Labels)
+
+	// Prerequisite: mapper live.
+	if !m.enabled {
+		t.Fatalf("ABORT: colliding mapper not enabled; results vacuous")
+	}
+
+	// The issue must carry BOTH stage labels the colliding keys normalise onto,
+	// and the requested value must DIFFER from the current one — otherwise both
+	// swaps short-circuit on raw == newLabel and the test is vacuous.
+	collidingIssue := []string{"ft:stage/wont_fix", "ft:stage/completed", "priority:high", "bug"}
+
+	// Prerequisite: the colliding keys really landed in the other tables.
+	if _, ok := m.labelToType["wont_fix"]; !ok {
+		t.Fatalf("ABORT: labelToType has no key %q; collision premise failed", "wont_fix")
+	}
+	if _, ok := m.labelToPriority["completed"]; !ok {
+		t.Fatalf("ABORT: labelToPriority has no key %q; collision premise failed", "completed")
+	}
+
+	addP, remP2 := m.PriorityLabelSwap(collidingIssue, task.PriorityLow)
+	addT, remT2 := m.TypeLabelSwap(collidingIssue, "feature")
+	t.Logf("COLLIDING config: PriorityLabelSwap(low)     add=%v remove=%v", addP, remP2)
+	t.Logf("COLLIDING config: TypeLabelSwap(feature)     add=%v remove=%v", addT, remT2)
+
+	// Add-side: TypeToLabel now returns a STAGE label for type "bug", so
+	// UpdateTask(type="bug") stamps a terminal stage label onto a clean issue.
+	cleanIssue := []string{"bug"}
+	addT2, _ := m.TypeLabelSwap(cleanIssue, "bug")
+	t.Logf("COLLIDING config: TypeLabelSwap(bug) on clean issue add=%v", addT2)
+	for _, a := range addT2 {
+		if isStageLabelName(a) {
+			t.Errorf("CONFIRMED (add side): TypeLabelSwap ADDS lifecycle stage label %q "+
+				"on an issue that did not carry it, with bare task:write", a)
+		}
+	}
+
+	for _, r := range remP2 {
+		if isStageLabelName(r) {
+			t.Errorf("CONFIRMED: PriorityLabelSwap removes lifecycle stage label %q "+
+				"— reachable with bare task:write, not covered by RestrictLabelWriteToSnapshot", r)
+		}
+	}
+	for _, r := range remT2 {
+		if isStageLabelName(r) {
+			t.Errorf("CONFIRMED: TypeLabelSwap removes lifecycle stage label %q "+
+				"— reachable with bare task:write, not covered by RestrictLabelWriteToSnapshot", r)
+		}
+	}
+	for _, a := range append(append([]string{}, addP...), addT...) {
+		if isStageLabelName(a) {
+			t.Errorf("CONFIRMED: swap ADDS lifecycle stage label %q with bare task:write", a)
+		}
+	}
+}
+
+// The PLAUSIBLE version of the same collision: "duplicate" is simultaneously a
+// Farm Table lifecycle stage AND a label GitHub creates in every new repository.
+// An operator mapping their stock GitHub labels onto Farm Table types writes
+// `types: {duplicate: chore}` without ever mentioning a stage.
+func TestAudit_StockGitHubLabelCollision(t *testing.T) {
+	cfg := GitHubConfig{}
+	cfg.GitHub.Labels = LabelConfig{
+		Enabled: true,
+		Types:   map[string]string{"duplicate": "chore"},
+	}
+
+	if err := cfg.Validate(); err != nil {
+		t.Logf("KILLED: Validate rejects the stock-label config: %v", err)
+		return
+	}
+	t.Logf("Validate ACCEPTS types:{duplicate: chore} — no mention of a stage anywhere in it")
+
+	m := NewLabelMapper(cfg.GitHub.Labels)
+	if !m.enabled {
+		t.Fatalf("ABORT: mapper inert; result vacuous")
+	}
+
+	// Prerequisite: "duplicate" must be a stage key too, or there is no collision.
+	if _, ok := m.labelToStage["duplicate"]; !ok {
+		t.Fatalf("ABORT: %q is not a stage key; collision premise failed", "duplicate")
+	}
+
+	// A maintainer has declared this issue a duplicate.
+	issue := []string{"ft:stage/duplicate", "bug"}
+	add, remove := m.TypeLabelSwap(issue, "feature")
+	t.Logf("stock-label config: TypeLabelSwap(feature) add=%v remove=%v", add, remove)
+
+	for _, r := range remove {
+		if isStageLabelName(r) {
+			t.Errorf("CONFIRMED (plausible config): UpdateTask(type=feature) destroys "+
+				"maintainer's lifecycle label %q with bare task:write", r)
+		}
+	}
+}
+
+// ── ADDENDUM: the withheld counterexample, through the UNMODIFIED detector ──
+
+func TestAddendum_CrossListThroughOriginalDetector(t *testing.T) {
+	const L = "ft:stage/completed"
+	s := storeWithLabels(t, "ft:stage/wont_fix", L, "bug", "priority:high")
+	snapshot := []string{"ft:stage/accepted", "bug"}
+
+	// Prerequisite: the ORIGINAL positive control must still fire, or this
+	// comparison is void.
+	if pc := detect(t, s, snapshot, nil, []string{"ft:stage/wont_fix"}, false); !pc.exploit {
+		t.Fatalf("ABORT: original positive control no longer fires; comparison void")
+	}
+
+	v := detect(t, s, snapshot, []string{L}, []string{L}, true)
+	t.Logf("ORIGINAL DETECTOR on cross-list input: exploit=%v detail=%q", v.exploit, v.detail)
+
+	// What actually happens, computed with the REAL gate as oracle.
+	before := applyLabelDelta(snapshot, nil, nil)
+	after := applyLabelDelta(snapshot, []string{L}, []string{L})
+	t.Logf("REAL GATE: before=%v after=%v (equal=%v -> charged nothing)",
+		before, after, len(before) == len(after))
+
+	add, remove := s.RestrictLabelWriteToSnapshot(context.Background(), &ent.Task{Labels: snapshot}, []string{L}, []string{L})
+	t.Logf("RESTRICTOR returns add=%v remove=%v", add, remove)
+
+	written := applyLabelDelta(snapshot, add, remove)
+	t.Logf("STATE AFTER WRITE: %v", written)
+
+	gatePredicted := len(after) == len(before)
+	writeChanged := len(written) != len(snapshot)
+	if gatePredicted && writeChanged {
+		t.Errorf("CONFIRMED C-1: gate charged nothing, write changed state to %v", written)
+	}
+}
+
+// ── ADDENDUM item 3: attack the PROPOSED FIX and its PROPOSED PIN ──
+
+// fixedRestrict is the proposed C-1 fix: drop from add any entry whose
+// labelMatchKey also appears in remove, before the present/absent test.
+func fixedRestrict(snapshot, addLabels, removeLabels []string) (add, remove []string) {
+	present := map[string]bool{}
+	for _, l := range snapshot {
+		if k := labelMatchKey(l); k != "" {
+			present[k] = true
+		}
+	}
+	removeKeys := map[string]bool{}
+	for _, l := range removeLabels {
+		if k := labelMatchKey(l); k != "" {
+			removeKeys[k] = true
+		}
+	}
+	for _, l := range addLabels {
+		if k := labelMatchKey(l); k != "" && !present[k] && !removeKeys[k] {
+			add = append(add, l)
+		}
+	}
+	for _, l := range removeLabels {
+		if k := labelMatchKey(l); k != "" && present[k] {
+			remove = append(remove, l)
+		}
+	}
+	return add, remove
+}
+
+// identityRestrict is the PRE-FIX behaviour: no narrowing whatsoever. This is
+// literally the A-4 defect. It is here to test the proposed PIN, not the fix.
+func identityRestrict(_, addLabels, removeLabels []string) ([]string, []string) {
+	return addLabels, removeLabels
+}
+
+// proposedPin is the property the code-review leg proposed.
+func proposedPin(snapshot, add, remove []string,
+	restrict func(_, _, _ []string) ([]string, []string)) bool {
+	na, nr := restrict(snapshot, add, remove)
+	return eqSet(applyLabelDelta(snapshot, na, nr), applyLabelDelta(snapshot, add, remove))
+}
+
+func eqSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	m := map[string]bool{}
+	for _, x := range a {
+		m[labelMatchKey(x)] = true
+	}
+	for _, x := range b {
+		if !m[labelMatchKey(x)] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestAddendum_ProposedFixAndPin(t *testing.T) {
+	snapshot := []string{"ft:stage/accepted", "bug"}
+	const L = "ft:stage/completed"
+
+	// --- Does the fix close C-1? ---
+	add, remove := fixedRestrict(snapshot, []string{L}, []string{L})
+	t.Logf("FIXED form on C-1: add=%v remove=%v -> state %v",
+		add, remove, applyLabelDelta(snapshot, add, remove))
+	if len(add) != 0 || len(remove) != 0 {
+		t.Errorf("C-1 NOT closed by proposed fix: add=%v remove=%v", add, remove)
+	}
+
+	// --- Try to break the FIXED form ---
+	cases := []struct{ name string; add, remove []string }{
+		{"exact both lists", []string{L}, []string{L}},
+		{"case-split across lists", []string{L}, []string{"FT:STAGE/COMPLETED"}},
+		{"pad-split across lists", []string{L}, []string{"  " + L + "  "}},
+		{"dup in add, once in remove", []string{L, L}, []string{L}},
+		{"add L, remove unrelated", []string{L}, []string{"ft:stage/duplicate"}},
+		{"add present label + remove it", []string{"bug"}, []string{"bug"}},
+		{"remove present, add absent", []string{L}, []string{"ft:stage/accepted"}},
+		{"empty-key entries", []string{L, "", "   "}, []string{"", L}},
+	}
+	broken := 0
+	for _, c := range cases {
+		a, r := fixedRestrict(snapshot, c.add, c.remove)
+		predicted := applyLabelDelta(snapshot, c.add, c.remove)
+		actual := applyLabelDelta(snapshot, a, r)
+		ok := eqSet(predicted, actual)
+		t.Logf("%-28s add=%v remove=%v | gate-predicted=%v actual=%v match=%v",
+			c.name, a, r, predicted, actual, ok)
+		if !ok {
+			broken++
+			t.Errorf("RESIDUAL on fixed form (%s): predicted %v, wrote %v", c.name, predicted, actual)
+		}
+	}
+	t.Logf("fixed-form attempts=%d residual=%d", len(cases), broken)
+
+	// --- THE PIN: does it actually pin anything? ---
+	// Feed the proposed property the IDENTITY restrictor, i.e. the pre-fix
+	// A-4 code, on the ORIGINAL A-4 attack input.
+	a4add, a4rem := []string(nil), []string{"ft:stage/wont_fix"} // label NOT in snapshot
+	pinOnIdentity := proposedPin(snapshot, a4add, a4rem, identityRestrict)
+	pinOnC1 := proposedPin(snapshot, []string{L}, []string{L}, identityRestrict)
+	t.Logf("PROPOSED PIN evaluated against the IDENTITY (pre-fix, A-4-live) restrictor:")
+	t.Logf("   on the original A-4 input: pin passes = %v", pinOnIdentity)
+	t.Logf("   on the C-1 input:          pin passes = %v", pinOnC1)
+	if pinOnIdentity && pinOnC1 {
+		t.Errorf("PIN IS VACUOUS: the identity function — no narrowing at all, " +
+			"the exact pre-fix A-4 defect — satisfies the proposed property on both " +
+			"the A-4 and C-1 inputs. The pin cannot fail for the bug it exists to catch.")
+	}
+}
+
+// ── ADDENDUM item 3b: a pin that is NOT vacuous ──
+
+// p2Minimality: every entry the restrictor RETURNS must be non-vacuous against
+// the snapshot. This is the half the proposed pin omits.
+func p2Minimality(snapshot []string, add, remove []string) bool {
+	present := map[string]bool{}
+	for _, l := range snapshot {
+		if k := labelMatchKey(l); k != "" {
+			present[k] = true
+		}
+	}
+	remKeys := map[string]bool{}
+	for _, l := range remove {
+		remKeys[labelMatchKey(l)] = true
+	}
+	for _, a := range add {
+		k := labelMatchKey(a)
+		if k == "" || present[k] || remKeys[k] {
+			return false // adding a label already present, or cancelled by remove
+		}
+	}
+	for _, r := range remove {
+		k := labelMatchKey(r)
+		if k == "" || !present[k] {
+			return false // removing a label the snapshot never carried
+		}
+	}
+	return true
+}
+
+func TestAddendum_NonVacuousPin(t *testing.T) {
+	snapshot := []string{"ft:stage/accepted", "bug"}
+	const L = "ft:stage/completed"
+
+	inputs := []struct{ name string; add, remove []string }{
+		{"A-4 original (remove absent)", nil, []string{"ft:stage/wont_fix"}},
+		{"A-4 re-add (add present)", []string{"ft:stage/accepted"}, nil},
+		{"C-1 cross-list", []string{L}, []string{L}},
+		{"legitimate priced edit", []string{L}, []string{"ft:stage/accepted"}},
+	}
+
+	for _, in := range inputs {
+		for _, impl := range []struct {
+			name string
+			fn   func(_, _, _ []string) ([]string, []string)
+		}{{"identity(pre-fix)", identityRestrict}, {"fixed", fixedRestrict}} {
+			a, r := impl.fn(snapshot, in.add, in.remove)
+			p1 := proposedPin(snapshot, in.add, in.remove, impl.fn)
+			p2 := p2Minimality(snapshot, a, r)
+			t.Logf("%-30s %-16s -> add=%v remove=%v | P1(proposed)=%-5v P2(minimality)=%-5v combined=%v",
+				in.name, impl.name, a, r, p1, p2, p1 && p2)
+		}
+	}
+
+	// The decisive assertion: the combined pin must REJECT the pre-fix
+	// implementation on the two known defects, and ACCEPT the fixed one.
+	for _, in := range inputs[:3] {
+		ia, ir := identityRestrict(snapshot, in.add, in.remove)
+		if proposedPin(snapshot, in.add, in.remove, identityRestrict) &&
+			p2Minimality(snapshot, ia, ir) {
+			t.Errorf("combined pin STILL accepts pre-fix impl on %q", in.name)
+		}
+		fa, fr := fixedRestrict(snapshot, in.add, in.remove)
+		if !(proposedPin(snapshot, in.add, in.remove, fixedRestrict) &&
+			p2Minimality(snapshot, fa, fr)) {
+			t.Errorf("combined pin REJECTS the fixed impl on %q — false positive", in.name)
+		}
+	}
+}
+
+// ── ADDENDUM 2: does P1 catch the REAL implementation? I never tested that. ──
+
+// caseBlindRestrict mutates the write side to stop folding case, which the
+// test-review leg reports is unpinned by the current suite.
+func caseBlindRestrict(snapshot, addLabels, removeLabels []string) (add, remove []string) {
+	present := map[string]bool{}
+	for _, l := range snapshot {
+		present[l] = true // EXACT match, no folding — the mutation
+	}
+	for _, l := range addLabels {
+		if !present[l] {
+			add = append(add, l)
+		}
+	}
+	for _, l := range removeLabels {
+		if present[l] {
+			remove = append(remove, l)
+		}
+	}
+	return add, remove
+}
+
+func TestAddendum2_P1AgainstRealImpl(t *testing.T) {
+	s := &GitHubPassThroughStore{}
+	realRestrict := func(snap, a, r []string) ([]string, []string) {
+		return s.RestrictLabelWriteToSnapshot(context.Background(), &ent.Task{Labels: snap}, a, r)
+	}
+
+	snapshot := []string{"ft:stage/accepted", "bug"}
+	const L = "ft:stage/completed"
+
+	impls := []struct {
+		name string
+		fn   func(_, _, _ []string) ([]string, []string)
+	}{
+		{"REAL HEAD impl", realRestrict},
+		{"identity (pre-fix A-4)", identityRestrict},
+		{"case-blind mutant", caseBlindRestrict},
+		{"fixed", fixedRestrict},
+	}
+
+	inputs := []struct{ name string; add, remove []string }{
+		{"C-1 cross-list", []string{L}, []string{L}},
+		{"A-4 remove-absent", nil, []string{"ft:stage/wont_fix"}},
+		{"A-4 re-add-present", []string{"ft:stage/accepted"}, nil},
+		{"case-variant remove", nil, []string{"FT:STAGE/ACCEPTED"}},
+		{"legit priced edit", []string{L}, []string{"ft:stage/accepted"}},
+	}
+
+	for _, in := range inputs {
+		for _, impl := range impls {
+			a, r := impl.fn(snapshot, in.add, in.remove)
+			p1 := proposedPin(snapshot, in.add, in.remove, impl.fn)
+			p2 := p2Minimality(snapshot, a, r)
+			t.Logf("%-20s %-24s add=%-28v remove=%-28v P1=%-5v P2=%-5v",
+				in.name, impl.name, a, r, p1, p2)
+		}
+		t.Logf("")
+	}
+}

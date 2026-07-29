@@ -1,0 +1,93 @@
+ROUND 5 THREE-WAY INDEPENDENT REVIEW - YOU ARE THE TEST REVIEW LEG.
+
+READ THE BRIEF FIRST AND IN FULL:
+  /scion-volumes/scratchpad/projects/farmtable/briefs/xss-r5-review.md
+
+Tree table, how to work, hard constraints, what the change does, disclosed known
+weaknesses, deliverable format. Below is only your part.
+
+YOUR SCRATCH PATH - NOBODY ELSE HAS IT:
+  /workspace/farmtable-xss-r5-test
+Create it yourself as a git worktree or clone. It does not exist yet. NO TWO LEGS
+MAY EVER SHARE A SCRATCH PATH. If you find another agent's files there, STOP AND
+MESSAGE ME - do not clean it and continue.
+
+YOUR REPORT PATH:
+  /scion-volumes/scratchpad/projects/farmtable/reports/xss-r5-test.md
+
+YOUR PROJECT LOG ENTRY:
+  .design/project-log/2026-07-29-test-xss-r5.md
+
+THE SHA: d305391 on branch url-scheme-validation-r5, base e6bda71, 13 commits.
+Open your report by naming your working tree and git rev-parse HEAD. Nothing is
+pushed; the branch lives only in the author's worktree at
+/workspace/farmtable-dev-xss-r5 - fetch from there, DO NOT WRITE TO IT.
+
+YOUR ANGLE. Not test coverage percentages. THE QUESTION IS WHETHER THE TESTS IN
+THIS ROUND CAN FAIL, AND WHETHER THEY FAIL FOR THE REASON THEY CLAIM.
+
+The single most important thing you can do: FOR EVERY PROPERTY THIS ROUND
+ASSERTS, NAME THE TEST THAT GOES RED IF IT CHANGES. Where there is none, say so.
+Section 4 item 4 of the brief is exactly this failure at one remove - a carrier
+was written down in an earlier report and went a full round without any
+instrument enforcing it. KNOWLEDGE THAT LIVES IN A DOCUMENT AND NOT IN A TEST
+READS AS COVERAGE, because the search for did-anyone-know succeeds.
+
+Second: MUTATION. The author claims three mutants went red on the newest test.
+Do not take that on trust and do not stop at three. Mutate, measure, restore,
+VERIFY THE RESTORE BY CHECKSUM, and report what survived. A surviving mutant is
+a better deliverable than a passing suite.
+
+Third: the house style here is AGGREGATE COUNT PINS and they are blind to
+count-neutral corruption. A guard fixed at five suites is green when one of the
+five is swapped for something else - this was demonstrated tonight on a real
+tree. Find every count-shaped assertion in this diff and say whether membership
+or a per-axis absolute would catch what the count cannot.
+
+FOUR THINGS YOU NEED TO KNOW BEFORE YOU TRUST A GREEN:
+
+main IS RED. A green you obtain locally is not a green against a healthy
+baseline. Establish and state your baseline before you interpret any result.
+
+165 tests can observe another test's rows and 40 assert counts over shared
+state. A pass may be a property of test ordering. Say so where it might be.
+
+FIVE ASSERTIONS IN THIS SUITE ARE FLOORS OF THE FORM len-less-than-one AND ARE
+STRUCTURALLY INCAPABLE OF EVER REPORTING CONTAMINATION. If you meet one, it is
+not evidence.
+
+THE AUTHOR'S WRITE-SITE SCANNER DOES NOT READ TEST FILES AT ALL. Its silence
+about anything in a test file means NOT SCANNED, not CLEARED.
+
+TWO THINGS THE BRIEF SAYS THAT I WILL REPEAT BECAUSE LEGS SKIP THEM:
+
+PASS 1 IS OPEN AND UNSCOPED AND YOU DO NOT READ SECTION 4 UNTIL IT IS DONE. Tag
+every finding PASS-1 or PASS-2. I have primed legs with defect classes all night
+and got those classes back. That is retrieval, not confirmation.
+
+PRE-COMMIT TO YOUR FALSIFIER. Before you look, write what would refute your
+hypothesis and what you will do under each outcome. Report the result either
+way. Tonight the single most useful result anyone produced was a leg predicting
+two failures shared a root cause, writing the falsifier first, and having it
+fire - they were unrelated and the obvious fix would have been wrong for both.
+It would have been discarded as boring if it had not been pre-registered.
+
+THE BUILD FENCE IS LIVE AND PROJECT-WIDE AND IT BINDS YOU HARDEST OF THE THREE.
+go test ./... , npm test, make test, go vet, any full build: TOKEN REQUIRED,
+EXACTLY ONE EXISTS, I HOLD IT, ASK ME AND WAIT. Three legs are running and I
+grant it SERIALLY - expect to queue, and plan your work so the token is the LAST
+thing you need, not the first. Single-package runs of the form
+go test ./internal/pkg/ -run TestName -count=1 need no token but MUST be logged
+to reports/_run-queue-log.md BEFORE you run them, ROOT and DIST columns filled
+in even on passing lines. Do not batch a queue of untested commands behind a
+token request - tell me what you intend to run and why when you ask.
+
+DO NOT PUSH. DO NOT MODIFY PRODUCTION CODE. You may write scratch test files in
+your own worktree; do not commit them to the branch under review. Report to
+eng-manager only - not the coordinator, not ptone. No backticks in scion
+messages, they execute.
+
+TERMINATION: YOU MUST WRITE YOUR REPORT FILE AND YOUR PROJECT-LOG ENTRY TO DISK,
+MESSAGE eng-manager WITH YOUR VERDICT AND THE REPORT BYTE SIZE AND FIRST LINE,
+AND THEN MARK THE TASK COMPLETE. A finding that exists only in your context is a
+finding that does not exist.

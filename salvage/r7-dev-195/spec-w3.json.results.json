@@ -1,0 +1,120 @@
+[
+  {
+    "id": "CTRL-0",
+    "desc": "no-op comment \u2014 MUST be GREEN",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 71,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "CTRL-1",
+    "desc": "EXPECTED_CHECK_CALL_SITES = 99 \u2014 MUST be RED",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 71 did "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2722\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - check total pinned: expected 100 checks to run (99 call sites + 1 extra from the REQUIRED_SINKS loop), 71 did \u2014 a check() call site was added or silently removed, so update EXPECTED_CHECK_CALL_SITES after confirming which. NOTE WHAT THIS PIN DOES NOT COVER: a change to REQUIRED_SINKS moves both terms of the derivation and cannot reach this message at all \u2014 the sink list is pinned by EXPECTED_REQUIRED_SINKS instead, in `sink scan actually reads the source tree`. The previous wording here said a REQUIRED_SINKS change meant \"the total moves on its own and nothing here needs editing\", which is true and was read as reassurance; it is the reason a scope shrink was invisible. Never change either number merely to make a red suite go green.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2722:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2727:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C2-e",
+    "desc": "T-2 verbatim: shrink REQUIRED_SINKS + escaped alias + raw render \u2014 was GREEN at 68 checks on 86f30bc",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "sink scan actually reads the source tree: mechanism (a) is closed over 1 file(s), but this suite claims 2 \u2014 RE",
+      "tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2721\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 2 of 70 markdown sanitizer checks failed:\n  - sink scan actually reads the source tree: mechanism (a) is closed over 1 file(s), but this suite claims 2 \u2014 REQUIRED_SINKS changed length. Shrinking it does not fail any derived check, because the check total is derived from it too; a removed entry silently narrows the sound half of the guard to the files that remain. If a component genuinely stopped rendering markdown, update EXPECTED_REQUIRED_SINKS in the same commit and say so in the message. Never change it merely to make a red suite go green.\n  - tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:\n      src/components/inspector/ft-inspector-desc.ts:3 \u2014 an escape outside a string literal lets an identifier be spelled so that every name-based rule in this file misses it, while TypeScript still resolves it to the real binding. Write the name literally.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2721:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2726:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C2-e-scope-only",
+    "desc": "ATTRIBUTION: shrink REQUIRED_SINKS and nothing else. Only the new scope pin can see this; the derived check total cancels and the tree is otherwise untouched.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "sink scan actually reads the source tree: mechanism (a) is closed over 1 file(s), but this suite claims 2 \u2014 RE",
+      "unsafeHTML call sites are still found: expected exactly 1 unsafeHTML call sites, found 2 \u2014 update REQUIRED_SIN"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2721\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 2 of 70 markdown sanitizer checks failed:\n  - sink scan actually reads the source tree: mechanism (a) is closed over 1 file(s), but this suite claims 2 \u2014 REQUIRED_SINKS changed length. Shrinking it does not fail any derived check, because the check total is derived from it too; a removed entry silently narrows the sound half of the guard to the files that remain. If a component genuinely stopped rendering markdown, update EXPECTED_REQUIRED_SINKS in the same commit and say so in the message. Never change it merely to make a red suite go green.\n  - unsafeHTML call sites are still found: expected exactly 1 unsafeHTML call sites, found 2 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2721:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2726:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C2-e-escape-only",
+    "desc": "ATTRIBUTION: the escaped alias with REQUIRED_SINKS INTACT. Red before this round via per-file R7; must stay red, and the promoted tree-wide R7 should now also name it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:",
+      "unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 \u2014 update REQUIRED_SIN",
+      "tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:"
+    ],
+    "expect": "RED",
+    "tail": "kdown sanitizer checks failed:\\n` +\n              ^\n\nError: 3 of 71 markdown sanitizer checks failed:\n  - src/components/inspector/ft-inspector-desc.ts binds its markdown sink to the sanitizer: sink binding broken:\n      src/components/inspector/ft-inspector-desc.ts: no longer contains unsafeHTML(renderMarkdown( \u2014 the sanitizer wrapper is gone\n      src/components/inspector/ft-inspector-desc.ts: does not import unsafeHTML unaliased from lit's unsafe-html directive module (a specifier ending 'directives/unsafe-html.js') \u2014 the name may therefore resolve to something other than the audited one\n      src/components/inspector/ft-inspector-desc.ts:3: contains a unicode or hex escape outside a string literal \u2014 an escape lets an identifier be spelled so that the rules above cannot match it. Write the name literally.\n  - unsafeHTML call sites are still found: expected exactly 2 unsafeHTML call sites, found 1 \u2014 update REQUIRED_SINKS deliberately if a sink was added or removed\n  - tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:\n      src/components/inspector/ft-inspector-desc.ts:3 \u2014 an escape outside a string literal lets an identifier be spelled so that every name-based rule in this file misses it, while TypeScript still resolves it to the real binding. Write the name literally.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2722:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2727:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "C2-e-nonsink",
+    "desc": "THE REASON R7 WAS PROMOTED: the escaped alias in a NON-SINK file, which per-file R7 never covered. Must be RED via the tree-wide rule.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2722\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - tripwire: no file spells an identifier with a unicode or hex escape: escaped identifier in code:\n      src/components/inspector/inspector-shared-styles.ts:1 \u2014 an escape outside a string literal lets an identifier be spelled so that every name-based rule in this file misses it, while TypeScript still resolves it to the real binding. Write the name literally.\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2722:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2727:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-scope",
+    "desc": "ABLATION: neuter requiredSinkScopeViolation. The count-pin fixture must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: the tree-wide count pins fire on a changed count: count pin no longer fires: the scope pin is silent "
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2724\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: the tree-wide count pins fire on a changed count: count pin no longer fires: the scope pin is silent at 1 | the scope pin is silent at 3\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2724:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2729:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-scope-callsite",
+    "desc": "ABLATION: keep the predicate but drop it from the check body. Nothing catches this \u2014 the honest residue, and the reason the predicate fixture is not a substitute for the call site. EXPECTED_CHECKS does not see it because no check() was removed.",
+    "result": "GREEN",
+    "exit": 0,
+    "checks": 71,
+    "fired": [],
+    "expect": "GREEN",
+    "tail": ""
+  },
+  {
+    "id": "ABL-r7-tree",
+    "desc": "ABLATION: neuter escapeInCodeOffenders. The ESCAPE_EVASIONS fixture must catch it.",
+    "result": "RED",
+    "exit": 1,
+    "checks": null,
+    "fired": [
+      "fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: escape n"
+    ],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nfile:///workspace/web/.tmp-test/util/markdown.test.js:2722\n        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\\n` +\n              ^\n\nError: 1 of 71 markdown sanitizer checks failed:\n  - fixture: every known indirection form is caught by the tripwire: indirection form no longer detected: escape not caught: const rawHtml = \\u0075nsafeHTML; | escape not caught: import { \\u0075nsafeHTML as rawHtml } from 'lit/directives/unsafe-html.js'; | escape not caught: const rawHtml = \\u{75}nsafeHTML; | escape not caught: el.inner\\u0048TML = body;\n    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:2722:15)\n    at file:///workspace/web/.tmp-test/util/markdown.test.js:2727:1\n\nNode.js v20.20.2\n"
+  },
+  {
+    "id": "ABL-r7-view",
+    "desc": "ABLATION: run the promoted R7 over the strings-KEPT view. markdown.ts's deliberate \\uFE0E escape must turn the suite red \u2014 that is the false positive the view choice avoids, measured rather than asserted.",
+    "result": "RED",
+    "exit": 2,
+    "checks": null,
+    "fired": [],
+    "expect": "RED",
+    "tail": "\n> farmtable-web@0.0.1 test\n> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js\n\nsrc/util/markdown.test.ts(2271,52): error TS2304: Cannot find name 'code'.\n"
+  }
+]

@@ -1,0 +1,18 @@
+vite v6.4.3 building for production...
+transforming...
+✓ 342 modules transformed.
+[plugin vite:reporter] 
+(!) /tmp/audit-r7/sb/node_modules/dompurify/dist/purify.es.mjs is dynamically imported by /tmp/audit-r7/sb/src/components/ft-empty-state.ts but also statically imported by /tmp/audit-r7/sb/src/util/markdown.ts, dynamic import will not move module into another chunk.
+
+rendering chunks...
+computing gzip size...
+dist/index.html                   1.12 kB │ gzip:   0.57 kB
+dist/assets/index-Cxs8OCU6.css   36.27 kB │ gzip:   6.50 kB
+dist/assets/index-Df6e9qlL.js   826.43 kB │ gzip: 211.34 kB │ map: 2,466.82 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[vite-plugin-static-copy] Copied 2053 items.
+✓ built in 3.29s

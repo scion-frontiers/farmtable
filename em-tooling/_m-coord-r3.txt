@@ -1,0 +1,66 @@
+ALL THREE ACTIONED. One correction to a premise under ruling 3, and one thing I want
+to name about my own error because I think it is worse than you scored it.
+
+THE NARROWING IS MINE AND I ACCEPT IT WITHOUT QUALIFICATION. But look at what it
+actually is. "Nothing in the Lit dashboard reads it" restated as "remote_data has no
+render sink in this application", with NO RE-MEASUREMENT AT THE BOUNDARY. That is not
+merely adjacent to our flagship mechanism, it IS the mechanism, verbatim: A TRUE
+STATEMENT ABOUT A NARROW THING, RESTATED ABOUT A WIDER ONE. I wrote it in an
+escalation whose entire purpose was to ask you to close an axis on the strength of it,
+roughly two hours after I filed the mechanism as the deepest result of the night.
+Knowing the rule did not prevent me producing a clean instance of it - which is the
+third time tonight a leg or I have said that sentence, and it is starting to look like
+the rule's real content is that knowing it does not help.
+
+CORRECTION TO A PREMISE, RULING 3. You wrote that the r6 fix leg is nearly done and
+that killing it would cost the round. It is not nearly done - I dispatched it at
+05:40Z, TWO MINUTES before your message landed. Your ruling is unaffected and I am not
+asking you to revisit it, but the reasoning attached to it was about a leg that has
+been running for four minutes. I would rather hand you that than let it sit.
+
+The timing is actually the best case: B11 reached the leg before it had written
+anything, so the guard is in scope from the start rather than bolted on.
+
+B11 DISPATCHED, carrying your framing unchanged - closes as PINNED not as DONE, and
+the six-defensible-rounds receipt is worse precisely because it is earned. I gave the
+leg three constraints. Not a sixth hand-written scanner. A positive control that is
+shown to go red, with the transcript. And the one I expect to actually bite: IT MUST
+BE RUN BY SOMETHING THAT RUNS. We have a HIGH open right now where the markdown guard
+is executed by no path in this repo - not CI, not make test, not the release path, not
+any doc - and it has been sitting there looking like coverage for weeks. A guard for
+an open sink set that nothing executes is the same artefact as a comment saying the
+boundary is untrusted, just more expensive. I steered the leg toward writing it as a
+Go test that reads the web sources, because go test is the one runner in this project
+that reliably fires, and told it to push back if it has a better answer and to name
+WHAT EXECUTES ITS GUARD in the report.
+
+POPULATION MEASUREMENT DISPATCHED, to review-xss-r5, NOT to the audit leg. The audit
+leg produced the finding; sending it to check its own population is the shared-method
+failure we just spent a round on. The review leg's route on the structpb question was
+an import-graph fact rather than a name search, which is close to the right instrument
+for "what reads this API".
+
+I structured it as an open pass FIRST, with my prior disclosed only afterward and
+explicitly marked as contaminating. My prior is that the dashboard is NOT the only
+consumer and that I already have enough in front of me to know it - so I told the leg
+that if its open pass returns "dashboard only" it should check hard before sending,
+because I would rather have my prior overturned with evidence than confirmed by
+inheritance. I also passed your four classes as a SECOND pass and labelled them four
+examples rather than an enumeration.
+
+FALSIFIER RECORDED, before the CSP leg exists and before any result is known: IF THE
+CSP LEG FINDS A remote_data RENDER SINK WHILE WORKING THE MARKDOWN PATH, RULINGS 1 AND
+2 INVERT - the axis reopens, r6 was not the last round, and the three-leg convergence
+was a large sample of the wrong population. It goes in the CSP brief. I will report
+the outcome either way, and I note we have zero retained instances of a quiet negative
+anywhere in our record, so if it comes back clean that is the result I will write up
+rather than the one I bury.
+
+THE IAP EXEMPTION: carried, and I will keep it welded to the mitigation in the same
+sentence rather than in an adjacent one. IAP is the door and this came through the
+mail slot - attacker-authored issue text we fetch ourselves, detonating in the browser
+of an authenticated operator already inside the perimeter. Your framing, and I am not
+going to improve on it, so I will reuse it verbatim rather than paraphrase, since
+paraphrase is where the urgency leaks.
+
+Not blocked on you. r6 running, population measurement running, CSP queued behind r6.

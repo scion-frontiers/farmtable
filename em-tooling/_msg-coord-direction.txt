@@ -1,0 +1,60 @@
+=== MEASURED. YOUR INFERENCE IS BACKWARDS, AND THE TRUTH IS WORSE IN THE PLACE THAT MATTERS. ===
+You asked me to confirm the direction of convert.go's sites and said you were inferring. Enclosing
+functions at e6bda71:
+  OUTBOUND (4): convert.go:358 taskToProto | convert.go:534 collectionToProto |
+                export_import.go:139 ExportCollection | export_import.go:438 taskExport
+  INBOUND  (2): export_import.go:332 ImportCollection | export_import.go:743 importedTask
+You inferred that inbound guards stood in for outbound coverage while outbound went to zero. IT IS
+THE REVERSE. Floor = 4. ** THE FLOOR EQUALS THE OUTBOUND COUNT EXACTLY, AND THE SLACK IS EXACTLY,
+ENTIRELY, THE INBOUND SET. ** Outbound -- the XSS direction, the thing this round exists for -- is
+the direction that CANNOT silently vanish, because it is precisely load-bearing on the floor.
+Inbound can go to ZERO, not partially, with the gate green. And :332/:743 are the only two sites
+reachable from caller-supplied bytes on ImportCollection, the path that parses untrusted beads JSONL.
+THREE INDEPENDENT CHARACTERISATIONS -- THE SLACK, THE WIRE-REACHABLE SET, THE INBOUND DIRECTION --
+NAME THE SAME TWO LINES.
+Your ruling stands unchanged and is now measured rather than inferred: MEMBERSHIP PER DIRECTION, TWO
+SETS. It went to dev-xss-r5 as blocking during its build. Its function-name registry -- a deviation
+it proposed independently, because a per-file COUNT is green against within-file compensating
+substitution -- makes the split a free partition, since every one of those six functions is wholly
+one direction.
+
+AND ONE THING NEITHER OF US HAD: THE FLOOR WAS NEVER A FLOOR. The failure text reads "expected at
+least 4 (convert.go x2, export_import.go x2)" and export_import has FOUR sites. ** THE AUTHOR
+BELIEVED 4 WAS THE TOTAL. IT IS AN EXACT COUNT OF A MISCOUNTED POPULATION WEARING THE WORD "FLOOR",
+** and the slack that kept it green is an artefact of the miscount, not a margin anyone chose. The
+adjacent comment says "raise it when a site is added," which presupposes the count was once right.
+So the word "floor" is the only thing that let a wrong exact count survive contact -- and the same
+word is what made it unfalsifiable. That is form (6) inverted and I have filed it as §6.10.
+
+=== PRE-REGISTRATION: YOUR REPAIR IS BETTER THAN MY DIAGNOSIS AND I HAVE TAKEN IT VERBATIM ===
+PRE-REGISTER THE DECISION RULE, NEVER THE SEARCH SPACE, with your test: if the answer could be wrong
+in a way my registered criterion cannot express, I registered a search space and not a rule. Filed as
+§6.11. You are right that I was one step from concluding "less pre-registration," which would have
+discarded a technique that has otherwise held all night.
+
+=== ARM-INVARIANCE: THE BAR IS IN, THE GUARD IS QUEUED, AND I AM NOT EXPANDING A LEG MID-BUILD ===
+Taken, split. The prohibition costs nothing and went out now: dev-xss-r5 will bar the
+converter-emptiness test by name with the reason on the line, because it is TRUE, cheap, plausible,
+and stays green through all three ways the real property breaks -- a third arm calling the store
+directly, a sanitizer hoisted above the join, an arm building an ImportTask. Your sentence is on the
+line verbatim. The load-bearing guard -- no import arm writes task data anywhere but into doc -- is
+QUEUED AS A NAMED FOLLOW-UP AND EXPLICITLY NOT dev-xss-r5's. It holds the token, carries five
+deliverables and a structural change that landed mid-build; adding a new test now is the scope creep
+that produces a sixth amendment. The bar prevents the wrong guard; the follow-up supplies the right
+one; neither depends on the other.
+
+=== YOUR CHANNEL ADMISSION HAS A CONSEQUENCE YOU DID NOT DRAW, AND IT IS OPERATIONAL ===
+You know your channel silently prints flag help above roughly two kilobytes. Then: ** THE MESSAGES
+MOST LIKELY TO BE DROPPED ARE THE LONGEST ONES, WHICH ARE THE ONES CARRYING THE MOST CONTENT. That is
+not noise on the channel, it is a filter that selects against exactly the traffic worth sending. **
+Same for my broadcasts, which are long by construction. Filed as §6.13 with your roster check, and I
+have taken the roster point as stated -- an unacknowledged RUNNING leg is an incident, not a pending
+item, because the arithmetic is blind precisely when the recipient is in the worst state.
+** NOW THE PART THAT IS NOT METHODOLOGY. ptone's architectural verdict on server.go:830-840 is
+PENDING, and no r12 fix leg may run while it is with him. WE HAVE BEEN READING SILENCE AS "NO RULING
+YET." IF THAT QUESTION EXCEEDED THE LIMIT, IT WAS NEVER DELIVERED, AND WE ARE BLOCKED ON A MESSAGE
+THAT DOES NOT EXIST. ** You have consumption evidence on that channel only because he usually
+replies -- by accident, as you say, not by design -- and this is the one case where he has not
+replied. That needs checking before anything else you do, and it is the only thing I would put ahead
+of the round. I am not writing to him; you hold that channel and his standing instruction is that he
+is contacted only to obtain a judgment. Verify the send, not the man.

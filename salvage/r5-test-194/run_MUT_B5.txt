@@ -1,0 +1,82 @@
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/wont_fix] on a completed issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/duplicate] on a completed issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/cancelled] on a completed issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/duplicate] on a wont_fix issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/cancelled] on a wont_fix issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled
+    authz_label_write_scope_test.go:822: add_labels[ft:stage/cancelled] on a duplicate issue was allowed with task:write. The issue now names two terminal stages; whether the tiebreak winner moved is not the question
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix
+=== RUN   TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate
+=== NAME  TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose
+    authz_label_write_scope_test.go:858: 6 of 12 terminal->terminal pairs were gated, want 12. Six is the signature of a control that compares tiebreak winners instead of stage sets
+--- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose (0.07s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_wont_fix (0.01s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_duplicate (0.01s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/completed_to_cancelled (0.00s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_completed (0.01s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_duplicate (0.01s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/wont_fix_to_cancelled (0.00s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_wont_fix (0.01s)
+    --- FAIL: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/duplicate_to_cancelled (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_completed (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_SwappingOneTerminalLabelForAnotherRequiresClose/cancelled_to_duplicate (0.01s)
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_wont_fix_ask_wont_fix
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_duplicate_ask_duplicate
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_completed_ask_completed
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=completed) on a task naming both wont_fix and completed was allowed with task:write. Labels now [ft:stage/completed] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_duplicate_ask_duplicate
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_completed_ask_completed
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=completed) on a task naming both duplicate and completed was allowed with task:write. Labels now [ft:stage/completed] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_wont_fix_ask_wont_fix
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=wont_fix) on a task naming both duplicate and wont_fix was allowed with task:write. Labels now [ft:stage/wont_fix] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_cancelled_ask_cancelled
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_completed_ask_completed
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=completed) on a task naming both cancelled and completed was allowed with task:write. Labels now [ft:stage/completed] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_wont_fix_ask_wont_fix
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=wont_fix) on a task naming both cancelled and wont_fix was allowed with task:write. Labels now [ft:stage/wont_fix] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== RUN   TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_duplicate_ask_duplicate
+    authz_label_write_scope_test.go:1675: UpdateTask(stage=duplicate) on a task naming both cancelled and duplicate was allowed with task:write. Labels now [ft:stage/duplicate] — re-asserting a stage the task already names must not be free when it erases another terminal stage
+=== NAME  TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose
+    authz_label_write_scope_test.go:1720: 6 of 12 ordered pairs were gated, want 12. Six is the signature of a control that reads the tiebreak winner as the transition source
+--- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose (0.07s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_wont_fix_ask_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_duplicate_ask_duplicate (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/completed_plus_cancelled_ask_cancelled (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_completed_ask_completed (0.00s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_duplicate_ask_duplicate (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/wont_fix_plus_cancelled_ask_cancelled (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_completed_ask_completed (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_wont_fix_ask_wont_fix (0.01s)
+    --- PASS: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/duplicate_plus_cancelled_ask_cancelled (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_completed_ask_completed (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_wont_fix_ask_wont_fix (0.01s)
+    --- FAIL: TestUpdateTask_ReAssertingATerminalStageOnAMultiTerminalTaskRequiresClose/cancelled_plus_duplicate_ask_duplicate (0.01s)
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_stock_duplicate_ask_duplicate
+    authz_label_write_scope_test.go:1820: DENIED by B6 + the pre-existing any->terminal rule
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_completed_ask_completed
+    authz_label_write_scope_test.go:1815: UpdateTask(stage=completed) on [ft:stage/cancelled ft:stage/completed] [B5]: allowed, want PermissionDenied naming "task:close"
+=== RUN   TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/duplicate_plus_wont_fix_ask_wont_fix
+    authz_label_write_scope_test.go:1815: UpdateTask(stage=wont_fix) on [ft:stage/duplicate ft:stage/wont_fix] [B5]: allowed, want PermissionDenied naming "task:close"
+--- FAIL: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5 (0.02s)
+    --- PASS: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_stock_duplicate_ask_duplicate (0.00s)
+    --- FAIL: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/cancelled_plus_completed_ask_completed (0.01s)
+    --- FAIL: TestUpdateTask_StockLabelBesideATerminalLabelIsDeniedButNotByB5/duplicate_plus_wont_fix_ask_wont_fix (0.00s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.177s
+FAIL

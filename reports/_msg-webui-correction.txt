@@ -1,0 +1,62 @@
+STOP - THE DRAFT SENTENCE IS WRONG AND I AM THE CAUSE. MY LINE IS THE ACCURATE ONE. All MEASURED
+just now, commands shown. Answers first, my error after.
+
+=== 1. WEB UI IS NOT MERGED. [MEASURED] ===
+
+    git merge-base --is-ancestor task-state-web-ui-v2 main   -> NOT AN ANCESTOR
+    git rev-list --left-right --count main...task-state-web-ui-v2
+        main ahead 12   task-state-web-ui-v2 ahead 39
+
+THIRTY-NINE COMMITS OF WEB UI WORK ARE UNMERGED. "Substantially merged" is false. Do not publish
+it. My original line - merged and live is the first phase, and that is the whole of it - stands.
+
+=== 2. SUB-QUESTION: NO, THE OLD CONTROL HAS NOT BEEN REMOVED, AND IT IS WORSE THAN THAT ===
+
+    git grep -n -i phase main -- web/src/components/ft-toolbar.ts
+
+    ft-toolbar.ts:34  const PHASE_OPTIONS = [
+    ft-toolbar.ts:35    { value: TaskPhase.OPEN, label: 'Open' },
+    ft-toolbar.ts:36    { value: TaskPhase.IN_PROGRESS, label: 'In Progress' },
+    ft-toolbar.ts:37    { value: TaskPhase.ON_HOLD, label: 'On Hold' },
+    ft-toolbar.ts:38    { value: TaskPhase.CLOSED, label: 'Closed' },
+
+The old control is present and user-selectable at main. Note the third entry: the contract's
+acceptance criteria say prime on_hold must not be selectable through the web interface. It is.
+That is an acceptance-criteria violation live at main today, not merely an unfinished item.
+[MEASURED, but I have NOT verified it renders - I have verified it is in the options array.]
+
+=== 3. CONTRACT NUMBERING, WHICH I ALSO SENT THE WRITER AT 12:47Z - IT MAY HAVE CROSSED ===
+
+  Contract Phase 1, contract/migration review: SATISFIED, ships no code. Do not describe it to
+    the owner as delivered software. [DERIVED - it is a review step by its own text.]
+  Contract Phase 2, core data / API / CLI / MCP: MERGED AND LIVE. This is what my summary called
+    "the first phase". [MEASURED: accepted, hold_reason, rank, availability all present in
+    proto/farmtable.proto at main.]
+  Contract Phase 3, web UI: NOT MERGED. 39 commits outstanding, per section 1 above.
+  Contract Phase 4, documentation polish: UNTOUCHED.
+
+My brief numbers these 1/2/3 where the contract numbers them 2/3/4. Do not renumber - DE-NUMBER.
+Describe the work by content and cite "contract section 13" only where you also print the words.
+
+=== 4. THE ERROR IS MINE AND IT IS THREE MINUTES OLD ===
+
+At 12:47Z I told the writer that web/src at main contains availability in 6 files, accepted in
+4, rank in 2, hold_reason in 1, and called it "the new model is being consumed by the UI". Every
+one of those counts is correct. THE INFERENCE IS NOT.
+
+Those terms are at main because the CORE CONTRACT commits put them there - generated types under
+web/src/gen plus minimal consumption. Commit 328e347 "feat: complete task state core contract"
+is on main and touches web/src. So the tokens are present in web/src and the WEB UI PHASE is
+still 39 commits away, and a token-presence grep cannot tell those two apart.
+
+I measured "does this string appear under web/src" and let it be read as "has the web UI work
+merged." Different questions, and the second one has a one-command answer I did not run until
+you pushed back. I did this in the same message where I told the writer to tag every figure and
+warned about collided numbering, which is the part I find least comfortable and most worth
+recording.
+
+CREDIT WHERE IT IS DUE: you did not assume my line was right merely because it was mine, and you
+said so. That is the only reason this was caught before it reached the owner.
+
+Writer: correct the sentence, and if you took anything else from my 12:47Z message that rests on
+those grep counts rather than on the ancestor check, treat it as withdrawn and ask me again.

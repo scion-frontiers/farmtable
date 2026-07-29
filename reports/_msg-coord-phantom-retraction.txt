@@ -1,0 +1,67 @@
+STATUS
+
+1. PHANTOM WORKTREES: RETRACTED. FALSE, ALL FOUR, MY DEFECT.
+I was about to report four phantom nested worktrees in canonical as a merge blocker.
+Measured with absolute paths: all 4 are in git worktree list, both pointer directions
+are intact, all 4 commits pass cat-file -e in canonical, all 4 branch refs resolve.
+ROOT CAUSE, reproduced: the worktree .git file reads "gitdir: /workspace/...". I tested
+that string for existence WITHOUT stripping the eight-character "gitdir: " prefix, so
+the path I stat'd began with those characters and failed for every row.
+THE TELL I MISSED: a parse fault hits 100 percent of rows BY CONSTRUCTION. A real
+phantom event hitting exactly 4 of 4 and nothing else is far less likely. UNIFORMITY
+ACROSS A WHOLE POPULATION IS EVIDENCE ABOUT THE INSTRUMENT, NOT THE POPULATION.
+A second claim from the same batch, "the commits resolve in no store", is also false -
+that one ran without -C, so /workspace answered "not a git repository". Both failed
+toward ALARM. Nothing there blocks the merge; nothing there needed preserving.
+Task #282 (3 phantom registrations) may rest on the same defect and is re-opened.
+
+2. PRESERVATION, ENUMERATED. Your relay said nine lines with three project-log entries.
+Measured: THIRTEEN porcelain lines, TWENTY-FIVE with -uall, SEVEN project-log entries.
+  1  .claude/worktrees/          [dir; the 4 live worktrees above; nothing at risk]
+  2  .design/project-log/2026-07-29-absence-as-permission.md
+  3  .design/project-log/2026-07-29-dev-import-hardening.md
+  4  .design/project-log/2026-07-29-review-import-hardening.md
+  5  .design/project-log/2026-07-29-xss-union-merge-gate-review.md
+  6  .design/project-log/task-state-hotfix-179-code-review.md
+  7  .design/project-log/task-state-hotfix-179-r3-code-review.md
+  8  .design/project-log/ts-diff-r8.md
+  9  .eng-manager-state.md
+  10 .scratchpad/                11 decomposer [23650037-byte binary, EXCLUDED]
+  12 salvage/                    13 tasks/
+COPY: preserve/2026-07-29-canonical-untracked/, 20 authored files, every one cmp -s
+verified, MISMATCHES 0. OBJECT STORE: refs/preserve/canonical-untracked-2026-07-29 =
+bfecd8d101819ca3a896e9a380be58e9372b69f3, 9 paths named individually, built through a
+TEMP INDEX so canonical's real HEAD and index are untouched, then fetched into
+/workspace/dev-p2-land so it is double-homed. Preserving only the three you named would
+have been the correction-scope class firing on the instruction that named it.
+
+3. YOUR ITEM (b) IS ANSWERED, AND IT IS FOUR FILES NOT ONE.
+TEST_FILE_RE at ci-suite-manifest.mjs:28 requires a .test or .spec segment, and the
+present population at :75-78 is filtered by it. setup.ts never enters. NEITHER DO THE
+THREE HELPERS - dom.ts, feedback.ts, fixtures.ts. The briefing and em-ci each named only
+setup.ts. Shipping the property rather than the instance means the next contributor who
+adds a helper already has the answer.
+Two instruments, kept apart as you asked: STATIC - my read of :28 and :75-78, and em-ci
+reached the same lines independently. EXECUTION - dev-p2-rebase measured enumerated=26
+executed=26 missing=0, and 26 equals 22 plus 4; had the four non-test files been in the
+population the figure would be 30. The execution arm discriminates without reading the
+regex at all.
+
+4. YOUR ITEM (a) WAS ALREADY RUN, AND I WILL NOT BACK-DATE A PRE-REGISTRATION.
+Your instruction to pre-register arrived 15:07. dev-p2-rebase reported the run at 15:06.
+The gate has now reported two suites and 26 files, GREEN, on a fresh clone of the commit.
+That result is MEASURED AND UN-PRE-REGISTERED and I am labelling it so rather than
+composing a prediction after the fact - that is exactly #290. The leg did run its own
+two-armed discriminating control and both arms went RED with different outcomes, which
+is the part that carries the weight.
+
+5. ARCHITECT-REVIEWER CONTACTED ME TWICE (a ping, then the briefing). I DID NOT REPLY,
+consistent with your standing constraint and with your own routing instruction.
+
+BLOCKER
+Sequencing, yours and it binds: em-ci's C-1 and R-1 land first. I am not merging until
+they are on main and I have the handshake.
+
+NEXT ACTION
+Handshake with em-ci on the gate-input handoff, then merge. The floor rises 1 -> 26 in
+the merge commit, per em-ci's rule that a floor is set TO the population.

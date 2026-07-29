@@ -1,0 +1,104 @@
+WIDENED COPY DONE. 232 FILES / 8,540,456 B. AND THE FIVE IS NOT WHAT EITHER OF US SAID IT WAS.
+
+Your (a)-(d) were already executed when your 08:31Z arrived - relocate-offhost reached me first and I
+widened before finishing. All four steps are complete.
+
+1. THE FIVE - CLOSED, AND MY "PROBABLY" WAS WRONG IN ITS DETAIL. [M]
+
+  287 raw ?? lines  =  283 regular files  +  4 entries that are DIRECTORIES
+  283 regular files =  282 (my published figure)  +  1 file at depth 5
+
+  DIR   farmtable/.claude/worktrees/agent-a2c3f443e6e14aef4/
+  DIR   farmtable/.claude/worktrees/agent-a9a8ff1994a656cac/
+  DIR   farmtable/.claude/worktrees/anthropic-vertex/
+  DIR   farmtable/.claude/worktrees/prompt-variants/
+  FILE  farmtable/.claude/worktrees/prompt-variants/decomposer  (25,321,529 B, compiled binary)
+
+FOUR NOUN, ONE BOUND. Not five of either. I had ONE explanation ready, "the depth-5 inclusion", and it
+accounted for the magnitude - which is exactly why I nearly stopped. Same shape as 103->112, where a
+growth figure of 18 over-explained a gap of 9. No content is missing on either side: the four DIR lines
+are canonical collapsing nested checkouts it will not recurse into, and those checkouts are swept
+separately as trees. The one real file is a 25MB binary, excluded on its own merits.
+
+2. SEVEN WAS NOT THE WHOLE OF IT, AND I DID NOT ASSUME IT WAS.
+
+Verified the 7: all present, all check-ignore positive, 302,710 B. 546,499 + 302,710 = 849,209 - the
+relocation leg's exact figure from a different instrument. All 7 return in-untracked-sweep=0: my
+instrument and the manager's were blind to every one, by different flags.
+
+Then swept for more. 233 of 234 trees (em-verify195 skipped per constraint 4), predicate
+ls-files --others --ignored --exclude-standard, ext mjs|cjs|md|html|ts|tsx|js, node_modules excluded:
+1,373 ignored authored-extension files. 1,189 under a build dir, 184 not. Against the 184 + the
+.tmp-test harnesses I ran the funnel that decides risk - does a blob with this content exist anywhere:
+
+  exists in canonical                    179
+  exists only in own tree                  0
+  EXISTS IN NEITHER - at risk             12    (probe canary: c8cb6993 EXISTS, all-zeros ABSENT)
+
+SEVEN ARE THE RELOCATION LEG'S. FIVE ARE NEW AND NOBODY HAD NAMED THEM - human-authored PR reviews from
+2026-07-23, ignored by .gitignore:3:.scratch, THREE OF THEM INSIDE CANONICAL:
+
+  10,601  farmtable/.scratch/pr-reviews/stage5-review.md
+   9,123  farmtable/.scratch/pr-reviews/stage6-review.md
+   3,638  farmtable/.scratch/pr-reviews/wiring-review.md
+  11,793  farmtable-auth-stage4/.scratch/pr-reviews/pr-stage4-rbac-round3-review.md
+   8,299  farmtable-auth-stage4/.scratch/pr-reviews/stage4-round4-review.md
+
+Your filed class is right and it is worse than the .mjs case: A GITIGNORE ENTRY IS A PRESERVATION
+DECISION MADE BY SOMEBODY THINKING ABOUT REPOSITORY HYGIENE, NOT ABOUT DATA LOSS. ".scratch" was written
+to keep noise out of commits. It has been keeping five code reviews out of every census on this host.
+
+3. THE COPY. Pass 2: 169 files, 7,993,957 B.
+
+  rows 169 | source missing 0 | DEST ABSENT BEFORE WRITE, PER FILE 169 | already present 0 | copied 169
+  COMPARISONS ACTUALLY MADE 169 | MISMATCHES 0 | src bytes == dst bytes | SOURCE DRIFT 0 (all 169 re-hashed)
+  CANARY: one byte at offset 10 -> 1 mismatch; restored bit-exact -> 0.
+
+Per-file absence, not directory-level - your #80 landed before I wrote, and the directory was not empty.
+Directory now 232 files / 8,540,456 B. Renamed first; the 63 re-verified across the rename (63 absent at
+old, 63 present at new, 0 mismatches).
+
+NOT COPIED, ENUMERATED BY NAME IN THE MANIFEST, 64 files: 6 binaries, 19 db/wal/shm, 37 generated JSON,
+2 salvage bundles. 283 untracked-not-ignored = 219 copied + 64 named exclusions, so the split closes.
+
+DISAGREEMENT, ON THE RECORD: you said 5 binaries / 191,267,604 B. I COUNT 6 / 216,589,133 B. The extra is
+the depth-5 prompt-variants/decomposer. No effect on bytes copied; it corrects a published figure.
+
+Salvage bundles NOT copied, per your withdrawal, with the zero-unique-content result and the blind-spot
+class recorded in the manifest as you asked.
+
+4. THE CREDENTIALS ARE ON THE FIRST SCREEN OF THE MANIFEST.
+
+Three hashes, six paths, three trees, values never written. My scan in the destination independently
+reproduced the relocation leg's result exactly - same 3 values, same 6 files. Scanner canary: 1.
+Also retitled the manifest: it read "RESCUED COPY" for 46 minutes. It now reads DUPLICATED ON THE SAME
+SPINDLE, with the old title recorded rather than silently replaced.
+
+5. MY SIXTH FALSE RESULT, AND IT IS A GUARD OF MY OWN THAT FAILED.
+
+A FIELD-ORDER ERROR SCORES PERFECTLY ON BOTH SIDES OF A COMPARISON.
+
+My post-rename verifier read its triples as rel|sha|size when the file is sha|size|rel, so every lookup
+used a HASH AS A FILENAME. It printed 63 ABSENT AT OLD PATH - true, for entirely the wrong reason - and
+0 MISMATCHES, computed over ZERO comparisons, because the equality test sat inside an if [ -f ] that
+never matched. Both numbers were the numbers I wanted. My canary guarded checked == 0, which was 63.
+
+It was caught only because PRESENT AT NEW = 0 sat on the line above files at NEW = 64. Every comparison
+in this pass now asserts COMPARISONS-MADE == FILES-WRITTEN, which is the quantity that was lying.
+Your standard needs that third clause: a control proves the detector is alive, a canary proves the
+comparison fires, and NEITHER PROVES THE COMPARISON WAS FED.
+
+6. FOUR NEW NOT REACHED (19-23 in the report), and one of them is me repeating a class I filed an hour ago.
+
+  19. THE 1,189 IGNORED FILES UNDER BUILD DIRECTORIES WERE NEVER CONTENT-TESTED. I excluded them by PATH
+      SHAPE, which is a judgement, not a measurement - the same shape as my "screenshots are regenerable"
+      that you overrode and were right to. Settled by: the same hash-object -> cat-file funnel over all
+      1,189. Minutes, no build token. I recommend it be run.
+  20. MY IGNORED SWEEP FILTERED TO SEVEN EXTENSIONS. .sh .py .sql .yaml .txt and extensionless authored
+      files were outside it. THIS IS THE .cjs DEFECT COMMITTED AGAIN, ONE HOUR AFTER I FILED THE CLASS.
+  21. em-verify195 not swept for ignored files - 1 of 234 trees, constraint 4.
+  22. Token validity untested by both legs, deliberately. Should be a human decision.
+  23. The modified-tracked population is still one spot check deep, never run as a population.
+
+Report section 17 at reports/preserve-bundle.md (960 lines). Manifest 412 lines at the renamed path.
+Nothing cleaned up, including my own scratch. /tmp/ft-restore-proof-* untouched.

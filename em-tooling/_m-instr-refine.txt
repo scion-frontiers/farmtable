@@ -1,0 +1,61 @@
+TWO AMENDMENTS TO YOUR BRIEF. Both make the form ABLE TO RECORD SOMETHING IT CURRENTLY
+CRUSHES. Neither adds work. Keep reading as you were; this changes what you write down.
+
+AMENDMENT 1 - THE FIVE CELLS ARE TWO AXES, NOT ONE, AND YOU MUST ANSWER BOTH PER NEGATIVE.
+
+I handed you five cells as a single choice. That was wrong in a specific way: three of them
+describe WHAT THE INSTRUMENT WAS, and two describe WHAT WE KNOW ABOUT IT. Forcing one
+letter per negative crushes a hybrid, and hybrids are the common case - a round that ran a
+token search AND a manual read is genuinely two of the first three, and a report that is
+partly explicit about its method and partly silent is genuinely split.
+
+So, per negative, answer BOTH of these:
+
+  AXIS A - DO WE KNOW WHAT WAS RUN?
+     EXPLICIT        the report states its method
+     UNDETERMINABLE  the report records the negative and does not say how it was obtained
+     NOTHING-RUN     the report tells us the negative was DERIVED or INFERRED, not searched
+
+  AXIS B - IF WE KNOW, WHAT WAS IT KEYED ON? PLURAL PERMITTED, LIST ALL THAT APPLY.
+     RENDERING-KEYED     looked for the value reaching a display or serialisation path
+     CONSUMPTION-KEYED   looked for the value being READ AT ALL, for any purpose
+     IDENTIFIER-KEYED    a name or token search over source text
+
+Axis B is left blank when axis A is UNDETERMINABLE. When axis A is NOTHING-RUN, axis B is
+blank BY DEFINITION and that is the whole point of separating them - a derived negative has
+no keying because it has no instrument.
+
+The rest of the brief stands. UNDETERMINABLE must still not be quietly upgraded. NOTHING-RUN
+is still the cell I would least like to find, and it is still the reason the axis was split
+out rather than left inside UNDETERMINABLE - one is a documentation gap, the other is a
+negative that was derived and filed as a search. And your escape hatch is unchanged and I
+want it kept: if a negative fits NONE of these, name a new cell rather than forcing it.
+That covers the case where none fit. This amendment covers the commoner case where two fit
+and the form had room for one.
+
+AMENDMENT 2 - THE POPULATION IS STILL GROWING WHILE YOU READ IT.
+
+I gave you a file population of 24 and told you it might be the wrong population. Same
+hazard, other axis: I scoped you to rounds already CLOSED. A round is OPEN right now. A fix
+leg is running items B1 through B10 against the same unaudited instruments, and it will
+produce a fresh layer of negatives on this exact axis while you are reading the old ones.
+Its output JOINS YOUR POPULATION on completion.
+
+So do not report a bounded answer over a set that grew after you read it. Concretely:
+
+  - State your population WITH ITS CUT-OFF - which reports existed when you enumerated, and
+    the command and the time.
+  - Say explicitly that the open round's negatives are OUTSIDE your read and UNCLASSIFIED,
+    rather than letting silence imply they were covered.
+  - Your totals are totals AS OF YOUR CUT-OFF. Do not phrase them as totals for the axis.
+
+I have separately instructed that round to mark its own B1-B10 negatives PROVISIONAL
+PENDING THIS READ. Do not read that as a blanket claim, because it is not one and I nearly
+sent it as one: that round's B11 item is EXEMPT and does land signed, because that single
+pin was corrected and re-keyed from rendering to consumption before the leg wrote anything.
+So one signed item lands on this axis while your answer is outstanding, and you are being
+told which. You do not need to coordinate with that leg and should not contact it.
+
+NOTHING ELSE CHANGES, and in particular the stakes have not moved: they are on the COVERAGE
+CLAIM, not on any leg's competence, including the legs whose reports you are reading and
+including mine. This is an audit of us.

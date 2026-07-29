@@ -1,0 +1,104 @@
+[
+{"id":"G3-arity-inline","expect":"red","what":"ARGUMENT-SHAPE DRIFT (named in the amended claim): renderMarkdown grows a second parameter whose branch skips DOMPurify, and the desc sink passes it. R5 accepts the call because the argument is still a bare renderMarkdown(...) call; every behavioural test calls renderMarkdown with exactly one argument, so no test can express the new code path.",
+ "steps":[
+  {"file":"web/src/util/markdown.ts",
+   "anchor":"export function renderMarkdown(md: string): string {\n  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}",
+   "replace":"export function renderMarkdown(md: string, opts: { inline?: boolean } = {}): string {\n  // Inline fields are one-liners; marked's inline lexer emits no block-level\n  // HTML, so the output is already safe.  <-- plausible, and wrong.\n  if (opts.inline) return parser.parseInline(md) as string;\n  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });\n}"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"${unsafeHTML(renderMarkdown(this.description))}",
+   "replace":"${unsafeHTML(renderMarkdown(this.description, { inline: true }))}"}]},
+
+{"id":"G3b-arity-sink-only","expect":"red","what":"Control for G3: the sink alone grows a second argument, markdown.ts untouched. Isolates whether R5 accepts extra arguments at all.",
+ "steps":[
+  {"file":"web/src/util/markdown.ts",
+   "anchor":"export function renderMarkdown(md: string): string {",
+   "replace":"export function renderMarkdown(md: string, _opts?: { inline?: boolean }): string {"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"${unsafeHTML(renderMarkdown(this.description))}",
+   "replace":"${unsafeHTML(renderMarkdown(this.description, { inline: true }))}"}]},
+
+{"id":"G1-htmlcomment-blind","expect":"red","what":"An UNTERMINATED <!-- inside a lit template blanks the guard's view to end of file (template-mode branch takes src.length when indexOf('-->') fails). Placed in a NON-sink scanned component, everything after it is invisible to R8/R9, the tripwire and BANNED_SINKS.",
+ "steps":[
+  {"file":"web/src/components/inspector/inspector-shared-styles.ts",
+   "anchor":"import { css } from 'lit';",
+   "replace":"import { css, html } from 'lit';\nexport const legacy = html`<div><!-- legacy preview, TODO remove ${'--' + '>'}</div>`;\nexport function paint(el: HTMLElement, body: string): void { el.innerHTML = body; }"}]},
+
+{"id":"G1b-htmlcomment-control","expect":"red","what":"Control for G1: the same innerHTML write with NO preceding unterminated HTML comment. Proves the harness can express the detection, so a green G1 is a blind spot and not an inexpressible input.",
+ "steps":[
+  {"file":"web/src/components/inspector/inspector-shared-styles.ts",
+   "anchor":"import { css } from 'lit';",
+   "replace":"import { css } from 'lit';\nexport function paint(el: HTMLElement, body: string): void { el.innerHTML = body; }"}]},
+
+{"id":"G2-ignore-launder","expect":"red","what":"Value-alias the directive in a NON-sink SCANNED file behind the documented ignore-line marker (the tripwire honours it; sinkBindingViolations does not run on non-sink files), then import and call it from a required sink.",
+ "steps":[
+  {"file":"web/src/components/inspector/inspector-shared-styles.ts",
+   "anchor":"import { css } from 'lit';",
+   "replace":"import { css } from 'lit';\nimport { unsafeHTML } from 'lit/directives/unsafe-html.js'; // raw-sink-scan: ignore-line\nexport const rawHtml = unsafeHTML; // raw-sink-scan: ignore-line"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+   "replace":"import { iconButtonFocusStyles, rawHtml } from './inspector-shared-styles.js';"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"${unsafeHTML(renderMarkdown(this.description))}",
+   "replace":"${unsafeHTML(renderMarkdown(this.description))}<div>${rawHtml(this.description)}</div>"}]},
+
+{"id":"G4-owner-rehome","expect":"red","what":"markdown.ts moved to src/util/markdown/index.ts (a directory-per-module refactor). SANITIZER_OWNER is a literal path, so the moved sanitizer becomes a non-owner that names 'dompurify'.",
+ "steps":[
+  {"file":"web/src/util/markdown/index.ts","create":true,
+   "replace":"export { renderMarkdown } from '../markdown-impl.js';\n"}]},
+
+{"id":"OB1-asrule-dropname","expect":"red","what":"Over-broaden the as-rename tripwire to fire on ANY `as` in an import/export clause. FP1/FP3 (`html as staticHtml`) should be the control that catches this.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"    if (new RegExp(`(?:import|export)\\\\s*(?:type\\\\s+)?\\\\{[^}]*\\\\b${name}\\\\s+as\\\\s+`).test(code)) {",
+   "replace":"    if (new RegExp(`(?:import|export)\\\\s*(?:type\\\\s+)?\\\\{[^}]*\\\\bas\\\\s+`).test(code)) {"}]},
+
+{"id":"OB3-reexport-dropname","expect":"red","what":"Over-broaden the re-export tripwire to match on module path alone. FP3 (`export { html as staticHtml } from 'lit/static-html.js'`) is its control.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"    if (m && (m[1] === '*' || new RegExp(`\\\\b${name}\\\\b`).test(m[1]))) {",
+   "replace":"    if (m) {"}]},
+
+{"id":"OB5-innerHTML-eq","expect":"red","what":"Over-broaden the innerHTML pattern by dropping the (?!=) lookahead, so `el.innerHTML === prev` reads as a write. FP5 is its control.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"  { name: 'innerHTML/outerHTML assignment', pattern: /\\.(inner|outer)HTML\\s*(?:\\+|\\|\\||&&|\\?\\?)?=(?!=)/ },",
+   "replace":"  { name: 'innerHTML/outerHTML assignment', pattern: /\\.(inner|outer)HTML\\s*(?:\\+|\\|\\||&&|\\?\\?)?=/ },"}]},
+
+{"id":"OB6-htmlcomment-strip","expect":"red","what":"Remove HTML-comment blanking inside lit templates. FP6 and the real comment in ft-inspector-desc.ts are its controls.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"      if (c === '<' && src.startsWith('<!--', i)) {",
+   "replace":"      if (false && src.startsWith('<!--', i)) {"}]},
+
+{"id":"FP1","expect":"green","what":"CONTROL re-verification: legitimate `import { html as staticHtml } from 'lit/static-html.js'`",
+ "steps":[{"file":"web/src/components/inspector/ft-inspector-desc.ts",
+  "anchor":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+  "replace":"import { html as staticHtml } from 'lit/static-html.js';\nvoid staticHtml;\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"}]},
+
+{"id":"FP1xOB1","expect":"red","what":"FP1 under OB1: if the as-rename rule loses its name anchor, the FP1 construct must turn the suite red — otherwise FP1 controls nothing.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"    if (new RegExp(`(?:import|export)\\\\s*(?:type\\\\s+)?\\\\{[^}]*\\\\b${name}\\\\s+as\\\\s+`).test(code)) {",
+   "replace":"    if (new RegExp(`(?:import|export)\\\\s*(?:type\\\\s+)?\\\\{[^}]*\\\\bas\\\\s+`).test(code)) {"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+   "replace":"import { html as staticHtml } from 'lit/static-html.js';\nvoid staticHtml;\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"}]},
+
+{"id":"FP3xOB3","expect":"red","what":"FP3 under OB3.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"    if (m && (m[1] === '*' || new RegExp(`\\\\b${name}\\\\b`).test(m[1]))) {",
+   "replace":"    if (m) {"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+   "replace":"export { html as staticHtml } from 'lit/static-html.js';\nimport { iconButtonFocusStyles } from './inspector-shared-styles.js';"}]},
+
+{"id":"FP5xOB5","expect":"red","what":"FP5 under OB5.",
+ "steps":[
+  {"file":"web/src/util/markdown.test.ts",
+   "anchor":"  { name: 'innerHTML/outerHTML assignment', pattern: /\\.(inner|outer)HTML\\s*(?:\\+|\\|\\||&&|\\?\\?)?=(?!=)/ },",
+   "replace":"  { name: 'innerHTML/outerHTML assignment', pattern: /\\.(inner|outer)HTML\\s*(?:\\+|\\|\\||&&|\\?\\?)?=/ },"},
+  {"file":"web/src/components/inspector/ft-inspector-desc.ts",
+   "anchor":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';",
+   "replace":"import { iconButtonFocusStyles } from './inspector-shared-styles.js';\nexport function unchanged(el: HTMLElement, prev: string): boolean { return el.innerHTML === prev; }"}]}
+]

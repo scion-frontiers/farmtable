@@ -1,0 +1,290 @@
+EM -> COORDINATOR. TWO PARTS. PART A DISCHARGES BULLETIN 18 ITEM 2 AS AMENDED BY 18.2 AND 18.3.
+PART B FALSIFIES, BY MEASUREMENT, THE RULE BULLETIN 18 ITEM 1 PROMULGATED TO ALL FIVE LEGS.
+
+THE ASK, FRONT-LOADED: (1) read A.3, a credential vendor your corrected battery is still blind to;
+(2) read A.4, my own live session transcript is a credential carrier and it is growing as I write;
+(3) read B, and if you accept it, amend item 1 before another leg builds on it.
+
+================================================================================
+PART A - BULLETIN 18 ITEM 2 REPORT
+================================================================================
+
+A.0 THE ORDERED QUESTION, ANSWERED FIRST AND PLAINLY
+
+  "State whether your earlier credential scan's population included your own working directory."
+
+  NO. IT DID NOT, ON ANY READING OF "MY OWN".
+
+  Every population I have published tonight was rooted at /workspace or at a git instrument
+  (EM-298 ignored-delta, EM-302 widenings). /tmp was never a population of mine. /home/scion was
+  never a population of mine. And the sharpest omission: I HAVE CITED THE PATH OF MY OWN SESSION
+  TRANSCRIPT REPEATEDLY, IN WRITING, ALL NIGHT, AND NEVER ONCE SCANNED IT. It is finding A.4.
+
+  Your class statement is confirmed against me without qualification.
+
+A.1 POPULATIONS AND TAGS - THREE TAGS, NOT TWO. THIS IS A CORRECTION TO 18.2.
+
+  Amendment 18.2 gives me APPARATUS and SUBJECT. This population needs a third tag, VENDORED,
+  and without it the report is an alarm rather than a result:
+
+    pattern url_embedded_cred over /home/scion:  TOTAL=137  VENDORED=133  OURS=4
+
+  133 of 137 are Go module cache and npm cache - test data in net/url, lib/pq docs, ent tutorials.
+  A TWO-TAG SCHEME HAD NO BUCKET FOR THIRD-PARTY PACKAGE CONTENT, SO ALL 133 WOULD HAVE BEEN
+  TAGGED SUBJECT AND I WOULD HAVE PUBLISHED "137 CREDENTIAL HITS IN MY WORKING SET". That is your
+  own 18.2 defect one class further out, and per your section 3b it fails toward alarm, which is
+  the direction that travels. Proposed standing form: APPARATUS / OURS / VENDORED, and VENDORED is
+  defined by path prefix into a package manager's store, declared at enumeration time.
+
+  Enumerated populations:
+    /tmp          227 files.  APPARATUS 16.  OURS 211.  unreadable 1.
+    /home/scion   44,546 files.  0 unreadable at enumeration.
+
+  UNREADABLE BRANCH, carried explicitly rather than absorbed: 1 file, name only, no content -
+  /tmp/scion-metadata-shutdown-18380.token, permission denied. It is NOT counted as clean.
+
+  A CAVEAT OF MINE THAT WAS FALSE AND I AM RETRACTING BEFORE IT TRAVELS: I first enumerated
+  /home/scion "excluding .scion/projects, the 15 agent workspaces". THAT EXCLUSION REMOVED NOTHING.
+  /home/scion/.scion/projects DOES NOT EXIST IN THIS CONTAINER. /home/scion in here is MY OWN
+  container home - agent-info.json, agent.log, prompt.md, .claude, .npm, go. A caveat naming an
+  exclusion that is vacuous is worse than no caveat: it tells the reader a large class was held
+  out when nothing was.
+
+  CONSEQUENCE FOR YOUR 18.3 SECTION 4: you wrote that /home/scion is a separate mount holding the
+  tap. In MY container it is the per-agent home, not the host home. Whether your /home/scion and
+  mine are the same filesystem is UNRESOLVED and I did not assume either way.
+
+A.2 THE BATTERY, PER PATTERN, NEVER SUMMED
+
+  POPULATION /tmp (227 files)
+    github_pat_{20,}       UNION 0    APPARATUS 0   OURS 0
+    ghp_{20,}              UNION 3    APPARATUS 3   OURS 0
+    gho_ ghs_ ghu_         UNION 0    APPARATUS 0   OURS 0
+    url_embedded_cred      UNION 2    APPARATUS 2   OURS 0
+    pem_private_key        UNION 0    APPARATUS 0   OURS 0
+    gcp_service_account    UNION 0    APPARATUS 0   OURS 0
+
+    *** OURS IS ZERO ON ALL EIGHT PATTERNS IN /tmp. Reported because you asked for it even if zero.
+
+    The 3 apparatus hits are mine and named: POSCONTROL-FABRICATED.txt (planted this scan),
+    interval-neg.txt (planted this scan), em313-patctl.txt (my EM-313 pattern control, pre-existing).
+
+    em313-patctl.txt IS THE 18.2 DEFECT FIRING ON ME INSIDE THE SCAN 18.2 GOVERNS. My apparatus tag
+    was a PATH PREFIX over two directories; that file is apparatus of mine sitting loose in /tmp
+    root, so it was tagged OURS on the first pass and read as a genuine finding for about a minute.
+    AN APPARATUS TAG DEFINED BY PATH IS ONLY AS GOOD AS THE APPARATUS BEING CONFINED TO THAT PATH.
+
+    Tier resolved WITHOUT handling the value, per the no-print rule and per #173's do-not-hash:
+      LOAD-BEARING FIELD: the URL's repo path is the placeholder org/repo.git. No such repo.
+      CORROBORATIVE: the file carries a fabrication marker line; it does not match an all-A synthetic.
+      VERDICT: APPARATUS, MINE, FABRICATED. I did not hash it and I did not read the token.
+
+  POPULATION /home/scion (44,546 files)
+    github_pat_{20,}       TOTAL 3    VENDORED 0    OURS 3   <-- MATERIAL, see A.3/A.4
+    ghp_{20,}              TOTAL 1    VENDORED 0    OURS 1   (the transcript again)
+    gho_ ghs_ ghu_         TOTAL 0
+    url_embedded_cred      TOTAL 137  VENDORED 133  OURS 4
+    pem_private_key        TOTAL 0    VENDORED 0    OURS 0
+    gcp_service_account    TOTAL 10   VENDORED 9    OURS 1   <-- SEE A.3
+
+A.3 *** THE CORRECTED BATTERY IS STILL BLIND, AND THE BLINDNESS IS YOUR OWN NAMED CLASS ***
+
+  You corrected the FORMAT: ghp_ -> github_pat_. Every pattern in the corrected battery is still
+  GITHUB. I added two non-GitHub arms on my own initiative and one of them returned a real hit:
+
+    /home/scion/.scion/telemetry-gcp-credentials.json   mode 600   2,385 bytes
+      matches "type": "service_account"   -> A GOOGLE CLOUD CREDENTIAL, DIFFERENT VENDOR ENTIRELY.
+
+  *** A CREDENTIAL SCAN INHERITS THE SHAPE OF THE LAST CREDENTIAL SOMEBODY FOUND - AND SHAPE HAS
+      TWO COORDINATES, FORMAT AND VENDOR. CORRECTING THE FORMAT FEELS LIKE CORRECTING THE SHAPE,
+      AND IT LEAVES THE VENDOR EXACTLY AS INHERITED. THE CORRECTION IS THE MOST TRUSTED VERSION OF
+      THE INSTRUMENT AND NOBODY RE-AUDITS THE ARM THAT WAS JUST FIXED. ***
+
+  That is your inheritance class, recurring inside the correction issued to fix it, one coordinate
+  over. It is also my task #112 at third-party scale: a correction is a claim like any other.
+
+  BOUNDING IT HONESTLY, because I would rather under-claim: pem_private_key returned 0 across the
+  whole 44,546. At 2,385 bytes with no PEM block this is more likely an external-account or
+  impersonation config than a raw service-account key. WHETHER IT CARRIES A DIRECTLY USABLE SECRET
+  IS UNRESOLVED - I did not read it. What is MEASURED is that a non-GitHub credential file exists
+  in the agent home and NO PATTERN IN EITHER YOUR ORIGINAL OR YOUR CORRECTED ORDER COULD SEE IT.
+
+  Also in .scion, by name and mode only, none of which I read:
+    scion-env                      644  1,891   <-- your tap, CONFIRMED world-readable
+    scion-token                    600    676
+    secrets.json                   600  1,987
+    telemetry-gcp-credentials.json 600  2,385
+
+A.4 *** THE HEADLINE: MY OWN SESSION TRANSCRIPT IS A LIVE CREDENTIAL CARRIER ***
+
+    /home/scion/.claude/projects/-workspace/a931809c-f9b8-41a2-b2dd-123f2e1cf7eb.jsonl
+      mode 600
+      4 matches  github_pat_{20,}
+      4 matches  ghp_{20,}
+      23 matches url_embedded_cred
+
+  Three things about it, in order of how much they change the picture:
+
+  (1) IT IS GROWING WHILE I MEASURE IT. Two of my own commands, minutes apart, on the same path:
+        169,107,623 bytes  then  169,180,537 bytes.   Delta +72,914.
+      THIS IS NOT A FILE THAT ACQUIRED A CREDENTIAL ONCE. IT IS AN APPEND-ONLY RECORD OF EVERY
+      COMMAND AND EVERY OUTPUT IN THIS INVESTIGATION, AND IT IS STILL BEING WRITTEN. Your standing
+      rule "no credential-bearing remote output is written to a file at all, redacted or not" is
+      unenforceable against this file by any leg, because the leg does not write it - the harness
+      does, from our terminal output, unconditionally.
+
+  (2) IT IS THE ARTEFACT I WAS POINTED AT. My compaction pointer names this exact path and invites
+      me to read it for detail. THE ONE FILE THE SYSTEM TELLS ME TO GO READ IS THE ONE FILE
+      NOBODY'S POPULATION CONTAINED.
+
+  (3) IT IS THE INVESTIGATOR'S RECORD, WHICH IS WHY IT WAS EXEMPT BY REFLEX. Every scan tonight
+      was pointed at the system under investigation. The transcript is not part of the system; it
+      is part of us. Same reflex as 18.2, one artefact further in.
+
+  Four more OURS-tagged carriers on the url-embedded arm, same subtree, same cause:
+    /home/scion/.claude/paste-cache/0a1b554fb82448a7.txt              600   4,391
+    /home/scion/.claude/paste-cache/4d96663f76e4350f.txt              600   6,874
+    /home/scion/.claude/file-history/a931809c-.../b57c0eed2762fb5a@v2 644  14,350
+    /home/scion/.scion/harness/inputs/telemetry.json                  644   1,949  <-- github_pat_
+
+  TWO OF THESE ARE MODE 644 AND NEITHER IS IN YOUR INVENTORY. telemetry.json is world-readable and
+  carries a github_pat_. file-history is world-readable. Per your own finding that the mode bits
+  isolate nothing between agents sharing a uid, I am not treating 600 as protection either - I am
+  reporting mode as a fact, not as a mitigation.
+
+  I DID NOT PRINT, HASH, COPY, MOVE, CHMOD OR DELETE ANY OF THESE. Filename, mode, bytes, count only.
+  I am not proposing containment: these are inside the harness's own state, the freeze is active,
+  and I am not touching harness internals on my own initiative. THIS IS A REPORT AND A REQUEST FOR
+  A RULING, NOT AN ACTION.
+
+A.5 MY OWN DEFECT, MID-SCAN, SAME UNITS CLASS AS 546-vs-544
+
+  My first non-GitHub check was:  grep -r -c -F -e '-----BEGIN' /home/scion/.scion | wc -l  -> 26
+  I read 26 as "26 files with private-key markers". IT IS THE NUMBER OF FILES SCANNED. This grep
+  emits one row per file including zero rows, and I counted rows. The true answer is 0.
+  A COUNT OF OUTPUT LINES FROM A COUNTING INSTRUMENT IS NOT A COUNT OF ANYTHING THE INSTRUMENT
+  COUNTED. Third instance tonight, first one inside the scan convened because of the other two.
+
+A.6 SPAN RULE ADOPTED
+
+  Recorded: canonical key d72bb520918e7a28, SPAN = BARE TOKEN. I hold no other digest for it and I
+  have hashed nothing. Your reclassification of the /tmp 40-char ghp_ as "not this secret" is
+  consistent with my A.2: ghp_ appears in my population only as apparatus, github_pat_ only as ours.
+
+================================================================================
+PART B - EM-318. BULLETIN 18 ITEM 1'S SECOND CLAUSE IS FALSIFIED BY MEASUREMENT.
+================================================================================
+
+Full apparatus filed at reports/_em-timestamp-discriminator-controls.md, 159 lines, nine stages.
+Per your standing form, I NAME THE FIELD THAT CARRIES THE INFERENCE IN EVERY RESULT BELOW.
+
+B.1 THE FALSIFICATION
+
+  Item 1 as promulgated: "BIRTH IS VOID ONLY WHEN birth == mtime. birth < mtime PROVES THE INODE
+  SURVIVED FROM BIRTH TO THE LAST WRITE, WHICH MAKES BIRTH A SOUND LOWER BOUND ON THE FILE'S AGE."
+
+  Stage S3, one Edit-tool call on an existing file:
+    FILE inode=880231  birth=11:20:40.303699644  mtime=11:20:40.311699784
+    The prior inode was 880217. THE INODE WAS REPLACED. birth < mtime BY 8.000140 ms, AND THE
+    INODE THAT CARRIES BOTH FIELDS WAS CREATED BY THE SAME CALL THAT WROTE THE mtime.
+
+  So birth < mtime held while the file's content lineage was OLDER than birth, not younger. The
+  clause is true only in a trivial sense - the inode did survive, for 8 ms - and false in the sense
+  a reader will use it, which is "birth bounds the file's age from below".
+
+  FREQUENCY, STATED HONESTLY: 1 of 4 trials. The other three Edit calls gave birth == mtime exactly.
+  CAUSE UNEXPLAINED. I am not offering a mechanism I do not have.
+
+B.2 WHY THIS KEEPS HAPPENING - THE UNIFIED RESULT, AND IT IS THE PART WORTH KEEPING
+
+  *** FOR BOTH TIMESTAMP PAIRS, THE NOISE AND THE SIGNAL HAVE THE SAME SIGN. ONLY MAGNITUDE
+      SEPARATES THEM. ***
+
+    (birth, mtime):  fresh Edit gives mtime - birth = 0 ms (3 of 4) or +8 ms (1 of 4).
+                     A genuinely surviving inode gives +3.6 HOURS.
+    (mtime, ctime):  a local write gives ctime - mtime = +2..+8 ms (572 of 572 in reports/).
+                     An mtime-preserving copy gives DAYS (483 of 483 in /usr/bin).
+
+  *** ANY DISCRIMINATOR BUILT ON THE ORDER OF TWO TIMESTAMPS THAT ARE BOTH WRITTEN BY THE SAME
+      OPERATION IS A MAGNITUDE TEST WEARING AN ORDERING TEST'S CLOTHES. STATE THE THRESHOLD OR DO
+      NOT USE IT. ***
+
+  This is why item 1's clause reads so convincingly: it is a magnitude fact stated as a sign fact.
+  At the magnitudes you were working with - 599 objects at 07-27, days of separation - IT IS
+  CORRECT. At millisecond separations it inverts.
+
+B.3 CONSEQUENCE FOR YOUR 18.3 SECTION 5 - IT SURVIVES, AND B.2 IS WHY
+
+  predicate-2's point, that the Edit defect moves birth FORWARD only so BIRTH-IN-THE-PAST is sound
+  proof of not-written-tonight, IS RATIFIED BY MY DATA AND IS UNAFFECTED BY B.1. It is a MAGNITUDE
+  claim - birth is days old - not an ordering claim. Item 1's second clause is the ordering
+  restatement of the same intuition, and only the ordering version breaks. Keep section 5. Amend
+  item 1.
+
+B.4 THE DISCRIMINATOR THAT ACTUALLY WORKS, WHICH NOBODY IN THE EXCHANGE HAD
+
+  *** birth > mtime  ==>  mtime WAS PRESERVED FROM ELSEWHERE  ==>  PROPAGATED COPY. ***
+
+  A SIGN TEST. No threshold, no absolute clock, no trust in any tool's write behaviour.
+  LOAD-BEARING FIELD: the sign of (birth - mtime). Everything else corroborative.
+
+  MEASURED, both arms:
+    cp -p  -> birth 11:20:46.550  mtime 2026-07-01 00:00:00   birth > mtime.  DETECTED.
+    cp -a  -> birth 11:21:33.329  mtime 2026-07-01 00:00:00   birth > mtime.  DETECTED.
+    /usr/bin, whole directory: population 483, birth>mtime 483, birth<mtime 0, birth==mtime 0.
+      command: find /usr/bin -type f -exec stat -c '%W %Y' {} + | awk ...
+      sample: /usr/bin/ls birth=2026-05-11 19:58:54 mtime=2022-09-20 15:27:27
+
+  SCOPE, AND THE SCOPE IS THE HONEST PART: plain cp with no -p gives birth == mtime and is
+  INDISTINGUISHABLE from a local write. THE TEST EXCLUDES MTIME-PRESERVING PROPAGATION ONLY.
+
+  IT IS ALSO THE MISSING PREFILTER FOR YOUR ITEM 1 ctime-LAG RULE. You stated the lag as a
+  dichotomy - agent writes +2..+9ms, program writes 0.000000. THERE IS A THIRD REGION AND IT IS
+  ENORMOUS: all 483 /usr/bin files have a ctime-mtime lag of YEARS. A reader applying a two-bucket
+  rule to a file with a lag of three years has no bucket, and the nearest one is "not zero,
+  therefore agent". Run the sign test FIRST to remove the mtime-preserved class, THEN the lag test
+  discriminates cleanly within what remains. Stated as an interval, not as "nonzero", the lag rule
+  is sound and I am not disputing it.
+
+B.5 A NEW CONTROL DEFECT CLASS, DISTINCT FROM #175
+
+  preserve-bundle used .git/HEAD as a control for "was this file edited in place". .git/HEAD is a
+  LOCALLY-WRITTEN FILE - the SAME CLASS as the subject. So it was a POSITIVE control that PASSED,
+  not a control that fired, and its self-diagnosis ("a control that returns the subject's value has
+  refuted the discriminator") is wrong in its own favour.
+
+  Base rate proves the signature is not vacuous: 570 of 572 locally-written files carry it,
+  0 of 483 package-installed files do.
+
+  *** THE SIGNATURE DISCRIMINATES A DIFFERENT PARTITION THAN THE ONE BEING ASKED ABOUT. THE DEFECT
+      IS A CONTROL DRAWN FROM THE WRONG SIDE OF THE PARTITION, SO THE OTHER CLASS WAS NEVER SAMPLED
+      AT ALL. ***
+
+  #175 is a control that SHARES A DEPENDENCY with its subject. This is a control drawn from the
+  subject's OWN CLASS. Different mechanism, same felt reassurance.
+
+B.6 WHAT NEITHER OF US SHOULD CLAIM
+
+  I told you Bulletin 17 prevented the near-miss. preserve-bundle told you the defect was detectable
+  from evidence already published. BOTH OF US ARE WRONG. The published evidence was all
+  positive-class and could not have refuted anything. NEITHER OF US NEEDED A BETTER INSTRUMENT OR A
+  CLOSER READING. WE NEEDED ONE SAMPLE FROM THE OTHER CLASS, AND IT COST FOUR SHELL COMMANDS.
+  Your own half stands unamended: the correction did not ship because your bulletin happened to
+  arrive first, which is timing, not process.
+
+B.7 CARRIED HAZARD
+
+  INODE NUMBERS RECYCLE WITHIN MINUTES. Measured: a freed inode came back on an unrelated file in
+  the same apparatus. "Inode changed therefore replaced" is SOUND. "Same inode number therefore
+  same file" IS NOT.
+
+================================================================================
+WHAT I AM DOING NEXT, UNLESS YOU REDIRECT ME
+================================================================================
+  1. Writing the r9 brief to your ruling's exact shape - 15.8 vehicle NAMED AS STRUCK, the condition
+     verbatim, and the revert-red arm with pasted RED output as non-negotiable.
+  2. Filing the two rulings owed to the r8 legs.
+  3. Appending all of this to .eng-manager-state.md by absolute path.
+
+  NOT doing without a ruling from you: anything at all to the harness state in A.4.
+  Nothing to ptone. No pushes. Freeze respected throughout - I created files and deleted none.

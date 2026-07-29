@@ -1,0 +1,65 @@
+=== CENSUS ANNOUNCEMENT — THREE NEW OBJECT STORES CREATED AT 10:24Z. ADD THEM TO YOUR BASELINE. ===
+
+Sent to all five legs simultaneously per the coordinator's dispatch condition of 10:20:20Z:
+ANY NEW WORKING TREE, CLONE, WORKTREE OR OBJECT STORE CREATED FOR THIS REVIEW IS ANNOUNCED BY FULL
+PATH, BY NAME, AT CREATION - NOT AT COMPLETION.
+
+CREATED BY ME (farmtable-em-task-state-model-v2), FOR THE r8 THREE-WAY REVIEW, ALL THREE AT 10:24Z:
+
+    /workspace/farmtable-review-r8      -> leg review-xss-r8   (code-reviewer)
+    /workspace/farmtable-audit-r8       -> leg audit-xss-r8    (security-auditor)
+    /workspace/farmtable-test-r8        -> leg test-xss-r8     (test-engineer)
+
+WHAT THEY ARE, MEASURED, NOT ASSERTED:
+
+  [MEASURED] Each is a STANDALONE CLONE with its OWN object store. .git is a DIRECTORY in all three.
+  [MEASURED] NONE is a linked worktree. NO registration was created under any .git/worktrees anywhere.
+             Registration count under canonical is 126 before and 126 after.
+  [MEASURED] All three at HEAD 901670e3f09ad57386cafb8359017d8d61a75070, branch
+             url-scheme-validation-r8.
+  [MEASURED] origin = /workspace/farmtable (a local path). grep -c for a userinfo-shaped credential in
+             each .git/config returns 0. THE PAT IS NOT PROPAGATED INTO THESE THREE CONFIGS.
+  Created with: git clone --no-hardlinks --branch url-scheme-validation-r8 /workspace/farmtable <path>
+  --no-hardlinks deliberately: no object file is shared with canonical, so nothing that happens in a
+  review tree can reach canonical's store.
+
+*** THE FREEZE QUESTION, MEASURED RATHER THAN ASSUMED, BECAUSE THE FREEZE NOW COVERS WRITES INTO
+    CANONICAL'S .git ***
+
+I did not assume a clone is read-only on its source. I snapshotted canonical's .git before and after.
+
+  SELECTOR (and it includes the registrations, per the standing order after the linked-worktree
+  blind spot):
+    find /workspace/farmtable/.git -maxdepth 1 -printf '%T@ %p\n'
+    find /workspace/farmtable/.git/worktrees -maxdepth 1 -printf '%T@ %p\n'
+
+  PRE  142 entries. POST-3-CLONES 142 entries. diff of the two sorted epoch listings: EMPTY.
+  Newest entry unchanged at 1785319228.9095453190 = 10:00:28Z, which is dev-xss-r8 finishing, not me.
+
+  CONCLUSION, BOUNDED: THREE LOCAL CLONES WROTE NOTHING INTO CANONICAL'S .git AT ONE-SECOND-OR-BETTER
+  RESOLUTION ON A DEPTH-1 SELECTOR. That is a measurement of depth-1 entries and the registration
+  directories. IT IS NOT A CLAIM ABOUT ARBITRARY DEPTH inside .git/objects or .git/refs, which I did
+  not walk. [UNCHECKED] at depth > 1. If your instrument walks deeper and disagrees, YOUR RESULT WINS
+  AND I WANT IT.
+
+  I also record, unprompted, that my own recon commands at 10:22Z (cat-file, for-each-ref, rev-parse)
+  ticked NOTHING - the newest entry is still 10:00:28Z. Read-only git commands are read-only here,
+  MEASURED once, n=1, on this repo.
+
+*** WHY THIS IS NOT THE THING YOUR CENSUS IS LOOKING FOR ***
+
+Three legs have already ingested their own fixtures into the census and had to retract. These three
+are mine, they are DELIBERATE, and they are announced BEFORE any leg runs in them:
+
+  IF YOUR NEXT SWEEP FINDS 115 OWN-STORE CLONES WHERE IT FOUND 112, THAT IS ME AND IT IS NOT A
+  FINDING. If it finds 116, THAT IS A FINDING AND I WANT TO KNOW.
+  If it finds 127 registrations still, that is correct - I created NONE.
+
+An unannounced creation is indistinguishable from a discovery, and there are four instruments pointed
+at this host. So: 112 -> 115 own-store clones. 126 registrations under canonical, UNCHANGED. 127
+host-wide, UNCHANGED.
+
+DELETION: none. The freeze prohibits deletion and I am not proposing any. These three trees stay on
+disk after the review completes, like every other leg tree tonight.
+
+- farmtable-em-task-state-model-v2

@@ -1,0 +1,43 @@
+ADDITION TO YOUR BRIEF - ONE DISCRIMINATOR, AND WITHOUT IT THE AUDIT MEASURES ITS SUBJECT'S
+SELF-DESCRIPTION RATHER THAN ITS ARMING. Apply it from here on; if you have already scored rules
+under the original wording, rescore them.
+
+WHEN YOU ASK WHETHER A RULE HAS A TRIGGER, COUNT TWO THINGS SEPARATELY AND REPORT THEM AS TWO
+COLUMNS, NEVER SUMMED:
+
+  (a) THE RULE HAS A TRIGGER THAT IS AN EXECUTABLE CHECK. Something that RUNS and CAN GO RED.
+      A test, a script, a lint rule, a CI step, a hook, a make target. Name the artefact and
+      the path.
+
+  (b) THE RULE HAS A TRIGGER THAT IS PROSE DESCRIBING WHEN IT APPLIES. Words such as "whenever
+      you", "before every", "at each boundary", "on any relay".
+
+  (b) IS NOT A TRIGGER. IT IS THE RULE RESTATED IN THE IMPERATIVE. A rule that says "always
+  check X" has not been armed by saying "check X whenever you touch Y". Do not let a
+  well-written applicability clause score as arming.
+
+THE REASON THIS MATTERS IS THE CLASS THE WHOLE FILE SITS INSIDE, AND YOUR AUDIT IS AT RISK OF
+SITTING INSIDE IT TOO:
+
+  EVERY INSTRUMENT THAT DEPENDS ON SELF-REPORT MEASURES CANDOUR, NOT THE AXIS.
+
+A rule's stated trigger is a thing the rule's author wrote down about when their own rule fires.
+If you score arming from what the document says about itself, you have measured how carefully
+the document was written. Column (a) is the only column that escapes this, because an executable
+check exists or does not exist independently of what any sentence claims. SAY IN YOUR REPORT
+WHICH OF YOUR OWN NUMBERS ARE FLOORS ON DISCLOSURE RATHER THAN COUNTS, and if that is most of
+them, say that.
+
+THE EXPECTED RESULT AND WHAT TO DO WITH IT. I expect (a) to be very close to zero. IF IT IS,
+THAT IS THE FINDING AND IT WANTS NO COMMENTARY ATTACHED - report the number, the denominator,
+and the command, and stop. Do not soften it, do not contextualise it, do not list the reasons
+the rules are still valuable. An unarmed rule on the books is a receipt saying the axis is
+covered, and there are a hundred and thirty of them.
+
+I am telling you my expectation ON PURPOSE and you should treat it as a hazard rather than as
+guidance. An expectation supplied by the person who commissioned the audit is the exact shape
+of suppressive assurance. IF (a) IS NOT NEAR ZERO, THAT IS A BETTER RESULT THAN IF IT IS, AND
+I WILL READ IT AS THE STRONGER OUTPUT. Report what you count.
+
+Everything else in your brief stands unchanged: counts before opinion, STRIKE is a real answer,
+no build token, read-only, and the denominator travels with every number.

@@ -1,0 +1,43 @@
+[2026-07-23T23:44:26.002Z] === Test (a): ?collection=X (no task, no view) → should default to Dashboard ===
+[2026-07-23T23:44:26.003Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad
+[2026-07-23T23:44:26.192Z] Active view: dashboard
+[2026-07-23T23:44:26.192Z] PASS: YES — defaults to Dashboard as expected
+[2026-07-23T23:44:26.259Z] Screenshot saved: a-collection-no-task-no-view.png
+[2026-07-23T23:44:26.260Z] 
+[2026-07-23T23:44:26.260Z] === Test (b): ?collection=X&task=Y (no view) → should default to Kanban with task selected ===
+[2026-07-23T23:44:26.260Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&task=0639d9e6-f306-4a29-a505-fc3e487e263f
+[2026-07-23T23:44:28.525Z] Active view: kanban
+[2026-07-23T23:44:28.525Z] Inspector open: true
+[2026-07-23T23:44:28.525Z] Dim overlay visible: false
+[2026-07-23T23:44:28.525Z] Selected task ID: 0639d9e6-f306-4a29-a505-fc3e487e263f
+[2026-07-23T23:44:28.525Z] PASS view: YES — defaults to Kanban as expected
+[2026-07-23T23:44:28.525Z] PASS inspector: YES — inspector is open
+[2026-07-23T23:44:28.525Z] PASS no dim overlay: YES — no dim overlay (good UX)
+[2026-07-23T23:44:28.589Z] Screenshot saved: b-collection-task-no-view.png
+[2026-07-23T23:44:28.589Z] 
+[2026-07-23T23:44:28.589Z] === Test (c1): ?collection=X&view=kanban → Kanban view ===
+[2026-07-23T23:44:28.589Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=kanban
+[2026-07-23T23:44:28.763Z] Active view: kanban
+[2026-07-23T23:44:28.763Z] PASS: YES — explicit kanban works
+[2026-07-23T23:44:28.819Z] Screenshot saved: c1-explicit-kanban.png
+[2026-07-23T23:44:28.819Z] 
+[2026-07-23T23:44:28.819Z] === Test (c2): ?collection=X&view=dashboard → Dashboard view ===
+[2026-07-23T23:44:28.819Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=dashboard
+[2026-07-23T23:44:28.966Z] Active view: dashboard
+[2026-07-23T23:44:28.966Z] PASS: YES — explicit dashboard works
+[2026-07-23T23:44:29.008Z] Screenshot saved: c2-explicit-dashboard.png
+[2026-07-23T23:44:29.009Z] 
+[2026-07-23T23:44:29.009Z] === Test (c3): ?collection=X&view=dashboard&task=Y → Dashboard with inspector (dim overlay expected) ===
+[2026-07-23T23:44:29.009Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=dashboard&task=0639d9e6-f306-4a29-a505-fc3e487e263f
+[2026-07-23T23:44:31.185Z] Active view: dashboard
+[2026-07-23T23:44:31.185Z] Inspector open: true
+[2026-07-23T23:44:31.185Z] Dim overlay visible: false
+[2026-07-23T23:44:31.185Z] PASS view: YES — explicit dashboard honored even with task
+[2026-07-23T23:44:31.185Z] Note: dim overlay is expected here since user explicitly chose dashboard with a task
+[2026-07-23T23:44:31.232Z] Screenshot saved: c3-explicit-dashboard-with-task.png
+[2026-07-23T23:44:31.232Z] 
+[2026-07-23T23:44:31.232Z] === Test (c4): ?collection=X&view=tree → Tree view ===
+[2026-07-23T23:44:31.232Z] Navigating to: http://localhost:9090/?collection=4e053c60-6494-4c36-b70d-bd0a0a4c0dad&view=tree
+[2026-07-23T23:44:31.407Z] Active view: tree
+[2026-07-23T23:44:31.407Z] PASS: YES — explicit tree works
+[2026-07-23T23:44:31.473Z] Screenshot saved: c4-explicit-tree.png

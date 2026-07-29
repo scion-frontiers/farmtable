@@ -1,0 +1,123 @@
+[
+ {
+  "id": "Y1 add ALLOW_UNKNOWN_PROTOCOLS: true",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ALLOW_UNKNOWN_PROTOCOLS: true,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y2 add SANITIZE_DOM: false (DOM clobbering)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    SANITIZE_DOM: false,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y3 add ADD_ATTR: ['target'] (tabnabbing)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ADD_ATTR: ['target'],\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y4 add ADD_TAGS: ['script']",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ADD_TAGS: ['script'],\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y5 widen ALLOWED_URI_REGEXP to /.*/",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ALLOWED_URI_REGEXP: /.*/,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y6 add WHOLE_DOCUMENT: true",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    WHOLE_DOCUMENT: true,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y7 add KEEP_CONTENT: false",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    KEEP_CONTENT: false,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y8 add SANITIZE_NAMED_PROPS: true (no-op probe)",
+  "expect": "GREEN",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    SANITIZE_NAMED_PROPS: true,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y9 add ALLOW_ARIA_ATTR: false (aria-label on the glyphs)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ALLOW_ARIA_ATTR: false,\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Y10 add ADD_URI_SAFE_ATTR: ['formaction']",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.ts",
+    "anchor": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n  });",
+    "repl": "  return DOMPurify.sanitize(parser.parse(md) as string, {\n    FORBID_TAGS,\n    FORBID_ATTR,\n    ADD_URI_SAFE_ATTR: ['formaction'],\n  });"
+   }
+  ]
+ },
+ {
+  "id": "Z1 delete an entire check() call site (base tag stripped)",
+  "expect": "RED",
+  "edits": [
+   {
+    "file": "src/util/markdown.test.ts",
+    "anchor": "  check('base tag stripped', () => {\n    const out = renderMarkdown('<base href=\"https://evil.example/\">');\n    assertNoElement(out, 'base', 'base survived');\n    assertNotContains(out, 'evil.example', 'base href survived');\n  });\n\n",
+    "repl": ""
+   }
+  ]
+ }
+]

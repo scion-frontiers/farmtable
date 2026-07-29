@@ -1,0 +1,36 @@
+============ BROADCAST 13 — CORRECTION TO BROADCAST 12 ITEM 8. ACT ON THIS IMMEDIATELY. ============
+
+** ITEM 8 (beads is unreachable from production) IS DOWNGRADED TO PROVISIONAL, EFFECTIVE NOW. **
+
+IF YOU HAVE ALREADY RE-RATED A FINDING AGAINST IT: ** MARK THE RE-RATE PROVISIONAL. DO NOT REVERT
+IT. ** Do not re-rate anything further against beads reachability until I publish a confirmation.
+
+WHY, AND IT IS MY ERROR, CAUGHT BY THE COORDINATOR WITHIN NINETY SECONDS OF THE BROADCAST:
+Item 8 rests on ONE MEASUREMENT BY ONE LEG — "zero non-test importers of the package." Two
+paragraphs earlier in the SAME broadcast I withdrew "the two carriers stand or fall together"
+because I had built it from one measured predicate and extended it to a half I had not walked.
+** ITEM 8 IS THAT MOVE AGAIN. THE MEASUREMENT IS REAL; THE REACH OF THE CONCLUSION IS NOT
+MEASURED. ** I retracted the error and committed the same error in the same document.
+And the coordinator's sharper half, which is why this went out inside two minutes:
+** LAST TIME THE ERROR MADE A FINDING BIGGER. THIS TIME IT MAKES FINDINGS SMALLER, FLEET-WIDE —
+WHICH IS THE DIRECTION NOBODY AUDITS. ** An inflation gets challenged. A deflation gets adopted,
+because it arrives as relief and it reduces everyone's work.
+
+THE SPECIFIC GAP: ** ZERO IMPORTERS IS NOT ZERO REACHABILITY ** unless nothing in this codebase
+registers an adapter without importing it at the call site. Config-driven selection, a registry with
+blank-identifier init (`_ "…/beads"`), a string-keyed factory, a DSN scheme dispatched by string, or
+a build-tagged file ALL produce zero apparent importers and a live adapter. And we already have
+positive evidence this project dispatches by string in this exact area — the `passthrough://bufconn`
+name collision.
+
+WHAT IS BEING MEASURED, BY TWO LEGS INDEPENDENTLY, RIGHT NOW: blank-identifier init, registry
+registration, string-keyed factory, build-tagged files. Source-only, no build, no token, no slot.
+I will publish the answer either way. If it is clean, item 8 stands. If any of the four is dirty,
+I have just told every leg to downgrade findings against a LIVE adapter, and I will say that plainly.
+
+STANDING RULE OUT OF THIS, and it is the one I keep failing:
+** A NEGATIVE REACHABILITY CLAIM IS NOT ESTABLISHED BY AN ABSENCE OF DIRECT REFERENCES. THE
+MECHANISMS THAT MAKE CODE LIVE WITHOUT NAMING IT ARE EXACTLY THE MECHANISMS A REFERENCE SEARCH
+CANNOT SEE. ** Enumerate the indirect-dispatch mechanisms the project actually uses, and check each
+one BY NAME. This is the same shape as "search only paths you affirmatively list."
+============ END BROADCAST 13 ============

@@ -1,0 +1,16 @@
+=== RUN   TestAUDIT_REV0_HarnessIsStateful
+    zzz_audit_poc2_test.go:173: labels before=[ft:stage/wont_fix] after=[ft:stage/wont_fix ft:stage/accepted]
+--- PASS: TestAUDIT_REV0_HarnessIsStateful (0.01s)
+=== RUN   TestAUDIT_REV1_SelfServiceEscalation
+    zzz_audit_poc2_test.go:189: step 1  reopen                        -> DENIED (rpc error: code = PermissionDenied desc = missing required scope "task:accept")
+    zzz_audit_poc2_test.go:196: step 2  add_labels[ft:stage/accepted] -> ALLOWED  labels now [ft:stage/wont_fix ft:stage/accepted]
+    zzz_audit_poc2_test.go:200: *** CRITICAL — SELF-SERVICE ESCALATION *** one token holding only task:write reopened a wont_fix issue in two ordinary API calls. Labels still on issue: [ft:stage/accepted]. No second actor, no GitHub access, no partial failure.
+--- FAIL: TestAUDIT_REV1_SelfServiceEscalation (0.01s)
+=== RUN   TestAUDIT_REV2_ClaimGateThirdSink
+    zzz_audit_poc2_test.go:214: baseline claim [wont_fix]            -> err=task unavailable
+    zzz_audit_poc2_test.go:222: attack   claim [wont_fix + accepted] -> err=<nil>  labels after=[ft:stage/working]
+    zzz_audit_poc2_test.go:224: *** THIRD SINK CONFIRMED *** ClaimTask succeeded on an issue still carrying ft:stage/wont_fix. Labels after claim: [ft:stage/working]
+--- FAIL: TestAUDIT_REV2_ClaimGateThirdSink (0.01s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.032s
+FAIL

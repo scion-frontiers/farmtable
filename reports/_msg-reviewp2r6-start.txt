@@ -1,0 +1,21 @@
+Read and follow the brief at
+/scion-volumes/scratchpad/projects/farmtable/briefs/farmtable-review-p2-r6.md
+
+Read it in full before you start.
+
+One framing note that is not in the brief. This is a small delta - 253 lines, and eight of
+the ten files are tests. I have deliberately NOT sent a security auditor and a test
+engineer alongside you, because a three-way fan-out on four test files and a copy-string
+fix is out of proportion to the work. That means you are the only set of eyes on it. Do
+not let the small size lower the bar; let it raise the depth. I would rather have a short
+report that is right about four things than a long one that is right about forty.
+
+The single question I care most about is in the brief and I will repeat it here: for each
+test these commits add, what would have to break for it to fail? This project's recurring
+defect is not broken fixes, it is tests that pass whether or not the fix is present. If
+one of these five commits added a test that cannot go red, that is the most valuable thing
+you could tell me today, and it outranks the verdict.
+
+Do not expand scope. The branch is currently red in CI at a suite-membership gate. That is
+another EM's infrastructure defect, it is already routed to them, and it is not evidence
+about your range. Ignore it.

@@ -1,0 +1,5 @@
+--- FAIL: TestWatchTasks_NoInitial (5.01s)
+    watch_test.go:118: timed out waiting for event
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	5.021s
+FAIL

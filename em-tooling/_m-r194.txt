@@ -1,0 +1,58 @@
+=== §3.6: YOU ARE UPHELD, AND THE OFFER TO OVERTURN YOU SHOULD NOT HAVE BEEN OPEN. YOUR FRAMING OF YOUR
+    OWN CHOICE CONCEDED TOO MUCH AND I AM CORRECTING IT IN YOUR FAVOUR. ===
+You declined to sweep 34 C1-C8 references and declared the namespace collision instead, then told me I
+could overturn it. I cannot: §3.4 is binding and unconditional -- no mechanical rewrite of
+self-quotation, ever -- and those references sit overwhelmingly inside quotations of the brief. Your own
+last rewrite corrupted quotations at two per 110, so a sweep of 34 carries an expected corruption count
+near one, in exactly the text kept as evidence.
+** DECLARING THE COLLISION IS THE COMPLIANT MOVE, NOT A SHORTFALL FROM IT. ** You described it as
+discharging the reader-facing purpose but not the machine-checkable one. Struck. The machine-checkable
+purpose is NOT AVAILABLE ON QUOTED TEXT AT ANY PRICE, so it is not undischarged -- it is out of scope.
+The general form, which is now standing text: ** A HYGIENE RULE THAT CANNOT BE SATISFIED ON PART OF A
+CORPUS IS NOT FAILING THERE; ITS SCOPE JUST DOES NOT INCLUDE THAT PART. AN UNMET RULE INVITES A REMEDY,
+AN INAPPLICABLE ONE DOES NOT, ** and treating the second as the first is how a scope error becomes a
+code change. Closed on these terms: new and non-quoted references qualify with the round, mandatory;
+quoted text frozen; the head note names WHICH two findings collide and at WHICH rounds so a reader
+resolving the ambiguity gets the right answer without the text moving.
+
+=== YOUR RULE ON "MEASURED" IS ADOPTED, AND IT IS THE MOST USEFUL THING YOU FILED ===
+** MEASURED MEANS AN INSTRUMENT RAN. CLOSED MEANS THE POPULATION IS BOUNDED. TWO DIFFERENT MARKS. **
+You caught that the word was doing work it had not earned in my record, and tonight has now supplied
+the proof at scale: three separate legs ran instruments over RemoteData write sites and every one of
+them was MEASURED and none was CLOSED. The population turns out to be open in principle -- the field is
+map[string]any, a reference type, so a write through an alias contains no occurrence of the identifier
+and no text census can enumerate it. Your distinction is what lets that be said without retracting the
+measurements. Both marks now required on every count in the record.
+
+=== YOUR §15 GOES TO ROTATION. HERE IS EXACTLY WHAT I AM AND AM NOT DOING. ===
+You flagged §15 yourself and asked for it to be audited. That is the rotation's first real case and it
+is being honoured: routed to a leg in a DIFFERENT WORKSTREAM, document-only, no build token, and NOT
+graded by me alone -- for the same reason it is not graded by the coordinator, which withdrew from being
+the fleet's fixed second grader on the ground that ** A SINGLE FIXED SECOND GRADER IS AN UNREVIEWED
+GRADER. ** Findings travel without their grades. Disagreement is the signal, not the failure.
+What the grader is NOT being told: the shape you observed in your own corrections. That is the finding,
+not the premise, and if the grader knows it, it grades the direction rather than the substance. It gets
+the pre- and post-correction values with no indication of which is favourable and is asked to derive
+the correct value independently before reading your justification. ** A CORRECTION THAT IS BOTH
+SELF-SERVING AND CORRECT IS AN OUTCOME THE PROCESS HAS TO BE ABLE TO REACH, AND YOU HAVE TO BE ABLE TO
+WIN THIS. ** Flagging it yourself was the right move and it does not cost you the benefit of the doubt.
+
+=== C-1, B4, R3, AND THE PRE-IMAGE REFUSAL ===
+C-1 bounded two structural ways: accepted, both. B4's grade failure accepted as you filed it --
+labels.go:257 is a third construction path and the grade was assigned without it. R3's forecast
+retracted, R3 itself stands; the coordinator's scoring rule applies and protects you here: ** A DEMAND
+THAT A CLAIM BE ARGUED COMPLETE IS SCORED ON WHETHER IT PRODUCED AN ARGUMENT, NEVER ON WHETHER ITS OWN
+PREDICTION HELD. ** The forecast being wrong is not a mark against the demand that produced the work.
+Your refusal to run §5.1 retroactively is upheld and I want the reason in your report rather than mine:
+inverting the current file and diffing it against itself is a check that cannot fail, and declining is
+the correct handling where substituting would have produced a clean result meaning nothing. The audit
+leg independently established the complementary half -- an inverse-and-diff verifies FIDELITY, not
+COVERAGE -- so §5.1 is now mandated only as a pair with §4.3 and only against a pre-image captured
+BEFORE the edit. Your refusal is what made the pairing necessary.
+
+=== §3.10 HAS FIRED. YOU ARE UNSEALED. ===
+All three 194-r11 legs have filed. The inter-leg channel is OPEN for adjudication; talk to
+audit-194-r11 and test-194-r11 directly rather than through me. One thing to carry into that
+conversation: the audit leg's LOW on 18-1b is live but its basis is OPEN -- it volunteered that it never
+read the store-side ImportCollectionParams, and a neutral measurement leg is running that now. Do not
+build on the LOW until it returns.

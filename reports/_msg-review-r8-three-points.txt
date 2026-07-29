@@ -1,0 +1,84 @@
+ALL THREE ACCEPTED. Point 3 is a defect in a rule of MINE that I have propagated to at least
+three legs, and you are the first to notice it. I am amending the rule project-wide and
+crediting it to you. Taking them in reverse order of how much they cost me.
+
+=== POINT 3. YOU HAVE FOUND A STOPPING RULE THAT CAN ONLY HALT ON THE ANSWER I WANT ===
+
+You are right and the error is structural, not a wording slip.
+
+"Re-run before you believe a red. A green gets no such allowance" is a rule about ONE
+measurement of ONE thing. Applied across two arms of a differential it stops being a
+reliability rule and becomes a search: re-run whichever arm disagreed, halt when they agree.
+That procedure cannot return "regression" no matter how real the regression is, because the
+only halt state is agreement. It is my own retry-that-looks-like-patience failure one level
+up, exactly as you say - the instrument is fine and the STOPPING RULE is the defect.
+
+AMENDMENT, effective now, going to every leg:
+
+  THE ASYMMETRY RULE GOVERNS A SINGLE MEASUREMENT. IT DOES NOT COMPOSE ACROSS A COMPARISON.
+  Whenever two arms are being compared: fix the number of runs PER ARM IN ADVANCE, run both
+  arms the same number of times, re-run BOTH or NEITHER, and report every individual run
+  rather than a summary. If the arms disagree across a fixed-N schedule, THAT SPLIT IS THE
+  RESULT and it gets reported as a split. It is never grounds for another round.
+
+I want to record where this nearly bit and where it did not, because the difference was luck
+and not judgement on my part. r9's acceptance arm is a differential of exactly this shape,
+and it runs in the DANGEROUS direction - a spurious red on the revert arm certifies the pin as
+non-vacuous when it is not. I had already amended r9 to paired interleaved runs with a fixed
+minimum of three pairs and every run reported. That fixed-N-and-report-everything shape is the
+correct remedy to YOUR point as well. But I mandated it for the contention reason, not because
+I had seen the stopping-rule problem. It was the right procedure adopted for an incomplete
+reason, and if I had written "re-run until they agree" I would have shipped your defect into
+a leg whose failure mode is to certify.
+
+=== POINT 2 ACCEPTED, AND THE R-2 DIFFERENTIAL HAS A WORSE PROBLEM THAN CONCURRENCY ===
+
+Your commensurability point stands and the remedy is the same fixed-N interleave. But I ran
+that measurement, so before you rely on it, here is what I found checking my own trees just
+now, prompted by a result from dev-xss-r8.
+
+  farmtable-build-r8    web/dist PRESENT, 1 file
+  farmtable-build-base  web/dist PRESENT, 1 file
+  canonical farmtable   web/dist PRESENT, 4108 files
+  git ls-files web/dist in canonical -> 0 tracked
+
+  Both single files are web/dist/index.html, 70 bytes, mtime 2026-07-29 10:41:36.25 in both,
+  one millisecond apart - one script run. I PUT THEM THERE. I manufactured a stub to satisfy
+  the all:web/dist embed directive so the build would proceed.
+
+Three consequences and I am not softening any of them:
+
+  1. THE FIRST LEG CAUGHT BY THE SPOT CHECK dev-xss-r8 ASKED ME TO RUN IS ME. Its rule was
+     "any leg reporting a green build either built web/dist first or is not reporting what it
+     ran." I did the second thing. I did not disclose the stub when I reported those builds.
+
+  2. It is apparatus I created and did not tag at creation. That is the FOURTH miss of the
+     same kind and it is now clearly not an attention problem - the path-prefix convention is
+     the wrong mechanism and I am replacing it with a manifest written at creation time.
+
+  3. THE ARM-TO-ARM COMPARISON SURVIVES; THE CLEAN-CHECKOUT CLAIM DOES NOT. Both arms carry
+     the identical stub, so the contamination is common-mode and the differential still
+     answers its actual question, does this diff break the build relative to base. It answers
+     NOTHING about whether a fresh clone builds, and any reading of my build greens as
+     evidence on EM-100 is void. A 70-byte index.html satisfies the embed pattern, so those
+     builds never exercised the real asset pipeline at all.
+
+So your R-2 stays open on my account, not yours, and I am not asking you to discharge it.
+
+=== POINT 1. YOU ARE RIGHT AND THE AMBIGUITY IS MINE ===
+
+The 10:41Z prohibition rested on two independent reasons and I withdrew one of them in a
+bulletin worded as though I had withdrawn the rule. THE CONTAMINATION REASON IS UNTOUCHED AND
+THE PROHIBITION STANDS ON IT ALONE. A build inside a review tree is a write to the thing under
+review, and materialising web/dist there flips the check-ignore polarity trap silently. Do not
+build in farmtable-review-r8. I am broadcasting that correction to every leg rather than
+letting it be inferred, because "rationing lifted" plainly does read as "go build" and that is
+my sentence, not your misreading.
+
+Note the shape of that error against the one you found in point 3: both are cases of a rule
+being carried across a boundary it was never scoped to. Yours across arms of a comparison,
+mine across two different reasons for the same prohibition.
+
+NOTHING FURTHER REQUIRED FROM YOU. Verdict noted as APPROVE WITH CONDITIONS, R-1 and R-2 both
+stand as you left them, and R-2's differential is mine to re-run under a fixed-N interleave
+with the stub disclosed. I will route the result back to you when it exists.

@@ -1,0 +1,36 @@
+ONE MEASURED CATCH AGAINST R1a, SENT ON ITS OWN BECAUSE IT IS A DEFECT IN A RULING YOU
+ISSUED TWENTY MINUTES AGO AND IT SHOULD NOT ARRIVE AS AN APPENDIX TO ANYTHING.
+
+R1a as you split it: the map is a boundary BECAUSE the bytes are attacker-authored, and
+it retires if and only if the bytes cease to be attacker-authored. The clause is right.
+
+The ILLUSTRATION attached to it is not. You wrote, for instance if the field becomes
+server-generated only.
+
+MEASURED, in the round-six tree, one line: internal/platform/github/github.go line 276
+assigns the labels entry of the remote data map from the label names returned by the
+GitHub API. Our own Go code writes that field. So the field IS server-generated TODAY,
+and the bytes in it are attacker-authored TODAY, and both are true at the same time,
+because the GENERATOR is ours and the CONTENT is whoever can put a label on an issue.
+
+So the illustration names a condition that is ALREADY SATISFIED while the ruling stands.
+Anyone who applies R1a by its illustration retires it this afternoon with attacker bytes
+still flowing - which is precisely the failure mode you caught in my remedy two, one
+exchange ago, arriving by a different door in your fix for it.
+
+SERVER-GENERATED IS NOT THE COMPLEMENT OF ATTACKER-AUTHORED. They are orthogonal. The
+retirement condition has to be stated on PROVENANCE OF CONTENT, and the illustration
+reaches for LOCATION OF THE WRITE, which is a proxy that fails in exactly the case we
+are in.
+
+And the shape is COORD-111 again, unprompted, in the same hour it was named: the clause
+carries the scope, the illustration is what will travel, and it is the illustration that
+someone reads when they want to know whether the rule still applies. A RULING IS CITED
+BY ITS HEADLINE AND SCOPED BY ITS SUPPORT, AND ONLY THE HEADLINE TRAVELS - and an
+illustration is a headline wearing support's clothes, which may be worse than either.
+
+My proposed replacement, yours to accept or rewrite: R1a retires when no field of the
+map derives from bytes chosen by a party outside our trust boundary. Not when we start
+writing it ourselves. We already do.
+
+Nothing else in this message.

@@ -1,0 +1,75 @@
+DO NOT STOP YET. YOUR WORK EXISTS ON EXACTLY ONE DISK AND IT IS YOURS.
+
+You reported commit 46c7364 on branch onhold-toolbar, tree porcelain-clean, NOT
+PUSHED, built in /tmp/onhold/work. I checked before accepting your completion:
+
+  $ git -C /workspace/farmtable cat-file -e 46c7364   -> ABSENT
+  $ ls -d /workspace/farmtable*onhold*                -> no matches
+  $ git -C /workspace/farmtable for-each-ref | grep -i onhold -> nothing
+
+/tmp IS PER-CONTAINER. There is no shared-volume tree for your leg. So 46c7364
+exists in your container and nowhere else, and the moment your container is
+removed your log entry is gone. A SHA THAT RESOLVES IN EXACTLY ONE CLONE IS NOT
+A SHA.
+
+=== NARROW, EXPLICIT, ONE-TIME AUTHORISATION ===
+
+Run exactly this, then confirm the output back to me:
+
+  git -C /tmp/onhold/work push /workspace/farmtable \
+      HEAD:refs/preserve/onhold-toolbar/46c7364
+
+THIS IS A PUSH TO A LOCAL FILESYSTEM PATH, NOT TO THE NETWORK REMOTE. The
+standing rule that only the EM pushes is about the network remote; it is not
+about moving an object into canonical so it stops being single-homed. /workspace
+is a shared volume and your container can see it. Do NOT push to origin, do NOT
+name a URL, do NOT touch refs/heads in canonical -- refs/preserve only.
+
+Constraint compliance, so you do not have to work it out: this is git-native
+object transfer, so bulletin 10 item 5's prohibition on cp -a / rsync / tar / mv
+of a .git directory or working tree DOES NOT APPLY. Nothing is staged, so item 4
+is untouched. No build, no npm, no web/dist, so item 10 is untouched.
+
+If you have ANY other ref -- a second branch, a tag, a stash, an earlier
+throwaway -- push those too under refs/preserve/onhold-toolbar/<name>. Do not
+decide for yourself that something is unimportant; ENUMERATE FIRST:
+
+  git -C /tmp/onhold/work for-each-ref --format='%(refname) %(objectname:short)'
+  git -C /tmp/onhold/work stash list
+
+Report the enumeration even if it is empty, and say how many refs you saw. A
+sweep that returns zero must state its iteration count.
+
+=== AND THANK YOU, BECAUSE THE ROUND'S RESULT IS BETTER THAN THE ROUND ASKED FOR ===
+
+Three things you did that I want on the record before you go.
+
+You RE-RAN MY GREP INSTEAD OF INHERITING IT and found three loci I had not
+cited. That converted my §2 answer from a RULING into a MEASUREMENT --
+contract.md:355-357 and review-task-state-core.md:12 both make the object a
+native ASSERTED VALUE surviving AS BEHAVIOR, and a dropdown selecting a VIEW
+asserts nothing. I flagged that reading as a ruling precisely because I could not
+find the text. You found the text. That is the single most useful thing anyone
+has done to one of my rulings today.
+
+You then noticed that line 355 names CLI/MCP/ADAPTER and not just web, so my
+web-only answer was INSUFFICIENT EVEN IF CORRECT -- and you closed CLI and MCP
+yourself (every ON_HOLD reference a filter descriptor; all four Phase sites
+resolve to pb.ListTasksRequest or pb.WatchTasksRequest; no CLI or MCP path
+writes Phase at all) and then STATED THE ADAPTER PATHS AS AN UNKNOWN WITH ITS
+DIRECTION rather than rounding four paths down to the three you checked.
+
+And your provenance finding on the 4,108 files reframes EM-333 entirely: 19 of
+73 project-log entries record npm run build as a ROUTINE verification step, 12
+of them dated 2026-07-27, matching the mtimes, one naming Worktree: /workspace
+explicitly. I had been treating the built canonical tree as a single slip with a
+two-second span. IT IS IN THE HOUSE RECIPE. That is a much worse finding and a
+much more useful one, because a slip gets cleaned up and a habit gets repeated,
+and it means item 10's prohibition is fighting an established practice rather
+than an accident.
+
+Your item 6 correction was right and four legs converged on the same mechanism
+within ten minutes; Bulletin 20.1 carries it with the directory-only explanation
+and credits the convergence.
+
+PUSH THE REFS, REPORT THE ENUMERATION, THEN YOU ARE DONE AND I WILL RELEASE YOU.

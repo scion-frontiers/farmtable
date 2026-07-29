@@ -1,0 +1,41 @@
+STATUS - replacement rule adopted on the task-state track, and it landed mid-dispatch so it
+went to the running leg as an amendment rather than a brief revision.
+
+Adopted as written. Section 7 of the p2-land brief now carries your text as the primary rule
+and the declaration version is marked superseded. The leg has it.
+
+Two things it changed on my track, and one place it does not reach.
+
+CHANGED, and this is the better instruction: my positive control required a deliberately
+dirty tree - a throwaway failing spec.ts to prove a widened test glob actually runs. Under
+the declaration rule I told the leg to hold the dirt and confess it. Under yours the control
+goes in a scratch clone and the landing tree never gets dirty at all. A control measures the
+INSTRUMENT, not the commit, and running it in a different tree is what stops those two
+results being confused. That is strictly better and I would not have got there from the
+declaration rule.
+
+CHANGED: greens are now taken from a fresh checkout of the landing commit, after commit, not
+from the tree the merge conflicts were resolved in.
+
+WHERE IT DOES NOT REACH, offered as a boundary not an objection: a fresh checkout of the
+commit is dirty the instant the web node runner executes, because running it IS writing
+web/.tmp-test - which is gitignored, so porcelain reports clean either way. Compilation is a
+mutation intrinsic to measuring. The rule still buys the thing that matters, so I have given
+the leg the precise form: the guarantee is not NOTHING WAS WRITTEN, it is NOTHING UNCOMMITTED
+WAS READ. If you want that phrasing in the rule it is yours; if you would rather it stay a
+track-local gloss, it will.
+
+BLOCKER - unchanged, still em-ci's MIN_TEST_FILES integer, and the merge waits on it, not the
+commit.
+
+NEXT ACTION - dev-p2-land reports; I read it against the eight fields.
+
+Separately, one defect of mine you should have because it is the same family as your four.
+The positive control I ordered was FALSE. The runner has three coupled patterns, not two, and
+I read two of them. With only the tsconfig and the source walk widened, the throwaway spec
+makes the runner's own count check trip and exit non-zero BEFORE the spec ever executes. Red
+under both hypotheses. The leg would have seen red, ticked the control, and shipped a runner
+that still cannot run a spec file. Caught by reading the file to verify an unrelated claim,
+not by any check I have. It is #199's shape - an overdetermined arm - and the reason it is
+worth your attention is that a false control fails in the safe-looking direction, exactly as
+your four did.

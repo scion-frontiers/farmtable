@@ -1,0 +1,3152 @@
+package dolt
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/steveyegge/beads/internal/storage"
+	"github.com/steveyegge/beads/internal/types"
+)
+
+// =============================================================================
+// GetReadyWork tests
+// =============================================================================
+
+func TestGetReadyWork_EmptyStore(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(work) != 0 {
+		t.Errorf("expected 0 ready work from empty store, got %d", len(work))
+	}
+}
+
+func TestRigIssueIsPersistentButHiddenFromReady(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	rig := &types.Issue{
+		ID:        "rw-rig-durable",
+		Title:     "Rig identity",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.IssueType("rig"),
+	}
+	if err := store.CreateIssue(ctx, rig, "tester"); err != nil {
+		t.Fatalf("CreateIssue rig: %v", err)
+	}
+	if rig.Ephemeral {
+		t.Fatal("CreateIssue marked type=rig as ephemeral")
+	}
+
+	got, err := store.GetIssue(ctx, rig.ID)
+	if err != nil {
+		t.Fatalf("GetIssue rig: %v", err)
+	}
+	if got.Ephemeral {
+		t.Fatal("stored type=rig issue is ephemeral")
+	}
+
+	var issueRows int
+	if err := store.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM issues WHERE id = ?", rig.ID).Scan(&issueRows); err != nil {
+		t.Fatalf("count rig issue rows: %v", err)
+	}
+	if issueRows != 1 {
+		t.Fatalf("type=rig rows in issues = %d, want 1", issueRows)
+	}
+
+	var wispRows int
+	if err := store.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM wisps WHERE id = ?", rig.ID).Scan(&wispRows); err != nil {
+		t.Fatalf("count rig wisp rows: %v", err)
+	}
+	if wispRows != 0 {
+		t.Fatalf("type=rig rows in wisps = %d, want 0", wispRows)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("GetReadyWork: %v", err)
+	}
+	for _, item := range work {
+		if item.ID == rig.ID {
+			t.Fatalf("type=rig issue appeared in ready work: %v", issueIDs(work))
+		}
+	}
+}
+
+func TestGetReadyWork_ExcludesClosedIssues(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "rw-closed",
+		Title:     "Closed Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if err := store.CloseIssue(ctx, issue.ID, "done", "tester", "s1"); err != nil {
+		t.Fatalf("failed to close issue: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, w := range work {
+		if w.ID == issue.ID {
+			t.Error("closed issue should not appear in ready work")
+		}
+	}
+}
+
+func TestGetReadyWork_StatusFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	open := &types.Issue{
+		ID:        "rw-open",
+		Title:     "Open Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	inProgress := &types.Issue{
+		ID:        "rw-inprog",
+		Title:     "In Progress",
+		Status:    types.StatusInProgress,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{open, inProgress} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// Filter by in_progress only
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Status: types.StatusInProgress})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	foundOpen := false
+	foundInProgress := false
+	for _, w := range work {
+		if w.ID == open.ID {
+			foundOpen = true
+		}
+		if w.ID == inProgress.ID {
+			foundInProgress = true
+		}
+	}
+	if foundOpen {
+		t.Error("open issue should not appear when filtering for in_progress")
+	}
+	if !foundInProgress {
+		t.Error("in_progress issue should appear when filtering for in_progress")
+	}
+}
+
+func TestGetReadyWork_PriorityFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	p1 := &types.Issue{
+		ID:        "rw-p1",
+		Title:     "Priority 1",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	p3 := &types.Issue{
+		ID:        "rw-p3",
+		Title:     "Priority 3",
+		Status:    types.StatusOpen,
+		Priority:  3,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{p1, p3} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	priority := 1
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Priority: &priority})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range work {
+		if w.ID == p3.ID {
+			t.Error("priority 3 issue should not appear when filtering for priority 1")
+		}
+	}
+}
+
+func TestGetReadyWork_ExcludesPinnedIssues(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	pinned := &types.Issue{
+		ID:        "rw-pinned",
+		Title:     "Pinned Context",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+		Pinned:    true,
+	}
+	if err := store.CreateIssue(ctx, pinned, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, w := range work {
+		if w.ID == pinned.ID {
+			t.Error("pinned issue should not appear in ready work")
+		}
+	}
+}
+
+func TestGetReadyWork_ExcludesBlockedIssues(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "rw-blocker",
+		Title:     "Blocker",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "rw-blocked",
+		Title:     "Blocked",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range work {
+		if w.ID == blocked.ID {
+			t.Error("blocked issue should not appear in ready work")
+		}
+	}
+}
+
+func TestGetReadyWork_UnassignedFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	assigned := &types.Issue{
+		ID:        "rw-assigned",
+		Title:     "Assigned Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+		Assignee:  "alice",
+	}
+	unassigned := &types.Issue{
+		ID:        "rw-unassigned",
+		Title:     "Unassigned Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{assigned, unassigned} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Unassigned: true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range work {
+		if w.ID == assigned.ID {
+			t.Error("assigned issue should not appear when filtering for unassigned")
+		}
+	}
+}
+
+func TestGetReadyWork_LimitFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	for i := 0; i < 5; i++ {
+		iss := &types.Issue{
+			ID:        fmt.Sprintf("rw-limit-%d", i),
+			Title:     fmt.Sprintf("Limit Issue %d", i),
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: 2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(work) > 2 {
+		t.Errorf("expected at most 2 results with Limit=2, got %d", len(work))
+	}
+}
+
+func TestGetReadyWork_LimitSkipsBlockedCandidates(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "rw-page-blocker",
+		Title:     "Blocking Gate",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeGate,
+	}
+	issues := []*types.Issue{
+		blocker,
+		{
+			ID:        "rw-page-blocked-1",
+			Title:     "Blocked 1",
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		},
+		{
+			ID:        "rw-page-blocked-2",
+			Title:     "Blocked 2",
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		},
+		{
+			ID:        "rw-page-ready-1",
+			Title:     "Ready 1",
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		},
+		{
+			ID:        "rw-page-ready-2",
+			Title:     "Ready 2",
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		},
+	}
+	for _, iss := range issues {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+	for _, blockedID := range []string{"rw-page-blocked-1", "rw-page-blocked-2"} {
+		dep := &types.Dependency{
+			IssueID:     blockedID,
+			DependsOnID: blocker.ID,
+			Type:        types.DepBlocks,
+		}
+		if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+			t.Fatalf("failed to add dependency for %s: %v", blockedID, err)
+		}
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: 2, SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	ids := issueIDs(work)
+	if len(ids) != 2 {
+		t.Fatalf("expected 2 ready items after skipping blocked candidates, got %d: %v", len(ids), ids)
+	}
+	idSet := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		idSet[id] = struct{}{}
+	}
+	for _, blockedID := range []string{"rw-page-blocked-1", "rw-page-blocked-2"} {
+		if _, ok := idSet[blockedID]; ok {
+			t.Fatalf("blocked issue %s appeared in limited ready work: %v", blockedID, ids)
+		}
+	}
+}
+
+func TestGetReadyWork_LimitScansMultipleCandidatePages(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	const blockedCount = 220
+	const readyCount = 10
+	blocker := &types.Issue{
+		ID:        "rw-multi-blocker",
+		Title:     "Blocking Gate",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeGate,
+	}
+	issues := []*types.Issue{blocker}
+	for i := 0; i < blockedCount; i++ {
+		issues = append(issues, &types.Issue{
+			ID:        fmt.Sprintf("rw-multi-blocked-%03d", i),
+			Title:     fmt.Sprintf("Blocked %03d", i),
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		})
+	}
+	for i := 0; i < readyCount; i++ {
+		issues = append(issues, &types.Issue{
+			ID:        fmt.Sprintf("rw-multi-ready-%03d", i),
+			Title:     fmt.Sprintf("Ready %03d", i),
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+		})
+	}
+
+	err := store.RunInTransaction(ctx, "test: seed multi-page ready work", func(tx storage.Transaction) error {
+		if err := tx.CreateIssues(ctx, issues, "tester"); err != nil {
+			return err
+		}
+		for i := 0; i < blockedCount; i++ {
+			if err := tx.AddDependency(ctx, &types.Dependency{
+				IssueID:     fmt.Sprintf("rw-multi-blocked-%03d", i),
+				DependsOnID: blocker.ID,
+				Type:        types.DepBlocks,
+			}, "tester"); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("seed multi-page ready work: %v", err)
+	}
+
+	limited, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: readyCount, SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("limited ready work: %v", err)
+	}
+	limitedIDs := issueIDs(limited)
+	if len(limitedIDs) != readyCount {
+		t.Fatalf("expected %d limited ready items, got %d: %v", readyCount, len(limitedIDs), limitedIDs)
+	}
+	for i := 0; i < readyCount; i++ {
+		want := fmt.Sprintf("rw-multi-ready-%03d", i)
+		if limitedIDs[i] != want {
+			t.Fatalf("limited[%d] = %s, want %s (all ids: %v)", i, limitedIDs[i], want, limitedIDs)
+		}
+	}
+
+	unbounded, err := store.GetReadyWork(ctx, types.WorkFilter{SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("unbounded ready work: %v", err)
+	}
+	unboundedIDs := issueIDs(unbounded)
+	if len(unboundedIDs) < readyCount {
+		t.Fatalf("expected at least %d unbounded ready items, got %d: %v", readyCount, len(unboundedIDs), unboundedIDs)
+	}
+	for i := 0; i < readyCount; i++ {
+		if limitedIDs[i] != unboundedIDs[i] {
+			t.Fatalf("limited result diverged from unbounded at %d: limited=%v unbounded=%v", i, limitedIDs, unboundedIDs[:readyCount])
+		}
+	}
+}
+
+func TestGetReadyWork_LimitCandidateGraphSemantics(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issues := []*types.Issue{
+		// This blocker is intentionally a blocked epic instead of the older open
+		// gate fixture: current dependency validation rejects gate->epic block
+		// edges, and the test only needs a non-ready blocker for the parent chain.
+		{ID: "rw-graph-parent-blocker", Title: "Parent blocker", Status: types.StatusBlocked, Priority: 1, IssueType: types.TypeEpic},
+		{ID: "rw-graph-parent", Title: "Blocked parent", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeEpic},
+		{ID: "rw-graph-parent-child", Title: "Child of blocked parent", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "rw-graph-all-waiter", Title: "All waiter", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "rw-graph-all-spawner", Title: "All spawner", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-all-child", Title: "All active child", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-any-blocked", Title: "Any blocked waiter", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "rw-graph-any-blocked-spawner", Title: "Any blocked spawner", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-any-blocked-child", Title: "Any blocked active child", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-any-ready", Title: "Any ready waiter", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "rw-graph-any-ready-spawner", Title: "Any ready spawner", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-any-ready-child-closed", Title: "Any ready closed child", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-any-ready-child-active", Title: "Any ready active child", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeGate},
+		{ID: "rw-graph-ready", Title: "Ready control", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+	}
+	err := store.RunInTransaction(ctx, "test: seed candidate graph ready work", func(tx storage.Transaction) error {
+		if err := tx.CreateIssues(ctx, issues, "tester"); err != nil {
+			return err
+		}
+		deps := []*types.Dependency{
+			{IssueID: "rw-graph-parent", DependsOnID: "rw-graph-parent-blocker", Type: types.DepBlocks},
+			{IssueID: "rw-graph-parent-child", DependsOnID: "rw-graph-parent", Type: types.DepParentChild},
+			{IssueID: "rw-graph-all-waiter", DependsOnID: "rw-graph-all-spawner", Type: types.DepWaitsFor},
+			{IssueID: "rw-graph-all-child", DependsOnID: "rw-graph-all-spawner", Type: types.DepParentChild},
+			{IssueID: "rw-graph-any-blocked", DependsOnID: "rw-graph-any-blocked-spawner", Type: types.DepWaitsFor, Metadata: `{"gate":"any-children"}`},
+			{IssueID: "rw-graph-any-blocked-child", DependsOnID: "rw-graph-any-blocked-spawner", Type: types.DepParentChild},
+			{IssueID: "rw-graph-any-ready", DependsOnID: "rw-graph-any-ready-spawner", Type: types.DepWaitsFor, Metadata: `{"gate":"any-children"}`},
+			{IssueID: "rw-graph-any-ready-child-closed", DependsOnID: "rw-graph-any-ready-spawner", Type: types.DepParentChild},
+			{IssueID: "rw-graph-any-ready-child-active", DependsOnID: "rw-graph-any-ready-spawner", Type: types.DepParentChild},
+		}
+		for _, dep := range deps {
+			if err := tx.AddDependency(ctx, dep, "tester"); err != nil {
+				return err
+			}
+		}
+		return tx.CloseIssue(ctx, "rw-graph-any-ready-child-closed", "done", "tester", "s1")
+	})
+	if err != nil {
+		t.Fatalf("seed candidate graph ready work: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: 2, SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("limited ready work: %v", err)
+	}
+	ids := issueIDs(work)
+	want := []string{"rw-graph-any-ready", "rw-graph-ready"}
+	if fmt.Sprint(ids) != fmt.Sprint(want) {
+		t.Fatalf("limited candidate graph result = %v, want %v", ids, want)
+	}
+	for _, blockedID := range []string{"rw-graph-parent-child", "rw-graph-all-waiter", "rw-graph-any-blocked"} {
+		if readyIDSet(ids)[blockedID] {
+			t.Fatalf("blocked candidate %s appeared in limited ready work: %v", blockedID, ids)
+		}
+	}
+}
+
+func TestGetReadyWork_LimitMatchesUnboundedForChildrenOfInactiveParents(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	type scenario struct {
+		name         string
+		parentStatus types.Status
+		depType      types.DependencyType
+	}
+	scenarios := []scenario{
+		{name: "closed-blocks", parentStatus: types.StatusClosed, depType: types.DepBlocks},
+		{name: "closed-conditional-blocks", parentStatus: types.StatusClosed, depType: types.DepConditionalBlocks},
+		{name: "closed-waits-for", parentStatus: types.StatusClosed, depType: types.DepWaitsFor},
+		{name: "pinned-blocks", parentStatus: types.StatusPinned, depType: types.DepBlocks},
+		{name: "pinned-conditional-blocks", parentStatus: types.StatusPinned, depType: types.DepConditionalBlocks},
+		{name: "pinned-waits-for", parentStatus: types.StatusPinned, depType: types.DepWaitsFor},
+	}
+
+	var issues []*types.Issue
+	var deps []*types.Dependency
+	var childIDs []string
+	for _, sc := range scenarios {
+		prefix := "rw-inactive-parent-" + sc.name
+		parentID := prefix + "-parent"
+		childID := prefix + "-child"
+		blockerID := prefix + "-blocker"
+		childIDs = append(childIDs, childID)
+		issues = append(issues,
+			&types.Issue{ID: parentID, Title: sc.name + " parent", Status: sc.parentStatus, Priority: 1, IssueType: types.TypeTask, Pinned: sc.parentStatus == types.StatusPinned},
+			&types.Issue{ID: childID, Title: sc.name + " child", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+			&types.Issue{ID: blockerID, Title: sc.name + " blocker", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		)
+		deps = append(deps,
+			&types.Dependency{IssueID: childID, DependsOnID: parentID, Type: types.DepParentChild},
+			&types.Dependency{IssueID: parentID, DependsOnID: blockerID, Type: sc.depType},
+		)
+		if sc.depType == types.DepWaitsFor {
+			spawnedChildID := prefix + "-spawned-child"
+			issues = append(issues, &types.Issue{
+				ID:        spawnedChildID,
+				Title:     sc.name + " spawned child",
+				Status:    types.StatusOpen,
+				Priority:  1,
+				IssueType: types.TypeTask,
+			})
+			deps = append(deps, &types.Dependency{
+				IssueID:     spawnedChildID,
+				DependsOnID: blockerID,
+				Type:        types.DepParentChild,
+			})
+		}
+	}
+
+	err := store.RunInTransaction(ctx, "test: seed inactive parent ready work", func(tx storage.Transaction) error {
+		if err := tx.CreateIssues(ctx, issues, "tester"); err != nil {
+			return err
+		}
+		for _, dep := range deps {
+			if err := tx.AddDependency(ctx, dep, "tester"); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("seed inactive parent ready work: %v", err)
+	}
+
+	limited, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: 100, SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("limited ready work: %v", err)
+	}
+	unbounded, err := store.GetReadyWork(ctx, types.WorkFilter{SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("unbounded ready work: %v", err)
+	}
+
+	limitedIDs := issueIDs(limited)
+	unboundedIDs := issueIDs(unbounded)
+	if fmt.Sprint(limitedIDs) != fmt.Sprint(unboundedIDs) {
+		t.Fatalf("limited ready work diverged from unbounded:\nlimited:   %v\nunbounded: %v", limitedIDs, unboundedIDs)
+	}
+	limitedSet := readyIDSet(limitedIDs)
+	for _, childID := range childIDs {
+		if !limitedSet[childID] {
+			t.Fatalf("child of inactive blocked parent %s missing from ready work: %v", childID, limitedIDs)
+		}
+	}
+}
+
+func TestGetReadyWork_LimitIncludeEphemeralWispBlocker(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	wispBlocker := &types.Issue{
+		ID:        "rw-eph-wisp-blocker",
+		Title:     "Ephemeral blocker",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeGate,
+		Ephemeral: true,
+	}
+	blocked := &types.Issue{
+		ID:        "rw-eph-blocked",
+		Title:     "Blocked by wisp",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	ready := &types.Issue{
+		ID:        "rw-eph-ready",
+		Title:     "Ready",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	for _, iss := range []*types.Issue{wispBlocker, blocked, ready} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("create issue %s: %v", iss.ID, err)
+		}
+	}
+	if err := store.AddDependency(ctx, &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: wispBlocker.ID,
+		Type:        types.DepBlocks,
+	}, "tester"); err != nil {
+		t.Fatalf("add wisp blocker dependency: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Limit: 1, IncludeEphemeral: true, SortPolicy: types.SortPolicyOldest})
+	if err != nil {
+		t.Fatalf("limited ready work with wisps: %v", err)
+	}
+	ids := readyIDSet(issueIDs(work))
+	if ids[blocked.ID] {
+		t.Fatalf("issue blocked by active wisp appeared in ready work: %v", issueIDs(work))
+	}
+	if !ids[ready.ID] {
+		t.Fatalf("ready issue missing from limited ready work with wisps: %v", issueIDs(work))
+	}
+}
+
+func TestGetReadyWork_LimitIncludeEphemeralHonorsOldestSortAcrossWispPages(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	now := time.Now().UTC()
+	lowPriorityOld := &types.Issue{
+		ID:        "rw-eph-oldest-low-priority",
+		Title:     "Oldest low priority wisp",
+		Status:    types.StatusOpen,
+		Priority:  4,
+		IssueType: types.TypeTask,
+		CreatedAt: now.Add(-72 * time.Hour),
+		Ephemeral: true,
+	}
+	if err := store.CreateIssue(ctx, lowPriorityOld, "tester"); err != nil {
+		t.Fatalf("create old wisp: %v", err)
+	}
+
+	for i := 0; i < 101; i++ {
+		iss := &types.Issue{
+			ID:        fmt.Sprintf("rw-eph-priority-noise-%03d", i),
+			Title:     fmt.Sprintf("Priority noise %03d", i),
+			Status:    types.StatusOpen,
+			Priority:  1,
+			IssueType: types.TypeTask,
+			CreatedAt: now.Add(time.Duration(i) * time.Minute),
+			Ephemeral: true,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("create priority noise %03d: %v", i, err)
+		}
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{
+		Limit:            1,
+		IncludeEphemeral: true,
+		SortPolicy:       types.SortPolicyOldest,
+	})
+	if err != nil {
+		t.Fatalf("limited oldest ready work with wisps: %v", err)
+	}
+	ids := issueIDs(work)
+	want := []string{lowPriorityOld.ID}
+	if fmt.Sprint(ids) != fmt.Sprint(want) {
+		t.Fatalf("limited oldest ready work = %v, want %v", ids, want)
+	}
+}
+
+func TestGetReadyWork_IncludeEphemeralPropagatesWispSearchError(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	if err := store.CreateIssue(ctx, &types.Issue{
+		ID:        "rw-wisp-error-ready",
+		Title:     "Ready control",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}, "tester"); err != nil {
+		t.Fatalf("create ready issue: %v", err)
+	}
+	if err := store.CreateIssue(ctx, &types.Issue{
+		ID:        "rw-wisp-error-wisp",
+		Title:     "Wisp control",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+		Ephemeral: true,
+	}, "tester"); err != nil {
+		t.Fatalf("create wisp: %v", err)
+	}
+	if _, err := store.db.ExecContext(ctx, "ALTER TABLE wisps DROP COLUMN title"); err != nil {
+		t.Fatalf("damage wisps table for regression test: %v", err)
+	}
+
+	_, err := store.GetReadyWork(ctx, types.WorkFilter{IncludeEphemeral: true})
+	if err == nil {
+		t.Fatal("expected IncludeEphemeral ready work to propagate wisp search error")
+	}
+	if !strings.Contains(err.Error(), "search wisps (ready work)") {
+		t.Fatalf("expected ready-work wisp error context, got %v", err)
+	}
+}
+
+func TestGetReadyWork_DottedHasMetadataKey(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	matching := &types.Issue{
+		ID:        "test-rw-meta-dotted",
+		Title:     "Dotted metadata",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+		Metadata:  []byte(`{"gc.routed_to":"beads/workflows.codex-max"}`),
+	}
+	nonMatching := &types.Issue{
+		ID:        "test-rw-meta-nested",
+		Title:     "Nested metadata",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+		Metadata:  []byte(`{"gc":{"routed_to":"beads/workflows.codex-max"}}`),
+	}
+	if err := store.CreateIssues(ctx, []*types.Issue{matching, nonMatching}, "tester"); err != nil {
+		t.Fatalf("create metadata issues: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{HasMetadataKey: "gc.routed_to"})
+	if err != nil {
+		t.Fatalf("ready work with dotted metadata key: %v", err)
+	}
+	ids := readyIDSet(issueIDs(work))
+	if !ids[matching.ID] {
+		t.Fatalf("literal dotted metadata key issue missing from ready work: %v", issueIDs(work))
+	}
+	if ids[nonMatching.ID] {
+		t.Fatalf("nested metadata issue matched literal dotted key: %v", issueIDs(work))
+	}
+}
+
+func TestGetReadyWork_TypePriorityLimitUsesDoltSafeTypePredicate(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	priority := 1
+	issues := []*types.Issue{
+		{ID: "test-rw-type-task", Title: "Task", Status: types.StatusOpen, Priority: priority, IssueType: types.TypeTask},
+		{ID: "test-rw-type-bug-1", Title: "Bug 1", Status: types.StatusOpen, Priority: priority, IssueType: types.TypeBug},
+		{ID: "test-rw-type-bug-2", Title: "Bug 2", Status: types.StatusOpen, Priority: priority, IssueType: types.TypeBug},
+	}
+	if err := store.CreateIssues(ctx, issues, "tester"); err != nil {
+		t.Fatalf("create typed issues: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{
+		Type:       string(types.TypeBug),
+		Status:     types.StatusOpen,
+		Priority:   &priority,
+		Limit:      2,
+		SortPolicy: types.SortPolicyOldest,
+	})
+	if err != nil {
+		t.Fatalf("ready work with type+status+priority+limit: %v", err)
+	}
+	ids := issueIDs(work)
+	want := []string{"test-rw-type-bug-1", "test-rw-type-bug-2"}
+	if fmt.Sprint(ids) != fmt.Sprint(want) {
+		t.Fatalf("typed ready work = %v, want %v", ids, want)
+	}
+}
+
+func readyIDSet(ids []string) map[string]bool {
+	result := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		result[id] = true
+	}
+	return result
+}
+
+func TestGetReadyWork_TypeFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	task := &types.Issue{
+		ID:        "rw-task",
+		Title:     "A Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	bug := &types.Issue{
+		ID:        "rw-bug",
+		Title:     "A Bug",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeBug,
+	}
+
+	for _, iss := range []*types.Issue{task, bug} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{Type: string(types.TypeBug)})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	foundTask := false
+	foundBug := false
+	for _, w := range work {
+		if w.ID == task.ID {
+			foundTask = true
+		}
+		if w.ID == bug.ID {
+			foundBug = true
+		}
+	}
+	if foundTask {
+		t.Error("task should not appear when filtering for bug type")
+	}
+	if !foundBug {
+		t.Error("bug should appear when filtering for bug type")
+	}
+}
+
+// TestGetReadyWork_ExcludeTypeFilter verifies that filter.ExcludeTypes is
+// honored in addition to the hardcoded default exclusion list. Regression test
+// for GH#3397: the CLI flag --exclude-type was silently ignored because
+// GetReadyWorkInTx built the NOT IN clause from the hardcoded defaults only.
+func TestGetReadyWork_ExcludeTypeFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	epic := &types.Issue{
+		ID:        "rw-ex-epic",
+		Title:     "An Epic",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeEpic,
+	}
+	task := &types.Issue{
+		ID:        "rw-ex-task",
+		Title:     "A Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	bug := &types.Issue{
+		ID:        "rw-ex-bug",
+		Title:     "A Bug",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeBug,
+	}
+
+	for _, iss := range []*types.Issue{epic, task, bug} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	// Single-type exclusion.
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{
+		ExcludeTypes: []types.IssueType{types.TypeEpic},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, w := range work {
+		if w.ID == epic.ID {
+			t.Error("epic should not appear when ExcludeTypes includes epic")
+		}
+	}
+
+	// Multi-type exclusion.
+	work, err = store.GetReadyWork(ctx, types.WorkFilter{
+		ExcludeTypes: []types.IssueType{types.TypeEpic, types.TypeTask},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundBug := false
+	for _, w := range work {
+		if w.ID == epic.ID {
+			t.Error("epic should not appear when ExcludeTypes includes epic")
+		}
+		if w.ID == task.ID {
+			t.Error("task should not appear when ExcludeTypes includes task")
+		}
+		if w.ID == bug.ID {
+			foundBug = true
+		}
+	}
+	if !foundBug {
+		t.Error("bug should still appear when ExcludeTypes excludes only epic and task")
+	}
+}
+
+// TestGetReadyWork_ParentFilterReturnsDescendants verifies that --parent
+// returns all transitive descendants, not just direct children. Regression
+// test for GH#3396: the SQL clause was a one-hop subquery, so grandchildren
+// of the given parent were silently dropped despite the help text and the
+// WorkFilter.ParentID godoc both promising "descendants (recursive)".
+func TestGetReadyWork_ParentFilterReturnsDescendants(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	epic := &types.Issue{
+		ID:        "rw-pd-epic",
+		Title:     "Epic",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeEpic,
+	}
+	phase := &types.Issue{
+		ID:        "rw-pd-phase",
+		Title:     "Phase",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeEpic,
+	}
+	leaf := &types.Issue{
+		ID:        "rw-pd-leaf",
+		Title:     "Leaf Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{epic, phase, leaf} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// epic <- phase <- leaf via parent-child deps.
+	for _, dep := range []*types.Dependency{
+		{IssueID: phase.ID, DependsOnID: epic.ID, Type: types.DepParentChild},
+		{IssueID: leaf.ID, DependsOnID: phase.ID, Type: types.DepParentChild},
+	} {
+		if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+			t.Fatalf("failed to add dep %s->%s: %v", dep.IssueID, dep.DependsOnID, err)
+		}
+	}
+
+	// Direct parent filter still works (control).
+	parentPhase := phase.ID
+	workPhase, err := store.GetReadyWork(ctx, types.WorkFilter{ParentID: &parentPhase})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundLeaf := false
+	for _, w := range workPhase {
+		if w.ID == leaf.ID {
+			foundLeaf = true
+		}
+	}
+	if !foundLeaf {
+		t.Error("direct-parent filter should return the leaf task")
+	}
+
+	// Grandparent filter: leaf must appear (the bug under test).
+	parentEpic := epic.ID
+	workEpic, err := store.GetReadyWork(ctx, types.WorkFilter{ParentID: &parentEpic})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundLeaf = false
+	foundPhase := false
+	for _, w := range workEpic {
+		if w.ID == leaf.ID {
+			foundLeaf = true
+		}
+		if w.ID == phase.ID {
+			foundPhase = true
+		}
+	}
+	if !foundPhase {
+		t.Error("grandparent filter should include the direct child (phase)")
+	}
+	if !foundLeaf {
+		t.Error("grandparent filter should include transitive grandchildren (leaf) - regression for GH#3396")
+	}
+}
+
+func TestGetReadyWork_ParentFilterReturnsDeepDescendants(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	root := &types.Issue{
+		ID:        "rw-deep-root",
+		Title:     "Deep Root",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeEpic,
+	}
+	if err := store.CreateIssue(ctx, root, "tester"); err != nil {
+		t.Fatalf("failed to create root: %v", err)
+	}
+
+	parentID := root.ID
+	const depth = 105
+	for i := 1; i <= depth; i++ {
+		issue := &types.Issue{
+			ID:        fmt.Sprintf("rw-deep-%03d", i),
+			Title:     fmt.Sprintf("Deep child %03d", i),
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", issue.ID, err)
+		}
+		if err := store.AddDependency(ctx, &types.Dependency{
+			IssueID:     issue.ID,
+			DependsOnID: parentID,
+			Type:        types.DepParentChild,
+		}, "tester"); err != nil {
+			t.Fatalf("failed to add parent-child dep for %s: %v", issue.ID, err)
+		}
+		parentID = issue.ID
+	}
+
+	rootID := root.ID
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{ParentID: &rootID})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundLeaf := false
+	for _, w := range work {
+		if w.ID == fmt.Sprintf("rw-deep-%03d", depth) {
+			foundLeaf = true
+			break
+		}
+	}
+	if !foundLeaf {
+		t.Fatalf("parent filter should include descendant beyond depth 100, got %d descendants", len(work))
+	}
+}
+
+// TestGetReadyWork_CustomStatusBlockerStillBlocks verifies that a blocker with
+// a custom status still prevents blocked issues from appearing in ready work.
+// Regression test for bd-1x0.
+func TestGetReadyWork_CustomStatusBlockerStillBlocks(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Configure custom status
+	if err := store.SetConfig(ctx, "status.custom", "review"); err != nil {
+		t.Fatalf("failed to set custom status config: %v", err)
+	}
+
+	blocker := &types.Issue{
+		ID:        "rw-cs-blocker",
+		Title:     "Custom Status Blocker",
+		Status:    types.Status("review"),
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "rw-cs-blocked",
+		Title:     "Blocked by Custom Status",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range work {
+		if w.ID == blocked.ID {
+			t.Error("issue blocked by custom-status blocker should NOT appear in ready work")
+		}
+	}
+}
+
+// TestGetReadyWork_PastDeferredIssueIsReady verifies that an issue whose
+// defer_until is in the past appears in ready work. Regression test for a
+// timezone bug: Go stores defer_until as UTC, but Dolt's NOW() returns local
+// time. On non-UTC machines, the comparison defer_until <= NOW() would
+// incorrectly exclude past-deferred issues. The fix uses UTC_TIMESTAMP().
+func TestGetReadyWork_PastDeferredIssueIsReady(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Create an issue and set defer_until to 1 hour in the past (UTC).
+	pastDeferred := &types.Issue{
+		ID:        "rw-past-deferred",
+		Title:     "Past Deferred Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, pastDeferred, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	pastTime := time.Now().UTC().Add(-1 * time.Hour)
+	if err := store.UpdateIssue(ctx, pastDeferred.ID, map[string]interface{}{
+		"defer_until": pastTime,
+	}, "tester"); err != nil {
+		t.Fatalf("failed to set defer_until: %v", err)
+	}
+
+	// Create a normal issue (no defer) as a control.
+	normal := &types.Issue{
+		ID:        "rw-normal",
+		Title:     "Normal Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, normal, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	foundPastDeferred := false
+	foundNormal := false
+	for _, w := range work {
+		if w.ID == pastDeferred.ID {
+			foundPastDeferred = true
+		}
+		if w.ID == normal.ID {
+			foundNormal = true
+		}
+	}
+	if !foundNormal {
+		t.Error("normal issue should appear in ready work")
+	}
+	if !foundPastDeferred {
+		t.Error("past-deferred issue (defer_until in the past) should appear in ready work")
+	}
+}
+
+// TestGetReadyWork_FutureDeferredIssueExcluded verifies that an issue whose
+// defer_until is in the future does NOT appear in ready work.
+func TestGetReadyWork_FutureDeferredIssueExcluded(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	futureDeferred := &types.Issue{
+		ID:        "rw-future-deferred",
+		Title:     "Future Deferred Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, futureDeferred, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	futureTime := time.Now().UTC().Add(24 * time.Hour)
+	if err := store.UpdateIssue(ctx, futureDeferred.ID, map[string]interface{}{
+		"defer_until": futureTime,
+	}, "tester"); err != nil {
+		t.Fatalf("failed to set defer_until: %v", err)
+	}
+
+	work, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range work {
+		if w.ID == futureDeferred.ID {
+			t.Error("future-deferred issue should NOT appear in ready work")
+		}
+	}
+}
+
+// =============================================================================
+// GetBlockedIssues tests
+// =============================================================================
+
+func TestGetBlockedIssues_EmptyStore(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocked, err := store.GetBlockedIssues(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(blocked) != 0 {
+		t.Errorf("expected 0 blocked issues from empty store, got %d", len(blocked))
+	}
+}
+
+func TestGetBlockedIssues_ReturnsBlockedWithBlockers(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "bi-blocker",
+		Title:     "Blocker Issue",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "bi-blocked",
+		Title:     "Blocked Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	results, err := store.GetBlockedIssues(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, bi := range results {
+		if bi.Issue.ID == blocked.ID {
+			found = true
+			if bi.BlockedByCount != 1 {
+				t.Errorf("expected 1 blocker, got %d", bi.BlockedByCount)
+			}
+			if len(bi.BlockedBy) != 1 || bi.BlockedBy[0] != blocker.ID {
+				t.Errorf("expected blocker %s, got %v", blocker.ID, bi.BlockedBy)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected to find the blocked issue in results")
+	}
+}
+
+func TestGetBlockedIssues_ExcludesClosedBlockers(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "bi-closeblocker",
+		Title:     "Closed Blocker",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "bi-wouldbeblocked",
+		Title:     "Would Be Blocked",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	// Close the blocker
+	if err := store.CloseIssue(ctx, blocker.ID, "done", "tester", "s1"); err != nil {
+		t.Fatalf("failed to close blocker: %v", err)
+	}
+
+	results, err := store.GetBlockedIssues(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, bi := range results {
+		if bi.Issue.ID == blocked.ID {
+			t.Error("issue should not be blocked when its blocker is closed")
+		}
+	}
+}
+
+func TestGetBlockedIssues_MultipleBlockers(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blockerA := &types.Issue{
+		ID:        "bi-blockerA",
+		Title:     "Blocker A",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blockerB := &types.Issue{
+		ID:        "bi-blockerB",
+		Title:     "Blocker B",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "bi-multiblocked",
+		Title:     "Multi Blocked",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blockerA, blockerB, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	for _, blockerID := range []string{blockerA.ID, blockerB.ID} {
+		dep := &types.Dependency{
+			IssueID:     blocked.ID,
+			DependsOnID: blockerID,
+			Type:        types.DepBlocks,
+		}
+		if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+			t.Fatalf("failed to add dependency: %v", err)
+		}
+	}
+
+	results, err := store.GetBlockedIssues(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, bi := range results {
+		if bi.Issue.ID == blocked.ID {
+			if bi.BlockedByCount != 2 {
+				t.Errorf("expected 2 blockers, got %d", bi.BlockedByCount)
+			}
+		}
+	}
+}
+
+func TestGetBlockedIssues_IncludesChildrenOfBlockedParents(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "bi-preblocker",
+		Title:     "Prerequisite",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeEpic, // must match blocked type for DepBlocks (GH#1495)
+	}
+	epic := &types.Issue{
+		ID:        "bi-epic",
+		Title:     "Gated Epic",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeEpic,
+	}
+	child := &types.Issue{
+		ID:        "bi-epic.1",
+		Title:     "Child Task",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, epic, child} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// Block the epic
+	if err := store.AddDependency(ctx, &types.Dependency{
+		IssueID:     epic.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}, "tester"); err != nil {
+		t.Fatalf("failed to add blocking dep: %v", err)
+	}
+
+	// Make child a child of the epic
+	if err := store.AddDependency(ctx, &types.Dependency{
+		IssueID:     child.ID,
+		DependsOnID: epic.ID,
+		Type:        types.DepParentChild,
+	}, "tester"); err != nil {
+		t.Fatalf("failed to add parent-child dep: %v", err)
+	}
+
+	// Child should NOT be in ready work (parent is blocked)
+	ready, err := store.GetReadyWork(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("GetReadyWork: %v", err)
+	}
+	for _, iss := range ready {
+		if iss.ID == child.ID {
+			t.Error("child of blocked parent should NOT be in ready work")
+		}
+	}
+
+	// Child SHOULD appear in blocked issues (GH#1495)
+	blocked, err := store.GetBlockedIssues(ctx, types.WorkFilter{})
+	if err != nil {
+		t.Fatalf("GetBlockedIssues: %v", err)
+	}
+
+	epicFound := false
+	childFound := false
+	for _, bi := range blocked {
+		if bi.Issue.ID == epic.ID {
+			epicFound = true
+		}
+		if bi.Issue.ID == child.ID {
+			childFound = true
+			// Child should show parent as the blocker
+			if bi.BlockedByCount != 1 || len(bi.BlockedBy) == 0 || bi.BlockedBy[0] != epic.ID {
+				t.Errorf("child blocked-by should be [%s], got %v", epic.ID, bi.BlockedBy)
+			}
+		}
+	}
+	if !epicFound {
+		t.Error("epic should be in blocked list")
+	}
+	if !childFound {
+		t.Error("child of blocked parent should appear in blocked list (GH#1495)")
+	}
+}
+
+// =============================================================================
+// SearchIssues tests
+// =============================================================================
+
+func TestSearchIssues_EmptyStore(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	results, err := store.SearchIssues(ctx, "anything", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results from empty store, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_ByTitle(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "si-title",
+		Title:     "Unique Searchable Title",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	results, err := store.SearchIssues(ctx, "Unique Searchable", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != issue.ID {
+		t.Errorf("expected issue %s, got %s", issue.ID, results[0].ID)
+	}
+}
+
+// TestSearchIssues_ByDescription verifies that DescriptionContains filter finds
+// issues by description text. Free-text search no longer scans descriptions
+// (hq-319 optimization) — use DescriptionContains for explicit description search.
+func TestSearchIssues_ByDescription(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:          "si-desc",
+		Title:       "Normal Title",
+		Description: "Special unique description text",
+		Status:      types.StatusOpen,
+		Priority:    2,
+		IssueType:   types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	// Free-text query should NOT match description-only content (hq-319).
+	results, err := store.SearchIssues(ctx, "Special unique description", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("free-text search should not scan descriptions (hq-319), got %d results", len(results))
+	}
+
+	// DescriptionContains filter should still find it.
+	results, err = store.SearchIssues(ctx, "", types.IssueFilter{DescriptionContains: "Special unique description"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result with DescriptionContains, got %d", len(results))
+	}
+	if results[0].ID != issue.ID {
+		t.Errorf("expected issue %s, got %s", issue.ID, results[0].ID)
+	}
+}
+
+// TestSearchIssues_ByExternalRef verifies two things:
+//  1. A free-text query like "BE-1521" (which looksLikeIssueID returns true for)
+//     matches an issue whose external_ref contains that string.
+//  2. The ExternalRefContains filter works for explicit substring search.
+func TestSearchIssues_ByExternalRef(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	linearURL := "https://linear.app/example-org/issue/BE-1521"
+	issue := &types.Issue{
+		ID:          "si-extref-xyz",
+		Title:       "Migrate EmailUtils across all services",
+		ExternalRef: &linearURL,
+		Status:      types.StatusOpen,
+		Priority:    3,
+		IssueType:   types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	// Free-text ID-like query should match via external_ref LIKE.
+	results, err := store.SearchIssues(ctx, "BE-1521", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("free-text search for external ref id: expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != issue.ID {
+		t.Errorf("expected %s, got %s", issue.ID, results[0].ID)
+	}
+
+	// ExternalRefContains filter should also find it.
+	results, err = store.SearchIssues(ctx, "", types.IssueFilter{ExternalRefContains: "BE-1521"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("ExternalRefContains filter: expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != issue.ID {
+		t.Errorf("expected %s, got %s", issue.ID, results[0].ID)
+	}
+
+	// Unrelated query should not match.
+	results, err = store.SearchIssues(ctx, "BE-9999", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected no results for unrelated external ref, got %d", len(results))
+	}
+
+	// ExternalRef exact match should find the issue.
+	results, err = store.SearchIssues(ctx, "", types.IssueFilter{ExternalRef: &linearURL})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("ExternalRef exact match: expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != issue.ID {
+		t.Errorf("expected %s, got %s", issue.ID, results[0].ID)
+	}
+
+	// ExternalRef exact match with wrong value should return nothing.
+	wrongRef := "jira-WRONG-123"
+	results, err = store.SearchIssues(ctx, "", types.IssueFilter{ExternalRef: &wrongRef})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("ExternalRef exact match with wrong value: expected 0 results, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_ByID(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "si-searchbyid-xyz",
+		Title:     "ID Search",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	results, err := store.SearchIssues(ctx, "si-searchbyid-xyz", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_NoMatch(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "si-nomatch",
+		Title:     "Existing Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	results, err := store.SearchIssues(ctx, "zzz-never-matches-zzz", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_StatusFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	open := &types.Issue{
+		ID:          "si-stat-open",
+		Title:       "Status Filter Test",
+		Description: "Open issue",
+		Status:      types.StatusOpen,
+		Priority:    2,
+		IssueType:   types.TypeTask,
+	}
+	closed := &types.Issue{
+		ID:          "si-stat-closed",
+		Title:       "Status Filter Test Closed",
+		Description: "Closed issue",
+		Status:      types.StatusOpen,
+		Priority:    2,
+		IssueType:   types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{open, closed} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+	if err := store.CloseIssue(ctx, closed.ID, "done", "tester", "s1"); err != nil {
+		t.Fatalf("failed to close issue: %v", err)
+	}
+
+	openStatus := types.StatusOpen
+	results, err := store.SearchIssues(ctx, "Status Filter Test", types.IssueFilter{Status: &openStatus})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 open result, got %d", len(results))
+	}
+	if results[0].ID != open.ID {
+		t.Errorf("expected open issue, got %s", results[0].ID)
+	}
+}
+
+func TestSearchIssues_ExcludesPinnedByDefault(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	regular := &types.Issue{
+		ID:        "si-reg",
+		Title:     "Regular Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	pinned := &types.Issue{
+		ID:        "si-pinned",
+		Title:     "Pinned Reference",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+		Pinned:    true,
+	}
+
+	for _, iss := range []*types.Issue{regular, pinned} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	// Filter with pinned=false (as bd list now does by default) should exclude pinned beads
+	openStatus := types.StatusOpen
+	notPinned := false
+	results, err := store.SearchIssues(ctx, "", types.IssueFilter{Status: &openStatus, Pinned: &notPinned})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, r := range results {
+		if r.ID == pinned.ID {
+			t.Error("pinned issue should not appear when Pinned filter is false")
+		}
+	}
+	found := false
+	for _, r := range results {
+		if r.ID == regular.ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("regular issue should appear when Pinned filter is false")
+	}
+}
+
+func TestSearchIssues_PriorityFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	p1 := &types.Issue{
+		ID:        "si-pri-1",
+		Title:     "Priority Filter",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	p4 := &types.Issue{
+		ID:        "si-pri-4",
+		Title:     "Priority Filter Low",
+		Status:    types.StatusOpen,
+		Priority:  4,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{p1, p4} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	priority := 1
+	results, err := store.SearchIssues(ctx, "Priority Filter", types.IssueFilter{Priority: &priority})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result for priority 1, got %d", len(results))
+	}
+	if results[0].ID != p1.ID {
+		t.Errorf("expected p1 issue, got %s", results[0].ID)
+	}
+}
+
+func TestSearchIssues_LimitFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	for i := 0; i < 5; i++ {
+		iss := &types.Issue{
+			ID:        fmt.Sprintf("si-limit-%d", i),
+			Title:     "Limit Test Issue",
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	results, err := store.SearchIssues(ctx, "Limit Test", types.IssueFilter{Limit: 3})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) > 3 {
+		t.Errorf("expected at most 3 results with Limit=3, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_LabelFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	labeled := &types.Issue{
+		ID:        "si-labeled",
+		Title:     "Label Filter Test",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	unlabeled := &types.Issue{
+		ID:        "si-unlabeled",
+		Title:     "Label Filter Test No Label",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{labeled, unlabeled} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	if err := store.AddLabel(ctx, labeled.ID, "important", "tester"); err != nil {
+		t.Fatalf("failed to add label: %v", err)
+	}
+
+	results, err := store.SearchIssues(ctx, "Label Filter Test", types.IssueFilter{Labels: []string{"important"}})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result with label filter, got %d", len(results))
+	}
+	if results[0].ID != labeled.ID {
+		t.Errorf("expected labeled issue, got %s", results[0].ID)
+	}
+}
+
+func TestSearchIssues_EmptyQuery(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	for i := 0; i < 3; i++ {
+		iss := &types.Issue{
+			ID:        fmt.Sprintf("si-empty-%d", i),
+			Title:     fmt.Sprintf("Empty Query Issue %d", i),
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	results, err := store.SearchIssues(ctx, "", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) < 3 {
+		t.Errorf("expected at least 3 results with empty query, got %d", len(results))
+	}
+}
+
+func TestSearchIssues_IssueTypeFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	task := &types.Issue{
+		ID:        "si-type-task",
+		Title:     "Type Filter",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	bug := &types.Issue{
+		ID:        "si-type-bug",
+		Title:     "Type Filter Bug",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeBug,
+	}
+
+	for _, iss := range []*types.Issue{task, bug} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	bugType := types.TypeBug
+	results, err := store.SearchIssues(ctx, "Type Filter", types.IssueFilter{IssueType: &bugType})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 bug result, got %d", len(results))
+	}
+	if results[0].ID != bug.ID {
+		t.Errorf("expected bug issue, got %s", results[0].ID)
+	}
+}
+
+func TestSearchIssues_IncludeDependencies(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	parent := &types.Issue{
+		ID:        "si-dep-parent",
+		Title:     "DepHydration Parent",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	child := &types.Issue{
+		ID:        "si-dep-child",
+		Title:     "DepHydration Child",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	standalone := &types.Issue{
+		ID:        "si-dep-standalone",
+		Title:     "DepHydration Standalone",
+		Status:    types.StatusOpen,
+		Priority:  3,
+		IssueType: types.TypeTask,
+	}
+	for _, iss := range []*types.Issue{parent, child, standalone} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     child.ID,
+		DependsOnID: parent.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	t.Run("false_by_default", func(t *testing.T) {
+		results, err := store.SearchIssues(ctx, "DepHydration", types.IssueFilter{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for _, iss := range results {
+			if len(iss.Dependencies) > 0 {
+				t.Errorf("issue %s has Dependencies populated without IncludeDependencies", iss.ID)
+			}
+		}
+	})
+
+	t.Run("true_hydrates_deps", func(t *testing.T) {
+		results, err := store.SearchIssues(ctx, "DepHydration", types.IssueFilter{
+			IncludeDependencies: true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(results) != 3 {
+			t.Fatalf("expected 3 results, got %d", len(results))
+		}
+
+		depsByID := make(map[string][]*types.Dependency)
+		for _, iss := range results {
+			depsByID[iss.ID] = iss.Dependencies
+		}
+
+		// child should have one dependency on parent
+		childDeps := depsByID[child.ID]
+		if len(childDeps) != 1 {
+			t.Fatalf("child expected 1 dependency, got %d", len(childDeps))
+		}
+		if childDeps[0].DependsOnID != parent.ID {
+			t.Errorf("child dep.DependsOnID = %s, want %s", childDeps[0].DependsOnID, parent.ID)
+		}
+		if childDeps[0].Type != types.DepBlocks {
+			t.Errorf("child dep.Type = %s, want %s", childDeps[0].Type, types.DepBlocks)
+		}
+
+		// parent and standalone should have no dependencies
+		if len(depsByID[parent.ID]) != 0 {
+			t.Errorf("parent expected 0 dependencies, got %d", len(depsByID[parent.ID]))
+		}
+		if len(depsByID[standalone.ID]) != 0 {
+			t.Errorf("standalone expected 0 dependencies, got %d", len(depsByID[standalone.ID]))
+		}
+	})
+}
+
+// =============================================================================
+// GetStatistics tests
+// =============================================================================
+
+func TestGetStatistics_EmptyStore(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stats.TotalIssues != 0 {
+		t.Errorf("expected 0 total issues, got %d", stats.TotalIssues)
+	}
+	if stats.OpenIssues != 0 {
+		t.Errorf("expected 0 open issues, got %d", stats.OpenIssues)
+	}
+	if stats.ClosedIssues != 0 {
+		t.Errorf("expected 0 closed issues, got %d", stats.ClosedIssues)
+	}
+	if stats.BlockedIssues != 0 {
+		t.Errorf("expected 0 blocked issues, got %d", stats.BlockedIssues)
+	}
+}
+
+func TestGetStatistics_CountsByStatus(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issues := []*types.Issue{
+		{ID: "stat-open-1", Title: "Open 1", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "stat-open-2", Title: "Open 2", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask},
+		{ID: "stat-inprog", Title: "In Progress", Status: types.StatusInProgress, Priority: 1, IssueType: types.TypeTask},
+		{ID: "stat-closed-1", Title: "Closed 1", Status: types.StatusOpen, Priority: 1, IssueType: types.TypeTask},
+		{ID: "stat-closed-2", Title: "Closed 2", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask},
+	}
+	for _, iss := range issues {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// Close two issues
+	for _, id := range []string{"stat-closed-1", "stat-closed-2"} {
+		if err := store.CloseIssue(ctx, id, "done", "tester", "s1"); err != nil {
+			t.Fatalf("failed to close issue %s: %v", id, err)
+		}
+	}
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if stats.TotalIssues != 5 {
+		t.Errorf("expected 5 total issues, got %d", stats.TotalIssues)
+	}
+	if stats.OpenIssues != 2 {
+		t.Errorf("expected 2 open issues, got %d", stats.OpenIssues)
+	}
+	if stats.InProgressIssues != 1 {
+		t.Errorf("expected 1 in-progress issue, got %d", stats.InProgressIssues)
+	}
+	if stats.ClosedIssues != 2 {
+		t.Errorf("expected 2 closed issues, got %d", stats.ClosedIssues)
+	}
+}
+
+func TestGetStatistics_BlockedCount(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "stat-blocker",
+		Title:     "Blocker",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "stat-blocked",
+		Title:     "Blocked",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if stats.BlockedIssues != 1 {
+		t.Errorf("expected 1 blocked issue, got %d", stats.BlockedIssues)
+	}
+}
+
+func TestGetStatistics_PinnedCount(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	pinned := &types.Issue{
+		ID:        "stat-pinned",
+		Title:     "Pinned Issue",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+		Pinned:    true,
+	}
+	if err := store.CreateIssue(ctx, pinned, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if stats.PinnedIssues != 1 {
+		t.Errorf("expected 1 pinned issue, got %d", stats.PinnedIssues)
+	}
+}
+
+func TestGetStatistics_DeferredCount(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	deferred := &types.Issue{
+		ID:        "stat-deferred",
+		Title:     "Deferred Issue",
+		Status:    types.StatusDeferred,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, deferred, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if stats.DeferredIssues != 1 {
+		t.Errorf("expected 1 deferred issue, got %d", stats.DeferredIssues)
+	}
+}
+
+func TestGetStatistics_ReadyIssuesExcludesBlocked(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	blocker := &types.Issue{
+		ID:        "stat-r-blocker",
+		Title:     "Blocker",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "stat-r-blocked",
+		Title:     "Blocked",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	ready := &types.Issue{
+		ID:        "stat-r-ready",
+		Title:     "Ready",
+		Status:    types.StatusOpen,
+		Priority:  3,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{blocker, blocked, ready} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	dep := &types.Dependency{
+		IssueID:     blocked.ID,
+		DependsOnID: blocker.ID,
+		Type:        types.DepBlocks,
+	}
+	if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+		t.Fatalf("failed to add dependency: %v", err)
+	}
+
+	stats, err := store.GetStatistics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// 3 open issues, 1 blocked => ready = 3 - 1 = 2
+	if stats.ReadyIssues != 2 {
+		t.Errorf("expected 2 ready issues (3 open - 1 blocked), got %d", stats.ReadyIssues)
+	}
+}
+
+// =============================================================================
+// GetStaleIssues tests
+// =============================================================================
+
+func TestGetStaleIssues_EmptyStore(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(stale) != 0 {
+		t.Errorf("expected 0 stale issues from empty store, got %d", len(stale))
+	}
+}
+
+func TestGetStaleIssues_ReturnsStale(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "stale-old",
+		Title:     "Old Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	// Backdate updated_at to 15 days ago
+	oldDate := time.Now().UTC().AddDate(0, 0, -15)
+	_, err := store.db.ExecContext(ctx,
+		"UPDATE issues SET updated_at = ? WHERE id = ?", oldDate, issue.ID)
+	if err != nil {
+		t.Fatalf("failed to backdate: %v", err)
+	}
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(stale) != 1 {
+		t.Fatalf("expected 1 stale issue, got %d", len(stale))
+	}
+	if stale[0].ID != issue.ID {
+		t.Errorf("expected issue %s, got %s", issue.ID, stale[0].ID)
+	}
+}
+
+func TestGetStaleIssues_ExcludesRecent(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "stale-fresh",
+		Title:     "Fresh Issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	// updated_at is "now" (set by CreateIssue)
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, s := range stale {
+		if s.ID == issue.ID {
+			t.Error("recently updated issue should not be stale")
+		}
+	}
+}
+
+func TestGetStaleIssues_ExcludesClosed(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	issue := &types.Issue{
+		ID:        "stale-closed",
+		Title:     "Closed Stale",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if err := store.CloseIssue(ctx, issue.ID, "done", "tester", "s1"); err != nil {
+		t.Fatalf("failed to close issue: %v", err)
+	}
+
+	// Backdate updated_at
+	oldDate := time.Now().UTC().AddDate(0, 0, -15)
+	_, err := store.db.ExecContext(ctx,
+		"UPDATE issues SET updated_at = ? WHERE id = ?", oldDate, issue.ID)
+	if err != nil {
+		t.Fatalf("failed to backdate: %v", err)
+	}
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, s := range stale {
+		if s.ID == issue.ID {
+			t.Error("closed issue should not appear in stale results")
+		}
+	}
+}
+
+func TestGetStaleIssues_StatusFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	open := &types.Issue{
+		ID:        "stale-sf-open",
+		Title:     "Open Stale",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	inProg := &types.Issue{
+		ID:        "stale-sf-inprog",
+		Title:     "In Progress Stale",
+		Status:    types.StatusInProgress,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{open, inProg} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	// Backdate both
+	oldDate := time.Now().UTC().AddDate(0, 0, -15)
+	for _, id := range []string{open.ID, inProg.ID} {
+		_, err := store.db.ExecContext(ctx,
+			"UPDATE issues SET updated_at = ? WHERE id = ?", oldDate, id)
+		if err != nil {
+			t.Fatalf("failed to backdate: %v", err)
+		}
+	}
+
+	// Filter for in_progress only
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7, Status: string(types.StatusInProgress)})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	foundOpen := false
+	foundInProg := false
+	for _, s := range stale {
+		if s.ID == open.ID {
+			foundOpen = true
+		}
+		if s.ID == inProg.ID {
+			foundInProg = true
+		}
+	}
+	if foundOpen {
+		t.Error("open issue should not appear when filtering for in_progress")
+	}
+	if !foundInProg {
+		t.Error("in_progress issue should appear when filtering for in_progress")
+	}
+}
+
+func TestGetStaleIssues_LimitFilter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	for i := 0; i < 5; i++ {
+		iss := &types.Issue{
+			ID:        fmt.Sprintf("stale-lim-%d", i),
+			Title:     fmt.Sprintf("Stale Limit %d", i),
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue: %v", err)
+		}
+	}
+
+	// Backdate all
+	oldDate := time.Now().UTC().AddDate(0, 0, -15)
+	for i := 0; i < 5; i++ {
+		_, err := store.db.ExecContext(ctx,
+			"UPDATE issues SET updated_at = ? WHERE id = ?", oldDate, fmt.Sprintf("stale-lim-%d", i))
+		if err != nil {
+			t.Fatalf("failed to backdate: %v", err)
+		}
+	}
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7, Limit: 2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(stale) > 2 {
+		t.Errorf("expected at most 2 results with Limit=2, got %d", len(stale))
+	}
+}
+
+func TestGetStaleIssues_ExcludesEphemeral(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	eph := &types.Issue{
+		ID:        "stale-eph",
+		Title:     "Ephemeral Stale",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+		Ephemeral: true,
+	}
+	if err := store.CreateIssue(ctx, eph, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	// Backdate
+	oldDate := time.Now().UTC().AddDate(0, 0, -15)
+	_, err := store.db.ExecContext(ctx,
+		"UPDATE issues SET updated_at = ? WHERE id = ?", oldDate, eph.ID)
+	if err != nil {
+		t.Fatalf("failed to backdate: %v", err)
+	}
+
+	stale, err := store.GetStaleIssues(ctx, types.StaleFilter{Days: 7})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, s := range stale {
+		if s.ID == eph.ID {
+			t.Error("ephemeral issue should not appear in stale results")
+		}
+	}
+}
+
+// =============================================================================
+// Counter mode tests (issue_id_mode=counter)
+// =============================================================================
+
+func TestCreateIssue_CounterMode(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Enable counter mode
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to set issue_id_mode: %v", err)
+	}
+
+	// Create first issue - should get test-1
+	issue1 := &types.Issue{
+		Title:     "First issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue1, "tester"); err != nil {
+		t.Fatalf("failed to create issue1: %v", err)
+	}
+	if issue1.ID != "test-1" {
+		t.Errorf("expected test-1, got %q", issue1.ID)
+	}
+
+	// Create second issue - should get test-2
+	issue2 := &types.Issue{
+		Title:     "Second issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue2, "tester"); err != nil {
+		t.Fatalf("failed to create issue2: %v", err)
+	}
+	if issue2.ID != "test-2" {
+		t.Errorf("expected test-2, got %q", issue2.ID)
+	}
+}
+
+func TestCreateIssue_ExplicitIDOverridesCounter(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Enable counter mode
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to set issue_id_mode: %v", err)
+	}
+
+	// Create issue with explicit ID - counter should NOT be used
+	issue := &types.Issue{
+		ID:        "test-explicit",
+		Title:     "Explicit ID issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if issue.ID != "test-explicit" {
+		t.Errorf("expected test-explicit, got %q", issue.ID)
+	}
+}
+
+func TestCreateIssue_HashModeDefault(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// No issue_id_mode set (default = hash mode)
+	issue := &types.Issue{
+		Title:     "Hash ID issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	// Hash IDs have format "prefix-<alphanum>", not "prefix-<int>"
+	if issue.ID == "" {
+		t.Error("expected non-empty ID in hash mode")
+	}
+	// Hash mode IDs should NOT be purely numeric after the prefix
+	// (they use base36: 0-9a-z, so length > 1 and not just digits)
+	if issue.ID == "test-1" || issue.ID == "test-2" {
+		t.Errorf("hash mode should not generate sequential IDs, got %q", issue.ID)
+	}
+}
+
+// =============================================================================
+// Counter mode seeding tests (GH#2002)
+// =============================================================================
+
+// TestCounterMode_SeedsFromExistingIssues verifies that enabling counter mode
+// on a repo with pre-existing sequential IDs seeds the counter from the max
+// existing ID rather than starting at 1 (which would cause collisions).
+func TestCounterMode_SeedsFromExistingIssues(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Create issues with explicit sequential IDs (simulating manual creation
+	// before counter mode was enabled).
+	for _, id := range []string{"test-5", "test-10", "test-3"} {
+		issue := &types.Issue{
+			ID:        id,
+			Title:     "Pre-existing issue " + id,
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+		}
+		if err := store.CreateIssue(ctx, issue, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", id, err)
+		}
+	}
+
+	// Now enable counter mode (simulating the user running bd config set issue_id_mode counter).
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to enable counter mode: %v", err)
+	}
+
+	// The next auto-generated issue should be test-11 (max existing was 10).
+	next := &types.Issue{
+		Title:     "First counter-mode issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, next, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if next.ID != "test-11" {
+		t.Errorf("expected test-11 (seeded from max existing id 10), got %q", next.ID)
+	}
+}
+
+// TestCounterMode_SeedsFromMixed verifies that when existing issues contain a
+// mix of hash-based IDs and numeric IDs, only the numeric ones are counted
+// for seeding purposes.
+func TestCounterMode_SeedsFromMixed(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Create a mix: one hash-based ID and one numeric ID.
+	hashIssue := &types.Issue{
+		ID:        "test-a3f2",
+		Title:     "Hash-based issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	numericIssue := &types.Issue{
+		ID:        "test-7",
+		Title:     "Numeric issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	for _, iss := range []*types.Issue{hashIssue, numericIssue} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// Enable counter mode.
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to enable counter mode: %v", err)
+	}
+
+	// Only the numeric ID (test-7) should count; next should be test-8.
+	next := &types.Issue{
+		Title:     "First counter-mode issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, next, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if next.ID != "test-8" {
+		t.Errorf("expected test-8 (seeded from max numeric id 7, ignoring hash id), got %q", next.ID)
+	}
+}
+
+// TestCounterMode_NoExistingIssues verifies that a fresh repo with counter mode
+// enabled starts the counter at 1 (existing behavior preserved).
+func TestCounterMode_NoExistingIssues(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Enable counter mode immediately (no prior issues).
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to enable counter mode: %v", err)
+	}
+
+	first := &types.Issue{
+		Title:     "First issue in fresh repo",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, first, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if first.ID != "test-1" {
+		t.Errorf("expected test-1 in fresh repo, got %q", first.ID)
+	}
+}
+
+// TestCounterMode_AlreadySeeded verifies that if a counter row already exists
+// (e.g., the counter is at 20), seeding is skipped even if higher manually-
+// created IDs like test-99 exist. The counter must NOT regress.
+func TestCounterMode_AlreadySeeded(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Manually insert a counter row at 20 (simulates an already-running counter).
+	_, err := store.db.ExecContext(ctx,
+		"INSERT INTO issue_counter (prefix, last_id) VALUES (?, ?)", "test", 20)
+	if err != nil {
+		t.Fatalf("failed to seed counter: %v", err)
+	}
+
+	// Create a manually-specified issue with a higher ID than the counter.
+	highIssue := &types.Issue{
+		ID:        "test-99",
+		Title:     "High manual ID",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, highIssue, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+
+	// Enable counter mode.
+	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
+		t.Fatalf("failed to enable counter mode: %v", err)
+	}
+
+	// Next issue should be test-21 (counter was at 20; seeding must NOT override
+	// the existing counter row even though test-99 exists).
+	next := &types.Issue{
+		Title:     "Next counter issue",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	if err := store.CreateIssue(ctx, next, "tester"); err != nil {
+		t.Fatalf("failed to create issue: %v", err)
+	}
+	if next.ID != "test-21" {
+		t.Errorf("expected test-21 (counter must not re-seed over existing row), got %q", next.ID)
+	}
+}
+
+// TestSearchIssues_NoDuplicatesWithMultipleBlockers verifies that
+// SearchIssues returns an issue exactly once even when it has multiple
+// blocks dependencies. GH#3567.
+func TestSearchIssues_NoDuplicatesWithMultipleBlockers(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	// Create an epic parent and two blocker issues.
+	epic := &types.Issue{
+		ID:        "dup-epic",
+		Title:     "Epic parent",
+		Status:    types.StatusOpen,
+		Priority:  1,
+		IssueType: types.TypeEpic,
+	}
+	blockerA := &types.Issue{
+		ID:        "dup-blocker-a",
+		Title:     "Blocker A",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	blockerB := &types.Issue{
+		ID:        "dup-blocker-b",
+		Title:     "Blocker B",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+	blocked := &types.Issue{
+		ID:        "dup-blocked",
+		Title:     "Blocked issue with two blockers",
+		Status:    types.StatusOpen,
+		Priority:  2,
+		IssueType: types.TypeTask,
+	}
+
+	for _, iss := range []*types.Issue{epic, blockerA, blockerB, blocked} {
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", iss.ID, err)
+		}
+	}
+
+	// blocked is a child of epic and blocked by both A and B.
+	deps := []*types.Dependency{
+		{IssueID: blocked.ID, DependsOnID: epic.ID, Type: types.DepParentChild},
+		{IssueID: blocked.ID, DependsOnID: blockerA.ID, Type: types.DepBlocks},
+		{IssueID: blocked.ID, DependsOnID: blockerB.ID, Type: types.DepBlocks},
+	}
+	for _, dep := range deps {
+		if err := store.AddDependency(ctx, dep, "tester"); err != nil {
+			t.Fatalf("failed to add dependency %s -> %s: %v", dep.IssueID, dep.DependsOnID, err)
+		}
+	}
+
+	results, err := store.SearchIssues(ctx, "", types.IssueFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	idCounts := make(map[string]int)
+	for _, iss := range results {
+		idCounts[iss.ID]++
+	}
+
+	for id, count := range idCounts {
+		if count > 1 {
+			t.Errorf("issue %s appeared %d times (expected 1)", id, count)
+		}
+	}
+
+	if idCounts[blocked.ID] != 1 {
+		t.Errorf("blocked issue %s appeared %d times (expected exactly 1)", blocked.ID, idCounts[blocked.ID])
+	}
+}
+
+// TestSearchIssues_StableOrdering verifies that SearchIssues returns
+// deterministic ordering when multiple issues share the same priority
+// and created_at timestamp. The id column acts as a tiebreaker.
+func TestSearchIssues_StableOrdering(t *testing.T) {
+	store, cleanup := setupTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := testContext(t)
+	defer cancel()
+
+	now := time.Now()
+	// Create issues with identical priority and created_at but different IDs.
+	for _, id := range []string{"stable-c", "stable-a", "stable-b"} {
+		iss := &types.Issue{
+			ID:        id,
+			Title:     "Stable Ordering Test",
+			Status:    types.StatusOpen,
+			Priority:  2,
+			IssueType: types.TypeTask,
+			CreatedAt: now,
+		}
+		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
+			t.Fatalf("failed to create issue %s: %v", id, err)
+		}
+	}
+
+	// Run the query multiple times and verify identical ordering each time.
+	var firstOrder string
+	for i := 0; i < 5; i++ {
+		results, err := store.SearchIssues(ctx, "Stable Ordering", types.IssueFilter{})
+		if err != nil {
+			t.Fatalf("run %d: unexpected error: %v", i, err)
+		}
+		if len(results) != 3 {
+			t.Fatalf("run %d: expected 3 results, got %d", i, len(results))
+		}
+		var ids []string
+		for _, r := range results {
+			ids = append(ids, r.ID)
+		}
+		order := strings.Join(ids, ",")
+		if i == 0 {
+			firstOrder = order
+			// With id ASC tiebreaker, expect alphabetical: a, b, c.
+			if ids[0] != "stable-a" || ids[1] != "stable-b" || ids[2] != "stable-c" {
+				t.Errorf("expected [stable-a, stable-b, stable-c], got %v", ids)
+			}
+		} else if order != firstOrder {
+			t.Errorf("run %d: ordering changed from %q to %q", i, firstOrder, order)
+		}
+	}
+}

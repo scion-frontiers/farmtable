@@ -1,0 +1,23 @@
+
+===== PREREQUISITES =====
+preserve refs: 29
+
+===== BUILD SAFE SET =====
+canonical project-log commits: 131
+preserved project-log commits: 120
+SAFE set size: 172
+
+===== SCAN CLONES =====
+clones scanned: 49
+
+===== AT-RISK PROJECT-LOG COMMITS (unique) =====
+SHA	CLONE	SUBJECT
+0b539d76	farmtable-audit-191	Add independent security re-review log for #191 round 2
+2f912bbe	farmtable-task-state-web-ui	feat: update web UI for task state contract
+4af70511	farmtable-test-191	Add round-2 test re-review log for the terminal predicate
+6d2feb02	farmtable-task-state-core	chore: capture mounted task-state-core baseline
+6f081739	farmtable-review-191	Add round-2 review log for the terminal-stage predicate
+a6a2801a	farmtable-task-state-core	docs: log task state phase1 core work
+bcd40a4b	farmtable-attention-view	docs: log the Phase 2 web UI round-5 fix pass
+
+unique_at_risk=7  clones_scanned=49  safe_set=172

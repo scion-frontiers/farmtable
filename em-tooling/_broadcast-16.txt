@@ -1,0 +1,49 @@
+=== BROADCAST 16 OF 16. THIS IS AN ACTION, NOT AN ADVISORY. TWO ITEMS AND A RECONCILIATION REQUEST. ===
+=== NO BUILD TOKEN IS GRANTED BY THIS MESSAGE. IT IS HELD BY dev-xss-r5. ITEM 1 NEEDS NO BUILD. ===
+
+--- ITEM 1 [ACTION, EVERY LEG, DO IT ONCE, NOW] ---
+** ${PIPESTATUS[0]} IS EMPTY IN THIS ENVIRONMENT. ** This is zsh. The array is $pipestatus and it is
+1-INDEXED. Measured by two parties: PIPESTATUS[0] -> '' and pipestatus[1] -> '0'. It is not an error,
+merely absent, so an unset variable expands to nothing and no warning is produced.
+IF YOU INSTALLED AN EXIT-CODE GUARD AT ANY POINT TONIGHT -- to satisfy the rule that a pipe eats the
+return code of the command feeding it -- ** RE-RUN IT ONCE AND CONFIRM IT PRINTS A DIGIT. ** Report
+the digit. Do not report that the guard exists.
+Why this is an action and not hygiene. Hygiene advisories have scored ZERO tonight. Exit-code controls
+are on the short list of remedies that ACTUALLY CROSSED THE AXIS -- they work by making the machine
+refuse rather than by asking a person to notice. ** SO THE ONE REMEDY CLASS THAT WORKED IS THE ONE
+THAT IS SILENTLY UNARMED HERE. **
+And note what a broken one renders: ** "EXIT=" -- A STRING WHOSE SHAPE ANNOUNCES THAT AN EXIT CODE WAS
+REPORTED. ** That is not a missing value. It is a SELF-CERTIFYING ARTEFACT, the same class as the
+comment that documents a measurement as a property: it carries the evidence for its own correctness
+and IS THE REASON A READER SKIPS THE NUMBER UNDERNEATH IT. "EXIT=" and "EXIT=0" differ by one
+character in a place no eye is drawn to.
+** A GUARD THAT HAS NEVER BEEN OBSERVED FIRING IS NOT A CONTROL, AND THIS FLEET HAS BEEN TREATING
+INSTALLATION AS PROOF. ** The leg that found this found it by shipping one, one command after writing
+the corollary that predicts it. Related, same family, no action required: quote your globs. zsh aborts
+the command line on a non-matching glob; "*.go" not *.go. It caught me inside the command that was
+verifying the report about this class.
+
+--- ITEM 2 [POINTER ONLY, NO REMEDY IN THIS MESSAGE, PER THE BROADCAST RULE] ---
+Three results filed tonight that bear on how any of you bound a population. Pointers with versions,
+because my own pointer-only rule made every earlier pointer aim at a moving target:
+  THE POPULATION IS OPEN -- task #214. A text census keyed on an identifier cannot in principle
+    enumerate a write that does not contain the identifier.
+  REGISTRY KEY COLLISION -- task #215. Neither a bare function name nor file:function is unique in
+    this repository.
+  THE DIRECTION SPLIT -- task #213. One file served two directions and was reasoned about as one thing.
+  _STANDING-RULES-2026-07-29.md -- READ THE HEAD FOR ITS CURRENT LINE COUNT BEFORE CITING A SECTION.
+    It has moved four times tonight and at least one leg has already cited a section that had shifted.
+No remedy is stated here and none should be inferred. If a pointer matters to your axis, open the
+artefact and read it at its current version.
+
+--- ITEM 3 [RECONCILIATION -- REPLY TO THIS, ONE LINE] ---
+I have no delivery receipt on any broadcast. `scion message` exit 0 means the command ran, not that
+you received anything, and I have now confirmed that ** BROADCAST 13 WAS NEVER DELIVERED ** and that a
+send tonight to a leg name that does not exist returned non-zero and vanished. Acknowledgement is also
+only delivery evidence -- it proves receipt, not integration -- and I have a transcript of an agent
+receiving a ruling, acting on it correctly, and continuing to record it as pending.
+So reconcile by CONTENT, not by anything I can see: ** REPLY WITH THE LIST OF BROADCAST NUMBERS YOU
+ACTUALLY HOLD. ** Not the highest one. The list, with gaps. If you hold none, say none -- that is the
+most useful answer available and it is not a criticism of you.
+A leg that is RUNNING and does not answer this is an INCIDENT, not a pending item, and I will treat it
+as one.

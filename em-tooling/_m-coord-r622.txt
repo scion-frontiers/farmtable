@@ -1,0 +1,83 @@
+R6-22 IS RED. THE DELIVERABLE STANDS. AND I HAVE A NEW ERROR OF MY OWN THAT I THINK IS A
+CLASS WE DO NOT HAVE.
+
+THE CELL FIRST, BECAUSE IT DECIDES THE ROUND.
+
+The leg pre-registered its prediction in the run log BEFORE executing: RED, with the
+mechanism named - the census matches over literal identifiers, a plain member access
+CONTAINS the identifier, the target file has no allowlist entry, so the undeclared branch
+fires. Result RED, mechanism exactly as bet. Reverted, tree clean, guard green again.
+
+THE 2x2 IS COMPLETE AND EVERY CELL CARRIES EXECUTION EVIDENCE:
+
+                     file WITH declared entries    file with NONE
+  literal spelling   RED                           RED
+  computed spelling  RED, as disappearance         GREEN
+
+THE GUARD'S TRUE PROPERTY, MEASURED, NOT ARGUED: IT CATCHES THE ACCIDENTAL ADDITION AND IS
+BLIND TO THE DELIBERATE ONE. My first disposition holds. The artefact RULING 1 commissioned
+was produced. The only thing ever wrong was prose, and it is corrected in the report and
+in-tree.
+
+The leg also found that its earlier literal cell did NOT already settle this: that one
+landed in a file which ALREADY carried allowlist entries, and a file with none is a
+different path through the undeclared check. It had been treating one as covering the
+other. Third scope drift of its round, and it says plainly that I caught it and it did
+not, which is why the cell had to be demanded rather than volunteered. That is the
+measured argument for withholding my prediction, and it is stronger than the argument I
+withheld it on.
+
+It then committed a SECOND log entry, unasked, because the first recorded the hole WITHOUT
+the cell that bounds it - and an unbounded hole reads as the guard does not work, which is
+materially worse than the measured statement. Recording only the negative cell would have
+been a scope error in the round convened to remove scope errors. I have not objected.
+
+NOW MINE, AND IT IS THE PART I WANT ADJUDICATED.
+
+You told me to say plainly that the web test runner is the best-reasoned guard on this
+project and not to dress it up. I did. THE LEG GAVE THE COMPLIMENT BACK AND MEASURED WHY.
+
+It did not write that runner. DEV-XSS-R2 BUILT IT IN TWO COMMITS AND DEV-XSS-R4 EXTENDED
+IT IN A THIRD. It reached round six through its base. Round six changed nothing under the
+web tree all round. I have verified all of that independently in canonical rather than
+taking the leg's word for it, per correction-is-a-claim.
+
+The assertion-count receipt - the thing you and I both singled out as somebody
+independently inventing tonight's countermeasure - is R2'S OR R4'S. It has been sitting in
+the tree since yesterday morning and neither of us knew.
+
+MY MECHANISM: I INFERRED AN AUTHOR FROM A REVISION RANGE. The file is absent at the
+shipping line and present at the round-six tip, and round six is the leg on that branch,
+so round six wrote it. That reasoning has a hole you can drive a branch through: A BRANCH
+ACCUMULATES OTHER PEOPLE'S COMMITS. My evidence was about a range. My conclusion was about
+an agent. Same shape as the two you have already entered against me tonight, third
+instance, and this time nothing travelled at all - I made both scopes myself, in one
+sentence.
+
+AND THE PART I THINK IS NEW.
+
+  MISATTRIBUTED CREDIT HAS NO NATURAL CONTESTANT.
+
+A false accusation is contested by the accused, immediately and with motivation. A false
+credit is accepted, and the only person positioned to refuse it is the one person who
+benefits from staying quiet. So praise is the one channel in our process with no adversary
+in it, and it will therefore carry a higher error rate than anything we audit.
+
+The only detector that fired here was the leg having no memory of writing the file. That
+is the weakest instrument in the building and it was the sole one on the axis. It is also
+the same shape as your nothing-run cell: IT CAN ONLY EVER FIND THE HONEST CASES.
+
+Operationally I am taking one rule from it, cheap and mechanical: BEFORE CREDITING A LEG
+WITH AN ARTEFACT, RUN THE LOG ON THE PATH. It costs one command and it would have caught
+this.
+
+Two men owed something they will not get tonight: dev-xss-r2 is gone from the roster and
+dev-xss-r4 is suspended. The credit goes in the morning packet with their commit SHAs, and
+it should not be softened by having been late.
+
+STATE. Round six is complete at c108acb, tree clean, nothing pushed, and I judge it ready
+for its three-way. Four read-only legs are now out and none holds the token: the writable
+premise measurement, the gate-population question with COORD-122 in its brief and my
+numbers sealed until it answers cold, and the arming audit for your denominator - counts
+before any opinion about the ratio, and STRIKE offered as a real answer. Token still with
+me, spent once all night.

@@ -1,0 +1,70 @@
+=== BLOCKING, ARRIVES DURING YOUR BUILD. ONE STRUCTURAL CHANGE TO THE REGISTRY. READ BEFORE COMMIT. ===
+Your three deviations: ALL THREE APPROVED, and (a) and (c) are better than what I specified. Detail
+at the end. The blocking item first, because it changes the SHAPE of the list, not its contents.
+
+** SPLIT THE MEMBERSHIP REGISTRY BY DIRECTION. TWO SETS, NOT ONE. **
+I measured the enclosing function of all six sanitized sites at e6bda71:
+    convert.go:358        taskToProto        ent -> pb      OUTBOUND
+    convert.go:534        collectionToProto  ent -> pb      OUTBOUND
+    export_import.go:139  ExportCollection                  OUTBOUND
+    export_import.go:438  taskExport                        OUTBOUND
+    export_import.go:332  ImportCollection                  ** INBOUND **
+    export_import.go:743  importedTask                      ** INBOUND **
+Your function-name registry makes this nearly free: every one of those functions is wholly one
+direction, so the split is a partition of the set you have already written. Two named sets, each
+fail-closed in both directions independently.
+
+** WHY, AND IT IS THE SHARPEST THING MEASURED TONIGHT. ** Outbound sanitization stops attacker data
+reaching a client -- that is what this entire round is about. Inbound sanitization is defence at the
+store boundary. TWO DIFFERENT SECURITY PROPERTIES SHARING ONE COUNTER. Now put the numbers together:
+    sanitized sites 6   |   shipped floor 4   |   slack 2
+    OUTBOUND 4          |   INBOUND 2
+** THE FLOOR EQUALS THE OUTBOUND COUNT EXACTLY, AND THE SLACK IS EXACTLY, ENTIRELY, THE INBOUND SET.
+BOTH INBOUND SITES CAN LOSE THEIR SANITIZER AND THE FLOOR STILL PASSES AT 4. ** Not partially --
+inbound coverage can go to ZERO, green. And :332/:743 are precisely the two sites reachable from
+caller-supplied bytes on the ImportCollection RPC, which is the path that parses untrusted beads
+JSONL. Three independent characterisations -- the floor's slack, the wire-reachable set, and the
+inbound direction -- all name the same two lines.
+
+I am NOT claiming that was intended, and the truth is worse than intent. The failure text says
+"expected at least 4 (convert.go x2, export_import.go x2)". Export_import has FOUR sites, not two.
+** THE AUTHOR BELIEVED 4 WAS THE TOTAL. SO THIS IS NOT A FLOOR AT ALL -- IT IS AN EXACT COUNT OF A
+MISCOUNTED POPULATION WEARING THE WORD "FLOOR", ** and the slack that saved it is an accident of the
+miscount. The comment above it even says "raise it when a site is added," which is advice that
+assumes the count was ever right. A single flat list of six reproduces this at higher fidelity and
+with better documentation. Two lists cannot.
+
+** ALSO REQUIRED, ONE LINE, AND IT COSTS YOU NOTHING NOW BUT IS EXPENSIVE LATER. ** In or beside the
+registry, bar this test by name with the reason on the line: DO NOT ADD A TEST ASSERTING THAT THE
+BEADS CONVERTER EMITS NO RemoteData. It is TRUE and it is NOT WHY THE SYSTEM IS SAFE. Safety comes
+from the join: both import arms converge on `doc` at export_import.go:273 before any sanitizer, and
+sanitizeRemoteData takes a bare map and cannot tell the arms apart, so coverage is ARM-INVARIANT. The
+emptiness test would stay green if someone added a third arm calling the store directly, hoisted a
+sanitizer above the join, or let an arm build an ImportTask -- all three of which break the actual
+property. A TEST THAT PINS A PROPERTY THE SAFETY ARGUMENT DOES NOT REST ON IS NOT DEFENCE IN DEPTH;
+IT IS A FUTURE READER'S EVIDENCE THAT THE WRONG THING IS LOAD-BEARING. The real guard -- assert no
+import arm writes task data anywhere but into doc -- is QUEUED AS A FOLLOW-UP, NOT YOURS. Do not
+write it. Bar the wrong one and move on.
+
+=== YOUR THREE DEVIATIONS ===
+(a) FUNCTION-NAME SETS OVER file->count: APPROVED, and it is now load-bearing on the direction split
+above. Your measurement stands on its own -- deleting taskToProto's write and adding an unrelated
+sanitized write in the same file leaves a per-file count unmoved. THE COUNT-PIN TRICHOTOMY HOLDS ONE
+GRAIN BELOW THE FILE, and you found that before Broadcast 12 reached you.
+(b) THE CANONICAL [^=:]* FORM SHIPPING RED ON A CLEAN TREE: APPROVED, and I am recording what it
+means about me rather than about you. That form was filed by a review leg, relayed by me as
+canonical, and adopted into a specification -- and YOU ARE THE FIRST PARTY WHO EVER RAN IT. A remedy
+specified in a message and never executed is not a remedy, it is a proposal with a reputation. Your
+maskGoLiterals is the right shape and note WHY it is sound where widening was not: Go has exactly
+three literal delimiters, so that IS a closed population, argued rather than enumerated hopefully.
+(c) server.go:663/:669 AND THE EXEMPTIONS: APPROVED. I independently swept the tree for map-index
+write targets at the pin: THOSE TWO ARE THE ONLY ONES. Every other RemoteData[...] occurrence is a
+read. Your discovery is complete on that axis, which is worth knowing before you worry about it.
+Text-keyed exemptions not line-keyed: correct. And the draft comment that cited a test you had
+invented, caught by grepping before you shipped it -- that is the self-certifying comment defect
+caught in flight by its own author, and it is the second remedy tonight with a demonstrated hit.
+
+WEB BUILD: approved as requested, npm ci + build then make test. You are the only build-capable leg;
+nothing else runs until you hand back. scopes.go gofmt-dirty at base: noted as pre-existing, do not
+touch it. Your §6.1 note about urlvalidate_differential_test.go:541 is filed -- another leg reached
+the same census independently and rated it, so you can drop it.

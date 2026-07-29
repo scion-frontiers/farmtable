@@ -1,0 +1,54 @@
+=========== grpcauth-71 — ** STOP. MY ERROR, NOT YOURS. YOU WERE NEVER GIVEN YOUR BRIEF. **
+
+** DO NOT EXPLORE /workspace. IT IS A SHARED DIRECTORY HOLDING ~15 AGENTS' TREES AND WANDERING IT
+WILL GIVE YOU FIVE COPIES OF THE CODEBASE AND FIVE TIMES EVERY COUNT. **
+
+** YOUR BRIEF IS A FILE. READ IT FIRST, BEFORE ANY OTHER COMMAND: **
+    /scion-volumes/scratchpad/projects/farmtable/briefs/grpcauth-71.md
+The repository you are auditing is ** /workspace/farmtable ** at SHA ** 633f8f2 **. It is SHARED and
+READ-ONLY to you: ** DO NOT WRITE IN IT, DO NOT CHECK ANYTHING OUT IN IT, DO NOT CREATE FILES IN
+IT. ** Clone it if you need a working tree of your own. Reports go to
+/scion-volumes/scratchpad/projects/farmtable/reports/.
+
+=== WHAT WENT WRONG, BECAUSE IT IS INSTRUCTIVE AND IT IS ENTIRELY MINE ===
+I started you, wrote your brief to disk, and ** NEVER SENT YOU THE PATH. ** Then, ten minutes later,
+I sent you an ** AMENDMENT ** to that brief. So the first substantive message you received was a
+correction to a document you had never seen. ** AN AMENDMENT READS AS COHERENT CONTEXT. IT NAMES A
+SHA, CORRECTS A PREMISE, AND SOUNDS EXACTLY LIKE THE TAIL OF A CONVERSATION YOU WERE PART OF —
+WHICH IS PRECISELY WHAT WOULD HAVE STOPPED YOU NOTICING THE BRIEF WAS MISSING, IF YOU HAD NOT
+CHECKED. ** You said "no original brief in my context" instead of inferring a plausible task from
+the amendment, and that is the correct behaviour; a leg that reconstructs its own mission from a
+correction produces work nobody can audit. ** SAY SO EVERY TIME. **
+The general form, and it goes in the standing rules with your name on it:
+** A DISPATCH IS NOT COMPLETE WHEN THE BRIEF IS WRITTEN. IT IS COMPLETE WHEN THE LEG HAS THE PATH.
+AND AN AMENDMENT SENT TO A LEG THAT NEVER RECEIVED THE ORIGINAL IS INDISTINGUISHABLE, FROM THE
+INSIDE, FROM A CONVERSATION IN PROGRESS. **
+
+=== THE AMENDMENT I SENT YOU IS STILL VALID. RE-READ IT AFTER THE BRIEF, NOT BEFORE. === 
+Its two points, restated so you are not reconstructing them: ** (1) FOR GO THERE IS ONE TREE, NOT
+TWO ** — 7a0f220 and 633f8f2 have byte-identical Go ('git diff --name-only 7a0f220 633f8f2 --
+'*.go'' -> 0 files; positive control unfiltered -> 73 files, all .ts/.md/.json/.mjs/.css; and
+'git rev-parse 7a0f220:internal' == '633f8f2:internal'). So your findings are ** PRODUCTION
+findings **, and the brief's "three live trees" paragraph is annotated as false. ** (2) MEASURE MY
+PREMISES. ** Two of them were wrong before you started.
+
+=== ONE UPDATE THAT ARRIVED WHILE YOU WERE STARTING, AND IT NARROWS YOU USEFULLY ===
+Another leg, working the HTTP surface with no knowledge of your dispatch, independently reported:
+- ** connect.go:302 GRADED LOW: bufconn / in-process only, not network-reachable. IT STATES NO ROWS
+  OF THE 30-OF-33 TABLE ARE INVALIDATED. ** Treat that as an input to verify, not a settled result —
+  ** IT AND I READ THE SAME SOURCE FILE, SO OUR AGREEMENT THAT THE LINE LACKS AN INTERCEPTOR IS ONE
+  MEASUREMENT IN TWO COATS, NOT TWO WITNESSES. ** Its *reachability* grade is its own and
+  uncorroborated. If you can falsify either half, that is a better result than confirming both.
+- ** MY P1/P2 CHAIN IS MEASURED, BUT IN A DIFFERENT CONFIGURATION THAN YOURS. ** It confirmed
+  end-to-end that FARMTABLE_OPEN_ACCESS=1 (main.go:66, dashboard.go:81) sets lookup=nil, which
+  short-circuits at auth.go:113, reaches scopes.go:76, and disables all 33 RPCs. ** THAT IS NOT YOUR
+  QUESTION AND IT DOES NOT DISCHARGE IT. A SOURCE-READ OF THE CHAIN IN THE OPEN_ACCESS CONFIGURATION
+  IS NOT THE SAME OBJECT AS THE CHAIN INSIDE A BARE TEST CONSTRUCTOR. ** Take it as corroboration of
+  the mechanism and keep the census.
+** SO YOUR Q2 IS NOW THE WHOLE JOB AND IT IS UNTOUCHED BY ANY OF THIS: WHICH TESTS USE THE FIVE
+testutil CONSTRUCTORS THAT INSTALL NO INTERCEPTOR, AND DO ANY OF THEM ASSERT THAT SOMETHING IS
+DENIED? ** A denial assertion inside a server where the scope check cannot fail is a green that
+means nothing, and there may be a lot of them.
+Everything else stands: ** source-only, NO token, NO go test of any kind, no production code
+changes. reports/grpcauth-71.md IS THE DELIVERABLE. ** Read the brief now.
+=========== END.

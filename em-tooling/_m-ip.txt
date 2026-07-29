@@ -1,0 +1,15 @@
+One additional question for reports/importparams-194-r11.md, same neutral terms as your existing task.
+Source-only. NO BUILD TOKEN. Do not run a suite.
+
+QUESTION: When ImportCollection creates a user, is the persisted `type` field the exact string carried
+in the import document, or is it normalised, mapped, or validated against a known set somewhere between
+the wire and the row?
+
+Answer per-backend as before rather than generalising. State the write path you followed and where you
+stopped. As with your first question I am not telling you what depends on the answer, what any grade is,
+or which result would be convenient -- and if you find yourself able to guess, say so in the report,
+because that is a defect in how I asked.
+
+Same deliverable and the same mandatory NOT REACHED section. If you already filed, append and say it is
+an addendum with its own SHA. You MUST write the answer into reports/importparams-194-r11.md and then
+mark the task complete.

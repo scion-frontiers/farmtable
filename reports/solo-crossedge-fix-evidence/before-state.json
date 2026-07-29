@@ -1,0 +1,19 @@
+{
+  "totalLayoutNodes": 7,
+  "totalLayoutEdges": 8,
+  "isolateMode": true,
+  "selectedTaskId": "717ab19c-e86f-4c51-8126-fc16a8f81ef7",
+  "domEdgeCount": 8,
+  "blockingEdgeCount": 2,
+  "blockedEdgeCount": 5,
+  "crossEdgeCount": 1,
+  "crossEdges": [
+    {
+      "d": "M 260 200 C 428 200, 512 80, 680 80",
+      "classList": [
+        "edge-dependency"
+      ]
+    }
+  ],
+  "nodeLabels": []
+}

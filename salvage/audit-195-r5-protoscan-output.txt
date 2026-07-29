@@ -1,0 +1,31 @@
+=== SCANNER SELF-CHECK (must FIND the planted V25 decoy) ===
+  HIT /tmp/audit195/decoy_modules/evil-pkg/index.js:4  Element.prototype.removeAttribute =
+  HIT /tmp/audit195/decoy_modules/evil-pkg/index.js:5  Node.prototype.removeChild =
+  HIT /tmp/audit195/decoy_modules/evil-pkg/index.js:4  prototype.removeAttribute =
+  HIT /tmp/audit195/decoy_modules/evil-pkg/index.js:5  prototype.removeChild =
+  scanner found 4 hits in the decoy -> scanner is live.
+
+=== FULL TRANSITIVE SCAN of /workspace/web/node_modules ===
+total pattern hits: 34 across 2 packages
+
+  nwsapi  (24 hits)
+      nwsapi/src/nwsapi.js:1804  Element.prototype.closest =
+      nwsapi/src/nwsapi.js:1805  HTMLElement.prototype.closest =
+      nwsapi/src/nwsapi.js:1810  Element.prototype.matches =
+      nwsapi/src/nwsapi.js:1811  HTMLElement.prototype.matches =
+      nwsapi/src/nwsapi.js:1816  Element.prototype.querySelector =
+      nwsapi/src/nwsapi.js:1817  HTMLElement.prototype.querySelector =
+      ... 18 more
+  jsdom  (10 hits)
+      jsdom/lib/jsdom/level3/xpath.js:1866  Document.prototype.createExpression =
+      jsdom/lib/jsdom/level3/xpath.js:1869  Document.prototype.createNSResolver =
+      jsdom/lib/jsdom/level3/xpath.js:1872  Document.prototype.evaluate =
+      jsdom/lib/jsdom/living/generated/Attr.js:198  Object.defineProperties(Attr.prototype
+      jsdom/lib/jsdom/living/generated/Document.js:3990  Object.defineProperties(Document.prototype
+      jsdom/lib/jsdom/living/generated/DocumentFragment.js:308  Object.defineProperties(DocumentFragment.prototype
+      ... 4 more
+
+runtime (shipped) direct deps: @dagrejs/dagre, @improbable-eng/grpc-web, @shoelace-style/shoelace, dompurify, lit, marked, protobufjs
+dev-only direct deps        : @types/jsdom, jsdom, typescript, vite, vite-plugin-static-copy
+
+packages with hits: jsdom, nwsapi

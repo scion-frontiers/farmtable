@@ -1,0 +1,10 @@
+=== STRICT ARM 2 — no explicit --prune flag. Plain 'git gc', default config. ===
+This is the actual threat: an agent types 'git gc', or auto-maintenance fires.
+git version 2.54.0
+  keys: <UNSET -> default>
+  before: B=PRESENT  blob=PRESENT
+  after bare gc, DEFAULT config: B=GONE  blob=GONE  A=PRESENT
+
+  now the same repo, same bare gc, WITH the key set — rebuild the canary:
+  after bare gc, pruneExpire=never: C=PRESENT  blob=PRESENT
+  content reads back: STRICT CANARY 2 - must survive a bare git gc when pruneExpire=never

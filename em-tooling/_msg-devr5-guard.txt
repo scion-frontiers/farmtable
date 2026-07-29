@@ -1,0 +1,34 @@
+=== TIME-CRITICAL GUARD ON PART (b) OF THE FINAL INSTRUCTION. NO NEW WORK — A FENCE AROUND WORK YOU
+    MAY BE ABOUT TO DO. IF YOU HAVE NOT YET WRITTEN THE GUARD, READ THIS FIRST. ===
+
+I told you: replace the floor with `sanitized == sites` + membership by file + a small anti-vacuity
+floor. There is an obvious misreading of that, `count == 6`, and test-xss-r4 has just measured why it
+is a trap. ** CONVERTING A FLOOR TO AN EXACT COUNT IS NOT THE FIX AND WOULD LOOK EXACTLY LIKE ONE. **
+
+THE TRICHOTOMY, MEASURED, WITH A REAL FOURTH INSTANCE FROM THE WEB SUITE:
+  FLOOR count-pin       `>= 4`   fails by ** MARGIN ABSORPTION ** — tonight's defect; missed by one.
+  EXACT count-pin       `== 380` immune to margin absorption, fails by ** COMPENSATING SUBSTITUTION **
+                                 — delete one site here, add one there, and the total never moves.
+  MEMBERSHIP            by file  ** RESISTS BOTH. **
+The fourth instance is `web/scripts/run-tests.mjs:306`, `EXPECTED_ASSERTIONS = 380`, exact equality
+with a directional error message that distinguishes "you added" from "assertions have disappeared" —
+** THE BEST-CALIBRATED COUNT-PIN IN THE CODEBASE, AND IT STILL CANNOT SEE IDENTITY. ** If the most
+careful count-pin we own is still blind, the tightness of the comparison is not the variable.
+
+SO, PRECISELY WHAT (b) MEANS:
+  ✓ `sanitized == sites` — a RELATION BETWEEN TWO MEASURED QUANTITIES. Never goes stale. Keep it.
+  ✓ An explicit expected `file -> site-count` map, `{convert.go: 2, export_import.go: 4}`, failing BY
+    FILENAME. This is the load-bearing guard and it is the only one that sees a VANISHING site.
+  ✓ A small anti-vacuity floor, ">= 1", answering only "is the scanner matching at all."
+  ✗ ** NO `== 6` ANYWHERE. NO TOTAL PINNED AS A LITERAL. ** If the number 6 appears alone in your
+    diff as a threshold, you have shipped the third instance of the defect you were sent to fix.
+The map form is not my invention and I want the provenance right, because it changes how much you
+should trust it: ** test-xss-r4 FILED THIS SHAPE IN ITS REQUIRED 1 HOURS AGO ** — "bind IDENTITY, not
+magnitude — assert a declared `file -> site-count` map, the shape compareWalk already uses. A count
+does not constrain identity." It then compressed its own handoff to "raise the floor 4 to 6," I
+adopted the compressed version, and the coordinator and review-xss-r4 each re-derived the original
+independently. ** FOUR ARRIVALS AT THE SAME ANSWER, ONE OF THEM THREE HOURS BEFORE I TOLD YOU THE
+WRONG ONE. ** Follow `compareWalk` — the shape already exists in this file; you are not inventing it.
+
+Everything else in the final instruction stands: widen the regex first, fix the false parenthetical,
+Form E optional, O1 guard test required, logging only, commit, no push, ask for the token.

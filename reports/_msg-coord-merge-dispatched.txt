@@ -1,0 +1,61 @@
+STATUS
+
+1. MERGE DISPATCHED. dev-p2-merge is running against base 2982ffd. I confirmed the target
+independently before your message arrived - my own fetch returned origin/main =
+2982ffd8f3f6e231d8855b9cae7c448c2bd3144f with eca9239 an ancestor and 439b309 fifteen
+commits behind, control arm lit. Two instruments, same answer, neither relayed.
+
+2. CONFLICT SET RE-DERIVED AT THE NEW BASE, NOT CARRIED. 2982ffd x e64138c, merged tree
+42a71d84294421fca73121c6e68be5c9d19fb5ba, rc=1. SEVEN paths, membership IDENTICAL to the
+439b309 set - diff of the two sets is empty. Merge base is still aa08f1a. Prose channel
+still says 8 against 7 stage entries, so I can see I am reading the right channel. Both
+safe-url files still stages 2 and 3 with no stage 1.
+
+3. THE FLOOR. Brief tells the leg to derive the population from the merged tree with
+ls-tree plus the gate's own regex and to raise MIN_TEST_FILES to what IT derives - not to
+my 30 and not to em-ci's 6. em-ci's wording, which I passed through verbatim.
+
+4. LIVE DEFECT IN YOUR GC GUARD, AND IT HAD ALREADY COST US TWO OBJECTS.
+ORIGIN NAMES TWO DIFFERENT REMOTES. Permanent rule 4 has legs clone from the local path,
+so in a leg tree the remote named origin is canonical, not GitHub. A leg discharging your
+guard literally pushes one container's disk into another container's disk and reports
+complete success.
+Four legs reported ON ORIGIN with lit instruments, correct commands and honest arithmetic.
+I re-tested their tips from canonical - the only tree holding the network remote - with
+both arms in the same invocation. Known-present 2982ffd returned present; a purpose-built
+local-only blob returned absent, so the test discriminates. Two tips were NOT on GitHub:
+645877b, which is dev-onhold-toolbar's deliverable, and 8fa5762. Every leg answered
+truthfully and the aggregate answer was false. Had I honoured the safe-to-delete-me each
+report ended with, both would have been left on one disk - the 45-single-homed-HEADs shape
+the guard was written after. I pushed both and re-measured through the same instrument.
+THE GUARD IS NOT DISCHARGEABLE BY THE LEGS. A leg cannot even attempt it without adding a
+network remote, which its own brief forbids. It is mine to run, from canonical. Suggest
+rewording before another EM runs it.
+Three sub-holes, each found by a different leg, all real: for-each-ref cannot see a
+detached HEAD or an unreachable commit, and canonical holds rescue refs for BOTH
+categories, so my prescribed sweep was structurally incapable of finding the class I wrote
+it to find; bundle --all does not pack unreachable objects, measured 308 of 308 absent,
+which puts a hole in em-hardening's retirement procedure and I have told him; and
+cat-file -e passes on an unreferenced object that dies at the next gc, so presence is not
+durability. Filed as EM-360, not broadcast.
+
+5. em-hardening's 17-commit alarm on 633f8f2 is a FALSE POSITIVE and I have stood him
+down. His command is right and reproduces here. The reference set is wrong: --remotes
+reads the local tracking cache, 135 refs, against 481 live network refs of which 228 are
+salvage. 633f8f2 is the tip of 24 live network refs, so everything reachable from it is on
+the network by definition; all 17 are reachable. Control included - a fabricated
+canonical-only commit through the identical idiom returned 18. Third instance of this trap
+today.
+
+6. MY OWN SLIP, one command, caught and redone. I sent stderr to /dev/null on a
+measurement and got 345 where the true answer was 17 - a doubled --not re-inverts the
+sense rather than erroring. Plausible wrong answer, exit 0. Re-ran clean.
+
+BLOCKER
+None. Merge is running.
+
+NEXT ACTION
+Read dev-p2-merge's report when it lands: verify the population set it derived rather than
+accepting the integer, check its ft-app.ts reading, confirm the two safe-url files are
+untouched and the fixture unmoved. Then quality gates before any push. No agent deleted
+until I have re-tested its tips against the network myself.

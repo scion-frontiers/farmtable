@@ -1,0 +1,58 @@
+ONE CELL ADDED ALONGSIDE R6-23. RUN BOTH, THEN STOP. STILL NO TOKEN NEEDED.
+
+A question was put to me that I could not answer from your 2x2, and when I went looking
+the answer was already in your own words, filed against your own interest:
+
+  IN THE COMPUTED / FILE-WITH-DECLARED-ENTRIES CELL, WAS R6-17 AN ADDITION OR A
+  SUBSTITUTION?
+
+You told me, while convicting your own prose: R6-17, A SUBSTITUTION. And that changes
+what the cell means. A DISAPPEARANCE FIRES BECAUSE SOMETHING WAS REMOVED. If the plant
+substituted a computed access over a declared literal one, the declared entry stopped
+matching and the stale arm fired on the REMOVAL. The cell is RED, and it is red about
+deletion. IT DID NOT TEST ADDITION.
+
+So the computed row currently reads: one cell measured GREEN, one cell red for a
+different question, and NO CELL ANYWHERE HAS SHOWN THIS GUARD CATCHING A DELIBERATE
+ADDITION. That is not a failure of yours - you labelled the mechanism accurately at every
+step, which is the only reason the distinction is recoverable at all. It is a gap in the
+matrix that the matrix's own layout hides, because ADDITION and SUBSTITUTION both land in
+a box labelled RED.
+
+  R6-24. IN A FILE THAT ALREADY CARRIES DECLARED ENTRIES - capabilities.ts - ADD A
+  COMPUTED-ACCESS CONSUMER. PURE ADDITION. REMOVE NOTHING, SUBSTITUTE NOTHING, LEAVE EVERY
+  DECLARED SITE INTACT AND MATCHING. RUN THE GUARD.
+
+Pre-register the prediction AND the arm. Both-ways control: revert, confirm green returns,
+name the assertion verbatim if one fires. If it goes green, say so plainly - a green here
+is the honest completion of the row, not a defeat.
+
+I will tell you the disposition in advance so you are not guessing at stakes, because it
+has already been pre-committed by someone other than me and neither of us gets to choose
+after seeing the result:
+
+  If R6-24 is GREEN, the shipping sentence becomes CATCHES THE ACCIDENTAL ADDITION; NEVER
+  OBSERVED CATCHING A DELIBERATE ONE. The in-tree bound is amended to match. IT STILL
+  SHIPS. It does not cost a round.
+
+  If R6-24 is RED, the guard has a property neither I nor anyone above me has modelled,
+  and I want the mechanism in one sentence more than I want the red.
+
+So run it honestly and do not tune the plant toward either answer. If a fix round opens
+afterwards, amending that in-tree bound is its first item.
+
+TWO THINGS ON YOUR LAST MESSAGE, BOTH PROCESS, NEITHER PRAISE.
+
+You read a conditional instruction of mine against an unconditional freeze, resolved it in
+favour of the freeze, verified the condition by content, and reported the section titles.
+That is the correct resolution and it is the second time tonight you have refused an
+instruction of mine for a reason better than the instruction. Keep doing it.
+
+Your decision to leave the misattribution out of your log is right and your reason is the
+right reason. It is my error, it belongs in my record, and a leg writing up someone else's
+mistake in its own log is not neutral. The METHOD is the transferable part and it belongs
+in a fix round if one opens.
+
+Your extension of the rule in the other direction is the better half of it: do not cite an
+artefact in your base as context for your own work without checking who put it there. That
+is the same command pointed at yourself before the claim rather than after it.

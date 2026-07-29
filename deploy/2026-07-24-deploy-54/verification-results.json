@@ -1,0 +1,107 @@
+[
+  {
+    "check": "70a-favicon-svg",
+    "action": "favicon.svg is served and contains tractor emoji",
+    "pass": true,
+    "detail": "Status: 200. Has tractor: true. Is SVG: true. Content-Type: image/svg+xml",
+    "timestamp": "2026-07-25T00:02:45.208Z"
+  },
+  {
+    "check": "70b-favicon-link",
+    "action": "<link rel=\"icon\"> tag points to favicon.svg",
+    "pass": true,
+    "detail": "Found 1 icon link(s). Links: [{\"href\":\"https://farmtable-486315127503.us-central1.run.app/favicon.svg\",\"type\":\"image/svg+xml\",\"rel\":\"icon\"}]",
+    "timestamp": "2026-07-25T00:02:45.210Z"
+  },
+  {
+    "check": "69a-external-source-present",
+    "action": "GitHub-sourced task has \"External Source\" row with a working link",
+    "pass": true,
+    "detail": "Has row: true. Link href: https://github.com/scion-frontiers/farmtable/issues/156. Link text: Open External Source. Has icon: true. target: _blank, rel: noopener. Task remoteUrl: https://github.com/scion-frontiers/farmtable/issues/156. Row labels: Assignees, External Source, Labels",
+    "timestamp": "2026-07-25T00:02:55.771Z"
+  },
+  {
+    "check": "69a-external-source-url-match",
+    "action": "External Source link points to correct GitHub issue URL",
+    "pass": true,
+    "detail": "Link href: https://github.com/scion-frontiers/farmtable/issues/156. Task remoteUrl: https://github.com/scion-frontiers/farmtable/issues/156. Is GitHub URL: true. URL matches: true",
+    "timestamp": "2026-07-25T00:02:55.771Z"
+  },
+  {
+    "check": "69b-no-external-source-native",
+    "action": "Native (non-external) task does NOT show \"External Source\" row",
+    "pass": true,
+    "detail": "Has row: false (expected false). Task: undefined. Task remoteUrl: null. Row labels: Assignees, Labels",
+    "timestamp": "2026-07-25T00:03:06.269Z"
+  },
+  {
+    "check": "reg-a-kanban-overflow",
+    "action": "Kanban board overflows (deploy-53 regression)",
+    "pass": true,
+    "detail": "Columns: 8. Overflows: true. clientWidth: 1248. scrollWidth: 2164",
+    "timestamp": "2026-07-25T00:03:11.553Z"
+  },
+  {
+    "check": "reg-a-kanban-autoscroll",
+    "action": "Kanban auto-scroll right works (deploy-53 regression)",
+    "pass": true,
+    "detail": "Initial: 0. Final: 560. Delta: 560px. Monotonic: true",
+    "timestamp": "2026-07-25T00:03:12.898Z"
+  },
+  {
+    "check": "reg-b-dependency-culling",
+    "action": "Dependency View viewport culling works (deploy-49 regression)",
+    "pass": true,
+    "detail": "Layout nodes: 36, DOM nodes: 36. Edges: 28 layout, 28 DOM. Culling correct: true",
+    "timestamp": "2026-07-25T00:03:19.146Z"
+  },
+  {
+    "check": "reg-c-tree-default-lr",
+    "action": "Tree View defaults to LR (deploy-50 regression)",
+    "pass": true,
+    "detail": "Orientation: LR. layoutdir: null",
+    "timestamp": "2026-07-25T00:03:25.343Z"
+  },
+  {
+    "check": "reg-c-tree-toggle-tb",
+    "action": "Tree View toggles to TB",
+    "pass": true,
+    "detail": "Orientation: TB. layoutdir: TB",
+    "timestamp": "2026-07-25T00:03:27.361Z"
+  },
+  {
+    "check": "reg-c-tree-toggle-back",
+    "action": "Tree View toggles back to LR",
+    "pass": true,
+    "detail": "Orientation: LR. layoutdir: null",
+    "timestamp": "2026-07-25T00:03:29.377Z"
+  },
+  {
+    "check": "reg-d-solo-crossedge",
+    "action": "Solo mode: no cross-edges (deploy-52 regression)",
+    "pass": true,
+    "detail": "Edges: 7. Orange: 2. Purple: 5. Dashed: 0. isolateMode: true",
+    "timestamp": "2026-07-25T00:03:37.679Z"
+  },
+  {
+    "check": "reg-e-closed-task-solo",
+    "action": "CLOSED task Solo shows relationships (deploy-51 regression)",
+    "pass": true,
+    "detail": "hasNoDepsMessage: false. Layout nodes: 6. Edges: 5. closedTasksInLayout: 1",
+    "timestamp": "2026-07-25T00:03:45.917Z"
+  },
+  {
+    "check": "reg-f-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-25T00:03:50.116Z"
+  },
+  {
+    "check": "reg-g-console-errors",
+    "action": "No relevant console errors",
+    "pass": false,
+    "detail": "Total: 2, relevant: 1. Errors: [{\"text\":\"listing changes: list changes: not implemented\",\"type\":\"pageerror\",\"timestamp\":\"2026-07-25T00:02:55.129Z\"}]",
+    "timestamp": "2026-07-25T00:03:50.156Z"
+  }
+]

@@ -1,0 +1,29 @@
+cd web && npm ci
+
+added 59 packages, and audited 60 packages in 2s
+
+12 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+cd web && npm run build
+
+> farmtable-web@0.0.1 build
+> tsc --noEmit && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 341 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   1.12 kB │ gzip:   0.57 kB
+dist/assets/index-Cxs8OCU6.css   36.27 kB │ gzip:   6.50 kB
+dist/assets/index-YVwUln1D.js   824.70 kB │ gzip: 210.55 kB │ map: 2,471.26 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[vite-plugin-static-copy] Copied 2053 items.
+✓ built in 3.49s
+go build ./...

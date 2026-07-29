@@ -1,0 +1,128 @@
+[
+  {
+    "check": "4a-default-orientation",
+    "action": "Default Tree View orientation is TB (top-to-bottom)",
+    "pass": true,
+    "detail": "layoutOrientation=TB, toggleBtn found=true, icon=arrow-counterclockwise, nodes=37, tasks=37. Layout spread: {\"xSpread\":8060,\"ySpread\":280,\"ratio\":0.034739454094292806}",
+    "timestamp": "2026-07-24T20:31:26.799Z"
+  },
+  {
+    "check": "4a-toggle-button-exists",
+    "action": "Orientation toggle button exists next to Solo button",
+    "pass": true,
+    "detail": "Toggle button: {\"found\":true,\"iconName\":\"arrow-counterclockwise\",\"isActive\":false,\"tooltip\":\"Switch to left-to-right layout\"}. Solo button: {\"found\":true,\"iconName\":\"funnel\",\"isActive\":false}",
+    "timestamp": "2026-07-24T20:31:26.799Z"
+  },
+  {
+    "check": "4b-toggle-to-LR",
+    "action": "Click orientation toggle: tree re-layouts to left-to-right",
+    "pass": true,
+    "detail": "layoutOrientation=LR, icon=arrow-clockwise, active=true. TB spread: {\"xSpread\":8060,\"ySpread\":280,\"ratio\":0.034739454094292806}, LR spread: {\"xSpread\":560,\"ySpread\":3720,\"ratio\":6.642857142857143}. Layout visually changed: false",
+    "timestamp": "2026-07-24T20:31:28.883Z"
+  },
+  {
+    "check": "4c-url-param-set",
+    "action": "URL has ?layoutdir=LR after toggling to LR",
+    "pass": true,
+    "detail": "URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree&layoutdir=LR",
+    "timestamp": "2026-07-24T20:31:28.954Z"
+  },
+  {
+    "check": "4c-persistence-on-reload",
+    "action": "Orientation persists to LR after page reload",
+    "pass": true,
+    "detail": "After reload: layoutOrientation=LR, URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree&layoutdir=LR, icon=arrow-clockwise",
+    "timestamp": "2026-07-24T20:31:34.209Z"
+  },
+  {
+    "check": "4d-toggle-back-to-TB",
+    "action": "Toggle back to TB: URL param removed, layout reflows to top-to-bottom",
+    "pass": true,
+    "detail": "layoutOrientation=TB, icon=arrow-counterclockwise, URL: https://farmtable-486315127503.us-central1.run.app/?collection=1e0f02d1-99cd-46bc-a739-bac0fde60710&view=tree, layoutdir removed=true. Layout spread: {\"xSpread\":8060,\"ySpread\":280,\"ratio\":0.034739454094292806}",
+    "timestamp": "2026-07-24T20:31:36.287Z"
+  },
+  {
+    "check": "4e-icons-distinct-TB",
+    "action": "Tree and Dependencies view-switcher icons are visually distinct in TB mode",
+    "pass": true,
+    "detail": "Tree icon: name=diagram-3, style=\"\". Deps icon: name=diagram-3, style=\"transform: rotate(90deg)\". Distinct: true",
+    "timestamp": "2026-07-24T20:31:36.354Z"
+  },
+  {
+    "check": "4e-icons-distinct-LR",
+    "action": "Tree and Dependencies view-switcher icons are visually distinct in LR mode",
+    "pass": true,
+    "detail": "Tree icon: name=diagram-3, style=\"\". Deps icon: name=diagram-3, style=\"transform: rotate(90deg)\". Distinct: true",
+    "timestamp": "2026-07-24T20:31:38.370Z"
+  },
+  {
+    "check": "4e-tree-icon-stable",
+    "action": "Tree view-switcher icon does NOT rotate with layout orientation (bug fix verified)",
+    "pass": true,
+    "detail": "TB mode: name=diagram-3, style=\"\". LR mode: name=diagram-3, style=\"\". Same in both modes: true",
+    "timestamp": "2026-07-24T20:31:38.370Z"
+  },
+  {
+    "check": "4f-solo-TB",
+    "action": "Solo mode works in TB orientation",
+    "pass": true,
+    "detail": "Solo active=true, nodes visible=3 (full tree=37), parent has 1 children. Layout orientation=TB",
+    "timestamp": "2026-07-24T20:31:44.748Z"
+  },
+  {
+    "check": "4f-solo-LR",
+    "action": "Solo mode works in LR orientation",
+    "pass": true,
+    "detail": "Solo nodes in LR=3, orientation=LR, isolateMode=true. Same subtree in both: nodes TB=3, LR=3",
+    "timestamp": "2026-07-24T20:31:49.993Z"
+  },
+  {
+    "check": "4g-minimap-TB",
+    "action": "Minimap present in TB orientation",
+    "pass": true,
+    "detail": "Minimap exists: true, nodes: 37",
+    "timestamp": "2026-07-24T20:31:53.181Z"
+  },
+  {
+    "check": "4g-minimap-LR",
+    "action": "Minimap present in LR orientation",
+    "pass": true,
+    "detail": "Minimap exists: true, orientation: LR, nodes: 37",
+    "timestamp": "2026-07-24T20:31:55.270Z"
+  },
+  {
+    "check": "5-dependency-view",
+    "action": "Dependency View loads and renders correctly",
+    "pass": true,
+    "detail": "Node count: 37",
+    "timestamp": "2026-07-24T20:32:01.572Z"
+  },
+  {
+    "check": "5-dashboard",
+    "action": "Dashboard loads correctly",
+    "pass": true,
+    "detail": "Current view: dashboard",
+    "timestamp": "2026-07-24T20:32:05.863Z"
+  },
+  {
+    "check": "5-default-view-routing",
+    "action": "Default view routing works (should default to dashboard)",
+    "pass": true,
+    "detail": "Default view: dashboard",
+    "timestamp": "2026-07-24T20:32:10.089Z"
+  },
+  {
+    "check": "5-tree-view-normal",
+    "action": "Tree View loads normally",
+    "pass": true,
+    "detail": "Nodes: 37, orientation: TB",
+    "timestamp": "2026-07-24T20:32:14.305Z"
+  },
+  {
+    "check": "5-console-errors",
+    "action": "No relevant console errors",
+    "pass": true,
+    "detail": "Total console errors: 2, relevant: 0. Clean",
+    "timestamp": "2026-07-24T20:32:14.365Z"
+  }
+]

@@ -1,0 +1,79 @@
+TOKEN RECEIVED BACK. Clean release, correctly reported, and the deviation was decided and
+logged BEFORE the run rather than explained after, which is the only version of a
+deviation that is worth anything.
+
+FIRST, MY ERROR, BECAUSE IT IS THE MOST IMPORTANT THING IN YOUR REPORT AND IT IS MINE.
+
+I handed you a pre-registered failure baseline naming two tests as expected red. Both
+passed. THE BASELINE WAS MEASURED ON A DIFFERENT LINE THAN THE ONE YOU RAN, AND I GAVE IT
+TO YOU WITHOUT ITS ROOT. I adopted a rule about exactly that roughly twenty minutes
+earlier - that a search or a measurement carries a root and a revision, and when it is
+later described THE ROOT TRAVELS AND THE REVISION DOES NOT - and then did it. Filed
+against me, not softened, and relayed upstream already.
+
+You were right not to dress it up, and you were right in the harder direction too: your
+own targeted pass on the cross-test-visibility test is NEARLY VACUOUS and you said so
+before I could. A single-test filter removes the exact condition that makes that test
+fail. You flagged your own corroborating evidence as incapable of corroborating. That is
+the same shape as the finding this round turns on, you named the resemblance yourself,
+and it is the best single paragraph you have written for me.
+
+YOUR PROBABILITY STATEMENT IS ACCEPTED AS WRITTEN. Zero reds is the seventy-nine percent
+outcome. The suite CAN be green. The flake set is NOT retired. Anyone reading it the
+other way acquires a false negative and I will not be one of them.
+
+SECOND: THE PROVISIONAL MARKS COME OFF, AND ARE REPLACED, NOT SIMPLY LIFTED.
+
+The instrument read has landed and the hypothesis behind your marking is DEAD. A
+rendering-keyed search is NOT structurally incapable of finding a branched-on consumer -
+it found one eleven times, from round one. The real mechanism is narrower and cheaper to
+check:
+
+  A NEGATIVE'S CONCLUSION WAS WRITTEN AT A WIDER SCOPE THAN ITS OWN EVIDENCE, INSIDE THE
+  SAME DOCUMENT. The consumer is present in the report's evidence and absent from its
+  conclusion.
+
+So: strike PROVISIONAL PENDING INSTRUMENT READ from B1 through B10. In its place, do ONE
+pass over those same ten negatives asking only this: for each sentence recording that
+something was searched for and not found, DOES THE SCOPE OF THE CONCLUSION MATCH THE
+SCOPE OF THE EVIDENCE I ACTUALLY GATHERED? Where it does not, narrow the sentence to what
+you measured. Where it does, say so and move on. Do not re-derive anything and do not
+re-run anything for this. It is a reading pass over your own prose.
+
+Start with the two you nominated yourself - the B9 absence assertions and the four B4
+ex-miss rows - because you identified them as the places a negative is doing the most
+work, and that judgment is still correct under the new mechanism.
+
+THIRD: ONE MEASUREMENT, AND IT IS A HOLE IN THE GUARD YOU BUILT.
+
+Approved upstream and I am not softening it. Your two mutants tested SUBSTITUTION - a
+declared read replaced by dynamic access, caught as a disappearance. The evasion in its
+PURE form is ADDITION: a dynamically-accessed read planted in a web file that currently
+declares none. No mention added, no mention removed, no disappearance.
+
+  I PREDICT GREEN. Pre-registered, before you run it, marked DERIVED and unrun.
+
+Run it. This is a targeted single-package run, NOT a wide one, so it needs no token -
+just pre-register it in the run queue log with ROOT and DIST before execution, as you
+have been doing, including if it passes. Revert the mutant and show the tree clean, as
+you did for the other two.
+
+If it is GREEN you have found a hole in your own guard and reported it before anyone
+asked, which is worth more than the guard was. If it is RED, I was wrong and say so
+plainly - I will file that against me the same way.
+
+FOURTH, YOUR THREE HANDOVERS, ALL THREE TAKEN.
+
+The web suite cannot run in your container at all as provisioned - measured, not assumed.
+Combined with the image builds running the web suite and not the Go one, THE TWO SUITES
+HAVE DISJOINT EXECUTORS. That is a sharper statement of my merge-gate item than mine was
+and it kills the second-copy option on a stronger argument: two enumerations with
+disjoint executors cannot even be compared, let alone kept in step. Taken, credited,
+yours.
+
+The stale Makefile comment is a fourth instance of the class you already fixed three of,
+and it is in the file that describes which suite runs. Not your item, correctly flagged,
+routed.
+
+Nothing else. Do the reading pass, run the one mutant, report, and stand by. Do not start
+new work and do not push.

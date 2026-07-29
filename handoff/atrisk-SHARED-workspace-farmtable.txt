@@ -1,0 +1,26 @@
+AT-RISK REFS IN THE SHARED REPO /workspace/farmtable  (NOT my tree - reported, NOT pushed)
+measured read-only from /workspace/farmtable-dev-p2-land against a full fetch of network origin
+shared repo total refs: 955
+
+0b58a090d803ff196b27f9a789dbb0f72c81febd  refs/em-ci/allowlist2
+    object absent from my store; 0 tip matches on origin; commit by dev-ci-workflow 14:49 today,
+    'Project log: six CI gates observed going red on the runner'
+14a2909d700388a309fe2d1073d641431a5cef22  refs/preserve/194/review-194/close-label-swap  (1 commit(s) origin-absent)
+fee3d765e9ae4efd015f7b469e3158411b202670  refs/preserve/194/test-194-r3/close-label-swap  (2 commit(s) origin-absent)
+106afb9b74611794f6099b207e605440613829dd  refs/preserve/194/test-194-r4/close-label-swap  (1 commit(s) origin-absent)
+1ab7f145c8a0f12e6f4212bc83924b9acc1d6fed  refs/preserve/195/audit-195-r5/markdown-sanitize  (1 commit(s) origin-absent)
+6c28467c0d717e54a6f60e6892664346950c77a7  refs/preserve/195/audit-195-r7/r7-audit-log  (1 commit(s) origin-absent)
+43c13d9df6640ddefeeee6016580c4087b75b512  refs/preserve/195/audit-195/markdown-sanitize  (1 commit(s) origin-absent)
+e55ac40fc2d0a2e9ee3fb70e03e81782be8637de  refs/preserve/195/review-195-r5/markdown-sanitize  (1 commit(s) origin-absent)
+08edea7c5312bcefe20953ef556a9e505f878f63  refs/preserve/195/review-195-r7/r7-review-log  (1 commit(s) origin-absent)
+ed94d77a0f0edaa7bdd36493d736bb65212f292f  refs/preserve/195/test-195-r5/markdown-sanitize  (1 commit(s) origin-absent)
+6e3aa5361e7f5d2f161a3477b410504e87fe3282  refs/preserve/195/test-195-r7/r7-test-log  (1 commit(s) origin-absent)
+25f961f0c8ad5087c99993f659a497c3e2cea1cd  refs/preserve/195/test-195/markdown-sanitize  (1 commit(s) origin-absent)
+645877b7b1a22df3791173476fd7616c8f98eff1  refs/preserve/onhold-toolbar/46c7364  (2 commit(s) origin-absent)
+645877b7b1a22df3791173476fd7616c8f98eff1  refs/preserve/onhold-toolbar/645877b  (2 commit(s) origin-absent)
+ba93de89684e18a6c5d075dd035e14cd3ea10541  refs/preserve/rescue/decomposer-llm-openai-superseded-ba93de8  (1 commit(s) origin-absent)
+b1124cf4fd8e67f05905df9c44b6ec8447888b08  refs/preserve/rescue/remotedata-depth-test-b1124cf  (1 commit(s) origin-absent)
+e222bf59b01934fa92792e07b5f86acef4c756b1  refs/preserve/rescue/stash-markdown-check-total-pin-e222bf5  (3 commit(s) origin-absent)
+79c9b132dc6b07d54425c9cdf8a49f80c7e2cf41  refs/preserve/rescue/xss-r5-review-detached-head-79c9b13  (1 commit(s) origin-absent)
+27e0ee00f4a789978fa96083ca00db186bcb6b72  refs/preserve/xss-r4/wip-snapshot-CONTAMINATED-live-mutant-P5cn-urlvalidate-L430  (1 commit(s) origin-absent)
+2d3c4d7347e95f0c4a6e07f3108690e2894bc63e  refs/stash  (2 commit(s) origin-absent)

@@ -1,0 +1,76 @@
+=== RUN   TestAUDIT_REV0_HarnessIsStateful
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/accepted -> [ft:stage/accepted ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:229:     add    : [ft:stage/wont_fix] -> [ft:stage/accepted ft:stage/wont_fix]  OK
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/wont_fix -> [ft:stage/accepted]
+    zzz_audit_rev2_test.go:247:     remove : [ft:stage/accepted ft:stage/wont_fix] -> [ft:stage/accepted]  OK
+    zzz_audit_rev2_test.go:248:     HARNESS PROVEN STATEFUL IN BOTH DIRECTIONS
+--- PASS: TestAUDIT_REV0_HarnessIsStateful (0.01s)
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/completed->wont_fix
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/wont_fix -> [ft:stage/completed ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:641:   completed   + add[wont_fix ] -> stage=wont_fix   DENIED   labels=[ft:stage/completed ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/completed->duplicate
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/duplicate -> [ft:stage/completed ft:stage/duplicate]
+    zzz_audit_rev2_test.go:641:   completed   + add[duplicate] -> stage=duplicate  DENIED   labels=[ft:stage/completed ft:stage/duplicate]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/completed->cancelled
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/completed]
+    zzz_audit_rev2_test.go:641:   completed   + add[cancelled] -> stage=cancelled  DENIED   labels=[ft:stage/cancelled ft:stage/completed]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->completed
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/completed -> [ft:stage/completed ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/wont_fix -> [ft:stage/completed]
+    zzz_audit_rev2_test.go:644:   wont_fix    + add[completed] -> stage=completed  BYPASS   labels=[ft:stage/completed]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->duplicate
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/duplicate -> [ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:641:   wont_fix    + add[duplicate] -> stage=duplicate  DENIED   labels=[ft:stage/duplicate ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->cancelled
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:641:   wont_fix    + add[cancelled] -> stage=cancelled  DENIED   labels=[ft:stage/cancelled ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/duplicate->completed
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/completed -> [ft:stage/completed ft:stage/duplicate]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/duplicate -> [ft:stage/completed]
+    zzz_audit_rev2_test.go:644:   duplicate   + add[completed] -> stage=completed  BYPASS   labels=[ft:stage/completed]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/duplicate->wont_fix
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/wont_fix -> [ft:stage/duplicate ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/duplicate -> [ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:644:   duplicate   + add[wont_fix ] -> stage=wont_fix   BYPASS   labels=[ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/duplicate->cancelled
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/cancelled -> [ft:stage/cancelled ft:stage/duplicate]
+    zzz_audit_rev2_test.go:641:   duplicate   + add[cancelled] -> stage=cancelled  DENIED   labels=[ft:stage/cancelled ft:stage/duplicate]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/cancelled->completed
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/completed -> [ft:stage/cancelled ft:stage/completed]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/cancelled -> [ft:stage/completed]
+    zzz_audit_rev2_test.go:644:   cancelled   + add[completed] -> stage=completed  BYPASS   labels=[ft:stage/completed]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/cancelled->wont_fix
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/wont_fix -> [ft:stage/cancelled ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/cancelled -> [ft:stage/wont_fix]
+    zzz_audit_rev2_test.go:644:   cancelled   + add[wont_fix ] -> stage=wont_fix   BYPASS   labels=[ft:stage/wont_fix]
+=== RUN   TestAUDIT_REV8b_TerminalStartMatrix/cancelled->duplicate
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/duplicate -> [ft:stage/cancelled ft:stage/duplicate]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/cancelled -> [ft:stage/duplicate]
+    zzz_audit_rev2_test.go:644:   cancelled   + add[duplicate] -> stage=duplicate  BYPASS   labels=[ft:stage/duplicate]
+--- FAIL: TestAUDIT_REV8b_TerminalStartMatrix (0.08s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/completed->wont_fix (0.01s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/completed->duplicate (0.01s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/completed->cancelled (0.01s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->completed (0.01s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->duplicate (0.01s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/wont_fix->cancelled (0.00s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/duplicate->completed (0.01s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/duplicate->wont_fix (0.01s)
+    --- PASS: TestAUDIT_REV8b_TerminalStartMatrix/duplicate->cancelled (0.01s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/cancelled->completed (0.01s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/cancelled->wont_fix (0.01s)
+    --- FAIL: TestAUDIT_REV8b_TerminalStartMatrix/cancelled->duplicate (0.01s)
+=== RUN   TestAUDIT_REV10_CloseDirectionActualEffect
+    zzz_audit_rev2_test.go:668:   step 0  ordinary task      phase=open   displayStage=accepted  closedAt=false Available=true  Reasons=[] labels=[ft:stage/accepted]
+    zzz_audit_rev2_test.go:113:         [github] +ft:stage/completed -> [ft:stage/accepted ft:stage/completed]
+    zzz_audit_rev2_test.go:668:   after add_labels ONLY      phase=open   displayStage=accepted  closedAt=false Available=false Reasons=[terminal] labels=[ft:stage/accepted ft:stage/completed]
+    zzz_audit_rev2_test.go:121:         [github] -ft:stage/accepted -> [ft:stage/completed]
+    zzz_audit_rev2_test.go:668:   after short-circuit close  phase=open   displayStage=accepted  closedAt=false Available=false Reasons=[terminal] labels=[ft:stage/completed]
+    zzz_audit_rev2_test.go:687:   closeIssue mutations issued by the product: 0
+    zzz_audit_rev2_test.go:691:   READ: UpdateTask never closes the GitHub issue (p.Phase unused at passthrough.go:412-431).
+    zzz_audit_rev2_test.go:692:   READ: the damage lands at the ADD, not at the short-circuit. Step 3 only tidies the label set.
+--- PASS: TestAUDIT_REV10_CloseDirectionActualEffect (0.01s)
+FAIL
+FAIL	github.com/farmtable-io/farmtable/internal/server	0.108s
+FAIL

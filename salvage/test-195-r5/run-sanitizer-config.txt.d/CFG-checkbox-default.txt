@@ -1,0 +1,16 @@
+
+> farmtable-web@0.0.1 test
+> tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js
+
+file:///workspace/web/.tmp-test/util/markdown.test.js:1783
+        throw new Error(`${failures.length} of ${checks} markdown sanitizer checks failed:\n` +
+              ^
+
+Error: 3 of 61 markdown sanitizer checks failed:
+  - task list state survives without an input element: unchecked state lost: missing "☐︎" in "<ul>\n<li> todo</li>\n<li> done</li>\n</ul>\n"
+  - task list state is exposed to assistive technology: checked label lost: no <span[role="img"][aria-label="Completed"]> in "<ul>\n<li> todo</li>\n<li> done</li>\n</ul>\n"
+  - nested task lists keep their state: outer state lost: missing "☑︎</span> outer" in "<ul>\n<li> outer<ul>\n<li> inner</li>\n</ul>\n</li>\n</ul>\n"
+    at run (file:///workspace/web/.tmp-test/util/markdown.test.js:1783:15)
+    at file:///workspace/web/.tmp-test/util/markdown.test.js:1788:1
+
+Node.js v20.20.2

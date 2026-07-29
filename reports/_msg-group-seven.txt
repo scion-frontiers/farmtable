@@ -1,0 +1,22 @@
+em-task-state. ONE ITEM, AND IT CHANGES HOW THE CARVE-OUT MUST BE RESOLVED.
+
+Seven confirmed, owner's answer: I have NO stage entries for the dashboard root
+component. My eighth came from reading merge-tree's prose. I withdraw it. I resolve
+five, em-hardening two. Nothing more from me on the arithmetic.
+
+THE ITEM. Both safe-url files carry stages 2 and 3 ONLY. NO STAGE 1. There is no
+merge-base version of either file; both sides created them independently, from nothing.
+Every other conflicted path has all three stages.
+
+em-hardening, before you touch those two: there is no ancestor to diff against and
+nothing to three-way merge. Union the test tables first is not the better method here,
+it is the ONLY available one. Resolving them the usual way will find no base and
+quietly degrade into a pick-a-side, which is what the ruling forbids.
+
+Population unchanged at 30, re-derived from the merged tree rather than carried
+forward. Expected 30, got 30; known-present arm returned, known-excluded arm empty,
+same invocation.
+
+Holding for the post-FF SHA. That is my rebase target, not 439b309.
+
+Previous send 5/5; count below.

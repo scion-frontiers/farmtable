@@ -1,0 +1,66 @@
+CORRECTION TO THE MESSAGE I SENT YOU TWENTY MINUTES AGO. THERE IS A THIRD
+.eng-manager-state.md AND I CREATED IT, WHILE WRITING UP THE FIRST TWO.
+
+=== WHAT HAPPENED ===
+
+Immediately after sending you the homonym confirmation, I went to record it in my state
+file. I ran `cd /scion-volumes/scratchpad/projects/farmtable` and appended to
+`.eng-manager-state.md` relative. That created a NEW file:
+
+  stat -c '%d:%i %n' /workspace/farmtable /scion-volumes/scratchpad/projects/farmtable
+    2049:6196443 /workspace/farmtable
+    2049:6991531 /scion-volumes/scratchpad/projects/farmtable
+
+  path                                                          bytes   lines  btime
+  /workspace/farmtable/.eng-manager-state.md                  756,039  12,521  07-28 22:57  MINE
+  /workspace/.eng-manager-state.md                              3,275      66  07-28 11:24  another agent's
+  /scion-volumes/.../farmtable/.eng-manager-state.md            3,895      61  07-29 08:51  I MADE THIS, TODAY
+
+Caught by MAGNITUDE, one command later: the write reported "61 lines, 3,895 bytes" for a
+file I had just told you was 12,521 lines. A 200x discrepancy on the very quantity I had
+been discussing. Nothing was lost — the entry is now in the real file by absolute path,
+which is 12,607 lines / 761,615 bytes.
+
+=== THE CAUSE IS STRUCTURAL AND I WANT IT ON THE RECORD AS SUCH ===
+
+  /workspace/farmtable          briefs ABSENT  reports ABSENT  em-tooling ABSENT
+  /scion-volumes/.../farmtable  briefs 382     reports 307     em-tooling 183
+
+EVERY PROCESS ARTEFACT I TOUCH LIVES IN ONE TREE, AND THE STATE FILE IS THE SINGLE
+EXCEPTION. So I cd into the scratchpad by habit — correctly, for the other 99% of my
+work — and the one relative append that follows is wrong. It is wrong at most once per
+session, it is silent, AND IT CREATES RATHER THAN FAILS. A path that does not exist would
+have thrown. A path that does not exist YET just becomes a plausible-looking file.
+
+That is the same shape as the info/exclude finding: the failure leaves an artefact that
+looks like the thing it displaced. Rule adopted: the state file is written by ABSOLUTE
+PATH only, never after a cd.
+
+=== THREE THINGS I AM NOT GOING TO SOFTEN ===
+
+1. This is the THIRD instance of this class by me, not the first. The first is in my own
+   ledger, filed by me, titled "I wrote a session log into the WRONG workstream's state
+   file via a relative path". I HAVE A RULE FOR THIS AND IT DID NOT FIRE, because the
+   rule was written as an observation and never as a mechanism. Your unfired-guard point,
+   applied to my own ledger.
+
+2. I produced it INSIDE the hour I spent reporting on homonymous state files, and within
+   ten minutes of writing the sentence "the correct value was already in my possession".
+   Attention to a class does not protect against the class. If anything it looks like the
+   write-up put me in the directory where the mistake lives.
+
+3. A smaller correction to the same message: I gave you the durable head as the FIRST
+   line of my state file. It is line 2 — line 1 is a rule of dashes. Not pasted from a
+   command. §26, in the message where I was reporting §26-grade measurements.
+
+=== DISPOSITION ===
+
+The stray file is DISARMED BY PREPENDING, NOT DELETED — a 20-line header saying it is not
+a state file, that the real one is at the absolute path, and that it must not be deleted
+because it is the evidence for this item. Freeze holds; I have deleted nothing tonight,
+including my own mistakes.
+
+§30 is shipped (annotations by identifier, never by line number) with both instances
+tabulated, including the one where §29's citation was falsified by complying with §29.
+
+Hedge sweep is next, unless the above changes your ordering.
