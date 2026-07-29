@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -48,8 +50,10 @@ func ContextWithScopes(ctx context.Context, scopes []string) context.Context {
 	return context.WithValue(ctx, scopesKey, scopes)
 }
 
-// ScopesFromContext retrieves the token scopes from the context.
-// Returns nil if no scopes are set (wildcard/legacy token).
+// ScopesFromContext retrieves the token scopes held by the authenticated
+// principal. An empty result means the principal HOLDS NO SCOPES, which grants
+// nothing. It has never meant "unrestricted" and must not be read that way; see
+// RequireScope for the sense analysis.
 func ScopesFromContext(ctx context.Context) []string {
 	scopes, _ := ctx.Value(scopesKey).([]string)
 	return scopes
@@ -67,10 +71,25 @@ func CollectionIDsFromContext(ctx context.Context) []uuid.UUID {
 	return ids
 }
 
-// RequireScope checks whether the authenticated token has the given scope.
-// Nil scopes (legacy tokens / no scopes set) are treated as wildcard and
-// pass all checks. The wildcard scope "*" also passes all checks.
-// Returns codes.PermissionDenied if the scope is missing.
+// RequireScope checks whether the authenticated token holds the given scope.
+// The wildcard scope "*" passes all checks. Returns codes.PermissionDenied if
+// the scope is missing.
+//
+// An empty scope set means the principal HOLDS NO SCOPES and is therefore
+// denied everything. It does NOT mean "this endpoint requires no scopes": that
+// sense is expressed by not calling RequireScope at all, and — for RPCs exempt
+// from authentication entirely — by isUnauthenticatedEndpoint in auth.go, a
+// switch over method names. The `scope` parameter here is a single non-empty
+// string, never a list, so the two senses share no representation and denying
+// on empty cannot affect an endpoint that legitimately requires nothing.
+//
+// This is the single point at which a held scope set is read for an
+// authorization decision. scopesKey is an unexported constant of the unexported
+// type contextKey, so no package outside internal/server can install a scope
+// set, and ScopesFromContext is the only reader of it. The invariant "an empty
+// or unrecognised permission set is never permission for everything" is
+// therefore established here for every caller, present and future, rather than
+// at each site that can produce an empty set.
 func RequireScope(ctx context.Context, scope string) error {
 	// If auth is not enforced (open-access mode), allow everything.
 	if ctx.Value(authEnforcedKey) == nil {
@@ -79,9 +98,17 @@ func RequireScope(ctx context.Context, scope string) error {
 
 	scopes := ScopesFromContext(ctx)
 
-	// nil/empty scopes = wildcard (backward compatible with existing tokens)
+	// An empty scope set grants nothing. A live token reaches this state when
+	// it was minted for a user type the scope table does not recognise, or
+	// before the scope vocabulary existed. Both are bugs in the account, so the
+	// denial is logged loudly: a silent denial would replace an invisible
+	// privilege escalation with an invisible outage.
 	if len(scopes) == 0 {
-		return nil
+		logEmptyScopeSetDenial(ctx, scope)
+		return status.Errorf(codes.PermissionDenied,
+			"token holds no scopes; %q denied. An empty scope set grants nothing. "+
+				"Check the account's user type and re-issue the token with explicit scopes",
+			scope)
 	}
 
 	for _, s := range scopes {
@@ -93,10 +120,33 @@ func RequireScope(ctx context.Context, scope string) error {
 	return status.Errorf(codes.PermissionDenied, "missing required scope %q", scope)
 }
 
+// logEmptyScopeSetDenial reports an empty-scope-set denial in a form an
+// operator can act on: the account that was blocked, and the scope it was
+// blocked on. The offending user type is not carried in the request context, so
+// the message names the command that reveals it.
+func logEmptyScopeSetDenial(ctx context.Context, scope string) {
+	userID := "<unknown>"
+	if id, ok := UserIDFromContext(ctx); ok {
+		userID = id.String()
+	}
+	log.Printf("SECURITY: empty scope set denied — user=%s required_scope=%q. "+
+		"This token grants nothing. Inspect the account's user type with "+
+		"`ft user get %s`; if the type is not one of [%s] it is unrecognised, "+
+		"which is the bug. Re-issue the token with explicit scopes.",
+		userID, scope, userID, strings.Join(KnownUserTypes(), ", "))
+}
+
 // RequireCollectionAccess checks whether the token is authorized to access
 // the given collection. If the token has no collection restrictions (nil/empty
 // CollectionIDs), access is allowed to all collections. Otherwise the target
 // collection must appear in the allowed list.
+//
+// Deliberately NOT symmetric with RequireScope. CollectionIDs is a RESTRICTION
+// list, where empty correctly means "unrestricted"; scopes are a GRANT list,
+// where empty correctly means "nothing". The two look alike and mean opposite
+// things, so do not "fix" this one by analogy with the other. Nothing derives
+// CollectionIDs from the user type, so an unrecognised type cannot reach a
+// wildcard through this function.
 func RequireCollectionAccess(ctx context.Context, collectionID uuid.UUID) error {
 	// If auth is not enforced (open-access mode), allow everything.
 	if ctx.Value(authEnforcedKey) == nil {
@@ -117,42 +167,75 @@ func RequireCollectionAccess(ctx context.Context, collectionID uuid.UUID) error 
 	return status.Errorf(codes.PermissionDenied, "token not authorized for collection %s", collectionID)
 }
 
-// DefaultScopesForUserType returns the default scopes for a given user type
-// when creating a token without explicit scopes.
-func DefaultScopesForUserType(userType string) []string {
-	switch userType {
-	case "admin":
-		return []string{ScopeWildcard}
-	case "agent":
-		// Agents may work tasks but cannot accept them out of triage or close them.
-		return []string{ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim, ScopeCollectionRead}
-	case "reviewer", "orchestrator":
-		// Reviewers and orchestrators own the full task lifecycle.
-		return []string{
-			ScopeTaskRead,
-			ScopeTaskWrite,
-			ScopeTaskClaim,
-			ScopeTaskAccept,
-			ScopeTaskClose,
-			ScopeCollectionRead,
-		}
-	case "viewer":
-		return []string{ScopeTaskRead, ScopeCollectionRead}
-	case "human":
-		return []string{ScopeWildcard}
-	case "service_account":
-		return []string{ScopeWildcard}
-	default:
-		// Unrecognized user types get wildcard for backward compatibility with
-		// tokens issued before the type vocabulary was formalized. Log a warning
-		// so operator typos like "reviewr" that would silently grant full admin
-		// instead of the intended restricted scope set are visible in logs.
-		// Warn for all unrecognized types including empty string — empty is
-		// arguably the most dangerous case since an unset user type silently
-		// mints a wildcard session token.
-		log.Printf("WARNING: unrecognized user type %q in DefaultScopesForUserType — granting wildcard scopes (backward compat)", userType)
-		return nil // nil = wildcard (backward compatible)
+// defaultScopesByUserType is the single definition of the user type vocabulary.
+// A type absent from this map has no permission set at all — not a reduced one,
+// not a fallback one. KnownUserTypes derives the vocabulary from this map so the
+// list and the lookup cannot drift apart.
+//
+// Returned slices are copied before they leave DefaultScopesForUserType; the
+// values here are shared and must never be handed to a caller directly.
+var defaultScopesByUserType = map[string][]string{
+	"admin": {ScopeWildcard},
+	// Agents may work tasks but cannot accept them out of triage or close them.
+	"agent": {ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim, ScopeCollectionRead},
+	// Reviewers and orchestrators own the full task lifecycle.
+	"reviewer": {
+		ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim,
+		ScopeTaskAccept, ScopeTaskClose, ScopeCollectionRead,
+	},
+	"orchestrator": {
+		ScopeTaskRead, ScopeTaskWrite, ScopeTaskClaim,
+		ScopeTaskAccept, ScopeTaskClose, ScopeCollectionRead,
+	},
+	"viewer":          {ScopeTaskRead, ScopeCollectionRead},
+	"human":           {ScopeWildcard},
+	"service_account": {ScopeWildcard},
+}
+
+// KnownUserTypes returns the recognised user types in sorted order.
+func KnownUserTypes() []string {
+	out := make([]string, 0, len(defaultScopesByUserType))
+	for t := range defaultScopesByUserType {
+		out = append(out, t)
 	}
+	sort.Strings(out)
+	return out
+}
+
+// ErrUnknownUserType reports a user type for which no permission set is
+// defined. An unrecognised type has no permissions, so no token can be minted
+// for it: callers must fail rather than substitute a default.
+type ErrUnknownUserType struct {
+	UserType string
+}
+
+func (e *ErrUnknownUserType) Error() string {
+	return fmt.Sprintf(
+		"unrecognized user type %q: no scopes are defined for it, so no token can be issued. "+
+			"Recognized types: %s", e.UserType, strings.Join(KnownUserTypes(), ", "))
+}
+
+// DefaultScopesForUserType returns the default scopes for a user type when
+// creating a token without explicit scopes.
+//
+// An unrecognised type — including the empty string — returns *ErrUnknownUserType
+// and no scopes. It does not fall back to a default, a reduced set, or nil,
+// because nil cannot be persisted as "holds nothing": EntStore.CreateAPIToken
+// skips SetScopes on an empty slice, so an empty set and an absent set are the
+// same row. Refusing to mint is the only way for the producer to express "this
+// account has no permissions" without depending on that representation.
+func DefaultScopesForUserType(userType string) ([]string, error) {
+	scopes, ok := defaultScopesByUserType[userType]
+	if !ok {
+		log.Printf("SECURITY: unrecognized user type %q — refusing to issue any scopes. "+
+			"No default is substituted; an unrecognized type has no permissions. "+
+			"Recognized types: %s",
+			userType, strings.Join(KnownUserTypes(), ", "))
+		return nil, &ErrUnknownUserType{UserType: userType}
+	}
+	out := make([]string, len(scopes))
+	copy(out, scopes)
+	return out, nil
 }
 
 // ValidateScopes checks that all provided scope strings are recognized.
