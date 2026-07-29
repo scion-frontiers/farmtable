@@ -1,0 +1,44 @@
+# MEMBERSHIP PIN for the web test suite.  One suite stem per line, '#' comments.
+#
+# A stem here means the file `web/src/<stem>.test.ts` and the assertion is:
+# ** `npm test` EXECUTES IT. ** Not "it exists", not "it compiles" -- executes.
+# Those are three different populations and #103 lives in the gap between the
+# first two and the third.
+#
+# WHY NAMES AND NOT A NUMBER. A count floor (`>= 4`) is absorbed by margin:
+# delete one suite, add a trivial one, still green. An exact count (`== 5`) is
+# defeated by compensating substitution: swap one suite for another and the
+# count never moves. A NAMED SET resists both, because the only way to satisfy
+# "src/util/safe-url.test.ts executes" is to execute that suite. Identity is
+# also lossless with respect to count -- this pin can always report how many,
+# and a count could never have reported which. Proven, not asserted: ARM E in
+# RED-PROOF.md holds the count fixed at 5 and swaps one identity; a floor and an
+# exact-count pin are both GREEN on that tree and this pin is RED.
+#
+# ---------------------------------------------------------------------------
+# THE FIVE NAMES BELOW ARE THE UNION OF THE TWO CONFLICTING SIDES, WHICH IS THE
+# POINT OF THE PROPOSAL. Neither side executes all five today:
+#
+#   #195  @ 0b52dcdd6a06f694378084ea3ebefa7d9c473f15  executes 2 of these 5
+#   XSS   @ d5e35a4869475cd79c3a46e791909a610d1ea8f2  executes 4 of these 5
+#
+# So this file is RED against either side taken alone, ON PURPOSE. It goes green
+# when the reconciled wiring in APPLY.md is applied to a merged tree. A pin that
+# was green against the unmerged base would be pinning the defect.
+# ---------------------------------------------------------------------------
+#
+# ADDING A SUITE: add the name here in the same commit that adds the file.
+# REMOVING A SUITE: delete the name here in the same commit that stops running
+# it, so the diff records WHICH suite stopped running. That is the whole
+# mechanism -- it does not prevent removal, it prevents SILENT removal.
+
+# --- present on both sides (the one shared path; blobs differ, see APPLY.md) --
+utils/task-ready.test
+
+# --- from #195 (markdown-sanitize-r10) ---------------------------------------
+util/markdown.test
+
+# --- from the XSS branch (url-scheme-validation-r5) --------------------------
+util/assertions.test
+util/safe-url.test
+util/url-binding-scan.test
