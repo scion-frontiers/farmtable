@@ -316,3 +316,61 @@ Bundles: baseline 3,059,832/211; corrected 3,060,450/217; v2 3,063,164/**217**
 (ref count failed to rise — defect 8 in the byte record, left on disk as
 evidence); **v3 3,063,267/218**, current, restore-verified. Six of six commits
 still ABSENT from /workspace/farmtable.
+
+## Correction 4: my denominator was wrong - scope taken from blob scope
+
+Struck in place, not deleted. This one reaches the headline integers.
+
+I claimed a9e49ff has zero DOM tests and that 439b309 is the only side with a
+lit+JSDOM harness. **True of the blob, false of the side.** At 633f8f2, absent at
+439b309: `web/test/safe-url.contract.test.ts` (ffe965d, 99 lines,
+classification), `web/test/ft-inspector-code.safe-url.test.ts` (869cb3c, 86),
+`web/test/ft-inspector-meta.safe-url.test.ts` (0a85925, 105), plus
+`web/vitest.config.ts` with a jsdom environment. The branch side has the fuller
+rendering harness.
+
+**Union is 91 distinct inputs, not 81.** ffe965d holds 21 classification rows, 10
+of them absent from my table. I first computed 11 and caught that `undefined` is
+present as row 31 under a `__UNDEFINED__` sentinel my comparison stringified to a
+non-matching key — corrected to 10 before publishing.
+
+**Arm A claim reversed.** "BRANCH.carveout fails 8 of its own rows" is withdrawn.
+ffe965d's docblock states the split explicitly: its loopback cases pass because
+Vitest sets `import.meta.env.DEV`, while "the production side is asserted in
+src/util/safe-url.test.ts, which runs under plain Node where import.meta.env is
+undefined". a9e49ff IS the blocking arm; ffe965d IS the carveout arm. BRANCH had
+already done ruling 4's config labelling, by file, before the ruling existed. I
+measured its blocking rows under a configuration its author excluded.
+
+**Arm B corroborated from outside, and my claim to have found it is not.**
+ffe965d's docblock: "Returning `raw` instead survived the round-2 mutation run
+because every other case in this file happens to be already-normalized. These
+inputs are not." They ran the same arm, found the same survivor, and added rows
+to kill it. It also carries `expect.hasAssertions()`, an exact accepted-count pin
+and a `not.toBe(input)` guard — anti-vacuity controls I implied were MAIN's
+distinguishing feature. They are on both sides.
+
+**Survives:** validator base 633f8f2, better supported than before. **Moot:**
+"carry the harness across" — the base has one. What MAIN uniquely holds is the
+fixture differential pin (4a54328 + TestValidateURLFieldMatchesSharedFixtures +
+internal/server/convert.go), and that is what must be carried. **Re-checked
+rather than assumed:** ft-inspector-desc.ts appears in the helper grep at 439b309
+only in a comment (lines 236-244); it is not a third consumer, so the two-surface
+finding stands.
+
+**Direction of the error is the finding.** Every element flattered 439b309 — the
+requester's own track, the one I was told not to defer to. I did not defer; I
+under-searched, and under-searching produced the answer the interested party
+would have wanted. That is worse than deference because it arrives wearing the
+clothes of a measurement.
+
+**Root cause:** I scoped every read to the two colliding blobs because the
+assignment named two paths, and never ran "which paths reference this helper at
+all" on either revision. One `git grep -l` at the start catches all three
+defects. Full path sets for both revisions are published in the report.
+
+Note on the sweep itself: `web/test/ft-inspector-meta.safe-url.test.ts` does not
+appear in a name-based grep because it drives the component through `remoteUrl`
+and never names the helper. A name sweep misses a test that exercises the subject
+through its consumer — the same blindness one layer down. Enumerated by directory
+as well.
