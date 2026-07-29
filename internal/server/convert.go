@@ -1,7 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"log"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -298,10 +302,105 @@ func userToProto(u *ent.User) *pb.User {
 func structOrNilLoggingErr(sanitized map[string]any, field string) *structpb.Struct {
 	s, err := structpb.NewStruct(sanitized)
 	if err != nil {
-		log.Printf("%s dropped: sanitized remote_data is not structpb-representable: %v", field, err)
+		logRemoteDataDropped(field, sanitized, err)
 		return nil
 	}
 	return s
+}
+
+// remoteDataLogInterval is the minimum gap between two dropped-remote_data log
+// lines. Everything in between is counted and reported on the next line out.
+const remoteDataLogInterval = time.Minute
+
+var (
+	remoteDataLogMu         sync.Mutex
+	remoteDataLogLast       time.Time
+	remoteDataLogSuppressed int
+
+	// remoteDataLogNow is a seam, not a design flourish: the sampler's whole
+	// behaviour is a function of elapsed time, and a test that cannot move the
+	// clock can only assert the first line. Overridden by
+	// withRemoteDataLogClock in the tests.
+	remoteDataLogNow = time.Now
+)
+
+// logRemoteDataDropped reports a dropped remote_data conversion at most once per
+// remoteDataLogInterval, naming the offending keys and their Go types.
+//
+// WHY THIS IS SAMPLED RATHER THAN LOGGED PER TASK. `labels` is unconditional on
+// the passthrough path and issueLabels returns make([]string, n), never nil, so
+// EVERY passthrough task fails conversion. With defaultPageSize at 50 and a cap
+// of 200, the unsampled version emitted 50-200 identical lines per list call,
+// constant message, no task ID, no issue number, no key -- and any authenticated
+// user browsing a passthrough collection triggered it. Phase 1 is live, so that
+// went straight into a real log pipeline.
+//
+// WHY IT IS NOT JUST A COUNTER. A number going up tells you something changed;
+// it does not tell you WHAT. The sampled line names the offending keys and
+// their Go types, which is what makes the NEXT carrier change diagnosable
+// instead of merely visible. When the sanitizer someday grows representability
+// normalisation, this line is how the gap gets identified. Keep both halves:
+// removing the sample leaves an undiagnosable counter, and removing the count
+// hides the volume.
+//
+// The suppressed count is reported on the next line rather than discarded, so
+// the volume signal survives sampling. It is deliberately NOT reset by a timer:
+// a burst that stops entirely leaves its tail uncounted until the next drop,
+// which is the right trade for a diagnostic that must not itself become a
+// background timer in every server process.
+func logRemoteDataDropped(field string, sanitized map[string]any, err error) {
+	remoteDataLogMu.Lock()
+	now := remoteDataLogNow()
+	if !remoteDataLogLast.IsZero() && now.Sub(remoteDataLogLast) < remoteDataLogInterval {
+		remoteDataLogSuppressed++
+		remoteDataLogMu.Unlock()
+		return
+	}
+	suppressed := remoteDataLogSuppressed
+	remoteDataLogSuppressed = 0
+	remoteDataLogLast = now
+	remoteDataLogMu.Unlock()
+
+	keys := unrepresentableKeys(sanitized)
+	if suppressed > 0 {
+		log.Printf("%s dropped: sanitized remote_data is not structpb-representable: %v; "+
+			"offending keys: %s (+%d further drop(s) suppressed since the last line)",
+			field, err, strings.Join(keys, ", "), suppressed)
+		return
+	}
+	log.Printf("%s dropped: sanitized remote_data is not structpb-representable: %v; "+
+		"offending keys: %s", field, err, strings.Join(keys, ", "))
+}
+
+// unrepresentableKeys names every key structpb cannot represent, with its Go
+// type.
+//
+// structpb.NewStruct's own error mentions only the FIRST key it trips over, and
+// the passthrough map has at least two independent offenders (labels []string
+// and sub_issues []map[string]any). Reporting only the first would have someone
+// fix labels, redeploy, and find the field still nil with no new information in
+// the log. This walks the whole map so one line names the whole problem.
+//
+// Top level only. A nested offender is reported against the top-level key that
+// contains it, since that is the key an operator can act on; the %T then names
+// the container rather than the inner value, which is a real limit of this
+// message and not an oversight.
+func unrepresentableKeys(sanitized map[string]any) []string {
+	out := make([]string, 0, len(sanitized))
+	for k, v := range sanitized {
+		if _, err := structpb.NewValue(v); err != nil {
+			out = append(out, fmt.Sprintf("%s (%T)", k, v))
+		}
+	}
+	sort.Strings(out)
+	if len(out) == 0 {
+		// NewStruct refused the map but no individual value did. Say so rather
+		// than printing an empty list: it means the two APIs disagree, which is
+		// a real finding about structpb and not a boring empty case.
+		return []string{"<none at top level -- NewStruct refused the map but every value " +
+			"was individually representable; this should not happen>"}
+	}
+	return out
 }
 
 // Entity → Proto conversions
