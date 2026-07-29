@@ -188,6 +188,7 @@ github.com/farmtable-io/farmtable/internal/server	TestRPC_CreateTaskRejectsDirec
 github.com/farmtable-io/farmtable/internal/server	TestRPC_CreateTask_InvalidInput
 github.com/farmtable-io/farmtable/internal/server	TestRPC_CreateTask_WithLabels
 github.com/farmtable-io/farmtable/internal/server	TestRPC_DeleteLinkedAccount
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ExportCollection_CarriesImportProvenance
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ExportCollection_DropsCrossCollectionRelationships
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ExportImportCollection_RoundTrip
 github.com/farmtable-io/farmtable/internal/server	TestRPC_GetBlockedTasks
@@ -213,7 +214,12 @@ github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_Forma
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_ImportsChanges
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_MatchesUserByEmail
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_PayloadCannotForgeProvenance
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_ProvenanceNeverNamesAPlaceholder
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RefusesImportWithoutIdentity
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RejectsParentCycle
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_StampsEveryImportedTask
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_StampsImporterProvenance
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_UnsupportedFormat
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportExportCollection_Errors
 github.com/farmtable-io/farmtable/internal/server	TestRPC_InsertTasksAfter
