@@ -699,6 +699,94 @@ func TestSanitizeRemoteDataScrubsEveryURLCarrier(t *testing.T) {
 // yields []any, not []string). That matters: the GitHub passthrough path cannot
 // exercise this at all -- see
 // TestGitHubPassthroughRemoteDataNeverSerialises.
+// TestMapStringStringStaysUnrepresentable_GuardsO1 pins a FAIL-CLOSED ACCIDENT,
+// not a designed behaviour, and it exists because that accident has a scheduled
+// removal date.
+//
+// XSS-R4-O1: sanitizeRemoteValue is TYPE-PRESERVING and its walk has no case for
+// map[string]string. So
+//
+//	{"parent": map[string]string{"html_url": "javascript:alert(1)"}}
+//
+// passes the sanitizer VERBATIM -- never descended into, never validated. It
+// fails to reach a browser today for exactly one reason, and it is not the
+// sanitizer: structpb.NewValue has no case for map[string]string either, so
+// structpb.NewStruct errors, and taskToProto drops the ENTIRE remote_data field.
+// ** THE UNREPRESENTABILITY IS DOING THE SECURITY WORK, BY ACCIDENT. **
+//
+// That is why this is a test and not a comment. The next round will be dispatched
+// to "make remote_data representable", which removes the masking correctly by its
+// own lights; a comment does not survive that handoff to a leg that has not read
+// this round's reports, and an alarm does. A deferral without an alarm is a
+// no-action label with a longer fuse.
+//
+// READ THIS BEFORE YOU EDIT THE TEST TO MAKE IT PASS:
+//   - If only the FIRST assertion goes red, representability normalisation has
+//     landed. That is not automatically wrong -- but O1 is now unmasked, so the
+//     walk must be verified to cover this shape before this test is retired.
+//   - ** IF THE SECOND ASSERTION GOES RED, A javascript: URL IS REACHING THE
+//     CLIENT INSIDE remote_data. THAT IS A LIVE XSS AND NOT A STALE TEST. **
+//
+// The fix in either case is to normalise on ENTRY, before the URL walk, so the
+// walk descends into `parent`, recognises html_url as a URL-bearing key, and
+// drops the value. Normalising at the EXIT converts this fail-closed accident
+// into fail-open and delivers the URL. Credit: review-xss-r4.
+func TestMapStringStringStaysUnrepresentable_GuardsO1(t *testing.T) {
+	const bad = "javascript:alert(1)"
+
+	// A Go-native map[string]string, as an in-memory adapter literal produces.
+	// A JSON round-trip could not yield this type -- that is the reachability
+	// precondition the whole finding rests on.
+	raw := map[string]any{
+		"platform": "github",
+		"parent":   map[string]string{"html_url": bad},
+	}
+
+	// Positive control: the sanitizer leaves the poisoned value exactly where it
+	// was. Without this, the assertions below would also pass if the sanitizer
+	// had simply dropped `parent`, and the test would be guarding nothing.
+	sanitized := sanitizeRemoteData(raw)
+	parent, ok := sanitized["parent"].(map[string]string)
+	if !ok {
+		t.Fatalf("precondition gone: sanitizeRemoteData no longer passes "+
+			"map[string]string through as-is (got %T). If the walk now HANDLES "+
+			"this type, O1 is fixed at the walk and this test should be replaced "+
+			"by one asserting the URL was dropped by the SANITIZER.",
+			sanitized["parent"])
+	}
+	if parent["html_url"] != bad {
+		t.Fatalf("precondition gone: the sanitizer now validates inside "+
+			"map[string]string (html_url = %q). O1 is fixed at the walk; replace "+
+			"this test rather than deleting it.", parent["html_url"])
+	}
+
+	// 1. THE MECHANISM. structpb cannot represent it, so the field is discarded.
+	if _, err := structpb.NewStruct(sanitized); err == nil {
+		t.Errorf("structpb.NewStruct now ACCEPTS a map[string]string payload. " +
+			"Representability normalisation has landed. O1's masking is GONE: " +
+			"verify the URL walk covers map[string]string BEFORE retiring this test.")
+	}
+
+	// 2. THE CONSEQUENCE, which is the property that actually matters.
+	pt := taskToProto(&ent.Task{
+		ID:         uuid.New(),
+		Title:      "poisoned via unrepresentable carrier",
+		RemoteData: raw,
+	})
+	if pt.GetRemoteData() != nil {
+		if blob, err := json.Marshal(pt.GetRemoteData().AsMap()); err == nil &&
+			strings.Contains(string(blob), bad) {
+			t.Fatalf("LIVE XSS: %q reached the client inside remote_data. "+
+				"Normalisation has been applied WITHOUT fixing O1's walk. Fix the "+
+				"walk (normalise on ENTRY, before validation); do not edit this "+
+				"test. Payload: %s", bad, blob)
+		}
+		t.Errorf("remote_data is no longer dropped for an unrepresentable map; " +
+			"the javascript: URL is absent, so the walk may now cover this shape, " +
+			"but confirm that before retiring this guard.")
+	}
+}
+
 func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 	const bad = "javascript:alert(1)"
 	id := uuid.New()
