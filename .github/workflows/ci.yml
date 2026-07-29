@@ -156,6 +156,16 @@ jobs:
       - name: Build
         run: make build
 
+      # CANARY ONLY - NEVER MERGE.
+      # Degrades the SUBJECT of the next step: index.html is replaced with a
+      # stub that is not a vite build. Nothing is deleted; web/dist and every
+      # hashed asset stay exactly where the build put them. The gate itself is
+      # untouched.
+      - name: CANARY replace built index.html with a stub
+        run: |
+          printf '<!DOCTYPE html><html><body>placeholder</body></html>\n' \
+            > web/dist/index.html
+
       - name: Assert web/dist has real build content
         run: |
           # EXISTENCE IS NOT CONTENT.
