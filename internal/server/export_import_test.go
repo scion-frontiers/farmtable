@@ -44,15 +44,36 @@ func assertJSONMapEqual(t *testing.T, name string, got, want map[string]interfac
 func newExportImportTestServer(t *testing.T) (pb.FarmTableServiceClient, *store.EntStore, func()) {
 	t.Helper()
 	s, storeCleanup := testutil.NewTestStore(t)
+
+	// ImportCollection refuses to run without an establishable caller, so the
+	// harness supplies one the way a deployed auth interceptor would. Tests that
+	// exercise the absent-identity path deliberately bypass this client and call
+	// the service directly; see TestRPC_ImportCollection_RefusesImportWithoutIdentity.
+	harnessUser, err := s.CreateUser(context.Background(), store.CreateUserParams{
+		DisplayName: "Harness Importer",
+		Email:       strPtr("harness-importer@example.com"),
+		Type:        "human",
+		Status:      "active",
+	})
+	if err != nil {
+		storeCleanup()
+		t.Fatalf("creating harness user: %v", err)
+	}
+	authInterceptor := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		return handler(server.ContextWithAuthEnforced(server.ContextWithUserID(ctx, harnessUser.ID)), req)
+	}
+
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer(
 		grpc.MaxRecvMsgSize(64<<20),
 		grpc.MaxSendMsgSize(64<<20),
+		grpc.UnaryInterceptor(authInterceptor),
 	)
 	pb.RegisterFarmTableServiceServer(srv, server.NewFarmTableService(s, "test"))
 	go srv.Serve(lis)
 
-	conn, err := grpc.NewClient("passthrough:///bufconn",
+	var conn *grpc.ClientConn
+	conn, err = grpc.NewClient("passthrough:///bufconn",
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
 			return lis.DialContext(ctx)
 		}),
@@ -183,6 +204,7 @@ func TestRPC_ExportImportCollection_RoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAllChangesForTask: %v", err)
 	}
+	changes = payloadChanges(changes)
 	if len(changes) != 1 || changes[0].FieldName != "acceptance_criteria" || changes[0].AuthorID != alice.ID {
 		t.Fatalf("imported changes = %+v, want one Alice acceptance_criteria change", changes)
 	}
@@ -561,6 +583,7 @@ func TestRPC_ImportCollection_ImportsChanges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAllChangesForTask: %v", err)
 	}
+	changes = payloadChanges(changes)
 	if len(changes) != 1 || changes[0].FieldName != "title" || changes[0].OldValue != "Old" || changes[0].NewValue != "Task" {
 		t.Fatalf("changes = %+v, want imported title change", changes)
 	}
