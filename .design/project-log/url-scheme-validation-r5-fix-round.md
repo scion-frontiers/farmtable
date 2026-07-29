@@ -3,7 +3,14 @@
 Date: 2026-07-29
 Branch: `url-scheme-validation-r5`
 Base: `e6bda71`
-Commits: `5b7dae4`, `1eaf990`, `d4fdf20`, `b1124cf`
+Commits: `5b7dae4`, `1eaf990`, `d4fdf20`, `26ca5b6`, and the one carrying this line.
+
+> A note on that last clause, since this round has spent the evening on stale
+> pointers. **A log cannot cite the SHA of the commit that carries it** — writing
+> the SHA in changes the tree, which changes the SHA. `b1124cf` was written here
+> and was amended out of existence one command later, so this file briefly named
+> a commit that does not exist on any branch. The fixpoint is real and no amend
+> closes it; the only honest forms are a follow-up commit or a description.
 Verdict: the write-site scanner is re-aimed and its claims are now scoped to what
 it actually walks. **No product vulnerability was found or fixed in this round.**
 Everything below is about the instrument.
@@ -132,7 +139,7 @@ leaving the name unqualified would have shipped a more precise instrument making
 wider false claim** — and a stronger guard is trusted further, which converts a
 limitation that is merely *present* into one that is actively *certified*.
 
-### 4. A bare function name is not an identity — and neither is `file:function` (`1eaf990`, `b1124cf`)
+### 4. A bare function name is not an identity — and neither is `file:function` (`1eaf990`, `26ca5b6`)
 
 Package `server` declares `taskToProto` twice: the free function in `convert.go`
 holding the wire-path write, and a method on `*FarmTableService` in `server.go`
