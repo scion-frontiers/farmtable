@@ -242,10 +242,14 @@ func ensureDashboardToken(ctx context.Context, s *store.EntStore, userID uuid.UU
 		return nil
 	}
 
+	// Stated explicitly for the same reason as the local-embedded token in
+	// connect.go: the dashboard server enforces auth, and an empty scope set
+	// is no longer readable as wildcard. Same grant, now written down.
 	_, err = s.Client().ApiToken.Create().
 		SetTokenHash(tokenHash).
 		SetName("dashboard-env").
 		SetUserID(userID).
+		SetScopes([]string{server.ScopeWildcard}).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("creating dashboard token: %w", err)
