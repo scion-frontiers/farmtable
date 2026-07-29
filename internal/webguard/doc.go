@@ -49,9 +49,18 @@
 // type-aware parse. See remotedata_consumers_test.go for how that constraint
 // shapes the one guard currently living here.
 //
-// TWO LIMITS ON THE CENSUS, stated here because the guard's whole correctness
+// LIMITS ON THE CENSUS, stated here because the guard's whole correctness
 // argument is that it over-approximates and that its errors therefore run in
-// the noisy direction. Both of these run the other way.
+// the noisy direction. Every limit below runs the other way.
+//
+// THIS BLOCK DELIBERATELY CARRIES NO COUNT, AND IT USED TO. It opened "TWO
+// LIMITS ON THE CENSUS" and then listed two, while a third had already been
+// reported against it and was still true. A cardinal number in front of a list
+// is a population claim with nothing guarding it -- the same defect this
+// package's own comments name elsewhere as "the count is the part that rots" --
+// and here it rotted in the delivered artefact rather than later. The list is
+// open. Add to it; do not number it. There may be limits not yet found, and a
+// reader must not read the end of this list as the end of the limits.
 //
 // IT IS A LINE CENSUS, NOT AN OCCURRENCE CENSUS. censusRemoteDataMentions
 // breaks after the first identifier match on a line, so a line naming the field
@@ -69,4 +78,26 @@
 // invisible here. At cc92735 the CI workflow asserts web/dist is ABSENT on
 // checkout and produced by the run, which constrains that gap from a different
 // direction without closing it.
+//
+// IT COVERS PROTO-SHAPE CHANGES AND NOT PAYLOAD-SHAPE CHANGES, AND THE PAYLOAD
+// IS WHERE THE ATTACKER-AUTHORED BYTES ARE. This is the limit that most
+// directly undercuts the placement argument above, which says this guard lives
+// in Go because the reader it most needs to stop is a Go developer changing the
+// server-side shape of remote_data. The census reads web/ and nothing else. A
+// Go developer who adds a key to the payload -- in issueBuildRemoteData
+// (internal/platform/github/graphql_queries.go) or in sanitizeRemoteData
+// (internal/server/urlvalidate.go) -- changes no file under web/, and this
+// package stays green. The guard fires for that developer only if they also
+// change the .proto and regenerate web/src/gen, which is the PROTO shape, not
+// the PAYLOAD shape. So the developer this guard is placed in Go to catch is
+// caught only on the half of their change that was already the more visible
+// half.
+//
+// Not closed here, and naming who is not covering it either: the producer-side
+// pin internal/platform/github/remotedata_representability_test.go does not
+// mention Collection or writable at all, so the collection capability gate is
+// pinned at neither end. Closing this needs a guard over the Go payload
+// producers, which is a different population from the one this package reads
+// and does not belong in this file. Recorded rather than fixed, because an
+// unrecorded limit is the failure this whole block exists to prevent.
 package webguard
