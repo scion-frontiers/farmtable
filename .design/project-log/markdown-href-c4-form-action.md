@@ -131,7 +131,26 @@ Filed, not closed, and stated in the code rather than only here.
 | `node scripts/ci-suite-manifest.mjs` | exit 0 — `enumerated=7 executed=7 missing=0 (floor 7)`, surplus=0, required=4 |
 | fixtures | `cases=45 divergent=13 base_dependent=6`, suite floor 7 |
 
-Nothing pushed; `main` unmoved at `7bb0c756`.
+Nothing pushed.
+
+**Correction, made after this line was first written.** It originally read
+"`main` unmoved at `7bb0c756`". **There is no `main` in this clone** — no
+`refs/heads/main` and no `refs/remotes/origin/main`; `git rev-parse main` exits
+non-zero. The local refs are `hardening/markdown-href` and
+`task-state-web-ui-v2`. What `7bb0c756` actually is: the **merge-base of this
+branch**, fourteen commits back, i.e. the base I branched from.
+
+"Unmoved" was therefore trivially true of a thing that does not exist, and it
+was reported four times. It read as a safety claim — *I have not disturbed the
+mainline* — while asserting nothing at all, and nobody could have caught it
+without running `rev-parse` in this specific clone, because the sentence names
+no clone. **A reassurance about a ref you never resolved is the same defect as a
+count nobody reconciled**, which is the finding this very file was opened to
+record. Third instance in one document.
+
+The accurate statement: nothing is pushed, no ref outside
+`hardening/markdown-href` has been written in this clone, and `7bb0c756` is this
+branch's base and is an ancestor of its tip.
 
 ---
 
