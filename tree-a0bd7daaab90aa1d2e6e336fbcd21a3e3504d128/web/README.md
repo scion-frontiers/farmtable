@@ -1,0 +1,184 @@
+# Farm Table Web Dashboard
+
+This directory contains the Farm Table browser dashboard. It is a Vite and
+TypeScript app built with Lit web components and Shoelace UI components, without
+React, Vue, Angular, or another application framework.
+
+The dashboard is designed to talk to the Farm Table gRPC API through gRPC-Web.
+In local dashboard mode, the Go `ft dashboard` command serves the compiled web
+assets and exposes a built-in gRPC-Web proxy on the same HTTP origin.
+
+## Architecture
+
+- **Components:** Lit-based custom elements under `src/components/`.
+- **UI library:** Shoelace components and themes.
+- **Bundler:** Vite.
+- **Language:** TypeScript.
+- **Graph layout:** `@dagrejs/dagre` lays out the tree/DAG dependency view.
+- **Transport:** gRPC-Web endpoints under `/farmtable.v1/`.
+- **Embedding:** `web/dist/` is embedded into the Go binary with `go:embed` in
+  `../assets.go`, then served by `internal/cli/dashboard.go`.
+
+The app has three primary interface areas:
+
+- **Kanban board:** stage columns for task workflow states in
+  `src/components/kanban/`.
+- **Tree graph:** dependency and hierarchy visualization in
+  `src/components/tree/`, using dagre for layout.
+- **Inspector panel:** selected task details, comments, changes, relationships,
+  and code context in `src/components/inspector/`.
+
+Theme handling uses Shoelace's light and dark themes. `index.html` applies the
+initial `sl-theme-dark` class from `localStorage` key `ft-theme` or the user's
+system preference. The toolbar toggle updates the class and persists the choice
+back to `localStorage`.
+
+Current note: `src/gen/` is hand-written TypeScript mirroring
+`../proto/farmtable.proto`; its file comments note that it should be replaced by
+buf code generation once web client generation is set up.
+
+## Directory Structure
+
+```text
+web/
+├── index.html
+├── package.json
+├── vite.config.ts
+└── src/
+    ├── components/
+    │   ├── ft-app.ts
+    │   ├── kanban/
+    │   ├── tree/
+    │   └── inspector/
+    ├── gen/
+    ├── store/
+    └── styles/
+```
+
+- `src/components/` contains the Lit web components. `ft-app.ts` wires the
+  toolbar, kanban/tree view switcher, shared task store, stream manager, and
+  inspector panel.
+- `src/gen/` contains the current TypeScript task types and service client
+  interface/mock implementation.
+- `src/store/` contains client-side task state and streaming coordination.
+- `src/styles/` contains global theme and application styles.
+- `vite.config.ts` configures the production `dist/` output, copies Shoelace
+  assets into `dist/shoelace/assets`, and proxies `/farmtable.v1/*` to
+  `http://localhost:8080` during development.
+
+## Local Development
+
+Start the backend first. The Vite dev server proxies gRPC-Web requests under
+`/farmtable.v1/*` to `localhost:8080`.
+
+```bash
+ft dashboard --port 8080
+```
+
+For a server-mode backend instead:
+
+```bash
+FARMTABLE_DB_URL='host=... dbname=... user=... password=... sslmode=disable' farmtable-server
+```
+
+Then run the web dev server:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Run TypeScript checking with:
+
+```bash
+cd web
+npm run typecheck
+```
+
+## Building
+
+```bash
+cd web
+npm run build
+```
+
+The build runs `tsc --noEmit` and Vite, then writes compiled assets to
+`web/dist/`.
+
+The Go binary embeds `web/dist/` at build time:
+
+```go
+// ../assets.go
+//go:embed all:web/dist
+var WebAssets embed.FS
+```
+
+After changing frontend code, rebuild `ft` from the repository root so the
+binary includes the new frontend assets:
+
+```bash
+go build -o /workspace/.farmtable/bin/ft ./cmd/ft
+```
+
+Project-wide verification:
+
+```bash
+go build ./...
+go test ./...
+```
+
+## Deployment
+
+### Local or Single-User: `ft dashboard`
+
+`ft dashboard --port 8080` opens the embedded local store, starts the gRPC
+service, wraps it with the gRPC-Web handler, serves `/farmtable.v1/` API
+requests, and serves the embedded `web/dist/` files for the dashboard.
+
+```bash
+ft dashboard --port 8080
+```
+
+### Production: Cloud Run
+
+The repository root `Dockerfile` builds the full stack:
+
+```bash
+docker build -t farmtable .
+```
+
+Its multi-stage build:
+
+1. Uses Node 22 to run `npm ci` and `npm run build` in `web/`.
+2. Copies the resulting `web/dist/` into the Go build context.
+3. Builds the `ft` binary.
+4. Runs `/ft dashboard --port 8080` in the final Debian image.
+
+For the current Cloud Run deployment in GCP project `deploy-demo-test`:
+
+```bash
+# Service URL:
+farmtable-486315127503.us-central1.run.app
+
+# CLI connection:
+export FARMTABLE_SERVER=farmtable-486315127503.us-central1.run.app:443
+```
+
+## Regenerating API Code
+
+The protobuf source of truth is `../proto/farmtable.proto`.
+
+Go protobuf and gRPC code are generated through buf:
+
+```bash
+buf generate
+```
+
+The generation configuration lives in `../buf.gen.yaml` and currently targets
+Go output under `../api/`.
+
+The web files in `src/gen/` are not currently generated by the repository's buf
+configuration. When `proto/farmtable.proto` changes, update `src/gen/types.ts`
+and `src/gen/service.ts` to keep the dashboard in sync, or add a web codegen
+target and replace these hand-written files.
