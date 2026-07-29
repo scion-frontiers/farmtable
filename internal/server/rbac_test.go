@@ -44,6 +44,19 @@ func authCtx(token string) context.Context {
 	return metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+token)
 }
 
+// defaultScopes resolves a recognised user type's default scopes.
+// DefaultScopesForUserType returns an error for unrecognised types rather than
+// a fallback set, so callers that mean a known type say so here and fail the
+// test if the vocabulary ever stops containing it.
+func defaultScopes(t *testing.T, userType string) []string {
+	t.Helper()
+	scopes, err := server.DefaultScopesForUserType(userType)
+	if err != nil {
+		t.Fatalf("DefaultScopesForUserType(%q): %v", userType, err)
+	}
+	return scopes
+}
+
 // ── RequireScope unit tests ──
 
 func TestRequireScope_WildcardAllows(t *testing.T) {
@@ -177,7 +190,7 @@ func TestDefaultScopesForUserType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.userType, func(t *testing.T) {
-			got := server.DefaultScopesForUserType(tt.userType)
+			got := defaultScopes(t, tt.userType)
 			if len(got) != len(tt.expected) {
 				t.Fatalf("DefaultScopesForUserType(%q) = %v, want %v", tt.userType, got, tt.expected)
 			}
@@ -661,7 +674,7 @@ func assertFailedPrecondition(t *testing.T, err error, context string) {
 func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	triaged := createLifecycleTask(t, client, adminCtx, collID, "needs accepting", nil)
@@ -709,7 +722,7 @@ func TestScopedToken_AgentCannotAcceptFromTriage(t *testing.T) {
 func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	triaged := createLifecycleTask(t, client, adminCtx, collID, "launder me", nil)
@@ -749,7 +762,7 @@ func TestScopedToken_AgentCannotLaunderOutOfTriageViaOnHold(t *testing.T) {
 func TestScopedToken_AgentCannotCreateInAcceptedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 
 	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
 		Name:         "born accepted",
@@ -766,7 +779,7 @@ func TestScopedToken_AgentCannotCreateInAcceptedStage(t *testing.T) {
 func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 
 	_, err := client.CreateTask(authCtx(agentToken), &pb.CreateTaskRequest{
 		Name:         "born closed",
@@ -783,7 +796,7 @@ func TestScopedToken_AgentCannotCreateInCompletedStage(t *testing.T) {
 func TestScopedToken_ReviewerCanCreateInAcceptedStage(t *testing.T) {
 	client, _, collID, s := lifecycleFixture(t)
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 
 	created, err := client.CreateTask(authCtx(reviewerToken), &pb.CreateTaskRequest{
 		Name:         "reviewer created",
@@ -802,7 +815,7 @@ func TestScopedToken_ReviewerCanCreateInAcceptedStage(t *testing.T) {
 func TestScopedToken_AgentCannotClose(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	working := createClaimedLifecycleTask(t, client, adminCtx, collID, "agent work")
@@ -829,7 +842,7 @@ func TestScopedToken_AgentCannotClose(t *testing.T) {
 func TestScopedToken_AgentCanClaimAcceptedTask(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	accepted := createLifecycleTask(t, client, adminCtx, collID, "alaccepted accepted",
@@ -864,7 +877,7 @@ func TestRPC_ClaimTask_RejectsTriageStage(t *testing.T) {
 	assertFailedPrecondition(t, err, "ClaimTask from triage (admin)")
 
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 	reviewerCtx := authCtx(reviewerToken)
 
 	_, err = client.ClaimTask(reviewerCtx, &pb.ClaimTaskRequest{Id: triaged.GetId()})
@@ -890,7 +903,7 @@ func TestScopedToken_ReviewerFullLifecycle(t *testing.T) {
 		t.Run(userType, func(t *testing.T) {
 			client, adminCtx, collID, s := lifecycleFixture(t)
 			_, token := createTestUserAndToken(t, s, userType,
-				server.DefaultScopesForUserType(userType), nil)
+				defaultScopes(t, userType), nil)
 			ctx := authCtx(token)
 
 			task := createLifecycleTask(t, client, adminCtx, collID, "full lifecycle", nil)
@@ -940,7 +953,7 @@ func TestScopedToken_ReviewerFullLifecycle(t *testing.T) {
 func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	client, adminCtx, collID, s := lifecycleFixture(t)
 	_, agentToken := createTestUserAndToken(t, s, "agent",
-		server.DefaultScopesForUserType("agent"), nil)
+		defaultScopes(t, "agent"), nil)
 	agentCtx := authCtx(agentToken)
 
 	closedTask := createClaimedLifecycleTask(t, client, adminCtx, collID, "closed work")
@@ -958,7 +971,7 @@ func TestScopedToken_ReopenRequiresAccept(t *testing.T) {
 	assertPermissionDenied(t, err, "UpdateTask completed → accepted")
 
 	_, reviewerToken := createTestUserAndToken(t, s, "reviewer",
-		server.DefaultScopesForUserType("reviewer"), nil)
+		defaultScopes(t, "reviewer"), nil)
 	reopened, err := client.UpdateTask(authCtx(reviewerToken), &pb.UpdateTaskRequest{
 		Id:    closedTask.GetId(),
 		Stage: stageProtoPtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
