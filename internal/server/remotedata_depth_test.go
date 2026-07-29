@@ -577,14 +577,39 @@ func firstTopLevelSeparator(s string) (idx, width int) {
 	return -1, 0
 }
 
-// remoteDataEnclosingFunc matches a top-level func declaration, with or without
-// a receiver, capturing the name. Tracking the most recent one gives each write
-// site an IDENTITY, which is what lets the registry name sites instead of
-// counting them. It is a lexical approximation and would mis-attribute a write
-// inside a func literal to the enclosing declaration; that is acceptable here
-// because the registry only has to be stable and specific, not a parser. When
-// the AST scanner lands it should take this over.
-var remoteDataEnclosingFunc = regexp.MustCompile(`^func\s+(?:\([^)]*\)\s*)?(\w+)`)
+// remoteDataEnclosingFunc matches a top-level func declaration, capturing the
+// RECEIVER TYPE (group 1, empty for a free function) and the NAME (group 2).
+// Tracking the most recent one gives each write site an IDENTITY, which is what
+// lets the registry name sites instead of counting them.
+//
+// ** THE RECEIVER IS CAPTURED BECAUSE A BARE NAME IS NOT AN IDENTITY. ** Package
+// server declares taskToProto TWICE:
+//
+//	convert.go: func taskToProto(t *ent.Task) *pb.Task            <- writes
+//	server.go:  func (s *FarmTableService) taskToProto(ctx, t)    <- wrapper
+//
+// The registry is keyed by file first, so those two are already distinguished --
+// but a bare name cannot separate two methods with the SAME name on DIFFERENT
+// receivers in the SAME file, which Go permits, and that would reintroduce
+// exactly the compensating substitution the name-keying exists to defeat, one
+// level up at the key. Keying on receiver+name closes it. Cheap, so do it before
+// someone needs it rather than after.
+//
+// It is a lexical approximation and would mis-attribute a write inside a func
+// literal to the enclosing declaration; that is acceptable here because the
+// registry only has to be stable and specific, not a parser. When the AST
+// scanner lands it should take this over.
+var remoteDataEnclosingFunc = regexp.MustCompile(
+	`^func\s+(?:\(\s*\w*\s*(\*?\w+)\s*\)\s*)?(\w+)`)
+
+// remoteDataFuncIdent renders a declaration match as the registry's key form:
+// `name` for a free function, `(*Recv).name` for a method.
+func remoteDataFuncIdent(m []string) string {
+	if m[1] == "" {
+		return m[2]
+	}
+	return "(" + m[1] + ")." + m[2]
+}
 
 // remoteDataWriteIsSanitized decides whether the right-hand side of a
 // RemoteData assignment routes through the sanitizer.
@@ -702,6 +727,80 @@ func TestRemoteDataAssignmentSeesEveryShape(t *testing.T) {
 	}
 }
 
+// TestRemoteDataFuncIdentSeparatesMethodsFromFunctions pins the REGISTRY KEY,
+// which is a different thing from the write pattern and fails differently.
+//
+// A bare function name is not an identity. Package server declares taskToProto
+// twice -- the free function in convert.go that holds the wire-path write, and a
+// method on *FarmTableService in server.go that wraps it. The wrapper is the
+// enrichment seam: it takes ctx and the store and already mutates the proto
+// after conversion, so it is by convention exactly where store-dependent field
+// population lands. If the RemoteData write ever moves from the free function
+// into the wrapper, it leaves an audited function for an unaudited one, and a
+// registry keyed on the bare name would stay green through the move -- the same
+// compensating substitution that name-keying exists to defeat, reintroduced one
+// level up at the key.
+//
+// File-keying already separates that particular pair. This test covers the case
+// file-keying CANNOT: Go permits two methods with the same name on different
+// receivers in the SAME file.
+func TestRemoteDataFuncIdentSeparatesMethodsFromFunctions(t *testing.T) {
+	cases := []struct {
+		decl string
+		want string
+	}{
+		{"func taskToProto(t *ent.Task) *pb.Task {", "taskToProto"},
+		{"func (s *FarmTableService) taskToProto(ctx context.Context, t *ent.Task) *pb.Task {",
+			"(*FarmTableService).taskToProto"},
+		{"func (s FarmTableService) taskToProto(t *ent.Task) *pb.Task {",
+			"(FarmTableService).taskToProto"},
+		{"func (a *Alpha) write() {", "(*Alpha).write"},
+		{"func (b *Beta) write() {", "(*Beta).write"},
+		{"func write() {", "write"},
+	}
+
+	seen := map[string]string{}
+	for _, tc := range cases {
+		m := remoteDataEnclosingFunc.FindStringSubmatch(tc.decl)
+		if m == nil {
+			t.Errorf("remoteDataEnclosingFunc did not match a declaration: %s", tc.decl)
+			continue
+		}
+		got := remoteDataFuncIdent(m)
+		if got != tc.want {
+			t.Errorf("remoteDataFuncIdent(%q) = %q, want %q", tc.decl, got, tc.want)
+		}
+		if prev, dup := seen[got]; dup {
+			t.Errorf("KEY COLLISION: %q is produced by both\n  %s\n  %s\n"+
+				"Two distinct declarations sharing a registry key means one can be "+
+				"substituted for the other without the membership set moving.",
+				got, prev, tc.decl)
+		}
+		seen[got] = tc.decl
+	}
+
+	// Anti-vacuity: the table must actually contain a same-name pair, or the
+	// collision check above is asserting nothing. Both the free/method pair and
+	// the two-receivers pair have to be present.
+	if len(seen) != len(cases) {
+		t.Errorf("expected %d distinct keys from %d declarations, got %d",
+			len(cases), len(cases), len(seen))
+	}
+	for _, pair := range [][2]string{
+		{"taskToProto", "(*FarmTableService).taskToProto"},
+		{"(*Alpha).write", "(*Beta).write"},
+	} {
+		if _, ok := seen[pair[0]]; !ok {
+			t.Errorf("anti-vacuity: the table no longer contains %q, so the "+
+				"collision it guards against is untested", pair[0])
+		}
+		if _, ok := seen[pair[1]]; !ok {
+			t.Errorf("anti-vacuity: the table no longer contains %q, so the "+
+				"collision it guards against is untested", pair[1])
+		}
+	}
+}
+
 // remoteDataWriteExpectation is one file's entry in the write-site registry:
 // which FUNCTIONS in it assign RemoteData -- each of which must route through
 // sanitizeRemoteData -- and which exact source lines are exempt because they
@@ -772,16 +871,44 @@ func (e remoteDataWriteExpectation) wantFuncs() []string {
 // for which non-test files UNDER internal/server may assign a RemoteData field.
 //
 // ================== READ THE SCOPE BEFORE YOU TRUST THE RESULT ==================
-// THIS REGISTRY COVERS ONE DIRECTORY: internal/server. IT IS NOT A TREE-WIDE
-// CENSUS OF RemoteData WRITES. Other packages assign RemoteData too, and this
-// scanner does one os.ReadDir of one directory, so it never reads them.
+// TWO LIMITS, AND THE SECOND IS THE ONE THAT WILL SURPRISE YOU.
 //
-// A GREEN RESULT HERE MEANS "internal/server IS CLEAN". IT DOES NOT MEAN "THE
-// TREE IS CLEAN", AND IT IS NOT EVIDENCE EITHER WAY ABOUT ANY OTHER PACKAGE --
-// not that they are safe, not that they are unsafe. Whether writes elsewhere
-// need sanitizing is an open architectural question owned outside this file;
-// nothing here has adjudicated it, and a reader must not infer that silence is
-// a clearance.
+// LIMIT 1, LOCATION: THIS REGISTRY COVERS ONE DIRECTORY, internal/server. It is
+// not a tree-wide census. Other packages assign RemoteData too, and this scanner
+// does one os.ReadDir of one directory, so it never reads them.
+//
+// LIMIT 2, FORM: THIS SCANNER MATCHES ASSIGNMENT AND INDEX FORMS ONLY. IT DOES
+// NOT MATCH BUILDER-SUFFIX FORMS SUCH AS SetRemoteData, AND SIX OF THOSE EXIST
+// IN internal/store/entstore.go. The reason is worth understanding rather than
+// patching: the anchor is `\bRemoteData\b`, and THERE IS NO WORD BOUNDARY
+// BETWEEN "Set" AND "RemoteData". Verified:
+//
+//	printf 'x.SetRemoteData(m)' | grep -cE '\bRemoteData'   ->   0
+//
+// Ent's mutation builders carry the identifier as a SUFFIX of a different
+// identifier, so every census taken during this round -- three of them, by three
+// legs, independently -- excluded the persistence layer BY THE SHAPE OF THE
+// ANCHOR rather than by anyone's choice. Those six are tracked separately. DO
+// NOT fix this by adding SetRemoteData as a seventh form: adding a form is the
+// move that produced every blind spot in this file's history, and the sound
+// bound is compiler-resolved (an AST walk, or a type that makes raw assignment
+// unrepresentable), which is separate work.
+//
+// AND THE ARGUMENT THAT ENDS THE COUNTING RATHER THAN WINNING IT: RemoteData is
+// map[string]any, a REFERENCE type. `create.SetRemoteData(p.RemoteData)` hands
+// the store the map itself, so ANY LATER MUTATION THROUGH ANY ALIAS IS A WRITE
+// TO PERSISTED STATE IN WHICH THE TOKEN "RemoteData" DOES NOT APPEAR AT ALL. A
+// census keyed on the identifier cannot in principle enumerate those. ** THE
+// POPULATION IS OPEN. ** That is why this test's name says what it WALKS and not
+// what it covers -- a universal over a set nobody can enumerate is not a claim
+// anyone can honour.
+//
+// A GREEN RESULT HERE MEANS "THE SITES THIS SCANNER WALKS ARE CLEAN". IT DOES
+// NOT MEAN "THE TREE IS CLEAN", AND IT IS NOT EVIDENCE EITHER WAY ABOUT ANY
+// OTHER PACKAGE OR ANY OTHER FORM -- not that they are safe, not that they are
+// unsafe. Whether writes elsewhere need sanitizing is an open architectural
+// question owned outside this file; nothing here has adjudicated it, and a
+// reader must not infer that silence is a clearance.
 //
 // This is spelled out because the guard got STRONGER in this commit, and a
 // stronger guard is trusted further. A membership set that enumerates one
@@ -867,13 +994,13 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 		// the floor.
 		//
 		// ent -> export document.
-		outbound: []string{"ExportCollection", "taskExport"},
+		outbound: []string{"(*FarmTableService).ExportCollection", "taskExport"},
 		// Untrusted request bytes -> store. Verified by reading the source, not
 		// taken on report: both of these read from `doc`, and `doc` is built in
 		// ImportCollection from req.GetData() by either the beads arm or the
 		// farmtable JSON arm. These are PERSISTED -- they feed store params
 		// through to entstore.go SetRemoteData.
-		inbound: []string{"ImportCollection", "importedTask"},
+		inbound: []string{"(*FarmTableService).ImportCollection", "importedTask"},
 	},
 	"server.go": {
 		// UpdateTask builds a two-key map from request fields instead of copying
@@ -886,8 +1013,21 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 		// rather than silently unseen, which is the difference this rewrite buys.
 		// Neither direction: nothing here is a sanitized write at all.
 		exempt: map[string]string{
-			`p.RemoteData = map[string]any{}`: "constructs an empty map, then writes " +
-				"the two keys below into it",
+			`p.RemoteData = map[string]any{}`: "constructs an EMPTY map -- and read " +
+				"the rest of this before you reuse the pattern. In isolation the " +
+				"line is unimpeachable: it assigns an empty literal, so there is " +
+				"nothing to sanitize. In context it is the INITIALISER OF A " +
+				"THREE-LINE SEQUENCE whose next two lines put caller-supplied bytes " +
+				"into the very map it just created. AN EXACT-TEXT EXEMPTION CAN " +
+				"EXPRESS 'THIS WRITE IS EMPTY'. IT CANNOT EXPRESS 'AND NOTHING " +
+				"POPULATES IT AFTERWARDS.' Before this rewrite those next two lines " +
+				"were map-index assignments, which the old scanner could not see at " +
+				"all, so the exemption and the blind spot were MUTUALLY CONCEALING: " +
+				"the instrument recorded a considered human decision about this " +
+				"line and had no representation whatsoever for the two that falsify " +
+				"its premise, which reads to any auditor as 'this file was " +
+				"examined'. It is only safe to exempt this line because the two " +
+				"below are now visible and adjudicated in their own right.",
 			`p.RemoteData["remote_id"] = req.GetRemoteId()`: "a remote ID, not a URL " +
 				"carrier; urlBearingRemoteDataKey does not admit remote_id",
 			`p.RemoteData["remote_url"] = req.GetRemoteUrl()`: "guarded at entry: " +
@@ -903,7 +1043,7 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 	},
 }
 
-// TestRemoteDataWriteSitesUnderInternalServerSanitize replaces the sentence "we
+// TestScannedServerPackageRemoteDataWriteSitesSanitize replaces the sentence "we
 // patched four sites" with a measurement, because the sentence was already false
 // once: the first version of this work sanitized pb.Task.remote_data and left
 // pb.Collection.remote_data and both export paths writing the map raw.
@@ -952,7 +1092,7 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 //
 // NO TOTAL IS PINNED ANYWHERE. A floor fails by margin absorption; an exact
 // total fails by compensating substitution. Only names resist both.
-func TestRemoteDataWriteSitesUnderInternalServerSanitize(t *testing.T) {
+func TestScannedServerPackageRemoteDataWriteSitesSanitize(t *testing.T) {
 	root := filepath.Join("..", "..", "internal", "server")
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -979,7 +1119,7 @@ func TestRemoteDataWriteSitesUnderInternalServerSanitize(t *testing.T) {
 		enclosing := "<file scope>"
 		for i, line := range strings.Split(string(src), "\n") {
 			if fn := remoteDataEnclosingFunc.FindStringSubmatch(line); fn != nil {
-				enclosing = fn[1]
+				enclosing = remoteDataFuncIdent(fn)
 			}
 			rhs, isSite := remoteDataAssignment(line)
 			if !isSite {
@@ -1015,7 +1155,11 @@ func TestRemoteDataWriteSitesUnderInternalServerSanitize(t *testing.T) {
 			"through sanitizeRemoteData:\n  %s\n\nEither sanitize the site or add its "+
 			"exact source line to that FILE's `exempt` map in "+
 			"internalServerRemoteDataWriteRegistry, with the reason it reads rather "+
-			"than writes.",
+			"than writes.\n"+
+			"SCOPE OF THIS SCANNER: internal/server only; assignment and index "+
+			"forms only; builder-suffix forms such as SetRemoteData are NOT "+
+			"matched, and six exist in internal/store/entstore.go. A green run "+
+			"here is not a statement about the tree.",
 			len(unsanitized), strings.Join(unsanitized, "\n  "))
 	}
 
@@ -1090,10 +1234,16 @@ func TestRemoteDataWriteSitesUnderInternalServerSanitize(t *testing.T) {
 				"have absorbed the whole set. Before editing this registry, check "+
 				"whether the write is still there but has changed SHAPE and fallen "+
 				"out of remoteDataAssignment: that is how this scanner lost both "+
-				"wire-path sites once before, silently. Widen the pattern to cover "+
-				"the new shape rather than deleting the expectation. If the function "+
-				"was genuinely renamed or removed, update the registry deliberately "+
-				"and say why in the commit message.",
+				"wire-path sites once before, silently. In particular check whether "+
+				"it became a BUILDER-SUFFIX call such as SetRemoteData, which this "+
+				"scanner does not match at all (no word boundary between \"Set\" and "+
+				"\"RemoteData\"). Do not delete the expectation to make this pass, and "+
+				"do not paper over it by adding one more admissible form. If the "+
+				"function was genuinely renamed or removed, update the registry "+
+				"deliberately and say why in the commit message.\n"+
+				"SCOPE OF THIS SCANNER: internal/server only; assignment and index "+
+				"forms only; builder-suffix forms such as SetRemoteData are NOT "+
+				"matched, and six exist in internal/store/entstore.go.",
 				name, dir.label, strings.Join(missing, ", "), dir.why)
 		}
 
