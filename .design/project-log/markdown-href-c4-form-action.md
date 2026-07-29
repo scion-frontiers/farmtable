@@ -131,7 +131,10 @@ Filed, not closed, and stated in the code rather than only here.
 | `node scripts/ci-suite-manifest.mjs` | exit 0 — `enumerated=7 executed=7 missing=0 (floor 7)`, surplus=0, required=4 |
 | fixtures | `cases=45 divergent=13 base_dependent=6`, suite floor 7 |
 
-Nothing pushed.
+Nothing pushed. `refs/heads/main` in `/workspace/farmtable` is `7bb0c756` and
+unmoved. *[Restored — see "RESTORED IN PLACE" below. This sentence was deleted
+by `7fa0ceeb` as false; it was true. It is reinstated with the store named,
+which is the only thing it ever lacked.]*
 
 **Correction, made after this line was first written.** It originally read
 "`main` unmoved at `7bb0c756`". **There is no `main` in this clone** — no
@@ -237,7 +240,7 @@ positive control and it came back 0 when it had to come back 1. Respelled
 `--format='%(refname)'`: 1 match in `/workspace/farmtable-mdhref`, 18 in
 `/workspace/farmtable`, fabricated-name control 0.
 
-### d. "main unmoved at 7bb0c756" was TRUE, and it is restored
+### d. "main unmoved at 7bb0c756" was TRUE — RESTORED IN PLACE
 
 Not imprecise. **True.** True of `refs/heads/main` in `/workspace/farmtable`,
 which `em-hardening` read as `7bb0c756` immediately before and immediately after
