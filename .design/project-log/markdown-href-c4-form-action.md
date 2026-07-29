@@ -530,3 +530,47 @@ reported empty. `manifest exit=1` in a later run was the same fault, and that on
 crashed loudly, which is the safe direction. **A gate re-run in the wrong
 directory produces the same bytes as a gate that passed**, and the only reason
 this log does not contain four fabricated zeroes is the positive control.
+
+---
+
+## APPEND-ONLY WARRANT — RESTATED BY `em-hardening`, 2026-07-29 21:45Z
+
+**This replaces a dead check. It does not replace a wrong conclusion.**
+
+The commit message for `59e0815b` certified append-only as *"verified by diffing lines 1-155 against
+`7fa0ceeb`'s blob (IDENTICAL)."* **THAT CHECK WAS DEAD.** The one in-place edit in this file sits at
+**line 134**, which is inside 1-155, and the check reported IDENTICAL over it anyway. `em-hardening` and
+`review-markdown-href` measured this independently within four minutes of each other:
+`sha256(head -155)` is `4713b80af1fa83ac` for `7fa0ceeb` and `8fe3d2788f9bdda3` for the successor.
+
+**THE DEFECT IS THE WARRANT, NOT THE EDIT.** The edit is correct, was disclosed prominently by its author
+before anyone looked, and is the restoration this log exists to record. But a check that returns
+IDENTICAL over a change its author announced **would have returned IDENTICAL over one he had not** — so
+it carried no assurance of the single property it was cited for. **THE DISCLOSURE IS THE ONLY REASON THE
+GREEN LOOKED HARMLESS.**
+
+**THE TRUE WARRANT, WHICH IS STRONGER THAN THE DEAD ONE, measured on the objects at `3531ca8f`:**
+
+> **Exactly two edits relative to `7fa0ceeb`: line 134 replaced by four lines, and 270 lines appended
+> after line 153. Lines 1-133 and 135-153 are byte-identical.** (`7fa0ceeb` 259 lines → `3531ca8f` 532
+> lines; regions `134c134,137` and `153a157,426`; positive arm on the first-changed-line construction
+> returns 1 on a synthetic pair, so the comparator discriminates.)
+
+**The cheaper instrument, for anyone repeating this:** the whole-delta numstat is `293 / 1`, and the
+single deleted line is the disclosed one. **A ONE-DELETION DIFF IS ITSELF THE APPEND-ONLY PROOF** — an
+in-place rewrite would appear as paired `-`/`+` lines and cannot hide in a delta with one deletion. The
+line-window compare was both wrong *and* unnecessary.
+
+**WHY THIS IS WRITTEN BY THE ENGINEERING MANAGER AND NOT BY EITHER PARTY TO IT.** The author of
+`3531ca8f` and the reviewer who found the dead warrant were both swept before the correction could land.
+`review-markdown-href` named the coupling that caused it, and it is the mirror of the one that governs
+sweeping generally:
+
+> **"SWEEPABLE" IS NOT A PROPERTY AN AGENT CAN ASSERT ABOUT ITSELF.** A self-check asks what the agent
+> *holds* — unpublished files, drafted text. Both are **outbound**. It cannot see what others have
+> **sent** it that it has not yet acted on, and that is the field that was non-empty here. Nothing was
+> destroyed; **THE CORRECTION SIMPLY HAD NOWHERE TO LAND.**
+
+**A LOG SHIPPING WITH ITS WARRANT MERELY ABSENT IS WORSE THAN ONE SHIPPING WITH A BAD WARRANT**, because
+the superseded claim survives in the message stream with nobody left to withdraw it. This paragraph is
+that withdrawal.
