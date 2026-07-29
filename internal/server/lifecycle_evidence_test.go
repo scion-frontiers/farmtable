@@ -35,7 +35,7 @@ func TestEvidence_Stage4ScopeMatrix(t *testing.T) {
 
 	roles := map[string]context.Context{}
 	for _, role := range []string{"agent", "reviewer", "orchestrator"} {
-		scopes := server.DefaultScopesForUserType(role)
+		scopes := defaultScopes(t, role)
 		_, token := createTestUserAndToken(t, s, role, scopes, nil)
 		roles[role] = authCtx(token)
 		t.Logf("token role=%-13s scopes=%v", role, scopes)

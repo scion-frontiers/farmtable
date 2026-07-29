@@ -179,7 +179,7 @@ func TestDefaultScopesForUserType_LifecycleRoles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.userType, func(t *testing.T) {
-			got := server.DefaultScopesForUserType(tt.userType)
+			got := defaultScopes(t, tt.userType)
 			if len(got) != len(tt.wantScopes) {
 				t.Fatalf("scopes = %v, want %v", got, tt.wantScopes)
 			}
@@ -192,7 +192,7 @@ func TestDefaultScopesForUserType_LifecycleRoles(t *testing.T) {
 	}
 
 	// Agents explicitly must not receive lifecycle authority.
-	for _, s := range server.DefaultScopesForUserType("agent") {
+	for _, s := range defaultScopes(t, "agent") {
 		if s == server.ScopeTaskAccept || s == server.ScopeTaskClose {
 			t.Errorf("agent default scopes must not include %q", s)
 		}
