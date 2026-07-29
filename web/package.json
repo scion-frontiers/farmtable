@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "node scripts/run-node-tests.mjs",
+    "test": "rm -rf .tmp-test && tsc -p tsconfig.test.json && node --test .tmp-test/capabilities.test.js .tmp-test/components/inspector/render-sink-xss.test.js .tmp-test/util/assertions.test.js .tmp-test/util/safe-url.test.js .tmp-test/util/url-binding-scan.test.js .tmp-test/utils/task-ready.test.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
