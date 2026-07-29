@@ -143,6 +143,16 @@ jobs:
           # green. If you are here to relax this arm, you are removing the
           # freshness guarantee whether or not you intend to. Read the matching
           # comment on the content arm before you do.
+          #
+          # THIS IS NOT A HYPOTHETICAL. It has already happened in this
+          # repository, on a real branch: a halted branch went GREEN only
+          # because its WORKING TREE carried a built web/dist that THE COMMIT
+          # DID NOT. A tree that builds and a commit that does not are
+          # indistinguishable to anyone reading that green, and the green was
+          # believed. This arm is what makes that case impossible now -- not by
+          # checking freshness, which nothing does, but by proving nothing
+          # untracked is present before the build runs. Relax it and that exact
+          # incident becomes possible again, silently, with no gate complaining.
           # ===================================================================
           #
           # TWO separate conditions are checked below, because build output can
