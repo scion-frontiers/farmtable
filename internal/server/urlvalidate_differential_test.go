@@ -525,7 +525,7 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 		"metadata": "an opaque json.RawMessage blob of platform payload. Not walked by " +
 			"sanitizeRemoteData: structpb.NewStruct cannot represent json.RawMessage " +
 			"either, so it never reaches the wire at all (same mechanism as " +
-			"TestGitHubPassthroughRemoteDataNeverSerialises)",
+			"TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident)",
 	}
 
 	// Nested keys are held to a stricter rule than top-level ones: they may not
@@ -691,14 +691,6 @@ func TestSanitizeRemoteDataScrubsEveryURLCarrier(t *testing.T) {
 	}
 }
 
-// TestTaskToProtoScrubsRemoteDataURLCarriers pins that sanitizeRemoteData is
-// actually WIRED IN, not merely correct in isolation.
-//
-// It uses a RemoteData map whose values are all structpb-representable, which
-// is the shape an ent-stored or collection-imported task has (a JSON round-trip
-// yields []any, not []string). That matters: the GitHub passthrough path cannot
-// exercise this at all -- see
-// TestGitHubPassthroughRemoteDataNeverSerialises.
 // TestMapStringStringStaysUnrepresentable_GuardsO1 pins a FAIL-CLOSED ACCIDENT,
 // not a designed behaviour, and it exists because that accident has a scheduled
 // removal date.
@@ -787,6 +779,21 @@ func TestMapStringStringStaysUnrepresentable_GuardsO1(t *testing.T) {
 	}
 }
 
+// TestTaskToProtoScrubsRemoteDataURLCarriers pins that sanitizeRemoteData is
+// actually WIRED IN, not merely correct in isolation.
+//
+// It uses a RemoteData map whose values are all structpb-representable, which
+// is the shape an ent-stored or collection-imported task has (a JSON round-trip
+// yields []any, not []string). That matters: the passthrough-GraphQL path cannot
+// exercise this at all -- see
+// TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident.
+//
+// (This comment was previously stranded above
+// TestMapStringStringStaysUnrepresentable_GuardsO1, which was inserted between
+// it and this function. Two contiguous `//` blocks merge into one doc comment,
+// so it silently became the opening paragraph of a DIFFERENT test's
+// documentation and this function had none. Godoc reported nothing; nothing
+// could. Moved back.)
 func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 	const bad = "javascript:alert(1)"
 	id := uuid.New()
@@ -825,9 +832,31 @@ func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 	}
 }
 
-// TestGitHubPassthroughRemoteDataNeverSerialises pins a silent behaviour that
-// nothing recorded before, and that materially changes how the remote_data
-// finding should be read.
+// TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident pins a silent
+// behaviour that nothing recorded before, and that materially changes how the
+// remote_data finding should be read.
+//
+// ** RENAMED FROM TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident, AND THE OLD
+// NAME WAS WRONG IN TWO WAYS, BOTH OF WHICH THIS ROUND HAS SEEN ELSEWHERE. **
+//
+//	"NEVER" WAS A UNIVERSAL THIS TEST DOES NOT ESTABLISH. The body asserts one
+//	thing: structpb.NewStruct rejects a []string value. "Never serialises" is an
+//	inference on top of that, and it holds only while EVERY remote_data map on
+//	this path contains at least one structpb-unrepresentable value. Drop
+//	"labels" from the builder and remote_data serialises fine while a test
+//	called ...NeverSerialises sits there green. Same defect as a write-site
+//	scanner named "Every" that reads one directory.
+//
+//	"SERIALISES" NAMED THE SYMPTOM, NOT THE MECHANISM, AND THE MECHANISM IS AN
+//	ACCIDENT. Nothing chose to drop remote_data here. A type the wire format
+//	cannot carry causes the whole struct build to fail and the error is
+//	discarded. The name now says "by structpb accident" so that a reader who
+//	makes remote_data representable -- a perfectly reasonable change -- is told
+//	in the identifier itself that they are removing something load-bearing.
+//
+// The scope qualifier is passthrough-GraphQL, not "the GitHub adapter": the
+// sync-REST path is a different code path with a different builder, and this
+// test says nothing about it.
 //
 // convert.go writes `pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)` and
 // discards the error. structpb.NewStruct rejects []string outright, and
@@ -846,7 +875,7 @@ func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 // Left as-is rather than fixed: making remote_data serialise here would be a
 // visible behaviour change (a field that is empty today starts being populated)
 // and belongs in its own change, not in a security round.
-func TestGitHubPassthroughRemoteDataNeverSerialises(t *testing.T) {
+func TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident(t *testing.T) {
 	labels := []string{"bug"}
 
 	if _, err := structpb.NewStruct(map[string]any{"labels": labels}); err == nil {

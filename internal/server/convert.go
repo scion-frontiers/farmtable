@@ -259,20 +259,18 @@ func userToProto(u *ent.User) *pb.User {
 // then and yields a nil field now. The only new thing is that it is audible.
 //
 // It takes the sanitized map and not the raw one, and it is a function rather
-// than an inline if/else, for a reason that is not style. The write-site
-// scanner in remotedata_depth_test.go matches
+// than an inline if/else, which keeps `sanitizeRemoteData(` lexically on the
+// right-hand side of the assignment for remoteDataWriteIsSanitized to find.
 //
-//	^.*\bRemoteData(?:,\s*_)?\s*[:=]=?\s*(.+)$
-//
-// whose optional group admits exactly one thing: a comma and an UNDERSCORE. The
-// natural way to log a discarded error is to give that underscore a name --
-// `pt.RemoteData, err = structpb.NewStruct(...)` -- and that line does not match
-// the regex AT ALL. It would not fail the scanner; it would DISAPPEAR from it,
-// taking both of the wire-path sites with it and leaving the four export_import
-// sites to satisfy an anti-vacuity floor that was set to 4. Keeping the call in
-// the form `<field>.RemoteData = f(sanitizeRemoteData(...))` keeps the site
-// visible to the regex AND keeps "sanitizeRemoteData(" lexically on the
-// right-hand side, which is what remoteDataWriteIsSanitized looks for.
+// That property was briefly load-bearing and is no longer. The write-site
+// scanner used to enumerate the SHAPES a left-hand side could take, so naming
+// the error here -- the natural way to stop discarding it -- made both of the
+// wire-path sites DISAPPEAR from the scanner rather than fail it. Enumerating
+// more shapes would only have moved the blind spot, so the scanner now stops
+// constraining the left-hand side entirely and anchors on the right-hand side
+// instead (see remoteDataAssignment). This form is kept because it is also the
+// clearest way to log from a package-level converter; it is NOT the guard, and
+// nothing here should be preserved on the belief that it is.
 //
 // The message describes what a failure means TODAY: the sanitizer is
 // type-preserving, so it can hand structpb a Go type structpb cannot represent
@@ -281,6 +279,31 @@ func userToProto(u *ent.User) *pb.User {
 // MUST CHANGE to report an INVARIANT VIOLATION -- a normaliser gap -- because at
 // that point a failure here is a bug in the normaliser and not a property of the
 // input, and the present wording would send the next reader after the wrong bug.
+//
+// ON REACHABILITY, STATED RATHER THAN ASSUMED, because this log was queried
+// specifically for the collection path.
+//
+// THERE IS ONE LOG STATEMENT, NOT TWO. Both taskToProto and collectionToProto
+// call this function, so the log cannot be shipped for one and withheld from the
+// other; the `field` argument is the only thing that differs. That makes the
+// question "is this log reachable" a question about the UNION of the two paths,
+// and it is REACHABLE ON THE TASK PATH -- see
+// TestMapStringStringStaysUnrepresentable_GuardsO1 and
+// TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident, which pin the two
+// live triggers (a Go-native map[string]string, and a []string from the
+// passthrough-GraphQL builder). So it ships as an ordinary reachable log and
+// carries NO "unreachable by construction" claim, because that claim would be
+// false.
+//
+// The collection half separately looks hard to reach: the only non-test
+// in-memory *ent.Collection constructor is syntheticCollection() in
+// platform/github/passthrough.go, which leaves RemoteData nil, and a
+// store-loaded collection's map arrives through a JSON decode, which yields only
+// representable types. I am NOT recording that as unreachable. Two searches were
+// clean, and a clean search is not a bound; a value can also arrive by
+// assignment after construction, and "this constructor does not set X" is not
+// "no path reaches a write of X". It does not matter either way, because the
+// shared log is already reachable via the task path.
 func structOrNilLoggingErr(sanitized map[string]any, field string) *structpb.Struct {
 	s, err := structpb.NewStruct(sanitized)
 	if err != nil {

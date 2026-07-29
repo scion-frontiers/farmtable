@@ -208,7 +208,7 @@ func TestPassthroughReadDropsUnsafeRemoteURL(t *testing.T) {
 			// reason: issueBuildRemoteData sets "labels" to a []string,
 			// structpb.NewStruct rejects that type outright, and convert.go
 			// discards the error. Measured; pinned by
-			// TestGitHubPassthroughRemoteDataNeverSerialises.
+			// TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident.
 			//
 			// So asserting "remote_url is absent from remote_data" here would pass
 			// against a completely unsanitized taskToProto. The non-vacuous pins
