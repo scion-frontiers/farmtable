@@ -34,6 +34,27 @@ func recvEvent(t *testing.T, stream pb.FarmTableService_WatchTasksClient, timeou
 	}
 }
 
+// awaitSubscribed blocks until the server has registered this stream's
+// event-bus subscription.
+//
+// Creating a stream does not wait for the server handler to run, so a test that
+// mutates a task immediately after calling WatchTasks can have its event
+// published before the subscription exists. The bus drops such events -- it has
+// no replay -- and the test then waits out its full timeout for an event that
+// will never be sent. WatchTasks flushes response headers immediately after
+// subscribing, so receiving them proves nothing published from here on can be
+// missed. This is a real barrier, not a delay: it waits for the exact event it
+// needs and no longer.
+//
+// Tests that read from the stream before mutating anything do not need this;
+// the first successful Recv is itself proof that the subscription exists.
+func awaitSubscribed(t *testing.T, stream pb.FarmTableService_WatchTasksClient) {
+	t.Helper()
+	if _, err := stream.Header(); err != nil {
+		t.Fatalf("waiting for subscription to be established: %v", err)
+	}
+}
+
 func TestWatchTasks_IncludeInitial(t *testing.T) {
 	client, cleanup := testutil.NewTestServerWithStreaming(t)
 	defer cleanup()
@@ -107,6 +128,8 @@ func TestWatchTasks_NoInitial(t *testing.T) {
 		t.Fatalf("WatchTasks: %v", err)
 	}
 
+	awaitSubscribed(t, stream)
+
 	_, err = client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
 		Name:         "new-task",
@@ -140,6 +163,8 @@ func TestWatchTasks_CreatedEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchTasks: %v", err)
 	}
+
+	awaitSubscribed(t, stream)
 
 	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
@@ -183,6 +208,8 @@ func TestWatchTasks_UpdatedEvent(t *testing.T) {
 		t.Fatalf("WatchTasks: %v", err)
 	}
 
+	awaitSubscribed(t, stream)
+
 	newName := "updated-name"
 	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
 		Id:      created.GetId(),
@@ -223,6 +250,8 @@ func TestWatchTasks_ClosedEvent(t *testing.T) {
 		t.Fatalf("WatchTasks: %v", err)
 	}
 
+	awaitSubscribed(t, stream)
+
 	_, err = client.CloseTask(ctx, &pb.CloseTaskRequest{
 		Id:      created.GetId(),
 		Version: strPtr(created.GetVersion()),
@@ -261,6 +290,8 @@ func TestWatchTasks_ClaimEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchTasks: %v", err)
 	}
+
+	awaitSubscribed(t, stream)
 
 	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{
 		Id:      created.GetId(),
@@ -345,6 +376,8 @@ func TestWatchTasks_CollectionFilter(t *testing.T) {
 		t.Fatalf("WatchTasks: %v", err)
 	}
 
+	awaitSubscribed(t, stream)
+
 	_, err = client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collB,
 		Name:         "wrong-collection",
@@ -386,6 +419,8 @@ func TestWatchTasks_Heartbeat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchTasks: %v", err)
 	}
+
+	awaitSubscribed(t, stream)
 
 	_, err = client.CreateTask(ctx, &pb.CreateTaskRequest{
 		CollectionId: collID,
