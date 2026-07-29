@@ -31,7 +31,22 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // have. If enumeration returns fewer than this, the population itself is the
 // defect and no membership comparison is meaningful: with an empty `present`
 // set, "every present file is executed" is vacuously true and this script
-// would print OK and exit 0. Raise this when suites are added.
+// would print OK and exit 0.
+//
+// WHAT ONE UNIT OF MIN_TEST_FILES IS. Exactly one file path that is
+//
+//   - under the `web` pathspec,
+//   - visible to git: tracked, or untracked and not ignored,
+//   - matching TEST_FILE_RE,
+//   - not under `web/dist/` and not under any `node_modules/`.
+//
+// It is RUNNER-BLIND: it counts files on disk, and nothing else. It is not a
+// count of manifest entries, not a count of executed suites, not a count of
+// `test()` or `describe()` calls, and not affected by whether anything runs
+// those files. That independence is the point -- `present` is the yardstick the
+// runners are measured against, so it must never be derived from them.
+//
+// Adding a suite is what raises this number.
 const MIN_TEST_FILES = 1;
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
@@ -50,6 +65,13 @@ function candidateFiles(pathspec) {
 }
 
 // ---------------------------------------------------------------- present ---
+// The population, per the MIN_TEST_FILES predicate above.
+//
+// Note what TEST_FILE_RE does NOT exclude: compiled test output. `x.test.js`
+// emitted by tsc is a test file by name, and if it is git-visible it is counted
+// alongside the `x.test.ts` it came from. Nothing here prevents that; the
+// invariant is asserted where the outDir is actually known, in
+// expandRunnerScript, so that it cannot be quietly lost to a rename.
 const present = candidateFiles('web')
   .filter(
     (f) =>
@@ -203,20 +225,247 @@ function runnerArgs(cmd) {
   return out;
 }
 
-// Does a vitest positional filter select this path?
+// ------------------------------------------------------------ interrogation ---
+// ASK THE RUNNER, DO NOT MODEL IT.
 //
-// A bare substring test over-credits: filter `read` would claim to execute
-// `.../task-ready.test.ts`, marking a file executed that nothing selected.
-// Over-crediting shrinks `missing`, and `missing` is the pass condition, so a
-// loose match here manufactures a pass. Anchored to path-segment boundaries.
-function pathFilterMatches(p, filter) {
-  const f = filter.replace(/^\.?\/+/, '').replace(/\/+$/, '');
-  if (!f) return false;
-  if (p === f) return true;
-  if (p.endsWith(`/${f}`)) return true; // suffix on a segment boundary
-  if (p.startsWith(`${f}/`)) return true; // directory prefix
-  if (p.includes(`/${f}/`)) return true; // whole interior segment
-  return false;
+// Earlier revisions of this script reimplemented other people's glob semantics
+// -- a tsconfig `include` matcher, a JSONC comment stripper, a vitest path
+// filter. Every one of them was a guess about somebody else's resolver, and two
+// of the three were wrong in a way that only showed up when fired. The tools
+// can each be asked directly, and their answer is the ground truth this script
+// is trying to approximate, so it asks.
+//
+// Every helper here returns null on ANY failure and every caller treats null as
+// unanalysable. A tool that cannot be asked is not a tool that agreed.
+function ask(binRelToRepo, args) {
+  if (!existsSync(binRelToRepo)) return null;
+  try {
+    return execFileSync(process.execPath, [`${repoRoot}/${binRelToRepo}`, ...args], {
+      cwd: `${repoRoot}/web`,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 32 * 1024 * 1024,
+      timeout: 120_000,
+    });
+  } catch {
+    return null;
+  }
+}
+
+const TSC_BIN = 'web/node_modules/typescript/bin/tsc';
+const VITEST_BIN = 'web/node_modules/vitest/vitest.mjs';
+
+function toRepoPath(p) {
+  const s = p.replace(/^\.\//, '');
+  if (s.startsWith('/')) return s.startsWith(`${repoRoot}/`) ? s.slice(repoRoot.length + 1) : s;
+  return `web/${s}`;
+}
+
+// TypeScript's own expansion of a tsconfig's include/files globs, as concrete
+// paths, plus where it puts the output. `--showConfig` resolves the globs
+// against the real tree, so this is what tsc will actually compile -- not what
+// this script thinks those globs mean.
+function tsconfigInfo(cfgRelToWeb) {
+  const out = ask(TSC_BIN, ['-p', cfgRelToWeb, '--showConfig']);
+  if (out === null) return null;
+  try {
+    const cfg = JSON.parse(out);
+    if (!Array.isArray(cfg.files)) return null;
+    const outDir = cfg.compilerOptions && cfg.compilerOptions.outDir;
+    return {
+      files: cfg.files.map(toRepoPath).sort(),
+      outDir: typeof outDir === 'string' ? toRepoPath(outDir).replace(/\/$/, '') : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Vitest's own answer to "which files would this invocation run", including the
+// effect of its config `include`/`exclude` and of any positional filters.
+function vitestFiles(filters) {
+  const out = ask(VITEST_BIN, ['list', '--filesOnly', ...filters]);
+  if (out === null) return null;
+  return out
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('['))
+    .map(toRepoPath)
+    .sort();
+}
+
+// A runner script such as `node scripts/run-node-tests.mjs` walks the tree for
+// test files instead of naming them. Expanding it means working out WHICH files
+// that walk yields -- an allowlist that merely waves the runner through would
+// re-create the exact hole this script exists to close, because a runner whose
+// glob silently stops matching a directory is indistinguishable from one that
+// never ran.
+//
+// Whatever the runner is asked or read, the answer is CHECKED against the
+// tsconfig that same script compiles with, and against `present`. Independent
+// statements of one file set must agree; if they do not, the runner is reported
+// unanalysable rather than believed. Anything this function cannot establish
+// returns an error string, never a set.
+//
+// WALK_RE is the fallback path only, for a runner that offers no `--list`. It
+// deliberately recognises one narrow shape: a regex chasing arbitrary discovery
+// logic would eventually match something it does not understand, and a wrong
+// answer here is worse than a refusal.
+const WALK_RE =
+  /walk\(\s*join\(\s*webRoot\s*,\s*(['"])([^'"]+)\1\s*\)\s*,\s*\(?\s*(\w+)\s*\)?\s*=>\s*\3\.endsWith\(\s*(['"])([^'"]+)\4\s*\)/g;
+
+function expandRunnerScript(scriptRelToWeb) {
+  const path = `web/${scriptRelToWeb.replace(/^\.\//, '')}`;
+  if (!existsSync(path)) return { error: `no such file '${path}'` };
+  const src = readFileSync(path, 'utf8');
+
+  // A compiler does not delete. Same defect as the `node --test` arm: without a
+  // clean, output compiled from a since-deleted test keeps being executed and
+  // keeps reporting pass.
+  if (!/\brmSync\s*\(|\brm\s+-rf\b/.test(src)) {
+    return {
+      error:
+        `'${path}' never removes its output directory, so stale output from ` +
+        'deleted test files is still executed and still passes',
+    };
+  }
+
+  const proj = src.match(/['"]-p['"]\s*,\s*['"]([^'"]+)['"]/) || src.match(/-p\s+(\S+)/);
+  if (!proj) {
+    return { error: `'${path}' names no \`tsc -p <config>\`; cannot cross-check what it runs` };
+  }
+  const cfg = tsconfigInfo(proj[1]);
+  if (cfg === null) {
+    return {
+      error:
+        `could not ask tsc to expand ${proj[1]} (is web/node_modules installed?); ` +
+        `refusing to guess what '${path}' compiles`,
+    };
+  }
+  const compiled = cfg.files.filter((f) => TEST_FILE_RE.test(f)).sort();
+
+  // THE DOUBLE-COUNT INVARIANT, ASSERTED RATHER THAN ASSUMED.
+  //
+  // TEST_FILE_RE matches `.js`/`.mjs`/`.cjs`, so this runner's COMPILED OUTPUT
+  // is, by name, a test file. It stays out of `present` today only because the
+  // outDir happens to be gitignored -- an accident of another file, not a
+  // decision recorded here. Move the outDir somewhere untracked-but-not-ignored
+  // and `present` roughly doubles: every test counted once as source and once
+  // as artefact. That direction still LOOKS safe, because the floor is more
+  // satisfied than before, which is exactly why it has to be asserted.
+  //
+  // The outDir is taken from tsc, not from a hardcoded name, so renaming it
+  // cannot quietly step around this.
+  if (cfg.outDir) {
+    const visibleOutput = candidateFiles(cfg.outDir).filter((f) => TEST_FILE_RE.test(f));
+    if (visibleOutput.length) {
+      return {
+        error:
+          `${proj[1]} compiles into '${cfg.outDir}', and ${visibleOutput.length} ` +
+          'file(s) there are visible to git, so compiled output is being counted ' +
+          'as source and every test is enumerated twice: ' +
+          `[${visibleOutput.slice(0, 5).join(', ')}]. Add '${cfg.outDir}/' to ` +
+          '.gitignore, or point outDir at a directory that is ignored.',
+      };
+    }
+  }
+
+  // WHICH FILES DOES IT RUN? Two ways to establish that, never one.
+  //
+  // Preferred: the runner states its own list. That statement is NOT
+  // self-certifying and never stands alone -- a runner that under-reports is
+  // precisely the failure being guarded against, and believing the claim would
+  // let it grade its own homework. It is reconciled BOTH against what tsc says
+  // the same script compiles AND against `present`, an independent scan of the
+  // tree. Any residue in any direction is fatal.
+  //
+  // Fallback, for a runner that offers no list: read the walk out of its source
+  // and cross-check that against tsc. Weaker, and printed as such.
+  //
+  // Only ask a runner that advertises the flag. Passing `--list` to a runner
+  // that does not know it would not list anything -- it would RUN THE SUITE,
+  // during a check whose entire job is to not need the suite to have run.
+  const claim = /--list/.test(src) ? ask(path, ['--list']) : null;
+
+  if (claim !== null) {
+    const claimed = [
+      ...new Set(
+        claim
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((l) => `web/${l.replace(/^\.\//, '')}`),
+      ),
+    ].sort();
+    if (claimed.length === 0) {
+      return { error: `'${path} --list' reported no test files at all` };
+    }
+
+    const phantom = claimed.filter((f) => !present.includes(f));
+    if (phantom.length) {
+      return {
+        error:
+          `'${path} --list' claims files an independent scan of the tree does ` +
+          `not have: [${phantom.join(', ')}]`,
+      };
+    }
+
+    // THE COUPLING (see TEST_SUFFIXES in the runner). The runner's discovery
+    // list and the tsconfig's `include` are one object written in two files. A
+    // file in one but not the other is a test that compiles and never runs, or
+    // runs and never compiles. Both are silent today and loud here.
+    const notCompiled = claimed.filter((f) => !compiled.includes(f));
+    const notRun = compiled.filter((f) => !claimed.includes(f));
+    if (notCompiled.length || notRun.length) {
+      return {
+        error:
+          `'${path}' and ${proj[1]} have diverged -- the runner's discovery ` +
+          "list and the tsconfig's `include` must match: " +
+          `listed-but-not-compiled [${notCompiled.join(', ') || 'none'}] ` +
+          `compiled-but-not-listed [${notRun.join(', ') || 'none'}]`,
+      };
+    }
+
+    return {
+      files: claimed,
+      label:
+        `${path} — agreed by its own --list (${claimed.length}) + ` +
+        `tsc ${proj[1]} + an independent tree scan`,
+    };
+  }
+
+  const walks = [...src.matchAll(WALK_RE)].map((m) => ({ dir: m[2], suffix: m[5] }));
+  if (walks.length === 0) {
+    return {
+      error:
+        `cannot determine which files '${path}' runs. It offers no \`--list\`, ` +
+        'and its discovery shape is unrecognised. A runner must not be assumed ' +
+        'to run everything or nothing: give it a `--list` mode, or teach ' +
+        'WALK_RE in scripts/ci-suite-manifest.mjs its shape.',
+    };
+  }
+
+  const walked = present
+    .filter((p) => walks.some((w) => p.startsWith(`web/${w.dir}/`) && p.endsWith(w.suffix)))
+    .sort();
+
+  const onlyWalked = walked.filter((f) => !compiled.includes(f));
+  const onlyCompiled = compiled.filter((f) => !walked.includes(f));
+  if (onlyWalked.length || onlyCompiled.length) {
+    return {
+      error:
+        `'${path}' walks a different set than ${proj[1]} compiles, so what it ` +
+        'runs cannot be established: ' +
+        `walked-only [${onlyWalked.join(', ') || 'none'}] ` +
+        `compiled-only [${onlyCompiled.join(', ') || 'none'}]`,
+    };
+  }
+
+  const shape = walks.map((w) => `${w.dir}/**/*${w.suffix}`).join(', ');
+  return {
+    files: walked,
+    label: `${path} — agreed by walk ${shape} + tsc ${proj[1]} (no --list offered)`,
+  };
 }
 
 // Map a compiled artefact such as `.tmp-test/utils/x.test.js` back to the
@@ -229,94 +478,10 @@ function mapArtefactToSource(artefact) {
   return hit.length === 1 ? hit[0] : null;
 }
 
-// tsconfig "include"/"files" globs, as anchored regexes over paths relative to
-// web/. Needed because a `tsc -p ... && node --test <dir>` pipeline discovers
-// only what the COMPILE step emitted: a test file the tsconfig does not include
-// is invisible to the runner, and the runner cannot report its own blind spot.
-function globToRe(g) {
-  let re = '';
-  for (let i = 0; i < g.length; i++) {
-    const c = g[i];
-    if (c === '*') {
-      if (g[i + 1] === '*') {
-        if (g[i + 2] === '/') {
-          re += '(?:[^/]+/)*';
-          i += 2;
-        } else {
-          re += '.*';
-          i += 1;
-        }
-      } else {
-        re += '[^/]*';
-      }
-    } else if (c === '?') {
-      re += '[^/]';
-    } else {
-      re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    }
-  }
-  return new RegExp(`^${re}$`);
-}
-
-// Strip // and /* */ comments from JSONC, ignoring anything inside a string.
-//
-// A naive /\/\*[\s\S]*?\*\//g does NOT ignore strings, and the glob
-// "src/**/*.test.ts" contains both `/*` and `*/` -- so the naive version
-// silently rewrites it to "src*.test.ts" and the include list stops matching
-// the files it names. Found by running this, not by reading it.
-function stripJsonComments(src) {
-  let out = '';
-  let inStr = false;
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i];
-    if (inStr) {
-      out += c;
-      if (c === '\\') {
-        out += src[++i] ?? '';
-      } else if (c === '"') {
-        inStr = false;
-      }
-      continue;
-    }
-    if (c === '"') {
-      inStr = true;
-      out += c;
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '/') {
-      while (i < src.length && src[i] !== '\n') i++;
-      out += '\n';
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '*') {
-      i += 2;
-      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
-      i++;
-      continue;
-    }
-    out += c;
-  }
-  return out;
-}
-
-// Returns null when the config cannot be read, [] meaning "matches everything"
-// when it declares neither include nor files.
-function compiledPatterns(cfgPath) {
-  if (!existsSync(cfgPath)) return null;
-  let cfg;
-  try {
-    cfg = JSON.parse(stripJsonComments(readFileSync(cfgPath, 'utf8')));
-  } catch {
-    return null;
-  }
-  const globs = [...(cfg.include ?? []), ...(cfg.files ?? [])];
-  if (globs.length === 0) return [];
-  return globs.map((g) => globToRe(g.replace(/^\.\//, '')));
-}
 
 const executed = new Set();
 const unanalysable = [];
-let discoveryRunner = null;
+const discovery = [];
 let compileConfig = null;
 const cleaned = new Set();
 
@@ -336,7 +501,7 @@ for (const leaf of leafCommands('test')) {
   // output directories were cleaned first.
   if (/^(tsc|rimraf|rm|mkdir|cpy|cp)\b/.test(t)) {
     const proj = t.match(/(?:^|\s)(?:-p|--project)\s+(\S+)/);
-    if (proj) compileConfig = `web/${proj[1].replace(/^\.\//, '')}`;
+    if (proj) compileConfig = proj[1].replace(/^\.\//, ''); // relative to web/
     if (/^(rm|rimraf)\b/.test(t)) {
       for (const a of tokenise(t).slice(1)) {
         if (!a.startsWith('-')) cleaned.add(a.replace(/^\.\//, '').replace(/\/+$/, ''));
@@ -404,9 +569,12 @@ for (const leaf of leafCommands('test')) {
         );
         continue;
       }
-      const pats = compiledPatterns(compileConfig);
-      if (pats === null) {
-        unanalysable.push(`${t} -> cannot read or parse ${compileConfig}`);
+      const emitted = tsconfigFiles(compileConfig);
+      if (emitted === null) {
+        unanalysable.push(
+          `${t} -> could not ask tsc to expand web/${compileConfig} ` +
+            '(is web/node_modules installed?)',
+        );
         continue;
       }
 
@@ -430,11 +598,10 @@ for (const leaf of leafCommands('test')) {
         // The named artefact only exists if the tsconfig actually emits its
         // source. Naming a file the compile step never produces is a red at
         // runtime, not a silent skip -- but it is cheaper to say so here.
-        const rel = src.replace(/^web\//, '');
-        if (pats.length !== 0 && !pats.some((re) => re.test(rel))) {
+        if (!emitted.includes(src)) {
           unanalysable.push(
-            `${t} -> '${a}' is named, but its source ${src} is not matched by ` +
-              `"include"/"files" in ${compileConfig}, so it is never compiled`,
+            `${t} -> '${a}' is named, but tsc does not compile its source ` +
+              `${src} under web/${compileConfig}, so it is never emitted`,
           );
           continue;
         }
@@ -449,28 +616,47 @@ for (const leaf of leafCommands('test')) {
     }
     for (const a of args) {
       const src = mapArtefactToSource(a);
-      if (src) executed.add(src);
-      else unanalysable.push(`${t} -> cannot map '${a}' to a tracked test file`);
+      if (src) {
+        executed.add(src);
+        continue;
+      }
+      // Not a compiled test artefact. It may be a RUNNER SCRIPT that walks the
+      // tree for test files -- `node scripts/run-node-tests.mjs`. Such a script
+      // must be expanded to the set it will actually walk. Waving it through on
+      // the strength of its name would re-open the hole this check exists to
+      // close: a runner whose glob quietly stops matching a directory looks
+      // exactly like a runner that ran.
+      const r = expandRunnerScript(a);
+      if (r.error) {
+        unanalysable.push(`${t} -> ${r.error}`);
+        continue;
+      }
+      discovery.push(r.label);
+      r.files.forEach((f) => executed.add(f));
     }
     continue;
   }
 
   if (runnerToken(t) === 'vitest') {
-    const args = runnerArgs(t);
-    if (args.length === 0) {
-      // No path filter: vitest auto-discovers every matching test file.
-      discoveryRunner = t;
-      present.forEach((p) => executed.add(p));
-    } else {
-      for (const a of args) {
-        const hits = present.filter((p) => pathFilterMatches(p, a));
-        if (hits.length) hits.forEach((h) => executed.add(h));
-        else
-          unanalysable.push(
-            `${t} -> path filter '${a}' matched no tracked test file`,
-          );
-      }
+    // Ask vitest. Its config `include`/`exclude` and its positional filters are
+    // vitest's semantics, not this script's, and the previous revision's
+    // hand-written approximations of both were wrong in opposite directions:
+    // with no filter it credited EVERY test file in the tree, including ones
+    // vitest's own `include` excludes.
+    const files = vitestFiles(runnerArgs(t));
+    if (files === null) {
+      unanalysable.push(
+        `${t} -> could not ask vitest which files it would run ` +
+          `(needs ${VITEST_BIN}; run \`npm ci\` in web/ first)`,
+      );
+      continue;
     }
+    if (files.length === 0) {
+      unanalysable.push(`${t} -> vitest reports it would run NO files at all`);
+      continue;
+    }
+    discovery.push(`${t} (${files.length} files, per \`vitest list\`)`);
+    files.forEach((f) => executed.add(f));
     continue;
   }
 
@@ -496,9 +682,7 @@ const executedList = [...executed].sort();
 console.log(`TEST FILES ACTUALLY EXECUTED BY \`npm test\` (${executedList.length}):`);
 if (executedList.length === 0) console.log('  (none)');
 executedList.forEach((p) => console.log(`  ${p}`));
-if (discoveryRunner) {
-  console.log(`  ^ via auto-discovery by: ${discoveryRunner}`);
-}
+discovery.forEach((d) => console.log(`  ^ via discovery by: ${d}`));
 console.log('');
 
 if (missing.length) {
@@ -524,13 +708,31 @@ const counts =
 // comparison passes vacuously.
 if (present.length < MIN_TEST_FILES) {
   console.error(
-    `FAIL: enumerated ${present.length} JS/TS test files, expected at least ` +
-      `${MIN_TEST_FILES}.\n` +
-      '      The population is the defect, not the membership. An empty set\n' +
-      '      satisfies "every present file is executed" and would otherwise\n' +
-      '      have exited 0. Check the `web` pathspec, TEST_FILE_RE, and\n' +
-      '      whether the suites moved. If suites were deliberately removed,\n' +
-      '      lower MIN_TEST_FILES in the same commit.',
+    `FAIL: ${MIN_TEST_FILES - present.length} JS/TS test file(s) have gone ` +
+      `missing from the tree.\n` +
+      `      Enumerated ${present.length}; this repository is known to have at ` +
+      `least ${MIN_TEST_FILES}.\n` +
+      '\n' +
+      '      TEST FILES DO NOT USUALLY VANISH ON PURPOSE. Assume they were\n' +
+      '      lost until you have shown otherwise -- most often to a merge\n' +
+      '      resolution that dropped a side, a move that left the `web`\n' +
+      '      pathspec, a rename past TEST_FILE_RE, or a .gitignore rule that\n' +
+      '      now covers them. FIND THEM FIRST:\n' +
+      '\n' +
+      '        git log --diff-filter=D --name-only -20 -- web\n' +
+      '        git status --porcelain --ignored web | grep -E "test|spec"\n' +
+      '\n' +
+      '      The population is the defect here, not the membership: an empty\n' +
+      '      set satisfies "every present file is executed", so without this\n' +
+      '      floor the run below would have exited 0 and told you nothing.\n' +
+      '\n' +
+      '      Lowering MIN_TEST_FILES is not the remedy for this failure. It\n' +
+      '      is a separate, deliberate decision that a suite is INTENDED to\n' +
+      '      be gone: make it in the commit that deletes the suite, and say\n' +
+      '      in the message which files went and why. Lowering it to make\n' +
+      '      this message stop is how the alarm gets disabled by the person\n' +
+      '      it was ringing for. (Raising it is the other half: a new suite\n' +
+      '      should raise the floor in the commit that adds it.)',
   );
   console.error(`      ${counts} unanalysable=${unanalysable.length}`);
   process.exit(1);
