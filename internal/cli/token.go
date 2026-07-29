@@ -322,14 +322,21 @@ scopes, or --set-scopes to replace the entire scope set.  --add-scope and
 --remove-scope can be combined in a single call; --set-scopes is mutually
 exclusive with both.
 
+A scope set is a grant list: it confers exactly what it lists. An empty scope
+set therefore grants nothing, and a token holding one is denied on every call.
+Tokens issued before scopes were recorded explicitly carry no scopes at all,
+so they are in exactly that state; repair one with --set-scopes.
+
 Guard rails:
-  UNSCOPED_TOKEN  Token has no stored scopes (legacy wildcard). --add-scope and
-                  --remove-scope would silently restrict a full-access token.
-                  Use --set-scopes to state the full intended scope set.
+  UNSCOPED_TOKEN  Token has no stored scopes, so it currently grants nothing
+                  and is denied everywhere. --add-scope/--remove-scope would
+                  guess at the intended grant. Use --set-scopes to state it.
   WILDCARD_TOKEN  Token holds the "*" scope. --remove-scope has no effect on
                   individual scopes. Use --set-scopes to replace the wildcard.
-  EMPTY_SCOPES    The resulting scope set would be empty, which is interpreted
-                  as wildcard (full access). Use --set-scopes or ft token revoke.
+  EMPTY_SCOPES    The resulting scope set would be empty, which grants nothing
+                  and would silently disable the token. Use --set-scopes to
+                  state the intended grant, or ft token revoke to disable it
+                  deliberately.
 
 Examples:
 
