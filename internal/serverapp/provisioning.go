@@ -136,9 +136,18 @@ func (p *UserProvisioner) checkDomain(email string) error {
 // user. The token bridges the session to the gRPC auth interceptor via the
 // session-to-bearer middleware. It expires in 24 hours (matching session lifetime)
 // and receives default scopes for the user's type.
+//
+// A user whose type is not recognised has no permission set, so no session
+// token is issued and login fails with *server.ErrUnknownUserType. Previously
+// this path minted a scope-less token, which the authorization layer read as
+// wildcard — the widest of the three routes to that state, because it is
+// reachable by anyone who can complete an OAuth or IAP login.
 func (p *UserProvisioner) CreateSessionToken(ctx context.Context, userID uuid.UUID, userType string) (string, error) {
 	expires := time.Now().Add(24 * time.Hour)
-	scopes := server.DefaultScopesForUserType(userType)
+	scopes, err := server.DefaultScopesForUserType(userType)
+	if err != nil {
+		return "", fmt.Errorf("creating session token for user %s: %w", userID, err)
+	}
 
 	_, rawToken, err := p.store.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID:    userID,

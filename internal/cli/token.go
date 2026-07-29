@@ -155,10 +155,16 @@ func newTokenCreateCmd(globals *globalFlags) *cobra.Command {
 				if err != nil {
 					return exitError(ExitGeneral, "USER_LOOKUP_FAILED", fmt.Sprintf("looking up user for default scopes: %v", err))
 				}
-				defaults := server.DefaultScopesForUserType(u.Type)
-				if defaults != nil {
-					p.Scopes = defaults
+				// An unrecognised user type has no permission set, so there is
+				// no token to issue. Refuse rather than mint a scope-less token
+				// that would be denied at every call.
+				defaults, err := server.DefaultScopesForUserType(u.Type)
+				if err != nil {
+					return exitError(ExitValidation, "UNKNOWN_USER_TYPE", fmt.Sprintf(
+						"user %s: %v. Fix the user's type, or pass explicit --scope flags",
+						userID, err))
 				}
+				p.Scopes = defaults
 			}
 
 			// Handle collection restrictions.
