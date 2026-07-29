@@ -127,16 +127,59 @@ jobs:
             echo "::error::web/dist exists but is not a directory."
             exit 1
           fi
-          # web/dist is gitignored APART FROM a committed placeholder, which
-          # exists so that a clean clone can satisfy the `all:web/dist` embed in
-          # assets.go. The placeholder is legitimate and must not trip this gate.
-          # Anything ELSE present before `make build` runs is inherited build
-          # output -- committed by mistake or restored from a cache -- and that
-          # is the condition this gate exists to catch.
+          # ===================================================================
+          # FRESHNESS IS AN EMERGENT GUARANTEE. NOTHING CHECKS IT DIRECTLY.
           #
-          # The allowed set is defined as "whatever git tracks here" rather than
-          # a hardcoded filename, so this stays correct if the placeholder is
-          # renamed or added to.
+          # No step in this workflow asserts that web/dist was built by THIS
+          # run. That property holds only because two separate steps compose:
+          # this one proves web/dist holds nothing but the committed
+          # placeholder BEFORE the build, and "Assert web/dist has real build
+          # content" proves real content AFTER it. Nothing untracked in, real
+          # content out, therefore the content came from this run.
+          #
+          # Nobody asserted that, so nobody is protecting it. WEAKENING EITHER
+          # STEP SILENTLY DELETES THE GUARANTEE -- there is no third check that
+          # notices, and the symptom is a stale UI shipping while CI stays
+          # green. If you are here to relax this arm, you are removing the
+          # freshness guarantee whether or not you intend to. Read the matching
+          # comment on the content arm before you do.
+          # ===================================================================
+          #
+          # TWO separate conditions are checked below, because build output can
+          # arrive either way.
+          #
+          # (1) TRACKED files must be EXACTLY the placeholder. This used to be
+          #     "whatever git tracks here", which was too weak: `git add -f`
+          #     makes real build output tracked, that waved it straight through
+          #     this arm, and the content arm then passed too because the files
+          #     were genuinely real. Committed build output was the single input
+          #     that cleared BOTH arms -- precisely what the standing rule
+          #     forbids. The allowed set is therefore an explicit ALLOW-LIST of
+          #     one: an allow-list is auditable, a deny-list is a guessing game.
+          # (2) UNTRACKED files must not exist at all -- that is the
+          #     cache-restore / stale-working-copy case.
+          #
+          # Note what this step does NOT do: it never cleans, empties or removes
+          # web/dist. It only reports. The placeholder stays.
+          allowed_tracked="web/dist/.gitkeep"
+          tracked=$(git ls-files web/dist | sort)
+          if [ -n "$tracked" ]; then
+            unexpected_tracked=$(comm -13 \
+              <(printf '%s\n' "$allowed_tracked" | sort) \
+              <(printf '%s\n' "$tracked"))
+          else
+            unexpected_tracked=""
+          fi
+          if [ -n "$unexpected_tracked" ]; then
+            echo "::error::web/dist has TRACKED files that are not the placeholder:"
+            printf '%s\n' "$unexpected_tracked"
+            echo "Committing build output is the one input that would otherwise"
+            echo "satisfy this arm AND the content arm after the build, which is"
+            echo "how a stale UI ships with every gate green."
+            echo "Only ${allowed_tracked} may be committed under web/dist."
+            exit 1
+          fi
+
           stray=$(comm -23 \
             <(find web/dist -mindepth 1 -type f | sort) \
             <(git ls-files web/dist | sort))
@@ -150,7 +193,7 @@ jobs:
             printf '%s\n' "$stray"
             exit 1
           fi
-          echo "OK: web/dist contains only tracked placeholder files:"
+          echo "OK: web/dist holds only the committed placeholder:"
           git ls-files web/dist
 
       - name: Build
@@ -158,6 +201,26 @@ jobs:
 
       - name: Assert web/dist has real build content
         run: |
+          # ===================================================================
+          # FRESHNESS IS AN EMERGENT GUARANTEE. NOTHING CHECKS IT DIRECTLY.
+          #
+          # This step proves web/dist has REAL CONTENT. It does not, and cannot,
+          # prove that content is FRESH -- a stale tree full of last week's
+          # assets would satisfy every check below.
+          #
+          # Freshness holds only because this step composes with "Assert
+          # web/dist holds no build output before the build": that one proves
+          # nothing but the committed placeholder was present BEFORE the build,
+          # and this one proves real content AFTER it. Nothing untracked in,
+          # real content out, therefore this run produced it.
+          #
+          # Nobody asserted that property, so nobody is protecting it.
+          # WEAKENING EITHER STEP SILENTLY DELETES IT. There is no third check
+          # that would notice, and the symptom is a stale UI shipping while CI
+          # stays green. Do not relax either arm without replacing the
+          # guarantee explicitly.
+          # ===================================================================
+          #
           # EXISTENCE IS NOT CONTENT.
           #
           # web/dist now always exists, because .gitkeep is tracked. A stub or a
