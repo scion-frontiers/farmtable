@@ -92,13 +92,37 @@ import (
 // camelCase in TypeScript, snake_case in the proto JSON descriptor.
 var remoteDataIdentifiers = []string{"remoteData", "remote_data"}
 
-// skipDirs are directories that are not source.
+// skipDirs are the TOP-LEVEL entries under web/ that are not source.
+//
+// MATCHED AGAINST THE PATH RELATIVE TO web/, NOT AGAINST THE BASENAME. The
+// first version of this guard did skipDirs[d.Name()], which prunes those names
+// at ANY depth. A test leg falsified the guard with that: web/src/build/,
+// web/src/util/dist/ and web/src/components/coverage/ were all pruned, and a
+// plain `const rd = coll.remoteData;` in any of them was invisible while the
+// guard stayed green. web/tsconfig.json has "include": ["src"], so those files
+// are compiled by tsc, bundled by vite and SHIPPED. The guard was calling
+// application source "build output" on the strength of one path segment.
+//
+// That miss was the ACCIDENTAL case, not the deliberate one -- nobody putting a
+// helper in src/build/ is evading anything -- so it falsified the bound this
+// guard shipped under. Anchoring to top-level is what makes the bound true.
+//
+// .tmp-test is here for a different reason and it is not build output in the
+// same sense: `npm test` is `rm -rf .tmp-test && tsc -p tsconfig.test.json &&
+// node scripts/run-tests.mjs`, which CREATES web/.tmp-test and never removes it
+// on exit. No web test mentions remote_data today, so this is latent. It arms
+// on the obvious next commit -- a test for the two capability gates cannot be
+// written without a fixture naming the field -- and at that moment `make test`
+// becomes NON-IDEMPOTENT: green on a clean tree, red on the second consecutive
+// run, with the red naming a build artefact. The tempting fix at that point is
+// to allowlist the compiled path, which would be the wrong one.
 var skipDirs = map[string]bool{
 	"node_modules": true,
 	"dist":         true,
 	"build":        true,
 	".vite":        true,
 	"coverage":     true,
+	".tmp-test":    true,
 }
 
 // declaredConsumer is one allowed mention of the field.
@@ -234,19 +258,51 @@ type mention struct {
 }
 
 // censusRemoteDataMentions returns every occurrence of either identifier
-// anywhere under web/, excluding non-source directories.
-func censusRemoteDataMentions(t *testing.T, root string) []mention {
+// anywhere under web/, excluding the top-level non-source directories named in
+// skipDirs, together with the set of directories it actually descended into.
+//
+// POPULATION, STATED SO IT CAN BE CHECKED: every file of every extension under
+// web/ EXCEPT the top-level entries in skipDirs, read as bytes and split on
+// newlines. It is not restricted to .ts -- .html, .json, .md and the generated
+// files under src/gen are all in. It is a LINE census, not an occurrence
+// census: two mentions on one line count once (see the break below), so a
+// declared count of 1 means one LINE, not one occurrence.
+//
+// The excluded population is worth naming because one of its members ships:
+// assets.go:5 is //go:embed all:web/dist, so web/dist IS served to the browser.
+// It is excluded anyway because it is generated FROM src by vite, so a consumer
+// there either has a source antecedent the census does see, or was hand-edited
+// into build output, which is not a change this guard is trying to catch.
+//
+// The returned descended set is what TestWebCensusDescendsIntoShippedSource
+// asserts against, so that widening skipDirs is a VISIBLE event rather than a
+// silent narrowing of this guard's reach.
+func censusRemoteDataMentions(t *testing.T, root string) ([]mention, map[string]bool) {
 	t.Helper()
 	var found []mention
 	var filesScanned int
+	descended := map[string]bool{}
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
-			if skipDirs[d.Name()] {
+			// Anchored to the TOP LEVEL: skipDirs is consulted against the
+			// path relative to web/, so "dist" prunes web/dist and leaves
+			// web/src/util/dist alone. Matching on d.Name() here pruned any
+			// directory anywhere with one of these basenames, and three plants
+			// in such directories went undetected while this guard was green.
+			if rel != "." && skipDirs[rel] {
 				return filepath.SkipDir
+			}
+			if rel != "." {
+				descended[rel] = true
 			}
 			return nil
 		}
@@ -255,11 +311,6 @@ func censusRemoteDataMentions(t *testing.T, root string) []mention {
 			return fmt.Errorf("reading %s: %w", path, err)
 		}
 		filesScanned++
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		rel = filepath.ToSlash(rel)
 
 		for i, line := range strings.Split(string(data), "\n") {
 			for _, id := range remoteDataIdentifiers {
@@ -281,7 +332,7 @@ func censusRemoteDataMentions(t *testing.T, root string) []mention {
 		t.Fatalf("scanned 0 files under %s. The guard found nothing because it LOOKED at "+
 			"nothing, which is not the same as the tree being clean.", root)
 	}
-	return found
+	return found, descended
 }
 
 // TestWebRemoteDataConsumersAreDeclared is the guard.
@@ -293,7 +344,7 @@ func censusRemoteDataMentions(t *testing.T, root string) []mention {
 // would otherwise silently reduce coverage while staying green.
 func TestWebRemoteDataConsumersAreDeclared(t *testing.T) {
 	root := webRoot(t)
-	found := censusRemoteDataMentions(t, root)
+	found, _ := censusRemoteDataMentions(t, root)
 
 	if len(found) == 0 {
 		t.Fatal("the census found ZERO mentions of remote_data in the web tree. There are " +
@@ -356,7 +407,14 @@ func TestWebRemoteDataConsumersAreDeclared(t *testing.T) {
 	}
 	if len(stale) > 0 {
 		sort.Strings(stale)
-		t.Errorf("DECLARED remote_data SITE(S) NO LONGER MATCH:\n%s\n\n"+
+		t.Errorf("DECLARED remote_data SITE(S) DO NOT MATCH AT THE DECLARED COUNT:\n%s\n\n"+
+			"READ THE COUNTS ABOVE BEFORE CONCLUDING ANYTHING WENT AWAY. This arm fires on ANY "+
+			"inequality, in either direction, and the two directions mean opposite things. "+
+			"found 0 means the site moved or was deleted. found MORE than declared means a "+
+			"consumer was ADDED -- a byte-identical copy of a declared line matches the "+
+			"allowlist key, so it never reaches the UNDECLARED arm above and arrives here "+
+			"instead. That case is measured (R6-23), and the earlier wording of this header "+
+			"sent the reader looking for a deletion that had not happened.\n\n"+
 			"A declaration that matches nothing is not harmless. It means the allowlist is "+
 			"describing a tree that no longer exists, and every future reader will trust it. "+
 			"If the site MOVED, update the text. If it was DELETED, delete the entry and say so "+
@@ -379,7 +437,7 @@ func TestWebRemoteDataConsumersAreDeclared(t *testing.T) {
 // same data, a bug that emptied the allowlist would make both tests pass.
 func TestWebRemoteDataCensusIsNonVacuous(t *testing.T) {
 	root := webRoot(t)
-	found := censusRemoteDataMentions(t, root)
+	found, _ := censusRemoteDataMentions(t, root)
 
 	mustSee := map[string]string{
 		"src/capabilities.ts":      "const rd = collection.remoteData;",
@@ -399,5 +457,56 @@ func TestWebRemoteDataCensusIsNonVacuous(t *testing.T) {
 				"place, not because the tree is clean. Fix the census; do not delete this "+
 				"expectation.", file, text)
 		}
+	}
+}
+
+// TestWebCensusDescendsIntoShippedSource makes PRUNING A VISIBLE EVENT.
+//
+// The failure this exists for is not a wrong result, it is a quiet one. When
+// skipDirs matched on basename, web/src/build/, web/src/util/dist/ and
+// web/src/components/coverage/ were pruned; three planted consumers in those
+// directories were invisible and BOTH arms of the guard above stayed silent,
+// because a file the walk never opens adds no mention and removes none. The
+// guard cannot fail in that direction by construction -- so the reach has to be
+// asserted separately, here.
+//
+// This is deliberately an assertion about DIRECTORIES DESCENDED INTO rather
+// than about files or mentions, because that is the thing skipDirs changes. Any
+// future widening of skipDirs that swallows shipped source fails this test by
+// name instead of quietly shrinking the census.
+func TestWebCensusDescendsIntoShippedSource(t *testing.T) {
+	root := webRoot(t)
+	_, descended := censusRemoteDataMentions(t, root)
+
+	// Every directory tsconfig.json compiles ("include": ["src"]) that exists
+	// today. If one of these is legitimately deleted, delete the line and say
+	// so in the commit; do not weaken the test to a subset check.
+	must := []string{
+		"src",
+		"src/components",
+		"src/gen",
+		"src/store",
+		"src/util",
+		"src/utils",
+	}
+	for _, d := range must {
+		if !descended[d] {
+			t.Errorf("the census did NOT descend into web/%s.\n"+
+				"That directory is compiled by tsconfig.json and shipped. A consumer added "+
+				"there is invisible to the census AND to both arms of "+
+				"TestWebRemoteDataConsumersAreDeclared, which fail silent on a file the walk "+
+				"never opens. Check skipDirs: it is anchored to TOP-LEVEL entries under web/ "+
+				"on purpose, and a basename match here is the exact defect this test exists "+
+				"to catch.", d)
+		}
+	}
+
+	// The prune must still work, or the anchoring change would have quietly
+	// disabled it and this file would be asserting reach it does not need.
+	if descended["node_modules"] {
+		t.Error("the census descended into web/node_modules; the top-level prune is not working")
+	}
+	if descended["dist"] {
+		t.Error("the census descended into web/dist; the top-level prune is not working")
 	}
 }
