@@ -747,16 +747,31 @@ func TestRPC_ImportCollection_RefusalMessageNamesTheCause(t *testing.T) {
 			wantNone: []string{"FARMTABLE_TOKEN is not set"},
 		},
 		{
-			name:     "missing token names the token variable",
-			cause:    server.OpenAccessCauseMissingToken,
-			wantAll:  []string{"FARMTABLE_TOKEN"},
+			name:  "missing token names the token variable",
+			cause: server.OpenAccessCauseMissingToken,
+			// Assert the phrase UNIQUE to this branch, not the bare variable
+			// name. The generic fallback also says "(set FARMTABLE_TOKEN)", so
+			// asserting "FARMTABLE_TOKEN" alone would pass whether this branch
+			// were reached or not — a test that executes and measures nothing.
+			// "is not set" is the diagnosis only this branch can make.
+			wantAll:  []string{"FARMTABLE_TOKEN is not set"},
 			wantNone: []string{"FARMTABLE_OPEN_ACCESS=1"},
 		},
 		{
 			name:  "unspecified still gives actionable guidance",
 			cause: server.OpenAccessCauseUnspecified,
-			// No knob is known, so it must not guess at one, but it must still
-			// tell the operator what to do.
+			// This branch knows of no specific knob, so it must not assert one
+			// as the CAUSE — but it does name FARMTABLE_TOKEN as the REMEDY,
+			// which is correct and is the actionable part. An earlier version
+			// of this comment claimed the message "must not guess at one",
+			// which misdescribed code that is fine as written.
+			//
+			// Note, deliberately NOT acted on here (scope frozen): this subcase
+			// asserts a substring the missing-token branch also contains, so it
+			// cannot fully distinguish the two. Unlike N2-2 that is partly
+			// inherent — this IS the fallback branch, so no phrase is unique to
+			// it — but a wantNone of "FARMTABLE_TOKEN is not set" would close
+			// most of the gap.
 			wantAll:  []string{"FARMTABLE_TOKEN"},
 			wantNone: []string{"FARMTABLE_OPEN_ACCESS=1"},
 		},
