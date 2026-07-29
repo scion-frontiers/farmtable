@@ -569,14 +569,19 @@ for (const leaf of leafCommands('test')) {
         );
         continue;
       }
-      const emitted = tsconfigFiles(compileConfig);
-      if (emitted === null) {
+      // `.files` and not the whole record: this arm only asks WHICH SOURCES tsc
+      // emits, so it can tell a named artefact that will exist from one that
+      // never will. The outDir half of the record is the other call site's
+      // concern (the double-count invariant), not this one's.
+      const emittedCfg = tsconfigInfo(compileConfig);
+      if (emittedCfg === null) {
         unanalysable.push(
           `${t} -> could not ask tsc to expand web/${compileConfig} ` +
             '(is web/node_modules installed?)',
         );
         continue;
       }
+      const emitted = emittedCfg.files;
 
       for (const a of args) {
         // A compiler does not delete. Without a clean, the compiled form of a
