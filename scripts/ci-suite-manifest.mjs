@@ -128,6 +128,38 @@ function leafCommands(name, seen = new Set()) {
   return out;
 }
 
+// Split a single command into arguments, respecting quotes and removing them.
+// Splitting on /\s+/ alone would turn `vitest "a b"` into three tokens, two of
+// them carrying stray quote characters.
+function tokenise(cmd) {
+  const out = [];
+  let cur = '';
+  let quote = null;
+  let started = false;
+  for (const c of cmd) {
+    if (quote) {
+      if (c === quote) quote = null;
+      else cur += c;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      started = true;
+      continue;
+    }
+    if (/\s/.test(c)) {
+      if (started) out.push(cur);
+      cur = '';
+      started = false;
+      continue;
+    }
+    cur += c;
+    started = true;
+  }
+  if (started) out.push(cur);
+  return out;
+}
+
 // Wrappers that run some OTHER program: the runner is the token after them.
 const LAUNCHERS = new Set(['npx', 'pnpx', 'bunx', 'dlx', 'pnpm', 'yarn', 'bun']);
 
@@ -139,7 +171,7 @@ const LAUNCHERS = new Set(['npx', 'pnpx', 'bunx', 'dlx', 'pnpm', 'yarn', 'bun'])
 // leading token decides, after skipping env assignments, launcher flags and
 // launchers themselves.
 function runnerToken(cmd) {
-  const toks = cmd.split(/\s+/).filter(Boolean);
+  const toks = tokenise(cmd);
   for (const tok of toks) {
     if (tok.startsWith('-')) continue; // launcher flag, e.g. npx --yes
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tok)) continue; // FOO=bar prefix
@@ -153,7 +185,7 @@ function runnerToken(cmd) {
 // Positional arguments to a runner: everything after the leading token that is
 // not a flag, an env assignment, a launcher, or the runner itself.
 function runnerArgs(cmd) {
-  const toks = cmd.split(/\s+/).filter(Boolean);
+  const toks = tokenise(cmd);
   const out = [];
   let seenRunner = false;
   for (const tok of toks) {
