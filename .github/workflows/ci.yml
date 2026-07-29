@@ -84,8 +84,46 @@ jobs:
       - name: Which JS suites will actually run (fails if any is unwired)
         run: node scripts/ci-suite-manifest.mjs
 
+      # ---------------------------------------------------------------------
+      # web/dist must be BUILT BY THIS RUN, not inherited.
+      #
+      # assets.go embeds `all:web/dist`, and web/dist is gitignored. The
+      # canonical working copy has carried a populated, untracked web/dist since
+      # Jul 27 -- which is precisely why `go build ./...` succeeded there for
+      # days while failing in every fresh clone. An untracked directory is
+      # invisible to `git status --porcelain` and to code review, so nothing in
+      # the project was capable of noticing.
+      #
+      # These two assertions close that hole permanently. The first also makes
+      # the wrong fix impossible: if someone ever responds to a red gate by
+      # committing web/dist, or if a cache restores it, this step goes red
+      # rather than quietly handing the compiler a stale asset tree.
+      # ---------------------------------------------------------------------
+      - name: Assert web/dist is absent before the build
+        run: |
+          if [ -e web/dist ]; then
+            echo "::error::web/dist exists BEFORE anything built it."
+            echo "It is either committed or restored from a cache. Either way the"
+            echo "Go embed is being satisfied by an artefact this run did not"
+            echo "produce, which is the exact condition this gate exists to catch."
+            echo "Do NOT fix this by committing web/dist. Fix whatever restored it."
+            ls -la web/dist
+            exit 1
+          fi
+          echo "OK: web/dist absent on a clean checkout, as it must be."
+
       - name: Build
         run: make build
+
+      - name: Assert web/dist was produced by the build
+        run: |
+          if [ ! -d web/dist ]; then
+            echo "::error::make build completed but did not produce web/dist."
+            echo "The Go embed compiled against something unexpected."
+            exit 1
+          fi
+          echo "OK: web/dist produced by this run. Contents:"
+          ls -la web/dist
 
       # ---------------------------------------------------------------------
       # The two suites are invoked DIRECTLY below, not through `make test`.
