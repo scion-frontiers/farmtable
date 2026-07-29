@@ -23,3 +23,7 @@ export default defineConfig({
     },
   },
 });
+
+// CANARY: deliberate type error OUTSIDE the tsconfig include pattern
+const canaryOutsideInclude: number = "this is a string, not a number";
+export const canaryProbe = canaryOutsideInclude;
