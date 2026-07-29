@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
 	"github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/google/uuid"
@@ -544,5 +545,122 @@ func TestExtractRelationships(t *testing.T) {
 	}
 	if totalRels == 0 {
 		t.Fatal("expected at least one relationship across all tasks")
+	}
+}
+
+// TestEphemeralGraphRouteDropsRemoteData pins the premise the whole
+// passthrough-GraphQL sanitizer argument rests on.
+//
+// The ephemeral graph route is the ONE path from a passthrough task to
+// taskToProto that contains a real serialisation round-trip: loadEphemeralStore
+// pulls tasks out of the passthrough store, writes each into an in-memory SQLite
+// store via taskToCreateParams, and the inner handler reads them back out. If
+// RemoteData travelled that path it would be JSON-encoded and decoded, "labels"
+// would come back as []any instead of []string, structpb.NewStruct would
+// succeed, and remote_data would start populating on the wire -- which is
+// precisely the outcome TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident
+// asserts cannot happen.
+//
+// TODAY IT DOES NOT TRAVEL, AND THE ONLY THING STOPPING IT IS AN ABSENT LINE IN A
+// FOURTEEN-FIELD COPY. taskToCreateParams copies Title, Description, Phase,
+// Stage, NativeLabel, Type, Priority, Labels, StartDate, DueDate, Repo, Branch
+// and AcceptanceCriteria, and simply never assigns RemoteData -- not because the
+// destination lacks the field (store.CreateTaskParams has it, and control 2
+// below proves the store persists it when it is set), but because the copy omits
+// it. A MISSING FIELD IN A FOURTEEN-FIELD COPY READS TO EVERY FUTURE MAINTAINER
+// AS AN OVERSIGHT TO BE TIDIED UP: adding one line looks like a bug fix and
+// would silently invalidate the premise with nothing else in the tree going red.
+//
+// This test pins the VALUE, not the spelling. It does not grep for the absent
+// assignment; it drives a task carrying RemoteData through the real ephemeral
+// store and asserts what arrives on the far side.
+func TestEphemeralGraphRouteDropsRemoteData(t *testing.T) {
+	ctx := context.Background()
+
+	pool := store.NewEphemeralStorePool(1)
+	defer pool.Close()
+	ephemeral, err := pool.Get(ctx)
+	if err != nil {
+		t.Fatalf("acquiring ephemeral store: %v", err)
+	}
+
+	// The source task carries the shape the passthrough store actually builds:
+	// a URL-bearing key plus the []string "labels" whose type rejection is what
+	// keeps remote_data off the wire.
+	src := &ent.Task{
+		Title:       "issue from a passthrough collection",
+		Description: "body",
+		Phase:       task.PhaseOpen,
+		Stage:       task.StageTriage,
+		Labels:      []string{"bug"},
+		RemoteData: map[string]any{
+			"remote_url": "https://example.test/issues/1",
+			"labels":     []string{"bug"},
+		},
+	}
+	// Anti-vacuity: if the input were nil this test would pass while measuring
+	// nothing at all.
+	if len(src.RemoteData) == 0 {
+		t.Fatal("fixture error: the source task must carry RemoteData or this test is vacuous")
+	}
+
+	mirror, err := ephemeral.CreateCollection(ctx, store.CreateCollectionParams{
+		Name:     "ephemeral-mirror",
+		Platform: string(collection.PlatformFarmtable),
+	})
+	if err != nil {
+		t.Fatalf("creating mirror collection: %v", err)
+	}
+
+	params := taskToCreateParams(src, mirror.ID)
+
+	// CONTROL 1 -- the copy ran and does copy things. Without this, a nil
+	// RemoteData below would be equally consistent with taskToCreateParams
+	// having become a no-op or having failed to see its input at all.
+	if params.Title != src.Title {
+		t.Fatalf("control 1: taskToCreateParams should copy Title, got %q want %q",
+			params.Title, src.Title)
+	}
+
+	// CONTROL 2 -- THE STORE WOULD CARRY REMOTEDATA IF THE COPY ASSIGNED IT.
+	// This is the control that makes the assertion below meaningful: it proves
+	// the protection lives in taskToCreateParams and NOT in some downstream
+	// inability to persist the field. An assertion that a value comes back nil
+	// is worth nothing unless something could have come back non-nil.
+	withRemote := params
+	withRemote.RemoteData = src.RemoteData
+	carried, err := ephemeral.CreateTask(ctx, withRemote)
+	if err != nil {
+		t.Fatalf("control 2: creating task with RemoteData set: %v", err)
+	}
+	reloadedCarried, err := ephemeral.GetTask(ctx, carried.ID)
+	if err != nil {
+		t.Fatalf("control 2: reloading task: %v", err)
+	}
+	if reloadedCarried.RemoteData == nil {
+		t.Fatal("control 2: the ephemeral store dropped RemoteData even when it WAS " +
+			"assigned. The pin below would then be measuring the store's behaviour " +
+			"rather than taskToCreateParams's, and would stay green after the copy " +
+			"started propagating the field.")
+	}
+
+	// THE PROPERTY. Same store, same collection, params straight from the copy.
+	created, err := ephemeral.CreateTask(ctx, params)
+	if err != nil {
+		t.Fatalf("creating task from taskToCreateParams: %v", err)
+	}
+	reloaded, err := ephemeral.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("reloading task: %v", err)
+	}
+	if reloaded.RemoteData != nil {
+		t.Errorf("RemoteData is now propagating onto the ephemeral graph route: got %v.\n"+
+			"taskToCreateParams has begun copying the field. That completes a real "+
+			"JSON round-trip on this path, so \"labels\" arrives as []any, "+
+			"structpb.NewStruct succeeds, and passthrough remote_data starts "+
+			"reaching the wire. The premise behind "+
+			"TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident and behind the "+
+			"read-path-only sanitizer argument no longer holds. This is not a test "+
+			"to update -- re-derive the persistence question first.", reloaded.RemoteData)
 	}
 }
