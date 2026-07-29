@@ -30,8 +30,40 @@ $(WEB_DEPS): web/package-lock.json web/package.json
 
 web-deps: $(WEB_DEPS)
 
+# The `touch` is load-bearing and it is a PARTIAL MITIGATION, not a fix.
+#
+# web/dist/.gitkeep is tracked, and assets.go embeds `all:web/dist`; with no
+# tracked file under web/dist the Go module does not compile from a clean clone
+# at all. But `build.outDir` in web/vite.config.ts sits inside the vite root, so
+# `emptyOutDir` defaults to true and EVERY `npm run build` DELETES that marker.
+# `.gitignore` hides the ~4108 files a build ADDS. It cannot hide the one file a
+# build REMOVES, so a developer who builds and then stages broadly commits the
+# marker's deletion. Measured: canary/c1-gitkeep-untracked (f410023) is exactly
+# that commit, `go list ./...` on a clean clone of it returns 0 packages, and it
+# passed every arm of CI before the "Assert the COMMITTED tree compiles" step
+# existed (run 30463794909, green).
+#
+# Restoring it here keeps `make web` and `make build` from leaving a
+# commit-ready deletion behind. IT IS PARTIAL: IT DOES NOT COVER A DEVELOPER
+# RUNNING `npm run build` DIRECTLY INSIDE web/. The real fix is to stop vite
+# deleting the marker (either `emptyOutDir: false`, which then never purges
+# stale output, or a small `closeBundle` plugin that rewrites the marker, which
+# does purge and is strictly better). That change is frontend build config and
+# is under a scope freeze; when the freeze lifts, do it there and this line
+# becomes redundant rather than necessary.
+#
+# WARNING FOR WHOEVER ADDS A POST-BUILD CLEANLINESS ASSERTION. A
+# `git status --porcelain` check after the build is the obvious next hardening
+# step on this track. Before this line existed, every CI run ended with the
+# marker deleted, so that check WOULD HAVE RED ON EVERY RUN with
+# ` D web/dist/.gitkeep` and looked like a new defect. It is this deletion.
+# This line is what makes such a check viable: CI builds via `make build`, which
+# depends on `web`, so the marker is restored before anything inspects the tree.
+# The assertion therefore depends on THIS TOUCH rather than on vite behaving.
+# Do not remove it without removing the assertion in the same change.
 web: web-deps
 	cd web && npm run build
+	@touch web/dist/.gitkeep
 
 web-dev: web-deps
 	cd web && npm run dev
