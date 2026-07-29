@@ -91,6 +91,22 @@ export const CAPABILITY_TOOLTIPS: Partial<Record<keyof CollectionCapabilities, s
  * and writable status.
  */
 export function getCapabilities(collection: Collection): CollectionCapabilities {
+  // SECURITY CONTROL -- CONJUNCT B OF TWO. Counterpart, which names this one:
+  // internal/server/export_import.go:306.
+  //
+  // THE ORDER OF THE TWO PLATFORM CHECKS BELOW IS LOAD-BEARING, AND IT IS NOT A
+  // STYLE CHOICE. Import copies an uploaded document's collection remoteData
+  // into storage with no key validation, so a caller with admin scope can plant
+  // writable: true on it. Conjunct A forces every imported collection to the
+  // FARMTABLE platform; this early return means the FARMTABLE path never
+  // consults the planted key. Both are needed. Moving the writable read above
+  // the platform check arms them together and turns an unvalidated uploaded map
+  // into a privilege grant.
+  //
+  // The GITHUB branch is separately unreachable-with-a-value today: see the
+  // WRITE-AUTHORIZATION GATE block in collectionToProto, in
+  // internal/server/convert.go, for the two producers of a GITHUB-platform
+  // collection object and why both currently yield null.
   if (collection.platform === Platform.FARMTABLE) {
     return ALL_ENABLED;
   }

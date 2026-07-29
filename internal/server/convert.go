@@ -745,32 +745,80 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//     arms this line while BYPASSING BOTH PARAM STRUCTS, so neither
 		//     argument above is even engaged. That literal is returned by
 		//     CreateCollection (:630), GetCollection (:638) and ListCollections
-		//     (:642), making it the collection object for EVERY GitHub
-		//     passthrough collection -- the exact object whose remoteData.writable
-		//     the dashboard capability gate reads. Someone enabling GitHub write
-		//     support by adding map[string]any{"writable": true} there is the
-		//     most probable arming edit in this repository. Today that literal
-		//     sets no RemoteData at all, so the != nil guard above skips this
-		//     line entirely for that path.
+		//     (:642), making it the collection object for every GitHub
+		//     PASSTHROUGH collection. Today it sets no RemoteData at all, so the
+		//     != nil guard above skips this line entirely for that path.
 		// Expect this to fire eventually; that is the design, not a defect.
 		//
-		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT ONLY "a field goes missing."
-		// The dashboard reads collection remote_data as a write-authorization
-		// gate: capabilities.ts getCapabilities and ft-app.ts
-		// isCollectionWritable both branch on a `writable` key. A nil here makes
-		// that flag unreadable, and the dashboard treats an unreadable flag as
-		// not-writable.
+		// ─────────────────────────────────────────────────────────────────────
+		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT "A FIELD GOES MISSING."
+		// THIS FIELD IS THE ONLY INPUT TO A WRITE-AUTHORIZATION GATE.
+		// ─────────────────────────────────────────────────────────────────────
 		//
-		// Today that is indistinguishable from the status quo, because no
-		// in-tree writer ever sets the flag -- so the affected branch already
-		// resolves to fully-disabled and a nil moves it from disabled to
-		// disabled. IF ANYTHING EVER SETS IT, THIS LINE SILENTLY REVOKES IT.
+		// web/src/capabilities.ts getCapabilities has exactly ONE branch that
+		// reads collection remote_data, and it is the GITHUB branch:
 		//
-		// Stated in the present tense on purpose, and bounded to this tree: the
-		// population of out-of-tree writers is not something the searches behind
-		// this comment could bound, so this does not quantify over all writers.
-		// The direction is fail-closed either way, which is why this line logs
-		// rather than staying quiet.
+		//     if (platform === FARMTABLE) return ALL_ENABLED;   // never reads it
+		//     if (platform === GITHUB) {
+		//         const rd = collection.remoteData;
+		//         if (rd && rd.writable === true) return GITHUB_CAPABILITIES;
+		//     }
+		//     return ALL_DISABLED;
+		//
+		// GITHUB_CAPABILITIES enables nine write operations. ft-app.ts
+		// isCollectionWritable branches on the same key. So the reachable set of
+		// this gate is exactly: GitHub-platform collection objects whose
+		// remote_data survives the line below.
+		//
+		// TWO THINGS PRODUCE A GITHUB-PLATFORM COLLECTION OBJECT. Both matter,
+		// and an earlier draft of this comment named only the first:
+		//
+		//   (a) syntheticCollection, above. Passthrough, never persisted.
+		//   (b) THE PUBLIC RPC. server.go:1035 CreateCollection takes
+		//       req.Platform from the caller, platformFromProto (:2144) maps
+		//       PLATFORM_GITHUB to collection.PlatformGithub, and entstore.go:1359
+		//       PERSISTS it. The only extra condition is server.go:1053, a
+		//       non-empty remote_id, which is not validated against GitHub -- any
+		//       string passes. Scope required: ScopeCollectionWrite. Nothing
+		//       narrower, no linked-account check, no adapter check.
+		//
+		// THE GATE IS SHUT TODAY, AND NOT FOR THE REASON IT LOOKS LIKE. It is not
+		// held shut by syntheticCollection's nil. It is held shut by BOTH
+		// producers independently yielding nil RemoteData -- (a) by omission in a
+		// struct literal, (b) by argument (1) above, no caller populating the
+		// param structs. Two unrelated nils, neither one documented as load-
+		// bearing until now, and EITHER of them going non-nil opens the gate for
+		// its own producer.
+		//
+		// WHICH MAKES THE LIKELIEST ARMING EDIT (b), NOT (a). entstore.go:1366 is
+		// already `if p.RemoteData != nil { create.SetRemoteData(p.RemoteData) }`
+		// -- the store layer is WIRED AND WAITING. The only missing link is the
+		// RPC layer copying a request field into CreateCollectionParams.RemoteData,
+		// which is the ordinary shape of plumbing a new proto field through
+		// CreateCollection: a change in server.go, nowhere near GitHub, by someone
+		// who has never heard of this gate. On that day any caller holding
+		// ScopeCollectionWrite can create a collection with platform GITHUB and
+		// remote_data {"writable": true} and grant themselves the nine
+		// operations. An edit to the syntheticCollection literal at least happens
+		// inside a GitHub file where a reviewer might think about GitHub
+		// authorization. This one does not.
+		//
+		// AND THE GATE IT ARMS EXISTS ONLY IN THE BROWSER. `writable` appears in
+		// Go in exactly two places at the time of writing, and both are comments
+		// in this file. NO FUNCTIONAL GO CODE READS IT. There is no server-side
+		// notion of a read-only collection: the nine operations GITHUB_CAPABILITIES
+		// unlocks are gated client-side and nowhere else. Whoever ships the edit
+		// above is not enabling a feature behind an existing control, they are
+		// creating an authorization control that a curl user is not subject to.
+		// If you are that person: the fix is a server-side check, and this comment
+		// is the notice that there is not one.
+		//
+		// The nil-revokes direction still holds and is the benign one: a nil here
+		// makes the flag unreadable and the dashboard treats unreadable as
+		// not-writable, so THIS LINE SILENTLY REVOKES anything that ever sets it.
+		// Fail-closed, which is why it logs rather than staying quiet. Bounded to
+		// this tree on purpose -- out-of-tree writers are not a population these
+		// searches could bound.
 		//
 		// Note what the old reason also got wrong. It is NOT "collections are read
 		// back out of the database": Ent's Create().Save() returns the entity

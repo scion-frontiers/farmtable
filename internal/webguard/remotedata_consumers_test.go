@@ -188,6 +188,18 @@ var webRemoteDataConsumers = []declaredConsumer{
 		count:  1,
 		reason: "Comment explaining proto map handling in general. No read of the field here.",
 	},
+	{
+		file:  "src/capabilities.ts",
+		text:  "// STYLE CHOICE. Import copies an uploaded document's collection remoteData",
+		count: 1,
+		reason: "Security annotation on getCapabilities, added in r7 as conjunct B of the " +
+			"pair that holds the import path inert; its counterpart is " +
+			"internal/server/export_import.go:306. NOT a consumer -- the read it " +
+			"describes is the declared one above. Declared rather than reworded to " +
+			"avoid the identifier: writing prose that dodges this guard in order to " +
+			"describe this guard's subject is the worst available option, and the one " +
+			"line of allowlist is the honest cost.",
+	},
 
 	// ---- GENERATED TRANSPORT CODE. Listed line by line rather than excluded by
 	// directory, on purpose. These are not consumers -- they are the wire

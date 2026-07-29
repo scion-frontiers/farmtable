@@ -303,6 +303,35 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		if doc.Generator != "" && doc.Generator != "farmtable" {
 			return nil, status.Errorf(codes.InvalidArgument, "unsupported generator: %s", doc.Generator)
 		}
+		// SECURITY CONTROL, CONJUNCT A OF TWO. Not obviously one, which is
+		// why it is labelled.
+		//
+		// Import copies the uploaded document's collection remote_data into
+		// storage with NO KEY VALIDATION (see :332 below, reaching
+		// entstore.go:2117), so any caller holding ScopeCollectionAdmin can
+		// plant ANY key -- including "writable": true, the key that
+		// web/src/capabilities.ts getCapabilities uses to unlock nine GitHub
+		// write operations. See the WRITE-AUTHORIZATION GATE block in
+		// collectionToProto (internal/server/convert.go) for the gate. Cited by
+		// name, not line: this round spent most of itself on citations that
+		// resolved to the wrong thing.
+		//
+		// That planted key is inert TODAY, and only because of a conjunction of
+		// two facts in two different languages, neither of which was written
+		// down before this comment:
+		//
+		//   A (here, plus :331 which hardcodes PlatformFarmtable): an imported
+		//     collection is ALWAYS farmtable-platform.
+		//   B (web/src/capabilities.ts:94): the FARMTABLE branch returns
+		//     ALL_ENABLED and RETURNS BEFORE READING remote_data at all, so a
+		//     planted key on a farmtable collection is never consulted.
+		//
+		// EITHER ONE MOVING ARMS THE OTHER. Accepting a non-farmtable platform
+		// here, or reordering capabilities.ts to consult writable before the
+		// platform check, turns an unvalidated user-supplied map into a
+		// privilege grant. Do not relax this check on the grounds that "import
+		// is admin-only"; ScopeCollectionAdmin is not the same principal as the
+		// one the capability gate is protecting against.
 		if doc.Collection.Platform != string(collection.PlatformFarmtable) {
 			return nil, status.Error(codes.FailedPrecondition, "import only supports farmtable platform collections")
 		}
@@ -328,10 +357,16 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		Collection: store.ImportCollection{
 			Name:        doc.Collection.Name,
 			Description: doc.Collection.Description,
-			Platform:    collection.PlatformFarmtable,
-			RemoteData:  sanitizeRemoteData(doc.Collection.RemoteData),
-			CreatedAt:   doc.Collection.CreatedAt,
-			UpdatedAt:   doc.Collection.UpdatedAt,
+			// Second half of CONJUNCT A (see :306). Hardcoded, not taken
+			// from the document. This is what makes the :306 check
+			// load-bearing rather than advisory.
+			Platform: collection.PlatformFarmtable,
+			// UNVALIDATED KEYS. sanitizeRemoteData validates URL-bearing
+			// VALUES; it does not filter keys, so whatever the uploader
+			// wrote arrives here. Inert only by conjuncts A and B at :306.
+			RemoteData: sanitizeRemoteData(doc.Collection.RemoteData),
+			CreatedAt:  doc.Collection.CreatedAt,
+			UpdatedAt:  doc.Collection.UpdatedAt,
 		},
 	}
 	if req.Name != nil {
