@@ -137,12 +137,38 @@ $ git -C /tmp/onhold/work check-ignore -v web/dist/index.html   # same absent tr
 exit-1 result is an artefact of probing a directory-only pattern against a nonexistent path, not
 a property of the ignore rules.
 
-Consequences: `web/dist` contents are ignored in every tree state, which is why
-`git status --porcelain web/dist` reports 0 lines in the main working copy. [DERIVED, from git's
-documented handling of ignored paths] they are therefore *not* picked up by a bulk add, so the
-asserted collision with the no-bulk-staging rule does not arise on these grounds. **The hazard
-above is unaffected** — creating `web/dist` is prohibited outright, whatever its ignore status,
-and no-bulk-staging stands on its own reasons.
+Consequences: **when `web/dist` is a directory** — which is what a real build produces —
+everything under it is ignored, which is why `git status --porcelain web/dist` reports 0 lines in
+the main working copy, and nothing under it is stageable. The asserted collision with the
+no-bulk-staging rule does not arise on these grounds.
+
+**Correction to an earlier draft of this entry**, which said the contents are ignored "in every
+tree state". That is too strong, and the exception is instructive. There are **three** states,
+not two — verified independently in a disposable scratch repo (`/tmp/ignore-probe`, not a
+measured tree) whose entire `.gitignore` is the single line `dist/`, confirming the behaviour is
+plain trailing-slash semantics and nothing project-specific:
+
+| Arm | `web/dist` is | `check-ignore -v web/dist` | in `porcelain -uall`? |
+|---|---|---|---|
+| 1 | absent | exit 1 | — |
+| 2 | a **directory** + file | exit 0, ignored (also for the file inside) | **no** (0) |
+| 3 | a **regular file** | **exit 1** | **yes** (`?? web/dist`) |
+
+Arm 3 is not ignored and *is* stageable, because `dist/` matches directories only. It is not the
+state a build produces, so it does not affect the conclusion — but "ignored in every tree state"
+was false as written.
+
+**The prohibition is unaffected either way** — creating `web/dist` is forbidden whatever its
+ignore status, and no-bulk-staging stands on its own reasons. What falls is only the
+*stageable-files* rationale for avoiding a build; the real reason is the prohibition itself.
+
+Note the instrument defect this exposes: `check-ignore` can only answer truthfully about
+`web/dist` once `web/dist` already exists — it consults the disk, not a hypothetical. **The check
+is unavailable in precisely the state where its answer would be actionable, and available only
+after the thing it warns about has happened.** Commit-addressed evidence (`git show` of
+`.gitignore`) is immune to tree state for the *content* of the pattern, but not for the
+*behaviour* of a command that reads it: one identical tracked pattern gives three different
+answers above.
 
 Note the shape: `check-ignore` answers differently in two trees, and the deciding variable is
 the very state under investigation. A tree-state probe whose own result depends on that tree
