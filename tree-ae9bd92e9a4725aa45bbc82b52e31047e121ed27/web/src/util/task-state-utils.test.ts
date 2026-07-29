@@ -1,0 +1,152 @@
+import { TaskStore } from '../store/task-store.js';
+import {
+  AvailabilityReason,
+  Platform,
+  RelationshipType,
+  TaskHoldReason,
+  TaskPriority,
+  TaskStage,
+  type Task,
+} from '../gen/types.js';
+import { matchesTaskFilters } from '../components/task-filters.js';
+import { phaseForStage } from '../gen/service.js';
+import {
+  attentionBlockers,
+  compareAcceptedQueueOrder,
+} from './task-state-utils.js';
+
+function assertEqual<T>(actual: T, expected: T, message: string): void {
+  if (actual !== expected) {
+    throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`);
+  }
+}
+
+function assertArray(actual: string[], expected: string[], message: string): void {
+  const a = actual.join(',');
+  const e = expected.join(',');
+  if (a !== e) {
+    throw new Error(`${message}: expected [${e}], got [${a}]`);
+  }
+}
+
+const now = '2026-07-27T00:00:00.000Z';
+
+/**
+ * `phase` is DERIVED via the real `phaseForStage`, never hand-written — this
+ * was a second, independent local model of the stage→phase projection sitting
+ * alongside the correct one in `test/helpers/fixtures.ts`. Change the
+ * projection and one of the two would have kept asserting the old contract.
+ */
+function task(overrides: Partial<Task> = {}): Task {
+  const stage = overrides.stage ?? TaskStage.ACCEPTED;
+  return {
+    id: 'task-1',
+    name: 'Task',
+    phase: phaseForStage(stage),
+    assignees: [],
+    collectionId: 'collection-1',
+    relationships: [],
+    labels: [],
+    customFields: [],
+    platform: Platform.FARMTABLE,
+    createdAt: now,
+    version: '1',
+    ...overrides,
+    stage,
+  };
+}
+
+function storeWith(...tasks: Task[]): TaskStore {
+  const store = new TaskStore();
+  for (const item of tasks) {
+    store.upsert(item);
+  }
+  // Matches `test/helpers/fixtures.ts`; without it the store is not in the
+  // state production reads from.
+  store.snapshotComplete();
+  return store;
+}
+
+function run(): void {
+  const sorted = [
+    task({ id: 'normal-rank-2', priority: TaskPriority.NORMAL, rank: 2, createdAt: '2026-07-27T00:00:01.000Z' }),
+    task({ id: 'high-rank-9', priority: TaskPriority.HIGH, rank: 9, createdAt: '2026-07-27T00:00:01.000Z' }),
+    task({ id: 'normal-rank-1', priority: TaskPriority.NORMAL, rank: 1, createdAt: '2026-07-27T00:00:03.000Z' }),
+    task({ id: 'normal-unranked', priority: TaskPriority.NORMAL, createdAt: '2026-07-27T00:00:00.000Z' }),
+    task({ id: 'urgent-unranked', priority: TaskPriority.URGENT, createdAt: '2026-07-27T00:00:04.000Z' }),
+  ].sort(compareAcceptedQueueOrder);
+
+  assertArray(
+    sorted.map((item) => item.id),
+    ['urgent-unranked', 'high-rank-9', 'normal-rank-1', 'normal-rank-2', 'normal-unranked'],
+    'accepted queue order respects priority, then rank, then stable fallback',
+  );
+
+  const heldNoPayload = task({ holdReason: TaskHoldReason.WAITING_FOR_INPUT });
+  assertEqual(
+    matchesTaskFilters(
+      heldNoPayload,
+      'active',
+      TaskStage.ACCEPTED,
+      TaskHoldReason.WAITING_FOR_INPUT,
+      'unavailable',
+      null,
+      storeWith(heldNoPayload),
+    ),
+    false,
+    'availability filter requires server-computed unavailable state',
+  );
+
+  const heldTask = task({
+    holdReason: TaskHoldReason.WAITING_FOR_INPUT,
+    availability: { available: false, reasons: [AvailabilityReason.HELD] },
+  });
+  assertEqual(
+    matchesTaskFilters(
+      heldTask,
+      'active',
+      TaskStage.ACCEPTED,
+      TaskHoldReason.WAITING_FOR_INPUT,
+      AvailabilityReason.HELD,
+      null,
+      storeWith(heldTask),
+    ),
+    true,
+    'filters match active accepted held tasks by computed availability reason',
+  );
+
+  const completed = task({ stage: TaskStage.COMPLETED });
+  assertEqual(
+    matchesTaskFilters(
+      completed,
+      'active',
+      null,
+      null,
+      null,
+      null,
+      storeWith(completed),
+    ),
+    false,
+    'active group excludes terminal stages without using phase',
+  );
+
+  const blockedTask = task({
+    id: 'dependent',
+    availability: { available: false, reasons: [AvailabilityReason.BLOCKED_BY_DEPENDENCY] },
+    relationships: [{ type: RelationshipType.BLOCKED_BY, targetTaskId: 'cancelled-blocker' }],
+  });
+  const blockers = attentionBlockers(
+    blockedTask,
+    storeWith(blockedTask, task({ id: 'cancelled-blocker', stage: TaskStage.CANCELLED })),
+  );
+
+  assertArray(
+    blockers.map((item) => item.id),
+    ['cancelled-blocker'],
+    'attention workflow finds unsuccessful terminal prerequisites',
+  );
+
+  console.log('task-state-utils tests passed');
+}
+
+run();

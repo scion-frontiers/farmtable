@@ -1,0 +1,688 @@
+name: CI
+
+# Runs on every pull request, and on a push to ANY branch.
+#
+# The push trigger is deliberately not scoped to main. A gate that only watches
+# the default branch silently ignores every branch where work actually happens,
+# and that silence reads as a pass. This repository has a long-lived branch 39
+# commits ahead of main that nothing has ever compiled; a main-only trigger
+# would exclude precisely the tree that most needs watching.
+#
+# Consequence, accepted knowingly: a branch in this repository with an open pull
+# request gets two runs per push, one per event. Duplicate runs are cheap;
+# an unwatched branch is not.
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+# Least privilege. Every step below authenticates as the workflow's own
+# short-lived GITHUB_TOKEN, which GitHub mints per run and expires when the run
+# ends. No personal access token is referenced anywhere in this workflow, and
+# none should ever be added to it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# GitHub's default step shell is `bash -e {0}` -- WITHOUT pipefail. Under that
+# default, `a | tee b` reports tee's exit status and a failure in `a` is
+# silently discarded. That is not hypothetical: the first run of this workflow
+# went green while a Go test was failing, for exactly this reason.
+# `shell: bash` means `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
+env:
+  # go.mod declares `go 1.26.5`; keep these in step.
+  GO_VERSION: '1.26.5'
+  # No .nvmrc exists in this repo, so this is a deliberate choice, not a
+  # discovered value. Node 22 is the active LTS line and is the lowest LTS that
+  # satisfies the strictest engine constraint in web/package-lock.json
+  # (vite 6.4.3 requires ^18.0.0 || ^20.0.0 || >=22.0.0).
+  NODE_VERSION: '22'
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # ---------------------------------------------------------------------
+      # THE COMMIT MUST COMPILE. Checked here, before anything is installed or
+      # built, because that is the only point in the run where the tree on disk
+      # IS the tree in the commit.
+      #
+      # Everything downstream of this step measures a tree that `make build`
+      # has already changed. `go vet` runs after the build for a good reason --
+      # it needs the populated embed -- but the consequence is that NOTHING in
+      # this workflow ever compiled Go against the committed tree. A commit
+      # whose `web/dist/.gitkeep` is missing therefore passed every gate: both
+      # dist arms, vet, and the membership manifest, fully green, while
+      # `go list ./...` on a fresh clone of that same commit returns zero
+      # packages and `pattern all:web/dist: no matching files found`.
+      #
+      # This step cannot be fooled by a build artefact for the structural
+      # reason that no build has run yet. It measures the commit by
+      # construction rather than by discipline.
+      # ---------------------------------------------------------------------
+      - name: Assert the COMMITTED tree compiles (nothing built yet)
+        run: |
+          if ! git ls-files --error-unmatch web/dist/.gitkeep >/dev/null 2>&1; then
+            echo "::error::web/dist/.gitkeep is not tracked in this commit."
+            echo "assets.go embeds all:web/dist. With no tracked file under"
+            echo "web/dist, a clean clone of this commit does not compile at"
+            echo "all -- go list ./... fails with:"
+            echo "  pattern all:web/dist: no matching files found"
+            echo
+            echo "Most likely cause: a local 'npm run build' deleted the marker"
+            echo "(vite empties outDir), and it was then staged as a deletion."
+            echo "Restore it:  git checkout -- web/dist/.gitkeep"
+            exit 1
+          fi
+
+          # The embed marker being present is necessary, not sufficient. Ask the
+          # compiler directly.
+          if ! go list ./... > committed-packages.txt 2>committed-packages.err; then
+            echo "::error::The committed tree does not compile. go list ./... failed:"
+            sed 's/^/  /' committed-packages.err
+            exit 1
+          fi
+          pkgs=$(grep -c . committed-packages.txt || true)
+          if [ "$pkgs" -eq 0 ]; then
+            echo "::error::go list ./... reported 0 packages on the committed tree."
+            echo "An empty package list is not a clean result. Failing closed."
+            exit 1
+          fi
+
+          # PUBLISH THE SET, NOT JUST THE INTEGER. A count is not diffable: it
+          # cannot tell the next reader whether a package appeared, disappeared,
+          # or both at once, and two people reconciling counts will agree on a
+          # number while disagreeing about which members produced it. The list
+          # goes to the step summary and is uploaded with the other evidence, so
+          # a change in this number can be resolved to the package that caused
+          # it without re-running anything.
+          echo "OK: the committed tree compiles -- ${pkgs} packages, nothing built yet."
+          {
+            echo "### Packages in the COMMITTED tree (${pkgs})"
+            echo '```'
+            cat committed-packages.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install web dependencies from lockfile
+        working-directory: web
+        run: npm ci
+
+      # ---------------------------------------------------------------------
+      # Membership, not exit codes.
+      #
+      # The JS test wiring on this tree names the files it runs. A suite can
+      # therefore stop running without anything failing. This step compares the
+      # test files that exist against the test files `npm test` actually
+      # executes, and fails if they differ. It runs BEFORE the suites so that a
+      # missing suite is reported as a missing suite rather than as a pass.
+      # ---------------------------------------------------------------------
+      - name: Which JS suites will actually run (fails if any is unwired)
+        run: node scripts/ci-suite-manifest.mjs
+
+      # ---------------------------------------------------------------------
+      # web/dist must be BUILT BY THIS RUN, not inherited.
+      #
+      # assets.go embeds `all:web/dist`. The canonical working copy carried a
+      # populated, untracked web/dist since Jul 27 -- which is precisely why
+      # `go build ./...` succeeded there for days while failing in every fresh
+      # clone. An untracked directory is invisible to `git status --porcelain`
+      # and to code review, so nothing in the project was capable of noticing.
+      #
+      # An earlier version of this comment said "Do NOT fix this by committing
+      # web/dist." That instruction has since been deliberately and partially
+      # overridden, and the reasoning is recorded here so the next reader does
+      # not treat the current state as the very mistake this gate was written
+      # to prevent:
+      #
+      #   * web/dist/.gitkeep IS now tracked. `.gitignore` ignores web/dist/*
+      #     with an exception for that one file, so the 4108 files a real build
+      #     produces are all ignored. The placeholder is an EMPTY MARKER; it is
+      #     not build output.
+      #
+      #     ~~and a real build still leaves `git status --porcelain` empty.~~
+      #     WITHDRAWN, MEASURED FALSE. Struck rather than deleted so the next
+      #     reader can see the claim was made, tested and killed.
+      #     `build.outDir` is inside the vite root, so `emptyOutDir` defaults to
+      #     true and every `npm run build` DELETES the tracked marker. Measured
+      #     in a fresh clone: before, marker present; after `npm run build`,
+      #     marker gone and porcelain reads ` D web/dist/.gitkeep`.
+      #     The ignore rule hides the 4108 ADDED files. It cannot hide the one
+      #     DELETED file. A developer who builds and then stages broadly commits
+      #     the marker's removal, which breaks the `all:web/dist` embed and stops
+      #     the module compiling from a clean clone.
+      #
+      #     That is not hypothetical: canary/c1-gitkeep-untracked (f410023) is
+      #     exactly that commit, and run 30463794909 passed EVERY arm in this
+      #     file -- both dist arms, vet, and the 501-test membership manifest --
+      #     while a clean clone of it gives `go list ./...` -> 0 packages and
+      #     `pattern all:web/dist: no matching files found`. The step
+      #     "Assert the COMMITTED tree compiles" above exists because of that
+      #     run, and it is placed before `npm ci` because that is the last
+      #     moment at which the tree on disk still IS the commit.
+      #   * It exists so a fresh clone can satisfy the embed and compile. What
+      #     it cannot do is masquerade as a real UI: assets.go's WebUI() returns
+      #     ErrWebAssetsNotBuilt when index.html is absent from the embed, so a
+      #     placeholder-only dist fails loudly at runtime instead of serving a
+      #     blank page.
+      #   * Because EXISTENCE is therefore no longer evidence of anything, the
+      #     post-build check below asserts CONTENT instead: a real index.html,
+      #     real hashed assets, and a file count above a floor. That content
+      #     assertion is what now carries the guarantee existence used to.
+      #
+      # So the rule is narrower than before, not abandoned: commit the marker,
+      # never the build. The pre-build step enforces exactly that -- anything in
+      # web/dist that git does not track is inherited output and goes red.
+      # ---------------------------------------------------------------------
+      - name: Assert web/dist holds no build output before the build
+        run: |
+          # ===================================================================
+          # FRESHNESS IS AN EMERGENT GUARANTEE. NOTHING CHECKS IT DIRECTLY.
+          #
+          # No step in this workflow asserts that web/dist was built by THIS
+          # run. That property holds only because two separate steps compose:
+          # this one proves web/dist holds nothing but the committed
+          # placeholder BEFORE the build, and "Assert web/dist has real build
+          # content" proves real content AFTER it. Nothing untracked in, real
+          # content out, therefore the content came from this run.
+          #
+          # Nobody asserted that, so nobody is protecting it. WEAKENING EITHER
+          # STEP SILENTLY DELETES THE GUARANTEE -- there is no third check that
+          # notices, and the symptom is a stale UI shipping while CI stays
+          # green. If you are here to relax this arm, you are removing the
+          # freshness guarantee whether or not you intend to. Read the matching
+          # comment on the content arm before you do.
+          #
+          # THIS IS NOT A HYPOTHETICAL. It has already happened in this
+          # repository, on a real branch: a halted branch went GREEN only
+          # because its WORKING TREE carried a built web/dist that THE COMMIT
+          # DID NOT. A tree that builds and a commit that does not are
+          # indistinguishable to anyone reading that green, and the green was
+          # believed. This arm is what makes that case impossible now -- not by
+          # checking freshness, which nothing does, but by proving nothing
+          # untracked is present before the build runs. Relax it and that exact
+          # incident becomes possible again, silently, with no gate complaining.
+          # ===================================================================
+          #
+          # TWO separate conditions are checked below, because build output can
+          # arrive either way.
+          #
+          # (1) The TRACKED set must EQUAL the placeholder. Not contain it, not
+          #     be a subset of an allowed list -- equal it.
+          #
+          #     This was an allow-list before, and an allow-list is a SUBSET
+          #     test: it asks "is everything here permitted?" and the empty set
+          #     passes that trivially. So it caught committed build output (one
+          #     direction) and waved through a MISSING MARKER (the other). The
+          #     missing-marker case is not hypothetical -- it breaks the
+          #     `all:web/dist` embed and stops the Go module compiling from a
+          #     clean clone, which is the defect this whole gate descends from.
+          #     Equality is one predicate that closes both directions, and it
+          #     is what the comment two screens up always claimed: "the tracked
+          #     .gitkeep marker is fine; a build is not" is an equality, and
+          #     the code used to implement something strictly weaker.
+          #
+          #     Note this is checked against the INDEX, before any test of the
+          #     directory on disk, and it is deliberately the first thing that
+          #     happens in this step. An earlier version began with "if web/dist
+          #     does not exist, print OK and exit 0", which handed the empty
+          #     case a second way through. Runner receipt for that: on
+          #     canary/c1-gitkeep-untracked (f410023) run 30463794909, this arm
+          #     took precisely that branch and printed "OK: web/dist does not
+          #     exist on a clean checkout" for a commit that does not compile.
+          #     An ABSENT web/dist is not an acceptable state now that a tracked
+          #     marker is the thing making the embed work, so both the absent
+          #     case and the 4109-tracked-file case must red here, and do.
+          # (2) UNTRACKED files must not exist at all -- that is the
+          #     cache-restore / stale-working-copy case.
+          #
+          # Note what this step does NOT do: it never cleans, empties or removes
+          # web/dist. It only reports. The placeholder stays.
+          expected_tracked="web/dist/.gitkeep"
+          tracked=$(git ls-files web/dist)
+          if [ "$tracked" != "$expected_tracked" ]; then
+            echo "::error::web/dist's TRACKED set is not exactly the placeholder."
+            echo "expected: ${expected_tracked}"
+            echo "found:"
+            if [ -z "$tracked" ]; then
+              echo "  (nothing -- git tracks no file under web/dist)"
+              echo
+              echo "The placeholder is MISSING. assets.go embeds all:web/dist,"
+              echo "so with no tracked file there the Go module does not compile"
+              echo "from a clean clone at all. Restore web/dist/.gitkeep."
+            else
+              printf '%s\n' "$tracked" | sed 's/^/  /'
+              echo
+              echo "Committing build output is the one input that would otherwise"
+              echo "satisfy this arm AND the content arm after the build, which is"
+              echo "how a stale UI ships with every gate green."
+            fi
+            echo "Exactly ${expected_tracked} may be committed under web/dist,"
+            echo "no more and no less."
+            exit 1
+          fi
+
+          if [ ! -d web/dist ]; then
+            echo "::error::web/dist is tracked but is not a directory on disk."
+            exit 1
+          fi
+
+          stray=$(comm -23 \
+            <(find web/dist -mindepth 1 -type f | sort) \
+            <(git ls-files web/dist | sort))
+          if [ -n "$stray" ]; then
+            echo "::error::web/dist contains build output BEFORE anything built it."
+            echo "These files are present on a fresh checkout but are not tracked,"
+            echo "so the Go embed would be satisfied by an artefact this run did"
+            echo "not produce."
+            echo "The tracked .gitkeep marker is fine; a build is not."
+            echo "Do NOT fix this by committing them. Fix whatever restored them."
+            printf '%s\n' "$stray"
+            exit 1
+          fi
+          echo "OK: web/dist holds only the committed placeholder:"
+          git ls-files web/dist
+
+      - name: Build
+        run: make build
+
+      - name: Assert web/dist has real build content
+        run: |
+          # ===================================================================
+          # FRESHNESS IS AN EMERGENT GUARANTEE. NOTHING CHECKS IT DIRECTLY.
+          #
+          # This step proves web/dist has REAL CONTENT. It does not, and cannot,
+          # prove that content is FRESH -- a stale tree full of last week's
+          # assets would satisfy every check below.
+          #
+          # Freshness holds only because this step composes with "Assert
+          # web/dist holds no build output before the build": that one proves
+          # nothing but the committed placeholder was present BEFORE the build,
+          # and this one proves real content AFTER it. Nothing untracked in,
+          # real content out, therefore this run produced it.
+          #
+          # Nobody asserted that property, so nobody is protecting it.
+          # WEAKENING EITHER STEP SILENTLY DELETES IT. There is no third check
+          # that would notice, and the symptom is a stale UI shipping while CI
+          # stays green. Do not relax either arm without replacing the
+          # guarantee explicitly.
+          # ===================================================================
+          #
+          # EXISTENCE IS NOT CONTENT.
+          #
+          # web/dist now always exists, because .gitkeep is tracked. A stub or a
+          # half-finished build therefore satisfies `[ -d web/dist ]`, satisfies
+          # the `all:web/dist` embed, compiles clean, and ships. This step is the
+          # thing that actually establishes a UI was built, so it checks for the
+          # artefacts a real vite build must produce.
+          #
+          # The floor is deliberately far below the real figure (4109 files at
+          # the time of writing, the bulk of it the copied shoelace assets) so
+          # that ordinary churn does not trip it, while a stub -- which is one
+          # to a few files -- cannot possibly clear it.
+          min_files=500
+          fail=0
+
+          if [ ! -d web/dist ]; then
+            echo "::error::make build completed but did not produce web/dist."
+            exit 1
+          fi
+
+          # 1. index.html must exist and be a real document, not a stub.
+          if [ ! -f web/dist/index.html ]; then
+            echo "::error::web/dist/index.html is missing after the build."
+            echo "assets.go WebUI() treats this as ErrWebAssetsNotBuilt."
+            fail=1
+          else
+            bytes=$(wc -c < web/dist/index.html)
+            if [ "$bytes" -lt 200 ]; then
+              echo "::error::web/dist/index.html is only $bytes bytes; expected a real document."
+              fail=1
+            fi
+            # A built index.html references the hashed bundle. A hand-written
+            # placeholder almost never does.
+            if ! grep -q 'assets/index-.*\.js' web/dist/index.html; then
+              echo "::error::web/dist/index.html does not reference a hashed asset bundle."
+              echo "That means it was not emitted by a vite build."
+              fail=1
+            fi
+          fi
+
+          # 2. Hashed asset bundles must be present on disk.
+          js=$(find web/dist/assets -maxdepth 1 -type f -name 'index-*.js' 2>/dev/null | wc -l)
+          css=$(find web/dist/assets -maxdepth 1 -type f -name 'index-*.css' 2>/dev/null | wc -l)
+          if [ "$js" -eq 0 ] || [ "$css" -eq 0 ]; then
+            echo "::error::Expected hashed bundles in web/dist/assets (found ${js} js, ${css} css)."
+            fail=1
+          fi
+
+          # 3. Total file count must clear the floor.
+          count=$(find web/dist -type f | wc -l)
+          if [ "$count" -lt "$min_files" ]; then
+            echo "::error::web/dist holds $count files, below the floor of $min_files."
+            echo "That is a stub or a partial build, not a UI."
+            fail=1
+          fi
+
+          echo "web/dist: $count files, ${js} hashed js, ${css} hashed css" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::web/dist exists but does not contain a real build."
+            exit 1
+          fi
+          echo "OK: web/dist contains real build output produced by this run."
+
+      # ---------------------------------------------------------------------
+      # The two suites are invoked DIRECTLY below, not through `make test`.
+      #
+      # This is deliberate. If the gate reached the tests only via `make test`,
+      # then the gate would be load-bearing on the Makefile edit that shipped
+      # alongside it, and a mistake there would silently reduce coverage while
+      # the badge stayed green. `make test` is checked separately, afterwards,
+      # as a Makefile self-check -- not as the route to the tests.
+      # ---------------------------------------------------------------------
+      # `set -o pipefail` is redundant given defaults.run.shell above, and is
+      # kept anyway: this specific pipeline is the one that already swallowed a
+      # real Go test failure once, and it should not depend on a setting several
+      # dozen lines away staying correct.
+      - name: Go tests (invoked directly)
+        run: |
+          set -o pipefail
+          go test ./... -v 2>&1 | tee go-test.log
+
+      - name: Web tests (invoked directly)
+        working-directory: web
+        run: npm test
+
+      # `make lint` is `go vet ./...` and nothing else. `make lint-proto` is
+      # deliberately NOT wired in: it shells out to `buf`, which is installed
+      # nowhere on the runner and pinned nowhere in this repo, so gating on it
+      # would red the build over a missing binary rather than over a defect.
+      #
+      # Vet must run against a BUILT tree, because it compiles the packages and
+      # that needs the `all:web/dist` embed populated. It is placed AFTER the
+      # suites rather than before them on purpose: vet failing must not stop the
+      # tests from producing go-test.log, or a lint error would take the test
+      # evidence down with it and the membership gate below would report a
+      # missing log instead of the real problem.
+      #
+      # Nothing in this repository has ever run vet in CI. This step is
+      # load-bearing from its first run -- see the project log entry.
+      - name: Lint (go vet)
+        run: make lint
+
+      - name: Go test membership (asserted against a committed manifest)
+        if: always()
+        run: |
+          # Byte-for-byte determinism between the sort that produced the
+          # committed manifest and the sort/comm run here. Without this, a
+          # locale difference alone can make `comm` report bogus differences.
+          export LC_ALL=C
+
+          # Accumulate verdicts so that one red does not suppress the diagnosis
+          # of the next. Only the checks that make everything after them
+          # meaningless (no log, unparseable log, no manifest) exit early.
+          status=0
+
+          # This step runs on `if: always()`, so it also runs when an EARLIER
+          # step already failed and the Go suite was therefore skipped. In that
+          # case this branch is a CONSEQUENCE of that earlier red, not an
+          # independent one -- but it still fails, because an absent log is not
+          # an empty result and a guard that excuses itself is not a guard.
+          # The message says which of the two it is so the reader does not have
+          # to guess, and so that a genuine missing-test red (which says
+          # "DID NOT RUN" below, and is the FIRST red in the run) is never
+          # dismissed as cascade noise.
+          if [ ! -f go-test.log ]; then
+            echo "::error::go-test.log absent: the Go suite produced no evidence."
+            echo "An absent log is not an empty result. Failing closed."
+            echo
+            echo "THIS IS PROBABLY A CONSEQUENCE, NOT THE PRIMARY FAILURE."
+            echo "LOOK ABOVE: if an earlier step is red, the Go suite was"
+            echo "skipped and never wrote this log -- fix that step first and"
+            echo "this one goes with it. Only if NO earlier step is red is the"
+            echo "missing log itself the defect."
+            echo "A genuinely missing TEST reports differently: it says"
+            echo "'Go tests listed in the manifest DID NOT RUN' and names them."
+            exit 1
+          fi
+
+          # Self-check the parser before trusting anything it says. If not one
+          # package result line can be recognised, the log is truncated or go's
+          # output format has moved, and an unparseable log must never read as
+          # 'no failures'.
+          pkg_lines=$(grep -cP '^(ok  |FAIL|\?   )\t' go-test.log || true)
+          if [ "$pkg_lines" -eq 0 ]; then
+            echo "::error::Recognised 0 package result lines in go-test.log."
+            echo "Either the log is truncated or go's output format changed."
+            exit 1
+          fi
+
+          # -------------------------------------------------------------------
+          # Membership is keyed by PACKAGE + TEST NAME.
+          #
+          # `go test ./... -v` emits each package's output as a contiguous block
+          # terminated by that package's own "ok  <TAB>pkg" / "FAIL<TAB>pkg"
+          # line, so the package owning a run of `=== RUN` lines is the one
+          # named by the next terminator.
+          #
+          # Keying on the BARE test name silently merged same-named tests from
+          # different packages into one row. On the artifact of green run
+          # 30457818557 that collapsed 501 real tests into 499 rows, because
+          # internal/server and internal/store each define TestListUsers and
+          # TestGetUser. A merge like that can hide a FAILING test behind a
+          # passing one of the same name -- precisely the disappearance this
+          # step exists to prevent.
+          #
+          # A SKIPPED TEST IS NOT AN EXECUTED TEST, and this step used to say it
+          # was. Membership was keyed on `=== RUN` alone, but go emits `=== RUN`
+          # for a test that then calls t.Skip, so `t.Skip("in a hurry")` on one
+          # line removed a test from the suite while this gate kept counting it.
+          # Measured, not modelled: canary/r1-tskip-defeats-membership (930fdb1)
+          # is one added t.Skip, and run 30463804634 went GREEN printing
+          # "OK: all 501 manifest tests executed" -- with
+          # "--- SKIP: TestWatchTasks_CreatedEvent (0.00s)" sitting in this
+          # workflow's own log four steps above that sentence. The evidence was
+          # collected and not read.
+          #
+          # So SKIP lines are parsed with the same package attribution and
+          # SUBTRACTED. A skipped manifest test then falls out as MISSING, which
+          # is what it is. Only TOP-LEVEL skips count: a `--- SKIP` for a subtest
+          # is indented and the parent still ran, and the manifest is keyed on
+          # top-level names.
+          # -------------------------------------------------------------------
+          awk '
+            BEGIN { FS = "\t" }
+            /^=== RUN   Test[^\/]*$/ { run[++nr] = substr($0, 11); next }
+            /^--- SKIP: / {
+              name = substr($0, 11)
+              sub(/ \([0-9.]+s\)$/, "", name)
+              if (name ~ /\//) next
+              skip[++ns] = name
+              next
+            }
+            /^(ok  |FAIL|\?   )\t/ {
+              pkg = $2; sub(/ \[.*\]$/, "", pkg)
+              for (i = 1; i <= nr; i++) print "RUN\t"  pkg "\t" run[i]
+              for (i = 1; i <= ns; i++) print "SKIP\t" pkg "\t" skip[i]
+              nr = 0; ns = 0; next
+            }
+            END {
+              for (i = 1; i <= nr; i++) print "RUN\t(unterminated)\t"  run[i]
+              for (i = 1; i <= ns; i++) print "SKIP\t(unterminated)\t" skip[i]
+            }
+          ' go-test.log | sort -u > go-test-rows.txt
+
+          # grep exits 1 on no match, and this shell runs with -e and pipefail,
+          # so an empty skip set would abort the step. Empty is the expected
+          # case; it must not look like breakage.
+          { grep -P '^RUN\t'  go-test-rows.txt | cut -f2- | sort -u > ran-go-tests.txt;     } || true
+          { grep -P '^SKIP\t' go-test-rows.txt | cut -f2- | sort -u > skipped-go-tests.txt; } || true
+          comm -23 ran-go-tests.txt skipped-go-tests.txt > executed-go-tests.txt
+
+          echo "### Executed Go tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "package-qualified Go tests executed: $(wc -l < executed-go-tests.txt)" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "top-level Go tests skipped: $(wc -l < skipped-go-tests.txt)" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+          # A test whose package never printed a result line is unaccounted-for
+          # evidence (panic, timeout, truncated log). That is not a pass.
+          if grep -qP '\t\(unterminated\)\t' go-test-rows.txt; then
+            echo "::error::These tests belong to a package that never reported a result:"
+            grep -P '\t\(unterminated\)\t' go-test-rows.txt
+            exit 1
+          fi
+
+          # -------------------------------------------------------------------
+          # ANY top-level skip is a failure, and it is free to say so today:
+          # at this commit the tree contains four t.Skip* call sites and every
+          # one of them is reachable only under `-tags integration`, which CI
+          # does not pass. A real run here skips ZERO tests. A bypass costs
+          # nothing to close while its population is zero and becomes a
+          # negotiation the moment one legitimate instance exists.
+          #
+          # If a skip ever becomes legitimate, the exemption belongs in the
+          # manifest as an explicit, named, reviewable row -- not in a predicate
+          # that cannot tell "skipped" from "passed".
+          # -------------------------------------------------------------------
+          skip_count=$(wc -l < skipped-go-tests.txt)
+          if [ "$skip_count" -gt 0 ]; then
+            echo "::error::${skip_count} Go test(s) were SKIPPED, not executed:"
+            sed 's/^/  /' skipped-go-tests.txt
+            echo
+            echo "go prints '=== RUN' for a skipped test, so a skip reads as a"
+            echo "pass to anything counting RUN lines, and it reads as good"
+            echo "citizenship in a diff. It is a test that stopped running."
+            echo "Any of these that is in the manifest is ALSO named below as"
+            echo "DID NOT RUN -- that is the same defect reported twice, not two."
+            status=1
+          fi
+
+          echo "--- failures, if any ---"
+          # The old expression was `^(--- FAIL|FAIL|ok  ) ` -- note the trailing
+          # SPACE. go test separates result fields with TABS, so that space
+          # broke THREE of the four failure forms independently:
+          #
+          #   FORM A  "FAIL<TAB>pkg<TAB>0.00s"       a TAB follows, not a space
+          #           "FAIL<TAB>pkg [setup failed]"
+          #   FORM B  "--- FAIL: TestName (0.00s)"   a COLON follows, not a space
+          #   FORM C  "FAIL"                         NOTHING follows it at all
+          #   (only "ok  <TAB>pkg" matched, and then purely by accident, because
+          #    go happens to emit two spaces after `ok`.)
+          #
+          # Net effect: the summary printed the word "none" on every run this
+          # repository has ever produced, including run 30421407653, whose
+          # go-test.log carries 5 real failure lines across all three forms and
+          # 2 genuinely failing tests. Each form is anchored below and each is
+          # covered by its own canary; the expressions were validated against
+          # the go-test.log artifacts of real runs, never hand-written samples.
+          { grep -P '^(--- FAIL:|FAIL\t|FAIL$)' go-test.log > go-test-failures.txt; } || true
+          # An explicit count, never the word "none": a summary that is empty
+          # because nothing failed must not be indistinguishable from a summary
+          # that is empty because the expression stopped matching.
+          fail_lines=$(wc -l < go-test-failures.txt)
+          echo "go test failure lines matched: $fail_lines" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          cat go-test-failures.txt
+
+          # Fail on those lines HERE, independently of the go test step's exit
+          # status. This workflow's first run went green while a Go test was
+          # failing, because a missing pipefail let `tee` report success. A
+          # summary step that can see failures and still exit 0 would leave that
+          # same hole open from the other side.
+          if [ "$fail_lines" -gt 0 ]; then
+            echo "::error::go test emitted $fail_lines failure line(s); see above."
+            status=1
+          fi
+
+          # -------------------------------------------------------------------
+          # ASSERT the membership. Reporting it cannot catch a regression: when
+          # a test stops running the count simply gets smaller and the run stays
+          # green. The expected set is committed and compared here.
+          #
+          # Deliberately asymmetric:
+          #   MISSING    (expected, not executed) -> FAIL. The regression this
+          #              gate exists to catch.
+          #   UNEXPECTED (executed, not expected) -> REPORT ONLY. Adding a test
+          #              is not a defect, and forcing a manifest edit in the
+          #              same commit trains people to regenerate the manifest
+          #              reflexively -- which is how a genuinely missing test
+          #              would get rubber-stamped back to green.
+          # -------------------------------------------------------------------
+          manifest=.github/expected-go-tests.txt
+          if [ ! -f "$manifest" ]; then
+            echo "::error::$manifest is missing, so membership cannot be asserted."
+            exit 1
+          fi
+          sort -u "$manifest" > expected-go-tests.sorted
+          missing=$(comm -23 expected-go-tests.sorted executed-go-tests.txt)
+          unexpected=$(comm -13 expected-go-tests.sorted executed-go-tests.txt)
+
+          if [ -n "$unexpected" ]; then
+            echo "::notice::Go tests executed that are not in the manifest (not a failure):"
+            printf '%s\n' "$unexpected"
+            echo "Add them to $manifest when convenient."
+          fi
+
+          if [ -n "$missing" ]; then
+            echo "::error::Go tests listed in the manifest DID NOT RUN:"
+            printf '%s\n' "$missing"
+            echo "A test that quietly stops running is the exact failure mode"
+            echo "this gate exists to catch. If the removal is intentional,"
+            echo "update $manifest in the same change that removes the test."
+            status=1
+          else
+            echo "OK: all $(wc -l < expected-go-tests.sorted) manifest tests executed."
+          fi
+
+          exit $status
+
+      - name: Upload test membership evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-membership
+          path: |
+            committed-packages.txt
+            go-test.log
+            go-test-rows.txt
+            executed-go-tests.txt
+            skipped-go-tests.txt
+            go-test-failures.txt
+          # `warn` meant that if the evidence logs were absent the upload
+          # printed a warning and the job stayed green -- an evidence gate that
+          # passes when there is no evidence. Absent evidence is a failure.
+          if-no-files-found: error
+
+      # Verifies the Makefile change that shipped with this workflow really does
+      # reach both suites. If this fails while the direct steps above passed,
+      # the Makefile is wrong -- not the code.
+      - name: Makefile self-check (make test reaches both suites)
+        run: make test

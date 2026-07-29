@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "sourceMap": true,
+    // "node" is required because this project's *.test.ts files are inside
+    // "include" and import node:fs / node:path / node:url. It is declared here
+    // rather than left to arrive transitively through @types/jsdom's
+    // /// <reference types="node" />, which is how it reached the program
+    // before and which broke the moment the package set was reinstalled.
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src"]
+}

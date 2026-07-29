@@ -1,0 +1,12 @@
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local: protoc-gen-go
+    out: api
+    opt:
+      - module=go.farmtable.dev/api/gen
+  - local: protoc-gen-go-grpc
+    out: api
+    opt:
+      - module=go.farmtable.dev/api/gen

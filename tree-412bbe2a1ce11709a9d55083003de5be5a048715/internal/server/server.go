@@ -1,0 +1,2213 @@
+package server
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
+	"github.com/farmtable-io/farmtable/internal/convert"
+	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
+	"github.com/farmtable-io/farmtable/internal/store/ent/collection"
+	"github.com/farmtable-io/farmtable/internal/store/ent/task"
+	"github.com/farmtable-io/farmtable/internal/streaming"
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type FarmTableService struct {
+	pb.UnimplementedFarmTableServiceServer
+	store         store.Store
+	version       string
+	startedAt     time.Time
+	eventBus      *streaming.EventBus
+	ephemeralPool *store.EphemeralStorePool
+}
+
+type ServiceOption func(*FarmTableService)
+
+func WithEventBus(eb *streaming.EventBus) ServiceOption {
+	return func(s *FarmTableService) { s.eventBus = eb }
+}
+
+// WithEphemeralPool configures a pool of in-memory SQLite stores used for
+// ephemeral graph queries against external collections.
+func WithEphemeralPool(p *store.EphemeralStorePool) ServiceOption {
+	return func(s *FarmTableService) { s.ephemeralPool = p }
+}
+
+func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *FarmTableService {
+	svc := &FarmTableService{store: s, version: version, startedAt: time.Now()}
+	for _, opt := range opts {
+		opt(svc)
+	}
+	return svc
+}
+
+const defaultPageSize = 50
+const maxTaskNameLength = 512
+const maxTaskDescriptionLength = 65536
+
+func validateDefinedEnum(field string, value int32, names map[int32]string) error {
+	if _, ok := names[value]; !ok {
+		return status.Errorf(codes.InvalidArgument, "invalid %s: %d", field, value)
+	}
+	return nil
+}
+
+func validateTaskName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return status.Errorf(codes.InvalidArgument, "name is required")
+	}
+	if utf8.RuneCountInString(name) > maxTaskNameLength {
+		return status.Errorf(codes.InvalidArgument, "name must be at most %d characters", maxTaskNameLength)
+	}
+	return nil
+}
+
+func validateTaskDescription(description string) error {
+	if utf8.RuneCountInString(description) > maxTaskDescriptionLength {
+		return status.Errorf(codes.InvalidArgument, "description must be at most %d characters", maxTaskDescriptionLength)
+	}
+	return nil
+}
+
+// ── Tasks ──
+
+func (s *FarmTableService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	if err := validateTaskName(req.GetName()); err != nil {
+		return nil, err
+	}
+	if err := validateTaskDescription(req.GetDescription()); err != nil {
+		return nil, err
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
+
+	stage := task.StageTriage
+	phase := task.PhaseOpen
+	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
+		stage = convert.StageFromProto(*req.Stage)
+		phase = phaseForStage(stage)
+	}
+
+	p := store.CreateTaskParams{
+		Title:        req.GetName(),
+		Description:  req.GetDescription(),
+		CollectionID: collID,
+		Phase:        phase,
+		Stage:        stage,
+		NativeLabel:  string(stage),
+		Type:         req.GetType(),
+	}
+
+	if req.Priority != nil {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
+		pr := convert.PriorityFromProto(*req.Priority)
+		p.Priority = &pr
+	}
+	if len(req.GetAssigneeIds()) > 0 {
+		aid, err := uuid.Parse(req.GetAssigneeIds()[0])
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
+		}
+		p.AssigneeID = &aid
+	}
+	if req.ParentTaskId != nil {
+		pid, err := uuid.Parse(*req.ParentTaskId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid parent_task_id: %v", err)
+		}
+		p.ParentTaskID = &pid
+	}
+	if req.AcceptanceCriteria != nil {
+		p.AcceptanceCriteria = req.AcceptanceCriteria
+	}
+	if len(req.GetLabels()) > 0 {
+		p.Labels = req.GetLabels()
+	}
+	if req.GetDueDate() != nil {
+		d := req.GetDueDate().AsTime()
+		p.DueDate = &d
+	}
+	if req.GetStartDate() != nil {
+		d := req.GetStartDate().AsTime()
+		p.StartDate = &d
+	}
+	for _, idStr := range req.GetBlocksTaskIds() {
+		bid, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid blocks_task_id: %v", err)
+		}
+		p.BlocksTaskIDs = append(p.BlocksTaskIDs, bid)
+	}
+	for _, idStr := range req.GetBlockedByTaskIds() {
+		bid, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid blocked_by_task_id: %v", err)
+		}
+		p.BlockedByTaskIDs = append(p.BlockedByTaskIDs, bid)
+	}
+	if req.Repo != nil {
+		p.Repo = *req.Repo
+	}
+	if req.Branch != nil {
+		p.Branch = *req.Branch
+	}
+
+	t, err := s.store.CreateTask(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating task: %v", err)
+	}
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CREATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+	return proto, nil
+}
+
+func (s *FarmTableService) InsertTasksAfter(ctx context.Context, req *pb.InsertTasksAfterRequest) (*pb.InsertTasksAfterResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	anchorID, err := uuid.Parse(req.GetAnchorTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid anchor_task_id: %v", err)
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
+	if len(req.GetSteps()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "at least one step is required")
+	}
+
+	p := store.InsertTasksAfterParams{
+		AnchorTaskID: anchorID,
+		CollectionID: collID,
+		Reason:       req.GetReason(),
+	}
+	if actorID, ok := UserIDFromContext(ctx); ok {
+		p.ActorID = actorID
+	}
+
+	for i, step := range req.GetSteps() {
+		if err := validateTaskName(step.GetName()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].name: %v", i, err)
+		}
+		if err := validateTaskDescription(step.GetDescription()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "steps[%d].description: %v", i, err)
+		}
+
+		params := store.CreateTaskParams{
+			Title:        step.GetName(),
+			Description:  step.GetDescription(),
+			CollectionID: collID,
+			Phase:        task.PhaseOpen,
+			Stage:        task.StageTriage,
+			NativeLabel:  string(task.StageTriage),
+			Type:         step.GetType(),
+			Labels:       step.GetLabels(),
+		}
+		if step.Priority != nil {
+			if err := validateDefinedEnum("priority", int32(step.GetPriority()), pb.TaskPriority_name); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "steps[%d].priority: %v", i, err)
+			}
+			pr := convert.PriorityFromProto(step.GetPriority())
+			params.Priority = &pr
+		}
+		p.Steps = append(p.Steps, params)
+	}
+
+	result, err := s.store.InsertTasksAfter(ctx, p)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+
+	resp := &pb.InsertTasksAfterResponse{
+		AnchorTask: taskToProto(result.AnchorTask),
+	}
+	for _, inserted := range result.InsertedTasks {
+		proto := taskToProto(inserted)
+		resp.InsertedTasks = append(resp.InsertedTasks, proto)
+		if s.eventBus != nil {
+			s.eventBus.Publish(&pb.TaskEvent{
+				EventType: pb.TaskEventType_TASK_EVENT_TYPE_CREATED,
+				Task:      proto,
+				Timestamp: timestamppb.Now(),
+			})
+		}
+	}
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      resp.AnchorTask,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
+	}
+
+	t, err := s.store.GetTask(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+	if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+
+	resp := &pb.GetTaskResponse{Task: taskToProto(t)}
+
+	if req.GetIncludeComments() {
+		comments, _, err := s.store.ListComments(ctx, store.ListCommentsParams{
+			TaskID: id,
+			Limit:  20,
+		})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "listing comments: %v", err)
+		}
+		for _, c := range comments {
+			resp.Comments = append(resp.Comments, commentToProto(c))
+		}
+	}
+
+	if req.GetIncludeChanges() {
+		changes, _, err := s.store.ListChanges(ctx, store.ListChangesParams{
+			TaskID: id,
+			Limit:  50,
+		})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "listing changes: %v", err)
+		}
+		for _, c := range changes {
+			resp.Changes = append(resp.Changes, changeToProto(c))
+		}
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) ListTasks(ctx context.Context, req *pb.ListTasksRequest) (*pb.ListTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	// Collection-scoped tokens must specify a collection_id.
+	if req.CollectionId == nil {
+		if ids := CollectionIDsFromContext(ctx); len(ids) > 0 {
+			return nil, status.Error(codes.InvalidArgument,
+				"collection-scoped tokens must specify collection_id")
+		}
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.ListTasksParams{
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	}
+
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
+		}
+		p.CollectionID = &cid
+	}
+	if req.Phase != nil && *req.Phase != pb.TaskPhase_TASK_PHASE_UNSPECIFIED {
+		if err := validateDefinedEnum("phase", int32(*req.Phase), pb.TaskPhase_name); err != nil {
+			return nil, err
+		}
+		ph := convert.PhaseFromProto(*req.Phase)
+		p.Phase = &ph
+	}
+	if len(req.GetStages()) > 0 {
+		for _, stage := range req.GetStages() {
+			if err := validateDefinedEnum("stages", int32(stage), pb.TaskStage_name); err != nil {
+				return nil, err
+			}
+		}
+		st := convert.StageFromProto(req.GetStages()[0])
+		p.Stage = &st
+	}
+	if req.Assignee != nil {
+		if *req.Assignee == "none" {
+			p.Unassigned = true
+		} else {
+			aid, err := uuid.Parse(*req.Assignee)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid assignee: %v", err)
+			}
+			p.AssigneeID = &aid
+		}
+	}
+	if req.Priority != nil && *req.Priority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
+		pr := convert.PriorityFromProto(*req.Priority)
+		p.Priority = &pr
+	}
+	if req.Type != nil {
+		p.Type = req.Type
+	}
+	if len(req.GetLabels()) > 0 {
+		p.Labels = req.GetLabels()
+	}
+	if req.ParentTaskId != nil {
+		pid, err := uuid.Parse(*req.ParentTaskId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid parent_task_id: %v", err)
+		}
+		p.ParentTaskID = &pid
+	}
+	if req.GetSortField() != pb.SortField_SORT_FIELD_UNSPECIFIED {
+		if err := validateDefinedEnum("sort_field", int32(req.GetSortField()), pb.SortField_name); err != nil {
+			return nil, err
+		}
+		p.SortField = sortFieldToString(req.GetSortField())
+	}
+	if req.GetSortOrder() != pb.SortOrder_SORT_ORDER_UNSPECIFIED {
+		if err := validateDefinedEnum("sort_order", int32(req.GetSortOrder()), pb.SortOrder_name); err != nil {
+			return nil, err
+		}
+		p.SortOrder = sortOrderToString(req.GetSortOrder())
+	}
+
+	tasks, total, err := s.store.ListTasks(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing tasks: %v", err)
+	}
+
+	resp := &pb.ListTasksResponse{
+		TotalCount: int32(total),
+	}
+	for _, t := range tasks {
+		resp.Items = append(resp.Items, taskToProto(t))
+	}
+
+	sortField := p.SortField
+	if sortField == "" {
+		sortField = "created"
+	}
+	if len(tasks) > 0 && len(tasks) == pageSize {
+		last := tasks[len(tasks)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), taskSortValue(last, sortField))
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
+	}
+
+	// Verify the token has access to the task's collection.
+	if existing, err := s.store.GetTask(ctx, id); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
+		return nil, err
+	}
+
+	p := store.UpdateTaskParams{}
+
+	if req.Version != nil {
+		p.Version = *req.Version
+	}
+
+	if req.Name != nil {
+		if err := validateTaskName(req.GetName()); err != nil {
+			return nil, err
+		}
+		p.Title = req.Name
+	}
+	if req.Description != nil {
+		if err := validateTaskDescription(req.GetDescription()); err != nil {
+			return nil, err
+		}
+		p.Description = req.Description
+	}
+	if req.AcceptanceCriteria != nil {
+		p.AcceptanceCriteria = req.AcceptanceCriteria
+	}
+	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
+		st := convert.StageFromProto(*req.Stage)
+		p.Stage = &st
+		ph := phaseForStage(st)
+		p.Phase = &ph
+	}
+	if req.Priority != nil {
+		if err := validateDefinedEnum("priority", int32(*req.Priority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
+		pr := convert.PriorityFromProto(*req.Priority)
+		p.Priority = &pr
+	}
+	if req.Type != nil {
+		p.Type = req.Type
+	}
+	if req.GetClearAssignees() {
+		p.ClearAssignee = true
+	} else if len(req.GetAssigneeIds()) > 0 {
+		aid, err := uuid.Parse(req.GetAssigneeIds()[0])
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
+		}
+		p.AssigneeID = &aid
+	}
+	if req.GetClearParent() {
+		p.ClearParent = true
+	} else if req.ParentTaskId != nil {
+		pid, err := uuid.Parse(*req.ParentTaskId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid parent_task_id: %v", err)
+		}
+		p.ParentTaskID = &pid
+	}
+
+	if req.GetDueDate() != nil {
+		d := req.GetDueDate().AsTime()
+		p.DueDate = &d
+	}
+	if req.GetClearDueDate() {
+		p.ClearDueDate = true
+	}
+	if req.GetStartDate() != nil {
+		d := req.GetStartDate().AsTime()
+		p.StartDate = &d
+	}
+	if req.GetClearStartDate() {
+		p.ClearStartDate = true
+	}
+
+	if len(req.GetAddLabels()) > 0 {
+		p.AddLabels = req.GetAddLabels()
+	}
+	if len(req.GetRemoveLabels()) > 0 {
+		p.RemoveLabels = req.GetRemoveLabels()
+	}
+
+	for _, idStr := range req.GetAddBlocks() {
+		bid, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid add_blocks id: %v", err)
+		}
+		p.AddBlocks = append(p.AddBlocks, bid)
+	}
+	for _, idStr := range req.GetAddBlockedBy() {
+		bid, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid add_blocked_by id: %v", err)
+		}
+		p.AddBlockedBy = append(p.AddBlockedBy, bid)
+	}
+	for _, idStr := range req.GetRemoveRelationships() {
+		rid, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid remove_relationships id: %v", err)
+		}
+		p.RemoveRelationships = append(p.RemoveRelationships, rid)
+	}
+
+	if req.Repo != nil {
+		p.Repo = req.Repo
+	}
+	if req.Branch != nil {
+		p.Branch = req.Branch
+	}
+	for _, pr := range req.GetAddPullRequests() {
+		p.AddPullRequests = append(p.AddPullRequests, store.PullRequestParam{
+			ID:     pr.GetId(),
+			URL:    pr.GetUrl(),
+			Status: prStatusFromProto(pr.GetStatus()),
+		})
+	}
+	if req.CiStatus != nil && *req.CiStatus != pb.CIStatus_CI_STATUS_UNSPECIFIED {
+		if err := validateDefinedEnum("ci_status", int32(*req.CiStatus), pb.CIStatus_name); err != nil {
+			return nil, err
+		}
+		cs := ciStatusFromProto(*req.CiStatus)
+		p.CIStatus = &cs
+	}
+	if req.RemoteId != nil || req.RemoteUrl != nil {
+		p.RemoteData = map[string]any{}
+		if req.RemoteId != nil {
+			p.RemoteData["remote_id"] = req.GetRemoteId()
+		}
+		if req.RemoteUrl != nil {
+			p.RemoteData["remote_url"] = req.GetRemoteUrl()
+		}
+	}
+
+	if req.Reason != nil {
+		p.Reason = req.Reason
+	}
+
+	actorID, _ := UserIDFromContext(ctx)
+	t, err := s.store.UpdateTask(ctx, id, p, actorID)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+		// Publish events for relationship target tasks so all clients see the reciprocal immediately.
+		seen := make(map[uuid.UUID]bool)
+		for _, lists := range [][]uuid.UUID{p.AddBlocks, p.AddBlockedBy, p.RemoveRelationships} {
+			for _, targetID := range lists {
+				if seen[targetID] {
+					continue
+				}
+				seen[targetID] = true
+				if tt, err := s.store.GetTask(ctx, targetID); err == nil {
+					s.eventBus.Publish(&pb.TaskEvent{
+						EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+						Task:      taskToProto(tt),
+						Timestamp: timestamppb.Now(),
+					})
+				}
+			}
+		}
+	}
+	return proto, nil
+}
+
+func (s *FarmTableService) ClaimTask(ctx context.Context, req *pb.ClaimTaskRequest) (*pb.ClaimTaskResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskClaim); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
+	}
+
+	// Verify the token has access to the task's collection.
+	if existing, err := s.store.GetTask(ctx, id); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
+		return nil, err
+	}
+
+	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
+	// In open-access mode (no auth configured), this will be uuid.Nil.
+	assigneeID, _ := UserIDFromContext(ctx)
+	if req.AssigneeId != nil {
+		parsed, err := uuid.Parse(*req.AssigneeId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid assignee_id: %v", err)
+		}
+		assigneeID = parsed
+	}
+
+	version := ""
+	if req.Version != nil {
+		version = *req.Version
+	}
+
+	t, err := s.store.ClaimTask(ctx, id, assigneeID, version)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_UPDATED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
+	return &pb.ClaimTaskResponse{
+		Task:      proto,
+		ClaimedAt: timestamppb.Now(),
+	}, nil
+}
+
+func (s *FarmTableService) CloseTask(ctx context.Context, req *pb.CloseTaskRequest) (*pb.Task, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task id: %v", err)
+	}
+
+	// Verify the token has access to the task's collection.
+	if existing, err := s.store.GetTask(ctx, id); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, existing.CollectionID); err != nil {
+		return nil, err
+	}
+
+	stage := task.StageCompleted
+	if req.Stage != nil {
+		if err := validateDefinedEnum("stage", int32(*req.Stage), pb.TaskStage_name); err != nil {
+			return nil, err
+		}
+		stage = convert.StageFromProto(*req.Stage)
+	}
+
+	version := ""
+	if req.Version != nil {
+		version = *req.Version
+	}
+
+	actorID, _ := UserIDFromContext(ctx)
+	t, err := s.store.CloseTask(ctx, id, stage, version, actorID)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+	proto := taskToProto(t)
+	if s.eventBus != nil {
+		s.eventBus.Publish(&pb.TaskEvent{
+			EventType: pb.TaskEventType_TASK_EVENT_TYPE_CLOSED,
+			Task:      proto,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+	return proto, nil
+}
+
+func (s *FarmTableService) DeleteTask(ctx context.Context, _ *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	return nil, status.Errorf(codes.Unimplemented, "delete is not supported; close tasks instead")
+}
+
+// ── Comments ──
+
+func (s *FarmTableService) AddComment(ctx context.Context, req *pb.AddCommentRequest) (*pb.Comment, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeTaskWrite); err != nil {
+		return nil, err
+	}
+	taskID, err := uuid.Parse(req.GetTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+	}
+
+	// Verify the token has access to the task's collection.
+	if t, err := s.store.GetTask(ctx, taskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+
+	// When auth is enforced, RequireIdentity guarantees a non-nil user ID.
+	// In open-access mode (no auth configured), this will be uuid.Nil.
+	authorID, _ := UserIDFromContext(ctx)
+
+	c, err := s.store.AddComment(ctx, store.AddCommentParams{
+		TaskID:   taskID,
+		AuthorID: authorID,
+		Body:     req.GetBody(),
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "adding comment: %v", err)
+	}
+	return commentToProto(c), nil
+}
+
+func (s *FarmTableService) ListComments(ctx context.Context, req *pb.ListCommentsRequest) (*pb.ListCommentsResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	taskID, err := uuid.Parse(req.GetTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+	}
+
+	// Verify the token has access to the task's collection.
+	if t, err := s.store.GetTask(ctx, taskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	comments, total, err := s.store.ListComments(ctx, store.ListCommentsParams{
+		TaskID:        taskID,
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing comments: %v", err)
+	}
+
+	resp := &pb.ListCommentsResponse{
+		TotalCount: int32(total),
+	}
+	for _, c := range comments {
+		resp.Items = append(resp.Items, commentToProto(c))
+	}
+	if len(comments) > 0 && len(comments) == pageSize {
+		last := comments[len(comments)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+func (s *FarmTableService) GetComment(ctx context.Context, req *pb.GetCommentRequest) (*pb.Comment, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid comment id: %v", err)
+	}
+
+	c, err := s.store.GetComment(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "comment")
+	}
+	// Verify the token has access to the comment's task's collection.
+	if t, err := s.store.GetTask(ctx, c.TaskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+	return commentToProto(c), nil
+}
+
+// ── Collections ──
+
+func (s *FarmTableService) GetCollection(ctx context.Context, req *pb.GetCollectionRequest) (*pb.Collection, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, id); err != nil {
+		return nil, err
+	}
+
+	c, err := s.store.GetCollection(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "collection")
+	}
+	return collectionToProto(c), nil
+}
+
+func (s *FarmTableService) ListCollections(ctx context.Context, req *pb.ListCollectionsRequest) (*pb.ListCollectionsResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.ListCollectionsParams{
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	}
+
+	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		if err := validateDefinedEnum("platform", int32(*req.Platform), pb.Platform_name); err != nil {
+			return nil, err
+		}
+		plat := platformFromProto(*req.Platform)
+		p.Platform = &plat
+	}
+
+	cols, total, err := s.store.ListCollections(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing collections: %v", err)
+	}
+
+	// Filter results when the token is restricted to specific collections.
+	allowedIDs := CollectionIDsFromContext(ctx)
+	storeFull := len(cols) == pageSize // store returned a full page before filtering
+	if len(allowedIDs) > 0 {
+		allowed := make(map[uuid.UUID]bool, len(allowedIDs))
+		for _, id := range allowedIDs {
+			allowed[id] = true
+		}
+		filtered := cols[:0]
+		for _, c := range cols {
+			if allowed[c.ID] {
+				filtered = append(filtered, c)
+			}
+		}
+		cols = filtered
+		// After filtering, total is an approximation: count of filtered results
+		// on this page only, since we can't know the true total without scanning
+		// all pages.
+		total = len(cols)
+	}
+
+	resp := &pb.ListCollectionsResponse{
+		TotalCount: int32(total),
+	}
+	for _, c := range cols {
+		resp.Items = append(resp.Items, collectionToProto(c))
+	}
+	if len(allowedIDs) > 0 {
+		// When filtering is active, always set has_more=true if the store
+		// returned a full page, since there may be matching collections on
+		// later pages.
+		if storeFull && len(cols) > 0 {
+			last := cols[len(cols)-1]
+			resp.HasMore = true
+			resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+		}
+	} else if len(cols) > 0 && len(cols) == pageSize {
+		last := cols[len(cols)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+func (s *FarmTableService) CreateCollection(ctx context.Context, req *pb.CreateCollectionRequest) (*pb.Collection, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionWrite); err != nil {
+		return nil, err
+	}
+	platform := "farmtable"
+	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		platform = string(platformFromProto(*req.Platform))
+	}
+
+	remoteID := ""
+	if req.RemoteId != nil {
+		remoteID = *req.RemoteId
+	}
+
+	// Non-farmtable collections must have a remote_id.
+	if platform != "farmtable" && remoteID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "remote_id is required for %s platform collections", platform)
+	}
+
+	p := store.CreateCollectionParams{
+		Name:        req.GetName(),
+		Description: req.GetDescription(),
+		Platform:    platform,
+		RemoteID:    remoteID,
+	}
+
+	c, err := s.store.CreateCollection(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "creating collection: %v", err)
+	}
+	return collectionToProto(c), nil
+}
+
+func (s *FarmTableService) UpdateCollection(ctx context.Context, req *pb.UpdateCollectionRequest) (*pb.Collection, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionWrite); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, id); err != nil {
+		return nil, err
+	}
+	p := store.UpdateCollectionParams{}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "collection name must not be empty")
+		}
+		p.Name = &name
+	}
+	if req.Description != nil {
+		p.Description = req.Description
+	}
+	if req.Name == nil && req.Description == nil {
+		c, err := s.store.GetCollection(ctx, id)
+		if err != nil {
+			return nil, storeErr(err, "collection")
+		}
+		return collectionToProto(c), nil
+	}
+	c, err := s.store.UpdateCollection(ctx, id, p)
+	if err != nil {
+		return nil, storeErr(err, "collection")
+	}
+	return collectionToProto(c), nil
+}
+
+// ── Linked Accounts ──
+
+func (s *FarmTableService) CreateLinkedAccount(ctx context.Context, req *pb.CreateLinkedAccountRequest) (*pb.CreateLinkedAccountResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
+		return nil, err
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
+
+	platform := linkedAccountPlatformFromProto(req.GetPlatform())
+	if platform == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "platform is required")
+	}
+
+	authMethod := linkedAccountAuthMethodFromProto(req.GetAuthMethod())
+	if authMethod == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "auth_method is required")
+	}
+
+	if req.GetAuthToken() == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "auth_token is required")
+	}
+
+	p := store.CreateLinkedAccountParams{
+		CollectionID: collID,
+		Platform:     platform,
+		AuthToken:    req.GetAuthToken(),
+		AuthMethod:   authMethod,
+		Scopes:       req.GetScopes(),
+		RemoteUserID: req.GetRemoteUserId(),
+	}
+	if req.GetExpiresAt() != nil {
+		t := req.GetExpiresAt().AsTime()
+		p.ExpiresAt = &t
+	}
+
+	la, err := s.store.CreateLinkedAccount(ctx, p)
+	if err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	return &pb.CreateLinkedAccountResponse{
+		LinkedAccount: linkedAccountToProto(la),
+	}, nil
+}
+
+func (s *FarmTableService) GetLinkedAccount(ctx context.Context, req *pb.GetLinkedAccountRequest) (*pb.GetLinkedAccountResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
+	}
+
+	la, err := s.store.GetLinkedAccount(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	if err := RequireCollectionAccess(ctx, la.CollectionID); err != nil {
+		return nil, err
+	}
+	return &pb.GetLinkedAccountResponse{
+		LinkedAccount: linkedAccountToProto(la),
+	}, nil
+}
+
+func (s *FarmTableService) DeleteLinkedAccount(ctx context.Context, req *pb.DeleteLinkedAccountRequest) (*pb.DeleteLinkedAccountResponse, error) {
+	if _, err := RequireIdentity(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked account id: %v", err)
+	}
+
+	// Verify the token has access to the linked account's collection.
+	la, err := s.store.GetLinkedAccount(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	if err := RequireCollectionAccess(ctx, la.CollectionID); err != nil {
+		return nil, err
+	}
+
+	if err := s.store.DeleteLinkedAccount(ctx, id); err != nil {
+		return nil, storeErr(err, "linked account")
+	}
+	return &pb.DeleteLinkedAccountResponse{}, nil
+}
+
+func (s *FarmTableService) ListLinkedAccounts(ctx context.Context, req *pb.ListLinkedAccountsRequest) (*pb.ListLinkedAccountsResponse, error) {
+	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
+		return nil, err
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	p := store.ListLinkedAccountsParams{
+		Limit: pageSize,
+	}
+
+	allowedIDs := CollectionIDsFromContext(ctx)
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
+		}
+		p.CollectionID = &cid
+	}
+	if req.Platform != nil && *req.Platform != pb.Platform_PLATFORM_UNSPECIFIED {
+		plat := linkedAccountPlatformFromProto(*req.Platform)
+		p.Platform = &plat
+	}
+	if req.Status != nil && *req.Status != pb.LinkedAccountStatus_LINKED_ACCOUNT_STATUS_UNSPECIFIED {
+		st := linkedAccountStatusFromProto(*req.Status)
+		p.Status = &st
+	}
+
+	if req.GetPageToken() != "" {
+		cursor, err := decodeCursor(req.GetPageToken())
+		if err != nil {
+			return nil, err
+		}
+		p.LastID = cursor.LastID
+	}
+
+	accounts, total, err := s.store.ListLinkedAccounts(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing linked accounts: %v", err)
+	}
+
+	storeFull := len(accounts) == pageSize // store returned a full page before filtering
+	// Filter results when no specific collection was requested but token is collection-scoped.
+	if req.CollectionId == nil && len(allowedIDs) > 0 {
+		allowed := make(map[uuid.UUID]bool, len(allowedIDs))
+		for _, id := range allowedIDs {
+			allowed[id] = true
+		}
+		filtered := accounts[:0]
+		for _, la := range accounts {
+			if allowed[la.CollectionID] {
+				filtered = append(filtered, la)
+			}
+		}
+		accounts = filtered
+		total = len(accounts)
+	}
+
+	resp := &pb.ListLinkedAccountsResponse{
+		TotalCount: int32(total),
+	}
+	for _, la := range accounts {
+		resp.Items = append(resp.Items, linkedAccountToProto(la))
+	}
+	if len(allowedIDs) > 0 && req.CollectionId == nil {
+		// When filtering is active, always set has_more=true if the store
+		// returned a full page, since there may be matching accounts on
+		// later pages.
+		if storeFull && len(accounts) > 0 {
+			last := accounts[len(accounts)-1]
+			resp.HasMore = true
+			resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+		}
+	} else if len(accounts) > 0 && len(accounts) == pageSize {
+		last := accounts[len(accounts)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+// ── Audit Trail ──
+
+func (s *FarmTableService) ListChanges(ctx context.Context, req *pb.ListChangesRequest) (*pb.ListChangesResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	taskID, err := uuid.Parse(req.GetTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+	}
+	// Verify the token has access to the task's collection.
+	if t, err := s.store.GetTask(ctx, taskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	changes, total, err := s.store.ListChanges(ctx, store.ListChangesParams{
+		TaskID:        taskID,
+		Field:         req.GetField(),
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing changes: %v", err)
+	}
+
+	resp := &pb.ListChangesResponse{
+		TotalCount: int32(total),
+	}
+	for _, c := range changes {
+		resp.Items = append(resp.Items, changeToProto(c))
+	}
+	if len(changes) > 0 && len(changes) == pageSize {
+		last := changes[len(changes)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+// ── Users ──
+
+func (s *FarmTableService) WhoAmI(ctx context.Context, req *pb.WhoAmIRequest) (*pb.User, error) {
+	userID, ok := UserIDFromContext(ctx)
+	if !ok || userID == uuid.Nil {
+		return nil, status.Error(codes.Unauthenticated, "not authenticated")
+	}
+	u, err := s.store.GetUser(ctx, userID)
+	if err != nil {
+		return nil, storeErr(err, "user")
+	}
+	return userToProto(u), nil
+}
+
+func (s *FarmTableService) ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
+	if err := RequireScope(ctx, ScopeUserRead); err != nil {
+		return nil, err
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	cursor, err := decodeCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.ListUsersParams{
+		Limit:         pageSize,
+		LastID:        cursor.LastID,
+		LastSortValue: cursor.LastSortValue,
+	}
+
+	if req.Type != nil {
+		if err := validateDefinedEnum("type", int32(*req.Type), pb.UserType_name); err != nil {
+			return nil, err
+		}
+		p.Type = userTypeFromProto(*req.Type)
+	}
+
+	users, total, err := s.store.ListUsers(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "listing users: %v", err)
+	}
+
+	resp := &pb.ListUsersResponse{
+		TotalCount: int32(total),
+	}
+	for _, u := range users {
+		resp.Items = append(resp.Items, userToProto(u))
+	}
+	if len(users) > 0 && len(users) == pageSize {
+		last := users[len(users)-1]
+		resp.HasMore = true
+		resp.NextPageToken = encodeCursor(last.ID.String(), last.CreatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	return resp, nil
+}
+
+func (s *FarmTableService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+	if err := RequireScope(ctx, ScopeUserRead); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user id: %v", err)
+	}
+	u, err := s.store.GetUser(ctx, id)
+	if err != nil {
+		return nil, storeErr(err, "user")
+	}
+	return userToProto(u), nil
+}
+
+// ── Status & Version ──
+
+func (s *FarmTableService) GetVersion(ctx context.Context, req *pb.GetVersionRequest) (*pb.GetVersionResponse, error) {
+	return &pb.GetVersionResponse{
+		ServerVersion: s.version,
+		Server:        "farmtable",
+		ApiProtocol:   "grpc",
+	}, nil
+}
+
+func (s *FarmTableService) GetStatus(ctx context.Context, req *pb.GetStatusRequest) (*pb.GetStatusResponse, error) {
+	resp := &pb.GetStatusResponse{
+		ServerVersion: s.version,
+		Server:        "farmtable",
+		ApiProtocol:   "grpc",
+		Status:        "serving",
+		ServerMode:    s.version,
+		UptimeSeconds: int64(time.Since(s.startedAt).Seconds()),
+	}
+
+	_, _, err := s.store.ListCollections(ctx, store.ListCollectionsParams{Limit: 1})
+	if err != nil {
+		resp.Status = "unavailable"
+	}
+
+	_, taskTotal, listErr := s.store.ListTasks(ctx, store.ListTasksParams{Limit: 1})
+	if listErr == nil {
+		resp.TaskCount = int32(taskTotal)
+	}
+
+	if userID, ok := UserIDFromContext(ctx); ok && userID != uuid.Nil {
+		if u, err := s.store.GetUser(ctx, userID); err == nil {
+			resp.AuthenticatedAs = userToProto(u)
+		}
+	}
+
+	return resp, nil
+}
+
+// ── Graph Queries ──
+
+func (s *FarmTableService) GetReadyTasks(ctx context.Context, req *pb.GetReadyTasksRequest) (*pb.GetReadyTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	// Collection-scoped tokens must specify a collection_id.
+	if req.CollectionId == nil {
+		if ids := CollectionIDsFromContext(ctx); len(ids) > 0 {
+			return nil, status.Error(codes.InvalidArgument,
+				"collection-scoped tokens must specify collection_id")
+		}
+	}
+	// Check for external collection routing.
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
+		}
+		_, route, err := s.resolveGraphRoute(ctx, cid)
+		if err != nil {
+			return nil, err
+		}
+		if route == graphRouteEphemeral {
+			ephSvc, cleanup, err := s.loadEphemeralStore(ctx, cid)
+			if err != nil {
+				return nil, err
+			}
+			defer cleanup()
+			ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+			}
+			cidStr := ephCID.String()
+			ephReq := *req
+			ephReq.CollectionId = &cidStr
+			return ephSvc.GetReadyTasks(ctx, &ephReq)
+		}
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	offset, err := decodeOffsetCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.GetReadyTasksParams{
+		IncludeUnblockedOpen: req.GetIncludeUnblockedOpen(),
+		Limit:                pageSize,
+		Offset:               offset,
+	}
+
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		p.CollectionID = &cid
+	}
+	if req.Assignee != nil {
+		if *req.Assignee == "none" {
+			p.Unassigned = true
+		} else {
+			aid, err := uuid.Parse(*req.Assignee)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid assignee: %v", err)
+			}
+			p.AssigneeID = &aid
+		}
+	}
+	if req.MinPriority != nil && *req.MinPriority != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+		if err := validateDefinedEnum("min_priority", int32(*req.MinPriority), pb.TaskPriority_name); err != nil {
+			return nil, err
+		}
+		pr := convert.PriorityFromProto(*req.MinPriority)
+		p.MinPriority = &pr
+	}
+
+	results, total, err := s.store.GetReadyTasks(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "getting ready tasks: %v", err)
+	}
+
+	resp := &pb.GetReadyTasksResponse{
+		TotalCount: int32(total),
+	}
+	for _, r := range results {
+		resp.Items = append(resp.Items, &pb.ReadyTask{
+			Task:             taskToProto(r.Task),
+			BlockersResolved: int32(r.BlockersResolved),
+		})
+	}
+
+	nextOffset := offset + len(results)
+	if nextOffset < total {
+		resp.HasMore = true
+		resp.NextPageToken = encodeOffsetCursor(nextOffset)
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) GetBlockedTasks(ctx context.Context, req *pb.GetBlockedTasksRequest) (*pb.GetBlockedTasksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	// Collection-scoped tokens must specify a collection_id.
+	if req.CollectionId == nil {
+		if ids := CollectionIDsFromContext(ctx); len(ids) > 0 {
+			return nil, status.Error(codes.InvalidArgument,
+				"collection-scoped tokens must specify collection_id")
+		}
+	}
+	// Check for external collection routing.
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		if err := RequireCollectionAccess(ctx, cid); err != nil {
+			return nil, err
+		}
+		_, route, err := s.resolveGraphRoute(ctx, cid)
+		if err != nil {
+			return nil, err
+		}
+		if route == graphRouteEphemeral {
+			ephSvc, cleanup, err := s.loadEphemeralStore(ctx, cid)
+			if err != nil {
+				return nil, err
+			}
+			defer cleanup()
+			ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+			}
+			cidStr := ephCID.String()
+			ephReq := *req
+			ephReq.CollectionId = &cidStr
+			return ephSvc.GetBlockedTasks(ctx, &ephReq)
+		}
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+
+	offset, err := decodeOffsetCursor(req.GetPageToken())
+	if err != nil {
+		return nil, err
+	}
+
+	p := store.GetBlockedTasksParams{
+		Limit:  pageSize,
+		Offset: offset,
+	}
+
+	if req.CollectionId != nil {
+		cid, err := uuid.Parse(*req.CollectionId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+		}
+		p.CollectionID = &cid
+	}
+	if req.Assignee != nil {
+		if *req.Assignee == "none" {
+			p.Unassigned = true
+		} else {
+			aid, err := uuid.Parse(*req.Assignee)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid assignee: %v", err)
+			}
+			p.AssigneeID = &aid
+		}
+	}
+
+	results, total, err := s.store.GetBlockedTasks(ctx, p)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "getting blocked tasks: %v", err)
+	}
+
+	resp := &pb.GetBlockedTasksResponse{
+		TotalCount: int32(total),
+	}
+	for _, r := range results {
+		bt := &pb.BlockedTask{
+			Task: taskToProto(r.Task),
+		}
+		for _, b := range r.Blockers {
+			bt.BlockedBy = append(bt.BlockedBy, &pb.BlockerInfo{
+				TaskId: b.TaskID.String(),
+				Name:   b.Name,
+				Phase:  phaseToProto(b.Phase),
+				Stage:  stageToProto(b.Stage),
+			})
+		}
+		resp.Items = append(resp.Items, bt)
+	}
+
+	nextOffset := offset + len(results)
+	if nextOffset < total {
+		resp.HasMore = true
+		resp.NextPageToken = encodeOffsetCursor(nextOffset)
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) GetDependencyTree(ctx context.Context, req *pb.GetDependencyTreeRequest) (*pb.GetDependencyTreeResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	taskID, err := uuid.Parse(req.GetTaskId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid task_id: %v", err)
+	}
+
+	// Verify the token has access to the root task's collection.
+	if t, err := s.store.GetTask(ctx, taskID); err != nil {
+		return nil, storeErr(err, "task")
+	} else if err := RequireCollectionAccess(ctx, t.CollectionID); err != nil {
+		return nil, err
+	}
+
+	maxDepth := int(req.GetMaxDepth())
+	if maxDepth <= 0 {
+		maxDepth = 5
+	}
+	if maxDepth > 20 {
+		maxDepth = 20
+	}
+
+	dir := req.GetDirection()
+	if dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_UNSPECIFIED {
+		dir = pb.DependencyDirection_DEPENDENCY_DIRECTION_BOTH
+	}
+
+	visited := make(map[uuid.UUID]bool)
+	root, err := s.buildDependencyNode(ctx, taskID, dir, maxDepth, 0, visited)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetDependencyTreeResponse{Root: root}, nil
+}
+
+func (s *FarmTableService) buildDependencyNode(ctx context.Context, taskID uuid.UUID, dir pb.DependencyDirection, maxDepth, depth int, visited map[uuid.UUID]bool) (*pb.DependencyNode, error) {
+	if visited[taskID] || depth > maxDepth {
+		return nil, nil
+	}
+	visited[taskID] = true
+
+	t, err := s.store.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, storeErr(err, "task")
+	}
+
+	node := &pb.DependencyNode{
+		Task: taskToProto(t),
+	}
+
+	if dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_DOWN || dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_BOTH {
+		for _, rel := range t.Edges.SourceRelationships {
+			if rel.Type == "blocks" {
+				child, err := s.buildDependencyNode(ctx, rel.TargetTaskID, dir, maxDepth, depth+1, visited)
+				if err != nil {
+					return nil, err
+				}
+				if child != nil {
+					node.Blocks = append(node.Blocks, child)
+				}
+			}
+		}
+		for _, rel := range t.Edges.TargetRelationships {
+			if rel.Type == "blocked_by" {
+				child, err := s.buildDependencyNode(ctx, rel.SourceTaskID, dir, maxDepth, depth+1, visited)
+				if err != nil {
+					return nil, err
+				}
+				if child != nil {
+					node.Blocks = append(node.Blocks, child)
+				}
+			}
+		}
+	}
+
+	if dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_UP || dir == pb.DependencyDirection_DEPENDENCY_DIRECTION_BOTH {
+		for _, rel := range t.Edges.SourceRelationships {
+			if rel.Type == "blocked_by" {
+				parent, err := s.buildDependencyNode(ctx, rel.TargetTaskID, dir, maxDepth, depth+1, visited)
+				if err != nil {
+					return nil, err
+				}
+				if parent != nil {
+					node.BlockedBy = append(node.BlockedBy, parent)
+				}
+			}
+		}
+		for _, rel := range t.Edges.TargetRelationships {
+			if rel.Type == "blocks" {
+				parent, err := s.buildDependencyNode(ctx, rel.SourceTaskID, dir, maxDepth, depth+1, visited)
+				if err != nil {
+					return nil, err
+				}
+				if parent != nil {
+					node.BlockedBy = append(node.BlockedBy, parent)
+				}
+			}
+		}
+	}
+
+	return node, nil
+}
+
+func (s *FarmTableService) GetCriticalPath(ctx context.Context, req *pb.GetCriticalPathRequest) (*pb.GetCriticalPathResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
+
+	// Check for external collection routing.
+	_, route, routeErr := s.resolveGraphRoute(ctx, collID)
+	if routeErr != nil {
+		return nil, routeErr
+	}
+	if route == graphRouteEphemeral {
+		ephSvc, cleanup, err := s.loadEphemeralStore(ctx, collID)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanup()
+		ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+		}
+		ephReq := *req
+		ephReq.CollectionId = ephCID.String()
+		// Clear root_task_id since original IDs don't exist in the ephemeral store.
+		ephReq.RootTaskId = nil
+		return ephSvc.GetCriticalPath(ctx, &ephReq)
+	}
+
+	var startTasks []*struct {
+		id    uuid.UUID
+		title string
+		stage string
+	}
+
+	if req.RootTaskId != nil {
+		rootID, err := uuid.Parse(*req.RootTaskId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid root_task_id: %v", err)
+		}
+		t, err := s.store.GetTask(ctx, rootID)
+		if err != nil {
+			return nil, storeErr(err, "task")
+		}
+		startTasks = append(startTasks, &struct {
+			id    uuid.UUID
+			title string
+			stage string
+		}{t.ID, t.Title, string(t.Stage)})
+	} else {
+		const maxGraphTasks = 500
+		var tasks []*ent.Task
+		for _, ph := range []task.Phase{task.PhaseOpen, task.PhaseInProgress, task.PhaseOnHold} {
+			p := ph
+			remaining := maxGraphTasks - len(tasks)
+			if remaining <= 0 {
+				break
+			}
+			batch, _, err := s.store.ListTasks(ctx, store.ListTasksParams{
+				CollectionID: &collID,
+				Phase:        &p,
+				Limit:        remaining,
+			})
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "listing tasks: %v", err)
+			}
+			tasks = append(tasks, batch...)
+		}
+		if len(tasks) >= maxGraphTasks {
+			return nil, status.Errorf(codes.ResourceExhausted, "collection has too many open tasks for critical path analysis (limit %d)", maxGraphTasks)
+		}
+
+		for _, t := range tasks {
+			startTasks = append(startTasks, &struct {
+				id    uuid.UUID
+				title string
+				stage string
+			}{t.ID, t.Title, string(t.Stage)})
+		}
+	}
+
+	var longestPath []criticalPathEntry
+	for _, st := range startTasks {
+		onStack := make(map[uuid.UUID]bool)
+		path := s.findLongestBlocksChain(ctx, st.id, onStack, 0)
+		if len(path) > len(longestPath) {
+			longestPath = path
+		}
+	}
+
+	resp := &pb.GetCriticalPathResponse{
+		TotalDepth: int32(len(longestPath)),
+	}
+	var maxFanOut int32
+	var bottleneck *pb.Bottleneck
+	for i, entry := range longestPath {
+		resp.Path = append(resp.Path, &pb.CriticalPathNode{
+			Id:    entry.id.String(),
+			Name:  entry.title,
+			Stage: stageToProto(task.Stage(entry.stage)),
+			Depth: int32(i),
+		})
+		if entry.fanOut > maxFanOut {
+			maxFanOut = entry.fanOut
+			bottleneck = &pb.Bottleneck{
+				Id:     entry.id.String(),
+				Name:   entry.title,
+				FanOut: entry.fanOut,
+				Reason: fmt.Sprintf("blocks %d tasks directly", entry.fanOut),
+			}
+		}
+	}
+	resp.Bottleneck = bottleneck
+
+	return resp, nil
+}
+
+type criticalPathEntry struct {
+	id     uuid.UUID
+	title  string
+	stage  string
+	fanOut int32
+}
+
+const maxGraphDepth = 50
+
+func (s *FarmTableService) findLongestBlocksChain(ctx context.Context, taskID uuid.UUID, onStack map[uuid.UUID]bool, depth int) []criticalPathEntry {
+	if onStack[taskID] || depth >= maxGraphDepth {
+		return nil
+	}
+	onStack[taskID] = true
+	defer func() { onStack[taskID] = false }()
+
+	t, err := s.store.GetTask(ctx, taskID)
+	if err != nil {
+		return nil
+	}
+
+	var blocksTargets []uuid.UUID
+	for _, rel := range t.Edges.SourceRelationships {
+		if rel.Type == "blocks" {
+			blocksTargets = append(blocksTargets, rel.TargetTaskID)
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type == "blocked_by" {
+			blocksTargets = append(blocksTargets, rel.SourceTaskID)
+		}
+	}
+
+	entry := criticalPathEntry{
+		id:     t.ID,
+		title:  t.Title,
+		stage:  string(t.Stage),
+		fanOut: int32(len(blocksTargets)),
+	}
+
+	if len(blocksTargets) == 0 {
+		return []criticalPathEntry{entry}
+	}
+
+	var longest []criticalPathEntry
+	for _, targetID := range blocksTargets {
+		child := s.findLongestBlocksChain(ctx, targetID, onStack, depth+1)
+		if len(child) > len(longest) {
+			longest = child
+		}
+	}
+
+	return append([]criticalPathEntry{entry}, longest...)
+}
+
+func (s *FarmTableService) GetBottlenecks(ctx context.Context, req *pb.GetBottlenecksRequest) (*pb.GetBottlenecksResponse, error) {
+	if err := RequireScope(ctx, ScopeTaskRead); err != nil {
+		return nil, err
+	}
+	collID, err := uuid.Parse(req.GetCollectionId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid collection_id: %v", err)
+	}
+	if err := RequireCollectionAccess(ctx, collID); err != nil {
+		return nil, err
+	}
+
+	// Check for external collection routing.
+	_, route, routeErr := s.resolveGraphRoute(ctx, collID)
+	if routeErr != nil {
+		return nil, routeErr
+	}
+	if route == graphRouteEphemeral {
+		ephSvc, cleanup, err := s.loadEphemeralStore(ctx, collID)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanup()
+		ephCID, err := ephemeralCollectionID(ctx, ephSvc.store)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "resolving ephemeral collection: %v", err)
+		}
+		ephReq := *req
+		ephReq.CollectionId = ephCID.String()
+		return ephSvc.GetBottlenecks(ctx, &ephReq)
+	}
+
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 10
+	}
+
+	const maxGraphTasks = 500
+	var allTasks []*struct {
+		id    uuid.UUID
+		title string
+		stage string
+		rels  []uuid.UUID
+	}
+
+	totalLoaded := 0
+	for _, ph := range []task.Phase{task.PhaseOpen, task.PhaseInProgress, task.PhaseOnHold} {
+		p := ph
+		remaining := maxGraphTasks - totalLoaded
+		if remaining <= 0 {
+			break
+		}
+		tasks, _, err := s.store.ListTasks(ctx, store.ListTasksParams{
+			CollectionID: &collID,
+			Phase:        &p,
+			Limit:        remaining,
+		})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "listing tasks: %v", err)
+		}
+		totalLoaded += len(tasks)
+		for _, t := range tasks {
+			seen := make(map[uuid.UUID]bool)
+			var blocksTargets []uuid.UUID
+			for _, rel := range t.Edges.SourceRelationships {
+				if rel.Type == "blocks" && !seen[rel.TargetTaskID] {
+					seen[rel.TargetTaskID] = true
+					blocksTargets = append(blocksTargets, rel.TargetTaskID)
+				}
+			}
+			for _, rel := range t.Edges.TargetRelationships {
+				if rel.Type == "blocked_by" && !seen[rel.SourceTaskID] {
+					seen[rel.SourceTaskID] = true
+					blocksTargets = append(blocksTargets, rel.SourceTaskID)
+				}
+			}
+			if len(blocksTargets) > 0 {
+				allTasks = append(allTasks, &struct {
+					id    uuid.UUID
+					title string
+					stage string
+					rels  []uuid.UUID
+				}{t.ID, t.Title, string(t.Stage), blocksTargets})
+			}
+		}
+	}
+	if totalLoaded >= maxGraphTasks {
+		return nil, status.Errorf(codes.ResourceExhausted, "collection has too many open tasks for bottleneck analysis (limit %d)", maxGraphTasks)
+	}
+
+	type bottleneckInfo struct {
+		id              uuid.UUID
+		title           string
+		stage           string
+		directCount     int
+		downstreamCount int
+	}
+
+	var bottlenecks []bottleneckInfo
+	for _, t := range allTasks {
+		visited := make(map[uuid.UUID]bool)
+		visited[t.id] = true
+		downstream := s.countDownstream(ctx, t.id, visited, 0)
+		bottlenecks = append(bottlenecks, bottleneckInfo{
+			id:              t.id,
+			title:           t.title,
+			stage:           t.stage,
+			directCount:     len(t.rels),
+			downstreamCount: downstream,
+		})
+	}
+
+	// Sort by downstream count descending
+	for i := 0; i < len(bottlenecks); i++ {
+		for j := i + 1; j < len(bottlenecks); j++ {
+			if bottlenecks[j].downstreamCount > bottlenecks[i].downstreamCount {
+				bottlenecks[i], bottlenecks[j] = bottlenecks[j], bottlenecks[i]
+			}
+		}
+	}
+
+	if limit < len(bottlenecks) {
+		bottlenecks = bottlenecks[:limit]
+	}
+
+	resp := &pb.GetBottlenecksResponse{}
+	for _, b := range bottlenecks {
+		resp.Items = append(resp.Items, &pb.BottleneckTask{
+			Id:               b.id.String(),
+			Name:             b.title,
+			Stage:            stageToProto(task.Stage(b.stage)),
+			DownstreamCount:  int32(b.downstreamCount),
+			DirectDependents: int32(b.directCount),
+		})
+	}
+
+	return resp, nil
+}
+
+func (s *FarmTableService) countDownstream(ctx context.Context, taskID uuid.UUID, visited map[uuid.UUID]bool, depth int) int {
+	if depth >= maxGraphDepth {
+		return 0
+	}
+
+	t, err := s.store.GetTask(ctx, taskID)
+	if err != nil {
+		return 0
+	}
+
+	count := 0
+	for _, rel := range t.Edges.SourceRelationships {
+		if rel.Type == "blocks" && !visited[rel.TargetTaskID] {
+			visited[rel.TargetTaskID] = true
+			count += 1 + s.countDownstream(ctx, rel.TargetTaskID, visited, depth+1)
+		}
+	}
+	for _, rel := range t.Edges.TargetRelationships {
+		if rel.Type == "blocked_by" && !visited[rel.SourceTaskID] {
+			visited[rel.SourceTaskID] = true
+			count += 1 + s.countDownstream(ctx, rel.SourceTaskID, visited, depth+1)
+		}
+	}
+	return count
+}
+
+// ── Helpers ──
+
+func platformFromProto(p pb.Platform) collection.Platform {
+	switch p {
+	case pb.Platform_PLATFORM_FARMTABLE:
+		return collection.PlatformFarmtable
+	case pb.Platform_PLATFORM_GITHUB:
+		return collection.PlatformGithub
+	case pb.Platform_PLATFORM_LINEAR:
+		return collection.PlatformLinear
+	case pb.Platform_PLATFORM_JIRA:
+		return collection.PlatformJira
+	case pb.Platform_PLATFORM_ASANA:
+		return collection.PlatformAsana
+	case pb.Platform_PLATFORM_BEADS:
+		return collection.PlatformBeads
+	default:
+		return collection.PlatformFarmtable
+	}
+}
+
+func storeErr(err error, entity string) error {
+	if errors.Is(err, store.ErrNotFound) {
+		return status.Errorf(codes.NotFound, "%s not found", entity)
+	}
+	if errors.Is(err, store.ErrConflict) {
+		return status.Errorf(codes.Aborted, "%s version conflict (CAS mismatch)", entity)
+	}
+	if errors.Is(err, store.ErrAlreadyClaimed) {
+		return status.Errorf(codes.FailedPrecondition, "%s already claimed", entity)
+	}
+	if errors.Is(err, store.ErrAlreadyClosed) {
+		return status.Errorf(codes.FailedPrecondition, "%s already closed", entity)
+	}
+	if errors.Is(err, store.ErrInvalidArgument) {
+		return status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if errors.Is(err, store.ErrNotImplemented) {
+		return status.Errorf(codes.Unimplemented, "%v", err)
+	}
+	log.Printf("internal error for %s: %v", entity, err)
+	return status.Errorf(codes.Internal, "internal error for %s", entity)
+}
+
+func encodePageToken(offset int) string {
+	return base64.StdEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
+}
+
+func decodePageToken(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	offset, err := strconv.Atoi(string(b))
+	if err != nil {
+		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	if offset < 0 {
+		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	return offset, nil
+}
+
+type pageCursor struct {
+	LastID        string `json:"last_id"`
+	LastSortValue string `json:"last_sort_value"`
+}
+
+func encodeCursor(lastID, lastSortValue string) string {
+	c := pageCursor{LastID: lastID, LastSortValue: lastSortValue}
+	b, _ := json.Marshal(c)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func decodeCursor(token string) (pageCursor, error) {
+	if token == "" {
+		return pageCursor{}, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	var c pageCursor
+	if err := json.Unmarshal(b, &c); err != nil {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	if c.LastID == "" {
+		return pageCursor{}, status.Errorf(codes.InvalidArgument, "invalid page_token: missing last_id")
+	}
+	return c, nil
+}
+
+func encodeOffsetCursor(offset int) string {
+	return encodeCursor(strconv.Itoa(offset), "")
+}
+
+func decodeOffsetCursor(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	c, err := decodeCursor(token)
+	if err != nil {
+		return 0, err
+	}
+	offset, err := strconv.Atoi(c.LastID)
+	if err != nil || offset < 0 {
+		return 0, status.Errorf(codes.InvalidArgument, "invalid page_token")
+	}
+	return offset, nil
+}
+
+func taskSortValue(t *ent.Task, sortField string) string {
+	switch sortField {
+	case "updated":
+		return t.UpdatedAt.UTC().Format(time.RFC3339Nano)
+	case "priority":
+		if t.Priority != nil {
+			return string(*t.Priority)
+		}
+		return ""
+	case "due_date":
+		if t.DueDate != nil {
+			return t.DueDate.UTC().Format(time.RFC3339Nano)
+		}
+		return ""
+	default:
+		return t.CreatedAt.UTC().Format(time.RFC3339Nano)
+	}
+}

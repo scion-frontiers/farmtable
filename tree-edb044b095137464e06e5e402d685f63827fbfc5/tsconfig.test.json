@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-test"
+  },
+<<<<<<< eca923953776b0e1c3eb563640ab0465b9c3d88e
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
+=======
+  "include": ["src/**/*.test.ts"]
+>>>>>>> 61ca67edf9c4d6316436f8c582dda687da7002e6
+}

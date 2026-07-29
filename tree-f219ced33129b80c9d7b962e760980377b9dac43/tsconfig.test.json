@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-test"
+  },
+<<<<<<< HEAD
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
+=======
+  "include": ["src/utils/task-ready.test.ts", "src/util/task-state-utils.test.ts"]
+>>>>>>> 6a0b425 (feat: update web UI for task state contract)
+}

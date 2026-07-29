@@ -1,0 +1,185 @@
+name: CI
+
+# Runs on every pull request, and on a push to ANY branch.
+#
+# The push trigger is deliberately not scoped to main. A gate that only watches
+# the default branch silently ignores every branch where work actually happens,
+# and that silence reads as a pass. This repository has a long-lived branch 39
+# commits ahead of main that nothing has ever compiled; a main-only trigger
+# would exclude precisely the tree that most needs watching.
+#
+# Consequence, accepted knowingly: a branch in this repository with an open pull
+# request gets two runs per push, one per event. Duplicate runs are cheap;
+# an unwatched branch is not.
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+# Least privilege. Every step below authenticates as the workflow's own
+# short-lived GITHUB_TOKEN, which GitHub mints per run and expires when the run
+# ends. No personal access token is referenced anywhere in this workflow, and
+# none should ever be added to it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# GitHub's default step shell is `bash -e {0}` -- WITHOUT pipefail. Under that
+# default, `a | tee b` reports tee's exit status and a failure in `a` is
+# silently discarded. That is not hypothetical: the first run of this workflow
+# went green while a Go test was failing, for exactly this reason.
+# `shell: bash` means `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
+env:
+  # go.mod declares `go 1.26.5`; keep these in step.
+  GO_VERSION: '1.26.5'
+  # No .nvmrc exists in this repo, so this is a deliberate choice, not a
+  # discovered value. Node 22 is the active LTS line and is the lowest LTS that
+  # satisfies the strictest engine constraint in web/package-lock.json
+  # (vite 6.4.3 requires ^18.0.0 || ^20.0.0 || >=22.0.0).
+  NODE_VERSION: '22'
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies from lockfile
+        working-directory: web
+        run: npm ci
+
+      # ---------------------------------------------------------------------
+      # Membership, not exit codes.
+      #
+      # The JS test wiring on this tree names the files it runs. A suite can
+      # therefore stop running without anything failing. This step compares the
+      # test files that exist against the test files `npm test` actually
+      # executes, and fails if they differ. It runs BEFORE the suites so that a
+      # missing suite is reported as a missing suite rather than as a pass.
+      # ---------------------------------------------------------------------
+      - name: Which JS suites will actually run (fails if any is unwired)
+        run: node scripts/ci-suite-manifest.mjs
+
+      # ---------------------------------------------------------------------
+      # web/dist must be BUILT BY THIS RUN, not inherited.
+      #
+      # assets.go embeds `all:web/dist`, and web/dist is gitignored. The
+      # canonical working copy has carried a populated, untracked web/dist since
+      # Jul 27 -- which is precisely why `go build ./...` succeeded there for
+      # days while failing in every fresh clone. An untracked directory is
+      # invisible to `git status --porcelain` and to code review, so nothing in
+      # the project was capable of noticing.
+      #
+      # These two assertions close that hole permanently. The first also makes
+      # the wrong fix impossible: if someone ever responds to a red gate by
+      # committing web/dist, or if a cache restores it, this step goes red
+      # rather than quietly handing the compiler a stale asset tree.
+      # ---------------------------------------------------------------------
+      - name: Assert web/dist is absent before the build
+        run: |
+          if [ -e web/dist ]; then
+            echo "::error::web/dist exists BEFORE anything built it."
+            echo "It is either committed or restored from a cache. Either way the"
+            echo "Go embed is being satisfied by an artefact this run did not"
+            echo "produce, which is the exact condition this gate exists to catch."
+            echo "Do NOT fix this by committing web/dist. Fix whatever restored it."
+            ls -la web/dist
+            exit 1
+          fi
+          echo "OK: web/dist absent on a clean checkout, as it must be."
+
+      - name: Build
+        run: make build
+
+      - name: Assert web/dist was produced by the build
+        run: |
+          if [ ! -d web/dist ]; then
+            echo "::error::make build completed but did not produce web/dist."
+            echo "The Go embed compiled against something unexpected."
+            exit 1
+          fi
+          echo "OK: web/dist produced by this run. Contents:"
+          ls -la web/dist
+
+      # ---------------------------------------------------------------------
+      # The two suites are invoked DIRECTLY below, not through `make test`.
+      #
+      # This is deliberate. If the gate reached the tests only via `make test`,
+      # then the gate would be load-bearing on the Makefile edit that shipped
+      # alongside it, and a mistake there would silently reduce coverage while
+      # the badge stayed green. `make test` is checked separately, afterwards,
+      # as a Makefile self-check -- not as the route to the tests.
+      # ---------------------------------------------------------------------
+      # `set -o pipefail` is redundant given defaults.run.shell above, and is
+      # kept anyway: this specific pipeline is the one that already swallowed a
+      # real Go test failure once, and it should not depend on a setting several
+      # dozen lines away staying correct.
+      - name: Go tests (invoked directly)
+        run: |
+          set -o pipefail
+          go test ./... -v 2>&1 | tee go-test.log
+
+      - name: Web tests (invoked directly)
+        working-directory: web
+        run: npm test
+
+      - name: Executed Go test membership
+        if: always()
+        run: |
+          if [ ! -f go-test.log ]; then
+            echo "go-test.log absent: the Go step did not get far enough to run tests."
+            exit 0
+          fi
+          echo "### Executed Go tests" >> "$GITHUB_STEP_SUMMARY"
+          # `|| true`: grep exits 1 on no matches, which under pipefail would
+          # fail this reporting step. An empty membership list is a legitimate
+          # result to report, not an error.
+          { grep -E '^=== RUN   Test[^/]*$' go-test.log \
+            | sed -E 's/^=== RUN   //' | sort -u > executed-go-tests.txt; } || true
+          echo "top-level Go tests executed: $(wc -l < executed-go-tests.txt)" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat executed-go-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "--- failures, if any ---"
+          grep -E '^(--- FAIL|FAIL|ok  ) ' go-test.log | grep -E '^(--- FAIL|FAIL)' || echo "none"
+
+      - name: Upload test membership evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-membership
+          path: |
+            go-test.log
+            executed-go-tests.txt
+          if-no-files-found: warn
+
+      # Verifies the Makefile change that shipped with this workflow really does
+      # reach both suites. If this fails while the direct steps above passed,
+      # the Makefile is wrong -- not the code.
+      - name: Makefile self-check (make test reaches both suites)
+        run: make test

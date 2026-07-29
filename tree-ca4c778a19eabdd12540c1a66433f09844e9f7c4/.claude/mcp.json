@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "farmtable": {
+      "command": "ft",
+      "args": ["mcp", "serve"],
+      "env": {
+        "FARMTABLE_DB_PATH": "${workspaceFolder}/.farmtable/farmtable.db"
+      }
+    }
+  }
+}

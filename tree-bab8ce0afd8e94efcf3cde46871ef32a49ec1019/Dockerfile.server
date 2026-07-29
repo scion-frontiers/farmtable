@@ -1,0 +1,37 @@
+FROM node:22-bookworm AS frontend
+WORKDIR /app/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ .
+# ARTEFACT: THIS IS THE PRODUCTION IMAGE. The live service is built and
+# deployed from this file (`-f Dockerfile.server`, binary farmtable-server).
+#
+# `npm test` runs web/scripts/run-node-tests.mjs, which DISCOVERS every
+# src/**/*.{test,spec}.{ts,tsx} rather than running a hardcoded list, so the
+# URL-binding guard does execute in the release path and a red guard does fail
+# this image. `npm ci` above installs devDependencies, so tsc and jsdom are
+# present.
+#
+# THIS LINE WAS A NO-OP GUARD IN THE RELEASE PATH. When the test script named a
+# single compiled file, this step passed without evaluating safe-url.test.ts or
+# url-binding-scan.test.ts, while the comment three lines above promised that a
+# red guard could not ship. If you change the test script, `make suite-manifest`
+# is what catches it; it fails on any tracked test file that compiles without
+# executing.
+RUN npm test
+RUN npm run build
+
+FROM golang:1.26-bookworm AS builder
+RUN apt-get update && apt-get install -y gcc libc6-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend /app/web/dist ./web/dist
+RUN CGO_ENABLED=1 go build -o /farmtable-server ./cmd/farmtable-server
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /farmtable-server /farmtable-server
+EXPOSE 8080
+CMD ["/farmtable-server"]

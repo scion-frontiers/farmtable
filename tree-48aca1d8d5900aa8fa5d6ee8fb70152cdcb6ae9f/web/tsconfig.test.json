@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-test"
+  },
+  // Glob, not a hand-maintained list. The list version silently skipped any
+  // test file whose entry someone forgot to add. scripts/run-tests.mjs
+  // cross-checks this glob against the emitted tree and fails on a mismatch.
+  "include": ["src/**/*.test.ts"]
+}

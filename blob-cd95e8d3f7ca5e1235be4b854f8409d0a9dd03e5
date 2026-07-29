@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 50938fdebdba8c0c767032d80f6b4c697b0c2adc a <a@b> 1785340938 +0000	commit (initial): single-copy leg work
+50938fdebdba8c0c767032d80f6b4c697b0c2adc 50938fdebdba8c0c767032d80f6b4c697b0c2adc a <a@b> 1785340951 +0000	checkout: moving from master to other-branch
+50938fdebdba8c0c767032d80f6b4c697b0c2adc 5344daeff186360bf6a0528cb268fb252ec3ced3 a <a@b> 1785340951 +0000	commit: work on a branch that is not checked out
+5344daeff186360bf6a0528cb268fb252ec3ced3 50938fdebdba8c0c767032d80f6b4c697b0c2adc a <a@b> 1785340951 +0000	checkout: moving from other-branch to master

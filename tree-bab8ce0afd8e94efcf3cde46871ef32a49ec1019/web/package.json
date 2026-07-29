@@ -1,0 +1,41 @@
+{
+  "name": "farmtable-web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+<<<<<<< eca923953776b0e1c3eb563640ab0465b9c3d88e
+    "test": "node scripts/run-node-tests.mjs",
+=======
+    "test": "npm run test:node && npm run test:components",
+    "test:node": "node scripts/run-node-tests.mjs",
+    "test:components": "vitest run",
+>>>>>>> 61ca67edf9c4d6316436f8c582dda687da7002e6
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^1.1.0",
+    "@improbable-eng/grpc-web": "^0.15.0",
+    "@shoelace-style/shoelace": "^2.15.0",
+    "dompurify": "^3.0.0",
+    "lit": "^3.0.0",
+    "marked": "^15.0.0",
+    "protobufjs": "^8.7.0"
+  },
+  "devDependencies": {
+<<<<<<< eca923953776b0e1c3eb563640ab0465b9c3d88e
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^26.1.2",
+    "jsdom": "^29.1.1",
+=======
+    "jsdom": "^26.1.0",
+>>>>>>> 61ca67edf9c4d6316436f8c582dda687da7002e6
+    "typescript": "^5.5.0",
+    "vite": "^6.0.0",
+    "vite-plugin-static-copy": "^3.4.0",
+    "vitest": "^3.2.7"
+  }
+}

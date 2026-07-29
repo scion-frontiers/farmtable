@@ -1,0 +1,63 @@
+# Project specific
+.farmtable/
+.scratch
+scenarios/
+.venv/
+cli_tree.json
+google-cloud-sdk
+google-cloud-cli-linux-x86_64.tar.gz
+/third_party/google-api-go-client/
+third_party/google-api-go-client/.scion/agents/
+.scion/agents/
+.scion/state.yaml
+.scion/grove-id
+
+# Binaries
+bin/
+dist/
+ggcloud
+/ft
+/farmtable-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Generated
+internal/cmd/generated/
+
+# Go
+vendor/
+*.test
+*.out
+debug/
+coverage.*
+*.coverprofile
+profile.cov
+go.work
+go.work.sum
+
+# env file
+.env
+
+# Node
+node_modules/
+web/.tmp-test/
+
+# The `dist/` rule above excludes the web/dist directory outright, and git will
+# not re-include a file inside an excluded directory. Un-exclude the directory,
+# re-exclude its contents, then exempt the placeholder, so that a clean clone
+# tracks web/dist/.gitkeep (satisfying the //go:embed in assets.go) while real
+# build output stays ignored.
+!web/dist/
+web/dist/*
+!web/dist/.gitkeep
+
+# Editor/IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+.design/project-log/perf/*.csv
