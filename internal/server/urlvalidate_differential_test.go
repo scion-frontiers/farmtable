@@ -529,9 +529,12 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 	}
 
 	// Nested keys are held to a stricter rule than top-level ones: they may not
-	// be URL-bearing AT ALL, because sanitizeRemoteData walks only the top level.
-	// There is no reasons-map here on purpose -- a nested URL carrier is a gap,
-	// not something to document away.
+	// be URL-bearing AT ALL. THE REASON THAT USED TO BE GIVEN HERE -- "because
+	// sanitizeRemoteData walks only the top level" -- IS FALSE ON THIS TREE; it
+	// recurses. The rule is kept and its actual justification, which is adapter
+	// classification and not wire safety, is on classifyRemoteDataKeys below.
+	// There is still no reasons-map here on purpose: an unclassified nested key
+	// is a gap in this test's knowledge, not something to document away.
 
 	// The adapters that synthesise remote_data. These are the writers; the
 	// serialisation in convert.go is the reader and it reads everything.
@@ -601,6 +604,10 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 			"sub_issues_summary. The nesting split is misattributing keys.", "percent_completed")
 	}
 
+	// Logging pass. It reports what was seen and reaches no verdict; every
+	// verdict below comes from classifyRemoteDataKeys, which a fixture drives.
+	// The "validated on both boundaries" line is the subject of a separate
+	// finding owned by another leg and is reproduced here UNCHANGED on purpose.
 	for _, key := range found {
 		if urlBearingRemoteDataKey(key) {
 			t.Logf("remote_data[%q]: URL-bearing, validated on both boundaries", key)
@@ -608,38 +615,238 @@ func TestRemoteDataKeysWrittenByAdaptersAreClassified(t *testing.T) {
 		}
 		if reason, ok := nonURLKeys[key]; ok {
 			t.Logf("remote_data[%q]: not URL-bearing (%s)", key, reason)
-			continue
-		}
-		t.Errorf("an adapter writes remote_data[%q], but urlBearingRemoteDataKey says it is "+
-			"not URL-bearing and this test has no reason on file for that. If the value can "+
-			"reach an href in the dashboard, teach urlBearingRemoteDataKey about it in "+
-			"urlvalidate.go -- it is currently unvalidated on both the import boundary and "+
-			"the read path. If it cannot, add it to nonURLKeys here with the reason.", key)
-	}
-
-	// Nested keys: none may be URL-bearing, because sanitizeRemoteData only walks
-	// the top level. This is a real invariant, not bookkeeping -- a URL under
-	// remote_data["parent"]["html_url"] would reach the wire unvalidated.
-	for _, key := range nested {
-		if urlBearingRemoteDataKey(key) {
-			t.Errorf("an adapter writes a NESTED remote_data key %q that is URL-bearing. "+
-				"sanitizeRemoteData walks only the top level of the map, so this value "+
-				"is serialised into pb.Task.remote_data without ever being validated. "+
-				"Either flatten it to a top-level key or teach sanitizeRemoteData to "+
-				"recurse.", key)
 		}
 	}
 	t.Logf("nested remote_data keys checked: %v", nested)
+
+	for _, issue := range classifyRemoteDataKeys(found, nested, nonURLKeys) {
+		switch issue.kind {
+		case remoteDataKeyUnclassified:
+			t.Errorf("an adapter writes remote_data[%q], but urlBearingRemoteDataKey says it is "+
+				"not URL-bearing and this test has no reason on file for that. If the value can "+
+				"reach an href in the dashboard, teach urlBearingRemoteDataKey about it in "+
+				"urlvalidate.go -- it is currently unvalidated on both the import boundary and "+
+				"the read path. If it cannot, add it to nonURLKeys here with the reason.", issue.key)
+		case remoteDataKeyNestedURL:
+			t.Errorf("an adapter writes a NESTED remote_data key %q that is URL-bearing. "+
+				"sanitizeRemoteData DOES validate it (it recurses -- see the reason on "+
+				"classifyRemoteDataKeys), so this is not a live exposure; it is an "+
+				"UNCLASSIFIED adapter change. nonURLKeys documents top-level keys only and "+
+				"there is no reasons-map for nested ones, so nothing here records what this "+
+				"key is or whether it should be a URL. Classify it, then decide.", issue.key)
+		case remoteDataKeyStaleExemption:
+			t.Errorf("nonURLKeys documents %q as a non-URL adapter key, but no adapter writes "+
+				"it any more. Remove the entry rather than leaving it to suggest coverage "+
+				"that is not there.", issue.key)
+		default:
+			t.Errorf("classifyRemoteDataKeys returned an issue kind %q that this test does "+
+				"not know how to report, for key %q. A new rule was added to the classifier "+
+				"and its consequence was never wired up -- which is the exact defect the "+
+				"extraction exists to prevent.", issue.kind, issue.key)
+		}
+	}
+}
+
+// The three verdicts classifyRemoteDataKeys can reach.
+const (
+	remoteDataKeyUnclassified   = "unclassified-top-level"
+	remoteDataKeyNestedURL      = "nested-url-bearing"
+	remoteDataKeyStaleExemption = "stale-exemption"
+)
+
+// remoteDataKeyIssue is one verdict, separated from its message so a fixture
+// can reach it.
+type remoteDataKeyIssue struct {
+	kind string
+	key  string
+}
+
+// classifyRemoteDataKeys holds the three classification rules that used to be
+// inline t.Errorf arms inside TestRemoteDataKeysWrittenByAdaptersAreClassified.
+//
+// WHY IT IS A FUNCTION NOW. All three arms were VACUOUS on a clean tree --
+// measured, not suspected: replace any one condition with a constant that never
+// fires and the suite stays green, because on this tree every top-level key is
+// classified, no nested key is URL-bearing, and no nonURLKeys entry is stale.
+// Only the two t.Fatalf positive controls were live, and they prove the
+// EXTRACTOR works, not that the CLASSIFICATION works. A rule whose error arm
+// nothing can reach may be deleted, inverted, or refactored away at any time and
+// every run stays green the whole way. Extracted, TestRemoteDataKeyClassification
+// drives all three to both outcomes.
+//
+// This is the same remedy the web side applied to checkViaSafeHref and the Go
+// side applied to remoteDataWriteIsSanitized, both in this diff's own history.
+// The lesson had been carried to the code that DECIDES and not to the code that
+// ACTS on the decision; this is the acting half.
+//
+// ---------------------------------------------------------------------------
+// AND THE NESTED RULE'S STATED REASON WAS FALSE. IT IS CORRECTED HERE, NOT
+// SOFTENED.
+// ---------------------------------------------------------------------------
+// It read: "none may be URL-bearing, because sanitizeRemoteData only walks the
+// top level ... a URL under remote_data[parent][html_url] would reach the wire
+// unvalidated." THAT IS NOT TRUE OF THIS TREE. sanitizeRemoteData recurses:
+// sanitizeRemoteValue re-classifies every key it descends to, so a nested
+// html_url is validated exactly like a top-level one. Measured in-tree, not
+// inferred -- remotedata_depth_test.go pins BOTH directions:
+// {"parent": {"html_url": javascript:...}} loses the key, and
+// {"parent": {"html_url": https://...}} keeps it.
+//
+// So this rule is NOT what keeps a nested URL off the wire; the sanitizer is.
+// What it still does is fire when an adapter starts writing a nested key that
+// LOOKS like a URL carrier, which is an adapter change nobody has classified --
+// nonURLKeys covers top-level keys only and there is no reasons-map for nested
+// ones. IT IS A CHANGE DETECTOR OVER THE ADAPTERS, NOT A SAFETY GUARD, and it is
+// documented as one so the next reader does not treat a green run here as
+// evidence that nested URLs are being stopped somewhere.
+//
+// NOT ADJUDICATED, AND DELIBERATELY LEFT OPEN: whether a change detector should
+// be a t.Errorf at all. Keeping it is not a ruling that it should be kept; it is
+// a refusal to retire a rule in the same commit that discovered its reason was
+// wrong.
+func classifyRemoteDataKeys(found, nested []string, nonURLKeys map[string]string) []remoteDataKeyIssue {
+	var issues []remoteDataKeyIssue
+
+	for _, key := range found {
+		if urlBearingRemoteDataKey(key) {
+			continue
+		}
+		if _, ok := nonURLKeys[key]; ok {
+			continue
+		}
+		issues = append(issues, remoteDataKeyIssue{remoteDataKeyUnclassified, key})
+	}
+
+	for _, key := range nested {
+		if urlBearingRemoteDataKey(key) {
+			issues = append(issues, remoteDataKeyIssue{remoteDataKeyNestedURL, key})
+		}
+	}
 
 	// The reverse direction: a key classified as URL-bearing that no adapter
 	// writes is not an error (the predicate is a naming rule, not a list), but a
 	// nonURLKeys entry for a key nobody writes is stale documentation.
 	for key := range nonURLKeys {
 		if !slices.Contains(found, key) {
-			t.Errorf("nonURLKeys documents %q as a non-URL adapter key, but no adapter writes "+
-				"it any more. Remove the entry rather than leaving it to suggest coverage "+
-				"that is not there.", key)
+			issues = append(issues, remoteDataKeyIssue{remoteDataKeyStaleExemption, key})
 		}
+	}
+
+	// Map iteration is random; a fixture comparing slices needs an order.
+	slices.SortFunc(issues, func(a, b remoteDataKeyIssue) int {
+		if a.kind != b.kind {
+			return strings.Compare(a.kind, b.kind)
+		}
+		return strings.Compare(a.key, b.key)
+	})
+	return issues
+}
+
+// TestRemoteDataKeyClassification drives every arm of classifyRemoteDataKeys to
+// BOTH outcomes, which is the thing the inline version could not do.
+//
+// The rows are inputs the tree does not currently produce, and that is the
+// point: on a clean tree all three rules are unreachable, so a fixture that only
+// fed them today's adapter keys would be exactly as vacuous as the loops it
+// replaced. THE TREE'S STATE IS NOT THIS TEST'S COVERAGE.
+func TestRemoteDataKeyClassification(t *testing.T) {
+	reasons := func(keys ...string) map[string]string {
+		m := map[string]string{}
+		for _, k := range keys {
+			m[k] = "documented as not URL-bearing"
+		}
+		return m
+	}
+
+	cases := []struct {
+		name    string
+		found   []string
+		nested  []string
+		reasons map[string]string
+		want    []remoteDataKeyIssue
+	}{
+		{
+			name:    "clean: classified top-level, benign nested, no stale entry",
+			found:   []string{"remote_url", "state"},
+			nested:  []string{"percent_completed"},
+			reasons: reasons("state"),
+			want:    nil,
+		},
+		{
+			name:    "a top-level key that is neither URL-bearing nor documented",
+			found:   []string{"remote_url", "mystery"},
+			nested:  nil,
+			reasons: reasons(),
+			want:    []remoteDataKeyIssue{{remoteDataKeyUnclassified, "mystery"}},
+		},
+		{
+			name:    "a nested URL-bearing key",
+			found:   []string{"remote_url"},
+			nested:  []string{"html_url"},
+			reasons: reasons(),
+			want:    []remoteDataKeyIssue{{remoteDataKeyNestedURL, "html_url"}},
+		},
+		{
+			name:    "a nonURLKeys entry no adapter writes any more",
+			found:   []string{"remote_url"},
+			nested:  nil,
+			reasons: reasons("retired_key"),
+			want:    []remoteDataKeyIssue{{remoteDataKeyStaleExemption, "retired_key"}},
+		},
+		{
+			name:    "all three at once, so no rule masks another",
+			found:   []string{"mystery"},
+			nested:  []string{"url"},
+			reasons: reasons("retired_key"),
+			want: []remoteDataKeyIssue{
+				{remoteDataKeyNestedURL, "url"},
+				{remoteDataKeyStaleExemption, "retired_key"},
+				{remoteDataKeyUnclassified, "mystery"},
+			},
+		},
+		{
+			name:    "a documented top-level key is not reported, and documenting it is not stale",
+			found:   []string{"state"},
+			nested:  nil,
+			reasons: reasons("state"),
+			want:    nil,
+		},
+	}
+
+	kinds := map[string]bool{}
+	cleanRows := 0
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := classifyRemoteDataKeys(tc.found, tc.nested, tc.reasons)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("classifyRemoteDataKeys(%v, %v, %v)\n got %v\nwant %v",
+					tc.found, tc.nested, slices.Sorted(maps.Keys(tc.reasons)), got, tc.want)
+			}
+		})
+		if len(tc.want) == 0 {
+			cleanRows++
+		}
+		for _, issue := range tc.want {
+			kinds[issue.kind] = true
+		}
+	}
+
+	// Anti-vacuity, in both directions. Every kind the classifier can emit must
+	// be exercised by some row, or that rule is back to being unreachable and
+	// this fixture is decoration; and some row must expect NO issues, or the
+	// table would pass against a classifier that reports everything.
+	for _, kind := range []string{
+		remoteDataKeyUnclassified, remoteDataKeyNestedURL, remoteDataKeyStaleExemption,
+	} {
+		if !kinds[kind] {
+			t.Errorf("no row expects a %q issue, so that rule is unreachable from this "+
+				"fixture and can be deleted or inverted with the suite still green -- "+
+				"which is the exact condition this test was written to end", kind)
+		}
+	}
+	if cleanRows == 0 {
+		t.Error("no row expects an empty result, so a classifier that flagged every key " +
+			"would pass this table")
 	}
 }
 
@@ -836,8 +1043,15 @@ func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 // behaviour that nothing recorded before, and that materially changes how the
 // remote_data finding should be read.
 //
-// ** RENAMED FROM TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident, AND THE OLD
+// ** RENAMED FROM TestGitHubPassthroughRemoteDataNeverSerialises, AND THE OLD
 // NAME WAS WRONG IN TWO WAYS, BOTH OF WHICH THIS ROUND HAS SEEN ELSEWHERE. **
+//
+// (That line said "RENAMED FROM <the new name>" for three commits. A global
+// rename rewrote the old name where it appeared as the SUBJECT of a sentence
+// about the rename, so the record of what was renamed was destroyed by the
+// rename -- a supersede-never-erase failure committed by the mechanism, not by
+// a decision. Recovered from `git show e6bda71`. If you rename this again, the
+// two names in this paragraph are data, not references.)
 //
 //	"NEVER" WAS A UNIVERSAL THIS TEST DOES NOT ESTABLISH. The body asserts one
 //	thing: structpb.NewStruct rejects a []string value. "Never serialises" is an

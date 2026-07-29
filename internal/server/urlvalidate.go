@@ -218,8 +218,28 @@ const maxRemoteDataDepth = 32
 // serialise" -- true of json.RawMessage and of []string -- is not true here.
 // The GitHub adapter writes "parent" and "sub_issues_summary" as nested maps
 // today, and TestRemoteDataKeysWrittenByAdaptersAreClassified holds nested keys
-// to a stricter rule precisely because this function could not see them. It can
-// now, so the two agree.
+// to a stricter rule precisely because this function could not see them.
+//
+// IT CAN SEE THEM NOW, AND THE TWO STILL DO NOT AGREE. The earlier version of
+// this paragraph said "It can now, so the two agree," which asserted a
+// reconciliation nobody had performed. Performed now, and the result is a
+// deliberate divergence rather than agreement:
+//
+//	this function:  a nested URL-bearing key is VALIDATED, exactly like a
+//	                top-level one. Pinned in both directions --
+//	                {"parent": {"html_url": "javascript:..."}} loses the key and
+//	                {"parent": {"html_url": "https://..."}} keeps it, in
+//	                TestSanitizeAndImportAgreeAtEveryDepth.
+//	that test:      a nested URL-bearing key is an ERROR, even though this
+//	                function would validate it.
+//
+// The test is therefore STRICTER than the sanitizer, on purpose, and it is no
+// longer a safety guard: it fires on an adapter writing a nested key that
+// nothing has classified, because nonURLKeys covers top-level keys only. Its
+// reason is recorded at classifyRemoteDataKeys in
+// urlvalidate_differential_test.go. Do not read a green run there as evidence
+// that anything upstream of this function is stopping nested URLs. This function
+// is what stops them.
 //
 // Drop rather than error, matching the typed field: a bad URL from upstream must
 // not fail the whole read. A URL-bearing key whose value is not a string (or a
