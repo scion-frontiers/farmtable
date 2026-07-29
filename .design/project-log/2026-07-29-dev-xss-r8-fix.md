@@ -4,7 +4,7 @@ Date: 2026-07-29
 Branch: `url-scheme-validation-r8`
 Base: `e4e3d13`
 Commits: `d739c06`, `253ab14`, `3961f30`, `6a0b8bd`, `af9ea8c`, `5e8b826`,
-`4026dca`, and the one carrying this line.
+`4026dca`, `6e2c4aa`, `1cba5b5`, and the one carrying this line.
 
 > That last clause is deliberate and inherited from the R5 log, which worked out
 > why: **a log cannot cite the SHA of the commit that carries it.** Writing the
@@ -99,4 +99,5 @@ them. Re-anchoring them is a round of its own.
 
 Full report, with every measurement and its command:
 `reports/r8/dev-xss-r8.md`. Run ledger: `reports/_run-queue-log.md`, cells
-R8-01 … R8-10, all pre-registered before execution.
+R8-01 … R8-15, all pre-registered before execution. R8-11 … R8-15 are the
+build-token session and are the only cells in this leg that needed one.
