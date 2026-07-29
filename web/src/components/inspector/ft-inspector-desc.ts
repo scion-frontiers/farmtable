@@ -236,8 +236,14 @@ export class FtInspectorDesc extends LitElement {
           href bindings that policy governs. DOMPurify is configured with its
           defaults here -- no explicit ALLOWED_URI_REGEXP -- so what it strips is
           whatever the installed version's defaults strip, which is a dependency
-          fact rather than a property this repo states or tests. See
-          docs/url-policy.md for what IS stated.
+          fact rather than a property this repo states or tests.
+
+          What IS stated lives in code, not prose: web/src/util/safe-url.ts
+          defines SAFE_SCHEMES and safeHref, web/src/util/safe-url.test.ts pins
+          their behaviour, and web/src/util/url-binding-scan.test.ts asserts
+          that every href binding routes through safeHref. Note that neither of
+          those two test files is executed by `npm test` as of this commit --
+          see agents.md, "Build And Test".
         -->
         ${unsafeHTML(renderMarkdown(this.description))}
       </div>
