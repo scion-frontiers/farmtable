@@ -1100,12 +1100,27 @@ func TestTaskToProtoScrubsRemoteDataURLCarriers(t *testing.T) {
 //	makes remote_data representable -- a perfectly reasonable change -- is told
 //	in the identifier itself that they are removing something load-bearing.
 //
-// The scope qualifier is passthrough-GraphQL, not "the GitHub adapter": the
-// sync-REST path is a different code path with a different builder, and this
-// test says nothing about it.
+// THE SCOPE QUALIFIER IS passthrough-GraphQL, NOT "THE GitHub ADAPTER", AND THE
+// DIFFERENCE IS NOT PEDANTRY. There are TWO GitHub builders with near-identical
+// names, and a name search lands on both:
 //
-// convert.go writes `pt.RemoteData, _ = structpb.NewStruct(t.RemoteData)` and
-// discards the error. structpb.NewStruct rejects []string outright, and
+//	issueBuildRemoteData  graphql_queries.go  PASSTHROUGH  labels ALWAYS set
+//	buildRemoteData       github.go           SYNC         labels set only if len > 0
+//
+// Everything below is true of issueBuildRemoteData ONLY. Do not generalise it to
+// "GitHub remote_data never ships", because on the sync path THAT IS FALSE: a
+// zero-label issue makes buildRemoteData return a map whose every value is a
+// string or an int, which structpb accepts, so remote_data SHIPS on that path.
+// It is not a vulnerability -- the sync path is JSON-round-tripped, so the
+// sanitizer walks it and html_url is validated -- but a reader who carries the
+// passthrough conclusion across to the sync path will believe a sink is empty
+// when it is not. TestGitHubBuilderRepresentabilityAsymmetry in
+// internal/platform/github pins both halves of this against the real builders.
+//
+// convert.go writes this field through structOrNilLoggingErr, which logs and
+// returns nil on failure. (It used to be `pt.RemoteData, _ = structpb.NewStruct(...)`
+// with the error discarded; the wire behaviour is identical, the failure is now
+// merely audible.) structpb.NewStruct rejects []string outright, and
 // platform/github/graphql_queries.go::issueBuildRemoteData always sets
 // "labels" to a []string. So for every task from the live GitHub passthrough
 // store, remote_data is silently nil on the wire -- not because anything chose

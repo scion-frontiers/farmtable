@@ -258,19 +258,13 @@ func userToProto(u *ent.User) *pb.User {
 // this changes NO wire behaviour: an unrepresentable map yielded a nil field
 // then and yields a nil field now. The only new thing is that it is audible.
 //
-// It takes the sanitized map and not the raw one, and it is a function rather
-// than an inline if/else, which keeps `sanitizeRemoteData(` lexically on the
-// right-hand side of the assignment for remoteDataWriteIsSanitized to find.
-//
-// That property was briefly load-bearing and is no longer. The write-site
-// scanner used to enumerate the SHAPES a left-hand side could take, so naming
-// the error here -- the natural way to stop discarding it -- made both of the
-// wire-path sites DISAPPEAR from the scanner rather than fail it. Enumerating
-// more shapes would only have moved the blind spot, so the scanner now stops
-// constraining the left-hand side entirely and anchors on the right-hand side
-// instead (see remoteDataAssignment). This form is kept because it is also the
-// clearest way to log from a package-level converter; it is NOT the guard, and
-// nothing here should be preserved on the belief that it is.
+// It takes the sanitized map rather than the raw one, which keeps
+// `sanitizeRemoteData(` lexically on the right-hand side of the assignment for
+// remoteDataWriteIsSanitized to find. That property was briefly load-bearing
+// and is no longer: the write-site scanner is an AST walk now (see
+// remoteDataWriteSites) and does not constrain the shape of either side. This
+// form is kept because it is the clearest way to log from a package-level
+// converter. IT IS NOT THE GUARD; do not preserve it on the belief that it is.
 //
 // The message describes what a failure means TODAY: the sanitizer is
 // type-preserving, so it can hand structpb a Go type structpb cannot represent
@@ -295,15 +289,12 @@ func userToProto(u *ent.User) *pb.User {
 // carries NO "unreachable by construction" claim, because that claim would be
 // false.
 //
-// The collection half separately looks hard to reach: the only non-test
-// in-memory *ent.Collection constructor is syntheticCollection() in
-// platform/github/passthrough.go, which leaves RemoteData nil, and a
-// store-loaded collection's map arrives through a JSON decode, which yields only
-// representable types. I am NOT recording that as unreachable. Two searches were
-// clean, and a clean search is not a bound; a value can also arrive by
-// assignment after construction, and "this constructor does not set X" is not
-// "no path reaches a write of X". It does not matter either way, because the
-// shared log is already reachable via the task path.
+// The COLLECTION half has NO CALLER today. That is a caller property, set out
+// in full at the collectionToProto call site, and it is NOT a type property: a
+// Go-native map[string]string handed to CreateCollection fires this line, which
+// a review leg demonstrated by doing exactly that. So it is a reachability
+// precondition, not a bound. It does not matter either way for whether this log
+// ships, because the shared statement is already reachable via the task path.
 func structOrNilLoggingErr(sanitized map[string]any, field string) *structpb.Struct {
 	s, err := structpb.NewStruct(sanitized)
 	if err != nil {
@@ -593,27 +584,48 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// carries the same untyped platform payload through the same
 		// structpb.Struct into the same client; there is no reason for the two to
 		// disagree, and until now they did -- this line shipped the map raw.
-		// NOTE: THIS LOG LINE CANNOT FIRE TODAY. Do not exercise it, see nothing,
-		// and conclude the logging does not work -- conclude instead that you have
-		// confirmed the precondition below still holds.
 		//
-		// Unlike task.remote_data, no input path to a COLLECTION's remote_data can
-		// carry a Go type structpb rejects. Every writer of Collection.RemoteData
-		// feeds it a value that was decoded from JSON or from a structpb request
-		// (entstore.go:408, :898, :2117), and both decoders produce only
-		// map[string]any, []any and scalars -- never the map[string]string or
-		// []string that structpb.NewValue has no case for. The pass-through store
-		// does not populate it at all: syntheticCollection() leaves RemoteData nil,
-		// so the `!= nil` guard above skips this line entirely for that path.
+		// THIS LOG LINE HAS NO CALLER TODAY. That is a weaker claim than the one
+		// this comment used to make, and the weaker claim is the true one.
 		//
-		// Note what this reason is NOT. It is NOT "collections are read back out of
-		// the database": Ent's Create().Save() returns the entity holding the
-		// ORIGINAL in-memory map, with no round-trip, so a caller that converted a
-		// freshly-created collection would see the Go types it passed in. The
-		// property that protects this line is the TYPE OF EVERY INPUT, not the
-		// storage round-trip. It is a reachability precondition, not a guarantee --
-		// a new writer handing this field a native Go map would arm this line, and
-		// that is precisely when you want it to start firing.
+		// What it used to say was that no input path to a COLLECTION's remote_data
+		// could carry a Go type structpb rejects -- a claim about TYPES. That was
+		// FALSIFIED: a review leg passed a Go-native map[string]string into
+		// CreateCollection and fired this line. Nothing in the type system stops
+		// it. The citations were wrong too, and wrongly in the worst way: they
+		// pointed at entstore.go:408 and :898, which are the TASK Create/Update
+		// SetRemoteData sites, not collection sites at all. Both line numbers
+		// RESOLVE, to plausible-looking SetRemoteData calls, so a reader who
+		// responsibly went and checked came back with false confidence.
+		//
+		// The real collection writers are CreateCollection (entstore.go:1366),
+		// UpdateCollection (:1399) and ImportCollection (:2117). The reason this
+		// line does not fire is that NO IN-TREE CALLER POPULATES
+		// CreateCollectionParams.RemoteData OR UpdateCollectionParams.RemoteData.
+		// server.go:1057, server.go:1085 and graph_routing.go:83 all omit the
+		// field. That is a CALLER property, not a type property, and it is a
+		// reachability precondition rather than a guarantee.
+		//
+		// THE INVALIDATING EVENT, NAMED: anyone setting RemoteData on either param
+		// struct arms this line. Not a rename, not a refactor -- one new field
+		// assignment at one call site, by someone who has no reason to read this
+		// comment. Expect it to fire eventually; that is the design, not a defect.
+		//
+		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT "a field goes missing." The
+		// dashboard reads collection remote_data as a WRITE-AUTHORIZATION GATE:
+		// capabilities.ts getCapabilities and ft-app.ts isCollectionWritable both
+		// branch on the `writable` key to choose between the GitHub capability set
+		// and everything-disabled. If this conversion returns nil, that key is
+		// undefined and the UI SILENTLY DROPS TO READ-ONLY. It fails CLOSED, so it
+		// is not a vulnerability -- but a user losing their write buttons with no
+		// error message is a support ticket nobody will trace back to a dropped
+		// struct conversion. That is why this line logs rather than staying quiet.
+		//
+		// Note what the old reason also got wrong. It is NOT "collections are read
+		// back out of the database": Ent's Create().Save() returns the entity
+		// holding the ORIGINAL in-memory map, with no round-trip, so a caller that
+		// converted a freshly-created collection would see the Go types it passed
+		// in. The storage round-trip protects nothing here.
 		pc.RemoteData = structOrNilLoggingErr(sanitizeRemoteData(c.RemoteData), "collection.remote_data")
 	}
 	return pc
