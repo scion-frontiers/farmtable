@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 )
@@ -82,5 +83,39 @@ func TestServerStoreOptionsAppendsSecretPassword(t *testing.T) {
 	}
 	if !opts.Migrate {
 		t.Fatal("Migrate = false, want true")
+	}
+}
+
+// TestOpenAccessCauseForMapsEveryConfiguration pins the env-to-cause mapping
+// that decides both the auth mode and the wording of the unattributable-import
+// refusal. An operator who hits that refusal is told which variable to change,
+// so a wrong mapping here sends them to the wrong knob.
+//
+// The unspecified case is the load-bearing one: main treats it as "token auth
+// is on", so a mapping that returned it for an open-access configuration would
+// silently enable a token lookup that has no token.
+func TestOpenAccessCauseForMapsEveryConfiguration(t *testing.T) {
+	cases := []struct {
+		name       string
+		openAccess string
+		token      string
+		want       server.OpenAccessCause
+	}{
+		{"explicit open access", "1", "", server.OpenAccessCauseDeliberate},
+		{"explicit open access outranks a set token", "1", "secret", server.OpenAccessCauseDeliberate},
+		{"no token configured", "", "", server.OpenAccessCauseMissingToken},
+		{"token configured", "", "secret", server.OpenAccessCauseUnspecified},
+		// Only the exact string "1" enables open access; anything else must not
+		// be read as truthy, or a typo would silently disable auth.
+		{"non-canonical truthy value is not open access", "true", "secret", server.OpenAccessCauseUnspecified},
+		{"non-canonical truthy value without a token is still missing-token", "true", "", server.OpenAccessCauseMissingToken},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := openAccessCauseFor(tc.openAccess, tc.token); got != tc.want {
+				t.Fatalf("openAccessCauseFor(%q, %q) = %q, want %q", tc.openAccess, tc.token, got, tc.want)
+			}
+		})
 	}
 }

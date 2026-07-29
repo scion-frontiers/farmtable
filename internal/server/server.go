@@ -33,6 +33,8 @@ type FarmTableService struct {
 	startedAt     time.Time
 	eventBus      *streaming.EventBus
 	ephemeralPool *store.EphemeralStorePool
+	// openAccessCause is diagnostic only; see OpenAccessCause.
+	openAccessCause OpenAccessCause
 }
 
 type ServiceOption func(*FarmTableService)
@@ -45,6 +47,48 @@ func WithEventBus(eb *streaming.EventBus) ServiceOption {
 // ephemeral graph queries against external collections.
 func WithEphemeralPool(p *store.EphemeralStorePool) ServiceOption {
 	return func(s *FarmTableService) { s.ephemeralPool = p }
+}
+
+// OpenAccessCause records WHY a deployment was wired without identity
+// enforcement, so that an operation which refuses to run unattributed can tell
+// the operator which knob produced the situation.
+//
+// It exists because the server package cannot work this out for itself. By the
+// time a request arrives, a deliberate FARMTABLE_OPEN_ACCESS=1 and an
+// accidentally unset FARMTABLE_TOKEN are indistinguishable: both leave the token
+// lookup nil, so the interceptor never marks enforcement and RequireIdentity
+// returns (uuid.Nil, nil) either way. The env vars are read in
+// cmd/farmtable-server and internal/cli, not here, and reaching for os.Getenv in
+// a handler would couple this package to process environment, be untestable
+// through the service API, and be wrong for the embedded CLI, which is never
+// open-access.
+//
+// IT AFFECTS DIAGNOSTIC TEXT ONLY. It never decides whether a request is
+// refused, never grants anything, and carries no authority: a caller with no id
+// is refused identically under every value, including an unset or unrecognised
+// one. That invariant is pinned by
+// TestRPC_ImportCollection_RefusalDoesNotDependOnOpenAccessCause. If this type
+// ever gains the power to change an outcome, it has become part of the auth
+// design and belongs to whoever owns that, not here.
+type OpenAccessCause string
+
+const (
+	// OpenAccessCauseUnspecified is the zero value: the wiring said nothing.
+	// Deployments that enforce identity never set this option at all, so this is
+	// also what a correctly-configured server carries.
+	OpenAccessCauseUnspecified OpenAccessCause = ""
+	// OpenAccessCauseDeliberate means an operator explicitly asked for open
+	// access (FARMTABLE_OPEN_ACCESS=1).
+	OpenAccessCauseDeliberate OpenAccessCause = "deliberate"
+	// OpenAccessCauseMissingToken means nobody asked for open access; the
+	// server fell into it because FARMTABLE_TOKEN was not set.
+	OpenAccessCauseMissingToken OpenAccessCause = "missing_token"
+)
+
+// WithOpenAccessCause tells the service why it was wired without identity
+// enforcement. See OpenAccessCause: diagnostic text only, never an outcome.
+func WithOpenAccessCause(c OpenAccessCause) ServiceOption {
+	return func(s *FarmTableService) { s.openAccessCause = c }
 }
 
 func NewFarmTableService(s store.Store, version string, opts ...ServiceOption) *FarmTableService {

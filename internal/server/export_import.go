@@ -142,6 +142,40 @@ const serverAuthoredFieldPrefix = "server:"
 // the task_state_migration precedent already in this file.
 const ImportProvenanceField = serverAuthoredFieldPrefix + "import_provenance"
 
+// unattributableImportMessage explains a refused import to whoever has to fix
+// it. This text is the entire user-facing surface of the refusal, so it states
+// three things in order: what was refused, why, and which specific knob to turn.
+//
+// It is scoped deliberately. The refusal denies ImportCollection and nothing
+// else, and it cannot affect the embedded `ft` CLI, which always provisions a
+// local user and token and so is never open-access. Saying so prevents an
+// operator reading this from concluding that local tooling is broken too.
+//
+// The cause never changes the outcome, only this sentence.
+func unattributableImportMessage(cause OpenAccessCause) string {
+	const problem = "cannot import: an import records who performed it, and this server " +
+		"cannot identify the caller, so the imported history would name nobody. " +
+		"Importing without attribution is refused rather than recorded as \"unknown\"."
+	const scope = " Only collection import is affected; other operations are unchanged, " +
+		"and the embedded `ft` CLI is unaffected because it always authenticates locally."
+
+	switch cause {
+	case OpenAccessCauseDeliberate:
+		return problem + " This server was started in open-access mode " +
+			"(FARMTABLE_OPEN_ACCESS=1), which disables identity enforcement. " +
+			"To import, run the server with authentication enabled (set FARMTABLE_TOKEN " +
+			"and unset FARMTABLE_OPEN_ACCESS) and retry as an authenticated user." + scope
+	case OpenAccessCauseMissingToken:
+		return problem + " This server has no authentication configured because " +
+			"FARMTABLE_TOKEN is not set, so it accepted this request unauthenticated. " +
+			"Set FARMTABLE_TOKEN and restart, then retry as an authenticated user." + scope
+	default:
+		return problem + " No identity reached this request, which means the server " +
+			"is running without authentication configured. Enable authentication " +
+			"(set FARMTABLE_TOKEN) and retry as an authenticated user." + scope
+	}
+}
+
 // importProvenance is the JSON body of an ImportProvenanceField change row.
 //
 // ImportedAt is the server's own clock. It deliberately sits ALONGSIDE the
@@ -353,8 +387,7 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 	// identity model belongs to the auth architecture and may change underneath
 	// this code; these audit semantics must not shift when it does.
 	if importerID == uuid.Nil {
-		return nil, status.Error(codes.FailedPrecondition,
-			"import requires an identifiable caller so the imported rows can record who created them; this server is running without identity enforcement")
+		return nil, status.Error(codes.FailedPrecondition, unattributableImportMessage(s.openAccessCause))
 	}
 	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
 		return nil, err
@@ -523,16 +556,19 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 	// the server ingested it. These rows are server-authored: their author is
 	// the authenticated caller, never anyone named by the payload, and their
 	// created_at is the server clock, never a payload timestamp.
-	provenance, err := json.Marshal(importProvenance{
+	// The error is discarded deliberately: importProvenance is five string
+	// fields, and encoding/json cannot fail on those. A guarded branch here
+	// would be unreachable, and an unreachable branch is one no test can kill —
+	// the same shape as the dead export-side strip removed from this file
+	// earlier. If a non-string field is ever added to importProvenance, restore
+	// the error check along with it.
+	provenance, _ := json.Marshal(importProvenance{
 		ImportedBy:                 importerID.String(),
 		ImportedAt:                 ingestedAt.Format(time.RFC3339Nano),
 		SourceFormat:               format,
 		Generator:                  doc.Generator,
 		ClaimedCollectionCreatedAt: claimedTime(doc.Collection.CreatedAt),
 	})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "encoding import provenance: %v", err)
-	}
 	for _, imported := range importParams.Tasks {
 		importParams.Changes = append(importParams.Changes, store.ImportChange{
 			ID:        uuid.New(),

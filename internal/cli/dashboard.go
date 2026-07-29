@@ -77,8 +77,13 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 	eventBus := streaming.NewEventBus()
 
 	var lookup server.TokenLookup
+	// Diagnostic only; see server.OpenAccessCause. This is the only place that
+	// knows why enforcement is off, so operations that refuse to run
+	// unattributed can name the knob rather than guess.
+	var openAccessCause server.OpenAccessCause
 	if os.Getenv("FARMTABLE_OPEN_ACCESS") == "1" {
 		log.Println("Open access mode enabled (FARMTABLE_OPEN_ACCESS)")
+		openAccessCause = server.OpenAccessCauseDeliberate
 	} else {
 		lookup = server.NewStoreTokenLookup(s)
 	}
@@ -89,7 +94,7 @@ func runDashboard(_ *globalFlags, port int, openBrowser bool) error {
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
 		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
-	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, "dashboard", server.WithEventBus(eventBus)))
+	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, "dashboard", server.WithEventBus(eventBus), server.WithOpenAccessCause(openAccessCause)))
 
 	// Bootstrap: serve on bufconn to ensure default collection exists
 	bufLis := bufconn.Listen(1 << 20)

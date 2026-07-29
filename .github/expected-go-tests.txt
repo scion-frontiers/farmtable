@@ -1,4 +1,5 @@
 github.com/farmtable-io/farmtable/cmd/farmtable-server	TestMultiStoreWrapsEntStore
+github.com/farmtable-io/farmtable/cmd/farmtable-server	TestOpenAccessCauseForMapsEveryConfiguration
 github.com/farmtable-io/farmtable/cmd/farmtable-server	TestServerPortDefaultsTo8080
 github.com/farmtable-io/farmtable/cmd/farmtable-server	TestServerPortFallsBackToFarmTablePort
 github.com/farmtable-io/farmtable/cmd/farmtable-server	TestServerPortPrefersCloudRunPort
@@ -216,6 +217,8 @@ github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_Match
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_PayloadCannotForgeProvenance
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_ProvenanceNeverNamesAPlaceholder
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RefusalDoesNotDependOnOpenAccessCause
+github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RefusalMessageNamesTheCause
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RefusesImportWithoutIdentity
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RejectsParentCycle
 github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_StampsEveryImportedTask

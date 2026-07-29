@@ -61,12 +61,21 @@ func main() {
 	defer s.Close()
 
 	var lookup server.TokenLookup
-	token := os.Getenv("FARMTABLE_TOKEN")
-	if os.Getenv("FARMTABLE_OPEN_ACCESS") == "1" {
+	// openAccessCause is diagnostic only: it lets operations that refuse to run
+	// unattributed name the specific knob that produced this configuration. It
+	// grants nothing and changes no outcome. Only this block can tell the two
+	// causes apart — by request time they are indistinguishable.
+	//
+	// The cause drives the branch below rather than being computed alongside it,
+	// so there is exactly one decision here and the diagnostic can never
+	// disagree with the auth mode it is describing.
+	openAccessCause := openAccessCauseFor(os.Getenv("FARMTABLE_OPEN_ACCESS"), os.Getenv("FARMTABLE_TOKEN"))
+	switch openAccessCause {
+	case server.OpenAccessCauseDeliberate:
 		log.Println("Open access mode enabled (FARMTABLE_OPEN_ACCESS)")
-	} else if token == "" {
+	case server.OpenAccessCauseMissingToken:
 		log.Println("WARNING: FARMTABLE_TOKEN not set — server running in open access mode")
-	} else {
+	default:
 		lookup = server.NewStoreTokenLookup(s)
 		log.Println("Token authentication enabled (store-backed)")
 	}
@@ -94,7 +103,7 @@ func main() {
 		grpc.UnaryInterceptor(server.TokenAuthInterceptor(lookup)),
 		grpc.StreamInterceptor(server.TokenAuthStreamInterceptor(lookup)),
 	)
-	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version, server.WithEventBus(eventBus)))
+	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version, server.WithEventBus(eventBus), server.WithOpenAccessCause(openAccessCause)))
 
 	subFS, err := farmtable.WebUI()
 	if err != nil {
@@ -158,6 +167,26 @@ func main() {
 	log.Printf("farmtable-server %s listening on :%s", version, port)
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP server error: %v", err)
+	}
+}
+
+// openAccessCauseFor reports WHY this configuration runs without identity
+// enforcement, or OpenAccessCauseUnspecified when it does not run that way at
+// all. It is the single source of truth for the auth-mode branch in main: an
+// unspecified cause means, and only means, that token auth is enabled.
+//
+// Extracted so the env-to-cause mapping is assertable without starting a
+// server; the refusal text an operator sees is only as correct as this mapping.
+// This encodes no new policy — the conditions are the ones that were already
+// here, and FARMTABLE_OPEN_ACCESS still wins over a set token.
+func openAccessCauseFor(openAccessEnv, token string) server.OpenAccessCause {
+	switch {
+	case openAccessEnv == "1":
+		return server.OpenAccessCauseDeliberate
+	case token == "":
+		return server.OpenAccessCauseMissingToken
+	default:
+		return server.OpenAccessCauseUnspecified
 	}
 }
 

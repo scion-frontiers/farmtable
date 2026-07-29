@@ -336,31 +336,56 @@ func TestRPC_ImportCollection_RefusesImportWithoutIdentity(t *testing.T) {
 	data, _ := json.Marshal(doc)
 	svc := server.NewFarmTableService(s, "test")
 
+	// ATTRIBUTION. Only the first subcase is evidence for the control this
+	// branch adds. Deleting the `importerID == uuid.Nil` refusal turns that one
+	// RED and leaves the other two GREEN, because they exercise RequireIdentity
+	// error behaviour that already existed at 43bd206. Green under both
+	// hypotheses is not evidence, so the other two are labelled for what they
+	// actually are: regression guards on the base, kept because the branch's
+	// claim is that BOTH absent-identity outcomes are loud, and a future change
+	// to RequireIdentity could silently break the half this branch did not add.
 	cases := []struct {
-		name     string
-		ctx      context.Context
+		name string
+		ctx  context.Context
+		// wantCode is the gRPC code this subcase must produce.
 		wantCode codes.Code
+		// newControl marks the subcase that this branch's refusal is
+		// responsible for. Exactly one subcase may set it.
+		newControl bool
 	}{
 		{
-			// No auth interceptor configured: RequireIdentity returns
-			// (uuid.Nil, nil). The nil error is exactly what makes this the
-			// dangerous case — nothing signals that anything is missing.
-			name:     "open access mode yields nil identity and no error",
-			ctx:      context.Background(),
-			wantCode: codes.FailedPrecondition,
+			// THE NEW CONTROL. No auth interceptor configured, so
+			// RequireIdentity returns (uuid.Nil, nil). The nil error is exactly
+			// what makes this the dangerous case — nothing signals that anything
+			// is missing, and before this branch the import proceeded.
+			name:       "open access mode yields nil identity and no error",
+			ctx:        context.Background(),
+			wantCode:   codes.FailedPrecondition,
+			newControl: true,
 		},
 		{
-			// Auth enforced but the identity is the zero value.
+			// BASE REGRESSION GUARD (passes with or without this branch's
+			// control): auth enforced but the identity is the zero value.
 			name:     "auth enforced with zero identity",
 			ctx:      server.ContextWithAuthEnforced(server.ContextWithUserID(context.Background(), uuid.Nil)),
 			wantCode: codes.Unauthenticated,
 		},
 		{
-			// Auth enforced with no identity in the context at all.
+			// BASE REGRESSION GUARD: auth enforced with no identity in the
+			// context at all.
 			name:     "auth enforced with no identity present",
 			ctx:      server.ContextWithAuthEnforced(context.Background()),
 			wantCode: codes.Unauthenticated,
 		},
+	}
+	newControls := 0
+	for _, tc := range cases {
+		if tc.newControl {
+			newControls++
+		}
+	}
+	if newControls != 1 {
+		t.Fatalf("this test claims %d subcases as evidence for the new refusal; exactly 1 is honest", newControls)
 	}
 
 	for _, tc := range cases {
@@ -619,5 +644,157 @@ func TestRPC_ExportCollection_CarriesImportProvenance(t *testing.T) {
 	}
 	if provs[0].AuthorID != second.ID {
 		t.Fatalf("re-imported provenance names %s, want the principal who actually performed THIS import (%s)", provs[0].AuthorID, second.ID)
+	}
+}
+
+// openAccessCauses returns every cause value the wiring can produce, plus an
+// unrecognised one. The unrecognised value is deliberate: it stands in for a
+// future wiring site that sets a cause this code has never heard of.
+func openAccessCauses() []struct {
+	name  string
+	cause server.OpenAccessCause
+} {
+	return []struct {
+		name  string
+		cause server.OpenAccessCause
+	}{
+		{"unspecified", server.OpenAccessCauseUnspecified},
+		{"deliberate", server.OpenAccessCauseDeliberate},
+		{"missing token", server.OpenAccessCauseMissingToken},
+		{"unrecognised", server.OpenAccessCause("something-nobody-has-written-yet")},
+	}
+}
+
+// TestRPC_ImportCollection_RefusalDoesNotDependOnOpenAccessCause is the guard on
+// the diagnostic plumbing itself.
+//
+// OpenAccessCause exists so a refusal can name the knob that caused it. The
+// danger in adding it is that a value plumbed in at wiring time acquires
+// authority it was never meant to have — that some cause, now or later, becomes
+// a reason to let the import through. This pins the invariant: the cause selects
+// WORDS, never an OUTCOME. A caller with no id is refused identically under every
+// value, including one this code does not recognise.
+func TestRPC_ImportCollection_RefusalDoesNotDependOnOpenAccessCause(t *testing.T) {
+	_, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	doc := minimalImportDoc("cause invariance", nil,
+		[]map[string]interface{}{importTaskDoc(uuid.New().String())}, nil, nil, nil)
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal doc: %v", err)
+	}
+
+	for _, tc := range openAccessCauses() {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := server.NewFarmTableService(s, "test", server.WithOpenAccessCause(tc.cause))
+
+			before, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 200})
+			if err != nil {
+				t.Fatalf("ListCollections: %v", err)
+			}
+
+			_, err = svc.ImportCollection(context.Background(), &pb.ImportCollectionRequest{Data: data})
+			if err == nil {
+				t.Fatalf("CANARY: cause %q let an unattributable import THROUGH. "+
+					"OpenAccessCause is diagnostic text; it must never decide whether a request is refused.", tc.cause)
+			}
+			if got := status.Code(err); got != codes.FailedPrecondition {
+				t.Fatalf("CANARY: cause %q changed the refusal code to %s, want %s; the cause must not affect the outcome",
+					tc.cause, got, codes.FailedPrecondition)
+			}
+
+			after, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 200})
+			if err != nil {
+				t.Fatalf("ListCollections: %v", err)
+			}
+			if len(after) != len(before) {
+				t.Fatalf("CANARY: cause %q wrote a collection on a refused import (%d -> %d)", tc.cause, len(before), len(after))
+			}
+		})
+	}
+}
+
+// TestRPC_ImportCollection_RefusalMessageNamesTheCause pins the wording, which
+// is the entire user-facing surface of this change. An operator who hits this
+// refusal has no other signal to work from, so the message must say what was
+// refused, why, and which knob to turn — and must not imply that local tooling
+// is broken, because the embedded CLI is never open-access.
+func TestRPC_ImportCollection_RefusalMessageNamesTheCause(t *testing.T) {
+	_, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+
+	doc := minimalImportDoc("wording", nil,
+		[]map[string]interface{}{importTaskDoc(uuid.New().String())}, nil, nil, nil)
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal doc: %v", err)
+	}
+
+	cases := []struct {
+		name     string
+		cause    server.OpenAccessCause
+		wantAll  []string
+		wantNone []string
+	}{
+		{
+			name:  "deliberate names the open-access switch",
+			cause: server.OpenAccessCauseDeliberate,
+			// Must name the knob actually responsible, and must NOT tell the
+			// operator to set a token as if that alone were the problem.
+			wantAll:  []string{"FARMTABLE_OPEN_ACCESS"},
+			wantNone: []string{"FARMTABLE_TOKEN is not set"},
+		},
+		{
+			name:     "missing token names the token variable",
+			cause:    server.OpenAccessCauseMissingToken,
+			wantAll:  []string{"FARMTABLE_TOKEN"},
+			wantNone: []string{"FARMTABLE_OPEN_ACCESS=1"},
+		},
+		{
+			name:  "unspecified still gives actionable guidance",
+			cause: server.OpenAccessCauseUnspecified,
+			// No knob is known, so it must not guess at one, but it must still
+			// tell the operator what to do.
+			wantAll:  []string{"FARMTABLE_TOKEN"},
+			wantNone: []string{"FARMTABLE_OPEN_ACCESS=1"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := server.NewFarmTableService(s, "test", server.WithOpenAccessCause(tc.cause))
+			_, err := svc.ImportCollection(context.Background(), &pb.ImportCollectionRequest{Data: data})
+			if err == nil {
+				t.Fatalf("import was accepted without an identity")
+			}
+			msg := status.Convert(err).Message()
+
+			// Properties every refusal must have, whatever the cause.
+			for _, want := range []string{
+				"cannot import",                // says what was refused
+				"cannot identify the caller",   // says why
+				"refused rather than recorded", // says it did not silently happen
+				"Only collection import is affected",
+				"embedded `ft` CLI is unaffected", // does not scare local CLI users
+			} {
+				if !strings.Contains(msg, want) {
+					t.Fatalf("cause %q: refusal message is missing %q, so the operator cannot act on it.\nmessage: %s",
+						tc.cause, want, msg)
+				}
+			}
+
+			for _, want := range tc.wantAll {
+				if !strings.Contains(msg, want) {
+					t.Fatalf("cause %q: message does not name %q.\nmessage: %s", tc.cause, want, msg)
+				}
+			}
+			for _, unwanted := range tc.wantNone {
+				if strings.Contains(msg, unwanted) {
+					t.Fatalf("cause %q: message wrongly blames %q.\nmessage: %s", tc.cause, unwanted, msg)
+				}
+			}
+		})
 	}
 }
