@@ -326,8 +326,12 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		// `collCreate.SetRemoteData(p.Collection.RemoteData)` in
 		// EntStore.ImportCollection. So any caller holding ScopeCollectionAdmin
 		// can plant ANY key -- including "writable": true, the key that
-		// web/src/capabilities.ts getCapabilities uses to unlock nine GitHub
-		// write operations. See the WRITE-AUTHORIZATION GATE block in
+		// web/src/capabilities.ts getCapabilities uses to return
+		// GITHUB_CAPABILITIES, which is the GitHub write set. Named by
+		// identifier and not by cardinality on purpose: a count here is a
+		// population claim with nothing guarding it, and this block's own
+		// rule below is that a citation must point at something that goes
+		// red when it stops being true. See the WRITE-AUTHORIZATION GATE block in
 		// collectionToProto (internal/server/convert.go) for the gate.
 		//
 		// EVERY CITATION IN THIS BLOCK IS BY IDENTIFIER OR BY QUOTED SOURCE

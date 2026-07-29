@@ -835,13 +835,20 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//     }
 		//     return ALL_DISABLED;
 		//
-		// GITHUB_CAPABILITIES enables nine write operations. ft-app.ts
-		// isCollectionWritable branches on the same key.
+		// The operations this unlocks are the members of GITHUB_CAPABILITIES --
+		// the fields set true in that object literal, which is the only place
+		// the set is defined. THIS COMMENT DELIBERATELY DOES NOT SAY HOW MANY.
+		// A cardinality here is a population claim with nothing guarding it:
+		// flip one flag in that literal and the number is false with nothing
+		// red. Name the identifier and the reader can count for themselves,
+		// against a definition that cannot drift from itself.
+		// capabilities.ts isCollectionWritable branches on the same key.
 		//
 		// AND NOTHING IN GO ENFORCES ANY OF IT. `writable` has no functional Go
 		// reader -- the identifier appears in Go only in comments. There is no
-		// server-side notion of a read-only collection, so the nine operations are
-		// gated in the browser and nowhere else. A caller with a token and curl is
+		// server-side notion of a read-only collection, so the operations in
+		// GITHUB_CAPABILITIES are gated in the browser and nowhere else. A
+		// caller with a token and curl is
 		// not subject to this gate at all. Whoever arms it is not enabling a feature
 		// behind an existing control; they are creating a control that only one
 		// client honours.
