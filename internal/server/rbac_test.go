@@ -52,9 +52,9 @@ func authCtx(token string) context.Context {
 // scope set being read as wildcard.
 func defaultScopes(t *testing.T, userType string) []string {
 	t.Helper()
-	scopes := server.DefaultScopesForUserType(userType)
-	if len(scopes) == 0 {
-		t.Fatalf("DefaultScopesForUserType(%q) yielded no scopes", userType)
+	scopes, err := server.DefaultScopesForUserType(userType)
+	if err != nil {
+		t.Fatalf("DefaultScopesForUserType(%q): %v", userType, err)
 	}
 	return scopes
 }
