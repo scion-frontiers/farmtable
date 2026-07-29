@@ -179,3 +179,81 @@ unmodified, and 500 / 1 / exit 1 with a single `--- PASS` line changed to
 `--- SKIP`, naming the test both as SKIPPED and as DID NOT RUN.
 
 This is iteration evidence, not merge evidence. The runner runs are the evidence.
+
+## Runner results at the original base (`aa08f1a`)
+
+| ref | commit | run | result | red step |
+|---|---|---|---|---|
+| `fix/ci-review-findings` | `bbc9a59` | 30464871524 | SUCCESS | — |
+| `canary/w1-tracked-dist` | `2e5fcaa` | 30464873663 | FAILURE | Assert web/dist holds no build output before the build |
+| `canary/w2-marker-untracked` | `5893676` | 30464875218 | FAILURE | Assert the COMMITTED tree compiles (nothing built yet) |
+| `canary/w3-tskip` | `91ad031` | 30464876923 | FAILURE | Go test membership (asserted against a committed manifest) |
+
+Each red on its own gate, and W2's is the first gate in the run.
+
+## Rebase onto `439b309`
+
+Main moved by a 95-commit union merge. **The base commit was not reachable from
+this tree, and no rebase was attempted until it was.** `git cat-file -t 439b309`
+failed; `git fetch origin` returned nothing because this clone's origin is a
+local path stale at `cc92735`; `gh` under this identity cannot see the
+repository at all. Rebasing onto "the nearest thing that looks like main" would
+have produced four SHAs that look like an answer, so the work stopped and asked.
+That is the same rule as the positive-control one: a control validates the tool,
+never the referent, and the referent has to be checked by name.
+
+The object was delivered as `refs/em-ci/main`. One correction: it was pushed into
+`/workspace`, not into this clone, so it still had to be fetched by exact ref
+name — `git fetch origin refs/em-ci/main:refs/em-ci/main` — and the resulting SHA
+verified against `439b309` before anything was rebased onto it.
+
+### What the merge actually touched
+
+51 paths between `aa08f1a` and `439b309`. Reported as a set rather than a count,
+because a count cannot be reconciled: **`.github/workflows/ci.yml` is not among
+them, `Makefile` is not among them, and `scripts/ci-suite-manifest.mjs` is not
+among them.** Those are the three files this branch owns or was warned about. All
+four refs rebased with zero conflicts, and `ci.yml` and `Makefile` are
+byte-identical before and after (`git diff bbc9a59:<path> <new>:<path>` empty for
+both).
+
+Step ordering survived the merge: the compile guard is still step 4, still ahead
+of `npm ci`.
+
+### Re-measured at the new base, from fresh clones
+
+| measurement | at `aa08f1a` | at `439b309` |
+|---|---|---|
+| `go list ./...` | 32 packages | **33** |
+| top-level Go tests executed | 501 | **548** |
+| `.github/expected-go-tests.txt` | 501 rows | **503** |
+| top-level skips in a real run | 0 | **0** |
+
+Every gate re-verified from a fresh checkout of the rebased commit: compile guard
+green at 33 packages and red on an untracked marker; equality arm green on the
+placeholder, red on a tracked stub, red on the empty case; membership green at
+548 executed / 0 skipped, and red at 547 / 1 with a single `--- PASS` line
+changed to `--- SKIP`.
+
+### Observation, not actioned
+
+The merge added **45 Go tests that are not in `.github/expected-go-tests.txt`**.
+The membership gate reports them as a `::notice::` and does not fail — that
+asymmetry is deliberate and it is working. But it means the manifest is now 503
+rows describing a 548-test suite, and the gap grows every time someone adds a
+test without regenerating it. The generator that would close this is R-3, which
+is explicitly not this branch's work, so this is filed rather than fixed. Naming
+it here because a drifting manifest degrades quietly: each individual notice
+looks like noise, and the set of tests the gate actually protects shrinks as a
+fraction of the suite.
+
+### One text change made during the rebase
+
+The compile guard printed `33 packages` and nothing else. **An integer is not
+diffable** — it cannot tell the next reader whether a package appeared,
+disappeared, or both at once, and two people reconciling counts will agree on a
+number while disagreeing about which members produced it. The package list now
+goes to the step summary and is uploaded with the other evidence. This is the
+same lesson two other agents hit this afternoon from the other direction:
+conflict sets of 8 and 9 for one merge, disagreeing in three members, where
+reconciling the integers would have sent an unexamined file into the merge.
