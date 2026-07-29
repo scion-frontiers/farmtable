@@ -134,23 +134,61 @@ Filed, not closed, and stated in the code rather than only here.
 Nothing pushed.
 
 **Correction, made after this line was first written.** It originally read
-"`main` unmoved at `7bb0c756`". **There is no `main` in this clone** — no
-`refs/heads/main` and no `refs/remotes/origin/main`; `git rev-parse main` exits
-non-zero. The local refs are `hardening/markdown-href` and
-`task-state-web-ui-v2`. What `7bb0c756` actually is: the **merge-base of this
-branch**, fourteen commits back, i.e. the base I branched from.
+"`main` unmoved at `7bb0c756`". `git rev-parse main` exits non-zero in this
+clone, so the sentence was withdrawn as naming a ref that does not exist.
 
-"Unmoved" was therefore trivially true of a thing that does not exist, and it
-was reported four times. It read as a safety claim — *I have not disturbed the
-mainline* — while asserting nothing at all, and nobody could have caught it
-without running `rev-parse` in this specific clone, because the sentence names
-no clone. **A reassurance about a ref you never resolved is the same defect as a
-count nobody reconciled**, which is the finding this very file was opened to
-record. Third instance in one document.
+**SECOND CORRECTION, AND THE FIRST CORRECTION WAS THE WORSE ERROR.** The first
+correction asserted "no `refs/heads/main` and no `refs/remotes/origin/main`".
+The second half is **false**:
 
-The accurate statement: nothing is pushed, no ref outside
-`hardening/markdown-href` has been written in this clone, and `7bb0c756` is this
-branch's base and is an ancestor of its tip.
+```
+refs/remotes/origin/main   7bb0c756f8be85009bbbe363f3ea3f4c1c4128b5
+```
+
+It is there, and it is exactly `7bb0c756`. `rev-parse main` fails anyway,
+because gitrevisions searches `refs/<n>`, `refs/tags/<n>`, `refs/heads/<n>`,
+`refs/remotes/<n>`, `refs/remotes/<n>/HEAD` — **`refs/remotes/origin/main` is
+not on that list.** Bare `main` DWIMs to a remote branch for `checkout`, not for
+`rev-parse`. Measured here: `main`, `refs/heads/main` and `refs/remotes/main`
+all unresolvable; `origin/main` resolves.
+
+So a **failed lookup was read as an absence**, when what failed was the
+abbreviation, not the ref. That is the same shape as everything else in this
+document: an instrument's negative answer taken for a property of the world.
+
+And the confirming instrument was broken too, in the same direction:
+
+```
+git for-each-ref --format='%(refname) %(objectname:short)' | grep -E '/main$'
+```
+
+The format appends the sha, so `$` follows the **object id**, never a refname.
+That pattern cannot match anything — it returned "none" for `hardening/markdown-href`
+as well, a ref I was looking at on screen. **Two independent instruments both
+failed toward "absent", so their agreement was hollow**; corroboration between
+two oracles with a common failure direction is one oracle. Caught only because
+the second run carried a known-present positive control and it came back 0.
+Rewritten as `--format='%(refname)'`, the counts are 1 here and 18 in the shared
+clone, with the fabricated-name control at 0.
+
+**Net: the original sentence's number was right and its warrant was absent, and
+the correction inverted both.** `origin/main` here is `7bb0c756`, which is also
+this branch's merge-base fourteen commits back, which is why the value looked
+familiar. "Unmoved" remains unsupportable in either version — `git reflog show
+origin/main` is **empty** in this clone (rc=0, zero lines, against a control
+that printed three), so no movement record exists to have checked. I never had a
+baseline; I had a value and a reassuring verb.
+
+The accurate statement: nothing is pushed; no ref outside
+`hardening/markdown-href` has been written by me in this clone;
+`refs/remotes/origin/main` reads `7bb0c756`, whose history in this clone is
+unknown; and `7bb0c756` is an ancestor of this branch's tip (`--is-ancestor`
+rc=0, with the reversed pair rc=1 as control).
+
+**A correction is a publication and carries the same burden as the claim it
+replaces.** This one was written from a failed `rev-parse` alone and shipped
+four hours of confidence in ninety seconds. Fourth instance in one document, and
+the only one where the fix was less true than the defect.
 
 ---
 
