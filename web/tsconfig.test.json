@@ -4,5 +4,10 @@
     "noEmit": false,
     "outDir": ".tmp-test"
   },
-  "include": ["src/utils/task-ready.test.ts"]
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
 }

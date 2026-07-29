@@ -229,9 +229,95 @@ function mapArtefactToSource(artefact) {
   return hit.length === 1 ? hit[0] : null;
 }
 
+// tsconfig "include"/"files" globs, as anchored regexes over paths relative to
+// web/. Needed because a `tsc -p ... && node --test <dir>` pipeline discovers
+// only what the COMPILE step emitted: a test file the tsconfig does not include
+// is invisible to the runner, and the runner cannot report its own blind spot.
+function globToRe(g) {
+  let re = '';
+  for (let i = 0; i < g.length; i++) {
+    const c = g[i];
+    if (c === '*') {
+      if (g[i + 1] === '*') {
+        if (g[i + 2] === '/') {
+          re += '(?:[^/]+/)*';
+          i += 2;
+        } else {
+          re += '.*';
+          i += 1;
+        }
+      } else {
+        re += '[^/]*';
+      }
+    } else if (c === '?') {
+      re += '[^/]';
+    } else {
+      re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    }
+  }
+  return new RegExp(`^${re}$`);
+}
+
+// Strip // and /* */ comments from JSONC, ignoring anything inside a string.
+//
+// A naive /\/\*[\s\S]*?\*\//g does NOT ignore strings, and the glob
+// "src/**/*.test.ts" contains both `/*` and `*/` -- so the naive version
+// silently rewrites it to "src*.test.ts" and the include list stops matching
+// the files it names. Found by running this, not by reading it.
+function stripJsonComments(src) {
+  let out = '';
+  let inStr = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\') {
+        out += src[++i] ?? '';
+      } else if (c === '"') {
+        inStr = false;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inStr = true;
+      out += c;
+      continue;
+    }
+    if (c === '/' && src[i + 1] === '/') {
+      while (i < src.length && src[i] !== '\n') i++;
+      out += '\n';
+      continue;
+    }
+    if (c === '/' && src[i + 1] === '*') {
+      i += 2;
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
+      i++;
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
+// Returns null when the config cannot be read, [] meaning "matches everything"
+// when it declares neither include nor files.
+function compiledPatterns(cfgPath) {
+  if (!existsSync(cfgPath)) return null;
+  let cfg;
+  try {
+    cfg = JSON.parse(stripJsonComments(readFileSync(cfgPath, 'utf8')));
+  } catch {
+    return null;
+  }
+  const globs = [...(cfg.include ?? []), ...(cfg.files ?? [])];
+  if (globs.length === 0) return [];
+  return globs.map((g) => globToRe(g.replace(/^\.\//, '')));
+}
+
 const executed = new Set();
 const unanalysable = [];
 let discoveryRunner = null;
+let compileConfig = null;
 
 for (const leaf of leafCommands('test')) {
   const t = leaf.text;
@@ -244,14 +330,51 @@ for (const leaf of leafCommands('test')) {
     unanalysable.push(`${t} -> unterminated quote; cannot split into commands`);
     continue;
   }
-  // Pure compile/typecheck steps execute no tests.
-  if (/^(tsc|rimraf|rm|mkdir|cpy|cp)\b/.test(t)) continue;
+  // Pure compile/typecheck steps execute no tests -- but they decide what a
+  // later runner is ABLE to see, so remember which tsconfig was used.
+  if (/^(tsc|rimraf|rm|mkdir|cpy|cp)\b/.test(t)) {
+    const proj = t.match(/(?:^|\s)(?:-p|--project)\s+(\S+)/);
+    if (proj) compileConfig = `web/${proj[1].replace(/^\.\//, '')}`;
+    continue;
+  }
 
   if (/^node\b/.test(t)) {
+    const flags = tokenise(t).filter((a) => a.startsWith('-'));
     const args = t
       .split(/\s+/)
       .slice(1)
       .filter((a) => !a.startsWith('-'));
+
+    // `node --test <dir>`: the runner discovers every compiled test file under
+    // <dir>. What reaches <dir> is decided by the tsconfig, so credit a source
+    // file only if that tsconfig actually emits it. Without this the pipeline
+    // LOOKS like discovery while the compile step silently gates it.
+    if (flags.includes('--test')) {
+      if (!compileConfig) {
+        unanalysable.push(
+          `${t} -> node --test with no preceding \`tsc -p <config>\`; ` +
+            'cannot tell which sources reach the runner',
+        );
+        continue;
+      }
+      const pats = compiledPatterns(compileConfig);
+      if (pats === null) {
+        unanalysable.push(`${t} -> cannot read or parse ${compileConfig}`);
+        continue;
+      }
+      discoveryRunner = `${t} (over output of ${compileConfig})`;
+      for (const p of present) {
+        const rel = p.replace(/^web\//, '');
+        if (pats.length === 0 || pats.some((re) => re.test(rel))) executed.add(p);
+        else
+          unanalysable.push(
+            `${p} is not matched by "include"/"files" in ${compileConfig}, ` +
+              'so it is never compiled and `node --test` cannot discover it',
+          );
+      }
+      continue;
+    }
+
     if (args.length === 0) {
       unanalysable.push(`${t} -> node invocation with no script argument`);
       continue;
