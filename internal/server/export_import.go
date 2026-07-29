@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
@@ -102,6 +103,63 @@ type exportChange struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// serverAuthoredFieldPrefix namespaces change rows that the server writes about
+// an import rather than importing from the payload. Payload documents may not
+// author rows in this namespace: if they could, an attacker could plant a
+// forged provenance stamp naming somebody else and the remedy below would
+// become a weapon.
+const serverAuthoredFieldPrefix = "server:"
+
+// ImportProvenanceField is the change field_name under which ImportCollection
+// records who actually performed an import and when the server actually
+// ingested it.
+//
+// WHY THIS EXISTS. ImportCollection accepts a document whose change and comment
+// rows carry an author, which resolveImportUsers binds to a REAL existing
+// account by matching the payload's email, and a created_at that is taken
+// verbatim from the payload. Without a server-authored record, a fabricated row
+// attributed to a real person at a time of the attacker's choosing is
+// indistinguishable from a genuine one.
+//
+// Holding collection:admin does not make this acceptable. Wildcard permission
+// lets a principal act as THEMSELVES with full authority; it does not entitle
+// them to author history attributed to a DIFFERENT user, nor to choose the
+// timestamp that history claims. Impersonation and backdating are privileges
+// nobody legitimately holds, so "the importer is already privileged" is not an
+// argument against recording who they were.
+//
+// Provenance is recorded per imported task, which covers every row the import
+// creates: ImportCollection only ever CREATES tasks (taskMapping is populated
+// exclusively with uuid.New(), and the store's import transaction uses
+// tx.Task.Create with no upsert or update path), so every task an import
+// touches is a task that import created.
+//
+// It is surfaced through the existing Change message rather than a new proto
+// field. The generated protobuf code is committed and its generator versions
+// are pinned nowhere in this repo, so regenerating it to add one field would
+// produce a large unreviewable diff. Reusing the shipped
+// ListChanges -> changeToProto read path costs no codegen at all, and follows
+// the task_state_migration precedent already in this file.
+const ImportProvenanceField = serverAuthoredFieldPrefix + "import_provenance"
+
+// importProvenance is the JSON body of an ImportProvenanceField change row.
+//
+// ImportedAt is the server's own clock. It deliberately sits ALONGSIDE the
+// payload's timestamps rather than replacing them: imports legitimately carry
+// historical timestamps, so the point is not to overwrite what the payload
+// claims but to make the claim and the actual ingestion distinguishable.
+type importProvenance struct {
+	// ImportedBy is always a real caller. Import refuses to run without one, so
+	// this field has no empty, placeholder or "unknown" state to interpret.
+	ImportedBy   string `json:"imported_by"`
+	ImportedAt   string `json:"imported_at"`
+	SourceFormat string `json:"source_format"`
+	Generator    string `json:"generator,omitempty"`
+	// ClaimedCollectionCreatedAt is what the payload asserted, kept next to the
+	// actual ingestion time above.
+	ClaimedCollectionCreatedAt string `json:"claimed_collection_created_at,omitempty"`
+}
+
 func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportCollectionRequest) (*pb.ExportCollectionResponse, error) {
 	if err := RequireScope(ctx, ScopeCollectionRead); err != nil {
 		return nil, err
@@ -187,6 +245,14 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 		}
 		if req.GetIncludeChanges() {
 			for _, c := range changesByTask[t.ID] {
+				// Server-authored rows ARE exported. They are audit content: an
+				// operator reading an export should be able to see that this
+				// collection arrived by import and who performed it. Their
+				// author is always a real account (import refuses an
+				// unidentifiable caller), so they add that account to users[]
+				// like any other change author and the document stays
+				// self-consistent. Re-importing such a document drops them with
+				// a warning rather than trusting them; see ImportProvenanceField.
 				doc.Changes = append(doc.Changes, exportChange{
 					ID:        c.ID.String(),
 					TaskID:    c.TaskID.String(),
@@ -262,12 +328,40 @@ func (s *FarmTableService) ExportCollection(ctx context.Context, req *pb.ExportC
 }
 
 func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportCollectionRequest) (*pb.ImportCollectionResponse, error) {
-	if _, err := RequireIdentity(ctx); err != nil {
+	// The importer's identity is the one thing the server knows for certain
+	// about this request. It is recorded as provenance on every task the import
+	// creates; see ImportProvenanceField.
+	importerID, err := RequireIdentity(ctx)
+	if err != nil {
 		return nil, err
+	}
+	// RequireIdentity has two distinct absent-identity outcomes and BOTH must be
+	// loud. It returns an error when auth is enforced but the caller has no
+	// usable identity — handled above. It returns (uuid.Nil, nil) in open-access
+	// mode, where no auth interceptor is configured; that is the case below.
+	//
+	// Import refuses rather than recording a placeholder. Writing "", "unknown",
+	// "system" or the zero UUID and proceeding would make absence read as
+	// permission, which is the exact habit this change exists to correct — and
+	// planting a fresh instance of it inside the remedy would be worse than the
+	// original defect, because the stamp would then look authoritative while
+	// naming nobody. An import whose actor cannot be established is not
+	// auditable, so it does not happen.
+	//
+	// Note what this does NOT do: it does not inspect the caller's type, scopes,
+	// or provisioning. It requires only that a caller exists and has an id. The
+	// identity model belongs to the auth architecture and may change underneath
+	// this code; these audit semantics must not shift when it does.
+	if importerID == uuid.Nil {
+		return nil, status.Error(codes.FailedPrecondition,
+			"import requires an identifiable caller so the imported rows can record who created them; this server is running without identity enforcement")
 	}
 	if err := RequireScope(ctx, ScopeCollectionAdmin); err != nil {
 		return nil, err
 	}
+	// Server clock, captured once so every row of one import shares an
+	// ingestion time.
+	ingestedAt := time.Now().UTC()
 	format := detectImportFormat(req.GetData())
 
 	var doc exportDocument
@@ -386,12 +480,34 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		}
 		importParams.Relationships = append(importParams.Relationships, imported)
 	}
+	// Payload rows are not allowed to occupy the server-authored namespace. A
+	// document that could carry its own "server:import_provenance" row would let
+	// an attacker plant a second, forged stamp naming an innocent party, leaving
+	// a reader unable to tell which stamp was real. Dropping them keeps the
+	// namespace server-authored by construction.
+	//
+	// They are dropped with a warning rather than rejected outright: exporting a
+	// previously imported collection with --include-changes reproduces these
+	// rows, so rejecting would make such an export impossible to re-import. The
+	// stale stamp is not worth preserving anyway, since the provenance that
+	// matters is who put the data in THIS system.
+	reservedNamespaceRows := 0
 	for _, exportedChange := range doc.Changes {
+		if strings.HasPrefix(exportedChange.FieldName, serverAuthoredFieldPrefix) {
+			reservedNamespaceRows++
+			continue
+		}
 		imported, err := importedChange(exportedChange, taskMapping, userMapping)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		importParams.Changes = append(importParams.Changes, imported)
+	}
+	if reservedNamespaceRows > 0 {
+		stats.Changes -= int32(reservedNamespaceRows)
+		warnings = append(warnings, fmt.Sprintf(
+			"Dropped %d change rows using the reserved %q field-name namespace; those rows are written by the server, not accepted from a payload",
+			reservedNamespaceRows, serverAuthoredFieldPrefix))
 	}
 	if len(migrationNotes) > 0 {
 		importParams.Users = append(importParams.Users, store.ImportUser{
@@ -401,6 +517,31 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 			Status:      "active",
 		})
 		importParams.Changes = append(importParams.Changes, migrationNotes...)
+	}
+
+	// Stamp every task the import creates with who performed the import and when
+	// the server ingested it. These rows are server-authored: their author is
+	// the authenticated caller, never anyone named by the payload, and their
+	// created_at is the server clock, never a payload timestamp.
+	provenance, err := json.Marshal(importProvenance{
+		ImportedBy:                 importerID.String(),
+		ImportedAt:                 ingestedAt.Format(time.RFC3339Nano),
+		SourceFormat:               format,
+		Generator:                  doc.Generator,
+		ClaimedCollectionCreatedAt: claimedTime(doc.Collection.CreatedAt),
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "encoding import provenance: %v", err)
+	}
+	for _, imported := range importParams.Tasks {
+		importParams.Changes = append(importParams.Changes, store.ImportChange{
+			ID:        uuid.New(),
+			TaskID:    imported.ID,
+			AuthorID:  importerID,
+			FieldName: ImportProvenanceField,
+			NewValue:  string(provenance),
+			CreatedAt: ingestedAt,
+		})
 	}
 
 	warnings = append(beadsWarnings, warnings...)
@@ -414,6 +555,13 @@ func (s *FarmTableService) ImportCollection(ctx context.Context, req *pb.ImportC
 		return nil, status.Errorf(codes.Internal, "importing collection: %v", err)
 	}
 	return &pb.ImportCollectionResponse{CollectionId: coll.ID.String(), Stats: stats, Warnings: warnings}, nil
+}
+
+func claimedTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339Nano)
 }
 
 func taskExport(t *ent.Task) exportTask {
