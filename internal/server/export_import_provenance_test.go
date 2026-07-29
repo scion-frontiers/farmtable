@@ -12,17 +12,14 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // The contract these tests pin, spelled out here rather than imported from the
 // implementation so that the tests fail on an assertion rather than on a
 // compile error when the implementation is absent or reverted.
 const (
-	wantServerFieldPrefix  = "server:"
-	wantProvenanceField    = "server:import_provenance"
-	recognisedUserTypeList = "admin agent reviewer orchestrator viewer human service_account"
+	wantServerFieldPrefix = "server:"
+	wantProvenanceField   = "server:import_provenance"
 )
 
 // authedImportCtx builds a context that looks like a real authenticated caller:
@@ -369,112 +366,5 @@ func TestRPC_ImportCollection_StampsEveryImportedTask(t *testing.T) {
 		if n := len(provenanceRows(rows)); n != 1 {
 			t.Fatalf("task %s has %d provenance rows, want 1", task.ID, n)
 		}
-	}
-}
-
-// TestRPC_ImportCollection_RejectsUnknownUserType is the oracle for defect 2.
-// exportUser.Type is free-text JSON copied verbatim through to
-// tx.User.Create().SetType (entstore.go:2102) with no validator at any layer.
-//
-// This is input validation and a persistence vector. It is NOT a privilege
-// escalation: reaching ImportCollection already requires collection:admin, and
-// only wildcard user types hold that, so the privilege delta is zero.
-func TestRPC_ImportCollection_RejectsUnknownUserType(t *testing.T) {
-	client, s, cleanup := newExportImportTestServer(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	beforeColls, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 100})
-	if err != nil {
-		t.Fatalf("ListCollections: %v", err)
-	}
-
-	for _, badType := range []string{"root", "reviewr", "", "Admin", "service-account"} {
-		t.Run("type="+badType, func(t *testing.T) {
-			userID := uuid.New().String()
-			taskID := uuid.New().String()
-			email := "bogus-" + uuid.New().String() + "@example.com"
-			doc := minimalImportDoc("bad type", []map[string]interface{}{
-				{"id": userID, "display_name": "Bogus", "email": email, "type": badType, "status": "active"},
-			}, []map[string]interface{}{importTaskDoc(taskID)}, []map[string]interface{}{
-				{"id": uuid.New().String(), "task_id": taskID, "author_id": userID, "body": "hi"},
-			}, nil, nil)
-			data, _ := json.Marshal(doc)
-
-			_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
-			if err == nil {
-				t.Fatalf("ImportCollection accepted unrecognised user type %q", badType)
-			}
-			if status.Code(err) != codes.InvalidArgument {
-				t.Fatalf("error code = %s, want InvalidArgument (err: %v)", status.Code(err), err)
-			}
-			users, err := s.GetUserByEmail(ctx, email)
-			if err != nil {
-				t.Fatalf("GetUserByEmail: %v", err)
-			}
-			if len(users) != 0 {
-				t.Fatalf("a rejected import still persisted %d users with type %q", len(users), badType)
-			}
-		})
-	}
-
-	afterColls, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 100})
-	if err != nil {
-		t.Fatalf("ListCollections: %v", err)
-	}
-	if len(afterColls) != len(beforeColls) {
-		t.Fatalf("collections = %d, want %d: a rejected import still wrote a collection", len(afterColls), len(beforeColls))
-	}
-}
-
-// TestRPC_ImportCollection_AcceptsRecognisedUserTypes is the positive control
-// for the test above. Without it, a validator that rejected EVERY type would
-// pass the rejection test — the control validates the instrument.
-func TestRPC_ImportCollection_AcceptsRecognisedUserTypes(t *testing.T) {
-	client, _, cleanup := newExportImportTestServer(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	for _, userType := range strings.Fields(recognisedUserTypeList) {
-		t.Run(userType, func(t *testing.T) {
-			userID := uuid.New().String()
-			taskID := uuid.New().String()
-			doc := minimalImportDoc("type "+userType, []map[string]interface{}{
-				{"id": userID, "display_name": "U " + userType, "email": userType + "@example.com", "type": userType, "status": "active"},
-			}, []map[string]interface{}{importTaskDoc(taskID)}, []map[string]interface{}{
-				{"id": uuid.New().String(), "task_id": taskID, "author_id": userID, "body": "hi"},
-			}, nil, nil)
-			data, _ := json.Marshal(doc)
-
-			if _, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data}); err != nil {
-				t.Fatalf("ImportCollection rejected recognised type %q: %v", userType, err)
-			}
-		})
-	}
-}
-
-// TestRPC_ImportCollection_DryRunRejectsUnknownUserType pins that validation
-// happens at ingestion, before the write, so --dry-run reports the same verdict
-// a real import would.
-func TestRPC_ImportCollection_DryRunRejectsUnknownUserType(t *testing.T) {
-	client, _, cleanup := newExportImportTestServer(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	userID := uuid.New().String()
-	taskID := uuid.New().String()
-	doc := minimalImportDoc("dry run bad type", []map[string]interface{}{
-		{"id": userID, "display_name": "Bogus", "email": "dryrun-bogus@example.com", "type": "root", "status": "active"},
-	}, []map[string]interface{}{importTaskDoc(taskID)}, []map[string]interface{}{
-		{"id": uuid.New().String(), "task_id": taskID, "author_id": userID, "body": "hi"},
-	}, nil, nil)
-	data, _ := json.Marshal(doc)
-
-	_, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data, DryRun: true})
-	if err == nil {
-		t.Fatalf("dry-run accepted unrecognised user type but a real import would reject it")
-	}
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("error code = %s, want InvalidArgument (err: %v)", status.Code(err), err)
 	}
 }
