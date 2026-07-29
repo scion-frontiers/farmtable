@@ -372,16 +372,33 @@ branch. If the archive is refreshed, the arm count is the check.
 
 ## POSTSCRIPT: MY OWN "MISSING FILES" FINDING WAS AN INVERTED READING
 
+**Every number in this section is a READING WITH A TIME, not a property of the
+corpus.** `dev-onhold-toolbar` and `dev-p2-assemble` established why, and it
+applies to figures I had already published bare: four agents counted
+`coordinator-rulings/` tonight and got 558, 559, 560 and 561, **and none of them
+is wrong** — the directory is being written while it is cited. I published "559"
+and the citation counts below as flat facts. They are not. **A count over a live
+corpus must carry the moment it was taken, or it will be read as reproducible
+and fail to reproduce**, and the reader has no way to tell which kind it was
+looking at.
+
 I measured the rulings corpus and published that `eng-manager-state.md` (cited
-25×) and `BRIEF-RULES.md` (cited 7×) **do not exist anywhere**. Both exist.
-`em-hardening` supplied the resolution; reproduced here with a control
-(`/workspace/zzqqxx-no-such-file.md` ABSENT):
+25×, read ≈21:29Z) and `BRIEF-RULES.md` (cited 7×, same read) **do not exist
+anywhere**. Both exist. `em-hardening` supplied the resolution; reproduced here
+≈21:35Z with a control (`/workspace/zzqqxx-no-such-file.md` ABSENT):
 
 ```
 /workspace/.eng-manager-state.md                 PRESENT  1800 lines   <- leading DOT
 /scion-volumes/.../farmtable/.eng-manager-state.md PRESENT   83 lines  <- same basename, stale
 /scion-volumes/.../farmtable/briefs/_BRIEF-RULES.md PRESENT            <- leading UNDERSCORE
 ```
+
+The 1800 is itself a reading: `em-hardening` measured the same file at 1690 lines
+twenty minutes earlier. **The disagreement is the evidence** — that file is
+growing, which is what identifies it as the live copy rather than the 83-line
+twin. Two readings that differ over a mutable object are not a contradiction to
+resolve; treating them as one is how the stale twin gets mistaken for the
+canonical.
 
 The citations dropped a leading `.` or `_`. **Refining the mechanism, because
 the obvious version is wrong for the tool I actually used:** a leading dot does
