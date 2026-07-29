@@ -312,10 +312,41 @@ func structOrNilLoggingErr(sanitized map[string]any, field string) *structpb.Str
 // lines. Everything in between is counted and reported on the next line out.
 const remoteDataLogInterval = time.Minute
 
+// remoteDataSamplerState is one field's worth of sampler state.
+type remoteDataSamplerState struct {
+	last       time.Time
+	suppressed int
+}
+
 var (
-	remoteDataLogMu         sync.Mutex
-	remoteDataLogLast       time.Time
-	remoteDataLogSuppressed int
+	remoteDataLogMu sync.Mutex
+
+	// remoteDataLogSamplers is KEYED BY FIELD, and that keying is the whole
+	// point of the map.
+	//
+	// It used to be a single package-level last/suppressed pair, with `field`
+	// as a formatting parameter only. That is a defect and not a small one:
+	// `labels` is unconditional on the passthrough task path, so
+	// "task.remote_data" drops CONTINUOUSLY the moment anybody browses a
+	// passthrough collection. With one shared limiter, a task drop inside the
+	// preceding minute silences the collection line entirely -- and the
+	// collection line is the one that matters, because collection remote_data
+	// is the input to the write-authorization gate documented in
+	// collectionToProto below. The high-frequency, low-value event was
+	// suppressing the low-frequency, high-value one, and the suppressed COUNTER
+	// was shared too, so the collection drop was not even visible as a number.
+	//
+	// It fails in the direction that hides things, and it needed a passthrough
+	// collection to be browsed within the same minute to show up, which is why
+	// no test caught it.
+	//
+	// UNBOUNDED-MAP QUESTION, ANSWERED SO NOBODY HAS TO RE-DERIVE IT: the key
+	// space is closed. `field` is only ever a string literal written in this
+	// package -- "task.remote_data" and "collection.remote_data" today -- so
+	// this map has as many entries as there are call sites, not as many as
+	// there are requests. If a caller ever passes a per-request value, that is
+	// the bug, not this map.
+	remoteDataLogSamplers = map[string]*remoteDataSamplerState{}
 
 	// remoteDataLogNow is a seam, not a design flourish: the sampler's whole
 	// behaviour is a function of elapsed time, and a test that cannot move the
@@ -325,7 +356,10 @@ var (
 )
 
 // logRemoteDataDropped reports a dropped remote_data conversion at most once per
-// remoteDataLogInterval, naming the offending keys and their Go types.
+// remoteDataLogInterval PER FIELD, naming the offending keys and their Go types.
+//
+// Per field, not per process. See remoteDataLogSamplers for why that distinction
+// is load-bearing rather than tidy.
 //
 // WHY THIS IS SAMPLED RATHER THAN LOGGED PER TASK. `labels` is unconditional on
 // the passthrough path and issueLabels returns make([]string, n), never nil, so
@@ -351,14 +385,19 @@ var (
 func logRemoteDataDropped(field string, sanitized map[string]any, err error) {
 	remoteDataLogMu.Lock()
 	now := remoteDataLogNow()
-	if !remoteDataLogLast.IsZero() && now.Sub(remoteDataLogLast) < remoteDataLogInterval {
-		remoteDataLogSuppressed++
+	st := remoteDataLogSamplers[field]
+	if st == nil {
+		st = &remoteDataSamplerState{}
+		remoteDataLogSamplers[field] = st
+	}
+	if !st.last.IsZero() && now.Sub(st.last) < remoteDataLogInterval {
+		st.suppressed++
 		remoteDataLogMu.Unlock()
 		return
 	}
-	suppressed := remoteDataLogSuppressed
-	remoteDataLogSuppressed = 0
-	remoteDataLogLast = now
+	suppressed := st.suppressed
+	st.suppressed = 0
+	st.last = now
 	remoteDataLogMu.Unlock()
 
 	keys := unrepresentableKeys(sanitized)
@@ -389,16 +428,37 @@ func unrepresentableKeys(sanitized map[string]any) []string {
 	out := make([]string, 0, len(sanitized))
 	for k, v := range sanitized {
 		if _, err := structpb.NewValue(v); err != nil {
-			out = append(out, fmt.Sprintf("%s (%T)", k, v))
+			// %q, NOT %s. These keys are attacker-authored -- they arrive from
+			// an uploaded import document or a platform API response -- and
+			// they go straight into log.Printf. An unquoted key containing a
+			// newline forges log records; one containing a terminal escape
+			// acts on whoever tails the log. Quoting also makes leading and
+			// trailing whitespace visible, which is the difference between an
+			// operator finding the key and an operator not finding it.
+			out = append(out, fmt.Sprintf("%q (%T)", k, v))
 		}
 	}
 	sort.Strings(out)
 	if len(out) == 0 {
-		// NewStruct refused the map but no individual value did. Say so rather
-		// than printing an empty list: it means the two APIs disagree, which is
-		// a real finding about structpb and not a boring empty case.
-		return []string{"<none at top level -- NewStruct refused the map but every value " +
-			"was individually representable; this should not happen>"}
+		// NewStruct refused the map but no individual VALUE did, so the fault
+		// is in a KEY. This is reachable and deterministic, not a paradox:
+		// NewStruct requires every key to be valid UTF-8 and NewValue is never
+		// asked about keys at all. map[string]any{"\xff\xfe": "ok"} lands
+		// here, with structpb reporting `invalid UTF-8 in string`.
+		//
+		// An earlier version of this message said "this should not happen",
+		// which is worse than unhelpful -- it tells the one operator who ever
+		// sees it that they have found an impossible state, when what they have
+		// actually found is a remote API or an uploaded document sending a
+		// non-UTF-8 key. Go strings do not guarantee UTF-8, so nothing upstream
+		// rejects it for us.
+		//
+		// The keys are not printed here: if one of them is invalid UTF-8, that
+		// is exactly the byte sequence that should not be pasted into a log
+		// line unescaped.
+		return []string{"<no unrepresentable VALUE at top level -- structpb.NewStruct " +
+			"refused the map, so the offending element is a KEY, most likely one that " +
+			"is not valid UTF-8; NewValue does not check keys>"}
 	}
 	return out
 }

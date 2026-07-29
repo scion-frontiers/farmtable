@@ -40,8 +40,7 @@ func captureRemoteDataLog(t *testing.T) *bytes.Buffer {
 	log.SetFlags(0)
 
 	remoteDataLogMu.Lock()
-	remoteDataLogLast = time.Time{}
-	remoteDataLogSuppressed = 0
+	remoteDataLogSamplers = map[string]*remoteDataSamplerState{}
 	remoteDataLogMu.Unlock()
 
 	prevNow := remoteDataLogNow
@@ -50,8 +49,7 @@ func captureRemoteDataLog(t *testing.T) *bytes.Buffer {
 		log.SetFlags(prevFlags)
 		remoteDataLogNow = prevNow
 		remoteDataLogMu.Lock()
-		remoteDataLogLast = time.Time{}
-		remoteDataLogSuppressed = 0
+		remoteDataLogSamplers = map[string]*remoteDataSamplerState{}
 		remoteDataLogMu.Unlock()
 	})
 	return &buf
@@ -59,8 +57,21 @@ func captureRemoteDataLog(t *testing.T) *bytes.Buffer {
 
 // withRemoteDataLogClock pins the sampler's clock so elapsed time is an input
 // rather than a race. Returns a function to advance it.
+//
+// IT REGISTERS ITS OWN RESTORE. It did not, and relied on captureRemoteDataLog's
+// t.Cleanup to put remoteDataLogNow back -- which was correct only because every
+// call site happened to call capture first. That is a precondition living in
+// another function with nothing asserting it. A future test calling only this
+// helper would leak a FROZEN CLOCK into every subsequent test in
+// internal/server, and the resulting failures would appear in unrelated tests
+// with no visible cause. Cheap to make unconditional; expensive to debug once.
+//
+// Restoring twice is harmless: the cleanups run LIFO and both restore to the
+// same value.
 func withRemoteDataLogClock(t *testing.T) func(time.Duration) {
 	t.Helper()
+	prevNow := remoteDataLogNow
+	t.Cleanup(func() { remoteDataLogNow = prevNow })
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	remoteDataLogNow = func() time.Time { return now }
 	return func(d time.Duration) { now = now.Add(d) }
@@ -189,5 +200,140 @@ func TestRemoteDataRepresentableMapLogsNothing(t *testing.T) {
 			"The log must fire on the failure path only. Logging on success would reintroduce "+
 			"the per-task volume defect on every read in the system, not just passthrough ones.",
 			n, buf.String())
+	}
+}
+
+// TestRemoteDataDropLogIsSampledPerField is the test whose ABSENCE was the bug.
+//
+// Every other test in this file passes "task.remote_data". Not one passed
+// "collection.remote_data", so `field` was exercised only as a formatting
+// parameter and the sampler's single shared limiter looked correct for three
+// rounds.
+//
+// The two fields are not interchangeable and their rates differ by orders of
+// magnitude. `labels` is unconditional on the passthrough task path, so
+// task.remote_data drops on EVERY task of EVERY page any time an authenticated
+// user browses a passthrough collection. collection.remote_data drops rarely --
+// and it is the one that matters, because collection remote_data is the sole
+// input to the write-authorization gate documented in collectionToProto.
+//
+// With one shared limiter the noisy field silences the important one, and the
+// shared suppressed counter meant the collection drop did not even register as
+// a number. THE FAILURE IS SILENT AND IT IS IN THE DIRECTION OF HIDING THINGS.
+func TestRemoteDataDropLogIsSampledPerField(t *testing.T) {
+	buf := captureRemoteDataLog(t)
+	advance := withRemoteDataLogClock(t)
+
+	bad := map[string]any{"labels": []string{"bug"}}
+
+	// A page of passthrough tasks: one line out, the rest counted.
+	const page = 50
+	for range page {
+		structOrNilLoggingErr(bad, "task.remote_data")
+	}
+	if n := countLines(buf); n != 1 {
+		t.Fatalf("setup: a %d-task page produced %d lines, want 1; the task-side sampler is "+
+			"not behaving, so the cross-field assertion below would be measuring nothing",
+			page, n)
+	}
+
+	// THE ASSERTION. Well inside the interval, so a process-wide limiter is
+	// still holding it shut. A per-field limiter has never seen this field.
+	advance(time.Second)
+	structOrNilLoggingErr(bad, "collection.remote_data")
+
+	out := buf.String()
+	if !strings.Contains(out, "collection.remote_data") {
+		t.Fatalf("A COLLECTION remote_data DROP WAS SWALLOWED by task-side traffic %v earlier.\n"+
+			"The sampler is keyed per process rather than per field, so the highest-volume "+
+			"field in the system silences the one that gates write authorization. Browsing a "+
+			"passthrough collection is enough to keep task.remote_data dropping continuously, "+
+			"which means this line can be suppressed indefinitely and nothing reports it.\n"+
+			"Do not fix this by shortening the interval; key the limiter by field.\ngot: %s",
+			time.Second, out)
+	}
+	if n := countLines(buf); n != 2 {
+		t.Errorf("want exactly 2 lines (one task, one collection), got %d.\ngot: %s", n, out)
+	}
+
+	// The counters must be separate too, not just the timers. The collection
+	// line is this field's FIRST, so it has nothing to report as suppressed;
+	// if it inherits the task field's 49 it is lying about a field it has
+	// never seen.
+	last := out[strings.LastIndex(strings.TrimRight(out, "\n"), "\n")+1:]
+	if strings.Contains(last, "suppressed") {
+		t.Errorf("the first collection line reports suppressed drops it did not have. The "+
+			"COUNTER is still shared even if the timer is not, so the volume number now "+
+			"attributes one field's traffic to another.\ngot: %s", last)
+	}
+}
+
+// TestRemoteDataUnrepresentableKeyIsNotAParadox covers the branch whose message
+// used to say "this should not happen".
+//
+// It happens. structpb.NewStruct requires every KEY to be valid UTF-8;
+// NewValue is never asked about keys. So a map whose every value is
+// representable and whose key is not lands in that branch deterministically.
+// Go strings carry no UTF-8 guarantee, so a remote API or an uploaded document
+// can produce one and nothing upstream rejects it.
+//
+// A message telling an operator they have hit an impossible state, when they
+// have hit a non-UTF-8 key, sends them to the wrong place entirely.
+func TestRemoteDataUnrepresentableKeyIsNotAParadox(t *testing.T) {
+	buf := captureRemoteDataLog(t)
+	withRemoteDataLogClock(t)
+
+	got := structOrNilLoggingErr(map[string]any{
+		string([]byte{0xff, 0xfe}): "a perfectly representable string",
+	}, "collection.remote_data")
+
+	if got != nil {
+		t.Fatal("structpb accepted a map with an invalid-UTF-8 key; the premise of this test " +
+			"no longer holds and the branch it covers may now be unreachable")
+	}
+
+	out := buf.String()
+	if strings.Contains(out, "should not happen") {
+		t.Errorf("the drop message still calls this state impossible. It is reachable and "+
+			"deterministic -- an invalid-UTF-8 KEY -- and telling the operator otherwise "+
+			"costs them the one clue in the line.\ngot: %s", out)
+	}
+	if !strings.Contains(out, "KEY") {
+		t.Errorf("the message does not tell the operator the fault is in a key rather than a "+
+			"value. unrepresentableKeys found no offending value, which is precisely the "+
+			"signal that the key is at fault; saying so is the entire content of this "+
+			"branch.\ngot: %s", out)
+	}
+}
+
+// TestRemoteDataLogQuotesAttackerKeys covers the %q.
+//
+// Keys reach log.Printf from uploaded import documents and platform API
+// responses. A key containing a newline FORGES LOG RECORDS in any line-oriented
+// pipeline; one containing a terminal escape acts on whoever tails the file.
+func TestRemoteDataLogQuotesAttackerKeys(t *testing.T) {
+	buf := captureRemoteDataLog(t)
+	withRemoteDataLogClock(t)
+
+	structOrNilLoggingErr(map[string]any{
+		"evil\nkey": []string{"unrepresentable, so this key gets reported"},
+	}, "collection.remote_data")
+
+	out := buf.String()
+	if out == "" {
+		t.Fatal("nothing logged; this test is measuring nothing")
+	}
+	if strings.Contains(out, "evil\nkey") {
+		t.Errorf("the key was interpolated RAW and its newline is now a record separator: "+
+			"everything after it reads as a separate log entry that no code in this "+
+			"repository wrote. Use %%q.\ngot: %s", out)
+	}
+	if !strings.Contains(out, `"evil\nkey"`) {
+		t.Errorf("the key is neither raw nor quoted-and-escaped, so it is unclear what the "+
+			"formatting is doing.\ngot: %s", out)
+	}
+	if n := countLines(buf); n != 1 {
+		t.Errorf("one drop produced %d log lines. A single drop must be a single record, or "+
+			"the newline in the key has split it.\ngot: %s", n, out)
 	}
 }
