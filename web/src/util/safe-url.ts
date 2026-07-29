@@ -38,8 +38,35 @@
  * testSharedFixturesMatchClientColumn() in safe-url.test.ts and
  * TestValidateURLFieldMatchesSharedFixtures in
  * internal/server/urlvalidate_differential_test.go, so neither side can drift
- * without going red. All 13 are http(s)-resolving or inert, so none is a scheme
- * escalation; they are broken-link and inconsistency bugs, not XSS.
+ * without going red.
+ *
+ * THE SECURITY READING OF THOSE 13 IS TWO READINGS, BECAUSE THE TWO DIRECTIONS
+ * HAVE DIFFERENT HARMS. What IS uniform: all 13 are http(s)-resolving or inert,
+ * so none is a scheme escalation, and none is XSS. Nothing else is uniform, and
+ * an earlier version of this comment wrote one verdict over all thirteen --
+ * "they are broken-link and inconsistency bugs, not XSS" -- twelve lines above
+ * the clause that exists because four of them are not.
+ *
+ *  - SEVEN rows where the CLIENT is the more permissive (backslash host
+ *    confusion, single-slash host, opaque no-slash, a bare space in the path, a
+ *    trailing newline, a bad percent escape, an empty host with a path). These
+ *    ARE the broken-link and inconsistency class: each resolves to an
+ *    attacker-chosen HOST, which is already reachable through a plainly accepted
+ *    https://evil.com/, and not to an attacker-chosen SCHEME.
+ *
+ *  - SIX rows where the SERVER is the more permissive, and FOUR of those are why
+ *    the clause below exists. Three are DESTINATION CONFUSION --
+ *    https://github.com@evil.example/, https://ok.example@evil.example/ and
+ *    https://:pass@evil.example/ each read as one host and load another. The
+ *    fourth, https://user:pass@example.com/x, loads the host it NAMES and so is
+ *    not destination confusion at all; its harm is handing credentials to that
+ *    host on click. Phishing and credential disclosure, not broken links. The
+ *    remaining two of the six (the empty string, and a port out of range) throw
+ *    at new URL() and are inert.
+ *
+ * Directions re-derived from the fixture columns rather than inferred from the
+ * cardinal: 45 cases, 13 divergent, 7 client-accept/server-reject, 6
+ * server-accept/client-reject.
  */
 export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
 
