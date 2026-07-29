@@ -33,12 +33,12 @@
  * rules this function does not replicate (a control-character pre-check, Go's
  * stricter url.Parse, and a non-empty Host requirement), and the server is not
  * the only writer, so "unreachable" does not follow even where it rejects.
- * Measured: 9 of 42 shared fixtures are decided differently. They are pinned in
+ * Measured: 13 of 45 shared fixtures are decided differently. They are pinned in
  * testdata/url-scheme-cases.json, which is read by BOTH
  * testSharedFixturesMatchClientColumn() in safe-url.test.ts and
  * TestValidateURLFieldMatchesSharedFixtures in
  * internal/server/urlvalidate_differential_test.go, so neither side can drift
- * without going red. All 9 are http(s)-resolving, so none is a scheme
+ * without going red. All 13 are http(s)-resolving or inert, so none is a scheme
  * escalation; they are broken-link and inconsistency bugs, not XSS.
  */
 export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
@@ -96,6 +96,20 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   } catch {
     return undefined;
   }
+
+  // DESTINATION CONFUSION, not scheme escalation. `https://github.com@evil.example/`
+  // parses as userinfo 'github.com' on host 'evil.example': it READS as github.com
+  // and LOADS evil.example. The scheme is https and the host is non-empty, so
+  // neither the allow-list below nor the hostname guard refuses it, and both call
+  // sites render STATIC link text -- nothing on screen contradicts the misreading.
+  //
+  // No legitimate value reaching these bindings carries credentials: a task
+  // remoteUrl and a pull-request URL are both http(s) repository locations, and
+  // the GitHub adapter only ever writes a bare https origin. A `user:pass@` form
+  // would additionally LEAK those credentials to the target host on click.
+  //
+  // Returns `undefined`, matching this function's existing contract -- not null.
+  if (parsed.username || parsed.password) return undefined;
 
   // `new URL()` lowercases the scheme, so no extra case folding is needed;
   // 'JaVaScRiPt:alert(1)' parses with protocol === 'javascript:'.
