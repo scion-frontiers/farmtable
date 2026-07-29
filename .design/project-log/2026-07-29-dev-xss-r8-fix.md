@@ -11,8 +11,17 @@ Commits: `d739c06`, `253ab14`, `3961f30`, `6a0b8bd`, `af9ea8c`, `5e8b826`,
 > SHA in changes the tree, which changes the SHA. The fixpoint is real and no
 > amend closes it.
 
-Verdict: **five items closed, F1 VERIFIED, two conditions open and routed.**
-Not pushed.
+Verdict: **five items closed, F1 TYPECHECK-VERIFIED, two conditions open and
+routed.** Not pushed.
+
+> **AMENDED IN r9 (test finding F11).** This line and the one under "Three
+> things a later leg should know" both read "F1 VERIFIED" when written. The
+> word was too strong for the instrument: what was run was `tsc`, and a
+> typechecker cannot observe a behavioural change. The two words are corrected
+> in place rather than annotated-only because an unqualified "VERIFIED" is the
+> kind of claim a later leg reads once and does not re-derive; the correction
+> has to be where the claim was. What the amendment does *not* do is weaken the
+> r8 result — see the amendment note in that section for what r9 measured.
 
 ---
 
@@ -52,12 +61,45 @@ prose to be relied on, so its accuracy is the control.
 
 ## Three things a later leg should know
 
-**F1 IS VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**
-A build token was granted after the commits above landed. `npx tsc --noEmit` is
-green, `--listFiles` proves `ft-app.ts` was actually loaded, and a deliberate
-type error planted on the exact changed line drives tsc RED naming that line --
-restored from an out-of-repo backup and re-confirmed green by hash. `npm test`
-is green too, 4 files, 380 assertions.
+**F1 IS TYPECHECK-VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE
+OBVIOUS ONE.** A build token was granted after the commits above landed. `npx
+tsc --noEmit` is green, `--listFiles` proves `ft-app.ts` was actually loaded,
+and a deliberate type error planted on the exact changed line drives tsc RED
+naming that line -- restored from an out-of-repo backup and re-confirmed green
+by hash. `npm test` is green too, 4 files, 380 assertions.
+
+> **AMENDED IN r9 (test finding F11): the word was "VERIFIED" and the
+> instrument was a typechecker.** Everything in the paragraph above is a
+> measurement of *types*, and a type error planted on a line proves that tsc
+> reads the line -- not that the line does anything. The r8 round's own next
+> paragraph says as much about `npm test`; the same scepticism was owed to
+> `tsc`. Nothing in r8 observed the F1 behaviour change fail when reverted,
+> because at r8 no test could reach `isCollectionWritable` at all: it was a
+> private method on `FtApp`.
+>
+> **r9 closed that gap and the claim can now be made on stronger evidence.**
+> `isCollectionWritable` was lifted into `web/src/capabilities.ts` and exported,
+> and `web/src/capabilities.test.ts` pins it. Reverting the three lines of
+> `af9ea8c` drives that file RED, observed over three interleaved
+> reverted/fixed pairs in a throwaway clone outside `/workspace`:
+>
+> ```
+> Error: af9ea8c GUARD BREACHED: platform UNSPECIFIED with an explicit writable
+> flag is treated as WRITABLE. ... (got true, want false)
+> FAIL: 1 of 5 test file(s) failed:
+>   src/capabilities.test.ts (exit 1)
+> ```
+>
+> Reverted arm EXIT=1 in 3 of 3 pairs; fixed arm `PASS: 5 test file(s), 483
+> assertions.` EXIT=0 in 3 of 3. No pair disagreed. Every individual run is in
+> `reports/dev-xss-r9-fix.md`.
+>
+> One detail from the paragraph below survives r9 intact and should not be
+> misread as fixed: `tsc -p tsconfig.test.json --noEmit --listFiles | grep -c
+> ft-app.ts` still returns **0**. The test suite reaches the predicate through
+> `capabilities.ts`, which the test config now does load. `ft-app.ts` is
+> reached only as *text*, read from disk by §3 of the new test file -- which is
+> why that arm is a source assertion and not an import.
 
 **But `npm test` could never have verified F1, and a later leg needs to know
 why.** `tsconfig.test.json` sets `include: ["src/**/*.test.ts"]`. TypeScript
@@ -74,6 +116,15 @@ assert a gRPC code and never name the security property. Two review rounds have
 polished the prose describing a gate whose browser half no test touches, and F1
 landed in that half. One named test per conjunct is the obvious next move; it was
 not done here because the brief bounds this round to five items.
+
+> **AMENDED IN r9: the browser half is now pinned; conjunct A's is not.** This
+> paragraph is annotated rather than left standing because r9 is the round that
+> falsified half of it. `web/src/capabilities.test.ts` now covers both
+> `getCapabilities` and `isCollectionWritable` and pins their agreement across
+> the platform enum, so "zero test coverage -- no test file references either"
+> is no longer true of the web half. The rest of the paragraph stands verbatim:
+> conjunct A's rejection is still pinned only by four unnamed lines inside
+> `TestRPC_ImportExportCollection_Errors`, and no r9 item touched them.
 
 **GREP IS NOT AN ORACLE, AND IT COST FOUR ERRORS IN ONE SMALL ROUND.** Item 3
 cannot be verified by `grep -c 'two producers'` — a prohibition must quote what
