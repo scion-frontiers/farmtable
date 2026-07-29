@@ -106,6 +106,12 @@ beforeEach(() => {
 
 afterEach(() => {
   window.history.replaceState({}, '', '/');
+  // The XSS-probe payload in the "renders as text" test writes `__xss` onto
+  // globalThis if it ever executes. It does not today, so this delete is a
+  // no-op — but the day it stops being a no-op is the day the key would
+  // otherwise persist and make every LATER test in this file read as if it
+  // had been attacked too. Clean it here so that failure stays local.
+  delete (globalThis as Record<string, unknown>).__xss;
 });
 
 describe('ft-app — a view refusal reaches the user as a toast', () => {
@@ -355,6 +361,15 @@ describe('ft-app — the four write-error reasons are each surfaced', () => {
     // ...it must be visible to the user verbatim...
     expect(toastText()).toContain(hostile);
     // ...and nothing in it may have executed.
+    //
+    // NOT COVERAGE — this assertion cannot fail under jsdom, which does not
+    // load subresources, so `onerror` never fires whether the sink is safe or
+    // not. It is kept as a statement of the attack being defended against,
+    // which the two assertions above are what actually detect (verified by
+    // mutation: createTextNode -> insertAdjacentHTML kills this test via those
+    // two, never via this line). Do not count it when assessing coverage, and
+    // do not let it stand in for a real execution check — proving non-execution
+    // needs a browser runner, not jsdom.
     expect((globalThis as Record<string, unknown>).__xss).toBeUndefined();
   });
 });

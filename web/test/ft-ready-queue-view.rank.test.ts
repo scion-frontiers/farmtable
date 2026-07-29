@@ -217,8 +217,17 @@ describe('ft-ready-queue-view — server rejection', () => {
     await flush();
     await settle(view);
 
-    // Premise: the band has usable ranks, so `ranksForMove` takes the
-    // single-write path and no earlier write can have landed.
+    // Premise, stated at its real strength: one call reached the client before
+    // it threw, so no EARLIER write can have landed — which is the only thing
+    // the outcome assertion below depends on.
+    //
+    // It does NOT prove `ranksForMove` planned a single write. `rejectUpdateWith`
+    // throws on call one, so the production loop aborts there and this would
+    // still read 1 if three writes had been planned. Proving the planned count
+    // needs a run that does not fail, since the truncation is in the loop and
+    // no client-side helper can observe past it. The multi-write direction is
+    // pinned by the sibling "attaches" test above, which fails the SECOND write
+    // and so can legitimately assert `.toBeGreaterThan(1)`.
     expect(client.updateTaskCalls).toHaveLength(1);
 
     expect(feedback.writeErrors, feedback.describe()).toHaveLength(1);

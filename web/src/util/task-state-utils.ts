@@ -276,10 +276,11 @@ export function rankBand(
 /**
  * The words for "this task is stranded behind an abandoned prerequisite".
  *
- * One phrase, four places: the card badge, the Availability filter option, the
- * active-filter chip, and the dashboard tile. They have to agree — a user who
- * sees "Needs attention" on a card has to be able to find the control that
- * lists every other card wearing it, and a second wording would hide the link.
+ * One phrase, five places: the card badge, the Availability filter option, the
+ * active-filter chip, the dashboard tile, and the inspector's attention callout
+ * (`calloutTitle` below). They have to agree — a user who sees "Needs attention"
+ * on a card has to be able to find the control that lists every other card
+ * wearing it, and a second wording would hide the link.
  *
  * `label` alone cannot say *why*, and the why is the whole point: contract §11
  * states that `cancelled` and `wont_fix` do not automatically unblock
