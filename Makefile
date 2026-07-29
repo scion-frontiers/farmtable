@@ -1,23 +1,70 @@
-.PHONY: generate build test lint web web-dev dashboard decomposer
+.PHONY: generate build test test-go test-web test-changed suite-manifest lint web web-deps web-dev dashboard decomposer
+
+# Marker file that `npm ci` writes. Using it as a real make target keeps
+# dependency installation incremental: it re-runs only when the lockfile or the
+# manifest actually changes, instead of on every build and every test run.
+WEB_DEPS := web/node_modules/.package-lock.json
 
 generate:
 	buf generate
 
-build: generate
+# `build` deliberately does NOT depend on `generate`.
+#
+# The generated protobuf code (api/farmtable/v1/*.pb.go) is committed, so
+# compiling does not need the generator. Requiring it would make every build
+# depend on the buf CLI plus protoc-gen-go and protoc-gen-go-grpc, whose
+# versions are pinned nowhere in this repo (there is no tools.go and no go.mod
+# tool directive). Run `make generate` explicitly when the .proto files change.
+#
+# `build` DOES depend on `web`: assets.go embeds `all:web/dist`, and web/dist is
+# gitignored, so on a fresh clone that directory does not exist and the embed
+# fails to compile. Producing the assets first is what makes a fresh clone
+# buildable.
+build: web
 	go build ./...
 
-test:
+$(WEB_DEPS): web/package-lock.json web/package.json
+	cd web && npm ci
+	@touch $(WEB_DEPS)
+
+web-deps: $(WEB_DEPS)
+
+web: web-deps
+	cd web && npm run build
+
+web-dev: web-deps
+	cd web && npm run dev
+
+# `test` must fail if EITHER suite fails.
+#
+# These are prerequisites rather than chained shell commands on purpose: make
+# stops at the first failing prerequisite, so a Go failure can never be masked
+# by a later command's exit status. Do not collapse this into a single recipe.
+test: test-go test-web
+
+test-go:
 	go test ./...
+
+test-web: web-deps
+	cd web && npm test
+
+# Run only the tests affected by the current change. Works from a dirty tree.
+# scripts/test-changed.sh documents exactly what this does and does not cover;
+# it is a development convenience, not a substitute for `make test`.
+#   make test-changed                 compare against origin/main
+#   BASE=HEAD~3 make test-changed     compare against something else
+#   LIST_ONLY=1 make test-changed     print the plan, run nothing
+test-changed:
+	./scripts/test-changed.sh
+
+# Report, by name, which JS/TS test files `npm test` actually executes, and fail
+# if a test file exists that nothing runs.
+suite-manifest:
+	node scripts/ci-suite-manifest.mjs
 
 lint:
 	buf lint proto
 	go vet ./...
-
-web:
-	cd web && npm ci && npm run build
-
-web-dev:
-	cd web && npm run dev
 
 dashboard: web
 	go build -o bin/ft ./cmd/ft
