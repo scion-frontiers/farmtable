@@ -193,12 +193,24 @@ var webRemoteDataConsumers = []declaredConsumer{
 		text:  "// STYLE CHOICE. Import copies an uploaded document's collection remoteData",
 		count: 1,
 		reason: "Security annotation on getCapabilities, added in r7 as conjunct B of the " +
-			"pair that holds the import path inert; its counterpart is " +
-			"internal/server/export_import.go:306. NOT a consumer -- the read it " +
+			"pair that holds the import path inert; its counterpart is the " +
+			"\"SECURITY CONTROL, CONJUNCT A OF TWO\" comment in ImportCollection, in " +
+			"internal/server/export_import.go. NOT a consumer -- the read it " +
 			"describes is the declared one above. Declared rather than reworded to " +
 			"avoid the identifier: writing prose that dodges this guard in order to " +
 			"describe this guard's subject is the worst available option, and the one " +
 			"line of allowlist is the honest cost.",
+	},
+	{
+		file:  "src/capabilities.ts",
+		text:  "// remote_data map containing writable=true, TOGETHER, IN ONE OBJECT. No",
+		count: 1,
+		reason: "Security annotation on getCapabilities, added in r8. States the GATE " +
+			"INVARIANT as a conjunction (platform GITHUB *and* writable=true in one " +
+			"object) in place of the r7 text that asserted a producer COUNT, which was " +
+			"both wrong and unguarded. NOT a consumer -- the read it describes is the " +
+			"declared one above. Declared rather than reworded, on the same reasoning " +
+			"as the entry above it.",
 	},
 
 	// ---- GENERATED TRANSPORT CODE. Listed line by line rather than excluded by
@@ -482,6 +494,16 @@ func TestWebRemoteDataCensusIsNonVacuous(t *testing.T) {
 // guard cannot fail in that direction by construction -- so the reach has to be
 // asserted separately, here.
 //
+// SCOPE, AND IT IS NARROWER THAN THIS COMMENT USED TO IMPLY. What this test
+// catches is a TOP-LEVEL widening of skipDirs that swallows shipped source. It
+// does NOT catch the basename-pruning defect described above, because it reads
+// the real web/ tree, and in the real tree the two pruning policies select the
+// same set -- no directory at depth >= 1 carries a skipDirs basename, so there
+// is nothing here for them to disagree about. That was measured: under the
+// basename mutation this test stays green. TestWebCensusAnchoringIsTopLevelOnly
+// is the regression guard for basename pruning; it uses a fixture root
+// precisely because the real tree cannot discriminate.
+//
 // This is deliberately an assertion about DIRECTORIES DESCENDED INTO rather
 // than about files or mentions, because that is the thing skipDirs changes. Any
 // future widening of skipDirs that swallows shipped source fails this test by
@@ -507,9 +529,10 @@ func TestWebCensusDescendsIntoShippedSource(t *testing.T) {
 				"That directory is compiled by tsconfig.json and shipped. A consumer added "+
 				"there is invisible to the census AND to both arms of "+
 				"TestWebRemoteDataConsumersAreDeclared, which fail silent on a file the walk "+
-				"never opens. Check skipDirs: it is anchored to TOP-LEVEL entries under web/ "+
-				"on purpose, and a basename match here is the exact defect this test exists "+
-				"to catch.", d)
+				"never opens. Check skipDirs: the likely cause is a new TOP-LEVEL entry that "+
+				"swallows shipped source. THIS TEST DOES NOT CATCH BASENAME PRUNING -- see "+
+				"TestWebCensusAnchoringIsTopLevelOnly, which does, and which is the "+
+				"regression guard for that defect.", d)
 		}
 	}
 
@@ -520,5 +543,127 @@ func TestWebCensusDescendsIntoShippedSource(t *testing.T) {
 	}
 	if descended["dist"] {
 		t.Error("the census descended into web/dist; the top-level prune is not working")
+	}
+}
+
+// TestWebCensusAnchoringIsTopLevelOnly is the REGRESSION GUARD for the
+// basename-pruning defect. It is the test that goes red when the anchoring is
+// reverted, and it exists because nothing else did.
+//
+// WHY THE TEST ABOVE CANNOT DO THIS JOB, WHICH IS THE WHOLE POINT.
+// TestWebCensusDescendsIntoShippedSource asserts against the REAL web/ tree,
+// and in the real tree no directory at depth >= 1 carries a skipDirs basename.
+// So `skipDirs[rel]` and `skipDirs[d.Name()]` prune exactly the same set here,
+// the two policies are observationally identical to any assertion that only
+// inspects the real tree, and the whole behavioural content of the fix could be
+// reverted with the package staying green. That was measured, not reasoned:
+// mutating the guard to the basename form left all three tests passing, and a
+// live undeclared consumer planted in web/src/util/dist/ was invisible to all
+// of them.
+//
+// The fix is to stop asking the real tree a question it cannot answer. The
+// census already takes a root, so this test hands it a FIXTURE that does
+// contain the shape the real tree happens not to have: directories at depth
+// >= 1 whose basenames are in skipDirs. Under top-level anchoring the census
+// must descend into them; under basename matching it must not. The two policies
+// are now distinguishable, and the assertion is on the distinguishing case.
+//
+// This is deliberately NOT driven off skipDirs itself. If it iterated the map,
+// emptying skipDirs would empty the test too and both would pass.
+func TestWebCensusAnchoringIsTopLevelOnly(t *testing.T) {
+	root := t.TempDir()
+
+	// Consumer text is the real shape, so this fixture stays representative if
+	// remoteDataIdentifiers is ever narrowed.
+	const consumer = "const rd = coll.remoteData;\n"
+
+	// Depth >= 1 directories whose BASENAME is in skipDirs. Every one of these
+	// is compiled by web/tsconfig.json ("include": ["src"]) in the real tree and
+	// therefore ships. These are the three directories that actually hid
+	// planted consumers while the guard was green.
+	nested := []string{
+		"src/build/hidden.ts",
+		"src/util/dist/hidden.ts",
+		"src/components/coverage/hidden.ts",
+	}
+	// TOP-LEVEL directories in skipDirs. These must stay pruned; a test that
+	// only proved reach could be passed by deleting skipDirs entirely.
+	pruned := []string{
+		"dist/bundle.js",
+		"node_modules/pkg/index.ts",
+	}
+	// An ordinary source file, so the census never has to survive on the
+	// fixture's odd directories alone.
+	plain := "src/app.ts"
+
+	write := func(rel string) {
+		t.Helper()
+		full := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("creating fixture dir for %s: %v", rel, err)
+		}
+		if err := os.WriteFile(full, []byte(consumer), 0o644); err != nil {
+			t.Fatalf("writing fixture file %s: %v", rel, err)
+		}
+	}
+	for _, rel := range nested {
+		write(rel)
+	}
+	for _, rel := range pruned {
+		write(rel)
+	}
+	write(plain)
+
+	found, descended := censusRemoteDataMentions(t, root)
+
+	seen := map[string]bool{}
+	for _, m := range found {
+		seen[m.file] = true
+	}
+
+	// PROOF THE FIXTURE IS LIVE. If the census cannot see an ordinary file in
+	// this fixture, every "not found" below is meaningless and the negative
+	// assertions would pass for the wrong reason.
+	if !seen[plain] {
+		t.Fatalf("the census did not find %s in the fixture at %s.\n"+
+			"The fixture is not being read at all, so nothing else this test "+
+			"asserts means anything. Fix the fixture before reading the "+
+			"results below.", plain, root)
+	}
+
+	// THE REGRESSION ARM. Reverting the anchoring to skipDirs[d.Name()] fails
+	// every one of these.
+	for _, rel := range nested {
+		if !seen[rel] {
+			t.Errorf("the census did NOT find the consumer in %s.\n"+
+				"That directory sits at depth >= 1 and its basename is in skipDirs, so this "+
+				"is the basename-pruning defect: skipDirs is being matched against the "+
+				"directory NAME instead of against the path relative to the root. In the real "+
+				"tree that silently hides web/src/build, web/src/util/dist and "+
+				"web/src/components/coverage, all of which are compiled by tsconfig.json and "+
+				"SHIPPED. A consumer there is invisible to both arms of "+
+				"TestWebRemoteDataConsumersAreDeclared, which cannot fail on a file the walk "+
+				"never opens. Anchor the match to the path relative to the root.", rel)
+		}
+		dir := filepath.ToSlash(filepath.Dir(rel))
+		if !descended[dir] {
+			t.Errorf("the census did NOT descend into %s; same defect as above, "+
+				"observed on the descent set rather than on the mentions.", dir)
+		}
+	}
+
+	// THE PRUNE ARM. Top-level skips must still work, or "reach" was bought by
+	// disabling the filter rather than by anchoring it.
+	for _, rel := range pruned {
+		if seen[rel] {
+			t.Errorf("the census DID find %s, which is under a top-level skipDirs entry.\n"+
+				"The top-level prune is not working. Reach into nested directories must come "+
+				"from anchoring the match, not from dropping the filter.", rel)
+		}
+	}
+	if descended["dist"] || descended["node_modules"] {
+		t.Errorf("the census descended into a top-level pruned directory "+
+			"(dist=%v node_modules=%v); the prune is not working",
+			descended["dist"], descended["node_modules"])
 	}
 }
