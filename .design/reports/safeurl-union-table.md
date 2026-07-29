@@ -50,23 +50,77 @@ side checks any more, and it would go green while doing so.
 
 ## THE THREE INTEGERS
 
-| Count | Value |
+> **LABEL REPAIR, 2026-07-29T15:27Z — struck in place, not deleted.** The table
+> immediately below labelled its figures **ROWS**. That noun was wrong: 49 and 45
+> are **DISTINCT-INPUT** counts. Every figure was numerically correct and the
+> arithmetic downstream is untouched — this was a verified quantity joined to the
+> wrong unit, which is the failure mode that cannot go red. Correction carried in
+> the commit bearing this note, on top of **c623332** (which carries the struck
+> IPv6 presentation row) and **1713ce8**.
+>
+> **Provenance correction, same timestamp.** The coordinator's acknowledgement
+> credited the earlier IPv6 double-count repair to commit **9f81b8f**. That object
+> does not exist — `git cat-file -t 9f81b8f` returns `fatal: Not a valid object
+> name 9f81b8f`, exit 128. It was a forward-reference I drafted before the commit
+> existed and then withdrew; it must not enter the record. The real SHAs are
+> **c623332** and **1713ce8**.
+
+| ~~Count~~ | ~~Value~~ |
 |---|---|
-| **Rows on MAIN side** | **49** |
-| **Rows on BRANCH side** | **45** |
-| **Rows in UNION** | **82** |
+| ~~**Rows on MAIN side**~~ | ~~**49**~~ |
+| ~~**Rows on BRANCH side**~~ | ~~**45**~~ |
+| ~~**Rows in UNION**~~ | ~~**82**~~ |
 
-MAIN's 49 = 35 asserted inline in blob c3e1b5c + 14 rows contributed only by
-fixture blob 4a54328 (the other 28 fixture cases restate inline rows).
+**Restated with the unit named in every line:**
 
-Union arithmetic: 49 + 45 = 94 gross; 12 (input, verdict) pairs are asserted
-**identically** by both sides and dedupe away; 94 − 12 = **82**.
+| Side | Distinct inputs | Rows (assertion occurrences) |
+|---|---|---|
+| **MAIN** | **49 distinct inputs** | **78 rows** |
+| **BRANCH** | **45 distinct inputs** | **45 rows** (no input asserted twice — machine-verified, zero duplicates) |
+| **UNION** | **81 distinct inputs** | **82 rows** |
+
+MAIN's **78 rows** decompose across its two harnesses:
+- Tier A, inline in test blob c3e1b5c: **36 rows over 35 distinct inputs** (the
+  extra row is `javascript://evil.com/%0aalert(1)`, asserted once in the rejection
+  array and again in `testHostGuardIsAFailClosedBackstop`).
+- Tier B, fixture blob 4a54328: **42 rows over 42 distinct inputs**.
+- 36 + 42 = **78 rows**; the two tiers overlap on 28 inputs, so 35 ∪ 42 = **49
+  distinct inputs**.
+
+MAIN's **49 distinct inputs** = **35 distinct inputs** asserted inline in blob
+c3e1b5c + **14 distinct inputs** contributed only by fixture blob 4a54328.
+
+### The three units in play, stated so they cannot be conflated
+
+The repair above introduces a second sense of "row", so all three units are
+defined here explicitly. **78 and 82 are NOT on the same basis and must not be
+compared.**
+
+1. **Distinct inputs** — unique input strings. MAIN **49**, BRANCH **45**, union
+   **81**.
+2. **Rows as assertion occurrences** — every assertion site, counting an input
+   asserted in two harnesses twice. MAIN **78**, BRANCH **45**. There is no
+   meaningful union figure on this basis and none is quoted.
+3. **Rows as distinct (input, expected verdict) pairs** — the original strict
+   definition. MAIN **49 pairs**, BRANCH **45 pairs**, union **82 pairs**. MAIN's
+   pair count equals its distinct-input count because MAIN never asserts one
+   input with two different verdicts; the same holds for BRANCH.
+
+**The union figure of 82 is unit 3, not unit 2.** A reader who sets MAIN's 78
+against the union's 82 would conclude BRANCH added four rows. It added
+**32 distinct inputs** MAIN never asserts, and **33 rows** on basis 3.
+
+Union arithmetic, all on basis 3: 49 pairs + 45 pairs = 94 gross pairs; **12
+(input, verdict) pairs** are asserted **identically** by both sides and dedupe
+away; 94 − 12 = **82 pairs**, resolving to **81 distinct inputs**.
 
 `http://[::1]/x` is asserted by both sides but with **opposite** verdicts, so it
-is two distinct rows, not one, and is deliberately NOT deduplicated.
+is **two pairs over one distinct input**, and is deliberately NOT deduplicated —
+deduplicating it would make the table self-consistent and destroy the finding.
 
-**The union (82) does not equal the MAIN count (49).** BRANCH contributes 33 rows
-that MAIN never exercises. The "branch contributed nothing" alarm does not fire.
+**The union (81 distinct inputs) does not equal the MAIN count (49 distinct
+inputs).** BRANCH contributes **32 distinct inputs** MAIN never exercises (33
+rows on basis 3). The "branch contributed nothing" alarm does not fire.
 
 ### Rows excluded, and why
 
@@ -236,7 +290,7 @@ Per the CI-track addendum: a count cannot tell a leak from growth, so each
 integer below is reconstructible from the line numbers that produced it. These
 lists were extracted mechanically from the published table above, not retyped.
 
-**MAIN = 49** — every line whose MAIN column is not `—`:
+**MAIN = 49 DISTINCT INPUTS** (78 rows as assertion occurrences) — every line whose MAIN column is not `—`:
 
 ```
 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 14,
@@ -244,11 +298,11 @@ lists were extracted mechanically from the published table above, not retyped.
 28, 30, 31, 32, 34, 35, 37, 39, 40, 41,
 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57
 ```
-Of these, 14 are contributed only by fixture blob 4a54328 and appear nowhere in
+Of these, 14 distinct inputs are contributed only by fixture blob 4a54328 and appear nowhere in
 test blob c3e1b5c itself: lines 13, 39, 40, 41, 48, 49, 50, 51, 52, 53, 54, 55,
-56, 57. The remaining 35 are asserted inline in c3e1b5c.
+56, 57. The remaining 35 distinct inputs are asserted inline in c3e1b5c, across 36 assertion occurrences.
 
-**BRANCH = 45** — every line whose BRANCH column is not `—`:
+**BRANCH = 45 DISTINCT INPUTS** (45 rows; no input asserted twice) — every line whose BRANCH column is not `—`:
 
 ```
 1, 4, 5, 6, 7, 9, 10,
@@ -260,9 +314,9 @@ test blob c3e1b5c itself: lines 13, 39, 40, 41, 48, 49, 50, 51, 52, 53, 54, 55,
 72, 73, 74, 75, 76,
 77, 78, 79, 80, 81
 ```
-All 45 are asserted inline in test blob a9e49ff; BRANCH has no external fixture.
+All 45 distinct inputs are asserted inline in test blob a9e49ff, one assertion each; BRANCH has no external fixture.
 
-**Deduplicated = 12** — lines asserted by BOTH sides with the SAME verdict:
+**Deduplicated = 12 (input, verdict) PAIRS** — lines asserted by BOTH sides with the SAME verdict:
 
 ```
 1, 5, 6, 7, 10, 15, 18, 21, 28, 30, 31, 34
@@ -270,10 +324,10 @@ All 45 are asserted inline in test blob a9e49ff; BRANCH has no external fixture.
 All twelve are `R`/`R`. Line 50 is the thirteenth both-sides line but is
 `A`/`R` — contradictory, so it stays as two rows and is excluded from this list.
 
-**UNION = 49 + 45 − 12 = 82.**
+**UNION = 49 + 45 − 12 = 82 (input, verdict) PAIRS, over 81 DISTINCT INPUTS.**
 
-Growth attributable to BRANCH is therefore an explicit set of 33 lines, not a
-subtraction: lines 4, 9, 20, 24, 29, 33, 36, 38, 50(BRANCH half), 58–76, 77–81.
+Growth attributable to BRANCH is therefore an explicit set of 32 distinct inputs
+(33 rows on the (input, verdict)-pair basis), not a subtraction: lines 4, 9, 20, 24, 29, 33, 36, 38, 50(BRANCH half), 58–76, 77–81.
 Rows lost if BRANCH's test blob is discarded are exactly that set; rows lost if
 MAIN's is discarded are the 49-list above, of which the 14 fixture-only lines
 also take the server/client differential pin with them.
@@ -389,7 +443,7 @@ pick one return contract, and that choice retires rows on whichever side loses.
   calls it "a deliberate rejection, not an oversight". Not a contradiction, but
   it is knowledge that vanishes if MAIN's test blob is dropped.
 - BRANCH's Groups 6 and 7 (obfuscated loopback, credential confusion, homoglyph
-  hosts) are 16 rows with no MAIN counterpart at all. That knowledge vanishes if
+  hosts) are 16 distinct inputs with no MAIN counterpart at all. That knowledge vanishes if
   BRANCH's test blob is dropped.
 - Fixture blob 4a54328 records 9 deliberate server/client divergences; MAIN's
   test asserts `divergent > 0` as an anti-vacuity control. That apparatus has no
@@ -427,7 +481,7 @@ Contradictions 1, 2 and 3 and Divergence 4 escalate to the coordinator as a
 standalone security-policy question: **is this helper a scheme allow-list (MAIN)
 or a destination-trust gate (BRANCH), and is `http:` admissible at all?** Once
 that is ruled on, the losing side's contested rows are retired *explicitly*, the
-remaining ~66 uncontested rows stand as the merged table, and Phase 2 can run
+remaining ~66 uncontested (input, verdict) pairs stand as the merged table, and Phase 2 can run
 both implementations against it.
 
 ### Phase 2 protocol as amended 2026-07-29T15:24Z — recorded, not executed

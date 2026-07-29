@@ -28,16 +28,38 @@ picking an implementation first would have silently retired one side's policy.
 
 ## The three integers
 
-- MAIN rows: **49** (35 inline in c3e1b5c + 14 contributed only by fixture blob
-  4a54328, `testdata/url-scheme-cases.json`)
-- BRANCH rows: **45** (all inline in a9e49ff; BRANCH has no fixture)
-- UNION rows: **82** (49 + 45 − 12 identical (input, verdict) pairs)
+> **LABEL REPAIR, struck in place, not deleted.** The three bullets below called
+> 49 and 45 **rows**. Wrong noun: they are **distinct-input** counts. The numbers
+> and all downstream arithmetic were correct — a verified quantity joined to the
+> wrong unit, the defect that cannot go red.
 
-81 distinct inputs carry 82 rows: `http://[::1]/x` is asserted by both sides with
-opposite verdicts, so it is two rows and is not deduplicated.
+- ~~MAIN rows: **49** (35 inline in c3e1b5c + 14 contributed only by fixture blob
+  4a54328, `testdata/url-scheme-cases.json`)~~
+- ~~BRANCH rows: **45** (all inline in a9e49ff; BRANCH has no fixture)~~
+- ~~UNION rows: **82** (49 + 45 − 12 identical (input, verdict) pairs)~~
 
-The union does **not** equal the MAIN count. BRANCH contributes 33 rows. The
-"branch contributed nothing" alarm does not fire.
+Restated, unit named every time:
+
+- MAIN: **49 distinct inputs**, **78 rows** as assertion occurrences — Tier A
+  inline in c3e1b5c is 36 rows over 35 distinct inputs, Tier B fixture 4a54328 is
+  42 rows over 42 distinct inputs, overlapping on 28 inputs.
+- BRANCH: **45 distinct inputs**, **45 rows** — no input asserted twice,
+  machine-verified.
+- UNION: **81 distinct inputs**, **82 rows** as distinct (input, verdict) pairs
+  (49 + 45 − 12 identical pairs).
+
+**78 and 82 are on different bases and must not be compared**: 78 counts
+assertion occurrences, 82 counts distinct (input, verdict) pairs. A reader who
+sets them side by side would conclude BRANCH added four rows. It added **32
+distinct inputs**.
+
+`http://[::1]/x` is asserted by both sides with opposite verdicts, so it is two
+pairs over one distinct input and is deliberately not deduplicated —
+deduplicating it would make the table self-consistent and destroy the finding.
+
+The union does **not** equal the MAIN count. BRANCH contributes 32 distinct
+inputs (33 rows on the pair basis). The "branch contributed nothing" alarm does
+not fire.
 
 Row-number lists backing each integer are published in the report; a bare count
 cannot distinguish a leak from growth.
@@ -86,12 +108,31 @@ say; it is recorded as measured, and it is not a quality judgement — BRANCH's
 threat model is broader, MAIN's scope is narrower and its server counterpart
 agrees with it. The ruling is the coordinator's.
 
-## Correction made in place
+## Corrections made in place
 
-A presentation row (line 82 of the report) double-counted BRANCH's IPv6
-rejection, making the BRANCH column total 46 against a stated 45. Caught by
-machine-checking the published columns rather than by re-reading. The row is
-struck through in place, not deleted; the three integers were unaffected.
+1. **IPv6 double-count.** A presentation row (line 82 of the report)
+   double-counted BRANCH's IPv6 rejection, making the BRANCH column total 46
+   against a stated 45. Caught by machine-checking the published columns rather
+   than by re-reading. Struck through in place, not deleted; the integers were
+   unaffected. Carried in commit **c623332**, SHA fill-in in **1713ce8**.
+
+2. **Unit label.** 49 and 45 were labelled "rows" when they are distinct-input
+   counts. Struck and restated above.
+
+3. **A phantom SHA, corrected against the coordinator.** The coordinator's
+   acknowledgement credited correction 1 to commit **9f81b8f**. No such object
+   exists — `git cat-file -t 9f81b8f` returns `fatal: Not a valid object name`,
+   exit 128. It was a forward-reference I drafted before the commit existed and
+   then withdrew, and it leaked into the record from the draft. The real SHAs are
+   c623332 and 1713ce8. Recorded because a correction credited to a nonexistent
+   object is unverifiable, and this project has already lost time to exactly this
+   class of defect.
+
+**Process note.** I reached for an unmade SHA three times while writing this up.
+Each was caught and removed before commit, but the rate is the finding: forward-
+referencing a commit that does not yet exist produces a right-format, wrong-value
+identifier that no check catches. Cite only SHAs already returned by
+`git rev-parse`.
 
 ## Phase 2
 
