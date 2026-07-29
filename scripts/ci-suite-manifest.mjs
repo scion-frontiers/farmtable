@@ -31,7 +31,22 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // have. If enumeration returns fewer than this, the population itself is the
 // defect and no membership comparison is meaningful: with an empty `present`
 // set, "every present file is executed" is vacuously true and this script
-// would print OK and exit 0. Raise this when suites are added.
+// would print OK and exit 0.
+//
+// WHAT ONE UNIT OF MIN_TEST_FILES IS. Exactly one file path that is
+//
+//   - under the `web` pathspec,
+//   - visible to git: tracked, or untracked and not ignored,
+//   - matching TEST_FILE_RE,
+//   - not under `web/dist/` and not under any `node_modules/`.
+//
+// It is RUNNER-BLIND: it counts files on disk, and nothing else. It is not a
+// count of manifest entries, not a count of executed suites, not a count of
+// `test()` or `describe()` calls, and not affected by whether anything runs
+// those files. That independence is the point -- `present` is the yardstick the
+// runners are measured against, so it must never be derived from them.
+//
+// Adding a suite is what raises this number.
 const MIN_TEST_FILES = 1;
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
@@ -50,6 +65,13 @@ function candidateFiles(pathspec) {
 }
 
 // ---------------------------------------------------------------- present ---
+// The population, per the MIN_TEST_FILES predicate above.
+//
+// Note what TEST_FILE_RE does NOT exclude: compiled test output. `x.test.js`
+// emitted by tsc is a test file by name, and if it is git-visible it is counted
+// alongside the `x.test.ts` it came from. Nothing here prevents that; the
+// invariant is asserted where the outDir is actually known, in
+// expandRunnerScript, so that it cannot be quietly lost to a rename.
 const present = candidateFiles('web')
   .filter(
     (f) =>
@@ -223,6 +245,7 @@ function ask(binRelToRepo, args) {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 32 * 1024 * 1024,
+      timeout: 120_000,
     });
   } catch {
     return null;
@@ -239,14 +262,20 @@ function toRepoPath(p) {
 }
 
 // TypeScript's own expansion of a tsconfig's include/files globs, as concrete
-// paths. `--showConfig` resolves the globs against the real tree, so this is
-// what tsc will actually compile -- not what this script thinks those globs mean.
-function tsconfigFiles(cfgRelToWeb) {
+// paths, plus where it puts the output. `--showConfig` resolves the globs
+// against the real tree, so this is what tsc will actually compile -- not what
+// this script thinks those globs mean.
+function tsconfigInfo(cfgRelToWeb) {
   const out = ask(TSC_BIN, ['-p', cfgRelToWeb, '--showConfig']);
   if (out === null) return null;
   try {
-    const files = JSON.parse(out).files;
-    return Array.isArray(files) ? files.map(toRepoPath).sort() : null;
+    const cfg = JSON.parse(out);
+    if (!Array.isArray(cfg.files)) return null;
+    const outDir = cfg.compilerOptions && cfg.compilerOptions.outDir;
+    return {
+      files: cfg.files.map(toRepoPath).sort(),
+      outDir: typeof outDir === 'string' ? toRepoPath(outDir).replace(/\/$/, '') : null,
+    };
   } catch {
     return null;
   }
@@ -272,11 +301,16 @@ function vitestFiles(filters) {
 // glob silently stops matching a directory is indistinguishable from one that
 // never ran.
 //
-// The walk is read out of the script's source, and then CHECKED against the
-// tsconfig the same script compiles with. Two independent statements of the
-// same file set must agree; if they do not, the runner is reported unanalysable
-// rather than believed. Anything this function cannot recognise returns an
-// error string, never a set.
+// Whatever the runner is asked or read, the answer is CHECKED against the
+// tsconfig that same script compiles with, and against `present`. Independent
+// statements of one file set must agree; if they do not, the runner is reported
+// unanalysable rather than believed. Anything this function cannot establish
+// returns an error string, never a set.
+//
+// WALK_RE is the fallback path only, for a runner that offers no `--list`. It
+// deliberately recognises one narrow shape: a regex chasing arbitrary discovery
+// logic would eventually match something it does not understand, and a wrong
+// answer here is worse than a refusal.
 const WALK_RE =
   /walk\(\s*join\(\s*webRoot\s*,\s*(['"])([^'"]+)\1\s*\)\s*,\s*\(?\s*(\w+)\s*\)?\s*=>\s*\3\.endsWith\(\s*(['"])([^'"]+)\4\s*\)/g;
 
@@ -284,16 +318,6 @@ function expandRunnerScript(scriptRelToWeb) {
   const path = `web/${scriptRelToWeb.replace(/^\.\//, '')}`;
   if (!existsSync(path)) return { error: `no such file '${path}'` };
   const src = readFileSync(path, 'utf8');
-
-  const walks = [...src.matchAll(WALK_RE)].map((m) => ({ dir: m[2], suffix: m[5] }));
-  if (walks.length === 0) {
-    return {
-      error:
-        `cannot determine which files '${path}' walks. It is a runner script, ` +
-        'so it must not be assumed to run everything or nothing; teach ' +
-        'WALK_RE in scripts/ci-suite-manifest.mjs its discovery shape.',
-    };
-  }
 
   // A compiler does not delete. Same defect as the `node --test` arm: without a
   // clean, output compiled from a since-deleted test keeps being executed and
@@ -308,21 +332,122 @@ function expandRunnerScript(scriptRelToWeb) {
 
   const proj = src.match(/['"]-p['"]\s*,\s*['"]([^'"]+)['"]/) || src.match(/-p\s+(\S+)/);
   if (!proj) {
-    return { error: `'${path}' names no \`tsc -p <config>\`; cannot cross-check its walk` };
+    return { error: `'${path}' names no \`tsc -p <config>\`; cannot cross-check what it runs` };
   }
-  const cfgFiles = tsconfigFiles(proj[1]);
-  if (cfgFiles === null) {
+  const cfg = tsconfigInfo(proj[1]);
+  if (cfg === null) {
     return {
       error:
         `could not ask tsc to expand ${proj[1]} (is web/node_modules installed?); ` +
         `refusing to guess what '${path}' compiles`,
     };
   }
+  const compiled = cfg.files.filter((f) => TEST_FILE_RE.test(f)).sort();
+
+  // THE DOUBLE-COUNT INVARIANT, ASSERTED RATHER THAN ASSUMED.
+  //
+  // TEST_FILE_RE matches `.js`/`.mjs`/`.cjs`, so this runner's COMPILED OUTPUT
+  // is, by name, a test file. It stays out of `present` today only because the
+  // outDir happens to be gitignored -- an accident of another file, not a
+  // decision recorded here. Move the outDir somewhere untracked-but-not-ignored
+  // and `present` roughly doubles: every test counted once as source and once
+  // as artefact. That direction still LOOKS safe, because the floor is more
+  // satisfied than before, which is exactly why it has to be asserted.
+  //
+  // The outDir is taken from tsc, not from a hardcoded name, so renaming it
+  // cannot quietly step around this.
+  if (cfg.outDir) {
+    const visibleOutput = candidateFiles(cfg.outDir).filter((f) => TEST_FILE_RE.test(f));
+    if (visibleOutput.length) {
+      return {
+        error:
+          `${proj[1]} compiles into '${cfg.outDir}', and ${visibleOutput.length} ` +
+          'file(s) there are visible to git, so compiled output is being counted ' +
+          'as source and every test is enumerated twice: ' +
+          `[${visibleOutput.slice(0, 5).join(', ')}]. Add '${cfg.outDir}/' to ` +
+          '.gitignore, or point outDir at a directory that is ignored.',
+      };
+    }
+  }
+
+  // WHICH FILES DOES IT RUN? Two ways to establish that, never one.
+  //
+  // Preferred: the runner states its own list. That statement is NOT
+  // self-certifying and never stands alone -- a runner that under-reports is
+  // precisely the failure being guarded against, and believing the claim would
+  // let it grade its own homework. It is reconciled BOTH against what tsc says
+  // the same script compiles AND against `present`, an independent scan of the
+  // tree. Any residue in any direction is fatal.
+  //
+  // Fallback, for a runner that offers no list: read the walk out of its source
+  // and cross-check that against tsc. Weaker, and printed as such.
+  //
+  // Only ask a runner that advertises the flag. Passing `--list` to a runner
+  // that does not know it would not list anything -- it would RUN THE SUITE,
+  // during a check whose entire job is to not need the suite to have run.
+  const claim = /--list/.test(src) ? ask(path, ['--list']) : null;
+
+  if (claim !== null) {
+    const claimed = [
+      ...new Set(
+        claim
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((l) => `web/${l.replace(/^\.\//, '')}`),
+      ),
+    ].sort();
+    if (claimed.length === 0) {
+      return { error: `'${path} --list' reported no test files at all` };
+    }
+
+    const phantom = claimed.filter((f) => !present.includes(f));
+    if (phantom.length) {
+      return {
+        error:
+          `'${path} --list' claims files an independent scan of the tree does ` +
+          `not have: [${phantom.join(', ')}]`,
+      };
+    }
+
+    // THE COUPLING (see TEST_SUFFIXES in the runner). The runner's discovery
+    // list and the tsconfig's `include` are one object written in two files. A
+    // file in one but not the other is a test that compiles and never runs, or
+    // runs and never compiles. Both are silent today and loud here.
+    const notCompiled = claimed.filter((f) => !compiled.includes(f));
+    const notRun = compiled.filter((f) => !claimed.includes(f));
+    if (notCompiled.length || notRun.length) {
+      return {
+        error:
+          `'${path}' and ${proj[1]} have diverged -- the runner's discovery ` +
+          "list and the tsconfig's `include` must match: " +
+          `listed-but-not-compiled [${notCompiled.join(', ') || 'none'}] ` +
+          `compiled-but-not-listed [${notRun.join(', ') || 'none'}]`,
+      };
+    }
+
+    return {
+      files: claimed,
+      label:
+        `${path} — agreed by its own --list (${claimed.length}) + ` +
+        `tsc ${proj[1]} + an independent tree scan`,
+    };
+  }
+
+  const walks = [...src.matchAll(WALK_RE)].map((m) => ({ dir: m[2], suffix: m[5] }));
+  if (walks.length === 0) {
+    return {
+      error:
+        `cannot determine which files '${path}' runs. It offers no \`--list\`, ` +
+        'and its discovery shape is unrecognised. A runner must not be assumed ' +
+        'to run everything or nothing: give it a `--list` mode, or teach ' +
+        'WALK_RE in scripts/ci-suite-manifest.mjs its shape.',
+    };
+  }
 
   const walked = present
     .filter((p) => walks.some((w) => p.startsWith(`web/${w.dir}/`) && p.endsWith(w.suffix)))
     .sort();
-  const compiled = cfgFiles.filter((f) => TEST_FILE_RE.test(f)).sort();
 
   const onlyWalked = walked.filter((f) => !compiled.includes(f));
   const onlyCompiled = compiled.filter((f) => !walked.includes(f));
@@ -337,7 +462,10 @@ function expandRunnerScript(scriptRelToWeb) {
   }
 
   const shape = walks.map((w) => `${w.dir}/**/*${w.suffix}`).join(', ');
-  return { files: walked, label: `${path} (walks ${shape}, cross-checked against ${proj[1]})` };
+  return {
+    files: walked,
+    label: `${path} — agreed by walk ${shape} + tsc ${proj[1]} (no --list offered)`,
+  };
 }
 
 // Map a compiled artefact such as `.tmp-test/utils/x.test.js` back to the
@@ -580,13 +708,31 @@ const counts =
 // comparison passes vacuously.
 if (present.length < MIN_TEST_FILES) {
   console.error(
-    `FAIL: enumerated ${present.length} JS/TS test files, expected at least ` +
-      `${MIN_TEST_FILES}.\n` +
-      '      The population is the defect, not the membership. An empty set\n' +
-      '      satisfies "every present file is executed" and would otherwise\n' +
-      '      have exited 0. Check the `web` pathspec, TEST_FILE_RE, and\n' +
-      '      whether the suites moved. If suites were deliberately removed,\n' +
-      '      lower MIN_TEST_FILES in the same commit.',
+    `FAIL: ${MIN_TEST_FILES - present.length} JS/TS test file(s) have gone ` +
+      `missing from the tree.\n` +
+      `      Enumerated ${present.length}; this repository is known to have at ` +
+      `least ${MIN_TEST_FILES}.\n` +
+      '\n' +
+      '      TEST FILES DO NOT USUALLY VANISH ON PURPOSE. Assume they were\n' +
+      '      lost until you have shown otherwise -- most often to a merge\n' +
+      '      resolution that dropped a side, a move that left the `web`\n' +
+      '      pathspec, a rename past TEST_FILE_RE, or a .gitignore rule that\n' +
+      '      now covers them. FIND THEM FIRST:\n' +
+      '\n' +
+      '        git log --diff-filter=D --name-only -20 -- web\n' +
+      '        git status --porcelain --ignored web | grep -E "test|spec"\n' +
+      '\n' +
+      '      The population is the defect here, not the membership: an empty\n' +
+      '      set satisfies "every present file is executed", so without this\n' +
+      '      floor the run below would have exited 0 and told you nothing.\n' +
+      '\n' +
+      '      Lowering MIN_TEST_FILES is not the remedy for this failure. It\n' +
+      '      is a separate, deliberate decision that a suite is INTENDED to\n' +
+      '      be gone: make it in the commit that deletes the suite, and say\n' +
+      '      in the message which files went and why. Lowering it to make\n' +
+      '      this message stop is how the alarm gets disabled by the person\n' +
+      '      it was ringing for. (Raising it is the other half: a new suite\n' +
+      '      should raise the floor in the commit that adds it.)',
   );
   console.error(`      ${counts} unanalysable=${unanalysable.length}`);
   process.exit(1);
