@@ -41,4 +41,25 @@ util/markdown.test
 # --- from the XSS branch (url-scheme-validation-r5) --------------------------
 util/assertions.test
 util/safe-url.test
+
+# url-binding-scan.test.ts: DO NOT DROP THIS LINE ON A "THE SUITE DOES NOT
+# EXIST" ARGUMENT. It was challenged on exactly that ground on 2026-07-29 and
+# the challenge was reversed at 04:28Z. What was measured, and what it proves:
+#
+#   a sweep for the filename across 97 REMOTE branches returned ZERO HITS
+#   git ls-tree -r --name-only d5e35a4  ->  web/src/util/url-binding-scan.test.ts PRESENT
+#   git for-each-ref --contains d5e35a4 ->  refs/heads/url-scheme-validation-r5
+#                                           refs/preserve/dev-103-testlist/xss-pin-0256Z
+#
+# BOTH OF THOSE REFS ARE LOCAL. The branch has never been pushed, under a
+# standing never-push order, so a search over published refs was guaranteed to
+# return zero -- and did.
+#
+#   ** A SEARCH OVER PUBLISHED REFS CANNOT SEE UNPUBLISHED WORK, AND ITS EMPTY
+#      RESULT IS INDISTINGUISHABLE FROM NONEXISTENCE. **
+#
+# Two further things make this suite look droppable, and neither is a reason:
+# it is a TREE SCANNER with no module under test (there is no url-binding-scan.ts
+# anywhere), and it is silent on a clean tree by construction. It asserts, it
+# executes, and it stays pinned.
 util/url-binding-scan.test

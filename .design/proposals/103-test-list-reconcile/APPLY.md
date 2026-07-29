@@ -88,16 +88,55 @@ The reconciled runner **fails closed on a suite that reports neither format**. S
 if the `#195` blob wins that conflict, `npm test` goes RED on `utils/task-ready`
 — correctly, by the rule, but on a suite that is not broken.
 
-Two ways to clear it. **I have not picked one, because which is right depends on
-which blob wins the content conflict, and that decision is not mine:**
+### RULED, 2026-07-29 04:28Z: route the `#195` helper. Do **not** take the XSS blob.
 
-- **(a) Take the XSS blob** of `task-ready.test.ts`. The receipt comes for free.
-  Requires checking that the `#195` side added no test cases to its copy that the
-  XSS copy lacks — a content merge I was not asked to perform.
-- **(b) Keep the `#195` blob and route its local `assert` through
-  `src/util/assertions.ts`.** Mechanical; changes no assertion, only the helper.
+> **TAKING A BLOB RESOLVES A CONTENT CONFLICT BY DISCARDING A SIDE, AND
+> DISCARDING A SIDE IS THE DEFECT THIS ENTIRE TASK EXISTS TO PREVENT. WE DO NOT
+> FIX A SILENT-DELETION BUG WITH A DELETION.**
 
-**Do not clear it by declaring the suite exempt in the manifest.** There is no
+**✅ RULED — keep the `#195` blob, route its local helper through
+`src/util/assertions.ts`.** Delete the 5-line local `assertEqual` and add
+`import { assertEqual } from '../util/assertions.js';`. Changes no assertion and
+no test case; the suite then emits a receipt like every other.
+
+**❌ REJECTED — take the XSS blob.** Rejected on principle, not on measurement:
+it resolves a content conflict by discarding a side. Both options make the suite
+report, so the receipt question does not decide between them; conservatism does.
+
+#### The precondition diff, MEASURED — and the answer is *not* loud
+
+Ordered before writing this: does either side hold a test case the other lacks?
+
+```
+git diff ef6d702 9b4cd5b        -> 1 hunk, in the import/helper head only
+```
+
+Everything from `const now =` to EOF, on both blobs — **144 lines, identical
+sha256 `6abd607ba46aa882526c4a86cfff2506097db3abec011ef44a851fea6d0c95d3`.**
+Ten `assertEqual` call sites on each side; the sorted set of assertion messages
+is identical. **The blobs are content-equivalent.** Taking the XSS blob would
+*not* have deleted a test case.
+
+**But the ruling does not depend on that, and this is the point worth keeping:**
+the equivalence is a fact about these two blobs at these two SHAs that **nobody
+had measured when the option was on the table.** "Take the XSS blob" was safe by
+luck, not by construction. The routed-helper option is safe *without* the
+measurement — it cannot lose a case even if the blobs later diverge, which is
+the property you want in an instruction that outlives the tree it was written
+against.
+
+#### Two notes for whoever writes it
+
+- The shared `assertEqual<T>(actual: T, expected: T, message: string)` is
+  **generic, so strictly wider** than the local
+  `(actual: boolean, expected: boolean, message: string)`. All ten call sites
+  pass booleans. Type-compatible; no call site changes.
+- The failure message changes wording (`expected X, got Y` → `(got Y, want X)`).
+  Cosmetic, but it will show up in any golden output someone has pinned.
+- **DERIVED, not measured:** the routed suite should then report
+  `#assertions 10`. Unverified — it requires a run.
+
+**Do not clear this by declaring the suite exempt in the manifest.** There is no
 `silent` protocol and that is deliberate: an exemption is how a suite stops
 reporting and nobody notices.
 
@@ -131,7 +170,16 @@ which counts privately.
 
 ## Still true after all of this: **nothing runs any of it automatically**
 
-There is no CI in this repository (#22, and that task is marked `completed`).
-The guards above run when someone types `npm test`. That closes the merge-time
-hole this task was about and does **not** close #22, which is the coordinator's.
-A membership pin with no CI is a seatbelt that someone has to remember to fasten.
+CI merged at 04:07Z (PR #205, main `cc92735`). **The finding survives unchanged:
+no Makefile target reaches the JavaScript suites at all**, so nothing in CI runs
+the wiring above, the membership pin, or the receipt checker. The guards fire
+when a human types `npm test`.
+
+**A membership pin with no CI is a seatbelt that someone has to remember to
+fasten.** That is still true of this guard specifically, and it should not be
+softened until a target actually invokes it.
+
+When that wiring lands, **check the first run for WHICH SUITES EXECUTED, not for
+the exit code.** An exit code of 0 is precisely what #103 produces while
+deleting three suites — reading it as confirmation would reproduce the defect
+at the CI layer.
