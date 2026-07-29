@@ -244,3 +244,199 @@ REMOVAL. A string match cannot tell a quotation from an assertion; only reading
 the sentence it sits in can. Nothing was added to `url-binding-scan.test.ts`.
 
 Web suite re-run after the edits: 7 files, 7 pass, 0 fail.
+
+---
+
+## 8. The review of `6f2a8ec5` — the fix had a second parser inside it
+
+Three CRITICALs, all against the carve-out rather than the routing. The hook
+asked a regexp (`NAMES_A_HOST`) whether a reference could name a host and, if
+it decided not, skipped `safeHref` entirely. **That regexp was strictly weaker
+than the function it was carving around**, so the carve-out was the hole:
+
+| | vector | why the pattern missed it | where it went |
+|---|---|---|---|
+| C-1 | `ht<TAB>tps://user:pass@evil.example/` | the tab sits INSIDE the scheme, so `^scheme:` did not match | URL parser removes tab/CR/LF; resolves to the credential URL |
+| C-2 | `/\github.com@evil.example/` | starts `/\`, not `//`, so `^//` did not match | WHATWG treats `/\` as `//` for special schemes; leaves the origin |
+| C-3 | `<svg><a xlink:href=…>` | the hook keyed on the literal attribute name `href` | a clickable link the hook never entered |
+
+**Every gate was green under all three.** That is the finding behind the
+finding: `npm test`, `go build`, `go vet`, `go test` and the suite manifest all
+passed while the fix they were certifying was bypassable three ways. A green
+suite is evidence about the arms in it and about nothing else.
+
+### The remedy, and why not a wider regexp
+
+Widening `NAMES_A_HOST` would have been a **third dialect** — a second URL
+parser was the defect, and a better second parser is still a second parser.
+The reference is now resolved ONCE, by the platform:
+
+```ts
+resolved = new URL(raw, new URL(document.baseURI));   // markdown.ts:120-121
+if (resolved.username !== '' || resolved.password !== '') return false;  // :126
+if (resolved.origin !== 'null' && resolved.origin === base.origin) return true;  // :127
+return safeHref(resolved.href) !== undefined;         // :129
+```
+
+Four decisions, in order, each with a reason that is about the RESOLVED URL and
+never about the string:
+
+- **Unresolvable → refused.** Fail closed. "I could not parse it" is not a
+  reason to keep an attribute.
+- **Any userinfo → refused, BEFORE the origin comparison.** `URL.origin`
+  excludes userinfo, so `//user:pass@dashboard.test/` is same-origin and still
+  hands credentials over on click. This ordering is pinned by
+  `testSameOriginCredentialsAreStillRefused`, both polarities.
+- **Resolved same-origin → permitted.** The carve-out survives, as a property
+  of the resolved URL: `/\github…` looks relative and is not, `#section` looks
+  like a fragment and is one. Opaque origins (`'null'`) are excluded so two of
+  them are never "the same".
+- **Everything else → `safeHref`,** handed the ABSOLUTE href. `safe-url.ts`'s
+  no-base contract is intact: resolution happens before the call, and
+  `safeHref` still parses with no base.
+
+C-3 is closed by a list, not by the predicate: `LINK_ATTRS`
+(`markdown.ts:54`) is iterated at `markdown.ts:211`, so the policy applies to
+`href` and `xlink:href` on **every** element DOMPurify keeps — `<area href>`
+included, and that arm is now pinned rather than assumed. `src` remains out;
+recorded, not closed.
+
+### What moved, deliberately
+
+`//evil.example/x` and `/\evil.example/x` now resolve to `https://evil.example/x`
+and are **KEPT**, where the first version refused the first spelling and waved
+the second past. This is a real behaviour change and it is the consistent one:
+the policy is about **schemes and credentials**, an attacker-chosen host is
+reachable through any plainly accepted link, and owner ruling C2 keeps ordinary
+http(s) links clickable. Refusing one spelling of a URL the policy accepts in
+another spelling is a decision about the string — the exact class of decision
+being repaired. `safeHref` at the component bindings is unchanged and still
+refuses `//host/x`: there is no resolution step there and the value is a stored
+field expected to be absolute.
+
+### RED before GREEN, per arm, both polarities
+
+The suite aborts on the first failed assertion, which would have hidden how
+many vectors were live. `/workspace/mdhref-rig/red-per-arm.mjs` temporarily
+rewrites `run()` into a catching loop, runs the real suite, prints the first
+failure of each arm and restores the file byte-for-byte. Against `57531d3c`
+with the new tests in place and `markdown.ts` reverted:
+
+```
+RED   testSchemeSplittingControlCharactersAreRefused :: tab inside the scheme: the reference
+      survived the markdown sink (got ht\ttps://user:pass@evil.example/, want null)      C-1
+RED   testBackslashAuthoritiesAreRefused :: slash backslash: a backslash authority survived
+      as a live reference (got /\github.com@evil.example/, want null)                    C-2
+RED   testSvgLinksArePoliced :: an SVG anchor kept a credential-bearing xlink:href
+      (got https://user:pass@evil.example/, want null)                                   C-3
+RED   testCredentialHrefsAreRefused :: the refusal announced itself in a title attribute
+      (Option B forbids the signal)
+RED   testARefusalAddsNothing :: a refusal added a title where the author wrote none
+RED   testProtocolRelativeLinksArePoliced :: the refusal announced itself in a title attribute
+RED   testNoRejectedAddressReachesAnAttribute
+RED   testHrefOnNonAnchorElementsIsPoliced :: the rejected address survived in an attribute on
+      a non-anchor element: <p><map><area title="Unsupported URL: https://…"></map></p>
+RED   testSameOriginCredentialsAreStillRefused :: a same-origin reference without credentials
+      was refused (got null, want //dashboard.test/x)
+RED   testTheGlobalSanitiserCannotDisarmThisOne :: removeAllHooks() on the global DOMPurify
+      disarmed the markdown URL policy
+GREEN testRefusalKeepsTheTextOnScreen, testOrdinaryLinksSurvive,
+      testRelativeLinksAreUntouched, testNonHttpSchemesAreRefused,
+      testBothMarkdownSinksStillCallRenderMarkdown
+```
+
+All 15 GREEN after the fix, same rig, same run shape. Every refusal arm carries
+the KEEP row it must not break — the SOH control character (measured NOT a
+scheme splitter: it is refused for a different reason and is pinned as that),
+the markdown-percent-encoded `/%5C…`, the credential-free backslash authority,
+the same-origin reference, and the plain cross-origin link. **Two of those KEEP
+rows started life as post-fix REDs and were the TEST being wrong, not the code**
+— `//evil.example/x` and `/\evil.example/x` resolve to ordinary cross-origin
+https URLs that this policy accepts. Recording that here because "the fix made
+a test go red, so I changed the test" is exactly the move that needs its
+reasoning in writing to be distinguishable from covering something up.
+
+### Option B, by owner ruling
+
+`coordinator-rulings/PTONE-REJECTUX-2035.md:11`, verbatim: *"Show the item's
+name with no link and no trace of the address. The user sees a plain label and
+gets no signal that anything was refused."* This SUPERSEDED an instruction to
+truncate and strip the notice. The `title` is therefore **deleted**, not
+shortened: the reference attribute is removed and nothing is added.
+
+Both options are equally safe against the attack — the href is gone either way.
+Option A composed a user-visible string out of an attacker-chosen one and
+rendered it as product, at whatever length its author liked; the ruling settles
+diagnosability against disclosure in favour of disclosing nothing. No
+server-side logging and no network call was added.
+
+**Consequence, filed not decided:** "add nothing" leaves an author-supplied
+markdown title (`[t](url "title")`) in place on a refused link, because removing
+it would be adding a behaviour the ruling did not ask for. That is the same
+reach the author already has over the link TEXT, which Option B keeps by design.
+The two `ft-inspector` call sites still render Option A notices; a separate pass.
+
+### The hook was on the process-global singleton
+
+`import DOMPurify from 'dompurify'` hands every importer the same object, so the
+URL policy was installed where any module could remove it with one
+`removeAllHooks()` and where import order decided whether it was installed at
+all. Neither is checkable by reading `markdown.ts`. It is now a module-private
+`createDOMPurify(window)` instance, with `isSupported` asserted at import so a
+missing DOM is a loud error instead of an unsanitised value. Pinned by
+`testTheGlobalSanitiserCannotDisarmThisOne`, which calls `removeAllHooks()` on
+the global and re-checks both polarities. Pattern copied from
+`origin/markdown-sanitize-r10`; nothing merged, cherry-picked or rebased.
+
+### T-1: the fix and its only test could be deleted together
+
+Measured, not argued. `REQUIRED_TEST_FILES` in `scripts/ci-suite-manifest.mjs`
+now names the four suites whose absence is a security regression, checked
+immediately after the floor. The mutation: `markdown-href.test.ts` removed from
+both the index and the disk with a substitute test file added, against a scratch
+`GIT_INDEX_FILE` so the real index was never touched.
+
+```
+enumerated=7 executed=7 missing=0        floor satisfied, surplus 0
+FAIL: 1 named security suite(s) are not in the tree.
+        web/src/util/markdown-href.test.ts        exit 1
+```
+
+Every other arm green; the new one is the only thing that fired. Its own
+positive control fires in-process on every run (`absentFrom([CONTROL_PATH])`
+must return 1), because a check whose pass condition is zero is
+indistinguishable from a broken check that returns zero. The list is
+deliberately NOT the population: removals block, additions are free, mirroring
+`.github/expected-go-tests.txt`.
+
+Also corrected there: the RE-DERIVED comment called `markdown-href.test.ts`
+"the sixth line being the new one". It is the FOURTH. A wrong ordinal in a
+comment about a list is a comment about a different file.
+
+### NOT REPRODUCED — the "16 markdown-only shapes"
+
+The addendum stated that 16 measured shapes reach an off-origin
+credential-bearing href **with no raw HTML at all**. Swept all 13 vectors
+through markdown link syntax only, on this pipeline: **0 survived off-origin**.
+`marked` 15.0.12 percent-encodes backslashes in link destinations, and a literal
+tab breaks the link syntax before the sanitiser ever sees it. Every survivor I
+measured needed a raw `<a>` or `<svg>`, which `renderMarkdown` does pass through.
+The disagreement is recorded rather than resolved: **the fix does not depend on
+who is right**, since it decides on the resolved URL regardless of how the
+attribute got into the tree, and the raw-HTML path alone justifies it.
+
+### Gates, re-run at `19c306a2`
+
+| gate | result |
+|---|---|
+| `npm test` | 7 files, 7 pass, 0 fail |
+| `go build ./...` | exit 0 |
+| `go vet ./...` | exit 0 |
+| `go test ./...` | 11 ok, 0 FAIL |
+| `node scripts/ci-suite-manifest.mjs` | exit 0 — `enumerated=7 executed=7 missing=0 (floor 7)`, surplus=0, required=4, both positive controls fired |
+
+| commit | item |
+|---|---|
+| `57531d3c` | docs: strike the static-link-text clause at its two surviving sites |
+| `2287883c` | fix: decide URLs with the platform parser; xlink:href; Option B; private instance |
+| `19c306a2` | ci: name the security suites in the manifest; fix a false ordinal |
