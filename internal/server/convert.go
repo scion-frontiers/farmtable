@@ -911,10 +911,13 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		//     because the struct literal sets no RemoteData field at all. In-memory
 		//     only; never persisted.
 		//
-		//   - Hardcoded farmtable, so out of scope by platform: the
+		//   - Hardcoded farmtable, so out of scope by platform, all three citing the
+		//     enclosing function rather than a line: the
 		//     `Platform: collection.PlatformFarmtable` field in ImportCollection's
-		//     importParams literal (export_import.go), beads_import.go:393,
-		//     graph_routing.go:85.
+		//     importParams literal (export_import.go); the exportCollection literal
+		//     in convertBeadsToExportDocument (beads_import.go); and the
+		//     CreateCollectionParams literal in loadEphemeralStore
+		//     (graph_routing.go).
 		//
 		// ARMING EDITS, RANKED BY HOW ORDINARY THEY LOOK, WHICH IS THE ONLY RANKING
 		// THAT MATTERS FOR A COMMENT.
