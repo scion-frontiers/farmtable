@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -97,7 +96,7 @@ func main() {
 	)
 	pb.RegisterFarmTableServiceServer(grpcServer, server.NewFarmTableService(s, version, server.WithEventBus(eventBus)))
 
-	subFS, err := fs.Sub(farmtable.WebAssets, "web/dist")
+	subFS, err := farmtable.WebUI()
 	if err != nil {
 		log.Fatalf("Failed to create web asset filesystem: %v", err)
 	}
