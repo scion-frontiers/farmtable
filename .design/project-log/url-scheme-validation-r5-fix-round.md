@@ -132,7 +132,7 @@ leaving the name unqualified would have shipped a more precise instrument making
 wider false claim** — and a stronger guard is trusted further, which converts a
 limitation that is merely *present* into one that is actively *certified*.
 
-### 4. A bare function name is not an identity (`1eaf990`)
+### 4. A bare function name is not an identity — and neither is `file:function` (`1eaf990`, `<key-fix>`)
 
 Package `server` declares `taskToProto` twice: the free function in `convert.go`
 holding the wire-path write, and a method on `*FarmTableService` in `server.go`
@@ -141,8 +141,37 @@ store and already mutates the proto after conversion — so it is by convention
 exactly where store-dependent field population lands. Keys now render as
 `(*FarmTableService).taskToProto`.
 
-File-keying already separated that pair; the receiver capture closes what
-file-keying cannot, two same-named methods on different receivers in one file.
+File-keying already separated that pair. The receiver capture closes what
+file-keying cannot, and that case is not hypothetical — two real instances,
+verified in this tree at `e6bda71` rather than taken on report:
+
+| declaration | collides as |
+|---|---|
+| `internal/cli/connect.go:251` `(*embeddedCloser).Close` / `:334` `(*passThroughCloser).Close` | `connect.go:Close` |
+| `api/farmtable/v1/farmtable.pb.go:2034` `(*Task).GetRemoteData` / `:2212` `(*Collection).GetRemoteData` | `farmtable.pb.go:GetRemoteData` |
+
+The second one is **this field's own accessor**. Both are now rows in
+`TestRemoteDataFuncIdentSeparatesMethodsFromFunctions`, and the negative control
+— strip the receiver from the key — reports **4** collisions.
+
+**But it ships labelled as an INSTANCE FIX, in the source, because that is what
+it is.** Look at the sequence this round actually ran: the regex was widened to
+admit a form; the census was widened to admit a form; the key was widened to
+admit a qualifier; the qualifier was widened again. **Each fix resolved the
+instance that had just been demonstrated and left the class intact** — and
+several were proposed by people who had, that same hour, ruled that adding a
+form *moves* a blind spot rather than closing it. Four parties, five instances.
+
+So `LIMIT 3` in the registry banner is a bound argued rather than patched:
+
+> **EVERY KEY SHORT OF A COMPILER-RESOLVED IDENTITY IS A HEURISTIC WITH AN
+> UNKNOWN MARGIN. THE ONLY SOUND BOUND IS AST- OR TYPE-RESOLVED, AND THIS
+> REGISTRY IS NOT THAT.**
+
+Unknown is not zero and is not measured. A receiver rendered as text is still
+text: a type alias, a generic instantiation, a dot-import, or the same type name
+in two packages each yield one key for two declarations. It costs one comment
+and it is the only part of this that survives the next form.
 
 ### 5. Names that claimed more than they pinned (`5b7dae4`)
 
@@ -186,6 +215,27 @@ actual property. **A test that pins a property the safety argument does not rest
 on is not defence in depth; it is a future reader's evidence that the wrong thing
 is load-bearing.**
 
+### 8. One claim retracted before it shipped, kept on the record
+
+A reason for the `server.go:661` exemption was drafted and is **withdrawn**: that
+the AST scanner in `urlvalidate_differential_test.go` also had no representation
+for `:663` and `:669`, so the exemption and the blind spot concealed each other.
+**False.** `buildsRemoteData` admits both through its `*ast.IndexExpr` arm via
+`isRemoteDataTarget`, and `remoteDataLiteralKeysIn`'s `*ast.AssignStmt` arm
+extracts their keys. Verified by reading the primary text, not the report.
+
+The claim was true of a **pre-`4e58242`** tree, and `4e58242` ("recover adapter
+remote_data keys by AST, not by regex") is an ancestor of `HEAD` —
+`git merge-base --is-ancestor` confirms it. So a `file:line` read at the current
+SHA was joined to a measurement taken at an older one. **The branch is not an
+identifier; the SHA is, and every `file:line` carries its SHA.**
+
+The exemption stays; the reason is replaced by the part that is true and is
+general — *an exact-text exemption can express "this write is empty"; it cannot
+express "and nothing populates it afterwards."* The retraction is recorded in
+the source next to the entry rather than deleted, because the joining error is
+worth more to the next reader than the sentence was.
+
 ## Verification
 
 `make test` green, both halves — Go suite plus 380 web assertions, matching
@@ -224,6 +274,17 @@ the scanner's **population** rather than its predicate and found the scope claim
 the test-engineering leg found the `SetRemoteData` anchor gap that all three prior
 censuses shared.
 
+Two more after that, making ten, and both are corrections *of a correction*:
+
+7. An auditor challenged the mutual-concealment claim; the EM re-read the primary
+   text and retracted its own blocking dispatch (§8 above).
+8. The test leg caught the `file:function` key being one scope too shallow, with
+   two hand-verified instances (§4 above).
+
+The pattern across all ten is the one worth carrying forward: **not one was
+caught by its own author**, and the two most recent were caught only because the
+recipient re-derived the claim instead of implementing it.
+
 Found in this leg and worth keeping: the per-file count blind spot; the canonical
 `[^=:]*` form shipping red on a clean tree, which **nobody had ever executed** —
 a remedy specified in a message and never run is not a remedy, it is a proposal
@@ -252,8 +313,16 @@ caught by grepping before it shipped.
   the package we spent the evening arguing was dead. My report does not **say**
   beads is reachable; that census **depends** on beads being in the population.
   Those are different propositions.
-- **`${PIPESTATUS[0]}` is empty in this environment.** The shell is zsh; the array
-  is `$pipestatus` and it is **1-indexed**. It is not an error, merely absent, and
-  it renders as `EXIT=` inside a line whose shape announces that an exit code was
-  reported — an unarmed guard that looks armed. Related: quote your globs, since
-  zsh aborts a command on a non-matching glob.
+- **`${PIPESTATUS[0]}` is empty in this environment.** The shell is zsh 5.9; the
+  array is `$pipestatus` and it is **1-indexed**. It is not an error, merely
+  absent, and it renders as `EXIT=` inside a line whose shape announces that an
+  exit code was reported — an unarmed guard that looks armed. Related: quote your
+  globs, since zsh aborts a command on a non-matching glob.
+
+  And the part that generalises past this shell: confirming such a guard on a
+  passing command proves nothing. **A guard that has only ever printed `0` has
+  not been observed firing — it has been observed agreeing, and a guard wired to
+  a constant zero is indistinguishable from a correct one on every passing
+  case.** The control is a command made to fail on purpose:
+  `sh -c 'exit 7' | tail -1` with `${pipestatus[1]}` prints **7**. Measured here,
+  in this tree, this round.
