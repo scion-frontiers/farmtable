@@ -570,6 +570,71 @@ function testHrefOnNonAnchorElementsIsPoliced(): void {
 }
 
 /**
+ * C-4. A FORM IS A LINK WITH A BUTTON ON IT.
+ *
+ * DOMPurify 3.4.12's default configuration permits `<form>`, `<button>` and
+ * `action`, and a form with no `method` submits as GET. So this renders as one
+ * clickable control that contacts the host in `action` and hands it the
+ * userinfo, with the button's own text chosen by the same author:
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request
+ *   #482</button></form>
+ *
+ * That is F-1's impact sentence -- reads as one host, contacts another, leaks
+ * `github.com:` on click -- at F-1's own sink, reached by an attribute the
+ * policy's list did not name. The defect was never in `isPermitted`, which
+ * returns the correct answer for this URL and always did. It was in `LINK_ATTRS`
+ * being a LIST, and a list is only as current as its last measurement.
+ *
+ * MEASURED NEGATIVE, so the arm is not wider than its evidence: `formaction` on
+ * `<input>` and on `<button>` is STRIPPED by DOMPurify's own defaults before any
+ * hook runs, on this version. It is therefore not pinned here -- pinning
+ * somebody else's behaviour as if it were ours is how a guard comes to look
+ * bigger than it is -- and it is recorded in the docblock at markdown.ts.
+ */
+function testFormActionIsPoliced(): void {
+  const cred = 'https://github.com@evil.example/';
+  const refusedHtml = renderMarkdown(
+    `<form action="${cred}"><button>View pull request #482</button></form>`,
+  );
+  const form = parse(refusedHtml).querySelector('form');
+  assert(form !== null, 'the <form> element did not survive sanitising at all');
+  assertEqual(form!.getAttribute('action'), null, 'a credential-bearing form action survived');
+  assert(
+    !attributeValues(refusedHtml).some((v) => v.includes('evil.example')),
+    `the rejected address survived in an attribute on a form: ${refusedHtml}`,
+  );
+  assert(
+    refusedHtml.includes('View pull request #482'),
+    `Option B keeps the control's own label, and it was lost: ${refusedHtml}`,
+  );
+
+  // POST is the same policy. Without this row the arm would pass on a hook that
+  // only policed GET forms, which is a distinction the URL policy does not make.
+  const post = parse(
+    renderMarkdown(`<form action="${cred}" method="post"><button>Go</button></form>`),
+  ).querySelector('form');
+  assertEqual(post!.getAttribute('action'), null, 'a credential-bearing POST action survived');
+
+  // POSITIVE ARM. An ordinary form action is untouched, so this cannot pass by
+  // stripping every action attribute.
+  const keptHtml = renderMarkdown('<form action="https://example.com/search"><button>Go</button></form>');
+  const kept = parse(keptHtml).querySelector('form');
+  assert(kept !== null, 'the <form> element did not survive sanitising at all');
+  assertEqual(
+    kept!.getAttribute('action'),
+    'https://example.com/search',
+    'a legitimate form action was removed',
+  );
+
+  // And a same-origin action, which the resolution carve-out must keep.
+  const relative = parse(
+    renderMarkdown('<form action="/tasks/search"><button>Go</button></form>'),
+  ).querySelector('form');
+  assertEqual(relative!.getAttribute('action'), '/tasks/search', 'a same-origin action was refused');
+}
+
+/**
  * NO ATTACKER-AUTHORED STRING IS COMPOSED INTO AN ATTRIBUTE BY THE REFUSAL.
  *
  * This is the reason Option B is a security ruling and not a taste one. The
@@ -678,6 +743,7 @@ async function run(): Promise<void> {
   testSameOriginCredentialsAreStillRefused();
   testSvgLinksArePoliced();
   testHrefOnNonAnchorElementsIsPoliced();
+  testFormActionIsPoliced();
   testNoRejectedAddressReachesAnAttribute();
   await testTheGlobalSanitiserCannotDisarmThisOne();
   testBothMarkdownSinksStillCallRenderMarkdown();

@@ -45,13 +45,32 @@ if (!purify.isSupported) {
  * this list existed: the SVG anchor survived with credentials intact while the
  * HTML anchor beside it was refused.
  *
- * NOT MEASURED: whether any further attribute permitted by a future DOMPurify
- * default navigates. This is a list, and a list is only as current as its last
- * measurement -- the reconciliation that would make it self-checking (walk
- * DOMPurify's allowed-attribute set and assert nothing navigable is absent
- * here) is not built.
+ * `action` is here because A FORM IS A LINK WITH A BUTTON ON IT. DOMPurify's
+ * current default permits `<form>`, `<button>` and `action`, and a form with no
+ * `method` submits as GET, so this was one click from the same disclosure the
+ * `href` rule exists to stop -- measured, verbatim survivor:
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request
+ *   #482</button></form>
+ *
+ * MEASURED NEGATIVE, on this version: `formaction` on `<input>` and `<button>`
+ * is stripped by DOMPurify's own defaults before any hook runs, so it is not in
+ * this list and is not pinned. That is somebody else's behaviour and it can
+ * change without notice; if `formaction` ever survives, it belongs here.
+ *
+ * THE GAP IN THIS LIST IS PRESENT TENSE, AND SAYING SO IS THE POINT. An earlier
+ * version of this paragraph called it a risk about a FUTURE DOMPurify default,
+ * which read as "nothing to do today" and routed the reader straight past a live
+ * hole: `action` was already permitted, already navigating, and already absent
+ * from the list at the moment that sentence was written. C-4 is what that
+ * mis-tensing cost. THIS LIST IS AN ENUMERATION AND IT IS ONLY AS CURRENT AS ITS
+ * LAST MEASUREMENT -- today, right now, no check anywhere reconciles it against
+ * what DOMPurify actually permits. The reconciliation that would make it
+ * self-checking (walk DOMPurify's allowed-attribute set, assert that nothing
+ * navigable is missing from here) IS NOT BUILT. Until it is, every DOMPurify
+ * upgrade silently re-opens this question and nothing will fail to tell you.
  */
-const LINK_ATTRS = ['href', 'xlink:href'] as const;
+const LINK_ATTRS = ['href', 'xlink:href', 'action'] as const;
 
 /**
  * THE DECISION IS THE PLATFORM PARSER'S, NOT A PATTERN'S.
@@ -194,13 +213,29 @@ function isPermitted(raw: string): boolean {
  * pinned as a fixture so the trade is visible and reversible in one place.
  *
  * SCOPE, STATED RATHER THAN IMPLIED. This hook governs the attributes in
- * `LINK_ATTRS` -- `href` and `xlink:href` -- on EVERY element DOMPurify keeps,
- * not only on anchors; `<area href>` is policed by the same pass, and that arm
- * is pinned. `src` (markdown images, `<svg><image>`) is NOT routed through
- * `safeHref`: a credential-bearing image URL is a different shape of the same
- * class -- it leaks on render rather than on click -- and closing it was
- * outside the task that produced the hook. It is recorded in the project log,
- * not closed here.
+ * `LINK_ATTRS` -- `href`, `xlink:href` and `action` -- on EVERY element
+ * DOMPurify keeps, not only on anchors; `<area href>` and `<form action>` are
+ * policed by the same pass, and both arms are pinned.
+ *
+ * WHAT IS ACCEPTED, SIZED HONESTLY. `src` is NOT routed through `safeHref`: a
+ * credential-bearing image URL is a different shape of the same class -- it
+ * leaks ON RENDER rather than on click, with no interaction at all -- and it is
+ * owner-ruled, not re-litigated here.
+ *
+ * BUT THE ACCEPTED RISK IS FOUR ATTRIBUTES WIDE, NOT ONE. An earlier version of
+ * this paragraph named `src` alone, which sized the exposure at a quarter of
+ * what it is. Measured on this pipeline, all four survive sanitising with the
+ * credentials intact and all four fetch without a click:
+ *
+ *   src         <img src>, markdown images, <svg><image>
+ *   srcset      <img srcset="…evil.example/x.png 1x">
+ *   poster      <video poster>
+ *   background  <table background> and <td background>, both kept
+ *
+ * The RULING on `src` is unchanged and no guard is added for any of them. What
+ * changes is only the count: a disclosure that understates its own scope is not
+ * a disclosure, and whoever revisits the ruling should be revisiting four
+ * attributes. Recorded in the project log, not closed here.
  *
  * NOT MEASURED: whether a `title` attribute on a non-HTML element (the SVG
  * anchor above) surfaces as a tooltip in any browser. The refusal is effective
