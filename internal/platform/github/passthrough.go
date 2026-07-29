@@ -1176,6 +1176,43 @@ func (s *GitHubPassThroughStore) LabelDeltaLifecycleStages(ctx context.Context, 
 	return before, after
 }
 
+// LabelDeltaLifecycleStagesNarrow reports the stages THIS deployment will
+// really believe the task names once the delta lands — the AFTER endpoint under
+// the read predicate, with no config-blind widening.
+//
+// It is the subtrahend of the DEPARTURE difference, and it exists because the
+// AFTER endpoint above cannot serve both directions at once.
+//
+// LabelDeltaLifecycleStages widens AFTER so that ENTERING a stage is priced
+// against what a label could ever mean rather than what today's config says.
+// That widening is fail-CLOSED for entries and fail-OPEN for departures: it
+// restores the very element a caller is removing, so the departure difference
+// collapses to empty and leaving a lifecycle stage costs nothing. MEASURED at
+// 2ffc22a, OPEN issue carrying ft:stage/completed and ft:stage/wont_fix:
+//
+//	add_labels=[stage/wont_fix]  remove_labels=[ft:stage/wont_fix]
+//	  read predicate   [completed wont_fix] -> [completed]   wont_fix DEPARTS
+//	  union AFTER      [completed wont_fix]                  restored, FREE
+//
+// The write really does land — afterwards the authoritative stage set is
+// [completed] — and the union priced it at nothing.
+//
+// THIS IS DELIBERATELY THE SAME COMPUTATION AS THE BEFORE ENDPOINT, applied to
+// the post-delta labels. Both sides of a difference must be computed by the same
+// predicate, or the difference reports the disagreement between two predicates
+// instead of the effect of the edit — and a spurious departure is a denial of
+// legitimate work.
+//
+// The delta is applied to the labels the caller named, exactly as above, and
+// canonicalisation is NOT applied here: canonicalising the additions would hand
+// this a spelling the caller never sent. See LabelDeltaLifecycleStages.
+func (s *GitHubPassThroughStore) LabelDeltaLifecycleStagesNarrow(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) []task.Stage {
+	if s.mapper == nil {
+		return []task.Stage{t.Stage}
+	}
+	return s.currentLifecycleStages(t, applyLabelDelta(t.Labels, addLabels, removeLabels))
+}
+
 // unionStages merges two lifecycle stage sets, preserving the order of the
 // first and appending anything only the second names.
 //

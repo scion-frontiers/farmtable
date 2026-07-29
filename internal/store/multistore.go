@@ -239,8 +239,9 @@ func (m *MultiStore) ClaimTask(ctx context.Context, id uuid.UUID, assigneeID uui
 // one-element fallback: no compile error, no failing test, and the #194 round-5
 // label-write gates inert. See F6.
 var (
-	_ LifecycleStager         = (*MultiStore)(nil)
-	_ LifecycleStageSetStager = (*MultiStore)(nil)
+	_ LifecycleStager               = (*MultiStore)(nil)
+	_ LifecycleStageSetStager       = (*MultiStore)(nil)
+	_ LifecycleStageDepartureStager = (*MultiStore)(nil)
 )
 
 // LifecycleStage implements LifecycleStager by routing to the store that owns
@@ -288,6 +289,34 @@ func (m *MultiStore) LabelDeltaLifecycleStages(ctx context.Context, t *ent.Task,
 		return current, current
 	}
 	return stager.LabelDeltaLifecycleStages(ctx, t, addLabels, removeLabels)
+}
+
+// LabelDeltaLifecycleStagesNarrow implements LifecycleStageDepartureStager by
+// routing to the store that owns the task's collection, exactly as the methods
+// above do.
+//
+// THIS FORWARDER IS LOAD-BEARING AND ITS ABSENCE IS SILENT. MEASURED: with the
+// directional split in place at every other layer but this method missing,
+// PriceLabelWrite's type assertion failed on MultiStore, the narrow AFTER
+// endpoint fell back to the WIDE one, every departure difference computed as
+// empty, and the #194 D1 free-departure oracle stayed RED with no compile error
+// and no other test complaining. That is the F6 hazard this var block exists to
+// catch, reproduced exactly: losing a method demotes every routed store to the
+// one-element fallback and quietly makes the gate inert. The compile-time
+// assertion above now covers this interface too.
+//
+// As with the methods above, the inner store's answer is propagated VERBATIM,
+// including an empty one, so that a contract violation reaches the single rule
+// in PriceLabelWrite that denies it rather than being absorbed by a second copy
+// of the fallback. See B2 / B4.
+func (m *MultiStore) LabelDeltaLifecycleStagesNarrow(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) []task.Stage {
+	stager, ok := m.storeForCtx(ctx, t.CollectionID).(LifecycleStageDepartureStager)
+	if !ok {
+		// A store whose labels cannot move the stage names exactly the one
+		// stage in its column, before and after. Correct, not a stub.
+		return []task.Stage{m.LifecycleStage(ctx, t)}
+	}
+	return stager.LabelDeltaLifecycleStagesNarrow(ctx, t, addLabels, removeLabels)
 }
 
 // RestrictLabelWriteToSnapshot implements SnapshotLabelWriteRestrictor by

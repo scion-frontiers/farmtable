@@ -246,19 +246,193 @@ func RestrictLabelWriteToSnapshot(ctx context.Context, s Store, t *ent.Task, add
 	return restrictor.RestrictLabelWriteToSnapshot(ctx, t, addLabels, removeLabels)
 }
 
-// SameStageSet reports whether two lifecycle stage sets name the same stages.
-// Both are produced in a deterministic order by the same function, so this
-// compares them elementwise.
+// SameStageSet reports whether two lifecycle stage sets name the same stages,
+// IGNORING ORDER.
+//
+// It used to compare elementwise, licensed by a docblock claiming both sides
+// were "produced in a deterministic order by the same function". ON THE WRITE
+// PATH THEY WERE NOT: BEFORE came from AllTerminalLabelStages and AFTER came
+// from unionStages, which APPENDS. So a permutation read as a transition and an
+// identical order read as a no-op, and the authorization outcome was decided by
+// where the union happened to append — an undeclared authorization change riding
+// on any upstream reordering. See #194 D2.
+//
+// Making this a real set comparison is only safe BECAUSE the departure decision
+// no longer runs through it. Under the old shape this change would have WIDENED
+// D1: the elementwise comparison caught some masked removals by accident, purely
+// because the restored element landed in a different position. That accident was
+// the only thing standing between a permutation and a free departure. Departures
+// are now priced explicitly by PriceLabelWrite, so the accident is not needed and
+// its loss costs nothing.
 func SameStageSet(a, b []task.Stage) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := range a {
-		if a[i] != b[i] {
+	counts := make(map[task.Stage]int, len(a))
+	for _, s := range a {
+		counts[s]++
+	}
+	for _, s := range b {
+		counts[s]--
+		if counts[s] < 0 {
 			return false
 		}
 	}
 	return true
+}
+
+// StageSetDifference returns the stages in a that are not in b, preserving a's
+// order.
+//
+// Order is preserved rather than sorted because these sets are rendered into
+// authorization error messages, and a set whose order depends on map iteration
+// produces a different message on every run.
+func StageSetDifference(a, b []task.Stage) []task.Stage {
+	if len(a) == 0 {
+		return nil
+	}
+	in := make(map[task.Stage]bool, len(b))
+	for _, s := range b {
+		in[s] = true
+	}
+	var out []task.Stage
+	for _, s := range a {
+		if !in[s] {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// LifecycleStageDepartureStager supplies the AFTER endpoint computed with the
+// READ predicate, for stores whose LabelDeltaLifecycleStages AFTER endpoint is
+// deliberately WIDER than what the deployment will actually believe.
+//
+// WHY A SECOND AFTER ENDPOINT EXISTS AT ALL. The price of a label edit is a SET
+// DIFFERENCE, and a safety margin behaves OPPOSITELY on the two sides of one:
+//
+//	a wider AFTER is fail-CLOSED for ENTERING a stage   (wider minuend, charges more)
+//	a wider AFTER is fail-OPEN   for LEAVING  one       (wider subtrahend, charges less)
+//
+// #194 round 11 correctly ruled that entries must be priced config-blindly — a
+// label must cost what it could EVER mean, not what today's config says — and
+// implemented that by widening the single AFTER endpoint. That endpoint was then
+// doing both jobs, and the widening restored the very stage a caller was
+// removing, so LEAVING A LIFECYCLE STAGE COST NOTHING.
+//
+// The round-11 monotonicity theorem (writePrice ⊇ readPrice) is TRUE and does
+// not help: it bounds the new price below by the old price, and for the
+// departure vector both are zero.
+//
+// THE RULE: A SAFETY MARGIN MUST NEVER LIVE INSIDE A SET DIFFERENCE. Departures
+// are computed with the read predicate on BOTH endpoints; the config-blind view
+// is confined to the ENTRY difference, where widening is fail-closed.
+//
+// Stores whose labels cannot move the lifecycle stage need not implement this.
+// PriceLabelWrite answers for them from LabelDeltaLifecycleStages, whose two
+// endpoints are equal there — so nothing departs and nothing is entered. That is
+// the correct answer and not a stub: for a native Ent-backed task the stage
+// lives in its own column and no label can forge it.
+type LifecycleStageDepartureStager interface {
+	// LabelDeltaLifecycleStagesNarrow reports the stages the deployment will
+	// REALLY believe the task names once the delta lands, under the config
+	// running today. It is never empty.
+	//
+	// It must be computed by the SAME predicate as the BEFORE endpoint of
+	// LabelDeltaLifecycleStages. An implementation that used a different one
+	// would report spurious departures wherever the two predicates merely
+	// disagree — and a spurious departure is a denial of legitimate work.
+	LabelDeltaLifecycleStagesNarrow(ctx context.Context, t *ent.Task, addLabels, removeLabels []string) []task.Stage
+}
+
+// LabelWritePrice is what a label edit costs, expressed as the transitions the
+// edit actually performs rather than as a cross product of endpoints.
+//
+// Round 11 charged every (from, to) pair in BEFORE × AFTER. Most such pairs are
+// not transitions at all — both endpoints persist across the edit — so the cross
+// product is a source of OVER-DENIAL, which was four of nine items on this
+// track. Departed and Entered name only what changed.
+type LabelWritePrice struct {
+	// Before is the stage set the deployment believes today, under the read
+	// predicate. Never empty.
+	Before []task.Stage
+
+	// After is the stage set the deployment will believe once the edit lands,
+	// under the SAME read predicate. Never empty.
+	After []task.Stage
+
+	// Departed are the stages the task really loses. Read predicate both sides.
+	Departed []task.Stage
+
+	// Entered are the stages the task could gain under ANY deployment's config,
+	// not merely today's. Config-blind, because widening is fail-closed here.
+	Entered []task.Stage
+}
+
+// Transitions returns the (from, to) pairs this edit performs, for pricing.
+//
+// THE PRICING RULE LIVES HERE, IN ONE PLACE, ON PURPOSE. It used to be written
+// out at each gate site in internal/server/server.go, and all three copies
+// carried the same defect because the shape was duplicated rather than shared.
+//
+// An entry is priced as a move from where the task is now; a departure as a move
+// to where it ends up. Both counterparts come from the READ predicate, so
+// neither is inflated by the config-blind view.
+func (p LabelWritePrice) Transitions() [][2]task.Stage {
+	if len(p.Departed) == 0 && len(p.Entered) == 0 {
+		return nil
+	}
+	out := make([][2]task.Stage, 0, len(p.Entered)+len(p.Departed))
+	if len(p.Before) > 0 {
+		for _, to := range p.Entered {
+			out = append(out, [2]task.Stage{p.Before[0], to})
+		}
+	}
+	if len(p.After) > 0 {
+		for _, from := range p.Departed {
+			out = append(out, [2]task.Stage{from, p.After[0]})
+		}
+	}
+	return out
+}
+
+// PriceLabelWrite reports what a label edit costs, as two independent set
+// differences.
+//
+// SUBSET PROPERTY, and it is the reason this is safe to land. Every pair this
+// returns was already charged by the round-11 cross product whenever that gate
+// fired at all: Entered ⊆ wide AFTER and After ⊆ wide AFTER, so every pair here
+// appears in BEFORE × wide AFTER. The ONLY case where this charges something
+// round 11 did not is the case where round 11 charged NOTHING because the union
+// pushed AFTER back onto BEFORE and SameStageSet reported a no-op — the free
+// departure, which is the defect.
+//
+// So: strictly fewer denials everywhere, except the one place that must deny.
+func PriceLabelWrite(ctx context.Context, s Store, t *ent.Task, addLabels, removeLabels []string) (LabelWritePrice, error) {
+	before, wideAfter, err := LabelDeltaLifecycleStages(ctx, s, t, addLabels, removeLabels)
+	if err != nil {
+		return LabelWritePrice{}, err
+	}
+
+	narrowAfter := wideAfter
+	if stager, ok := s.(LifecycleStageDepartureStager); ok {
+		na := stager.LabelDeltaLifecycleStagesNarrow(ctx, t, addLabels, removeLabels)
+		// Same rule as LabelDeltaLifecycleStages and for the same reason: an
+		// empty set means "names no stage", which spends nothing and ALLOWS.
+		// A broken store must not become a silently open gate. See F7.
+		if len(na) == 0 {
+			return LabelWritePrice{}, fmt.Errorf(
+				"%w: LabelDeltaLifecycleStagesNarrow", ErrEmptyLifecycleStageSet)
+		}
+		narrowAfter = na
+	}
+
+	return LabelWritePrice{
+		Before:   before,
+		After:    narrowAfter,
+		Departed: StageSetDifference(before, narrowAfter),
+		Entered:  StageSetDifference(wideAfter, before),
+	}, nil
 }
 
 type CreateTaskParams struct {

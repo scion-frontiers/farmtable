@@ -826,34 +826,53 @@ func (s *FarmTableService) UpdateTask(ctx context.Context, req *pb.UpdateTaskReq
 	// and it survives label stripping; see the REV9 test in
 	// authz_label_write_scope_test.go.
 	//
-	// Nothing changes for native Ent-backed tasks: their stage lives in its own
-	// column, no label can forge it, so LabelDeltaLifecycleStages reports
-	// before == after and this block is inert.
 	// Both endpoints are SETS, for the same reason the stage arm above reads
 	// one: a comparison between two tiebreak winners is blind to an edit that
 	// swaps one of several present terminal labels for another, and "nothing
 	// changed" is exactly the answer that costs nothing. Removing
 	// ft:stage/wont_fix from an issue also carrying ft:stage/completed erases a
-	// maintainer's decline while leaving the winner untouched. So compare the
-	// sets, and when they differ charge for every (from, to) pair — the
-	// strongest scope any pair implies is the one the caller must hold.
+	// maintainer's decline while leaving the winner untouched.
+	//
+	// THE PRICE IS DIRECTIONAL (#194 round 12). This used to compare the two
+	// endpoints for equality and, when they differed, charge the whole cross
+	// product BEFORE × AFTER. Both halves of that were wrong:
+	//
+	// THE EQUALITY GATE WAS FAIL-OPEN. The AFTER endpoint is deliberately
+	// widened so that ENTERING a stage is priced against what a label could ever
+	// mean rather than what today's config says. Widening is fail-closed for
+	// entries and fail-OPEN for departures — it restored the element being
+	// removed, the endpoints compared equal, and this entire block was skipped.
+	// A caller holding only task:write could strip a lifecycle stage for free.
+	// A SAFETY MARGIN MUST NEVER LIVE INSIDE A SET DIFFERENCE.
+	//
+	// THE CROSS PRODUCT WAS OVER-DENIAL. Most (from, to) pairs are not
+	// transitions at all — both endpoints persist across the edit — and charging
+	// them denied legitimate work. Over-denial was four of nine items on this
+	// track.
+	//
+	// PriceLabelWrite computes departures and entries as two independent set
+	// differences and returns only the transitions the edit really performs.
+	// Every pair it returns was already in the old cross product, so this cannot
+	// deny anything the old shape permitted — EXCEPT the free departure, which is
+	// the defect. Order-sensitivity goes with it: a set difference does not care
+	// where unionStages appended.
+	//
+	// Nothing changes for native Ent-backed tasks: their stage lives in its own
+	// column, no label can forge it, so both endpoints are equal, nothing departs
+	// or is entered, and this block is inert.
 	if len(req.GetAddLabels()) > 0 || len(req.GetRemoveLabels()) > 0 {
-		before, after, err := store.LabelDeltaLifecycleStages(
+		price, err := store.PriceLabelWrite(
 			ctx, s.store, existing, req.GetAddLabels(), req.GetRemoveLabels())
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "resolving label lifecycle delta: %v", err)
 		}
-		if !store.SameStageSet(before, after) {
-			for _, from := range before {
-				for _, to := range after {
-					labelScope := TransitionScope(string(from), string(to))
-					if labelScope == ScopeTaskWrite {
-						continue
-					}
-					if err := RequireScope(ctx, labelScope); err != nil {
-						return nil, err
-					}
-				}
+		for _, tr := range price.Transitions() {
+			labelScope := TransitionScope(string(tr[0]), string(tr[1]))
+			if labelScope == ScopeTaskWrite {
+				continue
+			}
+			if err := RequireScope(ctx, labelScope); err != nil {
+				return nil, err
 			}
 		}
 	}

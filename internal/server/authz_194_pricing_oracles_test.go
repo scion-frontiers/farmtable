@@ -38,18 +38,32 @@ import (
 
 // ── THE GATE SITES ──────────────────────────────────────────────────────────
 //
-// There are THREE store.SameStageSet call sites in internal/server/server.go,
-// not one. An oracle written against a single site goes red, gets fixed, and
-// then stays green while the other two still carry the bypass — which is the
-// error the round-9 brief made and which both review legs named as its most
-// material defect.
+// There are THREE label-write pricing sites in internal/server/server.go, not
+// one. An oracle written against a single site goes red, gets fixed, and then
+// stays green while the other two still carry the bypass — which is the error
+// the round-9 brief made and which both review legs named as its most material
+// defect.
 //
 // Sites are addressed by the RPC that OWNS them, never by line number, so that
 // this table survives every edit above it.
+//
+// ROUND 12 MADE THE POPULATION HETEROGENEOUS, AND THE CENSUS IS ADDITIVE ABOUT
+// IT. UpdateTask now prices through store.PriceLabelWrite; CreateTask and
+// InsertTasksAfter still route through store.SameStageSet and were deliberately
+// left alone, because neither can be driven with a removal (see the verdicts
+// below). A census that swapped SameStageSet for PriceLabelWrite would have
+// quietly dropped those two sites out of the population and reported THREE
+// where it was counting ONE. The detector therefore recognises BOTH gate
+// functions and additionally pins WHICH one each RPC routes through: migrating
+// a site is then a row somebody has to edit, not a count that silently holds.
 type pricingGateSite struct {
 	// rpc is the enclosing method identifier, and is the join key against the
 	// AST census in TestPricingGateSiteCensus below.
 	rpc string
+
+	// gate is the store-package function this RPC prices through. Pinned so
+	// that moving a site between gate shapes is a visible decision.
+	gate string
 
 	// removalReachable records whether a caller can drive this site with a
 	// label REMOVAL. Only UpdateTask accepts remove_labels; the two creating
@@ -71,6 +85,7 @@ func pricingGateSites() []pricingGateSite {
 	return []pricingGateSite{
 		{
 			rpc:              "CreateTask",
+			gate:             "SameStageSet",
 			removalReachable: false,
 			why: "CreateTask prices req.GetLabels() as ADDITIONS against a synthetic " +
 				"&ent.Task{Stage: stage} carrying no labels. BEFORE is therefore " +
@@ -80,6 +95,7 @@ func pricingGateSites() []pricingGateSite {
 		},
 		{
 			rpc:              "InsertTasksAfter",
+			gate:             "SameStageSet",
 			removalReachable: false,
 			why: "InsertTasksAfter creates every step in triage from a NewTaskSpec " +
 				"that has no remove_labels field and no stage field. BEFORE is " +
@@ -88,10 +104,12 @@ func pricingGateSites() []pricingGateSite {
 		},
 		{
 			rpc:              "UpdateTask",
+			gate:             "PriceLabelWrite",
 			removalReachable: true,
 			why: "UpdateTask is the only RPC that accepts remove_labels and the only " +
 				"one whose BEFORE endpoint is read from a task that already carries " +
-				"labels. This is where D1 is live.",
+				"labels. This is where D1 was live, and it is the ONLY site round 12 " +
+				"repriced — precisely because it is the only one a removal can reach.",
 		},
 	}
 }
@@ -108,6 +126,26 @@ func pricingGateSites() []pricingGateSite {
 // pricingGateSites AND WORK OUT ITS REACHABILITY VERDICT. Do not raise a
 // number. The point of the census is that a new gate site is a decision
 // somebody has to make, not a constant somebody has to bump.
+//
+// THE RECOGNISED SET IS ADDITIVE AND MUST STAY THAT WAY. When round 12 moved
+// UpdateTask from SameStageSet to PriceLabelWrite, the tempting edit was to
+// swap the name the AST walk matches. That edit would have left this test GREEN
+// while counting ONE site and believing it had counted three: CreateTask and
+// InsertTasksAfter would have vanished from the population, taking their
+// reachability verdicts with them, and the census would have gone on reporting
+// success about a question it was no longer asking. Recognise BOTH. Adding a
+// gate shape is an append to pricingGateFuncs; it is never a substitution.
+func pricingGateFuncs() map[string]bool {
+	return map[string]bool{
+		// The pre-round-12 equality gate. Still live at CreateTask and
+		// InsertTasksAfter, neither of which a removal can reach.
+		"SameStageSet": true,
+		// The round-12 directional gate: departures and entries priced as two
+		// independent set differences. Live at UpdateTask.
+		"PriceLabelWrite": true,
+	}
+}
+
 func TestPricingGateSiteCensus(t *testing.T) {
 	const src = "server.go"
 
@@ -117,7 +155,10 @@ func TestPricingGateSiteCensus(t *testing.T) {
 		t.Fatalf("parsing %s: %v", src, err)
 	}
 
+	gates := pricingGateFuncs()
+
 	found := map[string]int{}
+	gateOf := map[string][]string{}
 	for _, decl := range file.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok {
@@ -129,7 +170,7 @@ func TestPricingGateSiteCensus(t *testing.T) {
 				return true
 			}
 			sel, ok := call.Fun.(*ast.SelectorExpr)
-			if !ok || sel.Sel.Name != "SameStageSet" {
+			if !ok || !gates[sel.Sel.Name] {
 				return true
 			}
 			pkg, ok := sel.X.(*ast.Ident)
@@ -137,6 +178,7 @@ func TestPricingGateSiteCensus(t *testing.T) {
 				return true
 			}
 			found[fn.Name.Name]++
+			gateOf[fn.Name.Name] = append(gateOf[fn.Name.Name], sel.Sel.Name)
 			return true
 		})
 	}
@@ -150,23 +192,53 @@ func TestPricingGateSiteCensus(t *testing.T) {
 	sort.Strings(gotRPCs)
 
 	wantRPCs := make([]string, 0, len(pricingGateSites()))
+	wantGate := map[string]string{}
 	for _, s := range pricingGateSites() {
 		wantRPCs = append(wantRPCs, s.rpc)
+		wantGate[s.rpc] = s.gate
 	}
 	sort.Strings(wantRPCs)
 
 	if strings.Join(gotRPCs, ",") != strings.Join(wantRPCs, ",") {
-		t.Fatalf("store.SameStageSet gate sites in %s are owned by %v, but the "+
-			"pricingGateSites table declares %v (total call sites: %d).\n"+
+		t.Fatalf("label-write pricing sites in %s are owned by %v, but the "+
+			"pricingGateSites table declares %v (total call sites: %d, gate "+
+			"functions recognised: %v).\n"+
 			"A gate site that is not in the table is a gate nobody wrote an oracle "+
-			"for. Add the row and decide its reachability verdict.",
-			src, gotRPCs, wantRPCs, total)
+			"for. Add the row and decide its reachability verdict.\n"+
+			"If instead a site DISAPPEARED, check it did not simply move to a gate "+
+			"function this census does not recognise — that is the failure mode "+
+			"this list is additive to prevent.",
+			src, gotRPCs, wantRPCs, total, sortedKeys(gates))
 	}
 	if total != len(wantRPCs) {
-		t.Fatalf("%d store.SameStageSet calls spread over %d RPCs %v: some RPC "+
-			"carries the guard more than once, so a per-RPC row no longer "+
-			"describes a single gate. Split the table.", total, len(gotRPCs), gotRPCs)
+		t.Fatalf("%d pricing calls spread over %d RPCs %v: some RPC carries the "+
+			"guard more than once, so a per-RPC row no longer describes a single "+
+			"gate. Split the table.", total, len(gotRPCs), gotRPCs)
 	}
+
+	// WHICH gate, not merely THAT there is one. A site silently migrating
+	// between gate shapes changes its security properties — PriceLabelWrite
+	// charges departures, SameStageSet does not — so the routing is pinned.
+	for rpc, got := range gateOf {
+		if len(got) == 1 && got[0] == wantGate[rpc] {
+			continue
+		}
+		t.Errorf("%s prices through %v, but the table declares %q.\n"+
+			"Moving an RPC between gate shapes changes what it charges: "+
+			"PriceLabelWrite charges a DEPARTURE from a lifecycle stage, "+
+			"SameStageSet does not charge one at all. Update the row and state "+
+			"the reachability verdict that justifies the new shape.",
+			rpc, got, wantGate[rpc])
+	}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
