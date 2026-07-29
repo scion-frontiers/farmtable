@@ -106,10 +106,30 @@ export function getCapabilities(collection: Collection): CollectionCapabilities 
   // the platform check arms them together and turns an unvalidated uploaded map
   // into a privilege grant.
   //
-  // The GITHUB branch is separately unreachable-with-a-value today: see the
-  // WRITE-AUTHORIZATION GATE block in collectionToProto, in
-  // internal/server/convert.go, for the two producers of a GITHUB-platform
-  // collection object and why both currently yield null.
+  // The GITHUB branch is separately unreachable-with-a-value today, and the
+  // reason is a CONJUNCTION, not a count: the GitHub capability set is
+  // reachable only by a collection object carrying platform GITHUB *and* a
+  // remote_data map containing writable=true, TOGETHER, IN ONE OBJECT. No
+  // producer in this tree yields both. See the WRITE-AUTHORIZATION GATE block
+  // in collectionToProto, in internal/server/convert.go, which enumerates the
+  // producers under a SHA as an as-of-that-commit observation.
+  //
+  // NO NUMBER HERE ON PURPOSE. This sentence used to say "the two producers
+  // ... and why both currently yield null". That was wrong twice over.
+  //
+  // First, as a matter of fact: the census it points at names three producers
+  // whose platform can be GITHUB -- the CreateCollection RPC and
+  // EntStore.ImportCollection (both caller-controlled) and syntheticCollection
+  // (always GITHUB) -- so "two" and "both" were each false. That count is an
+  // observation of the census as it reads at the SHA the census stamps itself
+  // with, not an independent enumeration of this tree, and it is written here
+  // only to record what the old sentence got wrong.
+  //
+  // Second, and the reason no corrected number replaces it: a count is a
+  // population claim with nothing guarding it. The day someone adds a producer
+  // the sentence is false and no test goes red. The convert.go block states
+  // this rule for itself and asks callers not to reintroduce a count. This is
+  // that same rule, in the other language.
   if (collection.platform === Platform.FARMTABLE) {
     return ALL_ENABLED;
   }
