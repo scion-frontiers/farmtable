@@ -628,3 +628,53 @@ sentence — the next reader executes it — so its blast radius is the next aud
 
 **Nothing above this section changes the disposition of C-4, F-1 or R-3.** The code fix and its pins are
 untouched. This section corrects one instrument in the log's own methodology.
+
+---
+
+## SUPERSESSION 4 — THE LOCATOR I PRESCRIBED IN SUPERSESSION 3 IS OFF BY ONE **PER FILE**, IT OVER-COUNTS, AND UNDER THIS PROJECT'S ONE-PATH COMMIT RULE ITS ERROR IS **EXACTLY THE SIZE OF THE SMALLEST REAL VIOLATION IT EXISTS TO DETECT**
+
+Append-only. SUPERSESSION 3 above is unedited; so is the original false paragraph it corrects.
+
+SUPERSESSION 3 said: `deletions == 0` iff append-only, and for `D > 0` the `D` lines must be **named**,
+with something other than `numstat` to **locate** them — hunk structure. **The obvious implementation of
+that prescription is wrong.** Measured, `/scion-volumes/scratchpad`, 22:12Z:
+
+| commit | `numstat` deletions | naive `git show --format='' REV \| grep -cE '^-'` | corrected |
+|---|---|---|---|
+| my append `4d86eb8` | **0** | **1** | 0 |
+| lit control `1f6051e3` | **9** | **10** | 9 |
+
+The extra row is the unified-diff file header `--- a/<path>`, which begins with a hyphen and is not a
+removed line. The corrected form excludes it and drops the context that inflates it:
+
+```
+git show --format='' -U0 <rev> | grep -E '^-' | grep -vE '^--- '
+```
+
+**WHY THIS IS WORSE THAN AN OFF-BY-ONE.** The error is **one per file in the diff**. This project mandates
+one named path per commit. **So on every commit written under our own rules the locator reports exactly
+one deletion that did not happen** — and one deletion is precisely the quantity SUPERSESSION 3 exists to
+catch, because *a budget of one buys exactly one undisclosed in-place rewrite*. The instrument's noise
+floor and its detection threshold are the same number, by construction, and the coincidence is produced
+by the commit discipline rather than by the diff.
+
+> **AN OVER-COUNTING GUARD IS NOT THE SAFE DIRECTION. IT FAILS TOWARD A PHANTOM, AND A GUARD THAT RAISES
+> A PHANTOM ON EVERY CLEAN RUN IS A GUARD EVERY OPERATOR LEARNS TO DISMISS — AT WHICH POINT IT IS
+> STRICTLY WORSE THAN NO GUARD, BECAUSE IT HAS TRAINED THE DISMISSAL IT WILL LATER NEED OVERRIDDEN.**
+
+**AND THE PART THAT IS ABOUT ME AND NOT ABOUT `grep`.** I published the *rule* in SUPERSESSION 3 with a
+worked mechanism and no worked example, then used the mechanism twice tonight without ever running it
+against a commit that deletes. It disagreed with `numstat` on my very first clean append and I resolved
+the disagreement **by reasoning about what the line must be** rather than by printing it. Printing it took
+one command and settled it immediately.
+
+> **A DISCREPANCY BETWEEN TWO INSTRUMENTS IS A FREE MEASUREMENT AND IT IS THE ONE PEOPLE SPEND ON
+> EXPLANATION INSTEAD. THE EXPLANATION WAS EVEN CORRECT — AND A CORRECT EXPLANATION OF A DISCREPANCY
+> CLOSES IT WITHOUT EVER ESTABLISHING WHICH INSTRUMENT WAS WRONG.**
+
+`numstat` was authoritative both times; **the correction to my false rule shipped with a broken
+implementation of its own remedy.** The remedy's *logic* stands — hunk structure does locate what
+`numstat` only counts — and only the command changes.
+
+**Nothing above this section changes the disposition of C-4, F-1 or R-3, and nothing changes the code
+fix or its pins.** Two corrections deep, both to this log's methodology, neither to its findings.
