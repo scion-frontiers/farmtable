@@ -72,7 +72,9 @@ func TestMergeScopes(t *testing.T) {
 			wantSenti: errEmptyScopes,
 		},
 
-		// H1: add/remove on nil-scope (wildcard) token must error
+		// H1: add/remove on a nil-scope token must error. Such a token holds
+		// nothing and is denied everything, so there is no base set to add to
+		// or remove from; --set-scopes is the only coherent repair.
 		{
 			name:      "H1: add on nil-scope token errors",
 			current:   nil,
