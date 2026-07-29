@@ -1,0 +1,3 @@
+internal/platform/github/integration_test.go
+internal/server/server_postgres_test.go
+internal/store/entstore_postgres_test.go

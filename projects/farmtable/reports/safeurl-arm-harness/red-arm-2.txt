@@ -1,0 +1,202 @@
+
+ RUN  v3.2.7 /tmp/leg-safeurl/web
+
+stderr | test/deactivated-link.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<script>alert(1)</script>" as characters, not elements
+Error: Not implemented: window.alert
+    at module.exports (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/not-implemented.js:9:17)
+    at /workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/Window.js:960:7
+    at http://localhost:3000/:1:1
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:237:10)
+    at HTMLScriptElementImpl._innerEval (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:172:5)
+    at /workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:113:12
+    at ResourceQueue.push (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/resources/resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:112:21) [90mundefined[39m
+
+stderr | test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "javascript:\"><script>alert(1)</script>" as characters, not elements
+Error: Not implemented: window.alert
+    at module.exports (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/not-implemented.js:9:17)
+    at /workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/Window.js:960:7
+    at http://localhost:3000/:1:1
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:237:10)
+    at HTMLScriptElementImpl._innerEval (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:172:5)
+    at /workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:113:12
+    at ResourceQueue.push (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/resources/resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:112:21) [90mundefined[39m
+
+stderr | test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<iframe src=\"javascript:alert(1)\"></iframe>" as characters, not elements
+Error: Not implemented: window.alert
+    at module.exports (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/not-implemented.js:9:17)
+    at /workspace/farmtable/web/node_modules/jsdom/lib/jsdom/browser/Window.js:960:7
+    at eval (eval at exports.evaluateJavaScriptURL (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/window/navigation.js:13:21), <anonymous>:1:1)
+    at eval (<anonymous>)
+    at exports.evaluateJavaScriptURL (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/window/navigation.js:13:21)
+    at loadFrame (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLFrameElement-impl.js:172:20)
+    at HTMLIFrameElementImpl._attach (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/HTMLFrameElement-impl.js:250:7)
+    at HTMLElementImpl._attach (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/Node-impl.js:262:15)
+    at HTMLElementImpl._attach (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/Element-impl.js:96:11)
+    at HTMLSpanElementImpl._attach (/workspace/farmtable/web/node_modules/jsdom/lib/jsdom/living/nodes/Node-impl.js:262:15) [90mundefined[39m
+
+ ❯ test/deactivated-link.test.ts (22 tests | 7 failed) 122ms
+   ✓ renderDeactivatedLink — the marker > renders an explicit inline deactivated marker 29ms
+   ✓ renderDeactivatedLink — the marker > places the marker adjacent to the copyable value, not elsewhere 5ms
+   ✓ renderDeactivatedLink — the value stays copyable > renders the original address as text 3ms
+   ✓ renderDeactivatedLink — the value stays copyable > carries the address in a text node, not in an attribute 3ms
+   ✓ renderDeactivatedLink — the value stays copyable > marks the value for whole-value selection so it can be copied in one gesture 3ms
+   ✓ renderDeactivatedLink — the value stays copyable > renders nothing at all when there is no address to copy 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "javascript:alert(document.domain)" 4ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "JaVaScRiPt:alert(1)" 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "  javascript:alert(1)  " 3ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==" 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "vbscript:msgbox(1)" 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "file:///etc/passwd" 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > renders no href for "http://evil.example/pr/1" 2ms
+   ✓ renderDeactivatedLink — no href, anywhere > positive control: this harness can render an href, so the assertions above are not vacuous 3ms
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<script>alert(1)</script>" as characters, not elements 13ms
+     → expected 'alert(1)' to be '<script>alert(1)</script>' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "javascript:\"><script>alert(1)</script>" as characters, not elements 3ms
+     → expected 'javascript:">alert(1)' to be 'javascript:"><script>alert(1)</script>' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<img src=x onerror=alert(1)>" as characters, not elements 4ms
+     → expected '' to be '<img src=x onerror=alert(1)>' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<svg onload=alert(1)>" as characters, not elements 3ms
+     → expected '' to be '<svg onload=alert(1)>' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "javascript:'><img src=x onerror=alert(1)>" as characters, not elements 3ms
+     → expected 'javascript:\'>' to be 'javascript:\'><img src=x onerror=aler…' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<iframe src=\"javascript:alert(1)\"></iframe>" as characters, not elements 22ms
+     → expected '' to be '<iframe src="javascript:alert(1)"></i…' // Object.is equality
+   × renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<a href=\"javascript:alert(1)\">click</a>" as characters, not elements 3ms
+     → expected 'click' to be '<a href="javascript:alert(1)">click</…' // Object.is equality
+   ✓ renderDeactivatedLink — XSS CANARY: the value is text, never markup > anti-vacuity: the payloads really would parse into elements if they were treated as markup 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<script>alert(1)</script>" as characters, not elements
+AssertionError: expected 'alert(1)' to be '<script>alert(1)</script>' // Object.is equality
+
+Expected: [32m"<script>alert(1)</script>"[39m
+Received: [31m"alert(1)"[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "javascript:\"><script>alert(1)</script>" as characters, not elements
+AssertionError: expected 'javascript:">alert(1)' to be 'javascript:"><script>alert(1)</script>' // Object.is equality
+
+Expected: [32m"javascript:">[7m<script>alert(1)</script>[27m"[39m
+Received: [31m"javascript:">[7malert(1)[27m"[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<img src=x onerror=alert(1)>" as characters, not elements
+AssertionError: expected '' to be '<img src=x onerror=alert(1)>' // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- <img src=x onerror=alert(1)>[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<svg onload=alert(1)>" as characters, not elements
+AssertionError: expected '' to be '<svg onload=alert(1)>' // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- <svg onload=alert(1)>[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "javascript:'><img src=x onerror=alert(1)>" as characters, not elements
+AssertionError: expected 'javascript:\'>' to be 'javascript:\'><img src=x onerror=aler…' // Object.is equality
+
+Expected: [32m"javascript:'>[7m<img src=x onerror=alert(1)>[27m"[39m
+Received: [31m"javascript:'>"[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<iframe src=\"javascript:alert(1)\"></iframe>" as characters, not elements
+AssertionError: expected '' to be '<iframe src="javascript:alert(1)"></i…' // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- <iframe src="javascript:alert(1)"></iframe>[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  test/deactivated-link.test.ts > renderDeactivatedLink — XSS CANARY: the value is text, never markup > renders "<a href=\"javascript:alert(1)\">click</a>" as characters, not elements
+AssertionError: expected 'click' to be '<a href="javascript:alert(1)">click</…' // Object.is equality
+
+Expected: [32m"[7m<a href="javascript:alert(1)">[27mclick[7m</a>[27m"[39m
+Received: [31m"click"[39m
+
+ ❯ test/deactivated-link.test.ts:162:33
+    160| 
+    161|       // 1. The payload survives verbatim as text the user can read an…
+    162|       expect(value.textContent).toBe(payload);
+       |                                 ^
+    163| 
+    164|       // 2. It did not become markup. These are the assertions that go…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 15 passed (22)
+   Start at  16:08:41
+   Duration  1.96s (transform 92ms, setup 36ms, collect 63ms, tests 122ms, environment 496ms, prepare 304ms)
+

@@ -1,0 +1,225 @@
+
+ RUN  v3.2.7 /workspace/ft-verify/web
+
+stderr | test/ft-inspector-relationships.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-kanban-view.contract.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-inspector-meta.state.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-kanban.drop-refusal-affordances.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-ready-queue-view.concurrent-reorder.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-dashboard-view.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-toolbar.contract.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/queue-ordering.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-inspector-changes.vocabulary.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-ready-queue-view.rank.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-inspector-meta.safe-url.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-ready-queue-view.availability.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-ready-queue-view.rank-adversarial.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-task-card.attention.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/attention-view.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-kanban.drop-refusal-affordances.test.ts > ft-kanban-column — a refusing lane looks refusing before the drop > carries no drop-refused class on a lane that accepts drops
+Element ft-kanban-column scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+stderr | test/queue-ordering.test.ts > ft-kanban-column — rendered ordering > renders cards in accepted-queue order, not input order
+Element ft-kanban-column scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+stderr | test/ft-inspector-changes.vocabulary.test.ts > ft-inspector-changes — deleted stage vocabulary
+Element ft-inspector-changes scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+stderr | test/ft-kanban-view.contract.test.ts > ft-kanban-view — stage mutation payload > sends only { stage } to updateTask and never a phase key
+Element ft-kanban-column scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+ ✓ test/ft-task-card.attention.test.ts (17 tests) 1211ms
+   ✓ ft-task-card — needs-attention badge > shows "Needs attention" when blocked by a WONT_FIX prerequisite  400ms
+ ✓ test/ft-ready-queue-view.availability.test.ts (17 tests) 1314ms
+   ✓ ft-ready-queue-view — server availability is authoritative > renders a task the server marks available even when the local fallback would reject it  398ms
+stderr | test/ft-ready-queue-view.concurrent-reorder.test.ts > ft-ready-queue-view — a reorder while another is still saving > releases the guard even when the reorder fails
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.concurrent-reorder.test.ts:158:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | test/ft-ready-queue-view.concurrent-reorder.test.ts > ft-ready-queue-view — rollback restores rank without clobbering concurrent edits > keeps a rename that arrived while the failing write was on the wire
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.concurrent-reorder.test.ts:190:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/ft-inspector-changes.vocabulary.test.ts (8 tests) 1999ms
+stderr | test/ft-ready-queue-view.concurrent-reorder.test.ts > ft-ready-queue-view — rollback restores rank without clobbering concurrent edits > still restores the rank of a task the store no longer holds a newer copy of
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.concurrent-reorder.test.ts:212:31
+[90m    at runNextTicks (node:internal/process/task_queues:60:5)[39m
+[90m    at processTimers (node:internal/timers:516:9)[39m
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/ft-inspector-meta.safe-url.test.ts (14 tests) 2090ms
+   ✓ ft-inspector-meta — hostile remoteUrl values > renders no link for javascript: remoteUrl  691ms
+ ✓ test/ft-ready-queue-view.concurrent-reorder.test.ts (6 tests) 2185ms
+   ✓ ft-ready-queue-view — a reorder while another is still saving > refuses the second gesture instead of interleaving its writes  889ms
+   ✓ ft-ready-queue-view — a reorder while another is still saving > tells the user why the second gesture did nothing  493ms
+stderr | test/ft-ready-queue-view.rank.test.ts > ft-ready-queue-view — server rejection > rolls the order back and surfaces a visible error
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.rank.test.ts:141:31
+[90m    at runNextTicks (node:internal/process/task_queues:60:5)[39m
+[90m    at processTimers (node:internal/timers:516:9)[39m
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | test/ft-ready-queue-view.rank.test.ts > ft-ready-queue-view — server rejection > rolls the whole band back when a renumber fails part way through
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.rank.test.ts:158:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/queue-ordering.test.ts (7 tests) 2410ms
+   ✓ ft-kanban-column — rendered ordering > renders cards in accepted-queue order, not input order  907ms
+   ✓ ft-ready-queue-view — rendered ordering > renders available rows in accepted-queue order  397ms
+stderr | test/ft-ready-queue-view.rank.test.ts > ft-ready-queue-view — server rejection > attaches the partial-renumber message when a renumber wrote more than once
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at RecordingClient.client.updateTaskResponse [90m(/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.rank.test.ts:191:53[90m)[39m
+    at RecordingClient.updateTask [90m(/workspace/ft-verify/web/[39mtest/helpers/fixtures.ts:126:43[90m)[39m
+    at FtReadyQueueView.reorder [90m(/workspace/ft-verify/web/[39msrc/components/ready-queue/ft-ready-queue-view.ts:459:43[90m)[39m
+
+stderr | test/ft-ready-queue-view.rank.test.ts > ft-ready-queue-view — server rejection > omits the partial-renumber message when only one rank was written
+Failed to update task rank; rolled back optimistic reorder Error: server said no
+    at [90m/workspace/ft-verify/web/[39mtest/ft-ready-queue-view.rank.test.ts:214:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/ft-inspector-meta.state.test.ts (15 tests) 3092ms
+   ✓ ft-inspector-meta — Hold row > shows the holdReasonLabel text in the Hold row for WAITING_FOR_INPUT  706ms
+   ✓ ft-inspector-meta — Availability row > renders an UNSPECIFIED reason identically to it not being sent at all  312ms
+ ✓ test/ft-ready-queue-view.rank.test.ts (18 tests) 3795ms
+   ✓ ft-ready-queue-view — rank mutation payload > sends only { rank } to updateTask  499ms
+   ✓ ft-ready-queue-view — rank mutation payload > writes a single task when the move lands in an open gap  501ms
+   ✓ ft-ready-queue-view — rank mutation payload > renumbers the band when no task has a rank yet, still writing only { rank }  307ms
+   ✓ ft-ready-queue-view — server rejection > rolls the order back and surfaces a visible error  485ms
+ ✓ test/ft-dashboard-view.test.ts (24 tests) 4010ms
+   ✓ ft-dashboard-view — state stat cards > renders the six state cards in a fixed order  508ms
+   ✓ ft-dashboard-view — state stat cards > counts a held active task in both the Active and the Held card  381ms
+   ✓ ft-dashboard-view — the Available card navigates to the Available Queue > exposes the Available card to the keyboard as a link  374ms
+ ✓ test/ft-kanban.drop-refusal-affordances.test.ts (27 tests) 5088ms
+   ✓ ft-kanban-column — a refusing lane looks refusing before the drop > carries no drop-refused class on a lane that accepts drops  392ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > writes nothing and says nothing when the card lands on the lane it came from  504ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > stays silent on a same-lane drop even when the board is read-only  407ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > does write when the card lands on a different lane  504ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > stays silent for a drop carrying an id that belongs to no task  390ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > emits exactly the terminalLaneToast text for the Won't Fix lane  300ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > refuses out loud when a card is dropped on the Duplicate lane  507ms
+   ✓ ft-kanban-view — dropping a card back on its own lane > emits exactly the terminalLaneToast text for the Duplicate lane  396ms
+stderr | test/attention-view.test.ts > attention filter — the board shows exactly the attention set > renders only the stranded task once the attention filter is applied
+Element ft-kanban-column scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+ ✓ test/ft-ready-queue-view.rank-adversarial.test.ts (31 tests) 5401ms
+   ✓ ft-ready-queue-view — a real drag gesture, not a synthesised drop > completes a dragover-then-drop sequence and persists the new rank  607ms
+   ✓ ft-ready-queue-view — reordering while a filter hides part of the band > writes exactly the same ranks whether or not the filter hides the neighbour  308ms
+   ✓ ft-ready-queue-view — a queue with no client attached > tells the user the order was not saved (finding F-3)  305ms
+stderr | test/ft-kanban-view.contract.test.ts > ft-kanban-view — server-rejected stage transitions > rolls the stage back in the store when updateTask rejects
+Failed to update task stage; rolled back optimistic change Error: PermissionDenied: missing task:accept scope
+    at [90m/workspace/ft-verify/web/[39mtest/ft-kanban-view.contract.test.ts:175:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/ft-inspector-relationships.test.ts (39 tests) 5903ms
+   ✓ ft-inspector-relationships — mounting > renders nothing when the task is cleared after having been set  406ms
+   ✓ ft-inspector-relationships — section scaffold > renders "None" in every section for a task with no relations  394ms
+   ✓ ft-inspector-relationships — dependency attention callout > still explains the problem read-only, but offers no actions  308ms
+stderr | test/ft-kanban-view.contract.test.ts > ft-kanban-view — server-rejected stage transitions > dispatches a composed, bubbling write-error carrying the rejection
+Failed to update task stage; rolled back optimistic change Error: PermissionDenied: missing task:accept scope
+    at [90m/workspace/ft-verify/web/[39mtest/ft-kanban-view.contract.test.ts:186:23
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ test/ft-toolbar.contract.test.ts (14 tests) 5408ms
+   ✓ ft-toolbar — native phase control contract > renders no phase-valued control anywhere in its shadow DOM  1600ms
+   ✓ ft-toolbar — native phase control contract > offers no user-selectable option carrying raw TaskPhase vocabulary  403ms
+   ✓ ft-toolbar — native phase control contract > emits filter-change payloads that carry no phase key  303ms
+   ✓ ft-toolbar — group filter > renders the active/closed group filter that replaced the phase filter  487ms
+   ✓ ft-toolbar — group filter > emits the selected group in the filter-change payload  311ms
+   ✓ ft-toolbar — stage filter > renders exactly the ten native stages as options  499ms
+   ✓ ft-toolbar — availability filter > emits the attention refinement as a string, not as a parsed number  395ms
+stderr | test/ft-kanban-view.contract.test.ts > ft-kanban-view — server-rejected stage transitions > tags the server failure with reason "stage-change-failed"
+Failed to update task stage; rolled back optimistic change Error: PermissionDenied: missing task:accept scope
+    at [90m/workspace/ft-verify/web/[39mtest/ft-kanban-view.contract.test.ts:204:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | test/attention-view.test.ts > attention view — reachable end to end from the toolbar > lists exactly the stranded task after choosing Needs attention in the toolbar
+Element ft-toolbar scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+Element ft-collection-picker scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+
+stderr | test/ft-kanban-view.contract.test.ts > ft-kanban-view — server-rejected stage transitions > snaps the card back to its ORIGINAL lane when the server rejects the move
+Failed to update task stage; rolled back optimistic change Error: PermissionDenied: missing task:accept scope
+    at [90m/workspace/ft-verify/web/[39mtest/ft-kanban-view.contract.test.ts:216:31
+    at [90mfile:///workspace/ft-verify/web/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | test/ft-inspector-header.availability.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-app.write-error-seam.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+stderr | test/ft-filter-chips.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+ ✓ test/attention-view.test.ts (17 tests) 5303ms
+   ✓ attention filter — the board shows exactly the attention set > renders only the stranded task once the attention filter is applied  1704ms
+   ✓ attention view — reachable end to end from the toolbar > lists exactly the stranded task after choosing Needs attention in the toolbar  1893ms
+   ✓ attention view — reachable end to end from the toolbar > shows the active filter as a chip a user can read  602ms
+   ✓ attention view — the tile lands the user on the set it counted > clicking the tile navigates to the board showing exactly the counted tasks  408ms
+ ✓ test/ft-inspector-header.availability.test.ts (16 tests) 620ms
+ ✓ test/safe-url.contract.test.ts (25 tests) 111ms
+stderr | test/ft-inspector-code.safe-url.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+ ✓ test/vocabulary.contract.test.ts (41 tests) 97ms
+ ✓ test/ft-filter-chips.test.ts (13 tests) 708ms
+stderr | test/ft-app.write-error.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+ ✓ test/ft-kanban-view.contract.test.ts (35 tests) 10287ms
+   ✓ ft-kanban-view — stage mutation payload > sends only { stage } to updateTask and never a phase key  1481ms
+   ✓ ft-kanban-view — stage mutation payload > moves the card into the drop-target lane on success  816ms
+   ✓ ft-kanban-view — board lanes > renders one lane per BOARD_COLUMNS entry, in order, with its stage label  411ms
+   ✓ ft-kanban-view — board lanes > renders the three unsuccessful terminal lanes  593ms
+   ✓ ft-kanban-view — board lanes > renders every native stage lane and no others  394ms
+   ✓ ft-kanban-view — board lanes > shows tasks in their own lane, including terminal stages  1107ms
+   ✓ ft-kanban-view — server-rejected stage transitions > rolls the stage back in the store when updateTask rejects  615ms
+   ✓ ft-kanban-view — server-rejected stage transitions > dispatches a composed, bubbling write-error carrying the rejection  484ms
+   ✓ ft-kanban-view — server-rejected stage transitions > tags the server failure with reason "stage-change-failed"  306ms
+   ✓ ft-kanban-view — server-rejected stage transitions > snaps the card back to its ORIGINAL lane when the server rejects the move  402ms
+   ✓ ft-kanban-view — refusals must be visible > gives visible feedback when a card is dropped on the WONT_FIX lane  305ms
+   ✓ ft-kanban-view — refusals must be visible > gives visible feedback when a card is dropped on the DUPLICATE lane  388ms
+ ✓ test/ft-app.write-error-seam.test.ts (13 tests) 1208ms
+   ✓ ft-app — a view refusal reaches the user as a toast > turns a kanban client-side refusal into a visible toast carrying the reason text  404ms
+ ✓ test/ft-inspector-code.safe-url.test.ts (11 tests) 772ms
+   ✓ ft-inspector-code — hostile pull request urls > renders no link for a javascript: pull request url  314ms
+ ✓ test/ft-app.write-error.test.ts (14 tests) 101ms
+
+ Test Files  22 passed (22)
+      Tests  422 passed (422)
+   Start at  14:46:37
+   Duration  19.11s (transform 9.14s, setup 2.23s, collect 26.60s, tests 63.11s, environment 104.12s, prepare 19.43s)
+

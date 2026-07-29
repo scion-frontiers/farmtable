@@ -1,0 +1,6 @@
+Compiling 5 Node test script(s) with tsconfig.test.json…
+Expected 5 compiled test script(s), found 4:
+  sources:  src/util/glob-positive-control.spec.ts, src/util/rank.test.ts, src/util/safe-url.test.ts, src/util/task-state-utils.test.ts, src/utils/task-ready.test.ts
+  compiled: .tmp-test/util/rank.test.js, .tmp-test/util/safe-url.test.js, .tmp-test/util/task-state-utils.test.js, .tmp-test/utils/task-ready.test.js
+Check the "include" list in tsconfig.test.json against SOURCE_RE/OUTPUT_RE
+in this script — all three must describe the same set of files.

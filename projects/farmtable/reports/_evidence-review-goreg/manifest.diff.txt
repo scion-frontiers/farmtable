@@ -1,0 +1,62 @@
+47a48
+> github.com/farmtable-io/farmtable/internal/platform/github	TestGitHubBuilderRepresentabilityAsymmetry
+48a50
+> github.com/farmtable-io/farmtable/internal/platform/github	TestIssueBuildRemoteDataIsNotStructpbRepresentable
+146a149,150
+> github.com/farmtable-io/farmtable/internal/server	TestDivergenceNoteRuleRejectsANoteThatDescribesNothing
+> github.com/farmtable-io/farmtable/internal/server	TestEphemeralGraphRouteDropsRemoteData
+177a182,184
+> github.com/farmtable-io/farmtable/internal/server	TestMapStringStringStaysUnrepresentable_GuardsO1
+> github.com/farmtable-io/farmtable/internal/server	TestNestedURLReachesTheWireWithoutRecursion
+> github.com/farmtable-io/farmtable/internal/server	TestNoteDeclaresBaseDependence
+181a189,190
+> github.com/farmtable-io/farmtable/internal/server	TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident
+> github.com/farmtable-io/farmtable/internal/server	TestPassthroughReadDropsUnsafeRemoteURL
+207a217
+> github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_AcceptsHTTPURLs
+218a229
+> github.com/farmtable-io/farmtable/internal/server	TestRPC_ImportCollection_RejectsScriptURLs
+231a243
+> github.com/farmtable-io/farmtable/internal/server	TestRPC_UpdateTask_AcceptsHTTPURLs
+235a248,249
+> github.com/farmtable-io/farmtable/internal/server	TestRPC_UpdateTask_RejectsScriptURLInPullRequest
+> github.com/farmtable-io/farmtable/internal/server	TestRPC_UpdateTask_RejectsScriptURLInRemoteURL
+238a253,265
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataDropIsLoggedWithOffendingKeys
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataDropLogIsSampled
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataDropLogIsSampledPerField
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataFuncIdentSeparatesMethodsFromFunctions
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataKeyClassification
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataKeysWrittenByAdaptersAreClassified
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataLiteralKeysIn
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataLogQuotesAttackerKeys
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataRepresentableMapLogsNothing
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataTraversalsTerminateOnACycle
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataUnrepresentableKeyIsNotAParadox
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataWriteIsSanitized
+> github.com/farmtable-io/farmtable/internal/server	TestRemoteDataWriteSitesSeesEveryShape
+255a283,288
+> github.com/farmtable-io/farmtable/internal/server	TestSanitizeAndImportAgreeAtEveryDepth
+> github.com/farmtable-io/farmtable/internal/server	TestSanitizeRemoteDataDoesNotMutateItsInput
+> github.com/farmtable-io/farmtable/internal/server	TestSanitizeRemoteDataRecursesThroughEveryCarrier
+> github.com/farmtable-io/farmtable/internal/server	TestSanitizeRemoteDataScrubsEveryURLCarrier
+> github.com/farmtable-io/farmtable/internal/server	TestSanitizeRemoteDataStopsAtTheDepthBound
+> github.com/farmtable-io/farmtable/internal/server	TestScannedServerPackageRemoteDataWriteSitesSanitize
+273a307
+> github.com/farmtable-io/farmtable/internal/server	TestSharedFixturesRecordRealDivergences
+275a310,311
+> github.com/farmtable-io/farmtable/internal/server	TestTaskToCreateParamsOmitsRemoteData
+> github.com/farmtable-io/farmtable/internal/server	TestTaskToProtoScrubsRemoteDataURLCarriers
+281a318
+> github.com/farmtable-io/farmtable/internal/server	TestURLBearingRemoteDataKeyClassification
+282a320
+> github.com/farmtable-io/farmtable/internal/server	TestValidateImportedTaskURLsReachesNestedCarriers
+284a323,325
+> github.com/farmtable-io/farmtable/internal/server	TestValidateURLFieldMatchesSharedFixtures
+> github.com/farmtable-io/farmtable/internal/server	TestValidateURLField_AcceptsHTTPAndHTTPS
+> github.com/farmtable-io/farmtable/internal/server	TestValidateURLField_RejectsScriptBearingSchemes
+503a545,548
+> github.com/farmtable-io/farmtable/internal/webguard	TestWebCensusAnchoringIsTopLevelOnly
+> github.com/farmtable-io/farmtable/internal/webguard	TestWebCensusDescendsIntoShippedSource
+> github.com/farmtable-io/farmtable/internal/webguard	TestWebRemoteDataCensusIsNonVacuous
+> github.com/farmtable-io/farmtable/internal/webguard	TestWebRemoteDataConsumersAreDeclared

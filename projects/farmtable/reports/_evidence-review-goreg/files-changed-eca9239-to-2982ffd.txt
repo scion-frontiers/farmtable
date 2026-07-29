@@ -1,0 +1,4 @@
+.design/project-log/2026-07-29-ci-review-findings.md
+.design/project-log/2026-07-29-ci-runner-red-arms.md
+.github/workflows/ci.yml
+Makefile

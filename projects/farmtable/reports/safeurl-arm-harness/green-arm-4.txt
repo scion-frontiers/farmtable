@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 /tmp/leg-safeurl/web
+
+stderr | test/deactivated-link.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+ ✓ test/deactivated-link.test.ts (22 tests) 95ms
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  16:08:55
+   Duration  1.94s (transform 289ms, setup 52ms, collect 64ms, tests 95ms, environment 535ms, prepare 517ms)
+

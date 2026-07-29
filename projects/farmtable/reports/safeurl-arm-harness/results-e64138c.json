@@ -1,0 +1,73 @@
+{
+ "MAIN.pristine": {
+  "denominator": 49,
+  "passed": 49,
+  "fails": []
+ },
+ "BRANCH.blocking": {
+  "denominator": 45,
+  "passed": 45,
+  "fails": []
+ },
+ "BRANCH.carveout": {
+  "denominator": 24,
+  "passed": 24,
+  "fails": []
+ },
+ "promotedRows": [
+  {
+   "id": 72,
+   "input": "https://user:pass@evil.example/",
+   "cls": "userinfo (RULED: reject)",
+   "arms": [
+    "BLOCKING",
+    "CARVEOUT"
+   ],
+   "src": [
+    "a9e49ff",
+    "9391a2a"
+   ],
+   "verdicts": {
+    "MAIN.pristine": "A",
+    "BRANCH.blocking": "R",
+    "BRANCH.carveout": "R"
+   }
+  },
+  {
+   "id": 74,
+   "input": "https://github.com@evil.example/",
+   "cls": "userinfo lookalike",
+   "arms": [
+    "BLOCKING",
+    "CARVEOUT"
+   ],
+   "src": [
+    "a9e49ff",
+    "9391a2a"
+   ],
+   "verdicts": {
+    "MAIN.pristine": "A",
+    "BRANCH.blocking": "R",
+    "BRANCH.carveout": "R"
+   }
+  },
+  {
+   "id": 75,
+   "input": "https://:pass@evil.example/",
+   "cls": "password-only userinfo",
+   "arms": [
+    "BLOCKING",
+    "CARVEOUT"
+   ],
+   "src": [
+    "a9e49ff",
+    "9391a2a"
+   ],
+   "verdicts": {
+    "MAIN.pristine": "A",
+    "BRANCH.blocking": "R",
+    "BRANCH.carveout": "R"
+   }
+  }
+ ]
+}

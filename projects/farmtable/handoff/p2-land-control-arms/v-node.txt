@@ -1,0 +1,15 @@
+Compiling 4 Node test script(s) with tsconfig.test.json…
+
+▶ .tmp-test/util/rank.test.js
+rank tests passed
+
+▶ .tmp-test/util/safe-url.test.js
+safe-url tests passed
+
+▶ .tmp-test/util/task-state-utils.test.js
+task-state-utils tests passed
+
+▶ .tmp-test/utils/task-ready.test.js
+task-ready tests passed
+
+4 Node test script(s) passed.

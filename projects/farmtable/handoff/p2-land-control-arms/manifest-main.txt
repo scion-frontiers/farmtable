@@ -1,0 +1,10 @@
+=== JS/TS TEST SUITE MEMBERSHIP ===
+web/package.json "test" = "rm -rf .tmp-test && tsc -p tsconfig.test.json && node --test .tmp-test/utils/task-ready.test.js"
+
+TEST FILES PRESENT IN TREE (1):
+  web/src/utils/task-ready.test.ts
+
+TEST FILES ACTUALLY EXECUTED BY `npm test` (1):
+  web/src/utils/task-ready.test.ts
+
+OK: every tracked JS/TS test file is executed by `npm test`. enumerated=1 executed=1 missing=0 (floor 1)

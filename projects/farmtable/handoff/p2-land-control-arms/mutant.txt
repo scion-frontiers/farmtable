@@ -1,0 +1,52 @@
+
+ RUN  v3.2.7 /workspace/ft-scratch-control/web
+
+stderr | test/ft-app.write-error-seam.test.ts
+Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+
+ ❯ test/ft-app.write-error-seam.test.ts (13 tests | 1 failed) 170ms
+   ✓ ft-app — a view refusal reaches the user as a toast > turns a kanban client-side refusal into a visible toast carrying the reason text 48ms
+   ✓ ft-app — a view refusal reaches the user as a toast > turns a queue client-side refusal into a visible toast carrying the reason text 17ms
+   ✓ ft-app — a view refusal reaches the user as a toast > shows the toast rather than only appending it to the document 7ms
+   ✓ ft-app — a view refusal reaches the user as a toast > maps a server write failure carried as detail.error through the error mapping 8ms
+   ✓ ft-app — a view refusal reaches the user as a toast > does not toast for an unrelated event that merely bubbles past 8ms
+   ✓ ft-app — a real refused gesture reaches the user as a toast > turns a real cross-band queue drop into a visible toast 19ms
+   ✓ ft-app — a real refused gesture reaches the user as a toast > lets the refusal escape the shadow boundary to a listener outside the app 11ms
+   ✓ ft-app — the four write-error reasons are each surfaced > surfaces a "stage-change-refused" write-error 5ms
+   ✓ ft-app — the four write-error reasons are each surfaced > surfaces a "stage-change-failed" write-error 9ms
+   ✓ ft-app — the four write-error reasons are each surfaced > surfaces a "rank-change-refused" write-error 7ms
+   ✓ ft-app — the four write-error reasons are each surfaced > surfaces a "rank-change-failed" write-error 7ms
+   ✓ ft-app — the four write-error reasons are each surfaced > prefers the explanatory message over the raw error when a renumber fails part way 7ms
+   × ft-app — the four write-error reasons are each surfaced > renders a refusal message as text, never as markup 15ms
+     → the message was parsed as HTML: expected <img src="x" …(1)></img> to be null
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/ft-app.write-error-seam.test.ts > ft-app — the four write-error reasons are each surfaced > renders a refusal message as text, never as markup
+AssertionError: the message was parsed as HTML: expected <img src="x" …(1)></img> to be null
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+<img
+  onerror="globalThis.__xss = 1"
+  src="x"
+/>
+
+ ❯ test/ft-app.write-error-seam.test.ts:360:74
+    358|     expect(alert, 'no toast was shown').toBeDefined();
+    359|     // The markup must not have been parsed into a node...
+    360|     expect(alert.querySelector('img'), 'the message was parsed as HTML…
+       |                                                                          ^
+    361|     // ...it must be visible to the user verbatim...
+    362|     expect(toastText()).toContain(hostile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  14:44:36
+   Duration  2.09s (transform 341ms, setup 22ms, collect 412ms, tests 170ms, environment 359ms, prepare 208ms)
+

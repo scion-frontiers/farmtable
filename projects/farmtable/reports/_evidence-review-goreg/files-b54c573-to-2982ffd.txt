@@ -1,0 +1,17 @@
+.design/project-log/2026-07-29-ci-manifest-glob-runner.md
+.design/project-log/2026-07-29-ci-review-findings.md
+.design/project-log/2026-07-29-ci-runner-red-arms.md
+.design/project-log/2026-07-29-web-test-runner.md
+.design/project-log/2026-07-29-xss-f4-render-sinks.md
+.design/project-log/2026-07-29-xss-url-scheme-union.md
+.github/workflows/ci.yml
+Dockerfile
+Dockerfile.server
+Makefile
+agents.md
+reports/dev-xss-union.md
+scripts/ci-suite-manifest.mjs
+web/package.json
+web/scripts/run-node-tests.mjs
+web/src/components/inspector/ft-inspector-desc.ts
+web/src/components/inspector/render-sink-xss.test.ts
