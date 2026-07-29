@@ -408,6 +408,40 @@ caught by grepping before it shipped.
   passing command proves nothing. **A guard that has only ever printed `0` has
   not been observed firing — it has been observed agreeing, and a guard wired to
   a constant zero is indistinguishable from a correct one on every passing
-  case.** The control is a command made to fail on purpose:
-  `sh -c 'exit 7' | tail -1` with `${pipestatus[1]}` prints **7**. Measured here,
-  in this tree, this round.
+  case.** So it needs a command made to fail on purpose — and the first control
+  written here, `sh -c 'exit 7'`, was itself too weak on two counts, both caught
+  by other legs and both re-measured in this tree before being written down:
+
+  - **A shell construct is not an external command.** `( exit 7 )` exercises the
+    shell's own bookkeeping. Re-run against real ones: `grep -q ZZNOMATCHZZ` on a
+    present file gives **1**, `grep` on a missing path gives **2**.
+  - **One nonzero value is not enough.** `false` always returns 1, so a guard
+    wired to a constant 1 passes a single-value check. Two *distinct* observed
+    values is the minimum that discriminates — hence 1 and 2 above.
+
+  **And the capture position matters more than the spelling.** Measured here:
+
+  | form | observed |
+  |---|---|
+  | pipeline, then `rc=${pipestatus[1]:-${PIPESTATUS[0]}}` immediately | `EXIT=1` ✓ |
+  | same, with one `echo` between the pipeline and the capture | **`EXIT=0`** |
+  | the raw read after an intervening command | **`RAW=[0]`**, not empty |
+
+  The intervening command does not blank `pipestatus`; **it resets it to its own
+  success.** So the clobber substitutes a *passing* value, and a `${rc:-MISSING}`
+  sentinel — which guards *absence* — is aimed at a rendering that cannot occur
+  in the failure case it appears to cover. `rc=` is visibly broken and invites a
+  second look; `EXIT=0` is invisibly broken and invites none.
+
+  **The rule is the sentence, not the form: capture immediately after the
+  pipeline, with nothing in between — not an `echo`, not a diagnostic. Print
+  afterwards, freely.** Pure assignment does not clobber, so
+  capture-by-assignment is correct and worth keeping; for more than one element,
+  snapshot on one line with `ps=("${pipestatus[@]}")`. A form quoted without that
+  sentence is a broken copy — *a form that is safe only when accompanied by a
+  discipline is not a control; it is a discipline with a helper.*
+
+  One more, found while measuring the above: `print "--- label ---"` fails in zsh
+  (`bad option: -`) while the script continues and the *numbers* print correctly.
+  A diagnostic that errors without stopping anything, beside a value that looks
+  fine, and a zero exit overall.
