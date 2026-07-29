@@ -134,10 +134,97 @@ referencing a commit that does not yet exist produces a right-format, wrong-valu
 identifier that no check catches. Cite only SHAs already returned by
 `git rev-parse`.
 
-## Phase 2
+## Phase 2 — status superseded below
 
-Not started, and cannot start. Running both implementations against a union table
+~~Not started, and cannot start. Running both implementations against a union table
 whose contested rows assert mutually exclusive verdicts would measure the
 disagreement, not resolve it. Once the policy question is ruled on, the losing
 side's contested rows are retired explicitly and the remaining uncontested rows
-become the merged table.
+become the merged table.~~
+
+Struck, not deleted: rulings arrived (C3 reject, C2 allow-by-default) and Phase 2
+ran. Results below.
+
+## Phase 2 — Arm A and Arm B, executed
+
+Full config-labelled table: the report. Harness and arm definitions mirrored to
+`/scion-volumes/scratchpad/projects/farmtable/reports/safeurl-arm-harness/` —
+those are non-ref artefacts and no bundle would carry them.
+
+Both pristine subjects were re-hashed to 659ef58 / d85bb5b before any run.
+
+**Arm A (conformance).** Each side passes its own rows completely — 49/49 and
+45/45, the control that proves the table was transcribed correctly. MAIN fails 23
+of BRANCH's 45; BRANCH fails 10 of MAIN's 49. **Each fails rows the other passes:
+the answer is a merge, not a winner.** After the C3 ruling retires MAIN's
+userinfo row, the only C2-independent conflict left is the **return contract**
+(row 44, `HtTpS://example.com` — identity vs normalisation).
+
+**Arm B (kill power).** Mutants are real: `numstat 1 63` for MAIN — independently
+reproducing dev-xss-r9's figure — and `1 25` for BRANCH. Neither is 0. The
+flag-on build is `1 2` and is labelled a **config selection, not a mutant**.
+
+- MAIN disarmed: 31 kill / **18 vacuous**
+- BRANCH disarmed: 41 kill / **4 vacuous**
+
+**The finding: MAIN's identity return contract cannot kill a passthrough, by
+construction.** MAIN asserts `safeHref(input) === input`; a passthrough returns
+`input`; so all 16 of MAIN's accept rows are vacuous — 0 kills from 16. BRANCH's
+normalising contract kills on 3 of its 5 accepts (78, 79, 80), staying vacuous
+only where the input is already normalised (77, 81). This is an oracle-strength
+argument and is independent of the C2 policy question.
+
+**18-vs-21 resolved by execution: 18 — and my derivation was wrong.** I had
+predicted 18 by subtracting BRANCH's 3 normalising accepts from 21 accepts across
+both sides. The measured 18 is `null` + `undefined` + MAIN's 16 accepts: same
+number, unrelated cause. Recorded because a right number from wrong reasoning is
+not evidence, and this is the third instance today of a right-format value with a
+wrong basis (after the unit label and the phantom SHA).
+
+## C1 decided on its merits — not carried forward as settled
+
+The coordinator reversed its own C1 hold once the C2 default flipped, because the
+precondition I had recorded (d85bb5b:65 kills http before host reasoning) no
+longer holds. Measured under the permissive branch:
+
+- `http://0x7f000001/x`, `http://0177.0.0.1/x` and fullwidth `http://127．0．0．1/x`
+  all normalise to hostname `127.0.0.1` and are **admitted** — exactly what
+  BRANCH's own test comment and its d85bb5b:16–22 docblock warned would happen.
+- `http://[::1]/x` is still **refused**, because `LOCAL_HOSTNAMES` holds only
+  `localhost` and `127.0.0.1`. The hex-encoded IPv4 loopback gets in; the IPv6
+  literal does not.
+
+Under allow-by-default http, C1 stops being about IPv6 and becomes: *is loopback
+a category to control separately from plaintext http?* If yes, `LOCAL_HOSTNAMES`
+is the wrong shape — it omits `[::1]` and is consulted only inside the http
+branch. Recommendation recorded; **nothing implemented**.
+
+## Row 62 is mislabelled, and the config split is what found it
+
+BRANCH names row 62 "backslash userinfo trick is rejected". Measured,
+`new URL('http://evil.example\\@localhost/')` yields hostname `evil.example`
+with `username` and `password` both empty. **There is no userinfo in it.** It is
+rejected purely because `http:` is blocked, so under the ruled allow-by-default
+the rejection evaporates while the name still claims a userinfo mechanism. Row 61
+(`http://localhost@evil.example/`) genuinely does carry userinfo and is correctly
+C2-independent. The two look like a matched pair and are not one. Flagged, not
+fixed.
+
+## Neither side implements the ruled default
+
+C2 was ruled plaintext http **allowed to any host** by default, switch blocking.
+MAIN has no switch. BRANCH's switch is loopback-scoped and polarity-inverted, and
+the ruling requires it renamed — `LOCAL_HTTP_LINKS_ENABLED` would govern *all*
+http, not local http, and would ship meaning the opposite of its name. Reject UX
+remains open; neither reject behaviour has been built against, so neither can
+become the default by being the one that exists.
+
+## Durability (defect-7 advisory, 15:41Z)
+
+`for-each-ref` does not list an unreachable tip and `git bundle --all` does not
+pack one, so both prescribed instruments are blind to the same class. Ran all
+three sweeps — fsck-unreachable, reflog, and `--all HEAD` — and verified by
+restoring the bundle rather than by `git bundle verify`. Durability numbers are
+in the report; the operative predicate is **"is this object absent from every
+store outside my container"**, not "is it reachable from origin/main", which
+false-positives on every unmerged branch.
