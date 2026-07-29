@@ -1,10 +1,20 @@
 name: CI
 
-# Runs on every pull request and on every push to the default branch.
+# Runs on every pull request, and on a push to ANY branch.
+#
+# The push trigger is deliberately not scoped to main. A gate that only watches
+# the default branch silently ignores every branch where work actually happens,
+# and that silence reads as a pass. This repository has a long-lived branch 39
+# commits ahead of main that nothing has ever compiled; a main-only trigger
+# would exclude precisely the tree that most needs watching.
+#
+# Consequence, accepted knowingly: a branch in this repository with an open pull
+# request gets two runs per push, one per event. Duplicate runs are cheap;
+# an unwatched branch is not.
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: ['**']
 
 # Least privilege. Every step below authenticates as the workflow's own
 # short-lived GITHUB_TOKEN, which GitHub mints per run and expires when the run
