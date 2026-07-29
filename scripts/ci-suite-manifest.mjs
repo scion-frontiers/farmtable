@@ -352,11 +352,51 @@ for (const leaf of leafCommands('test')) {
       .slice(1)
       .filter((a) => !a.startsWith('-'));
 
-    // `node --test <dir>`: the runner discovers every compiled test file under
-    // <dir>. What reaches <dir> is decided by the tsconfig, so credit a source
-    // file only if that tsconfig actually emits it. Without this the pipeline
-    // LOOKS like discovery while the compile step silently gates it.
+    // `node --test <positional>`: THE POSITIONAL MUST BE AN EXPLICIT FILE.
+    //
+    // What node does with a positional changed between the version this repo's
+    // containers run and the version ci.yml pins, and the change is silent:
+    //
+    //   node 20.20.2   node 22.23.1
+    //   ------------   ------------
+    //   `--test .tmp-test`              walks the dir   loads the dir AS A MODULE
+    //                                   1 pass, exit 0  MODULE_NOT_FOUND, exit 1
+    //   `--test '.tmp-test/**/*.js'`    literal path    glob-expands
+    //                                   ENOENT, exit 1  1 pass, exit 0
+    //   `--test` (no positional)        finds the       finds the .ts SOURCE and
+    //                                   compiled .js    fails it
+    //   `--test <file.js>`              1 pass          1 pass
+    //
+    // Measured locally against both binaries; the directory row is CI run
+    // 30458935255, which turned main red. Only the explicit-file row agrees
+    // across versions, so every other shape is refused here rather than left to
+    // be discovered by whichever node the next runner happens to pin.
     if (flags.includes('--test')) {
+      if (args.length === 0) {
+        unanalysable.push(
+          `${t} -> \`node --test\` with no positional: node 20 discovers the ` +
+            'compiled output, node 22 discovers the TypeScript sources instead',
+        );
+        continue;
+      }
+      let bad = false;
+      for (const a of args) {
+        if (a.includes('*')) {
+          unanalysable.push(
+            `${t} -> glob positional '${a}': expanded by node 22, taken as a ` +
+              'literal path by node 20 (ENOENT). Name the files.',
+          );
+          bad = true;
+        } else if (!/\.[cm]?js$/.test(a)) {
+          unanalysable.push(
+            `${t} -> directory positional '${a}': node 20 walks it, node 22 ` +
+              'loads it as a module and fails with MODULE_NOT_FOUND. Name the files.',
+          );
+          bad = true;
+        }
+      }
+      if (bad) continue;
+
       if (!compileConfig) {
         unanalysable.push(
           `${t} -> node --test with no preceding \`tsc -p <config>\`; ` +
@@ -369,29 +409,36 @@ for (const leaf of leafCommands('test')) {
         unanalysable.push(`${t} -> cannot read or parse ${compileConfig}`);
         continue;
       }
-      // A compiler does not delete. If nothing removes the output directory
-      // first, the compiled form of a DELETED test file stays there and keeps
-      // being discovered and keeps reporting pass -- so the suite runs a test
-      // whose source no longer exists, and this script, which reads sources,
-      // cannot see it. Measured: after removing one of two test files the
-      // manifest said 1 and `npm test` ran 2.
-      const outDir = args[0]?.replace(/^\.\//, '').replace(/\/+$/, '');
-      if (outDir && !cleaned.has(outDir)) {
-        unanalysable.push(
-          `${t} -> nothing removes '${outDir}' before the compile step, so ` +
-            'stale output from deleted test files is still discovered and run',
-        );
-        continue;
-      }
-      discoveryRunner = `${t} (over output of ${compileConfig})`;
-      for (const p of present) {
-        const rel = p.replace(/^web\//, '');
-        if (pats.length === 0 || pats.some((re) => re.test(rel))) executed.add(p);
-        else
+
+      for (const a of args) {
+        // A compiler does not delete. Without a clean, the compiled form of a
+        // since-deleted test can still sit in the output directory. Measured on
+        // the previous branch: the manifest said 1 and `npm test` ran 2.
+        const top = a.replace(/^\.\//, '').split('/')[0];
+        if (!cleaned.has(top)) {
           unanalysable.push(
-            `${p} is not matched by "include"/"files" in ${compileConfig}, ` +
-              'so it is never compiled and `node --test` cannot discover it',
+            `${t} -> nothing removes '${top}' before the compile step, so ` +
+              'stale output from deleted test files survives in it',
           );
+          continue;
+        }
+        const src = mapArtefactToSource(a);
+        if (!src) {
+          unanalysable.push(`${t} -> cannot map '${a}' to a tracked test file`);
+          continue;
+        }
+        // The named artefact only exists if the tsconfig actually emits its
+        // source. Naming a file the compile step never produces is a red at
+        // runtime, not a silent skip -- but it is cheaper to say so here.
+        const rel = src.replace(/^web\//, '');
+        if (pats.length !== 0 && !pats.some((re) => re.test(rel))) {
+          unanalysable.push(
+            `${t} -> '${a}' is named, but its source ${src} is not matched by ` +
+              `"include"/"files" in ${compileConfig}, so it is never compiled`,
+          );
+          continue;
+        }
+        executed.add(src);
       }
       continue;
     }
