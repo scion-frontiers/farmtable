@@ -1,4 +1,4 @@
-.PHONY: generate build test test-go test-web lint web web-deps web-dev dashboard decomposer
+.PHONY: generate build test test-go test-web test-changed suite-manifest lint web web-deps web-dev dashboard decomposer
 
 # Marker file that `npm ci` writes. Using it as a real make target keeps
 # dependency installation incremental: it re-runs only when the lockfile or the
@@ -47,6 +47,20 @@ test-go:
 
 test-web: web-deps
 	cd web && npm test
+
+# Run only the tests affected by the current change. Works from a dirty tree.
+# scripts/test-changed.sh documents exactly what this does and does not cover;
+# it is a development convenience, not a substitute for `make test`.
+#   make test-changed                 compare against origin/main
+#   BASE=HEAD~3 make test-changed     compare against something else
+#   LIST_ONLY=1 make test-changed     print the plan, run nothing
+test-changed:
+	./scripts/test-changed.sh
+
+# Report, by name, which JS/TS test files `npm test` actually executes, and fail
+# if a test file exists that nothing runs.
+suite-manifest:
+	node scripts/ci-suite-manifest.mjs
 
 lint:
 	buf lint proto
