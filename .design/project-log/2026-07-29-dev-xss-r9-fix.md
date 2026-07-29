@@ -139,6 +139,33 @@ branch tree at `/workspace/farmtable-dev-xss-r9`, with no `web/dist` present.**
 > here comes from T2 regardless. No built frontend was created or deleted
 > anywhere by this round, and both throwaway clones were made from the local
 > path on this host, not from a network remote.
+>
+> **AMENDED 13:45Z after bulletin 20, which replaced the state list with axes
+> and caught two things in the paragraph above.**
+>
+> **The coordinates, not the label.** All three trees: `web/dist` **absent**;
+> `node_modules` **present** in T1 and T3, **absent** in T2; module cache
+> **partial** and shared (`/home/scion/go/pkg/mod`, per-agent, 518M, a module
+> missing under `GOPROXY=off`). T1 and T2 at `bb092d3`, T3 at `2738599`.
+> **The cache is not in the tree at all and can move a package count by 27**, so
+> naming it is not pedantry; item E's figure is nonetheless cache-insensitive,
+> shown by an offline control that reproduces 28/5/33 exactly.
+>
+> **The package count needs a commit attached, not just a tree.** Bulletin 20
+> measures **32** packages; this entry says **33**. Both are right:
+> `internal/webguard` exists on this branch and not on `real-main`
+> (`go list -e ./...` gives 33 at `bb092d3` and 32 at `cc92735`). A later leg
+> reconciling those two numbers without the commit will conclude someone
+> miscounted.
+>
+> **And one correction to this entry's own prose:** the "Deliberately not done"
+> paragraph groups `go test ./...` with `go build ./...` as equally blocked.
+> That is wrong, and the error is mine. **Aborting pattern expansion is a
+> property of the verb, not of the tree**: `go list`, `go vet` and `go build`
+> abort; `go test` expands fully and marks only the four `all:web/dist`
+> embedders setup-failed, the other packages running normally. I still did not
+> run it and still claim nothing from it — but it was available and I said it
+> was not.
 
 Audit F8, audit F4, OP-2, review O-1..O-4, and the struck 15.8 remedy vehicle
 were out of scope and were not touched.
