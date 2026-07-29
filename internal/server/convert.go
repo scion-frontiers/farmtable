@@ -611,15 +611,23 @@ func collectionToProto(c *ent.Collection) *pb.Collection {
 		// assignment at one call site, by someone who has no reason to read this
 		// comment. Expect it to fire eventually; that is the design, not a defect.
 		//
-		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT "a field goes missing." The
-		// dashboard reads collection remote_data as a WRITE-AUTHORIZATION GATE:
-		// capabilities.ts getCapabilities and ft-app.ts isCollectionWritable both
-		// branch on the `writable` key to choose between the GitHub capability set
-		// and everything-disabled. If this conversion returns nil, that key is
-		// undefined and the UI SILENTLY DROPS TO READ-ONLY. It fails CLOSED, so it
-		// is not a vulnerability -- but a user losing their write buttons with no
-		// error message is a support ticket nobody will trace back to a dropped
-		// struct conversion. That is why this line logs rather than staying quiet.
+		// AND WHEN IT FIRES, THE CONSEQUENCE IS NOT ONLY "a field goes missing."
+		// The dashboard reads collection remote_data as a write-authorization
+		// gate: capabilities.ts getCapabilities and ft-app.ts
+		// isCollectionWritable both branch on a `writable` key. A nil here makes
+		// that flag unreadable, and the dashboard treats an unreadable flag as
+		// not-writable.
+		//
+		// Today that is indistinguishable from the status quo, because no
+		// in-tree writer ever sets the flag -- so the affected branch already
+		// resolves to fully-disabled and a nil moves it from disabled to
+		// disabled. IF ANYTHING EVER SETS IT, THIS LINE SILENTLY REVOKES IT.
+		//
+		// Stated in the present tense on purpose, and bounded to this tree: the
+		// population of out-of-tree writers is not something the searches behind
+		// this comment could bound, so this does not quantify over all writers.
+		// The direction is fail-closed either way, which is why this line logs
+		// rather than staying quiet.
 		//
 		// Note what the old reason also got wrong. It is NOT "collections are read
 		// back out of the database": Ent's Create().Save() returns the entity
