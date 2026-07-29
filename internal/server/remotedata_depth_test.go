@@ -2,10 +2,12 @@ package server
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -450,140 +452,192 @@ func TestValidateImportedTaskURLsReachesNestedCarriers(t *testing.T) {
 // 4. The enumeration itself: every proto/export site sanitizes.
 // ---------------------------------------------------------------------------
 
-// remoteDataIdent matches the field name as a whole identifier. `\b` on both
-// sides is what separates `p.RemoteData[k] =` from `const maxRemoteDataDepth =`.
-var remoteDataIdent = regexp.MustCompile(`\bRemoteData\b`)
+// ===========================================================================
+// WHY THIS IS AN AST WALK NOW, having been a line scanner. THE SECOND ONE IN
+// THIS PACKAGE TO MAKE THIS EXACT TRIP.
+// ===========================================================================
+//
+// The predecessor was ~150 lines of hand-rolled lexing: maskGoLiterals, which
+// blanked string-literal interiors so a struct tag's colon would not read as an
+// assignment; remoteDataAssignment, which split a line at its first top-level
+// separator and asked whether anything to the LEFT mentioned RemoteData; and
+// firstTopLevelSeparator, which tracked bracket depth one line at a time.
+//
+// It carried a doc comment claiming `x, err =`, `x, _ =`, `s.f[i].RemoteData =`
+// and "SHAPES NOBODY HAS THOUGHT OF ARE ALL VISIBLE WITHOUT BEING PREDICTED."
+// ** THAT SENTENCE WAS MEASURED FALSE. ** Four ordinary, gofmt-stable Go shapes
+// were SILENT MISSES -- not reported violations, invisible:
+//
+//	p := store.CreateTaskParams{RemoteData: rd}
+//	use(&pb.Task{RemoteData: raw})
+//	return store.ImportTask{RemoteData: t.RemoteData}
+//	}, RemoteData: raw})                       (line begins with a closer)
+//
+// Two mechanisms, both inherent to reading Go one line at a time. Splitting at
+// the FIRST top-level separator sends a single-line composite to `:=`, so the
+// inspected left side is just `p`. And per-line depth tracking sends a
+// closer-first line to depth -1, where the `:` arm's `if depth != 0 { continue }`
+// skips it.
+//
+// THE POINT IS NOT THAT FOUR SHAPES WERE MISSED. It is that this file's
+// neighbour, urlvalidate_differential_test.go, already carried a section headed
+// "WHY THIS IS AN AST WALK NOW, having been a line scanner", listing three
+// measured failure modes and concluding "A TEXT-SCAN OF GO SOURCE WAS THE WRONG
+// TOOL". `go/ast` and `go/parser` were already imported there. The line scanner
+// below reproduced failure mode two off that very list, in the same package, in
+// the round whose entire theme was correct code with a wrong explanation
+// attached.
+//
+// This was the FIFTH hand-written scanner in this project, and no fail-open in
+// any of them was ever caught by anything except a human reading source. The
+// parser has no such failure modes and is in the standard library.
+//
+// WHAT THE REWRITE DELETES RATHER THAN FIXES, which is the real measure of it:
+//
+//	maskGoLiterals         -- the lexer knows what a string literal is.
+//	firstTopLevelSeparator -- the parser knows what an assignment is.
+//	the `//` comment strip -- comments are not statements.
+//	the struct-tag special case -- a field declaration is an *ast.Field.
+//
+// Every one of those was a special case standing in for a fact the parser has
+// for free. DO NOT ADD A SIXTH SCANNER. If you need to inspect Go source here,
+// extend this walk.
 
-// maskGoLiterals blanks the INTERIOR of string, rune and raw-string literals,
-// preserving the delimiters and the overall length so byte offsets computed on
-// the masked copy stay valid in the original line.
+// goSource pairs a parsed file's position information with the bytes it came
+// from, so a node can be rendered back to its EXACT original source text.
+// Rendering via go/printer would normalise spacing, and the registry's exempt
+// map is keyed on verbatim source, so offsets are the right tool.
+type goSource struct {
+	fset *token.FileSet
+	src  string
+}
+
+func (g goSource) text(n ast.Node) string {
+	lo := g.fset.Position(n.Pos()).Offset
+	hi := g.fset.Position(n.End()).Offset
+	if lo < 0 || hi > len(g.src) || lo > hi {
+		return ""
+	}
+	return g.src[lo:hi]
+}
+
+func (g goSource) line(n ast.Node) int { return g.fset.Position(n.Pos()).Line }
+
+// remoteDataSite is one place a RemoteData FIELD is written, with the identity
+// the registry keys on.
+type remoteDataSite struct {
+	fn   string // registry key: `taskToProto`, or `(*FarmTableService).taskToProto`
+	line int
+	text string // verbatim source of the whole assignment or literal element
+	rhs  string // verbatim source of the value being assigned
+}
+
+// isRemoteDataFieldWrite reports whether an assignment target NAMES a
+// RemoteData field.
 //
-// Without this, a struct tag is indistinguishable from an assignment: the field
-// declaration
+// It asks a question about the parsed target, not about text to the left of a
+// separator, and that is the whole difference. A read (`rd := p.RemoteData`)
+// puts `p.RemoteData` on the RIGHT of an AssignStmt and is structurally
+// distinct from a write, where the line scanner could only tell them apart by
+// where a byte happened to fall.
+func isRemoteDataFieldWrite(lhs ast.Expr) bool {
+	switch e := lhs.(type) {
+	case *ast.SelectorExpr:
+		// pt.RemoteData, a.b.C.RemoteData, items[i].RemoteData.
+		return e.Sel.Name == "RemoteData"
+	case *ast.IndexExpr:
+		// p.RemoteData["remote_id"] -- a write THROUGH the field.
+		return isRemoteDataFieldWrite(e.X)
+	case *ast.Ident:
+		// A local declared with the field's own name. Admitted deliberately: it
+		// is cheap, it is fail-closed, and the shape was in the predecessor's
+		// regression table.
+		return e.Name == "RemoteData"
+	case *ast.StarExpr:
+		return isRemoteDataFieldWrite(e.X)
+	case *ast.ParenExpr:
+		return isRemoteDataFieldWrite(e.X)
+	}
+	return false
+}
+
+// remoteDataWriteSites parses one Go source file and returns every place a
+// RemoteData field is written, each tagged with its enclosing function.
 //
-//	RemoteData  map[string]any `json:"remote_data,omitempty"`
+// Two node kinds are sites, and the second is the one the line scanner could
+// not see reliably:
 //
-// has its first colon INSIDE the tag, so a scanner that splits on the first
-// colon reads it as a write of the value `"remote_data,omitempty"` and reports
-// a clean tree as unsanitized. Measured: without masking, the two declarations
-// in export_import.go both fire. That failure is in the safe direction, but a
-// guard that is red on a clean tree gets "fixed" by the next person who hits
-// it, and the cheapest fix is to narrow the pattern -- which is how the
-// enumeration this scanner exists to kill grows back.
-func maskGoLiterals(s string) string {
-	b := []byte(s)
-	for i := 0; i < len(b); {
-		q := b[i]
-		if q != '"' && q != '\'' && q != '`' {
-			i++
+//	*ast.AssignStmt    -- any target satisfying isRemoteDataFieldWrite.
+//	*ast.KeyValueExpr  -- `RemoteData: v` inside a composite literal, WHEREVER
+//	                      that literal sits: a short declaration, a call
+//	                      argument, a return, or spread across lines in any
+//	                      arrangement gofmt permits. Layout is not a variable
+//	                      the parser has.
+//
+// A composite-literal KEY must be an *ast.Ident. That is what keeps
+// `map[string]any{"RemoteData": v}` -- a string key that merely spells the
+// field name -- from reading as a write, and it costs no special case, because
+// the parser has already told us which one it is.
+func remoteDataWriteSites(filename, src string) ([]remoteDataSite, error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filename, src, 0)
+	if err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", filename, err)
+	}
+	g := goSource{fset: fset, src: src}
+
+	var sites []remoteDataSite
+	walk := func(enclosing string, n ast.Node) {
+		ast.Inspect(n, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.AssignStmt:
+				for i, lhs := range node.Lhs {
+					if !isRemoteDataFieldWrite(lhs) {
+						continue
+					}
+					// `x, err = f()` has one RHS for two targets; `a, b = c, d`
+					// has two. Take the positional value when the arities match
+					// and the single call otherwise.
+					val := node.Rhs[0]
+					if len(node.Rhs) == len(node.Lhs) {
+						val = node.Rhs[i]
+					}
+					sites = append(sites, remoteDataSite{
+						fn: enclosing, line: g.line(node),
+						text: g.text(node), rhs: g.text(val),
+					})
+					break // one statement is one site
+				}
+			case *ast.KeyValueExpr:
+				if id, ok := node.Key.(*ast.Ident); ok && id.Name == "RemoteData" {
+					sites = append(sites, remoteDataSite{
+						fn: enclosing, line: g.line(node),
+						text: g.text(node), rhs: g.text(node.Value),
+					})
+				}
+			}
+			return true
+		})
+	}
+
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil {
+			walk(remoteDataFuncIdent(g, fn), fn.Body)
 			continue
 		}
-		j := i + 1
-		for j < len(b) && b[j] != q {
-			if b[j] == '\\' && q != '`' {
-				if j+1 < len(b) {
-					b[j+1] = ' '
-				}
-				j += 2
-				continue
-			}
-			b[j] = ' '
-			j++
-		}
-		i = j + 1
+		// Package-level var/const/type declarations still get walked, so a write
+		// in a package-level initialiser is not invisible just because it is not
+		// inside a function.
+		walk("<file scope>", decl)
 	}
-	return string(b)
+	return sites, nil
 }
 
-// remoteDataAssignment reports whether a line ASSIGNS a RemoteData field, and
-// returns the right-hand side if so.
+// remoteDataFuncIdent renders a func declaration as the registry's key form:
+// `name` for a free function, `(*Recv).name` for a method.
 //
-// IT DOES NOT ENUMERATE LEFT-HAND-SIDE SHAPES, AND THAT IS THE WHOLE POINT.
-//
-// Its predecessor was a regex whose target admitted `RemoteData` followed by an
-// optional `, _`. The ordinary way to start logging a discarded error -- giving
-// that blank identifier a name -- did not make a site FAIL the scan, it made the
-// site DISAPPEAR from it, silently, for both of convert.go's gRPC wire-path
-// sites at once. They are the only two RemoteData writes that reach a browser.
-//
-// The tempting repair is to admit `, \w+` too. That was tried and rejected:
-// `\w+` matches an identifier but not a selector, an index, or a blank, so a
-// site assigning the error into a struct field or a slice element is STILL
-// absent, still not a violation, still green. ENLARGING THE ADMISSIBLE SET IS
-// NOT CHANGING THE QUESTION -- it leaves the class alive at a larger radius,
-// with a fresh off-by-one waiting.
-//
-// So the question asked here is not "what does the left-hand side look like"
-// but "does this assignment route RemoteData through the sanitizer". The line is
-// split at its first top-level assignment or field separator, and if ANYTHING at
-// all to the left of it mentions RemoteData, it is a site -- whatever its shape.
-// `x, err =`, `x, _ =`, `s.f[i].RemoteData =`, `a.b.C.RemoteData, ok =` and
-// shapes nobody has thought of are all visible without being predicted.
-//
-// The `:` arm is not optional: FOUR of the six write sites in this package are
-// composite-literal fields, not statements.
-func remoteDataAssignment(line string) (rhs string, ok bool) {
-	masked := maskGoLiterals(line)
-	if c := strings.Index(masked, "//"); c >= 0 {
-		masked = masked[:c] // offsets before the comment stay valid
-	}
-	i, width := firstTopLevelSeparator(masked)
-	// Tested on the MASKED left-hand side, so that a map key that merely spells
-	// the field name -- `map[string]any{"RemoteData": v}` -- is not read as a
-	// write to it. Word-bounded, so that an identifier merely CONTAINING the
-	// field name is not either: `const maxRemoteDataDepth = 32` is a declaration,
-	// and an unbounded substring test reports it as an unsanitized write.
-	if i < 0 || !remoteDataIdent.MatchString(masked[:i]) {
-		return "", false
-	}
-	return strings.TrimSpace(line[i+width:]), true
-}
-
-// firstTopLevelSeparator finds the first `:=`, `=` or `:` that is not nested
-// inside brackets and is not part of a comparison or compound-assignment
-// operator, returning its byte offset and width. Returns -1 when the line
-// contains no separator at all, which is how declarations and bare calls are
-// rejected without naming their shapes.
-func firstTopLevelSeparator(s string) (idx, width int) {
-	depth := 0
-	for i := 0; i < len(s); i++ {
-		switch s[i] {
-		case '(', '[', '{':
-			depth++
-		case ')', ']', '}':
-			depth--
-		case ':':
-			if depth != 0 {
-				continue
-			}
-			if i+1 < len(s) && s[i+1] == '=' {
-				return i, 2
-			}
-			return i, 1
-		case '=':
-			if depth != 0 {
-				continue
-			}
-			if i+1 < len(s) && s[i+1] == '=' {
-				i++ // `==`
-				continue
-			}
-			if i > 0 && strings.IndexByte("=!<>+-*/%&|^", s[i-1]) >= 0 {
-				continue
-			}
-			return i, 1
-		}
-	}
-	return -1, 0
-}
-
-// remoteDataEnclosingFunc matches a top-level func declaration, capturing the
-// RECEIVER TYPE (group 1, empty for a free function) and the NAME (group 2).
-// Tracking the most recent one gives each write site an IDENTITY, which is what
-// lets the registry name sites instead of counting them.
-//
-// ** THE RECEIVER IS CAPTURED BECAUSE A BARE NAME IS NOT AN IDENTITY. ** Package
-// server declares taskToProto TWICE:
+// ** THE RECEIVER IS PART OF THE KEY BECAUSE A BARE NAME IS NOT AN IDENTITY. **
+// Package server declares taskToProto TWICE:
 //
 //	convert.go: func taskToProto(t *ent.Task) *pb.Task            <- writes
 //	server.go:  func (s *FarmTableService) taskToProto(ctx, t)    <- wrapper
@@ -592,23 +646,34 @@ func firstTopLevelSeparator(s string) (idx, width int) {
 // but a bare name cannot separate two methods with the SAME name on DIFFERENT
 // receivers in the SAME file, which Go permits, and that would reintroduce
 // exactly the compensating substitution the name-keying exists to defeat, one
-// level up at the key. Keying on receiver+name closes it. Cheap, so do it before
-// someone needs it rather than after.
+// level up at the key.
 //
-// It is a lexical approximation and would mis-attribute a write inside a func
-// literal to the enclosing declaration; that is acceptable here because the
-// registry only has to be stable and specific, not a parser. When the AST
-// scanner lands it should take this over.
-var remoteDataEnclosingFunc = regexp.MustCompile(
-	`^func\s+(?:\(\s*\w*\s*(\*?\w+)\s*\)\s*)?(\w+)`)
-
-// remoteDataFuncIdent renders a declaration match as the registry's key form:
-// `name` for a free function, `(*Recv).name` for a method.
-func remoteDataFuncIdent(m []string) string {
-	if m[1] == "" {
-		return m[2]
+// THIS USED TO BE A REGEX OVER THE DECLARATION LINE, and its own comment said
+// "when the AST scanner lands it should take this over." It has. Two things
+// improved that are worth naming, because "we moved it to the AST" is otherwise
+// just an assertion:
+//
+//   - The regex was a LEXICAL APPROXIMATION that mis-attributed a write inside
+//     a func literal to the enclosing declaration. ast.Inspect walks the real
+//     body, so a nested func literal's writes are attributed to the function
+//     that lexically contains them -- which is the same answer here, but now it
+//     is the answer the compiler would give rather than one that happens to
+//     agree.
+//   - The receiver is rendered from the type NODE, so a qualified, generic or
+//     pointer-to-generic receiver renders exactly as written instead of being
+//     truncated to `\*?\w+`.
+//
+// LIMIT 3 ON THE REGISTRY STILL STANDS AND IS NOT WEAKENED BY THIS. The key is
+// still TEXT: this renders the receiver's source spelling, not its resolved
+// type. A type alias, a dot-import, or the same type name in two packages can
+// still produce one key for two declarations. Rendering from the AST removes
+// the PARSING error, not the IDENTITY error. Only a type-checked walk
+// (go/types) would close that, and this is not one.
+func remoteDataFuncIdent(g goSource, fn *ast.FuncDecl) string {
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return fn.Name.Name
 	}
-	return "(" + m[1] + ")." + m[2]
+	return "(" + g.text(fn.Recv.List[0].Type) + ")." + fn.Name.Name
 }
 
 // remoteDataWriteIsSanitized decides whether the right-hand side of a
@@ -639,91 +704,228 @@ func TestRemoteDataWriteIsSanitized(t *testing.T) {
 		// is not the sanitizer.
 		{"sanitizeRemoteDataKeys(t.RemoteData),", false},
 	}
-	yes, no := 0, 0
+	seen := map[string]bool{}
 	for _, tc := range cases {
 		got := remoteDataWriteIsSanitized(tc.rhs)
 		if got != tc.want {
 			t.Errorf("remoteDataWriteIsSanitized(%q) = %v, want %v", tc.rhs, got, tc.want)
 		}
-		if tc.want {
-			yes++
-		} else {
-			no++
-		}
+		seen[tc.rhs] = true
 	}
-	if yes < 2 || no < 3 {
-		t.Fatalf("anti-vacuity: %d accept / %d reject rows", yes, no)
+
+	// Anti-vacuity by MEMBERSHIP, not by a count of accept/reject rows. The
+	// floor here was `yes < 2 || no < 3` against a population of 2 and 5 -- the
+	// accept side had ZERO slack, which reads as tight but only means it will
+	// start absorbing losses the moment anyone adds an accept row. And a floor
+	// on either side is blind to a row being swapped for a duplicate of another,
+	// which is how the sibling table in this file was defeated (see
+	// TestRemoteDataWriteSitesSeesEveryShape).
+	//
+	// These two rows are the ones that make this predicate non-vacuous, so they
+	// are named rather than counted. The second is the whole reason this is a
+	// function and not an inline strings.Contains.
+	for _, required := range []string{
+		"structpb.NewStruct(sanitizeRemoteData(t.RemoteData))", // sanitizer nested in a call
+		"sanitizeRemoteDataKeys(t.RemoteData),",                // near-miss: a prefix is not the sanitizer
+		"structpb.NewStruct(c.RemoteData)",                     // an UNsanitized wire write
+	} {
+		if !seen[required] {
+			t.Errorf("the row %q is gone. Without it this table stops "+
+				"distinguishing a working predicate from one that answers the same "+
+				"way for every input.", required)
+		}
 	}
 }
 
-// TestRemoteDataAssignmentSeesEveryShape is the regression test for the blinding
-// that motivated this scanner's rewrite, and it is deliberately a table of
-// SHAPES rather than of counts.
+// TestRemoteDataWriteSitesSeesEveryShape is the regression test for the two
+// blindings this scanner has now had, and it is deliberately a table of SHAPES.
 //
-// The starred rows are the ones the predecessor regex could not see. It admitted
-// `RemoteData` followed by at most a literal `, _`, so every one of them
-// returned "not a site" -- not a violation, an ABSENCE -- and a tree containing
-// only those shapes scanned clean. They must stay green here.
+// EACH ROW IS A COMPILABLE SNIPPET, NOT A LINE. That change is the point of the
+// rewrite and not incidental to it: three of the four shapes the line scanner
+// missed CANNOT BE EXPRESSED as a single line, because what defeated it was
+// where the line boundaries fell. A table of lines could not have caught them
+// and could not now prove they are caught. This follows
+// TestRemoteDataLiteralKeysIn in the neighbouring file, which made the same
+// trip for the same reason.
 //
-// The reject rows matter just as much: a splitter that called everything a site
-// would also make the suite pass on a clean tree, since on a clean tree every
-// real site IS sanitized. Reads, comparisons and declarations must be rejected.
-func TestRemoteDataAssignmentSeesEveryShape(t *testing.T) {
+// The starred rows are shapes a predecessor could not see -- eight from the
+// regex era (it admitted `RemoteData` followed by at most a literal `, _`) and
+// four measured against the line scanner in the r5 review. Every one of them
+// returned "not a site": not a violation, an ABSENCE, so a tree containing only
+// those shapes scanned clean.
+//
+// The reject rows matter just as much: a scanner that called everything a site
+// would also pass on a clean tree, since on a clean tree every real site IS
+// sanitized. Reads, comparisons, ranges, declarations and comments must be
+// rejected.
+func TestRemoteDataWriteSitesSeesEveryShape(t *testing.T) {
 	cases := []struct {
 		name string
-		line string
+		src  string
 		site bool
 		rhs  string
 	}{
-		{"plain assignment", `	pt.RemoteData = sanitizeRemoteData(x)`, true, "sanitizeRemoteData(x)"},
-		{"composite literal field", `		RemoteData:  sanitizeRemoteData(c.RemoteData),`, true, "sanitizeRemoteData(c.RemoteData),"},
-		{"* named error target", `	pt.RemoteData, err = structpb.NewStruct(x)`, true, "structpb.NewStruct(x)"},
-		{"* blank second target", `	pt.RemoteData, _ = structpb.NewStruct(x)`, true, "structpb.NewStruct(x)"},
-		{"* comma-ok target", `	a.b.C.RemoteData, ok = m[k]`, true, "m[k]"},
-		{"* selector target", `	s.inner.RemoteData = raw`, true, "raw"},
-		{"* index target", `	items[i].RemoteData = raw`, true, "raw"},
-		{"* short declaration", `	RemoteData := sanitizeRemoteData(x)`, true, "sanitizeRemoteData(x)"},
+		{"plain assignment", `package p
+func f() { pt.RemoteData = sanitizeRemoteData(x) }`, true, "sanitizeRemoteData(x)"},
 
-		{"read into a local is not a write", `	rd := p.RemoteData`, false, ""},
-		{"comparison is not a write", `	if p.RemoteData == nil {`, false, ""},
-		{"range over it is not a write", `	for k, v := range p.RemoteData {`, false, ""},
-		{"struct field declaration with a json tag", "\tRemoteData  map[string]any `json:\"remote_data,omitempty\"`", false, ""},
-		{"a string key that merely names it", `	m := map[string]any{"RemoteData": v}`, false, ""},
-		{"commented-out write", `	// pt.RemoteData = raw`, false, ""},
-		{"bare call mentioning it", `	use(p.RemoteData)`, false, ""},
+		{"composite literal field on its own line", `package p
+func f() any {
+	return exportCollection{
+		RemoteData:  sanitizeRemoteData(c.RemoteData),
+	}
+}`, true, "sanitizeRemoteData(c.RemoteData)"},
+
+		{"* named error target", `package p
+func f() { pt.RemoteData, err = structpb.NewStruct(x) }`, true, "structpb.NewStruct(x)"},
+
+		{"* blank second target", `package p
+func f() { pt.RemoteData, _ = structpb.NewStruct(x) }`, true, "structpb.NewStruct(x)"},
+
+		{"* comma-ok target", `package p
+func f() { a.b.C.RemoteData, ok = m[k] }`, true, "m[k]"},
+
+		{"* selector target", `package p
+func f() { s.inner.RemoteData = raw }`, true, "raw"},
+
+		{"* index target", `package p
+func f() { items[i].RemoteData = raw }`, true, "raw"},
+
+		{"* short declaration", `package p
+func f() { RemoteData := sanitizeRemoteData(x) }`, true, "sanitizeRemoteData(x)"},
+
+		{"* write through the field by key", `package p
+func f() { p.RemoteData["remote_url"] = req.GetRemoteUrl() }`, true, "req.GetRemoteUrl()"},
+
+		// ------------------------------------------------------------------
+		// THE FOUR THE LINE SCANNER MISSED SILENTLY. Measured red against it
+		// before this rewrite; the transcript is in reports/_run-queue-log.md
+		// under R6-2. These four are the red this rewrite went green against.
+		// ------------------------------------------------------------------
+		{"* single-line composite", `package p
+func f() { p := store.CreateTaskParams{RemoteData: rd} }`, true, "rd"},
+
+		{"* composite in a call argument", `package p
+func f() { use(&pb.Task{RemoteData: raw}) }`, true, "raw"},
+
+		{"* composite in a return", `package p
+func f() any { return store.ImportTask{RemoteData: t.RemoteData} }`, true, "t.RemoteData"},
+
+		// The shape whose defeat was PURELY a line-boundary artefact: the line
+		// holding the field begins with a closer, so per-line depth tracking went
+		// to -1 and the `:` arm skipped it. There is no single line to write
+		// here, which is exactly the finding.
+		{"* line begins with a closer", `package p
+func f() {
+	use(&pb.Task{
+		Meta: map[string]any{
+			"k": v,
+		}, RemoteData: raw})
+}`, true, "raw"},
+
+		{"read into a local is not a write", `package p
+func f() { rd := p.RemoteData }`, false, ""},
+
+		{"comparison is not a write", `package p
+func f() { if p.RemoteData == nil { return } }`, false, ""},
+
+		{"range over it is not a write", `package p
+func f() { for k, v := range p.RemoteData { _ = k } }`, false, ""},
+
+		{"struct field declaration with a json tag", "package p\n" +
+			"type exportTask struct {\n" +
+			"\tRemoteData  map[string]any `json:\"remote_data,omitempty\"`\n" +
+			"}", false, ""},
+
+		{"a string key that merely names it", `package p
+func f() { m := map[string]any{"RemoteData": v} }`, false, ""},
+
+		{"commented-out write", `package p
+func f() {
+	// pt.RemoteData = raw
+}`, false, ""},
+
+		{"bare call mentioning it", `package p
+func f() { use(p.RemoteData) }`, false, ""},
+
+		{"a local merely CONTAINING the name is not a write", `package p
+const maxRemoteDataDepth = 32`, false, ""},
 	}
 
-	var sites, rejects, starred int
+	seenSrc := map[string]string{}
+	seenName := map[string]bool{}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rhs, ok := remoteDataAssignment(tc.line)
-			if ok != tc.site {
-				t.Fatalf("remoteDataAssignment(%q) site = %v, want %v", tc.line, ok, tc.site)
+			sites, err := remoteDataWriteSites("shape.go", tc.src)
+			if err != nil {
+				t.Fatalf("remoteDataWriteSites did not parse the snippet: %v\n%s", err, tc.src)
 			}
-			if ok && rhs != tc.rhs {
-				t.Errorf("rhs = %q, want %q", rhs, tc.rhs)
+			if got := len(sites) > 0; got != tc.site {
+				t.Fatalf("site = %v, want %v, for:\n%s\n(scanner returned %d site(s))",
+					got, tc.site, tc.src, len(sites))
+			}
+			if tc.site && sites[0].rhs != tc.rhs {
+				t.Errorf("rhs = %q, want %q, for:\n%s", sites[0].rhs, tc.rhs, tc.src)
 			}
 		})
-		if tc.site {
-			sites++
-			if strings.HasPrefix(tc.name, "* ") {
-				starred++
-			}
-		} else {
-			rejects++
+
+		// ------------------------------------------------------------------
+		// ANTI-VACUITY BY MEMBERSHIP, NOT BY COUNT. This replaces three count
+		// floors (`starred < 5` against a population of 6, `sites < 6` against
+		// 8, `rejects < 5` against 7).
+		//
+		// The floors were measured defeated TWICE in the r5 test leg, and the
+		// second way is the one that matters:
+		//
+		//   M3 deleted the "* index target" row.       6 -> 5.  GREEN.
+		//   M4 left the count ALONE and replaced that
+		//      row's BODY with a duplicate of another
+		//      row's body, name intact.  6 -> 6.       GREEN.
+		//
+		// M4 is why raising the floors would not have been a fix. A count is
+		// blind to count-NEUTRAL corruption by construction, and this file
+		// already argues that at length for the write registry -- "THE MARGIN
+		// ABSORBED THE LOSS EXACTLY... WE WERE SAVED FROM NOTHING; WE WERE
+		// MISSED BY A UNIT" -- and then, one screen up, used a floor anyway.
+		//
+		// So: required names must be PRESENT, and every row's source must be
+		// DISTINCT. Membership kills M3. Distinctness kills M4. Neither can be
+		// traded off against the other, and no number here needs maintaining
+		// when a row is added.
+		// ------------------------------------------------------------------
+		if prev, dup := seenSrc[tc.src]; dup {
+			t.Errorf("DUPLICATE ROW BODY: %q and %q assert the same snippet.\n"+
+				"A table of shapes whose bodies collide covers fewer shapes than it "+
+				"has rows, and the row count does not move when it happens -- which "+
+				"is exactly how a count-neutral swap went green here before. If you "+
+				"are copying a row, change what it tests.", prev, tc.name)
 		}
+		seenSrc[tc.src] = tc.name
+		seenName[tc.name] = true
 	}
 
-	// Anti-vacuity, and it is about this table rather than the tree: the rows
-	// that justify the rewrite are the ones the old pattern missed, so if they
-	// were ever deleted the table would still pass while testing nothing that
-	// motivated it.
-	if starred < 5 {
-		t.Errorf("only %d rows cover shapes the previous regex could not see; "+
-			"those rows ARE the regression test for the blinding", starred)
-	}
-	if sites < 6 || rejects < 5 {
-		t.Errorf("anti-vacuity: %d site / %d reject rows", sites, rejects)
+	// The shapes that JUSTIFY this scanner's two rewrites. A row may be
+	// reworded, but if one of these disappears the table has stopped being the
+	// regression test for the blinding it was written for.
+	for _, required := range []string{
+		// Defeated the original regex.
+		"* named error target", "* blank second target", "* comma-ok target",
+		"* selector target", "* index target", "* short declaration",
+		// Defeated the line scanner. Measured, r5 review R4.
+		"* single-line composite", "* composite in a call argument",
+		"* composite in a return", "* line begins with a closer",
+		// Rejects that keep the scanner from calling everything a site.
+		"read into a local is not a write", "comparison is not a write",
+		"struct field declaration with a json tag",
+		"a string key that merely names it", "commented-out write",
+	} {
+		if !seenName[required] {
+			t.Errorf("the row %q is gone. It is not one row among many: it is a "+
+				"shape a previous version of this scanner MISSED SILENTLY, and this "+
+				"table is the only thing that says it is seen now. Removing it does "+
+				"not weaken a margin, it deletes the evidence. Do not replace this "+
+				"check with a count -- a count was here, and a count-neutral swap "+
+				"went green through it.", required)
+		}
 	}
 }
 
@@ -775,12 +977,18 @@ func TestRemoteDataFuncIdentSeparatesMethodsFromFunctions(t *testing.T) {
 
 	seen := map[string]string{}
 	for _, tc := range cases {
-		m := remoteDataEnclosingFunc.FindStringSubmatch(tc.decl)
-		if m == nil {
-			t.Errorf("remoteDataEnclosingFunc did not match a declaration: %s", tc.decl)
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, "decl.go", "package p\n"+tc.decl+"\n}", 0)
+		if err != nil {
+			t.Errorf("could not parse a declaration: %s: %v", tc.decl, err)
 			continue
 		}
-		got := remoteDataFuncIdent(m)
+		fn, ok := file.Decls[0].(*ast.FuncDecl)
+		if !ok {
+			t.Errorf("not a func declaration: %s", tc.decl)
+			continue
+		}
+		got := remoteDataFuncIdent(goSource{fset: fset, src: "package p\n" + tc.decl + "\n}"}, fn)
 		if got != tc.want {
 			t.Errorf("remoteDataFuncIdent(%q) = %q, want %q", tc.decl, got, tc.want)
 		}
@@ -1148,7 +1356,13 @@ var internalServerRemoteDataWriteRegistry = map[string]remoteDataWriteExpectatio
 // NO TOTAL IS PINNED ANYWHERE. A floor fails by margin absorption; an exact
 // total fails by compensating substitution. Only names resist both.
 func TestScannedServerPackageRemoteDataWriteSitesSanitize(t *testing.T) {
-	root := filepath.Join("..", "..", "internal", "server")
+	// "." and not filepath.Join("..", "..", "internal", "server"): this test is
+	// COMPILED INTO the package it walks, so the package's own directory is the
+	// working directory. The relative climb re-derived a path it already had and
+	// would break silently under a directory move -- os.ReadDir would fail and
+	// t.Fatalf below would at least be loud, but the correct spelling cannot
+	// break at all.
+	root := "."
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		t.Fatalf("read %s: %v", root, err)
@@ -1171,35 +1385,32 @@ func TestScannedServerPackageRemoteDataWriteSitesSanitize(t *testing.T) {
 			t.Fatalf("read %s: %v", name, err)
 		}
 		want, declared := internalServerRemoteDataWriteRegistry[name]
-		enclosing := "<file scope>"
-		for i, line := range strings.Split(string(src), "\n") {
-			if fn := remoteDataEnclosingFunc.FindStringSubmatch(line); fn != nil {
-				enclosing = remoteDataFuncIdent(fn)
-			}
-			rhs, isSite := remoteDataAssignment(line)
-			if !isSite {
+		found, err := remoteDataWriteSites(name, string(src))
+		if err != nil {
+			// A parse failure is a HARD failure, not a skip. The line scanner
+			// this replaced had no way to fail at all -- unparseable input just
+			// produced no matches, which is indistinguishable from a clean file.
+			t.Fatalf("scanning %s: %v", name, err)
+		}
+		for _, site := range found {
+			if _, ok := want.exempt[site.text]; ok {
 				continue
 			}
-			trimmed := strings.TrimSpace(line)
-			if _, ok := want.exempt[strings.TrimSuffix(trimmed, ",")]; ok {
-				continue
-			}
+			where := fmt.Sprintf("%s:%d in %s: %s", name, site.line, site.fn, site.text)
 			if !declared {
-				undeclared = append(undeclared,
-					fmt.Sprintf("%s:%d in %s: %s", name, i+1, enclosing, trimmed))
+				undeclared = append(undeclared, where)
 				continue
 			}
 			sites++
-			if remoteDataWriteIsSanitized(rhs) {
+			if remoteDataWriteIsSanitized(site.rhs) {
 				sanitized++
 				if sanitizedFuncs[name] == nil {
 					sanitizedFuncs[name] = map[string]bool{}
 				}
-				sanitizedFuncs[name][enclosing] = true
+				sanitizedFuncs[name][site.fn] = true
 				continue
 			}
-			unsanitized = append(unsanitized,
-				fmt.Sprintf("%s:%d in %s: %s", name, i+1, enclosing, trimmed))
+			unsanitized = append(unsanitized, where)
 		}
 	}
 
