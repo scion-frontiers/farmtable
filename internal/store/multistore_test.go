@@ -861,8 +861,18 @@ func newLazySetup(t *testing.T) (
 	cleanup func(),
 ) {
 	t.Helper()
-	primary, cleanPrimary := testutil.NewTestStore(t)
-	lazyPlatform, cleanPlatform := testutil.NewTestStore(t)
+	// One database, two handles, deliberately.
+	//
+	// This setup takes collID from the collection it creates in `primary` and
+	// then drives task operations through the resolver, which hands back
+	// `lazyPlatform`. Those tasks carry collID, so the row has to be visible to
+	// lazyPlatform or the foreign key fails. The store API cannot create a
+	// collection with a chosen ID, so the two handles must address the same
+	// database for this to work at all.
+	//
+	// It already did, silently: every testutil store used to share one
+	// process-wide database. That is now opt-in, and this is the opt-in.
+	primary, lazyPlatform, cleanBoth := testutil.NewTestStorePair(t)
 
 	ctx := context.Background()
 
@@ -916,10 +926,7 @@ func newLazySetup(t *testing.T) (
 		return lazyPlatform, nil
 	})
 
-	cleanup = func() {
-		cleanPlatform()
-		cleanPrimary()
-	}
+	cleanup = cleanBoth
 	return
 }
 

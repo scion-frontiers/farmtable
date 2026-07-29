@@ -60,6 +60,26 @@ func (s *FarmTableService) WatchTasks(req *pb.WatchTasksRequest, stream grpc.Ser
 	sub := s.eventBus.Subscribe(filter)
 	defer s.eventBus.Unsubscribe(sub.ID)
 
+	// Announce that the subscription is live, by flushing response headers.
+	//
+	// Creating the stream does not wait for this handler. WatchTasks returns to
+	// the caller as soon as the transport accepts the request, while everything
+	// above -- authentication, scope and collection-access checks, and the
+	// GetCollection round trip -- still has to run before the Subscribe above.
+	// A caller that starts watching and then immediately mutates a task can
+	// therefore have its own event published into that gap, and EventBus.Publish
+	// only delivers to subscribers already registered: there is no replay and no
+	// backlog, so the event is dropped silently and the caller waits forever for
+	// something that has already happened.
+	//
+	// Headers are the barrier that closes the gap. They are sent once, here,
+	// after the subscription exists and before anything is published to it, so a
+	// caller that waits for them is guaranteed to miss nothing afterwards.
+	// grpc.ClientStream.Header() blocks until this line runs.
+	if err := stream.SendHeader(nil); err != nil {
+		return err
+	}
+
 	var seq int64
 
 	if req.GetIncludeInitial() {
