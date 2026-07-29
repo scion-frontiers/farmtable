@@ -1,26 +1,133 @@
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import createDOMPurify from 'dompurify';
 import { safeHref } from './safe-url.js';
 
 /**
- * Absolute (scheme-bearing) or protocol-relative references.
+ * A PRIVATE SANITISER INSTANCE, NOT THE PROCESS-GLOBAL SINGLETON.
  *
- * These are the only two shapes that can name a host of the attacker's
- * choosing, and they are exactly the shapes `safeHref` is written to decide.
- * Everything else a markdown author can write -- `./docs/x.md`, `/tasks/7`,
- * `#section` -- resolves against the dashboard's own document base, so it
- * cannot leave the origin and cannot carry userinfo. `safeHref` deliberately
- * parses with NO base argument (see the note in safe-url.ts) and therefore
- * REJECTS every one of those relative forms; passing them to it would delete
- * legitimate in-document links and turn a security control into a bug report.
- * So the hook below polices absolute references only, and that carve-out is
- * pinned by its own fixtures.
+ * `import DOMPurify from 'dompurify'` hands every importer the SAME object.
+ * Hooks live on that object, so the previous version of this file installed the
+ * URL policy where any other module -- application code, a dependency, a test
+ * -- could remove it with one `DOMPurify.removeAllHooks()`, and where the order
+ * of imports decided whether it was installed at all. Neither of those is a
+ * property a reader can check by looking at this file.
  *
- * `//host/x` is INSIDE the policed set, not outside it: it names a host, and
- * `safeHref` refuses it (the no-base parse throws) rather than laundering it
- * into the page's scheme.
+ * Calling the default export with a window returns an INSTANCE. This one is
+ * module-private: nothing else can reach it, so the hook below cannot be
+ * removed at a distance and cannot be raced by import order. Pinned by
+ * testTheGlobalSanitiserCannotDisarmThisOne in markdown-href.test.ts, which
+ * calls `removeAllHooks()` on the global and then re-checks a refusal.
  */
-const NAMES_A_HOST = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const purify = createDOMPurify(window);
+
+/**
+ * FAIL CLOSED WITHOUT A DOM, LOUDLY AND AT IMPORT TIME.
+ *
+ * `createDOMPurify` with no usable window returns a factory whose `sanitize` is
+ * undefined (measured in purify.es.mjs: it returns early when
+ * `!window.document`). Left alone that surfaces as a TypeError at first render,
+ * on a value that has not been sanitised. This turns it into an error at import.
+ */
+if (!purify.isSupported) {
+  throw new Error(
+    'renderMarkdown requires a DOM: DOMPurify reports isSupported === false, so ' +
+      'nothing would be sanitised.',
+  );
+}
+
+/**
+ * Attributes that carry a navigable reference in the output of `marked` plus
+ * DOMPurify's defaults.
+ *
+ * `xlink:href` is here because DOMPurify's default configuration permits inline
+ * SVG, and `<svg><a xlink:href="https://user:pass@evil.example/">` is a
+ * clickable link that never carries an `href`. Measured on this pipeline before
+ * this list existed: the SVG anchor survived with credentials intact while the
+ * HTML anchor beside it was refused.
+ *
+ * NOT MEASURED: whether any further attribute permitted by a future DOMPurify
+ * default navigates. This is a list, and a list is only as current as its last
+ * measurement -- the reconciliation that would make it self-checking (walk
+ * DOMPurify's allowed-attribute set and assert nothing navigable is absent
+ * here) is not built.
+ */
+const LINK_ATTRS = ['href', 'xlink:href'] as const;
+
+/**
+ * THE DECISION IS THE PLATFORM PARSER'S, NOT A PATTERN'S.
+ *
+ * This function replaces a regular expression that tried to recognise "shapes
+ * that can name a host" from the text of the reference. That regexp was a
+ * second URL parser in a second dialect -- exactly the failure the hook below
+ * exists to end, one level down -- and it was STRICTLY WEAKER than the function
+ * it was carving around. Measured counterexamples, all of which it waved past
+ * `safeHref` and all of which leave the origin:
+ *
+ *   ht<TAB>tps://user:pass@evil.example/   the tab sits INSIDE the scheme, so
+ *                                          `^scheme:` did not match; the URL
+ *                                          parser removes tab/CR/LF and
+ *                                          resolves https://user:pass@evil...
+ *   /\github.com@evil.example/             starts "/\", not "//", so
+ *                                          `^//` did not match; WHATWG treats
+ *                                          "/\" as "//" for special schemes.
+ *   \/github.com@evil.example/             the same, mirrored.
+ *
+ * So the reference is RESOLVED, once, by `new URL(raw, document.baseURI)` --
+ * the same parse the browser will perform on the attribute -- and the decision
+ * is taken on the result:
+ *
+ *  - Unresolvable: REFUSED. Fail closed. The browser would not navigate
+ *    anywhere useful either, and "I could not parse it" is not a reason to keep
+ *    an attribute.
+ *  - Any userinfo: REFUSED, before the origin comparison. `URL.origin` does not
+ *    include userinfo, so `//user:pass@<our own host>/` is SAME-ORIGIN and
+ *    still hands credentials to the host on click.
+ *  - Resolved same-origin: PERMITTED. This is the carve-out for ordinary
+ *    in-document links (`./docs/x.md`, `/tasks/7`, `#section`), and it is a
+ *    property of the RESOLVED URL rather than of the string: `/\github...`
+ *    looks relative and is not, `#section` looks like a fragment and is one.
+ *    Opaque origins (`origin === 'null'`, e.g. an `about:blank` base) are
+ *    excluded, so two opaque origins are never treated as "the same".
+ *  - Everything else: `safeHref` decides, and it is handed the ABSOLUTE
+ *    resolved href. That keeps safe-url.ts's no-base contract intact -- the
+ *    resolution happens here, before the call, and `safeHref` still parses with
+ *    no base.
+ *
+ * WHAT MOVED WHEN THE PREDICATE MOVED, and it is a real behaviour change rather
+ * than a tidy-up. Deciding on the RESOLVED URL means the spelling stops
+ * mattering in BOTH directions. `//evil.example/x` and `/\evil.example/x` now
+ * resolve to `https://evil.example/x` and are KEPT, where the first version of
+ * this hook refused the first of them and waved the second past. That is
+ * consistent rather than lax: this policy is about SCHEMES and CREDENTIALS, an
+ * attacker-chosen HOST is reachable through any plainly accepted link, and
+ * owner ruling C2 keeps ordinary http(s) links clickable. Refusing one spelling
+ * of a URL the policy accepts in another spelling is a decision about the
+ * string, which is the class of decision being repaired here. `safeHref` at the
+ * component bindings is unchanged: it still refuses `//host/x`, because there
+ * is no resolution step there and the value is a stored field expected to be
+ * absolute.
+ *
+ * WHAT THIS DOES NOT CLAIM. It does not claim the resolved URL is the one the
+ * browser will navigate to in every embedding: `document.baseURI` is read at
+ * decision time and a `<base>` element inserted after this runs would change
+ * the answer. NOT MEASURED: whether any view in this application sets or
+ * mutates `<base>`.
+ */
+function isPermitted(raw: string): boolean {
+  let base: URL;
+  let resolved: URL;
+  try {
+    base = new URL(document.baseURI);
+    resolved = new URL(raw, base);
+  } catch {
+    return false;
+  }
+
+  if (resolved.username !== '' || resolved.password !== '') return false;
+  if (resolved.origin !== 'null' && resolved.origin === base.origin) return true;
+
+  return safeHref(resolved.href) !== undefined;
+}
 
 /**
  * ONE URL POLICY, APPLIED AT THE MARKDOWN SINK.
@@ -49,16 +156,36 @@ const NAMES_A_HOST = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
  * existed on this path. Routing through `safeHref` means there is ONE policy,
  * one set of fixtures pinning it, and one place to change it; a future edit to
  * SAFE_SCHEMES or to the credential clause reaches the markdown sink for free
- * instead of leaving it a version behind.
+ * instead of leaving it a version behind. The first version of this hook then
+ * introduced a second dialect anyway, in its carve-out, which is what
+ * `isPermitted` above exists to correct.
  *
- * REFUSAL DEGRADES TO INERT TEXT, IT DOES NOT VANISH. Only the `href` is
- * removed, so the anchor's text stays on screen exactly as written, and the
- * rejected URL is put in the `title` -- the same degradation contract as the
- * two guarded call sites (`Unsupported URL: ...` at ft-inspector-code.ts and
- * ft-inspector-meta.ts) and the one safe-url.ts asks callers for. Any
- * author-supplied markdown title (`[t](url "title")`) is OVERWRITTEN on refusal
- * rather than kept: the author of a refused link is the one party who must not
- * be able to choose the text explaining why it was refused.
+ * WHAT A REFUSAL RENDERS -- OPTION B, BY OWNER RULING. Quoted verbatim from
+ * coordinator-rulings/PTONE-REJECTUX-2035.md:11: "Show the item's name with no
+ * link and no trace of the address. The user sees a plain label and gets no
+ * signal that anything was refused."
+ *
+ * So the reference attribute is removed and NOTHING is added. The element's own
+ * text stays on screen exactly as written; there is no notice, no tooltip and
+ * no residue of the rejected URL in any attribute.
+ *
+ * The first version of this hook wrote `Unsupported URL: <the rejected URL>`
+ * into `title`, which is Option A. Both are equally safe against the attack --
+ * the href is gone either way -- but A composes a user-visible string out of an
+ * attacker-chosen one and renders it as part of the product, at whatever length
+ * and over as many lines as its author likes. The ruling settles the trade
+ * between diagnosability and disclosure in favour of disclosing nothing.
+ *
+ * WHAT "ADD NOTHING" LEAVES IN PLACE, stated because it is a real consequence
+ * and not an oversight: an author-supplied markdown title (`[t](url "title")`)
+ * SURVIVES on a refused link, because removing it would be adding a behaviour
+ * the ruling did not ask for. That text is the author's, not this module's, and
+ * it is the same reach the author already has over the link TEXT, which Option
+ * B keeps by design. FILED, NOT DECIDED HERE.
+ *
+ * The two guarded call sites (ft-inspector-code.ts, ft-inspector-meta.ts) still
+ * render Option A notices. They are a separate pass and are deliberately not
+ * touched here.
  *
  * ONE POLICY MEANS ONE POLICY, INCLUDING ITS COSTS. `SAFE_SCHEMES` is http/https
  * only, so a markdown `mailto:` link now renders as inert text. That is a real
@@ -66,27 +193,28 @@ const NAMES_A_HOST = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
  * scheme set, which is the second-policy failure this hook exists to end. It is
  * pinned as a fixture so the trade is visible and reversible in one place.
  *
- * SCOPE, STATED RATHER THAN IMPLIED. This hook governs `href`. `src` (markdown
- * images) is NOT routed through `safeHref` here: a credential-bearing image URL
- * is a different shape of the same class -- it leaks on render rather than on
- * click -- and widening this change to cover it was outside the task that
- * produced the hook. It is recorded in the project log, not closed here.
+ * SCOPE, STATED RATHER THAN IMPLIED. This hook governs the attributes in
+ * `LINK_ATTRS` -- `href` and `xlink:href` -- on EVERY element DOMPurify keeps,
+ * not only on anchors; `<area href>` is policed by the same pass, and that arm
+ * is pinned. `src` (markdown images, `<svg><image>`) is NOT routed through
+ * `safeHref`: a credential-bearing image URL is a different shape of the same
+ * class -- it leaks on render rather than on click -- and closing it was
+ * outside the task that produced the hook. It is recorded in the project log,
+ * not closed here.
  *
- * FAIL-CLOSED IN A DOM-LESS ENVIRONMENT. `DOMPurify` with no `window` returns a
- * factory with `isSupported === false` and defines neither `sanitize` nor
- * `addHook`, so importing this module without a DOM now throws at import time
- * rather than at first render. That is the same direction `renderMarkdown`
- * already failed in, moved earlier and made louder.
+ * NOT MEASURED: whether a `title` attribute on a non-HTML element (the SVG
+ * anchor above) surfaces as a tooltip in any browser. The refusal is effective
+ * either way -- the reference attribute is gone -- but the explanation may not
+ * be visible there.
  */
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (!node.hasAttribute('href')) return;
-  const raw = node.getAttribute('href') ?? '';
-  if (!NAMES_A_HOST.test(raw)) return;
-  if (safeHref(raw) !== undefined) return;
-  node.removeAttribute('href');
-  node.setAttribute('title', `Unsupported URL: ${raw}`);
+purify.addHook('afterSanitizeAttributes', (node) => {
+  for (const attr of LINK_ATTRS) {
+    if (!node.hasAttribute(attr)) continue;
+    if (isPermitted(node.getAttribute(attr) ?? '')) continue;
+    node.removeAttribute(attr);
+  }
 });
 
 export function renderMarkdown(md: string): string {
-  return DOMPurify.sanitize(marked.parse(md) as string);
+  return purify.sanitize(marked.parse(md) as string);
 }
