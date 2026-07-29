@@ -44,17 +44,41 @@ nothing about the gate it was written for.
 | G6b | `canary/g6b-tracked-dist-unfixed` `691e8af` | `30462190434` | **SUCCESS**, as predicted | The hole G6 closes was genuinely open at `43bd206`. |
 | — | `fix/dist-tracked-allowlist` `6927b11` | `30462191673` | **SUCCESS** | The tightened arm does not red a legitimate tree. |
 
-G6b deserves emphasis. G6's red on its own proves only that the *new* allow-list
-arm is capable of failing. It says nothing about whether the arm was needed.
+### G6 and G6b are one result, not a red plus a footnote
+
+G6's red, on its own, proves only that the *new* allow-list arm is **capable of
+failing**. It says nothing about whether the arm was needed, because a red is
+what you would see either way — a necessary fix and an over-eager one produce
+the identical colour.
+
 G6b runs the **identical canary** — the same force-added `web/dist/index.html` —
 against unfixed `43bd206`, where the allowed tracked set was defined as
 "whatever git tracks here". `git add -f` makes build output tracked, tracked
 makes it allowed, and the arm waves it through: run `30462190434` is green with
 committed build output sitting in `web/dist`.
 
-The pair is what carries the claim. Red with the fix, green without it, same
-canary, same base otherwise. A fix that cannot be shown to have been necessary
-is indistinguishable from a fix that was not.
+**The pair is the claim, not the red.** Same canary, same base, two colours:
+red with the fix, green without it. This is the general test — *a control that
+comes out the same colour under both hypotheses is not a control* — and this
+pair passes it because the two arms disagree. Neither run should be cited
+alone; a fix that cannot be shown to have been necessary is indistinguishable
+from one that was not.
+
+### A guard exercised free, as a side effect
+
+| Guard | Observed in | Run | Error line |
+|---|---|---|---|
+| `if-no-files-found: error` on `Upload test membership evidence` | G1's cascade | `30462183955` | `No files were found with the provided path: go-test.log` |
+
+This is the one guard previously reported as **impossible to exercise
+off-runner**: `if-no-files-found` is behaviour inside `actions/upload-artifact`,
+and until a real runner refuses a real absent artefact, the change from `warn`
+to `error` was verified only against that action's published input schema. G1
+skipped the Go suite, no `go-test.log` was written, and the upload step failed
+instead of printing a warning and leaving the job green.
+
+An evidence gate that passed when there was no evidence now fails. Nobody paid
+for this run; it arrived as a consequence of a canary aimed at something else.
 
 ## Finding: a gate whose name claims more than the gate does
 
@@ -65,16 +89,22 @@ The step is, in full, `run: make test`. That detects a Makefile whose targets
 **fail**. It cannot detect a Makefile that silently stops **reaching** a target,
 because a `test:` rule with a prerequisite removed still exits 0.
 
-Measured on the runner, not in a shell. `canary/g5b-suite-dropped` changes one
-line — `test: test-go test-web` becomes `test: test-go` — and nothing else. Run
-`30462186962`:
+This is **observed, not argued**. `canary/g5b-suite-dropped` changes one line —
+`test: test-go test-web` becomes `test: test-go` — and nothing else. Run
+`30462186962`, head `4e2281b`:
 
-- overall conclusion **success**;
-- the "Makefile self-check (make test reaches both suites)" step ran and passed;
-- the step's log contains **zero** occurrences of `npm` or `vitest`. `make test`
-  reached the Go suite and stopped.
+- overall conclusion **SUCCESS**;
+- the step named "Makefile self-check (make test reaches both suites)"
+  **ran** and **passed**;
+- that step's log contains **zero** occurrences of `npm` and zero of `vitest`.
+  `make test` reached the Go suite and stopped.
 
-So a step named for reaching *both* suites reached *one*, and reported success.
+**A step named for reaching both suites reached one, and reported success.**
+
+The distinction matters for how this is weighted. "The name overstates the gate"
+is a reading of the source; anyone can disagree with a reading. A green run in
+which the step demonstrably never touched the web suite is a measured fact, and
+it is not open to a second opinion.
 
 This matters more than the six reds. A gate that is absent is a known gap. A
 gate whose **name overstates it** is read as coverage, and the reader stops
@@ -84,7 +114,9 @@ is what G5 demonstrates. It simply does not do the thing its name promises.
 
 Recorded as a finding, not fixed. Making the self-check honest means asserting
 that `make -n test` *reaches* each suite, which is a change to the gate itself
-and therefore outside this task's scope.
+and therefore outside this task's scope. Under the owner's scope freeze it is
+filed in `OUT-OF-SCOPE-BACKLOG.md` rather than added to the defect list, with
+this run ID attached so nobody has to re-derive it.
 
 ## Cascade assessment (requested; nothing changed)
 
@@ -105,13 +137,14 @@ log, and fails closed. The upload step also runs, finds no artefact, and errors
 because `if-no-files-found: error`.
 
 **Is this the intended design?** Yes, and both `always()` and `error` are
-load-bearing. If the membership step ran only on success, the failure mode this
-repository actually shipped — a green run concealing a failing Go test — would
-be invisible precisely when it matters, because the concealing condition is a
-failure elsewhere. As a side note, this is also the first real-runner
-observation of the `if-no-files-found: error` fix (previously reported as the
-one guard that could not be exercised off-runner): absent evidence now fails
-instead of warning, and run `30462183955` is that behaviour firing.
+load-bearing. The reason not to make the membership step success-gated, stated
+exactly: **the membership step running only on success would blind it exactly
+when an earlier failure is what is doing the concealing.** The failure mode this
+repository actually shipped — a green run concealing a failing Go test — has a
+failure elsewhere as its precondition, so gating the guard on the absence of
+failures switches it off in precisely the runs that need it. (The `error` half
+of this is recorded above as its own row: run `30462183955` is the
+`if-no-files-found` change firing on a real runner for the first time.)
 
 **Is a genuine membership failure at risk of being dismissed as noise?** On the
 evidence, no — the two cases are disjoint on three independent axes:
@@ -139,9 +172,15 @@ better than the alternative.
 
 Explicitly **not** done, and it should not be done: making the membership step
 skip when an earlier step failed. A skipped guard is how this repository got
-here. The only change worth considering is a wording one — having the "absent
-log" branch say that it is a consequence and to look above — which weakens no
-assertion. Left for a decision rather than taken.
+here.
+
+**What was done**, after review approved it: the "absent log" branch now says
+that it is probably a consequence, tells the reader to look above, and states
+how a genuine missing test reports differently (`DID NOT RUN`, with the tests
+named). This is a message change only — the `::error::` and the `exit 1` are
+untouched, and no assertion is weakened. It removes the one residual the
+assessment identified, by making the habituated reader's shortcut correct
+instead of hoping they resist it.
 
 ## Limitation of G6, stated plainly
 
@@ -186,3 +225,18 @@ All eight canary branches are throwaway. None is merged, none is based on a
 canary, and every canary file and comment says `CANARY ONLY - NEVER MERGE` in
 its own text as well as in its commit message. The only branch intended for
 merge is `fix/dist-tracked-allowlist`.
+
+## Provenance of the commits cited above
+
+Every canary was based on `43bd206`, and the run IDs in the tables are the runs
+of exactly those commits. Afterwards `fix/dist-tracked-allowlist` was rebased
+from `43bd206` onto `aa08f1a` (main having gained the shared web test runner).
+The rebase was mechanical and conflict-free: this branch touches `ci.yml` and
+this log, main's four new commits touch `scripts/ci-suite-manifest.mjs`,
+`web/package.json`, `web/scripts/run-node-tests.mjs` and two other log entries —
+**no file in common**.
+
+The run recorded for the deliverable, `30462191673`, was therefore measured at
+pre-rebase `6927b11`. `ci.yml` is unchanged by the rebase, but a commit the
+runner has not seen is not a commit the runner has approved, so the rebased and
+reworded branch is being re-run before merge rather than inheriting that green.
