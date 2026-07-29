@@ -78,6 +78,23 @@ prose to be relied on, so its accuracy is the control.
 >
 > Nothing here was measured in `/workspace/farmtable` (built frontend since
 > 27 July) or on CI. The web figures are tree-independent; the Go ones are not.
+>
+> **AND NAME THE COMMIT, NOT JUST THE TREE.** A cross-agent disagreement over
+> package counts resolved to `32 = 4+8+20` at `cc92735` against `33 = 4+9+20` on
+> the r8 lineage — perfectly consistent once the commit was named, because the
+> residual **is** the object distinguishing the commits: `internal/webguard`, a
+> package this round added (in `7cee4a6`, before this leg's base, so present at
+> `e4e3d13`). Coordinates fix the tree; only the commit fixes the population.
+>
+> **AN INSTRUMENT CAN BE AVAILABLE ONLY IN THE STATE WHERE ITS ANSWER DOES NOT
+> MATTER.** `.gitignore:17` is `dist/` — trailing slash, so directory-only — and
+> `git check-ignore` reads the disk, not a hypothesis. With `web/dist` absent it
+> answers "not ignored" (exit 1), which is *false about the post-build world*.
+> After a real build the directory and everything under it are ignored and
+> nothing is stageable. **Do not use `check-ignore` to predict what a build will
+> expose; it can only tell you the truth once the build has already happened.**
+> Commit-addressed evidence settles the *content* of `.gitignore` and not the
+> *behaviour* of a command reading it.
 
 **F1 IS VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**
 A build token was granted after the commits above landed. `npx tsc --noEmit` is
