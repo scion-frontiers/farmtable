@@ -12,6 +12,8 @@ import (
 	"github.com/farmtable-io/farmtable/internal/store"
 	"github.com/farmtable-io/farmtable/internal/store/ent"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // The contract these tests pin, spelled out here rather than imported from the
@@ -96,6 +98,14 @@ func TestRPC_ImportCollection_StampsImporterProvenance(t *testing.T) {
 	// minimalImportDoc stamps created_at=now on changes; backdate it afterwards.
 	// The maps are shared by reference, so this reaches the marshalled document.
 	changes[0]["created_at"] = backdated
+	// Backdate the COLLECTION too, and to a different instant. A historical
+	// import legitimately carries one. This is load-bearing for the assertions
+	// below: if every payload timestamp were "now", an implementation that
+	// stamped provenance from the payload would be indistinguishable from one
+	// that used the server clock, and the ingestion-time assertion would pass
+	// vacuously.
+	claimedCollectionCreated := time.Date(2018, 6, 7, 8, 9, 10, 0, time.UTC)
+	doc["collection"].(map[string]interface{})["created_at"] = claimedCollectionCreated
 
 	data, err := json.Marshal(doc)
 	if err != nil {
@@ -162,8 +172,17 @@ func TestRPC_ImportCollection_StampsImporterProvenance(t *testing.T) {
 	// (c) The ingestion timestamp is the SERVER's clock, not the payload's.
 	// This is what makes backdating detectable.
 	got := prov.CreatedAt.UTC()
-	if got.Equal(backdated) {
-		t.Fatalf("provenance created_at was taken from the payload (%s)", backdated)
+	for _, claimed := range []struct {
+		what string
+		when time.Time
+	}{
+		{"the forged change row's created_at", backdated},
+		{"the collection's created_at", claimedCollectionCreated},
+	} {
+		if got.Equal(claimed.when) {
+			t.Fatalf("provenance created_at was taken from the payload (%s = %s); the ingestion stamp must come from the server clock, or backdating stays undetectable",
+				claimed.what, claimed.when)
+		}
 	}
 	if got.Before(before) || got.After(after) {
 		t.Fatalf("provenance created_at = %s, want server ingestion time within [%s, %s]", got, before, after)
@@ -176,11 +195,19 @@ func TestRPC_ImportCollection_StampsImporterProvenance(t *testing.T) {
 	if detail["imported_by"] != importer.ID.String() {
 		t.Fatalf("provenance imported_by = %v, want %s", detail["imported_by"], importer.ID)
 	}
-	if detail["authenticated"] != true {
-		t.Fatalf("provenance authenticated = %v, want true", detail["authenticated"])
-	}
 	if s, _ := detail["imported_at"].(string); s == "" {
 		t.Fatalf("provenance imported_at missing: %v", detail)
+	}
+	// The two timestamps must sit SIDE BY SIDE and be distinguishable. Recording
+	// only the server's stamp would lose what the payload asserted; recording
+	// only the payload's would be the defect itself.
+	wantClaim := claimedCollectionCreated.Format(time.RFC3339Nano)
+	if detail["claimed_collection_created_at"] != wantClaim {
+		t.Fatalf("provenance claimed_collection_created_at = %v, want the payload's own claim %s preserved alongside the server stamp",
+			detail["claimed_collection_created_at"], wantClaim)
+	}
+	if detail["imported_at"] == detail["claimed_collection_created_at"] {
+		t.Fatalf("the claimed and actual timestamps are identical (%v); they must be distinguishable", detail["imported_at"])
 	}
 
 	// (b) It reaches a read path. Read it back the way a real client would.
@@ -285,22 +312,107 @@ func TestRPC_ImportCollection_PayloadCannotForgeProvenance(t *testing.T) {
 	}
 }
 
-// TestRPC_ImportCollection_ProvenanceRecordsUnauthenticatedImport pins the
-// open-access case honestly. RequireIdentity returns uuid.Nil when no auth
-// interceptor is configured; the provenance row must say so rather than
-// inventing an actor.
-func TestRPC_ImportCollection_ProvenanceRecordsUnauthenticatedImport(t *testing.T) {
+// TestRPC_ImportCollection_RefusesImportWithoutIdentity is a CANARY, not an
+// edge case.
+//
+// What it protects: this whole change exists because absent information was
+// being treated as good enough. The remedy must not repeat that habit inside
+// itself. If ImportCollection ever again accepts an import it cannot attribute
+// — recording "", "unknown", "system" or the zero UUID and carrying on — the
+// provenance stamp becomes authoritative-looking while naming nobody, which is
+// worse than having no stamp at all. That failure would be invisible in every
+// other test in this file, because they all supply an identity.
+//
+// RequireIdentity has two absent-identity outcomes and this pins BOTH:
+//   - open-access mode, where it returns (uuid.Nil, nil) and no error;
+//   - enforced mode with no usable identity, where it returns an error.
+func TestRPC_ImportCollection_RefusesImportWithoutIdentity(t *testing.T) {
 	_, s, cleanup := newExportImportTestServer(t)
 	defer cleanup()
 	ctx := context.Background()
 
-	taskID := uuid.New().String()
-	doc := minimalImportDoc("open access", nil, []map[string]interface{}{importTaskDoc(taskID)}, nil, nil, nil)
+	doc := minimalImportDoc("no identity", nil,
+		[]map[string]interface{}{importTaskDoc(uuid.New().String())}, nil, nil, nil)
+	data, _ := json.Marshal(doc)
+	svc := server.NewFarmTableService(s, "test")
+
+	cases := []struct {
+		name     string
+		ctx      context.Context
+		wantCode codes.Code
+	}{
+		{
+			// No auth interceptor configured: RequireIdentity returns
+			// (uuid.Nil, nil). The nil error is exactly what makes this the
+			// dangerous case — nothing signals that anything is missing.
+			name:     "open access mode yields nil identity and no error",
+			ctx:      context.Background(),
+			wantCode: codes.FailedPrecondition,
+		},
+		{
+			// Auth enforced but the identity is the zero value.
+			name:     "auth enforced with zero identity",
+			ctx:      server.ContextWithAuthEnforced(server.ContextWithUserID(context.Background(), uuid.Nil)),
+			wantCode: codes.Unauthenticated,
+		},
+		{
+			// Auth enforced with no identity in the context at all.
+			name:     "auth enforced with no identity present",
+			ctx:      server.ContextWithAuthEnforced(context.Background()),
+			wantCode: codes.Unauthenticated,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			before, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 200})
+			if err != nil {
+				t.Fatalf("ListCollections: %v", err)
+			}
+
+			_, err = svc.ImportCollection(tc.ctx, &pb.ImportCollectionRequest{Data: data})
+			if err == nil {
+				t.Fatalf("CANARY: an import with no establishable caller was ACCEPTED. " +
+					"Absent identity must fail loudly, never be recorded as a placeholder and carried on.")
+			}
+			if got := status.Code(err); got != tc.wantCode {
+				t.Fatalf("CANARY: error code = %s, want %s (err: %v)", got, tc.wantCode, err)
+			}
+
+			after, _, err := s.ListCollections(ctx, store.ListCollectionsParams{Limit: 200})
+			if err != nil {
+				t.Fatalf("ListCollections: %v", err)
+			}
+			if len(after) != len(before) {
+				t.Fatalf("CANARY: the refused import still wrote a collection (%d -> %d)", len(before), len(after))
+			}
+		})
+	}
+}
+
+// TestRPC_ImportCollection_ProvenanceNeverNamesAPlaceholder is the second half
+// of the canary: it asserts on the RECORD rather than on the refusal, so that a
+// future change which reintroduces a degraded stamp by some other route is
+// caught even if the refusal above is bypassed.
+func TestRPC_ImportCollection_ProvenanceNeverNamesAPlaceholder(t *testing.T) {
+	_, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	importer, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "Real Importer", Email: strPtr("real-importer@example.com"),
+		Type: "human", Status: "active",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser: %v", err)
+	}
+
+	doc := minimalImportDoc("placeholder check", nil,
+		[]map[string]interface{}{importTaskDoc(uuid.New().String())}, nil, nil, nil)
 	data, _ := json.Marshal(doc)
 
 	svc := server.NewFarmTableService(s, "test")
-	// No ContextWithAuthEnforced: open-access mode.
-	resp, err := svc.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data})
+	resp, err := svc.ImportCollection(authedImportCtx(importer.ID), &pb.ImportCollectionRequest{Data: data})
 	if err != nil {
 		t.Fatalf("ImportCollection: %v", err)
 	}
@@ -308,20 +420,26 @@ func TestRPC_ImportCollection_ProvenanceRecordsUnauthenticatedImport(t *testing.
 		CollectionID: uuid.MustParse(resp.GetCollectionId()),
 	})
 	rows, _ := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: tasks[0].ID})
-
 	provs := provenanceRows(rows)
 	if len(provs) != 1 {
-		t.Fatalf("provenance rows = %d, want 1 in open-access mode; rows = %+v", len(provs), rows)
+		t.Fatalf("provenance rows = %d, want 1", len(provs))
+	}
+
+	if provs[0].AuthorID == uuid.Nil {
+		t.Fatalf("CANARY: provenance row author is the zero UUID")
 	}
 	var detail map[string]interface{}
 	if err := json.Unmarshal([]byte(provs[0].NewValue), &detail); err != nil {
 		t.Fatalf("provenance new_value is not JSON (%q): %v", provs[0].NewValue, err)
 	}
-	if detail["authenticated"] != false {
-		t.Fatalf("authenticated = %v, want false in open-access mode", detail["authenticated"])
+	got, _ := detail["imported_by"].(string)
+	for _, placeholder := range []string{"", "unknown", "system", "anonymous", uuid.Nil.String()} {
+		if got == placeholder {
+			t.Fatalf("CANARY: imported_by = %q, a placeholder standing in for an unknown actor", got)
+		}
 	}
-	if v, ok := detail["imported_by"].(string); ok && v != "" {
-		t.Fatalf("imported_by = %q, want empty when there is no identity", v)
+	if got != importer.ID.String() {
+		t.Fatalf("imported_by = %q, want the real importer %s", got, importer.ID)
 	}
 }
 
@@ -366,5 +484,140 @@ func TestRPC_ImportCollection_StampsEveryImportedTask(t *testing.T) {
 		if n := len(provenanceRows(rows)); n != 1 {
 			t.Fatalf("task %s has %d provenance rows, want 1", task.ID, n)
 		}
+	}
+}
+
+// payloadChanges filters out the server-authored rows an import writes, so that
+// assertions about what a document contributed stay assertions about the
+// payload. It deliberately keys off the reserved prefix rather than the single
+// provenance field name, so any future server-authored row is covered too.
+func payloadChanges(changes []*ent.Change) []*ent.Change {
+	out := make([]*ent.Change, 0, len(changes))
+	for _, c := range changes {
+		if strings.HasPrefix(c.FieldName, wantServerFieldPrefix) {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+// TestRPC_ExportCollection_CarriesImportProvenance pins the export side of the
+// provenance record.
+//
+// Provenance rows are deliberately NOT stripped from exports. They are audit
+// content: an operator reading an export of a collection that arrived by import
+// should be able to see that it arrived by import, and who performed it. An
+// earlier draft of this fix did strip them, on the theory that their author
+// might be absent from users[] — that was only ever possible for the nil-UUID
+// author written in open-access mode, and import now refuses an unidentifiable
+// caller outright, so the case cannot arise. This test pins both halves of what
+// replaced it: the row is exported, and the document stays self-consistent.
+func TestRPC_ExportCollection_CarriesImportProvenance(t *testing.T) {
+	client, s, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	first, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "First Importer", Email: strPtr("first@example.com"),
+		Type: "human", Status: "active",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser first: %v", err)
+	}
+	second, err := s.CreateUser(ctx, store.CreateUserParams{
+		DisplayName: "Second Importer", Email: strPtr("second@example.com"),
+		Type: "human", Status: "active",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser second: %v", err)
+	}
+
+	taskID := uuid.New().String()
+	doc := minimalImportDoc("origin", nil, []map[string]interface{}{importTaskDoc(taskID)}, nil, nil, nil)
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal doc: %v", err)
+	}
+
+	svc := server.NewFarmTableService(s, "test")
+	firstImport, err := svc.ImportCollection(authedImportCtx(first.ID), &pb.ImportCollectionRequest{Data: data})
+	if err != nil {
+		t.Fatalf("first ImportCollection: %v", err)
+	}
+
+	exported, err := client.ExportCollection(ctx, &pb.ExportCollectionRequest{
+		Id: firstImport.GetCollectionId(), IncludeChanges: true,
+	})
+	if err != nil {
+		t.Fatalf("ExportCollection: %v", err)
+	}
+	var exportedDoc testExportDoc
+	if err := json.Unmarshal(exported.GetData(), &exportedDoc); err != nil {
+		t.Fatalf("unmarshal export: %v", err)
+	}
+
+	var exportedProv map[string]interface{}
+	for _, c := range exportedDoc.Changes {
+		if c["field_name"] == wantProvenanceField {
+			exportedProv = c
+		}
+	}
+	if exportedProv == nil {
+		t.Fatalf("the export of an imported collection does not disclose that it was imported; changes = %+v", exportedDoc.Changes)
+	}
+	if exportedProv["author_id"] != first.ID.String() {
+		t.Fatalf("exported provenance author_id = %v, want the real importer %s", exportedProv["author_id"], first.ID)
+	}
+
+	// Self-consistency: every change author must appear in users[], or the
+	// document cannot survive its own import validation.
+	found := false
+	for _, u := range exportedDoc.Users {
+		if u["id"] == first.ID.String() {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("provenance author %s is absent from the exported users[]; the document is not self-consistent", first.ID)
+	}
+
+	// Re-import as a DIFFERENT principal. The exported provenance row must be
+	// dropped rather than trusted, and replaced by one naming the new importer.
+	secondImport, err := svc.ImportCollection(authedImportCtx(second.ID), &pb.ImportCollectionRequest{
+		Data: exported.GetData(), Name: strPtr("restored"),
+	})
+	if err != nil {
+		t.Fatalf("re-import of an export containing provenance failed: %v", err)
+	}
+	var warned bool
+	for _, w := range secondImport.GetWarnings() {
+		if strings.Contains(w, wantServerFieldPrefix) {
+			warned = true
+		}
+	}
+	if !warned {
+		t.Fatalf("re-import silently dropped the exported provenance row; warnings = %v", secondImport.GetWarnings())
+	}
+
+	tasks, err := s.ListAllTasksForCollection(ctx, store.ListAllTasksForCollectionParams{
+		CollectionID: uuid.MustParse(secondImport.GetCollectionId()),
+	})
+	if err != nil {
+		t.Fatalf("ListAllTasksForCollection: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("tasks = %d, want 1", len(tasks))
+	}
+	rows, err := s.ListAllChangesForTask(ctx, store.ListAllChangesForTaskParams{TaskID: tasks[0].ID})
+	if err != nil {
+		t.Fatalf("ListAllChangesForTask: %v", err)
+	}
+	provs := provenanceRows(rows)
+	if len(provs) != 1 {
+		t.Fatalf("provenance rows after re-import = %d, want exactly 1; the payload's copy must not have survived alongside the new one", len(provs))
+	}
+	if provs[0].AuthorID != second.ID {
+		t.Fatalf("re-imported provenance names %s, want the principal who actually performed THIS import (%s)", provs[0].AuthorID, second.ID)
 	}
 }
