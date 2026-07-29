@@ -244,6 +244,83 @@ express "and nothing populates it afterwards."* The retraction is recorded in
 the source next to the entry rather than deleted, because the joining error is
 worth more to the next reader than the sentence was.
 
+### 9. Required 3 — three rules nothing could reach
+
+`TestRemoteDataKeysWrittenByAdaptersAreClassified` ended in three `t.Errorf`
+loops. **All three error arms were unreachable on a clean tree**, measured at R4
+and re-measured here: every top-level key is classified, no nested key is
+URL-bearing, no `nonURLKeys` entry is stale. Replace any one condition with a
+constant that never fires and the suite stays green. The only live assertions
+were the two `t.Fatalf` positive controls, and those prove the **extractor**
+works, not the **classification**.
+
+The rules are now `classifyRemoteDataKeys`, returning verdicts separated from
+their messages, driven by `TestRemoteDataKeyClassification` — six rows, all three
+verdict kinds, two clean rows, anti-vacuity in both directions (every kind must
+be exercised; some row must expect nothing).
+
+| mutation | result |
+|---|---|
+| nested rule wired to never fire — **the exact R4 survivor** | red |
+| unclassified-top-level rule never fires | red |
+| stale-exemption rule never fires | red |
+| classifier reports *every* key (the over-reporting direction) | red |
+
+The fixture rows are inputs this tree does not produce, deliberately: a fixture
+fed only today's adapter keys would be exactly as vacuous as the loops it
+replaced. **The tree's state is not the test's coverage.**
+
+This is the same remedy `checkViaSafeHref` got on the web side and
+`remoteDataWriteIsSanitized` got on the Go side, both inside this diff's own
+history. The lesson had been carried to the code that **decides** and not to the
+code that **acts on the decision**; this is the acting half.
+
+### 10. Required 5 — the reconciliation, performed rather than softened
+
+Two stale claims, both load-bearing for a guard's existence.
+
+**(a) `urlvalidate_differential_test.go`:** nested keys may not be URL-bearing
+*"because `sanitizeRemoteData` walks only the top level."* **False on this
+tree.** `sanitizeRemoteValue` re-classifies every key it descends to, so a
+nested `html_url` is validated exactly like a top-level one. Measured, not
+inferred — `remotedata_depth_test.go` pins both directions:
+`{"parent": {"html_url": "javascript:…"}}` loses the key and
+`{"parent": {"html_url": "https://…"}}` keeps it.
+
+So the rule is **not** what keeps a nested URL off the wire; the sanitizer is.
+It is kept, with its true reason: it fires when an adapter starts writing a
+nested key nothing has classified, because `nonURLKeys` covers top-level keys
+only and there is no reasons-map for nested ones. **It is a change detector over
+the adapters, not a safety guard.** Whether a change detector should be a
+`t.Errorf` at all is *explicitly not adjudicated* — keeping it is not a ruling
+that it should be kept, it is a refusal to retire a rule in the same commit that
+found its reason was wrong.
+
+**(b) `urlvalidate.go`:** *"It can now, so the two agree."* It can see them now.
+**They do not agree.** The test is deliberately stricter than the sanitizer: it
+errors on a nested URL-bearing key the sanitizer would validate. The comment now
+states the divergence, both sides of it, and which side actually stops nested
+URLs — because H-4 is right that softening a false claim into a vague one
+reproduces the defect in a quieter register.
+
+### 11. The rename destroyed its own provenance
+
+Deliverable 5 was *rename `…NeverSerialises`, preserving its positive control*.
+The control survives — `structpb.NewStruct` on `[]any{"bug"}` must succeed, so
+the assertion above it is about the value type and not about `NewStruct` being
+broken — and it is asserted, not merely present.
+
+But the rename ate the record of itself. The comment read **"RENAMED FROM
+`TestPassthroughGraphQLRemoteDataIsNilByStructpbAccident`"** — the *new* name.
+A global rename rewrote the old name at the one place it appeared as the
+**subject** of a sentence about the rename rather than as a reference to the
+test. It shipped that way for three commits and reads as a test renamed from
+itself. Recovered from `git show e6bda71`.
+
+**Supersede-never-erase can be defeated by a mechanism rather than a decision.**
+Nobody chose to delete that record; a correct-looking global substitution did,
+and the substitution had no way to distinguish a mention from a use.
+
 ## Verification
 
 `make test` green, both halves — Go suite plus 380 web assertions, matching
