@@ -17,6 +17,19 @@ denied. The inference is sound. It is still the wrong instrument for silencing
 its own sole dissent: if it has a hole, the repoint turns a true finding green
 and nothing remains to say so.
 
+> **STRUCK AT `1253e12` — WITHDRAWN AS THE BASIS FOR THE DECISION, NOT AS A
+> CLAIM.** The composition above is still TRUE. It is no longer LOAD-BEARING,
+> and it never should have been: the EM refused it precisely because an
+> inference is the wrong instrument for silencing a dissenting measurement, and
+> that refusal was vindicated. What replaced it is the three-point measurement
+> recorded below the line in this file's successor sections — baseline GREEN
+> **by the ordering accident**, D2a-hunk-only **RED**, both halves **GREEN by the
+> departure mechanism**. Note what the composition could never have told me, and
+> what the measurement did: **the baseline green and the round-12 green have
+> DIFFERENT CAUSES.** A composition over two green tests cannot distinguish
+> "denied for the right reason" from "denied by an ordering artefact", because
+> both present as green. That distinction is the entire finding.
+
 So a real guard speaks first: `TestPricingGate_MaskedRemovalOfCanonicallyFirst
 StageIsCharged` (`internal/server`), pinning that one cell against the real gate,
 with read-back.
