@@ -49,6 +49,7 @@ Canaries were never committed; restoration was verified by content hash and by
 | E | tsconfig gate | include narrowed to `src/**/*.spec.ts` | n/a | **1 RED** |
 | F | suite reds | `throw` appended to the one test file | n/a | **1 RED** |
 | G | discovery | a second `.test.ts` file added | n/a | **0 green, 2 tests ran** |
+| H | stale output | `rm -rf .tmp-test` removed from `test` | n/a | **1 RED** |
 | B2 | control | `npx vitest run utils` (legitimate segment) | 0 | **0 green** |
 | D2 | control | `npx vitest run "src/utils"` (quoted, legitimate) | 1 red | **0 green** |
 
@@ -117,6 +118,32 @@ manifest went red on a correct config. Comment stripping is now string-aware.
 Found by running it, not by reading it — which is now three for three: every
 non-obvious defect on this branch came from firing a guard, never from
 re-reading the code that contained it.
+
+## A compiler does not delete
+
+The last defect on this branch was found by the final verification run, after
+everything else was committed and green. `npm test` reported **2 tests on a tree
+containing 1 test file.**
+
+Canary G had added a second test file, and removing the source did not remove
+its compiled output. `tsc` emits into `.tmp-test` and never cleans it, so the
+compiled form of a deleted test kept being discovered and kept reporting pass.
+
+What makes this worth writing down is not the stale artefact. It is that **the
+two instruments disagreed and the reassuring one was wrong.** The manifest reads
+sources and said 1. The suite runs the output directory and ran 2. A test whose
+source no longer exists was contributing a pass to the count that gates merges,
+and the check built to detect exactly this kind of drift could not see it,
+because it was looking at the wrong side of the compile step.
+
+`npm test` now begins `rm -rf .tmp-test`, and the manifest tracks which
+directories a pipeline removes and reports a `node --test <dir>` over an
+uncleaned `<dir>` as unanalysable — so adding the runner without the clean step
+is red, not green. Canary H fires this.
+
+Both of the last two defects were found by running something, and neither would
+have survived a careful reading, because neither was visible in the code. One
+needed a glob to contain `/*`, the other needed a file to have been deleted.
 
 ## Not fixed here, owned elsewhere
 
