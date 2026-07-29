@@ -103,18 +103,32 @@ jobs:
 
           # The embed marker being present is necessary, not sufficient. Ask the
           # compiler directly.
-          if ! go list ./... > /tmp/committed-packages.txt 2>/tmp/committed-packages.err; then
+          if ! go list ./... > committed-packages.txt 2>committed-packages.err; then
             echo "::error::The committed tree does not compile. go list ./... failed:"
-            sed 's/^/  /' /tmp/committed-packages.err
+            sed 's/^/  /' committed-packages.err
             exit 1
           fi
-          pkgs=$(grep -c . /tmp/committed-packages.txt || true)
+          pkgs=$(grep -c . committed-packages.txt || true)
           if [ "$pkgs" -eq 0 ]; then
             echo "::error::go list ./... reported 0 packages on the committed tree."
             echo "An empty package list is not a clean result. Failing closed."
             exit 1
           fi
+
+          # PUBLISH THE SET, NOT JUST THE INTEGER. A count is not diffable: it
+          # cannot tell the next reader whether a package appeared, disappeared,
+          # or both at once, and two people reconciling counts will agree on a
+          # number while disagreeing about which members produced it. The list
+          # goes to the step summary and is uploaded with the other evidence, so
+          # a change in this number can be resolved to the package that caused
+          # it without re-running anything.
           echo "OK: the committed tree compiles -- ${pkgs} packages, nothing built yet."
+          {
+            echo "### Packages in the COMMITTED tree (${pkgs})"
+            echo '```'
+            cat committed-packages.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install web dependencies from lockfile
         working-directory: web
@@ -656,6 +670,7 @@ jobs:
         with:
           name: test-membership
           path: |
+            committed-packages.txt
             go-test.log
             go-test-rows.txt
             executed-go-tests.txt
