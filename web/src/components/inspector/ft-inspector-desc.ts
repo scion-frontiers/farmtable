@@ -241,10 +241,12 @@ export class FtInspectorDesc extends LitElement {
           What IS stated lives in code, not prose: web/src/util/safe-url.ts
           defines SAFE_SCHEMES and safeHref, web/src/util/safe-url.test.ts pins
           their behaviour, and web/src/util/url-binding-scan.test.ts asserts
-          that every href binding routes through safeHref. Note that neither of
-          those two test files is executed by "npm test" as of this commit --
-          see agents.md, "Build And Test". (No backticks in this comment: it
-          sits inside a template literal, where a backtick ends the literal.)
+          that every href binding routes through safeHref. Both of those test
+          files are executed by "npm test", which discovers them rather than
+          running a hardcoded list; make suite-manifest fails the build if any
+          tracked test file compiles without executing. (No backticks in this
+          comment: it sits inside a template literal, where a backtick ends the
+          literal.)
         -->
         ${unsafeHTML(renderMarkdown(this.description))}
       </div>

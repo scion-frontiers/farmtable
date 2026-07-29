@@ -39,14 +39,14 @@ go build -o /workspace/.farmtable/bin/ft ./cmd/ft
 URL-scheme security guard lives in `web/src/util/*.test.ts`, and `npm test` is
 its only intended executor.
 
-**As of this commit, `npm test` does NOT execute that guard.** The `test` script
-in `web/package.json` names a single compiled file
-(`.tmp-test/utils/task-ready.test.js`), so **1 of the 5 tracked
-`web/src/**/*.test.ts` files runs**; the other 4 — including both URL-scheme
-guards — are type-checked and compiled but never executed. A green `make test`
-today is therefore **not** evidence that the URL-scheme guard passes.
-`make suite-manifest` reports the gap (`enumerated=5 executed=1 missing=4`) and
-is expected red until the shared web-test runner lands.
+`npm test` runs `web/scripts/run-node-tests.mjs`, which **discovers** every
+`src/**/*.{test,spec}.{ts,tsx}` file and hands node explicit paths. Adding a
+test file requires no edit to that runner, to `package.json`, or to `ci.yml` —
+it is picked up by being on disk. Deliberately not restating a file count here:
+a number in prose goes stale silently, and `make suite-manifest` is the
+executable form of the same claim. It compares the runner's own `--list`
+against an independent scan of the tree and **fails the build if any tracked
+test file compiles without executing**.
 
 ## farmtable-dev Skill Reference
 
@@ -111,14 +111,16 @@ go generate ./internal/store/ent
 half is not optional cosmetics — `web/src/util/url-binding-scan.test.ts` and
 `safe-url.test.ts` are the client-side half of the URL-scheme security property.
 
-**Neither of those two files is executed by `npm test` as of this commit, and
-neither is executed by either container build.** `web/package.json`'s `test`
-script names one compiled file, so 4 of the 5 tracked web test files compile and
-never run. The previous wording here — "both container builds run it too, so a
-red guard fails the image" — was true when written and is **false now**:
-`RUN npm test` in both `Dockerfile` and `Dockerfile.server` succeeds without
-evaluating either URL-scheme guard, so a red guard would **not** fail either
-image. Use `make suite-manifest` to see which files actually execute.
+Both are executed by `npm test`, and `RUN npm test` in both `Dockerfile` and
+`Dockerfile.server` therefore does fail the image on a red guard.
+
+**This sentence has been false twice, in both directions, so verify it rather
+than trusting it.** It was written when the suite ran everything, became false
+when the test script was narrowed to a single named file — leaving these guards
+compiling and never running while the docs still promised they ran — and became
+true again when the discovery runner landed. `make suite-manifest` is the check
+that makes the promise executable instead of aspirational; run it rather than
+believing this paragraph.
 
 Run `go generate ./internal/store/ent` after Ent schema changes. Run
 `go test ./... -tags integration` only when a live Postgres instance is

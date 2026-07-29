@@ -3,16 +3,20 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
-# WARNING: AS OF THIS COMMIT `RUN npm test` BELOW DOES NOT EXECUTE THE
-# URL-BINDING GUARD, so this step CANNOT fail the image on a red guard.
-# web/package.json's `test` script names one compiled file
-# (.tmp-test/utils/task-ready.test.js), so 1 of the 5 tracked web test files
-# runs; safe-url.test.ts and url-binding-scan.test.ts are compiled and skipped.
-# The gap is the runner invocation, not the environment -- `npm ci` above does
-# install devDependencies, so tsc and jsdom are present at this stage.
-# This image builds `ft` and runs `ft dashboard`. Dockerfile.server is the
-# image the live service is deployed from; it carries the same gap.
-# See Makefile: suite-manifest, which reports enumerated=5 executed=1 missing=4.
+# `npm test` runs web/scripts/run-node-tests.mjs, which DISCOVERS every
+# src/**/*.{test,spec}.{ts,tsx} rather than running a hardcoded list, so the
+# URL-binding guard does execute here and a red guard does fail this image.
+# `npm ci` above installs devDependencies, so tsc and jsdom are present.
+#
+# THIS LINE HAS BEEN A NO-OP GUARD BEFORE. When the test script named a single
+# compiled file, this step passed without evaluating safe-url.test.ts or
+# url-binding-scan.test.ts while this comment promised it could not. If you
+# change the test script, `make suite-manifest` is what catches the regression;
+# it fails on any tracked test file that compiles without executing.
+#
+# ARTEFACT: this image builds `ft` and runs `ft dashboard`. It is NOT the
+# deployed service -- Dockerfile.server builds farmtable-server, which is what
+# production runs.
 RUN npm test
 RUN npm run build
 

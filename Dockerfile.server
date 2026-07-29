@@ -3,16 +3,21 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
-# WARNING: THIS IS THE PRODUCTION IMAGE -- the live service is built and
+# ARTEFACT: THIS IS THE PRODUCTION IMAGE. The live service is built and
 # deployed from this file (`-f Dockerfile.server`, binary farmtable-server).
-# AS OF THIS COMMIT `RUN npm test` BELOW DOES NOT EXECUTE THE URL-BINDING
-# GUARD, so this step CANNOT fail the release image on a red guard.
-# web/package.json's `test` script names one compiled file
-# (.tmp-test/utils/task-ready.test.js), so 1 of the 5 tracked web test files
-# runs; safe-url.test.ts and url-binding-scan.test.ts are compiled and skipped.
-# The gap is the runner invocation, not the environment -- `npm ci` above does
-# install devDependencies, so tsc and jsdom are present at this stage.
-# See Makefile: suite-manifest, which reports enumerated=5 executed=1 missing=4.
+#
+# `npm test` runs web/scripts/run-node-tests.mjs, which DISCOVERS every
+# src/**/*.{test,spec}.{ts,tsx} rather than running a hardcoded list, so the
+# URL-binding guard does execute in the release path and a red guard does fail
+# this image. `npm ci` above installs devDependencies, so tsc and jsdom are
+# present.
+#
+# THIS LINE WAS A NO-OP GUARD IN THE RELEASE PATH. When the test script named a
+# single compiled file, this step passed without evaluating safe-url.test.ts or
+# url-binding-scan.test.ts, while the comment three lines above promised that a
+# red guard could not ship. If you change the test script, `make suite-manifest`
+# is what catches it; it fails on any tracked test file that compiles without
+# executing.
 RUN npm test
 RUN npm run build
 
