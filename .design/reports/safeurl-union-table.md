@@ -216,8 +216,8 @@ but returned in a normalised (not identity) form, `—` = side does not assert i
 
 > **WITHDRAWN — line 82, struck above, not deleted.** Concerns test blob
 > **a9e49ff** and fixture blob **4a54328**; correction carried in commit
-> **&lt;PENDING-COMMIT-SHA&gt;** (filled in by the follow-up commit named at the end of
-> this report). Line 82 double-counted BRANCH's `http://[::1]/x` rejection, which
+> **c623332** (`c62333229dcae42f5d8c4c37e32e756a06e2351b`), which is the commit
+> carrying the struck row itself. Line 82 double-counted BRANCH's `http://[::1]/x` rejection, which
 > was already recorded in the BRANCH column of line 50. Machine-checking the
 > published columns returned MAIN 49 / BRANCH **46** / both-sides 13, against a
 > stated BRANCH count of 45 — the extra line was the discrepancy. The three
