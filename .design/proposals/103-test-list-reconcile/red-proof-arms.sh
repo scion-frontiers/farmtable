@@ -53,3 +53,13 @@ echo "\n############ ARM G: hand-written pin, all four spellings mixed. REGRESSI
 node "$GUARD" "$W" --pin /tmp/d103/pin-spellings.txt
 rc=$?
 if [[ $rc == 0 ]]; then echo "EXIT=$rc  (expected 0)  OK"; else echo "EXIT=$rc  (expected 0)  *** MISMATCH ***"; fi
+
+# The reconciled wiring this proposal actually recommends, end to end.
+RECONCILED='node scripts/check-test-membership.mjs && node scripts/check-receipts.mjs && rm -rf .tmp-test && tsc -p tsconfig.test.json && node scripts/run-tests.mjs'
+wire "$RECONCILED" "$GLOB_INC"
+arm "ARM H: THE RECONCILED WIRING ITSELF. Guards invoked in-band; all five suites run." 0
+
+# And it must still catch a deletion when the guards are wired in.
+RECONCILED_MINUS='node scripts/check-test-membership.mjs && node scripts/check-receipts.mjs && tsc -p tsconfig.test.json && node .tmp-test/utils/task-ready.test.js && node .tmp-test/util/markdown.test.js'
+wire "$RECONCILED_MINUS" "$M195_INC"
+arm "ARM I: reconciled wiring, but someone reverted the runner to the 195 hand list." 1

@@ -135,7 +135,18 @@ const steps = script.split('&&').map((s) => s.trim()).filter(Boolean);
 
 const EXPLICIT_NODE = /^node\s+\.tmp-test\/(.+)\.test\.js$/;
 const RUNNER = /^node\s+scripts\/run-tests\.mjs$/;
-const BENIGN = [/^rm\s+-rf\s+\.tmp-test$/, /^tsc\s+-p\s+tsconfig\.test\.json$/];
+
+// Steps that are part of the test command but execute no suite, so they neither
+// add to nor subtract from membership. The two check-* entries are this guard
+// and the receipt-protocol checker: the reconciled `test` script invokes both,
+// because a guard that is delivered but never invoked is #84 and #89 in this
+// same backlog -- present, correct, and load-bearing for nothing.
+const BENIGN = [
+  /^rm\s+-rf\s+\.tmp-test$/,
+  /^tsc\s+-p\s+tsconfig\.test\.json$/,
+  /^node\s+scripts\/check-test-membership\.mjs$/,
+  /^node\s+scripts\/check-receipts\.mjs$/,
+];
 
 let delegated = false;
 const explicit = [];

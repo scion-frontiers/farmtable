@@ -1,0 +1,80 @@
+{
+  "//": [
+    "DECLARED ASSERTION-RECEIPT PROTOCOL, PER SUITE. Lands at web/test-receipts.manifest.json.",
+    "",
+    "WHY A MANIFEST AND NOT SNIFFING. The two branches independently invented",
+    "assertion-count pinning with incompatible conventions, and a third convention",
+    "will arrive eventually. A runner that SNIFFS the output picks whichever format",
+    "it happens to recognise and treats an unrecognised one as absence -- which is",
+    "the exact shape of the #103 defect, one level up: a suite that reports nothing",
+    "and a suite whose report was not understood become indistinguishable, and the",
+    "quiet one wins. Declaring the protocol per suite makes a new convention a",
+    "REVIEWED LINE IN A DIFF instead of a silent reclassification.",
+    "",
+    "DEFAULT. A suite absent from `suites` below must use the `receipt` protocol:",
+    "it imports src/util/assertions.ts, which prints `#assertions N` on exit. A",
+    "suite that is absent here AND emits no receipt is a HARD ERROR naming the",
+    "suite. It is never read as zero.",
+    "",
+    "THE HAZARD IN `private-total`, STATED PLAINLY. This protocol matches a line of",
+    "the suite's own prose. That is a weaker contract than `receipt`: reword the",
+    "sentence and the match is lost. That failure is LOUD by construction -- a",
+    "declared private-total suite that emits no matching line is an error, not a",
+    "pass -- but it will be a confusing error, and the fix is to reword the pattern",
+    "here in the same commit. It is accepted deliberately: the alternative was to",
+    "rewrite a 5583-line suite's reporting to satisfy a runner, and a harness must",
+    "not get to rewrite the tests it is supposed to be checking."
+  ],
+
+  "suites": {
+    "util/markdown": {
+      "protocol": "private-total",
+      "pattern": "^markdown sanitizer: [0-9]+ checks passed \\(([0-9]+) assertions\\)$",
+      "captureGroup": 1,
+      "why": [
+        "MEASURED at 0b52dcdd6a06f694378084ea3ebefa7d9c473f15,",
+        "web/src/util/markdown.test.ts line 5580. The suite keeps a private",
+        "`assertions` counter and self-checks it against its own",
+        "EXPECTED_ASSERTIONS (131 at that SHA, moved 127 -> 131 in round 10) and",
+        "against a computed EXPECTED_CHECKS. It emits no `#assertions` receipt:",
+        "`grep -c '#assertions'` on that blob is 0.",
+        "",
+        "It is declared rather than converted because its internal pin is already",
+        "the stronger check -- it fails on a count change with a message naming",
+        "which of the two totals moved -- and because converting it would mean",
+        "editing a suite this task has no mandate to touch."
+      ]
+    }
+  },
+
+  "aggregateAssertionPin": null,
+
+  "aggregateAssertionPin_why": [
+    "UNSET, DELIBERATELY, AND THIS IS NOT AN OVERSIGHT.",
+    "",
+    "The XSS runner pinned `EXPECTED_ASSERTIONS = 380` as an exact equality over",
+    "the sum of all receipts. That number is not transferable to the reconciled",
+    "suite: the union adds util/markdown (131 assertions by its own count) and the",
+    "shared utils/task-ready.test.ts exists as two different blobs with different",
+    "assertion counts, so the correct total depends on a merge that has not",
+    "happened and on a run that has not been authorised.",
+    "",
+    "SETTING IT BY ARITHMETIC WOULD BE A GUESS WEARING A MEASUREMENT'S CLOTHES.",
+    "380 + 131 is a plausible-looking number that no one has observed, and a pin",
+    "asserted at a wrong value is worse than an absent one: it goes red on a",
+    "correct tree, and the person who clears it will clear it by editing the pin,",
+    "which trains everyone to edit the pin.",
+    "",
+    "WHAT IS UNPROTECTED WHILE THIS IS NULL: a count-neutral or count-reducing",
+    "change INSIDE a suite that still runs. Deleting one assertion from a suite",
+    "that still evaluates two hundred is invisible until this is set. What is",
+    "still protected: every suite's own internal pin (util/markdown's 131), the",
+    "per-suite zero/no-receipt gates, and suite MEMBERSHIP via test-suites.pin.",
+    "Membership is the #103 defect; this pin is a different and narrower one.",
+    "",
+    "TO SET IT: run the reconciled suite once on the merged tree, take the printed",
+    "total, and commit it here with the SHA it was measured at. The runner prints",
+    "the exact line to paste. It must be MEASURED, by someone holding the build",
+    "token -- not derived, not carried over from either branch."
+  ]
+}

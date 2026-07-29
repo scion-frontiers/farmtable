@@ -1,4 +1,4 @@
-# D4 RED PROOF — check-test-membership.mjs
+# D4 RED PROOF (9 arms) — check-test-membership.mjs
 
 Every line below is verbatim captured output. **Nothing here compiled or ran a
 test suite.** The only thing executed is the guard itself, which reads
@@ -16,7 +16,9 @@ pinning membership instead of a count: it holds the executed count fixed at
 five and swaps one suite for another, so a `>= 5` floor and an `== 5` exact
 count are BOTH GREEN on that tree, and this pin is RED. ARMS D and F are the
 fail-closed arms: the guard reports UNDETERMINED (exit 2) rather than passing
-on a wiring it cannot model. ARM G is a regression arm — see below.
+on a wiring it cannot model. ARM G is a regression arm (see below). ARMS H and I are the reconciled wiring
+this proposal recommends: H proves it classifies and passes, I proves the pin
+still fires if someone later reverts the runner to the #195 hand list.
 
 ## ARM G exists because the guard was RED FOR THE WRONG REASON at 03:10Z
 
@@ -132,4 +134,89 @@ Executed suites (5):
 
 PASS: all 5 pinned suite(s) execute.
 EXIT=0  (expected 0)  OK
+
+############ ARM H: THE RECONCILED WIRING ITSELF. Guards invoked in-band; all five suites run. ############
+Execution mode: delegated discovery (scripts/run-tests.mjs globs src/**/*.test.ts)
+Executed suites (5):
+  src/util/assertions.test.ts
+  src/util/markdown.test.ts
+  src/util/safe-url.test.ts
+  src/util/url-binding-scan.test.ts
+  src/utils/task-ready.test.ts
+
+PASS: all 5 pinned suite(s) execute.
+EXIT=0  (expected 0)  OK
+
+############ ARM I: reconciled wiring, but someone reverted the runner to the 195 hand list. ############
+Execution mode: explicit invocation list in package.json "test"
+Executed suites (2):
+  src/util/markdown.test.ts
+  src/utils/task-ready.test.ts
+
+FAIL: 3 pinned suite(s) are NOT executed by `npm test`:
+  src/util/assertions.test.ts
+  src/util/safe-url.test.ts
+  src/util/url-binding-scan.test.ts
+
+  These files may still exist on disk and may still compile. They are not
+  being run. `npm test` will exit 0 without them and report no smaller number.
+  If the removal is deliberate, remove the name from the pin file in the same
+  commit, so the diff records which suite stopped running and why.
+EXIT=1  (expected 1)  OK
 ```
+
+## Receipt-protocol checks (`check-receipts.mjs`)
+
+These drive `test-receipts.mjs` — the artefact itself, imported, not a copy —
+with synthetic stdout. No compiler, no suite, no build token.
+
+```
+
+-- manifest loading --
+  ok    a valid manifest loads
+  ok    a null aggregate pin survives as null
+  ok    a missing manifest is an error, not an empty default
+  ok    an unknown protocol is refused
+  ok    private-total without a pattern is refused
+  ok    an uncompilable pattern is refused
+  ok    a non-integer aggregate pin is refused
+
+-- default protocol (receipt), for any undeclared suite --
+  ok    a valid receipt yields its count
+  ok    a silent suite is an error
+  ok    and the error says it is NOT a zero
+  ok    a silent suite yields NO count field at all
+  ok    a zero receipt is an error
+  ok    an unparseable receipt is an error
+  ok    the highest receipt wins when several are printed
+
+-- private-total protocol, as declared for util/markdown --
+  ok    the REAL markdown.test.ts output line parses to 131
+  ok    surrounding output does not disturb the match
+  ok    a reworded report line is an error
+  ok    and that error is NOT read as zero either
+  ok    a declared private-total suite that ALSO emits a receipt is an error
+  ok    two matching report lines are an error
+  ok    a private total of zero is an error
+
+PASS: 21/21 receipt-protocol cases behaved.
+```
+
+### And it can fail: mutation applied to the real module
+
+The degradation guarded against is `readAssertionTotal` returning `{count: 0}`
+for a suite that reported nothing — which would sum a silent suite into the
+aggregate as a zero and let it pass. Inserting exactly that, verbatim result:
+
+```
+  FAIL  a silent suite is an error
+  FAIL  and the error says it is NOT a zero
+  FAIL  a silent suite yields NO count field at all
+          a count of 0 here would be summed into the aggregate and vanish
+
+FAIL: 18/21 receipt-protocol cases behaved.
+MUTANT_EXIT=1
+```
+
+The module was then restored and verified byte-identical to its backup
+(`diff` clean, 21/21 green again).
