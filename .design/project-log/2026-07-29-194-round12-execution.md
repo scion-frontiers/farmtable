@@ -133,3 +133,49 @@ without the fix.
   (`MapLabelsToStage("duplicate") = (duplicate, true)`), it demands PERMIT under
   scopes lacking `task:accept` (a triage bypass), and it edits **the decision**
   rather than the facts the decision is applied to.
+
+---
+
+## ADDENDUM — THE BASELINE-RED GAP IS CLOSED, AND R11 IS WORSE THAN RECORDED ABOVE
+
+Added at `9cc9430`. Pre-registration `754dc16`, results-free, both branches named
+before the run. Full account: ruling doc §14.
+
+Everything above describes the ordering accident as the thing that **saved** r11
+on the vector I tested. **That was half the picture.** The accident covers only
+the *prefix* half of the population:
+
+```
+r11 PERMITS a masked departure  iff  narrowAfter ++ sorted(departed) == sorted(before)
+                                iff  max(narrowAfter) < min(departed)
+                                iff  departed is a CANONICALLY FINAL SUFFIX of before
+```
+
+because `SameStageSet` is positional, `unionStages` **appends**, and
+`AllTerminalLabelStages` **sorts** (`cancelled < completed < duplicate < wont_fix`).
+
+Measured at `037a626`, implementation absent:
+
+| vector | r11 | departed? |
+|---|---|---|
+| remove `wont_fix`, keep `completed` | **ALLOWED** | yes |
+| remove `duplicate`, keep `cancelled` | **ALLOWED** | yes |
+| remove `completed`, keep `wont_fix` | denied | no |
+| remove `cancelled`, keep `duplicate` | denied | no |
+
+> **ROUND 11 PRICES AT NOTHING EVERY MASKED DEPARTURE OF A CANONICALLY FINAL
+> STAGE, AND CHARGES THE REST ONLY AS A SIDE EFFECT OF SLICE ORDER.**
+
+`TestPricingGate_MaskedRemovalOfCanonicallyFinalStageIsCharged` is **RED at
+`037a626` and GREEN at `9cc9430`** — the first oracle on this issue that can go
+red at a checkout where the implementation does not exist.
+
+**THE PROCESS POINT, WHICH IS THE TRANSFERABLE PART.** I asked to be allowed to
+build this oracle and called the choice "weak". The EM refused to rule and
+ordered the cheap measurement first, because building it blind would have cost
+the same and left me unable to say which world I was in — **and if no such vector
+had existed I would have shipped a guard that could never fire**, which is the
+precise defect this issue is about. *Do the cheap thing that tells you whether
+the expensive thing is worth doing.* My existing first-stage oracle turned out to
+be testing the half of the population r11 already covered, which is exactly the
+kind of fact an unmeasured "improvement" buries.
