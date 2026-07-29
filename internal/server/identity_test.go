@@ -6,6 +6,8 @@ import (
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/store"
+	// Aliased: several tests below bind a local named `task`.
+	enttask "github.com/farmtable-io/farmtable/internal/store/ent/task"
 	"github.com/farmtable-io/farmtable/internal/testutil"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -26,6 +28,11 @@ func TestWhoAmI(t *testing.T) {
 		t.Fatalf("creating user: %v", err)
 	}
 
+	// Deliberately scope-less, and it must stay that way. WhoAmI never calls
+	// RequireScope, so this asserts the distinction the fix depends on: an empty
+	// set means "this principal HOLDS nothing", which is not the same as "this
+	// endpoint REQUIRES nothing". A future sweep for scope-less mints will flag
+	// this line; the correct response is to leave it alone.
 	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "whoami-token",
@@ -82,30 +89,47 @@ func TestClaimTask_PropagatesUserID(t *testing.T) {
 	})
 	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
+		Scopes: defaultScopes(t, "agent"),
 		Name:   "claim-token",
 	})
+
+	// The collection is scaffolding, and it is built through the store rather
+	// than over the wire on purpose. An agent does not hold collection:write.
+	// Until 2026-07-29 this called client.CreateCollection and succeeded only
+	// because the token's empty scope set was read as a wildcard. Granting the
+	// agent collection:write to keep the wire call would make this fixture
+	// assert that agents may create collections, which the permission model
+	// denies — a false model baked into a test, which is the bug being fixed.
+	// The subject here is that ClaimTask records the *agent* as assignee, so
+	// the caller has to stay an agent.
+	coll, err := s.CreateCollection(ctx, store.CreateCollectionParams{Name: "test-coll"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "test-coll"})
-	if err != nil {
-		t.Fatalf("creating collection: %v", err)
-	}
-
-	task, err := client.CreateTask(authCtx, &pb.CreateTaskRequest{
-		Name:         "test-task",
-		CollectionId: coll.GetId(),
-		Stage:        stagePtr(pb.TaskStage_TASK_STAGE_ACCEPTED),
+	// Also scaffolding, and for a sharper reason than the collection was.
+	// Creating a task directly in stage "accepted" requires task:accept, which
+	// an agent deliberately does not hold — agents may work tasks but may not
+	// accept them out of triage. So an agent cannot set up its own claimable
+	// task, and the fixture must not pretend otherwise. Claiming it, below, is
+	// the part this test is actually about, and that an agent may do.
+	created, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title:        "test-task",
+		CollectionID: coll.ID,
+		Phase:        enttask.PhaseOpen,
+		Stage:        enttask.StageAccepted,
 	})
 	if err != nil {
 		t.Fatalf("creating task: %v", err)
 	}
 
 	resp, err := client.ClaimTask(authCtx, &pb.ClaimTaskRequest{
-		Id: task.GetId(),
+		Id: created.ID.String(),
 	})
 	if err != nil {
 		t.Fatalf("claiming task: %v", err)
@@ -120,7 +144,7 @@ func TestClaimTask_PropagatesUserID(t *testing.T) {
 	}
 
 	taskResp, err := client.GetTask(authCtx, &pb.GetTaskRequest{
-		Id:             task.GetId(),
+		Id:             created.ID.String(),
 		IncludeChanges: true,
 	})
 	if err != nil {
@@ -154,18 +178,25 @@ func TestAddComment_PropagatesUserID(t *testing.T) {
 	})
 	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
+		Scopes: defaultScopes(t, "agent"),
 		Name:   "comment-token",
 	})
+
+	// Scaffolding through the store: an agent does not hold collection:write.
+	// See TestClaimTask_PropagatesUserID for why the caller stays an agent.
+	coll, err := s.CreateCollection(ctx, store.CreateCollectionParams{Name: "comment-coll"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "comment-coll"})
 	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "comment-task",
-		CollectionId: coll.GetId(),
+		CollectionId: coll.ID.String(),
 	})
 
 	comment, err := client.AddComment(authCtx, &pb.AddCommentRequest{
@@ -186,11 +217,17 @@ func TestListUsers(t *testing.T) {
 	defer storeCleanup()
 
 	ctx := context.Background()
-	uA, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "agent", Status: "active"})
+	// user-a is the caller and is an admin because ListUsers requires
+	// user:read, which no non-wildcard type holds. The alternative — keeping
+	// the caller an agent and handing it an explicit user:read token — would
+	// assert that agents may enumerate users. They may not. The count below is
+	// 2 either way, so the caller's type is not part of this test's subject.
+	uA, _ := s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-a", Type: "admin", Status: "active"})
 	s.CreateUser(ctx, store.CreateUserParams{DisplayName: "user-b", Type: "human", Status: "active"})
 
 	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: uA.ID,
+		Scopes: defaultScopes(t, "admin"),
 		Name:   "list-users-token",
 	})
 
@@ -218,8 +255,11 @@ func TestGetUser(t *testing.T) {
 		Status:      "active",
 	})
 
+	// GetUser requires user:read; the caller is already type "human", which
+	// holds it, so the type's own defaults are the honest grant.
 	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
+		Scopes: defaultScopes(t, "human"),
 		Name:   "get-user-token",
 	})
 
@@ -248,22 +288,29 @@ func TestUpdateTask_PropagatesActorID(t *testing.T) {
 	})
 	_, rawToken, _ := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
+		Scopes: defaultScopes(t, "agent"),
 		Name:   "updater-token",
 	})
+
+	// Scaffolding through the store: an agent does not hold collection:write.
+	// See TestClaimTask_PropagatesUserID for why the caller stays an agent.
+	coll, err := s.CreateCollection(ctx, store.CreateCollectionParams{Name: "update-coll"})
+	if err != nil {
+		t.Fatalf("creating collection: %v", err)
+	}
 
 	client, _, cleanup := testutil.NewTestServerWithAuth(t, s)
 	defer cleanup()
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	coll, _ := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "update-coll"})
 	task, _ := client.CreateTask(authCtx, &pb.CreateTaskRequest{
 		Name:         "update-task",
-		CollectionId: coll.GetId(),
+		CollectionId: coll.ID.String(),
 	})
 
 	newName := "updated-task"
-	_, err := client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
+	_, err = client.UpdateTask(authCtx, &pb.UpdateTaskRequest{
 		Id:   task.GetId(),
 		Name: &newName,
 	})

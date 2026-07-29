@@ -27,9 +27,22 @@ func setupAuthTestEnv(t *testing.T) (pb.FarmTableServiceClient, context.Context,
 	s, storeCleanup := testutil.NewTestStore(t)
 
 	ctx := context.Background()
+	// These tests are about identity propagation and actor recording, not RBAC,
+	// and between them they exercise most of the API surface: CreateCollection,
+	// CloseTask, DeleteTask, ListUsers. So the fixture needs a caller that
+	// legitimately holds those rights.
+	//
+	// It used to be type "agent" with NO scopes, and passed only because an
+	// empty scope set was read as a wildcard. Note what the honest repair is
+	// NOT: granting an agent collection:write and task:close would make the
+	// fixture assert that agents may create collections and close tasks, which
+	// the permission model denies them. That would encode a false model in a
+	// fixture — the same failure mode as the bug being fixed, where the shape of
+	// a test made a wrong thing look intended. The caller is an admin because
+	// that is what an admin's rights are for.
 	u, err := s.CreateUser(ctx, store.CreateUserParams{
 		DisplayName: "identity-test-user",
-		Type:        "agent",
+		Type:        "admin",
 		Status:      "active",
 	})
 	if err != nil {
@@ -39,6 +52,7 @@ func setupAuthTestEnv(t *testing.T) (pb.FarmTableServiceClient, context.Context,
 	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "identity-test-token",
+		Scopes: []string{server.ScopeWildcard},
 	})
 	if err != nil {
 		storeCleanup()
@@ -510,6 +524,8 @@ func TestIdentity_WatchTasksAcceptsValidAuth(t *testing.T) {
 	}
 	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
+		// WatchTasks requires task:read, which an agent legitimately holds.
+		Scopes: defaultScopes(t, "agent"),
 		Name:   "watch-token",
 	})
 	if err != nil {
@@ -521,13 +537,18 @@ func TestIdentity_WatchTasksAcceptsValidAuth(t *testing.T) {
 
 	authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+rawToken)
 
-	// Create a collection first so WatchTasks has something to subscribe to
-	coll, err := client.CreateCollection(authCtx, &pb.CreateCollectionRequest{Name: "watch-coll"})
+	// Create a collection first so WatchTasks has something to subscribe to.
+	// Built through the store, not over the wire: an agent does not hold
+	// collection:write, and until 2026-07-29 the wire call here succeeded only
+	// because the token's empty scope set was read as a wildcard. The subject
+	// of this test is that a valid token is accepted on a *stream*, so the
+	// caller must keep a token an agent could really hold.
+	coll, err := s.CreateCollection(ctx, store.CreateCollectionParams{Name: "watch-coll"})
 	if err != nil {
-		t.Fatalf("CreateCollection: %v", err)
+		t.Fatalf("creating collection: %v", err)
 	}
 
-	collID := coll.GetId()
+	collID := coll.ID.String()
 	watchCtx, cancel := context.WithCancel(authCtx)
 	defer cancel()
 

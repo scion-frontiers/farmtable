@@ -575,6 +575,11 @@ func TestCreateAPIToken_NoScopes(t *testing.T) {
 		t.Fatalf("creating user: %v", err)
 	}
 
+	// Deliberately scope-less. This is a storage assertion, not an
+	// authorization one: the store still accepts a row with no scopes, and an
+	// omitted set still round-trips as empty rather than as something else.
+	// Enforcement happens at RequireScope, not here. A future sweep for
+	// scope-less mints will flag this line; leaving it is correct.
 	tok, _, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "legacy-token",
