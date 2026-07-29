@@ -121,6 +121,25 @@ the artefact whose absence is the finding. Scoped runs are what is claimed:
 `go test ./internal/webguard/` (4 tests). **Which root and which dist: the
 branch tree at `/workspace/farmtable-dev-xss-r9`, with no `web/dist` present.**
 
+> **ADDED 13:30Z, per the coordinator's constraint set: every build, vet, test
+> or package-count figure must name the tree it was taken in.** Three trees were
+> used and none of them is the main working copy:
+>
+> - **T1** `/workspace/farmtable-dev-xss-r9` — tracked-clean, **no `web/dist`**,
+>   has `web/node_modules/` and `web/.tmp-test/`. Source of the web and
+>   `webguard` figures above.
+> - **T2** `/tmp/r9-clean` — **fully pristine**, `git clean -ndx` = 0. Source of
+>   every `go vet` / `go list` / `go build` figure in this entry.
+> - **T3** `/tmp/r9-arms` — mutation clone, same state as T1. Source of the
+>   interleaved arms and mutants.
+>
+> **T1 and T3 are a tree state the project's taxonomy does not yet name:** no
+> `web/dist` but `node_modules` present, so they behave as a pristine tree does
+> for Go commands and as a built tree does for web commands. Every Go figure
+> here comes from T2 regardless. No built frontend was created or deleted
+> anywhere by this round, and both throwaway clones were made from the local
+> path on this host, not from a network remote.
+
 Audit F8, audit F4, OP-2, review O-1..O-4, and the struck 15.8 remedy vehicle
 were out of scope and were not touched.
 
