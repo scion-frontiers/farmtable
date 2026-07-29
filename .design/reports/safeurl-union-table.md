@@ -451,6 +451,91 @@ pick one return contract, and that choice retires rows on whichever side loses.
 
 ---
 
+## PHASE 2(b) — ONE SURFACE OR TWO? Answer: **ONE SURFACE, RENAMED.**
+
+Read prohibition lifted 2026-07-29T15:29Z for this question only. Both
+implementations opened (659ef58, d85bb5b). **No implementation has been
+selected.** C2 untouched.
+
+### The answer
+
+`safeHref` and `safeExternalUrl` are **one surface under two names**, not two
+distinct surfaces. **"Land both" is NOT on the table**, and this is **not** a
+filename collision — it is a genuine policy collision on a single function.
+
+### The measurement that settles it
+
+Docblocks could be argued either way, so this was decided on consumers, not
+prose. `git grep` for each name at each commit, excluding the module and its
+test:
+
+| Consumer | at 439b309 (MAIN) | at 633f8f2 (BRANCH) |
+|---|---|---|
+| `web/src/components/inspector/ft-inspector-code.ts` | `safeHref(url)` — PR url | `safeExternalUrl(pr.url)` — PR url |
+| `web/src/components/inspector/ft-inspector-meta.ts` | `safeHref(remoteUrl)` — task remote_url | `safeExternalUrl(t.remoteUrl)` — task remoteUrl |
+| `safeExternalUrl` anywhere | **(none)** | 2 call sites |
+| `safeHref` anywhere | 2 call sites + `url-binding-scan.test.ts` | **(none)** |
+
+The two names are **mutually exclusive across the two commits** — neither
+appears at the other's commit. They are consumed by the **same two components**,
+at the **same two data fields** (`PullRequest.url`, `Task.remote_url`), feeding
+the **same sink** (an `<a href>`), against the **same threat** (stored
+`javascript:` reaching an href). Same path, same signature shape
+(`string | null | undefined` in).
+
+Two genuinely distinct surfaces would coexist at some commit with different
+consumers. These never coexist and never diverge in consumer. That is a rename,
+not a second function.
+
+### What a merge must therefore reconcile (recorded, not decided)
+
+Because it is one surface, exactly one of each of these can survive:
+
+| Axis | MAIN 659ef58 | BRANCH d85bb5b |
+|---|---|---|
+| Sentinel | returns `undefined` | returns `null` |
+| Return value | the **original** `raw` (identity, deliberate — "we only want to make a keep/reject decision here, not to rewrite what the user stored") | `url.href` (**normalised**) |
+| Scheme policy | `SAFE_SCHEMES = {http:, https:}` | `https:` only, + dev-gated loopback `http:` |
+| Userinfo | not checked (accepted) | `if (url.username \|\| url.password) return null` |
+| Extra export | `SAFE_SCHEMES` | `LOCAL_HTTP_LINKS_ENABLED` |
+| Reject UX | inert span **carrying the raw URL in a `title`** — "degrade, do not drop" | unlinked span showing the id; raw value not surfaced |
+
+The sentinel and return-value axes are mechanical and cheap. The reject-UX axis
+is not purely cosmetic: MAIN's call sites keep the rejected value visible to the
+user, and MAIN's tests pin that (`.pr-link-unsafe` with a `title`). Dropping it
+is a deliberate product change, not a merge artefact.
+
+### Ruling 2 (C3, userinfo → reject) applied to the artefacts
+
+Consistent with what is on disk. BRANCH d85bb5b:63 implements it in one line;
+MAIN 659ef58 has no userinfo check at any line — confirming the coordinator's
+reading that MAIN accepting it was a fixture, not a considered position. MAIN's
+docblock enumerates its known client/server divergences at length and **does not
+mention userinfo among them**, which is consistent with it never having been
+weighed.
+
+### Ruling 3 (C1, IPv6 loopback) — confirmed subsumed
+
+Verified against d85bb5b: there is no host-axis loopback check in the production
+path at all. `LOCAL_HOSTNAMES` is consulted **only** inside the
+`LOCAL_HTTP_LINKS_ENABLED && url.protocol === 'http:'` branch (d85bb5b:66). With
+`LOCAL_HTTP_LINKS_ENABLED === false`, `http://[::1]/x` is rejected by the scheme
+test at d85bb5b:65 before any host reasoning occurs. C1 does indeed fall out of
+C2 and must not be decided separately.
+
+### Preliminary flag for Arm B — NOT yet measured, do not treat as a result
+
+The coordinator asked for union rows of the "routing test" shape — rows that pass
+against any implementation including none. A first, **unverified** observation:
+against a passthrough disarm (`return raw`), every **accept** row is satisfied
+trivially, because a passthrough accepts everything. That is 21 of the 82 rows
+(MAIN lines 42–57, BRANCH lines 77–81). Of those, BRANCH's three
+**normalising** accepts (lines 78, 79, 80) would still fail a raw passthrough,
+since they demand a rewritten return value — so the vacuous set is plausibly 18,
+not 21. **This is arithmetic on the table, not a measurement, and the diff-line
+count and kill set must come from an actual run.** Recorded so it is not
+rediscovered as if new.
+
 ## Landing context — recorded now, applies at land time, not to this phase
 
 Per the CI-track addendum: the merged web test population is 30 files, up from
