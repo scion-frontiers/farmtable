@@ -128,6 +128,27 @@ go build ./...
 go test ./...
 ```
 
+## Frontend Tests
+
+`npm test` runs **two separate runners**, and which one picks up a file is
+decided purely by where the file lives:
+
+| Location | Runner | Command | Environment |
+| --- | --- | --- | --- |
+| `web/src/**/*.test.ts` | Node's built-in test execution via `scripts/run-node-tests.mjs` | `npm run test:node` | plain Node, no DOM |
+| `web/test/**/*.test.ts` | Vitest | `npm run test:components` | jsdom, Shoelace stubs from `test/setup.ts` |
+
+`npm run test:node` first compiles `src/**/*.test.ts` with `tsconfig.test.json`
+into `.tmp-test/`, then runs each compiled file in its own process. `tsc`
+follows imports, so a Node test may import any production module in `src/`.
+
+The split matters when reading the tree: a file such as
+`src/util/safe-url.test.ts` sits next to production code and is **not** matched
+by Vitest's `test/**` include, so `npx vitest run` reports it as neither passing
+nor failing. It is not dead code — it runs under `npm run test:node`. Put pure
+logic tests (no DOM) beside their module in `src/`; put anything that mounts a
+component in `test/`.
+
 ## Deployment
 
 ### Local or Single-User: `ft dashboard`

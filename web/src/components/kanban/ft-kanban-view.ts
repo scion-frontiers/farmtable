@@ -1,21 +1,27 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../../store/task-store.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
-import { TaskStage, TaskPhase } from '../../gen/types.js';
+import { TaskHoldReason, TaskStage, TaskPhase } from '../../gen/types.js';
 import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
+import { acceptsStageDrop, DROP_REFUSAL, STAGE_LABEL } from '../../util/task-state-utils.js';
+import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
 
 // TODO(test-coverage): Add component tests for the column-add-task event flow.
 
-interface ColumnDef {
+export interface ColumnDef {
   stage: TaskStage;
   label: string;
+  /**
+   * Display grouping for the lane only. `phase` is a server-derived wire
+   * projection and is never written back to the server — see `onStageChange`.
+   */
   phase: TaskPhase;
 }
 
@@ -25,7 +31,7 @@ interface ColumnNavDetail {
   stage: TaskStage;
 }
 
-const BOARD_COLUMNS: ColumnDef[] = [
+export const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.TRIAGE, label: 'Triage', phase: TaskPhase.OPEN },
   { stage: TaskStage.ACCEPTED, label: 'Accepted', phase: TaskPhase.OPEN },
   { stage: TaskStage.WORKING, label: 'Working', phase: TaskPhase.IN_PROGRESS },
@@ -33,16 +39,10 @@ const BOARD_COLUMNS: ColumnDef[] = [
   { stage: TaskStage.IN_QA, label: 'In QA', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.DEPLOYING, label: 'Deploying', phase: TaskPhase.IN_PROGRESS },
   { stage: TaskStage.COMPLETED, label: 'Completed', phase: TaskPhase.CLOSED },
+  { stage: TaskStage.WONT_FIX, label: "Won't Fix", phase: TaskPhase.CLOSED },
+  { stage: TaskStage.DUPLICATE, label: 'Duplicate', phase: TaskPhase.CLOSED },
+  { stage: TaskStage.CANCELLED, label: 'Cancelled', phase: TaskPhase.CLOSED },
 ];
-
-const ON_HOLD_STAGES: ColumnDef[] = [];
-
-const CLOSED_STAGES = new Set([
-  TaskStage.COMPLETED,
-  TaskStage.WONT_FIX,
-  TaskStage.DUPLICATE,
-  TaskStage.CANCELLED,
-]);
 
 @customElement('ft-kanban-view')
 export class FtKanbanView extends LitElement {
@@ -62,40 +62,6 @@ export class FtKanbanView extends LitElement {
       justify-content: flex-end;
       margin-bottom: 0.75rem;
     }
-    .on-hold-section {
-      border-top: 1px solid var(--sl-color-neutral-200);
-      padding-top: 0.75rem;
-      margin-top: 0.5rem;
-    }
-    .on-hold-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--sl-color-neutral-500);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.5rem;
-      user-select: none;
-    }
-    .on-hold-header sl-icon {
-      transition: transform 0.2s;
-    }
-    .on-hold-columns {
-      display: flex;
-      gap: 0.75rem;
-      overflow: auto;
-      padding-bottom: 0.5rem;
-    }
-    .on-hold-count {
-      background: var(--sl-color-neutral-200);
-      color: var(--sl-color-neutral-600);
-      border-radius: 999px;
-      padding: 0.1rem 0.45rem;
-      font-size: 0.7rem;
-    }
   `;
 
   @property({ attribute: false })
@@ -108,7 +74,16 @@ export class FtKanbanView extends LitElement {
   client?: FarmTableServiceClient;
 
   @property({ attribute: false })
-  phaseFilter: TaskPhase | null = null;
+  groupFilter: TaskGroupFilter | null = null;
+
+  @property({ attribute: false })
+  stageFilter: TaskStage | null = null;
+
+  @property({ attribute: false })
+  holdReasonFilter: TaskHoldReason | null = null;
+
+  @property({ attribute: false })
+  availabilityFilter: AvailabilityFilter | null = null;
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
@@ -120,9 +95,6 @@ export class FtKanbanView extends LitElement {
   capabilities?: CollectionCapabilities;
 
   private storeController!: TaskStoreController;
-
-  @state()
-  private onHoldExpanded = false;
 
   // ── Edge auto-scroll during drag ──────────────────────────────────
   private static readonly EDGE_THRESHOLD = 50;   // px from edge to trigger
@@ -149,35 +121,79 @@ export class FtKanbanView extends LitElement {
   }
 
   private matchesFilters(task: Task): boolean {
-    return matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter);
+    return matchesTaskFilters(
+      task,
+      this.groupFilter,
+      this.stageFilter,
+      this.holdReasonFilter,
+      this.availabilityFilter,
+      this.assigneeFilter,
+      this.store,
+    );
+  }
+
+  /**
+   * Surface a client-side refusal on the same toast channel as server write
+   * failures. A drag the board declines must never be a silent no-op.
+   */
+  private reportRefusal(message: string) {
+    this.dispatchEvent(new CustomEvent('write-error', {
+      bubbles: true,
+      composed: true,
+      detail: { message, reason: 'stage-change-refused' },
+    }));
   }
 
   private async onStageChange(e: CustomEvent) {
-    if (this.readOnly || this.capabilities?.canChangeStage === false) return;
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
+
+    // Resolve the task first. `dragover` now cancels unconditionally, so a lane
+    // also accepts content dragged in from another window or application; that
+    // payload arrives here as a `taskId` matching nothing. Refusing before this
+    // lookup would answer such a gesture with "This board is read-only", which
+    // is a claim about a task that does not exist.
     const task = this.store.getTask(taskId);
+    // Not ours, or a genuine no-op: the card was dropped back on its own lane.
     if (!task || task.stage === stage) return;
 
-    if (CLOSED_STAGES.has(stage) && stage !== TaskStage.COMPLETED) return;
+    if (this.readOnly) {
+      this.reportRefusal(DROP_REFUSAL.readOnlyBoard);
+      return;
+    }
+    if (this.capabilities?.canChangeStage === false) {
+      this.reportRefusal(DROP_REFUSAL.stageChangeUnsupported);
+      return;
+    }
 
-    const oldStage = task.stage;
-    const oldPhase = task.phase;
-    const newPhase = phaseForStage(stage);
-    this.store.upsert({ ...task, stage, phase: newPhase });
+    if (!acceptsStageDrop(stage)) {
+      this.reportRefusal(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[stage] ?? 'This outcome'));
+      return;
+    }
+
+    // `phase` is a server-derived wire projection. It is computed here for the
+    // optimistic store entry ONLY, so the card lands in the right lane
+    // immediately; it is never included in an update payload and is replaced
+    // by the authoritative value from the server response below.
+    this.store.upsert({ ...task, stage, phase: phaseForStage(stage) });
 
     try {
       if (this.client) {
-        await this.client.updateTask(taskId, { stage, phase: newPhase });
+        // Contract: the UI writes `stage` only, never `phase`.
+        const updated = await this.client.updateTask(taskId, { stage });
+        // Reconcile with the server's authoritative stage/phase projection.
+        this.store.upsert(updated);
       } else {
         console.warn('No client configured — stage change is local only');
       }
     } catch (error) {
+      // Snap the card back to its original lane (restoring the original local
+      // phase projection), then surface the server's rejection reason.
       console.warn('Failed to update task stage; rolled back optimistic change', error);
-      this.store.upsert({ ...task, stage: oldStage, phase: oldPhase });
+      this.store.upsert(task);
       this.dispatchEvent(new CustomEvent('write-error', {
         bubbles: true,
         composed: true,
-        detail: { error },
+        detail: { error, reason: 'stage-change-failed' },
       }));
     }
   }
@@ -207,10 +223,6 @@ export class FtKanbanView extends LitElement {
         detail: { error },
       }));
     }
-  }
-
-  private toggleOnHold() {
-    this.onHoldExpanded = !this.onHoldExpanded;
   }
 
   // ── Auto-scroll helpers ───────────────────────────────────────────
@@ -328,6 +340,8 @@ export class FtKanbanView extends LitElement {
       // TODO(server-stage-support): Remove client-side override once CreateTask
       // reliably honors the stage field in the response. The server should be
       // the source of truth; this override exists as a safety net during rollout.
+      // The `phase` below is a local display projection for the store entry —
+      // it is not sent to the server.
       this.store.upsert(
         e.detail.stage
           ? { ...task, stage: e.detail.stage, phase: phaseForStage(e.detail.stage) }
@@ -344,7 +358,7 @@ export class FtKanbanView extends LitElement {
 
   private onColumnNav(e: CustomEvent<ColumnNavDetail>) {
     const { direction, fromIndex, stage } = e.detail;
-    const columns = this.columnsForStage(stage);
+    const columns = BOARD_COLUMNS;
     const sourceIndex = columns.findIndex((col) => col.stage === stage);
     if (sourceIndex === -1) return;
 
@@ -366,13 +380,6 @@ export class FtKanbanView extends LitElement {
     }
   }
 
-  private columnsForStage(stage: TaskStage): ColumnDef[] {
-    // Board columns and on-hold columns are separate keyboard regions by design.
-    // Arrow navigation stays within the currently visible section.
-    if (BOARD_COLUMNS.some((col) => col.stage === stage)) return BOARD_COLUMNS;
-    return ON_HOLD_STAGES;
-  }
-
   private renderedColumnForStage(stage: TaskStage): FtKanbanColumn | undefined {
     return Array.from(
       this.renderRoot.querySelectorAll<FtKanbanColumn>('ft-kanban-column'),
@@ -388,16 +395,6 @@ export class FtKanbanView extends LitElement {
         totalCount: allForStage.length,
       };
     });
-    const onHoldColumns = ON_HOLD_STAGES.map((col) => {
-      const allForStage = this.store.getByStage(col.stage);
-      return {
-        ...col,
-        tasks: allForStage.filter((task) => this.matchesFilters(task)),
-        totalCount: allForStage.length,
-      };
-    });
-    const onHoldTotal = onHoldColumns.reduce((sum, col) => sum + col.tasks.length, 0);
-
     return html`
       ${this.readOnly || this.capabilities?.canCreateTask === false ? nothing : html`<div class="view-header">
         <sl-button size="small" variant="primary" @click=${this.openAddTaskDialog}>
@@ -422,6 +419,7 @@ export class FtKanbanView extends LitElement {
             <ft-kanban-column
               .stage=${col.stage}
               .tasks=${col.tasks}
+              .store=${this.store}
               .label=${col.label}
               .totalCount=${col.totalCount}
               ?readOnly=${this.readOnly}
@@ -431,49 +429,6 @@ export class FtKanbanView extends LitElement {
           `,
         )}
       </div>
-
-      ${onHoldTotal > 0
-        ? html`
-            <div class="on-hold-section">
-              <div class="on-hold-header" @click=${this.toggleOnHold}>
-                <sl-icon
-                  name=${this.onHoldExpanded ? 'chevron-down' : 'chevron-right'}
-                ></sl-icon>
-                On Hold
-                <span class="on-hold-count">${onHoldTotal}</span>
-              </div>
-              ${this.onHoldExpanded
-                ? html`
-                    <div
-                      class="on-hold-columns"
-                      @stage-change=${this.onStageChange}
-                      @task-update=${this.onTaskUpdate}
-                      @column-add-task=${this.onColumnAddTask}
-                      @column-nav=${this.onColumnNav}
-                      @dragover=${this.onContainerDragOver}
-                      @dragleave=${this.onContainerDragLeave}
-                      @dragend=${this.onContainerDragEnd}
-                      @drop=${this.onContainerDrop}
-                    >
-                      ${onHoldColumns.map(
-                        (col) => html`
-                          <ft-kanban-column
-                            .stage=${col.stage}
-                            .tasks=${col.tasks}
-                            .label=${col.label}
-                            .totalCount=${col.totalCount}
-                            ?readOnly=${this.readOnly}
-                            .capabilities=${this.capabilities}
-                            selected-task-id=${this.selectedTaskId ?? ''}
-                          ></ft-kanban-column>
-                        `,
-                      )}
-                    </div>
-                  `
-                : nothing}
-            </div>
-          `
-        : nothing}
 
       <ft-add-task-dialog @task-create=${this.onTaskCreate}></ft-add-task-dialog>
     `;

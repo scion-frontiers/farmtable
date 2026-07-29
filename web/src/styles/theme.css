@@ -10,6 +10,8 @@
   --ft-stage-in-qa: #06b6d4;
   --ft-stage-deploying: #ec4899;
   --ft-stage-completed: #22c55e;
+  --ft-stage-wont-fix: #64748b;
+  --ft-stage-duplicate: #14b8a6;
   --ft-stage-cancelled: #6b7280;
 
   /* Priority colors */

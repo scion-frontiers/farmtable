@@ -4,7 +4,16 @@ import type { Task } from '../../gen/types.js';
 import { RelationshipType } from '../../gen/types.js';
 import type { TaskStore } from '../../store/task-store.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
-import { STAGE_LABEL, STAGE_COLOR, REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
+import { REL_GROUP_LABEL, REL_GROUP_ORDER } from './inspector-stage-utils.js';
+import {
+  ATTENTION,
+  AVAILABILITY_REASON_LABEL,
+  attentionBlockers,
+  hasAvailabilityReason,
+  STAGE_COLOR,
+  STAGE_LABEL,
+} from '../../util/task-state-utils.js';
+import { AvailabilityReason } from '../../gen/types.js';
 
 /** Relationship types that can be added via the UI (proto-supported mutations). */
 const ADDABLE_TYPES = new Set([RelationshipType.BLOCKS, RelationshipType.BLOCKED_BY]);
@@ -98,6 +107,29 @@ export class FtInspectorRelationships extends LitElement {
       font-size: 0.8125rem;
       padding: 0.25rem 0.375rem;
     }
+    .attention {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--sl-color-danger-200);
+      border-radius: 6px;
+      background: var(--sl-color-danger-50);
+      color: var(--sl-color-danger-800);
+      font-size: 0.8125rem;
+    }
+    .attention-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 700;
+    }
+    .attention-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
   `;
 
   @property({ attribute: false })
@@ -185,6 +217,44 @@ export class FtInspectorRelationships extends LitElement {
     return html`<div class="none">None</div>`;
   }
 
+  private renderAttention(blockers: readonly Task[]) {
+    if (blockers.length === 0) return nothing;
+    return html`
+      <div class="attention" role="status">
+        <div class="attention-title">
+          <sl-icon name="exclamation-triangle"></sl-icon>
+          ${ATTENTION.calloutTitle}
+        </div>
+        <div>${ATTENTION.calloutBody(blockers.length)}</div>
+        ${this.readOnly
+          ? nothing
+          : html`
+              <div class="attention-actions">
+                ${blockers.map(
+                  (blocker) => html`
+                    <sl-button
+                      size="small"
+                      variant="danger"
+                      outline
+                      @click=${(e: Event) => this.onRemoveRelationship(blocker.id, e)}
+                    >
+                      Remove ${blocker.name}
+                    </sl-button>
+                  `,
+                )}
+                <sl-button
+                  size="small"
+                  variant="default"
+                  @click=${() => this.onAddRelationship(RelationshipType.BLOCKED_BY)}
+                >
+                  Rewire prerequisite
+                </sl-button>
+              </div>
+            `}
+      </div>
+    `;
+  }
+
   private renderSection(label: string, tasks: readonly Task[], showDelete: boolean) {
     return html`
       <div class="section">
@@ -222,8 +292,21 @@ export class FtInspectorRelationships extends LitElement {
     }
 
     const canEdit = !this.readOnly;
+    const terminalAttention = attentionBlockers(task, this.store);
+    const dependencyBlocked =
+      terminalAttention.length > 0 ||
+      hasAvailabilityReason(task, AvailabilityReason.BLOCKED_BY_DEPENDENCY);
 
     return html`
+      ${this.renderAttention(terminalAttention)}
+      ${dependencyBlocked && terminalAttention.length === 0
+        ? html`<div class="attention" role="status">
+            <div class="attention-title">
+              <sl-icon name="lock"></sl-icon>
+              ${AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY]}
+            </div>
+          </div>`
+        : nothing}
       ${this.renderSection('Parent', parentTasks, false)}
       ${this.renderSection('Children', children, false)}
       ${REL_GROUP_ORDER.map((type) => {

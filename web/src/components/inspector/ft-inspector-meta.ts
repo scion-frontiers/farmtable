@@ -6,6 +6,7 @@ import { formatDate } from '../../util/format.js';
 import { safeHref } from '../../util/safe-url.js';
 import { CAPABILITY_TOOLTIPS, type CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
+import { availabilityLabel, holdReasonLabel } from '../../util/task-state-utils.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
 
@@ -618,6 +619,9 @@ export class FtInspectorMeta extends LitElement {
 
   render() {
     const t = this.task;
+    // `remoteUrl` is untrusted platform/import data — never place it in an
+    // href without scheme validation. renderExternalSourceLink applies the
+    // scheme allow-list and degrades an unsafe URL to visible text.
 
     return html`
       <div class="row">
@@ -638,6 +642,21 @@ export class FtInspectorMeta extends LitElement {
             <span class="value">${t.type}</span>
           </div>`
         : nothing}
+
+      <div class="row">
+        <span class="label">Hold</span>
+        <span class="value">${holdReasonLabel(t.holdReason) || html`<span class="empty">None</span>`}</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Availability</span>
+        <span class="value">${t.availability ? availabilityLabel(t) : html`<span class="empty">Not reported</span>`}</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Rank</span>
+        <span class="value">${t.rank ?? html`<span class="empty">None</span>`}</span>
+      </div>
 
       <div class="row">
         <span class="label">Labels</span>

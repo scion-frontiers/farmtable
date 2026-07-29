@@ -53,35 +53,68 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // THE POPULATION IS A PATH SET, AND THE PATH SET IS THE AUDITABLE ARTEFACT --
 // the integer below is only its cardinality. A bare count cannot be diffed by
 // the next reader and cannot tell real growth from a leak (compiled output
-// wandering into `present`, say). So the set is written out. Derived at main
-// 439b309, and every figure in this comment is a figure AT 439b309:
+// wandering into `present`, say). So the set is written out. Derived at the
+// task-state merge commit, whose first parent is main 2982ffd, and every figure
+// in this comment is a figure AT THAT MERGE COMMIT:
 //
 //   web/src/capabilities.test.ts
 //   web/src/components/inspector/render-sink-xss.test.ts
 //   web/src/util/assertions.test.ts
+//   web/src/util/rank.test.ts
 //   web/src/util/safe-url.test.ts
+//   web/src/util/task-state-utils.test.ts
 //   web/src/util/url-binding-scan.test.ts
 //   web/src/utils/task-ready.test.ts
+//   web/test/attention-view.test.ts
+//   web/test/ft-app.write-error-seam.test.ts
+//   web/test/ft-app.write-error.test.ts
+//   web/test/ft-dashboard-view.test.ts
+//   web/test/ft-filter-chips.test.ts
+//   web/test/ft-inspector-changes.vocabulary.test.ts
+//   web/test/ft-inspector-code.safe-url.test.ts
+//   web/test/ft-inspector-header.availability.test.ts
+//   web/test/ft-inspector-meta.safe-url.test.ts
+//   web/test/ft-inspector-meta.state.test.ts
+//   web/test/ft-inspector-relationships.test.ts
+//   web/test/ft-kanban-view.contract.test.ts
+//   web/test/ft-kanban.drop-refusal-affordances.test.ts
+//   web/test/ft-ready-queue-view.availability.test.ts
+//   web/test/ft-ready-queue-view.concurrent-reorder.test.ts
+//   web/test/ft-ready-queue-view.rank-adversarial.test.ts
+//   web/test/ft-ready-queue-view.rank.test.ts
+//   web/test/ft-task-card.attention.test.ts
+//   web/test/ft-toolbar.contract.test.ts
+//   web/test/queue-ordering.test.ts
+//   web/test/safe-url.contract.test.ts
+//   web/test/vocabulary.contract.test.ts
 //
-// Reconciled at 439b309 against the runner's own `--list`: both sets are those
-// six paths, `A - B` and `B - A` are both empty. So the floor is 6 at 439b309
-// because the population at 439b309 is those six files -- not because 6 felt
-// safe, and not from any branch's population.
+// The previous set, and the floor of 6, were derived at 439b309. Main advanced
+// 15 commits from 439b309 to 2982ffd and the task-state branch adds a `web/test`
+// vitest population; the set above was RE-DERIVED at the merge commit with
+// `git ls-tree -r --name-only` plus TEST_FILE_RE, and independently with this
+// script's own `candidateFiles('web')`. Both methods returned the same 30 paths.
+// All six 439b309 members are still present, so this is growth, not churn.
+//
+// Note the four `web/test` files the regex deliberately does NOT count, since
+// their presence is what makes the exclusion a real discrimination rather than
+// an empty scan: `web/test/setup.ts` and `web/test/helpers/{dom,feedback,
+// fixtures}.ts`. They are `.ts` under the `web` pathspec and are excluded
+// because they do not match `.(test|spec).`.
 //
 // TO RE-DERIVE THIS RATHER THAN TRUST IT, from a clean checkout:
 //   node scripts/ci-suite-manifest.mjs          # prints the set it enumerated
 //   (cd web && node scripts/run-node-tests.mjs --list)
 // If those two disagree, that is a defect report and not a new floor.
 //
-// This number is correct FOR 439b309 and is expected to move: it must be
-// re-derived, set-wise, at any commit that changes the population, and raised
-// in the commit that adds a suite.
+// This number is correct FOR the task-state merge commit over main 2982ffd and
+// is expected to move: it must be re-derived, set-wise, at any commit that
+// changes the population, and raised in the commit that adds a suite.
 //
 // WHAT IT DETECTS DEPENDS ON WHERE IT IS SET, AND THAT IS EASY TO GET WRONG.
 // While the floor sat at 1 against a population of 6 it could only catch a
 // collapse toward zero, and losing one file out of six was invisible to it.
 // Set EQUAL to the population, as it now is, it catches any NET REDUCTION --
-// six becomes five and this fails.
+// thirty becomes twenty-nine and this fails.
 //
 // WHAT IT STILL CANNOT DETECT, AT ANY SETTING, IS A SUBSTITUTION: delete one
 // test file and add another in the same commit and the cardinality is
@@ -97,7 +130,7 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // a backlog item; not built here.
 //
 // Adding a suite is what raises this number.
-const MIN_TEST_FILES = 6;
+const MIN_TEST_FILES = 30;
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
 // set is always empty; locally it means a test file you just created is counted

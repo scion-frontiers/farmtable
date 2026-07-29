@@ -3,8 +3,15 @@ import { customElement, property } from 'lit/decorators.js';
 import { state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
-import { TaskPriority, RelationshipType } from '../../gen/types.js';
+import { TaskPriority } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
+import type { TaskStore } from '../../store/task-store.js';
+import {
+  ATTENTION,
+  attentionBlockers,
+  availabilityLabel,
+  holdReasonLabel,
+} from '../../util/task-state-utils.js';
 
 const PRIORITY_VARIANT: Record<number, string> = {
   [TaskPriority.UNSPECIFIED]: 'neutral',
@@ -151,7 +158,13 @@ export class FtTaskCard extends LitElement {
       line-height: 1.25rem;
     }
     .blocked-icon {
-      color: var(--ft-stage-blocked);
+      color: var(--sl-color-warning-600);
+    }
+    .state-badges {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-top: 0.375rem;
     }
   `;
 
@@ -163,6 +176,9 @@ export class FtTaskCard extends LitElement {
 
   @property({ type: Boolean })
   readOnly = false;
+
+  @property({ attribute: false })
+  store?: TaskStore;
 
   @property({ type: Number, attribute: 'card-tab-index' })
   cardTabIndex = 0;
@@ -176,10 +192,31 @@ export class FtTaskCard extends LitElement {
   @state()
   private titleDraft = '';
 
-  private get isBlocked(): boolean {
-    return this.task.relationships.some(
-      (r) => r.type === RelationshipType.BLOCKED_BY,
-    );
+  private get needsAttention(): boolean {
+    return this.store ? attentionBlockers(this.task, this.store).length > 0 : false;
+  }
+
+  private renderStateBadges() {
+    const holdLabel = holdReasonLabel(this.task.holdReason);
+    const availability = this.task.availability;
+
+    if (!holdLabel && !availability && !this.needsAttention) return nothing;
+
+    return html`
+      <div class="state-badges">
+        ${holdLabel ? html`<sl-tag size="small" variant="warning">${holdLabel}</sl-tag>` : nothing}
+        ${availability
+          ? html`
+              <sl-tag size="small" variant=${availability.available ? 'success' : 'neutral'}>
+                ${availabilityLabel(this.task)}
+              </sl-tag>
+            `
+          : nothing}
+        ${this.needsAttention
+          ? html`<sl-tag size="small" variant="danger">${ATTENTION.label}</sl-tag>`
+          : nothing}
+      </div>
+    `;
   }
 
   private onDragStart(e: DragEvent) {
@@ -411,7 +448,7 @@ export class FtTaskCard extends LitElement {
               ? this.renderPriorityEditor(priority)
               : this.renderPriorityBadge(priority, priorityLabel, priorityVariant)}
             ${t.type ? html`<span class="type">${t.type}</span>` : nothing}
-            ${this.isBlocked
+            ${this.task.availability?.available === false
               ? html`<sl-icon name="lock" class="blocked-icon"></sl-icon>`
               : nothing}
             ${firstAssignee
@@ -435,6 +472,7 @@ export class FtTaskCard extends LitElement {
                 </div>
               `
             : nothing}
+          ${this.renderStateBadges()}
         </sl-card>
       </div>
     `;
