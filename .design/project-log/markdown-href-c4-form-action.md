@@ -574,3 +574,57 @@ sweeping generally:
 **A LOG SHIPPING WITH ITS WARRANT MERELY ABSENT IS WORSE THAN ONE SHIPPING WITH A BAD WARRANT**, because
 the superseded claim survives in the message stream with nobody left to withdraw it. This paragraph is
 that withdrawal.
+
+---
+
+## SUPERSESSION 3 — THE "CHEAPER INSTRUMENT" PARAGRAPH ABOVE IS FALSE. APPENDED, NOT EDITED.
+
+**Superseded text: the paragraph beginning "The cheaper instrument", at lines 559-562 of `a4f6e83c`,
+specifically the sentence "A ONE-DELETION DIFF IS ITSELF THE APPEND-ONLY PROOF" and the clause "the
+line-window compare was both wrong *and* unnecessary."** Those lines remain above, unedited, per the
+append-only rule. Do not rely on them. Found by `audit-markdown-href`; the defect is mine and it is in
+an object I gated and pushed myself.
+
+**WHY IT IS FALSE.** A one-line in-place rewrite *is* one deletion plus one insertion. It does not hide
+in a one-deletion delta — **IT IS THE ONE DELETION.** The sentence asserts that a `-` line is the
+signature of an in-place edit, when a `-` line is *equally* the signature of the disclosed deletion I
+was pointing at. Two constructions settle it:
+
+- **Constructed:** rewrite one line, append nothing. `numstat` reads `1 / 1`. Append-only is false and
+  the instrument says the budget is met.
+- **From this very subject:** `1d826006..3531ca8f` is `293 / 1` **AND CONTAINS THE IN-PLACE EDIT AT
+  LINE 134.** The delta I cited as proof of append-only is a delta that contains the thing it was
+  supposed to exclude. The instrument was refuted by the object it was measuring.
+
+**THE CORRECT RULE, AND IT IS A DIFFERENT SHAPE, NOT A TIGHTER THRESHOLD:**
+
+> **`deletions == 0` IFF APPEND-ONLY. `deletions == D` FOR `D > 0` IS A BUDGET, NOT A PROOF, AND A
+> BUDGET OF ONE BUYS EXACTLY ONE UNDISCLOSED IN-PLACE REWRITE.** For `D > 0` the `D` lines must be
+> **NAMED**, and something other than `numstat` must **LOCATE** them. Hunk structure does: zero `c`
+> hunks and zero `d` hunks is a positive proof of append-only, and `audit-markdown-href` used exactly
+> that on ADDENDUM 8 (`8767038`, one `a`-hunk `1516a1517,1730`) rather than a line count.
+
+**WHAT SURVIVES AND WHAT DIES.** My *true warrant* three paragraphs above — the explicit two-edit
+statement with `134c134,137` and `153a157,426` — is untouched and is still the warrant; `audit`
+independently re-derived it on a different base (`134c134,426` plus `240a533,576`, zero `d` hunks, old
+135-240 preserved byte-for-byte at new 427-532) and the two agree because **each names its base.** What
+dies is the claim that the cheap instrument *replaces* it. **The closing sentence was right that the
+line-window compare was WRONG and wrong that it was UNNECESSARY.** Something must still locate the edit,
+and `numstat` cannot.
+
+**THE FAILURE MODE, CHARGED PLAINLY.** I caught a dead warrant, replaced it with a true one, and then —
+in the same paragraph, at the moment of maximum confidence — offered a *cheaper* instrument that was
+never measured against a counterexample. That is `RULING-PINNABLE-1955` §4 landing on me verbatim: **A
+REPLACEMENT FOR AN OVER-BROAD PROPERTY IS THE MOST LIKELY PLACE FOR THE NEXT OVER-BROAD PROPERTY,
+BECAUSE IT IS WRITTEN BY THE PARTY WHO HAS JUST PROVED THEY UNDERSTAND THE DEFECT.** It is also
+`dev-gotest-registration`'s form: **A CORRECTION IS A PUBLICATION, AND THE REPLACEMENT CLAIM INHERITS
+NONE OF THE EVIDENCE THAT KILLED THE CLAIM IT REPLACED.** I had a counterexample in my own hands — the
+`293 / 1` delta I was quoting — and did not run the rule against it.
+
+**AND THE REASON IT REACHED A PUSHED OBJECT.** Three gates approved `a4f6e83c` and none of them was
+wrong to: the code payload is byte-identical to `1d826006` and the review question was doc-only. **A
+DOC-ONLY VERDICT IS A STATEMENT ABOUT BLAST RADIUS, NOT ABOUT TRUTH.** The false sentence is a *method*
+sentence — the next reader executes it — so its blast radius is the next audit, not this file.
+
+**Nothing above this section changes the disposition of C-4, F-1 or R-3.** The code fix and its pins are
+untouched. This section corrects one instrument in the log's own methodology.
