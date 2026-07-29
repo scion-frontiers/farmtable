@@ -119,14 +119,6 @@ jobs:
       # ---------------------------------------------------------------------
       - name: Assert web/dist holds no build output before the build
         run: |
-          if [ ! -e web/dist ]; then
-            echo "OK: web/dist does not exist on a clean checkout."
-            exit 0
-          fi
-          if [ ! -d web/dist ]; then
-            echo "::error::web/dist exists but is not a directory."
-            exit 1
-          fi
           # ===================================================================
           # FRESHNESS IS AN EMERGENT GUARANTEE. NOTHING CHECKS IT DIRECTLY.
           #
@@ -158,35 +150,57 @@ jobs:
           # TWO separate conditions are checked below, because build output can
           # arrive either way.
           #
-          # (1) TRACKED files must be EXACTLY the placeholder. This used to be
-          #     "whatever git tracks here", which was too weak: `git add -f`
-          #     makes real build output tracked, that waved it straight through
-          #     this arm, and the content arm then passed too because the files
-          #     were genuinely real. Committed build output was the single input
-          #     that cleared BOTH arms -- precisely what the standing rule
-          #     forbids. The allowed set is therefore an explicit ALLOW-LIST of
-          #     one: an allow-list is auditable, a deny-list is a guessing game.
+          # (1) The TRACKED set must EQUAL the placeholder. Not contain it, not
+          #     be a subset of an allowed list -- equal it.
+          #
+          #     This was an allow-list before, and an allow-list is a SUBSET
+          #     test: it asks "is everything here permitted?" and the empty set
+          #     passes that trivially. So it caught committed build output (one
+          #     direction) and waved through a MISSING MARKER (the other). The
+          #     missing-marker case is not hypothetical -- it breaks the
+          #     `all:web/dist` embed and stops the Go module compiling from a
+          #     clean clone, which is the defect this whole gate descends from.
+          #     Equality is one predicate that closes both directions, and it
+          #     is what the comment two screens up always claimed: "the tracked
+          #     .gitkeep marker is fine; a build is not" is an equality, and
+          #     the code used to implement something strictly weaker.
+          #
+          #     Note this is checked against the INDEX, before any test of the
+          #     directory on disk, and it is deliberately the first thing that
+          #     happens in this step. An earlier version began with "if web/dist
+          #     does not exist, print OK and exit 0", which handed the empty
+          #     case a second way through.
           # (2) UNTRACKED files must not exist at all -- that is the
           #     cache-restore / stale-working-copy case.
           #
           # Note what this step does NOT do: it never cleans, empties or removes
           # web/dist. It only reports. The placeholder stays.
-          allowed_tracked="web/dist/.gitkeep"
-          tracked=$(git ls-files web/dist | sort)
-          if [ -n "$tracked" ]; then
-            unexpected_tracked=$(comm -13 \
-              <(printf '%s\n' "$allowed_tracked" | sort) \
-              <(printf '%s\n' "$tracked"))
-          else
-            unexpected_tracked=""
+          expected_tracked="web/dist/.gitkeep"
+          tracked=$(git ls-files web/dist)
+          if [ "$tracked" != "$expected_tracked" ]; then
+            echo "::error::web/dist's TRACKED set is not exactly the placeholder."
+            echo "expected: ${expected_tracked}"
+            echo "found:"
+            if [ -z "$tracked" ]; then
+              echo "  (nothing -- git tracks no file under web/dist)"
+              echo
+              echo "The placeholder is MISSING. assets.go embeds all:web/dist,"
+              echo "so with no tracked file there the Go module does not compile"
+              echo "from a clean clone at all. Restore web/dist/.gitkeep."
+            else
+              printf '%s\n' "$tracked" | sed 's/^/  /'
+              echo
+              echo "Committing build output is the one input that would otherwise"
+              echo "satisfy this arm AND the content arm after the build, which is"
+              echo "how a stale UI ships with every gate green."
+            fi
+            echo "Exactly ${expected_tracked} may be committed under web/dist,"
+            echo "no more and no less."
+            exit 1
           fi
-          if [ -n "$unexpected_tracked" ]; then
-            echo "::error::web/dist has TRACKED files that are not the placeholder:"
-            printf '%s\n' "$unexpected_tracked"
-            echo "Committing build output is the one input that would otherwise"
-            echo "satisfy this arm AND the content arm after the build, which is"
-            echo "how a stale UI ships with every gate green."
-            echo "Only ${allowed_tracked} may be committed under web/dist."
+
+          if [ ! -d web/dist ]; then
+            echo "::error::web/dist is tracked but is not a directory on disk."
             exit 1
           fi
 
