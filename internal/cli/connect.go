@@ -16,6 +16,7 @@ import (
 	"github.com/farmtable-io/farmtable/internal/platform/github"
 	"github.com/farmtable-io/farmtable/internal/server"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent/apitoken"
 	"github.com/farmtable-io/farmtable/internal/streaming"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -200,6 +201,21 @@ func startEmbedded() (pb.FarmTableServiceClient, io.Closer, error) {
 func ensureLocalUser(ctx context.Context, s *store.EntStore, token string) error {
 	u, err := s.GetUserByName(ctx, "local")
 	if err == nil {
+		// An existing database predates explicit grants: its local-embedded
+		// token was minted with no scopes and would now be denied everywhere.
+		// Repair it before doing anything else, so upgrading does not lock the
+		// operator out of their own machine.
+		existing, qerr := s.Client().ApiToken.Query().
+			Where(apitoken.UserIDEQ(u.ID), apitoken.NameEQ("local-embedded")).
+			All(ctx)
+		if qerr != nil {
+			return fmt.Errorf("checking local token: %w", qerr)
+		}
+		for _, tok := range existing {
+			if rerr := repairScopelessToken(ctx, s, tok); rerr != nil {
+				return rerr
+			}
+		}
 		return ensureDashboardToken(ctx, s, u.ID, token)
 	}
 

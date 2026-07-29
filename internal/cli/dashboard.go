@@ -30,6 +30,7 @@ import (
 
 	farmtable "github.com/farmtable-io/farmtable"
 	"github.com/farmtable-io/farmtable/internal/store"
+	"github.com/farmtable-io/farmtable/internal/store/ent"
 )
 
 func newDashboardCmd(globals *globalFlags) *cobra.Command {
@@ -227,19 +228,52 @@ func openURL(url string) {
 	cmd.Start()
 }
 
+// cliOwnedTokenNames are the tokens the CLI mints for the local operator on
+// their own database. Only these may be repaired by repairScopelessToken: any
+// other scope-less token was issued deliberately or by something else, and
+// widening it would re-create the escalation this change exists to remove.
+var cliOwnedTokenNames = map[string]bool{
+	"local-embedded": true,
+	"dashboard-env":  true,
+}
+
+// repairScopelessToken restores the grant on a CLI-owned token that was minted
+// before scopes were stated explicitly.
+//
+// Such rows are not hypothetical: every mint through these paths before this
+// change wrote no scopes at all, relying on RequireScope reading empty as
+// wildcard. That reading is gone, so without this the operator's existing
+// database stops working the moment they upgrade — the same silent failure as
+// the bug being fixed, only inverted. The grant is unchanged; it is written
+// down. The row is matched by hash, so the operator's saved token is not
+// rotated out from under them.
+func repairScopelessToken(ctx context.Context, s *store.EntStore, tok *ent.ApiToken) error {
+	if len(tok.Scopes) > 0 || !cliOwnedTokenNames[tok.Name] {
+		return nil
+	}
+	if _, err := s.Client().ApiToken.UpdateOneID(tok.ID).
+		SetScopes([]string{server.ScopeWildcard}).
+		Save(ctx); err != nil {
+		return fmt.Errorf("restoring scopes on the %s token: %w", tok.Name, err)
+	}
+	log.Printf("ft: restored the explicit grant on the %q token, which predated "+
+		"scoped tokens and would otherwise now be denied on every call", tok.Name)
+	return nil
+}
+
 func ensureDashboardToken(ctx context.Context, s *store.EntStore, userID uuid.UUID, rawToken string) error {
 	if rawToken == "" {
 		return nil
 	}
 	tokenHash := store.HashToken(rawToken)
-	exists, err := s.Client().ApiToken.Query().
+	existing, err := s.Client().ApiToken.Query().
 		Where(apitoken.TokenHashEQ(tokenHash)).
-		Exist(ctx)
+		All(ctx)
 	if err != nil {
 		return fmt.Errorf("checking dashboard token: %w", err)
 	}
-	if exists {
-		return nil
+	if len(existing) > 0 {
+		return repairScopelessToken(ctx, s, existing[0])
 	}
 
 	// Stated explicitly for the same reason as the local-embedded token in
