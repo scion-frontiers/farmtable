@@ -141,10 +141,23 @@ thing that performs the discovery cannot drift from it:
 
 Not touched here — shared CI infrastructure, unassigned.
 
-Also open, **declined for this track and recorded so the next reader does not
-re-file them**: four pre-existing `assignment copies lock value` vet findings at
-`internal/server/server.go:1509,1619,1827,2004`. Not a regression; they become
-visible only once a clean clone can build.
+~~Also open: four pre-existing `assignment copies lock value` vet findings.~~
+**CLOSED at `43bd206`** — EM-CI fixed them with `proto.Clone` instead of `*req`,
+and `web/dist/.gitkeep` made them visible in the first place by letting the
+`all:web/dist` embed resolve. Re-measured on this branch: `go vet ./...` EXIT=0,
+**33 of 33 packages, zero findings**, where the same command previously analysed
+none. Do not re-file them.
+
+**The held hunk.** `web/package.json`'s test script at `43bd206` names one
+hardcoded file, which is right for main's single web test and wrong for this
+branch's five. As merged, `ci-suite-manifest.mjs` is RED at
+`enumerated=5 executed=1 missing=4`, and **that red is being left standing on
+purpose**: four test files compiling and never executing is the vacuous class
+the guard exists to catch, and the guard caught it. All three known positional
+forms fail under one runtime or the other — directory form dies on node 22,
+glob form dies on node 20, only an explicit list survives both. EM-CI is landing
+one shared runner rather than have three tracks write three. Held, not
+resolved.
 
 ---
 

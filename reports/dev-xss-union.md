@@ -567,7 +567,7 @@ caught it, re-ran without the pipe, and got `1`.
 | `go build ./...` on `faf1c8c` | **EXIT=1**, identical error | MEASURED, **PRE-EXISTING** | T-BASE |
 | `gofmt -l internal/server/` | 1 — `scopes.go` | MEASURED, **NOT MINE** | T-BRANCH |
 | `gofmt -l` on my 3 touched files | 0 | MEASURED | T-BRANCH |
-| whole-repo `go vet ./...` | not run — aborts at 0 packages | **UNCHECKED** | — |
+| whole-repo `go vet ./...` | ~~not run~~ **EXIT=0, 33/33 pkgs, 0 findings** | **RE-MEASURED at `43bd206`** | T-BRANCH |
 | `make test` | not run | **UNCHECKED** | — |
 | CI result for this branch | not run — you push | **UNCHECKED** | — |
 
@@ -744,3 +744,123 @@ main is currently red on (EM-CI, node 20 vs 22 in the web test invocation, fix
 canarying as run 30460044903). Recursion into `util/` and `utils/` demonstrably
 works on node 20 here. **Read my green as "green on node 20", not as "CI will
 pass".** The CI result remains UNCHECKED and is the EM's to obtain.
+
+---
+
+## 11. ADDENDUM, 2026-07-29 — MERGING `43bd206`: TWO NEW GATES, AND ONE HELD HUNK
+
+Merge commit **`b54c573`**. Clean merge, zero conflicts. Supersedes §6 and §10's
+base; **`faf1c8c` and `7a2ad51` figures in this report are now historical and
+should not be quoted as current.**
+
+### 11.1 The `go vet` caveat that ran through this whole report is now FALSE
+
+Everything above that says vet is unusable, aborts at zero packages, or is
+UNCHECKED **was true and is no longer.** EM-CI committed `web/dist/.gitkeep`, so
+`//go:embed all:web/dist` resolves in a clean tree. Re-measured at `43bd206`:
+
+```
+ROOT=/workspace/farmtable-dev-xss-r9  COMMIT=b54c573
+go list ./...  ->  33 packages          (was 0 — the pattern aborted)
+go vet ./...   ->  EXIT=0, ZERO findings, 33 of 33 analysed
+go test ./...  ->  EXIT=0, 548 package-qualified tests over 33 packages
+```
+
+**The four declined copylock findings are GONE** — `43bd206` fixed them with
+`proto.Clone` instead of `*req`. §7's row for them is historical. Not
+re-reported, per the ruling, and there is nothing left to re-report.
+
+**Denominator, precisely:** main at `43bd206` is **32 of 32**; this branch is
+**33** because `internal/webguard` is an XSS-line package that main does not
+have. Both numbers are correct for their own tree, which is the entire point of
+carrying the population next to the figure. Verified by `comm` on the two
+sorted package lists, not by subtraction.
+
+**A positive control worth naming, because it is the inverse of every defect in
+this report:** the placeholder makes an unbuilt frontend embed a *stub*, and
+`WebUI()` returns `ErrWebAssetsNotBuilt` rather than serving a blank dashboard.
+Absence is reported as an error instead of being read as success. That is the
+habit this whole document has been arguing for, implemented in the build.
+
+### 11.2 `go vet` now GATES — measured, passes
+
+First time in this repository's history. **EXIT=0, 33/33, zero findings.**
+Nothing surfaced that I did not expect, and nothing was fixed to make it pass.
+
+### 11.3 Go test membership gate — PASSES, and it is asymmetric
+
+```
+executed: 548 package-qualified tests    manifest: 501 -> 503
+MISSING    (expected, not executed):  0   <- this is what fails the gate
+UNEXPECTED (executed, not in manifest): 45  <- ::notice:: only
+```
+
+**Adding a test does NOT fail this gate.** The workflow is deliberately
+asymmetric and says why, in its own comment:
+
+> UNEXPECTED (executed, not expected) -> REPORT ONLY. Adding a test is not a
+> defect, and **forcing a manifest edit in the same commit trains people to
+> regenerate the manifest reflexively — which is how a genuinely missing test
+> would get rubber-stamped back to green.**
+
+47 executed tests were absent from the manifest and **only 2 are mine**. I added
+those 2 by name (501 → 503) and left the other 45 — 43 from this workstream's
+earlier rounds, 2 in `internal/platform/github`. **I did not regenerate**, because
+a wholesale regeneration is the exact behaviour the gate's author designed
+against, and it would have silently absorbed 45 entries I have not verified.
+
+### 11.4 THE HELD HUNK — `web/package.json` "test", CURRENTLY RED ON PURPOSE
+
+`43bd206` narrowed the script to **one hardcoded file**:
+
+```
+"test": "... && node --test .tmp-test/utils/task-ready.test.js"
+```
+
+Correct for main, which has one web test file. **Wrong for this branch, which
+has five.** The merge auto-took it, so as committed at `b54c573`:
+
+```
+node scripts/ci-suite-manifest.mjs  ->  EXIT=1
+    enumerated=5  executed=1  missing=4
+```
+
+**This red is correct and is being left standing.** Four of my test files
+compile and never execute — precisely the vacuous class the guard exists to
+catch — and the guard catches it. A loud red beats a silent pass, and this is
+the one case where the honest state of the branch is a failing check.
+
+Per EM: hold the hunk. All three known forms are wrong, measured by EM-CI under
+both binaries and independently confirmed by main's own log:
+
+| positional form | node 20.20.2 | node 22.23.1 (CI pins 22) |
+|---|---|---|
+| `.tmp-test` (directory) | PASS | **FAIL**, MODULE_NOT_FOUND |
+| `.tmp-test/**/*.test.js` (glob) | **FAIL**, ENOENT | PASS |
+| explicit file | PASS | PASS |
+
+Both runtimes are present in this container (`node` = v20.20.2,
+`npx -p node@22 node` = v22.23.1), so this is checkable here — but I am not
+resolving it. EM-CI is landing one shared runner
+(`web/scripts/run-node-tests.mjs`) with a manifest branch that parses it and
+reconciles set-wise, so a runner cannot claim files it did not run. Three tracks
+writing three runners is the failure being avoided. I take it and re-run when it
+lands.
+
+**THE LESSON, AND IT IS THE SHARPEST ONE ON THIS AXIS:** the form at `7a2ad51`
+was green in every developer container and red on the runner, and **nobody could
+have seen it**, because CI pins node 22 and every agent container has node 20.
+My own §10 green carried exactly this caveat — "green on node 20, not CI will
+pass" — and this is what that caveat was worth. Same family as the symlinked
+`node_modules` that made a broken dependency manifest pass in §10, and as the
+now-retracted vet rule in §11.1: **in all three the local signal was real and
+did not mean what it appeared to mean. The environment you canary in is not the
+environment that judges you.**
+
+### 11.5 Scope check
+
+Nothing on this branch alters who is authenticated, what they may do, or how
+that is decided. The conjunct-A work constrains what an *already-authorised*
+`ScopeCollectionAdmin` caller may store in `remote_data`; it adds no principal,
+grants nothing, and moves no authorisation decision. **Not auth architecture,
+and it does not touch the owner's out-of-scope declaration.**
