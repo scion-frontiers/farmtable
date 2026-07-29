@@ -252,6 +252,32 @@ export class FtApp extends LitElement {
   }
 
   private isCollectionWritable(coll: Collection): boolean {
+    // CONJUNCT ONE OF TWO, AND IT WAS MISSING UNTIL r8.
+    //
+    // getCapabilities in capabilities.ts unlocks the GitHub write set only for
+    // platform GITHUB *and* the writable flag, TOGETHER. This method is the
+    // other reader of that same gate -- isReadOnly and isExternalWritable both
+    // route through it -- and it tested only the writable half, relying on its
+    // callers having already excluded FARMTABLE. Its effective predicate was
+    // therefore "not FARMTABLE and writable", which is strictly weaker than the
+    // invariant, across an enum that has six values other than FARMTABLE.
+    //
+    // WHY THE GAP WAS LIVE RATHER THAN THEORETICAL. Any non-farmtable platform
+    // armed isReadOnly, not only GITHUB. The Beads import path already exists,
+    // reaches the same import params struct, and does not pass through the
+    // farmtable platform guard at all -- that guard sits only in the farmtable
+    // arm of the format switch. It is inert today solely because the platform
+    // is hardcoded one layer up. Someone arming that path would have checked
+    // their work against prose promising that GITHUB was required, and the
+    // capability half would have stayed green while this half flipped.
+    //
+    // THIS IS A TIGHTENING AND NOTHING ELSE. GITHUB collections behave exactly
+    // as before. Every other external platform moves from "writable if the flag
+    // is present" to read-only, which is the documented default for external
+    // collections anyway.
+    if (coll.platform !== Platform.GITHUB) {
+      return false;
+    }
     // Check remote_data for explicit writable flag
     const rd = coll.remoteData;
     if (rd && typeof rd === 'object' && 'writable' in rd) {

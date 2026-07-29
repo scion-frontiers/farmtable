@@ -91,7 +91,18 @@ export const CAPABILITY_TOOLTIPS: Partial<Record<keyof CollectionCapabilities, s
  * and writable status.
  */
 export function getCapabilities(collection: Collection): CollectionCapabilities {
-  // SECURITY CONTROL -- CONJUNCT B OF TWO. Counterpart, which names this one:
+  // SECURITY CONTROL -- CONJUNCT B OF TWO, AND IT RUNS IN THE BROWSER ONLY.
+  //
+  // READ THIS BEFORE TREATING THE LABEL AS AN ENFORCEMENT CLAIM. Nothing in Go
+  // enforces any of this. There is no server-side notion of a read-only
+  // collection, so the nine write operations this function gates are gated
+  // here and nowhere else. A caller holding a token and using curl is not
+  // subject to this check at all. "SECURITY CONTROL" here means "this decides
+  // what the dashboard offers", not "this decides what the server permits" --
+  // the two were not distinguished when the label was added, and the label is
+  // the more visible half.
+  //
+  // Counterpart, which names this one:
   // the "SECURITY CONTROL, CONJUNCT A OF TWO" comment in ImportCollection, in
   // internal/server/export_import.go. Cited by identifier and not by line
   // number: an annotation displaces the line it cites, so a line number in a
