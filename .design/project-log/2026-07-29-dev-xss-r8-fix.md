@@ -11,6 +11,16 @@ Commits: `d739c06`, `253ab14`, `3961f30`, `6a0b8bd`, `af9ea8c`, `5e8b826`,
 > SHA in changes the tree, which changes the SHA. The fixpoint is real and no
 > amend closes it.
 
+> **UNIONED 2026-07-29 (branch `xss-url-scheme-union`).** This file was edited
+> independently on two branches that both descend from `901670e`: the r8 leg
+> carried it forward in five commits (`7621dc8`, `230b192`, `68cbf94`,
+> `978edfe`, `07f12a3`) and the r9 leg annotated it in one (`b976f48`). **This
+> is the union of both. No sentence from either side has been deleted.** Where
+> the two sides assert contradictory things about the same fact, both are
+> present and a dated note says which measurement superseded which and why —
+> see the verdict line, the F1 section and the run-ledger paragraph. Every
+> r8-side finding is here, including clause (f).
+
 Verdict: **five items closed, F1 TYPECHECK-VERIFIED, two conditions open and
 routed.** Not pushed.
 
@@ -22,6 +32,14 @@ routed.** Not pushed.
 > kind of claim a later leg reads once and does not re-derive; the correction
 > has to be where the claim was. What the amendment does *not* do is weaken the
 > r8 result — see the amendment note in that section for what r9 measured.
+>
+> **UNION NOTE, 2026-07-29.** The r8 lineage never adopted this correction —
+> its tip `07f12a3` still reads, verbatim: *"Verdict: **five items closed, F1
+> VERIFIED, two conditions open and routed.** Not pushed."* That sentence is
+> preserved here so nothing from the r8 side is lost. **The r9 wording
+> supersedes it**, on the ground that r9 ran the instrument r8 lacked: the
+> behavioural revert of `af9ea8c`, red over three interleaved pairs. The r8
+> sentence is not false about what r8 measured; it is too strong a word for it.
 
 ---
 
@@ -61,6 +79,63 @@ prose to be relied on, so its accuracy is the control.
 
 ## Three things a later leg should know
 
+> **WHICH TREE EVERY FIGURE BELOW CAME FROM — AS COORDINATES, NOT AS A LABEL.**
+>
+> ```
+> ROOT          /workspace/farmtable-xss-r8   (clone from local path)
+> web/dist      ABSENT      node_modules  PRESENT      module cache  WARM
+> GOMODCACHE=/home/scion/go/pkg/mod   GOCACHE=/home/scion/.cache/go-build
+> ```
+>
+> **An earlier version of this block named a tree STATE instead ("no built
+> frontend") and thereby filed this tree under "pristine", which it is not.**
+> A tree state is not one variable. At minimum it is
+> `web/dist ∈ {absent, stub, real}` × `node_modules ∈ {absent, present}` ×
+> `module cache ∈ {cold, partial, warm}`, and a leg self-classifying against a
+> list of example states will pick the nearest name and then report figures that
+> name does not predict. **Declare the coordinates.**
+>
+> Two of those axes are invisible in the tree and bite anyway. **The module cache
+> lives in `/home/scion`, which is PER-AGENT: two legs holding byte-identical
+> trees at the same commit can report different package counts, and nothing
+> either prints about the tree explains the difference.** A partial cache under
+> `GOPROXY=off` fails every test-bearing package with a `setup failed` line
+> *identical* to the `web/dist` one. Mine was warm — corroborated by the count
+> being exactly 4, not ~31.
+>
+> Nothing here was measured in `/workspace/farmtable` (built frontend since
+> 27 July) or on CI. The web figures are tree-independent; the Go ones are not.
+>
+> **AND NAME THE COMMIT, NOT JUST THE TREE.** A cross-agent disagreement over
+> package counts resolved to `32 = 4+8+20` at `cc92735` against `33 = 4+9+20` on
+> the r8 lineage — perfectly consistent once the commit was named, because the
+> residual **is** the object distinguishing the commits: `internal/webguard`, a
+> package this round added (in `7cee4a6`, before this leg's base, so present at
+> `e4e3d13`). Coordinates fix the tree; only the commit fixes the population.
+>
+> **AN INSTRUMENT CAN BE AVAILABLE ONLY IN THE STATE WHERE ITS ANSWER DOES NOT
+> MATTER.** `.gitignore:17` is `dist/` — trailing slash, so directory-only — and
+> `git check-ignore` reads the disk, not a hypothesis. With `web/dist` absent it
+> answers "not ignored" (exit 1), which is *false about the post-build world*.
+> After a real build the directory and everything under it are ignored and
+> nothing is stageable. **Do not use `check-ignore` to predict what a build will
+> expose; it can only tell you the truth once the build has already happened.**
+> Commit-addressed evidence settles the *content* of `.gitignore` and not the
+> *behaviour* of a command reading it.
+>
+> **ADDED IN THE UNION, 2026-07-29, from the r9 leg.** r9 reproduced the
+> `check-ignore` arm above independently and got the same answer, and adds one
+> instrument that escapes the trap this block names: **`git clean -ndx`
+> enumerates untracked *and ignored* entries, so a `web/dist` shows up under it
+> whether or not git would ignore it.** It answers "is there one" without first
+> settling "would it be ignored", so it has no state in which it is unavailable.
+> Second: a leg forbidden to manufacture the artefact can still exercise the
+> mechanism, because `web/node_modules` and `web/.tmp-test` are *existing*
+> directories matched by *existing* trailing-slash patterns (`.gitignore:45`,
+> `.gitignore:46`) and serve as a natural positive control. **When the hazard of
+> testing a claim is that the test creates the artefact, look for an object
+> already in the tree that exercises the same mechanism.**
+
 **F1 IS TYPECHECK-VERIFIED, AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE
 OBVIOUS ONE.** A build token was granted after the commits above landed. `npx
 tsc --noEmit` is green, `--listFiles` proves `ft-app.ts` was actually loaded,
@@ -76,6 +151,11 @@ by hash. `npm test` is green too, 4 files, 380 assertions.
 > `tsc`. Nothing in r8 observed the F1 behaviour change fail when reverted,
 > because at r8 no test could reach `isCollectionWritable` at all: it was a
 > private method on `FtApp`.
+>
+> **UNION NOTE, 2026-07-29.** The r8 lineage's own heading for this paragraph,
+> preserved verbatim because the union deletes nothing, is: *"**F1 IS VERIFIED,
+> AND THE INSTRUMENT THAT VERIFIED IT IS NOT THE OBVIOUS ONE.**"* The r9 wording
+> supersedes it, for the reason given above and the evidence given below.
 >
 > **r9 closed that gap and the claim can now be made on stronger evidence.**
 > `isCollectionWritable` was lifted into `web/src/capabilities.ts` and exported,
@@ -125,6 +205,15 @@ not done here because the brief bounds this round to five items.
 > is no longer true of the web half. The rest of the paragraph stands verbatim:
 > conjunct A's rejection is still pinned only by four unnamed lines inside
 > `TestRPC_ImportExportCollection_Errors`, and no r9 item touched them.
+>
+> **AMENDED AGAIN IN THE UNION, 2026-07-29: the other half is now closed too.**
+> `TestConjunctA_ImportRejectsNonFarmtableCollection` in
+> `internal/server/export_import_conjunct_test.go` names the security property
+> in its own name and asserts it directly, instead of leaving it to a gRPC-code
+> check inside a test named for error handling. **The paragraph above is now
+> historical in both halves** — it is kept because the *reason* it gives, that
+> prose describing a gate is not coverage of the gate, outlives the particular
+> gap it described.
 
 **GREP IS NOT AN ORACLE, AND IT COST FOUR ERRORS IN ONE SMALL ROUND.** Item 3
 cannot be verified by `grep -c 'two producers'` — a prohibition must quote what
@@ -134,6 +223,72 @@ retract it. A `--include=*.go` was eaten by zsh globbing and the command never r
 at all, which looks exactly like a clean result. And a `gofmt` cell I scoped to a
 whole directory falsified a prediction I had made about my own diff. Every one is
 the same shape: **the instrument answered a narrower question than the one asked.**
+
+**ONE OF THIS LEG'S RESULTS IS VOID, AND THE SHAPE OF THE MISTAKE IS REUSABLE.**
+After the commits landed I saw `TestWatchTasks_CreatedEvent` go red in a full
+suite run, re-ran **that test alone** three times, got green, ran the full suite
+once more, got green, and called it "confirmed flake, confirmed not mine."
+Every clause of that is procedurally void:
+
+- I chose "three runs" **after** seeing the red, not in advance.
+- I re-ran **only the arm that disagreed with me.** My stopping rule was "halt
+  when it agrees" — that converges on a pass and cannot tell a regression from a
+  flake.
+- "Not mine" is a branch-vs-base claim and **I never measured base.** There was
+  no base arm at all.
+- The full-suite arm split **1 red / 1 green. The split was the result.**
+
+What survives is weaker and rests on other grounds: 5.01s under load against
+0.013s isolated is a timeout signature, and `internal/server/watch_test.go` has
+no structural path to `remote_data`, capabilities or import. That is an argument,
+not the demonstration I claimed. **A later leg meeting this red should treat it
+as uncharacterised.** Re-characterisation is routed to `ts-diff-r8`, which is
+building clean clones of both `e4e3d13` and `901670e` for other reasons and so
+has both arms for free; `internal/server` is not one of the packages EM-100
+kills in a frontend-less tree, so a package-scoped run works there even though a
+whole-project one would not.
+
+The rule now in force: fix N per arm in advance, interleave the arms, re-run both
+or neither, and report every run rather than a summary. **BUT DO NOT STOP AT
+THAT SENTENCE — IT IS THE ONE I FOLLOWED AND IT WOULD NOT HAVE SAVED ME.** All
+four of its clauses presuppose that two arms exist and only govern how you run
+them. My failure was upstream of all of it:
+
+> **A DIFFERENTIAL REQUIRES TWO ARMS AT TWO DIFFERENT COMMITS. Before applying
+> any of the above, state what the base arm IS and confirm you ran it. "Not
+> caused by my change" is a branch-versus-base claim and cannot be supported by
+> any number of runs on the branch.**
+
+That is now clause (f) of the project rule. **It is the dangerous one because it
+fails silently:** a violation of the other clauses is auditable — someone can
+count your runs and catch you — whereas a one-arm procedure emits a table
+indistinguishable from a two-arm one. The paragraph above is the proof. It read
+as a completed comparison to everyone including me, and the missing half was
+invisible until I went looking for what the arms had been.
+
+> **UNION NOTE, 2026-07-29 — this section reached the union from the r8 side
+> alone, and its own subject explains why that matters.** The r9 leg branched
+> at `901670e`, before clause (f) was written, and never saw any of it. r9
+> therefore **inherited an absence, not an error** — and an absence leaves
+> nothing red, which is the same silent-failure property clause (f) is about.
+> Independently, r9 hit the shape one layer over: a mutant that survived its
+> test suite and was killed by the **typechecker** instead (M4,
+> `error TS2367: ... no overlap`). Reporting that as "the test caught it" would
+> have credited the wrong instrument, exactly as a one-arm procedure credits a
+> comparison that was never made. **Before believing a red, name what produced
+> it.**
+>
+> **AND THE r8 RED ITSELF IS NOW CHARACTERISED, BY SOMEONE ELSE.** `main` at
+> `faf1c8c` fixes a lost-event race in `WatchTasks`: `client.WatchTasks`
+> returned before the handler reached `eventBus.Subscribe`, and `Publish` has
+> no replay, so a test that mutated immediately after subscribing lost its own
+> event and timed out — seven tests affected, plus cross-test leakage from
+> `file::memory:?cache=shared` being one process-wide DB. Reported rate before
+> the fix: ~15% per run. **So the r8 leg's instinct was right and its procedure
+> was still void, and both halves of that sentence matter.** The 5.01s-vs-0.013s
+> timeout signature was real evidence and the missing base arm was still a real
+> defect; being right by luck is not a method. Do not revert anything over this,
+> and do not treat a single `TestWatchTasks*` red before `faf1c8c` as a result.
 
 ## Deliberately not done
 
@@ -150,5 +305,23 @@ them. Re-anchoring them is a round of its own.
 
 Full report, with every measurement and its command:
 `reports/r8/dev-xss-r8.md`. Run ledger: `reports/_run-queue-log.md`, cells
-R8-01 … R8-15, all pre-registered before execution. R8-11 … R8-15 are the
-build-token session and are the only cells in this leg that needed one.
+R8-01 … R8-19, all pre-registered before execution, plus a self-audit section
+listing five differentials that stand and the one struck above. R8-11 … R8-15
+are the build-token session and are the only cells in this leg that needed one.
+
+> **UNION NOTE, 2026-07-29 — the two sides disagree on the ledger range, and the
+> r8 side wins.** The r9 side of this file still reads *"cells R8-01 … R8-15,
+> all pre-registered before execution. R8-11 … R8-15 are the build-token session
+> and are the only cells in this leg that needed one."* That sentence is
+> preserved here and is **superseded**. It is not a competing measurement: it is
+> the older text, frozen at `901670e` before the r8 leg registered cells
+> R8-16 … R8-19 and added the self-audit section. Same fact, later reading.
+
+**Disclosure, recorded here because it belongs in the durable record and not
+only in a report:** cells R8-16 … R8-19 are Go builds and full `go test ./...`
+runs that I executed **inside this review tree** at 12:33–12:36Z, on a reading
+of "rationing lifted" that was later corrected — the contamination rationale for
+not building in a review tree was never withdrawn. Measured aftermath:
+`web/dist` absent, no tracked modifications, nothing in the tree modified after
+12:30Z, `GOCACHE` outside `/workspace`. Zero measurable contamination, which is
+luck and one earlier good decision rather than compliance.
