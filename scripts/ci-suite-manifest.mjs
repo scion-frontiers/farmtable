@@ -529,9 +529,86 @@ function mapArtefactToSource(artefact) {
 }
 
 
+// ------------------------------------------------------- population guard ---
+// THE TWO SETS ARE DRAWN FROM DIFFERENT UNIVERSES. THAT IS THE WHOLE POINT.
+//
+//   `present`  (enumerated) <- GIT. Tracked files, plus untracked-and-not-
+//                              ignored ones. Nothing gitignored can EVER be in
+//                              it.
+//   `executed` (attributed) <- THE FILESYSTEM. Every runner resolves its own
+//                              discovery against the disk, and the disk also
+//                              holds gitignored build artefacts.
+//
+// The difference between them is therefore structurally ASYMMETRIC. A
+// gitignored path -- the compiled intermediates under `web/.tmp-test/`, say --
+// can appear on the attributed side and can never appear on the enumerated
+// side. And `missing` is enumerated-minus-attributed, ONE DIRECTION, so
+// crediting an out-of-population path can only ever push `missing` toward
+// zero.
+//
+// So it is not that `missing == 0` happened not to catch a runner sweeping up
+// build artefacts. `missing == 0` was STRUCTURALLY INCAPABLE of catching it: a
+// metric that cannot go up is not a metric. This arm measures the other
+// direction, attributed-minus-enumerated, and it is NOT redundant with the
+// missing check. Anyone about to "simplify" it away is deleting the only arm
+// that looks at the universe where the extra files live.
+function outOfPopulation(files) {
+  return files.filter((f) => !present.includes(f));
+}
+
+// POSITIVE CONTROL, FIRED ON EVERY RUN, IN-PROCESS.
+//
+// `outOfPopulation(...).length === 0` has its PASS CONDITION AT ZERO -- and
+// zero is also exactly what a BROKEN implementation returns. A typo, a wrong
+// path root, a set built from the wrong variable, an empty input: any of them
+// makes this arm return a constant zero and pass forever while reading as a
+// clean bill of health. A guard whose failure mode is indistinguishable from
+// its expected output is not a guard.
+//
+// So the same function used for the real answer is also fired, in the same
+// invocation, at a path constructed to be outside any population, and the
+// result is printed next to the real answer. A zero that has never been shown
+// capable of being non-zero is a default, not a measurement.
+const CONTROL_PATH = 'web/__ci-suite-manifest-positive-control__/seeded.test.ts';
+const controlHits = outOfPopulation([CONTROL_PATH]);
+if (controlHits.length !== 1) {
+  console.error(
+    'FAIL: the surplus arm\'s positive control did not fire.\n' +
+      `      outOfPopulation(['${CONTROL_PATH}']) returned ` +
+      `${controlHits.length}; it must return 1.\n` +
+      '\n' +
+      '      That seeded path is not in the tree, so the surplus computation\n' +
+      '      MUST flag it. It did not, which means the computation is broken\n' +
+      '      and every `surplus=0` it reports is a constant, not a finding.\n' +
+      '      The real answer below cannot be trusted and is not printed as a\n' +
+      '      pass.\n' +
+      '\n' +
+      '      DO THIS: fix `outOfPopulation` or the `present` set it closes\n' +
+      '      over in scripts/ci-suite-manifest.mjs -- usually a wrong path\n' +
+      '      root, or `present` having come back empty. If instead somebody\n' +
+      '      has genuinely created a file at CONTROL_PATH, rename CONTROL_PATH\n' +
+      '      to something still absent. Do not delete the control: a surplus\n' +
+      '      arm with no positive control is the failure mode it exists for.',
+  );
+  process.exit(1);
+}
+
 const executed = new Set();
+// Paths a runner claimed that are NOT in the enumerated population. Recorded
+// per-runner and BY NAME: the count alone tells whoever has to fix this
+// nothing, whereas the paths themselves name the runner and the directory.
+const surplus = [];
 const unanalysable = [];
 const discovery = [];
+
+// Attribute a runner's discovery set to the population, refusing to silently
+// intersect. In-population paths are credited; out-of-population paths are
+// recorded as surplus, which is fatal at the verdict below.
+function credit(source, files) {
+  const outside = outOfPopulation(files);
+  if (outside.length) surplus.push({ source, paths: outside });
+  for (const f of files) if (present.includes(f)) executed.add(f);
+}
 let compileConfig = null;
 const cleaned = new Set();
 
@@ -660,7 +737,7 @@ for (const leaf of leafCommands('test')) {
           );
           continue;
         }
-        executed.add(src);
+        credit(t, [src]);
       }
       continue;
     }
@@ -672,7 +749,7 @@ for (const leaf of leafCommands('test')) {
     for (const a of args) {
       const src = mapArtefactToSource(a);
       if (src) {
-        executed.add(src);
+        credit(t, [src]);
         continue;
       }
       // Not a compiled test artefact. It may be a RUNNER SCRIPT that walks the
@@ -687,7 +764,7 @@ for (const leaf of leafCommands('test')) {
         continue;
       }
       discovery.push(r.label);
-      r.files.forEach((f) => executed.add(f));
+      credit(r.label, r.files);
     }
     continue;
   }
@@ -711,7 +788,7 @@ for (const leaf of leafCommands('test')) {
       continue;
     }
     discovery.push(`${t} (${files.length} files, per \`vitest list\`)`);
-    files.forEach((f) => executed.add(f));
+    credit(`${t} (per \`vitest list\`)`, files);
     continue;
   }
 
@@ -734,11 +811,23 @@ present.forEach((p) => console.log(`  ${p}`));
 console.log('');
 
 const executedList = [...executed].sort();
-console.log(`TEST FILES ACTUALLY EXECUTED BY \`npm test\` (${executedList.length}):`);
+console.log(
+  `TEST FILES ATTRIBUTED TO A RUNNER NAMED IN \`npm test\` (${executedList.length}):`,
+);
 if (executedList.length === 0) console.log('  (none)');
 executedList.forEach((p) => console.log(`  ${p}`));
 discovery.forEach((d) => console.log(`  ^ via discovery by: ${d}`));
 console.log('');
+
+const surplusTotal = surplus.reduce((n, s) => n + s.paths.length, 0);
+if (surplusTotal) {
+  console.log(`ATTRIBUTED BUT OUTSIDE THE ENUMERATED POPULATION (${surplusTotal}):`);
+  for (const s of surplus) {
+    console.log(`  from ${s.source}:`);
+    s.paths.forEach((p) => console.log(`    ${p}`));
+  }
+  console.log('');
+}
 
 if (missing.length) {
   console.log(`NOT EXECUTED BY ANYTHING (${missing.length}):`);
@@ -806,6 +895,64 @@ if (present.length < MIN_TEST_FILES) {
   process.exit(1);
 }
 
+// SURPLUS BEFORE MISSING. A surplus does not merely add a second problem, it
+// INVALIDATES the missing number printed above: the two sides were drawn from
+// different populations, so `missing=0` there is not evidence of anything.
+if (surplusTotal) {
+  const named = [];
+  for (const s of surplus) {
+    named.push(`        from ${s.source}:`);
+    s.paths.forEach((p) => named.push(`          ${p}`));
+  }
+  console.error(
+    `FAIL: ${surplusTotal} path(s) were attributed to a runner named in\n` +
+      '      web/package.json "test" but are NOT in the enumerated population.\n' +
+      '\n' +
+      '      THE SURPLUS, BY RUNNER AND BY NAME:\n' +
+      `${named.join('\n')}\n` +
+      '\n' +
+      '      WHY THIS IS FATAL AND NOT A ROUNDING ERROR. The two sides come\n' +
+      '      from different universes: `enumerated` is what GIT can see\n' +
+      '      (tracked, or untracked and not ignored), `attributed` is what a\n' +
+      '      runner finds on the FILESYSTEM. `missing` is enumerated minus\n' +
+      '      attributed -- one direction -- so a path that exists on disk but\n' +
+      '      not in git can only ever push `missing` DOWN, never up. Left\n' +
+      '      unchecked, `missing=0` becomes unfalsifiable and this whole gate\n' +
+      '      certifies green by construction. The surplus is the diagnostic.\n' +
+      '\n' +
+      '      THE LIKELY CAUSE IS A RUNNER WITH NO CONFIG FILE. With nothing to\n' +
+      '      scope it, a runner falls back to its BUILT-IN DEFAULT `include`\n' +
+      '      and sweeps up everything that matches by name -- typically another\n' +
+      '      runner\'s test sources AND the compiled intermediates under a\n' +
+      '      gitignored output directory. A runner running unconfigured is what\n' +
+      '      a surplus looks like from here, and it is usually also red under a\n' +
+      '      real `npm test` for the same reason.\n' +
+      '\n' +
+      '      DO THIS: add the missing config and scope its `include` to the\n' +
+      '      files that runner actually owns. For vitest, that is\n' +
+      '      web/vitest.config.ts:\n' +
+      '\n' +
+      "          import { defineConfig } from 'vitest/config';\n" +
+      '          export default defineConfig({\n' +
+      "            test: { include: ['test/**/*.test.ts'], environment: 'jsdom' },\n" +
+      '          });\n' +
+      '\n' +
+      '      Then re-run. Point `include` at the directory that runner owns; if\n' +
+      '      that directory has no tests yet, the honest fix is to give the\n' +
+      '      runner its first test or to stop naming it in scripts.test.\n' +
+      '\n' +
+      '      DO NOT widen the enumerated population to swallow the surplus, and\n' +
+      '      DO NOT delete this arm. Both make the build green by making the\n' +
+      '      gate blind, which is the state this gate exists to end. Un-ignoring\n' +
+      '      a build-output directory so its artefacts count as source is the\n' +
+      '      same move wearing a different hat.',
+  );
+  console.error(
+    `      ${counts} surplus=${surplusTotal} unanalysable=${unanalysable.length}`,
+  );
+  process.exit(1);
+}
+
 if (missing.length || unanalysable.length) {
   console.error(
     'FAIL: the set of test files that exist and the set that run do not match.\n' +
@@ -817,7 +964,31 @@ if (missing.length || unanalysable.length) {
   process.exit(1);
 }
 
+// SAY ONLY WHAT WAS CHECKED. The previous wording here claimed every tracked
+// test file "is executed by `npm test`" -- a claim about a command this script
+// NEVER RUNS. It parses scripts.test statically and asks each runner to
+// ENUMERATE. A static parse of a script is not an observation of the script,
+// and enumeration is not execution: `vitest list` lists twelve files without
+// running one of them, so it cannot possibly notice that all twelve are
+// incapable of running. Making the script run `npm test` would be circular and
+// slow; making the claim match the evidence is neither.
 console.log(
-  `OK: every tracked JS/TS test file is executed by \`npm test\`. ${counts} ` +
-    `(floor ${MIN_TEST_FILES})`,
+  'OK: every tracked JS/TS test file is ATTRIBUTABLE to a runner named in ' +
+    `web/package.json "test". ${counts} (floor ${MIN_TEST_FILES})`,
+);
+console.log(
+  '    ATTRIBUTION IS NOT EXECUTION, AND IT IS NOT PASSING. This script did not\n' +
+    '    run `npm test`. It read scripts.test and asked each runner to ENUMERATE\n' +
+    '    (`vitest list`, `run-node-tests.mjs --list`); listing does not run a\n' +
+    '    file, so nothing above is evidence that a listed file executes at all,\n' +
+    '    let alone that it passes. Run `npm test` for that. A green here says\n' +
+    '    exactly one thing: no tracked test file is orphaned from every runner.',
+);
+console.log(
+  `    surplus=0 of ${executedList.length} attributed path(s). The two sides come from\n` +
+    '    DIFFERENT UNIVERSES -- enumerated from GIT (tracked, or untracked and\n' +
+    '    not ignored), attributed from the FILESYSTEM (runner discovery) -- so\n' +
+    '    this arm is not redundant with missing=0 and must not be simplified\n' +
+    `    away. Positive control, fired this run: outOfPopulation(['${CONTROL_PATH}'])\n` +
+    `    returned ${controlHits.length}, so the zero above is a measurement and not a default.`,
 );
