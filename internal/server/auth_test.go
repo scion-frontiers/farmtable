@@ -280,6 +280,7 @@ func TestAuthInterceptor_ValidTokenAccessesNonExemptRPC(t *testing.T) {
 	_, rawToken, err := s.CreateAPIToken(ctx, store.CreateAPITokenParams{
 		UserID: u.ID,
 		Name:   "test-token",
+		Scopes: defaultScopes(t, "agent"), // ListCollections needs collection:read, which an agent legitimately holds
 	})
 	if err != nil {
 		t.Fatalf("creating token: %v", err)
@@ -335,9 +336,15 @@ func TestAuthInterceptor_OpenAccessMode(t *testing.T) {
 
 func TestAuthInterceptor_RecordUsageHasDeadline(t *testing.T) {
 	lookup := &deadlineLookup{
+		// This fake mints no token and touches no database — it writes the
+		// context value directly. Before 2026-07-29 it omitted Scopes and the
+		// empty set was read as a wildcard, so the RPC below succeeded. The
+		// subject here is the RecordUsage deadline, not authorization, so grant
+		// the one scope the call actually needs.
 		result: &server.TokenLookupResult{
 			UserID:  uuid.New(),
 			TokenID: uuid.New(),
+			Scopes:  []string{server.ScopeCollectionRead},
 		},
 		used: make(chan context.Context, 1),
 	}
