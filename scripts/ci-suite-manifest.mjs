@@ -1097,7 +1097,7 @@ if (surplusTotal) {
   process.exit(1);
 }
 
-if (missing.length || unanalysable.length) {
+if (missing.length) {
   console.error(
     'FAIL: the set of test files that exist and the set that run do not match.\n' +
       '      This is the exact condition under which a suite disappears and the\n' +
@@ -1106,6 +1106,19 @@ if (missing.length || unanalysable.length) {
   );
   console.error(`      ${counts} unanalysable=${unanalysable.length}`);
   process.exit(1);
+}
+
+if (unanalysable.length) {
+  console.error(
+    `NOT ANALYSED: ${unanalysable.length} runner(s) in \`npm test\` could not be interrogated.\n` +
+      '      This is not a finding about the test set; the gate could not form\n' +
+      '      one. Every tracked test file is attributed to a KNOWN runner, but\n' +
+      '      the runner(s) listed above under COULD NOT ANALYSE are opaque to\n' +
+      '      this script. Teach this script the new runner, or remove it from\n' +
+      '      scripts.test.',
+  );
+  console.error(`      ${counts} unanalysable=${unanalysable.length}`);
+  process.exit(2);
 }
 
 // SAY ONLY WHAT WAS CHECKED. The previous wording here claimed every tracked
