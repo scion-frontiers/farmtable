@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
@@ -377,7 +377,7 @@ export class FtDashboardView extends LitElement {
                   <div class="stat-label">${ATTENTION.label}</div>
                 </div>
               `
-            : null}
+            : nothing}
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>
             <div class="stat-label">Total</div>
@@ -410,7 +410,7 @@ export class FtDashboardView extends LitElement {
                 )}
               </div>
             `
-          : null}
+          : nothing}
       </div>
     `;
   }

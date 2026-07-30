@@ -68,24 +68,50 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // because the population at 439b309 was those six files -- not because 6 felt
 // safe, and not from any branch's population.
 //
-// RE-DERIVED ON hardening/markdown-href, WHICH ADDS ONE SUITE. The population
-// is now these seven, the FOURTH line being the new one (the list is sorted by
-// path, so the new file is not the last entry -- an earlier version of this
-// comment said "the sixth", which is a different file):
+// RE-DERIVED ON fix/wire-vitest-suites, WHICH WIRES 22 VITEST COMPONENT TEST
+// SUITES. The Phase 2 web branch merge (031f23c8) added 22 component test files
+// under web/test/ that use vitest. The population is now these thirty-one:
 //
+// Node runner (9):
 //   web/src/capabilities.test.ts
 //   web/src/components/inspector/render-sink-xss.test.ts
 //   web/src/util/assertions.test.ts
 //   web/src/util/markdown-href.test.ts
+//   web/src/util/rank.test.ts
 //   web/src/util/safe-url.test.ts
+//   web/src/util/task-state-utils.test.ts
 //   web/src/util/url-binding-scan.test.ts
 //   web/src/utils/task-ready.test.ts
 //
-// Reconciled the same way -- this script's enumeration against the runner's own
-// `--list` -- and both sets are those seven paths with no residue in either
-// direction. The floor moves to 7 in the same commit as the file it counts,
-// because a floor that lags the population is a licence to delete the newest
-// suite in silence.
+// Vitest runner (22):
+//   web/test/attention-view.test.ts
+//   web/test/ft-app.write-error-seam.test.ts
+//   web/test/ft-app.write-error.test.ts
+//   web/test/ft-dashboard-view.test.ts
+//   web/test/ft-filter-chips.test.ts
+//   web/test/ft-inspector-changes.vocabulary.test.ts
+//   web/test/ft-inspector-code.safe-url.test.ts
+//   web/test/ft-inspector-header.availability.test.ts
+//   web/test/ft-inspector-meta.safe-url.test.ts
+//   web/test/ft-inspector-meta.state.test.ts
+//   web/test/ft-inspector-relationships.test.ts
+//   web/test/ft-kanban-view.contract.test.ts
+//   web/test/ft-kanban.drop-refusal-affordances.test.ts
+//   web/test/ft-ready-queue-view.availability.test.ts
+//   web/test/ft-ready-queue-view.concurrent-reorder.test.ts
+//   web/test/ft-ready-queue-view.rank-adversarial.test.ts
+//   web/test/ft-ready-queue-view.rank.test.ts
+//   web/test/ft-task-card.attention.test.ts
+//   web/test/ft-toolbar.contract.test.ts
+//   web/test/queue-ordering.test.ts
+//   web/test/safe-url.contract.test.ts
+//   web/test/vocabulary.contract.test.ts
+//
+// Reconciled by running `node scripts/ci-suite-manifest.mjs` which enumerates
+// the tree and asks each runner (`run-node-tests.mjs --list` and
+// `vitest list --filesOnly`) for its file set. Both sides agree at 31 with no
+// residue. The floor moves to 31 in the same commit that wires the 22 vitest
+// suites, because a floor that lags the population is a licence to delete.
 //
 // TO RE-DERIVE THIS RATHER THAN TRUST IT, from a clean checkout:
 //   node scripts/ci-suite-manifest.mjs          # prints the set it enumerated
@@ -113,7 +139,7 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // and neither of these is a substitute for the others.
 //
 // Adding a suite is what raises this number.
-const MIN_TEST_FILES = 7;
+const MIN_TEST_FILES = 31;
 
 // ------------------------------------------------------- required by path ---
 // THE FLOOR COUNTS; THIS ONE NAMES.
