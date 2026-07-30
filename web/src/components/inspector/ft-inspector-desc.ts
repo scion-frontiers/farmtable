@@ -231,17 +231,35 @@ export class FtInspectorDesc extends LitElement {
       <div class="content" @dblclick=${this.readOnly ? undefined : this.startEdit}>
         <!--
           renderMarkdown runs DOMPurify.sanitize over marked's output before this
-          is injected. That covers the markdown sink and nothing else: it is not
-          the URL-scheme policy, and it is not a compensating control for the
-          href bindings that policy governs. DOMPurify is configured with its
-          defaults here -- no explicit ALLOWED_URI_REGEXP -- so what it strips is
-          whatever the installed version's defaults strip, which is a dependency
-          fact rather than a property this repo states or tests.
+          is injected, and it now also routes every host-naming href in that
+          output through safeHref -- the hook lives in web/src/util/markdown.ts.
+          Those are two controls, not one, and they are worth keeping apart.
+          DOMPurify is the XSS sanitiser, configured with its defaults here --
+          no explicit ALLOWED_URI_REGEXP -- so what it strips is whatever the
+          installed version's defaults strip, which is a dependency fact rather
+          than a property this repo states or tests. safeHref is the URL-scheme
+          policy, which this repo does state and pin.
 
-          What IS stated lives in code, not prose: web/src/util/safe-url.ts
-          defines SAFE_SCHEMES and safeHref, web/src/util/safe-url.test.ts pins
-          their behaviour, and web/src/util/url-binding-scan.test.ts asserts
-          that every href binding routes through safeHref. Both of those test
+          Until the hook landed, the URL-scheme policy was not applied on this
+          path AT ALL: markdown link syntax produced real anchors whose hrefs no
+          call site ever checked, so a URL that reads as one host and loads
+          another survived with attacker-chosen link text. Phishing and
+          credential disclosure, not XSS -- DOMPurify strips javascript: and
+          data: here and always did.
+
+          WHAT THE SCANNER ASSERTS, AND WHAT IT STILL CANNOT SEE.
+          web/src/util/url-binding-scan.test.ts asserts that every href binding
+          IT CAN PARSE routes through safeHref, and its header lists its own
+          blind spots. unsafeHTML is one of them -- it is this line. So the
+          anchors renderMarkdown produces below are outside that scanner's reach
+          both before and after the fix; what changed is that they are now
+          covered by web/src/util/markdown-href.test.ts, which pins the sink's
+          behaviour directly. A control's stated scope must not be its
+          aspiration: the scanner's scope is the bindings it can parse, and the
+          markdown path is pinned by a different file.
+
+          web/src/util/safe-url.ts defines SAFE_SCHEMES and safeHref and
+          web/src/util/safe-url.test.ts pins their behaviour. All of those test
           files are executed by "npm test", which discovers them rather than
           running a hardcoded list; make suite-manifest fails the build if any
           tracked test file compiles without executing. (No backticks in this

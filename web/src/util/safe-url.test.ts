@@ -127,7 +127,6 @@ function testAcceptsHTTPAndHTTPS(): void {
     'HtTpS://example.com',
     'https://example.com:8443/x',
     'https://example.com/x?a=1&b=2#frag',
-    'https://user:pass@example.com/x',
   ];
   for (const input of accepted) {
     assert(
@@ -135,6 +134,94 @@ function testAcceptsHTTPAndHTTPS(): void {
       `safeHref(${JSON.stringify(input)}) should return the input unchanged, got ${JSON.stringify(safeHref(input))}`,
     );
   }
+}
+
+/**
+ * Credential rejection: safeHref refuses any URL carrying userinfo.
+ *
+ * DESTINATION CONFUSION, not scheme escalation. Every input below is http(s)
+ * with a non-empty host, so the scheme allow-list and the `hostname === ''`
+ * guard both wave it through -- the credential clause is the ONLY thing that
+ * refuses them. `https://github.com@evil.example/` is the shape that matters:
+ * the part a reader recognises is the USERINFO and the host is attacker-chosen,
+ * and the guard refuses the URL before any of this is rendered, so no credential
+ * URL reaches an anchor at all.
+ *
+ * NOT MEASURED: whether any adjacent field rendered as the link's label can
+ * disagree with the destination.
+ *
+ * WHY THE SUMMARY ASSERTION COMES FIRST. A per-case loop alone reports the first
+ * failure and stops, which cannot distinguish "one shape regressed" from "the
+ * clause was deleted". The summary names how many of the class got through
+ * before the rows name which.
+ *
+ * The pre-existing fixture in testdata/url-scheme-cases.json pinned exactly one
+ * credential shape -- `https://user:pass@example.com/x` -- in which the userinfo
+ * and the host DO NOT CONFLICT. That is a credentials-present case, not a
+ * host-spoofing case, so the spoofing shapes this clause exists for were pinned
+ * nowhere. They are pinned here and in that file.
+ */
+function testRejectsCredentials(): void {
+  const credentialed: readonly (readonly [string, string])[] = [
+    ['user and password', 'https://user:pass@example.com/x'],
+    ['bare user, no password', 'https://user@example.com/x'],
+    ['trailing colon, empty password', 'https://user:@example.com/x'],
+    ['empty username, password only', 'https://:pass@evil.example/'],
+    ['userinfo spoofing a familiar host', 'https://ok.example@evil.example/'],
+    ['userinfo spoofing github.com', 'https://github.com@evil.example/'],
+    ['spoofing userinfo with a plausible path', 'https://github.com@evil.example/o/r/pull/1'],
+    ['http, so the clause is not https-only', 'http://github.com@evil.example/'],
+  ];
+
+  // SUMMARY FIRST: how many of the class got through, before which ones.
+  const accepted = credentialed.filter(([, input]) => safeHref(input) !== undefined);
+  assert(
+    accepted.length === 0,
+    `${accepted.length} of ${credentialed.length} credential-bearing URLs were accepted by ` +
+      `safeHref: ${JSON.stringify(accepted.map(([name]) => name))}`,
+  );
+
+  for (const [name, input] of credentialed) {
+    assert(
+      safeHref(input) === undefined,
+      `safeHref(${JSON.stringify(input)}) should be undefined for "${name}", got ${JSON.stringify(safeHref(input))}`,
+    );
+  }
+
+  // POSITIVE ARM. Without it this whole table is satisfied by a safeHref that
+  // returns undefined for everything -- a dead instrument reading "all
+  // credentials rejected" while rejecting the entire product.
+  const stillAccepted: readonly string[] = [
+    'https://github.com/o/r/pull/1',
+    'http://example.com/x',
+    'https://example.com:8443/x',
+    'https://example.com/x?a=1&b=2#frag',
+  ];
+  for (const input of stillAccepted) {
+    assert(
+      safeHref(input) === input,
+      `positive arm: safeHref(${JSON.stringify(input)}) must still be returned unchanged, ` +
+        `got ${JSON.stringify(safeHref(input))}`,
+    );
+  }
+
+  // The clause tests BOTH fields. A check on `username` alone would let the
+  // empty-username row past, so pin that the shape really does parse that way
+  // rather than trusting the row's name.
+  const emptyUser = new URL('https://:pass@evil.example/');
+  assert(
+    emptyUser.username === '' && emptyUser.password === 'pass',
+    `fixture drift: https://:pass@evil.example/ parsed as username ${JSON.stringify(emptyUser.username)} ` +
+      `password ${JSON.stringify(emptyUser.password)}; this row exists to justify testing password too`,
+  );
+
+  // And pin the destination confusion itself: userinfo that LOOKS like the host.
+  const spoof = new URL('https://github.com@evil.example/');
+  assert(
+    spoof.hostname === 'evil.example' && spoof.username === 'github.com',
+    `fixture drift: https://github.com@evil.example/ parsed as host ${JSON.stringify(spoof.hostname)} ` +
+      `username ${JSON.stringify(spoof.username)}; this table would no longer test destination confusion`,
+  );
 }
 
 /**
@@ -262,8 +349,8 @@ function loadSchemeCases(): readonly URLSchemeCase[] {
  * independent tables can both be green while disagreeing with each other, which
  * is exactly the state this branch shipped in. safe-url.ts asserted the two
  * guards agreed and concluded that "a scheme the client allows and the server
- * rejects is unreachable". The scheme SETS agree. The DECISIONS do not: 9 of
- * these 42 inputs are decided differently. Now neither side can move without
+ * rejects is unreachable". The scheme SETS agree. The DECISIONS do not: 13 of
+ * these 45 inputs are decided differently. Now neither side can move without
  * turning its own half red, and reconciling them on paper turns
  * TestSharedFixturesRecordRealDivergences red.
  *
@@ -375,7 +462,7 @@ function testBaseDependenceMarkersAreAccurate(): void {
     );
   }
 
-  // Anti-vacuity: if nothing is marked, the loop above is 42 assertions that
+  // Anti-vacuity: if nothing is marked, the loop above is 45 assertions that
   // "false === false" and the whole apparatus proves nothing.
   assert(
     marked > 0,
@@ -619,6 +706,7 @@ function testExternalAnchorsKeepTargetBlank(): void {
 async function run(): Promise<void> {
   testRejectsUnsafeSchemes();
   testAcceptsHTTPAndHTTPS();
+  testRejectsCredentials();
   testHostGuardIsAFailClosedBackstop();
   testSharedFixturesMatchClientColumn();
   testBaseDependenceMarkersAreAccurate();

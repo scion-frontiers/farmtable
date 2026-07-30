@@ -33,13 +33,40 @@
  * rules this function does not replicate (a control-character pre-check, Go's
  * stricter url.Parse, and a non-empty Host requirement), and the server is not
  * the only writer, so "unreachable" does not follow even where it rejects.
- * Measured: 9 of 42 shared fixtures are decided differently. They are pinned in
+ * Measured: 13 of 45 shared fixtures are decided differently. They are pinned in
  * testdata/url-scheme-cases.json, which is read by BOTH
  * testSharedFixturesMatchClientColumn() in safe-url.test.ts and
  * TestValidateURLFieldMatchesSharedFixtures in
  * internal/server/urlvalidate_differential_test.go, so neither side can drift
- * without going red. All 9 are http(s)-resolving, so none is a scheme
- * escalation; they are broken-link and inconsistency bugs, not XSS.
+ * without going red.
+ *
+ * THE SECURITY READING OF THOSE 13 IS TWO READINGS, BECAUSE THE TWO DIRECTIONS
+ * HAVE DIFFERENT HARMS. What IS uniform: all 13 are http(s)-resolving or inert,
+ * so none is a scheme escalation, and none is XSS. Nothing else is uniform, and
+ * an earlier version of this comment wrote one verdict over all thirteen --
+ * "they are broken-link and inconsistency bugs, not XSS" -- twelve lines above
+ * the clause that exists because four of them are not.
+ *
+ *  - SEVEN rows where the CLIENT is the more permissive (backslash host
+ *    confusion, single-slash host, opaque no-slash, a bare space in the path, a
+ *    trailing newline, a bad percent escape, an empty host with a path). These
+ *    ARE the broken-link and inconsistency class: each resolves to an
+ *    attacker-chosen HOST, which is already reachable through a plainly accepted
+ *    https://evil.com/, and not to an attacker-chosen SCHEME.
+ *
+ *  - SIX rows where the SERVER is the more permissive, and FOUR of those are why
+ *    the clause below exists. Three are DESTINATION CONFUSION --
+ *    https://github.com@evil.example/, https://ok.example@evil.example/ and
+ *    https://:pass@evil.example/ each read as one host and load another. The
+ *    fourth, https://user:pass@example.com/x, loads the host it NAMES and so is
+ *    not destination confusion at all; its harm is handing credentials to that
+ *    host on click. Phishing and credential disclosure, not broken links. The
+ *    remaining two of the six (the empty string, and a port out of range) throw
+ *    at new URL() and are inert.
+ *
+ * Directions re-derived from the fixture columns rather than inferred from the
+ * cardinal: 45 cases, 13 divergent, 7 client-accept/server-reject, 6
+ * server-accept/client-reject.
  */
 export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
 
@@ -96,6 +123,36 @@ export function safeHref(raw: string | null | undefined): string | undefined {
   } catch {
     return undefined;
   }
+
+  // DESTINATION CONFUSION, not scheme escalation. `https://github.com@evil.example/`
+  // parses as userinfo 'github.com' on host 'evil.example': it READS as github.com
+  // and LOADS evil.example. The scheme is https and the host is non-empty, so
+  // neither the allow-list below nor the hostname guard refuses it.
+  //
+  // WHAT THIS CLAUSE CLOSES, AS A MECHANISM RATHER THAN AS A PROPERTY OF THE
+  // SCREEN: safeHref rejects a URL carrying userinfo, so the URL'S OWN TEXT
+  // cannot carry a false authority.
+  //
+  // NOT MEASURED: whether any adjacent field rendered as the link's label can
+  // disagree with the destination.
+  //
+  // That gap is deliberate and it is the deliverable. An earlier version of this
+  // comment finished the paragraph with "both call sites render STATIC link text
+  // -- nothing on screen contradicts the misreading". It was false at
+  // ft-inspector-code.ts, where the link text is ${id}. Four successive
+  // replacements for it were then proposed and every one of them was TRUE of a
+  // working spoof, because each constrained the visible text against THE URL
+  // while the harm only needs visible text != destination and the label can come
+  // from a different field. So what stands here is the mechanism plus the
+  // unmeasured question, not a fifth property.
+  //
+  // No legitimate value reaching these bindings carries credentials: a task
+  // remoteUrl and a pull-request URL are both http(s) repository locations, and
+  // the GitHub adapter only ever writes a bare https origin. A `user:pass@` form
+  // would additionally LEAK those credentials to the target host on click.
+  //
+  // Returns `undefined`, matching this function's existing contract -- not null.
+  if (parsed.username || parsed.password) return undefined;
 
   // `new URL()` lowercases the scheme, so no extra case folding is needed;
   // 'JaVaScRiPt:alert(1)' parses with protocol === 'javascript:'.

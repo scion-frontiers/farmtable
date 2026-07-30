@@ -85,10 +85,11 @@ func loadURLSchemeCases(t *testing.T) []urlSchemeCase {
 //
 // Why this exists: safe-url.ts previously asserted that the two guards agreed,
 // and concluded that "a scheme the client allows and the server rejects is
-// unreachable". The scheme SETS agree; the DECISIONS do not. 9 of these 42
+// unreachable". The scheme SETS agree; the DECISIONS do not. 13 of these 45
 // inputs are decided differently, because the server applies a
 // control-character pre-check and Go's net/url, while the client uses the
-// browser's WHATWG parser. None of the 9 is a scheme escalation -- see the
+// browser's WHATWG parser and additionally rejects userinfo. None of the 13 is
+// a scheme escalation -- see the
 // _README in the fixture file.
 func TestValidateURLFieldMatchesSharedFixtures(t *testing.T) {
 	cases := loadURLSchemeCases(t)
@@ -349,7 +350,7 @@ func TestSharedFixturesRecordRealDivergences(t *testing.T) {
 			t.Errorf("fixture %q (server=%s client=%s): %s\nnote: %q",
 				tc.Name, tc.Server, tc.Client, problem, tc.Note)
 		}
-		// Nine notes that are all the same string satisfy every per-note rule
+		// Thirteen notes that are all the same string satisfy every per-note rule
 		// above while telling the reader nothing about any individual case.
 		if prev, dup := noteOwner[tc.Note]; dup {
 			t.Errorf("fixtures %q and %q share the same note verbatim; a divergence note has to "+

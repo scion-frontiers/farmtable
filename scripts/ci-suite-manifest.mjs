@@ -53,8 +53,8 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 // THE POPULATION IS A PATH SET, AND THE PATH SET IS THE AUDITABLE ARTEFACT --
 // the integer below is only its cardinality. A bare count cannot be diffed by
 // the next reader and cannot tell real growth from a leak (compiled output
-// wandering into `present`, say). So the set is written out. Derived at main
-// 439b309, and every figure in this comment is a figure AT 439b309:
+// wandering into `present`, say). So the set is written out. First derived at
+// main 439b309, where it was these six:
 //
 //   web/src/capabilities.test.ts
 //   web/src/components/inspector/render-sink-xss.test.ts
@@ -64,40 +64,87 @@ const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 //   web/src/utils/task-ready.test.ts
 //
 // Reconciled at 439b309 against the runner's own `--list`: both sets are those
-// six paths, `A - B` and `B - A` are both empty. So the floor is 6 at 439b309
-// because the population at 439b309 is those six files -- not because 6 felt
+// six paths, `A - B` and `B - A` are both empty. So the floor was 6 at 439b309
+// because the population at 439b309 was those six files -- not because 6 felt
 // safe, and not from any branch's population.
+//
+// RE-DERIVED ON hardening/markdown-href, WHICH ADDS ONE SUITE. The population
+// is now these seven, the FOURTH line being the new one (the list is sorted by
+// path, so the new file is not the last entry -- an earlier version of this
+// comment said "the sixth", which is a different file):
+//
+//   web/src/capabilities.test.ts
+//   web/src/components/inspector/render-sink-xss.test.ts
+//   web/src/util/assertions.test.ts
+//   web/src/util/markdown-href.test.ts
+//   web/src/util/safe-url.test.ts
+//   web/src/util/url-binding-scan.test.ts
+//   web/src/utils/task-ready.test.ts
+//
+// Reconciled the same way -- this script's enumeration against the runner's own
+// `--list` -- and both sets are those seven paths with no residue in either
+// direction. The floor moves to 7 in the same commit as the file it counts,
+// because a floor that lags the population is a licence to delete the newest
+// suite in silence.
 //
 // TO RE-DERIVE THIS RATHER THAN TRUST IT, from a clean checkout:
 //   node scripts/ci-suite-manifest.mjs          # prints the set it enumerated
 //   (cd web && node scripts/run-node-tests.mjs --list)
 // If those two disagree, that is a defect report and not a new floor.
 //
-// This number is correct FOR 439b309 and is expected to move: it must be
-// re-derived, set-wise, at any commit that changes the population, and raised
-// in the commit that adds a suite.
+// This number is correct FOR the population above and is expected to move: it
+// must be re-derived, set-wise, at any commit that changes the population, and
+// raised in the commit that adds a suite.
 //
 // WHAT IT DETECTS DEPENDS ON WHERE IT IS SET, AND THAT IS EASY TO GET WRONG.
 // While the floor sat at 1 against a population of 6 it could only catch a
 // collapse toward zero, and losing one file out of six was invisible to it.
 // Set EQUAL to the population, as it now is, it catches any NET REDUCTION --
-// six becomes five and this fails.
+// seven becomes six and this fails.
 //
-// WHAT IT STILL CANNOT DETECT, AT ANY SETTING, IS A SUBSTITUTION: delete one
-// test file and add another in the same commit and the cardinality is
-// unchanged, so this passes while a suite has in fact been lost. A count cannot
-// see that; only a committed expected-SET can, which is why the path set above
-// is written out and why the expected-set upgrade is filed rather than
-// hand-waved. The enumerated/executed/missing reconciliation below is a
-// different check again, and this floor is not a substitute for either.
-//
-// This is a MINIMUM, which is what the brief asks for. The stronger form is a
-// committed expected-SET for JS/TS mirroring .github/expected-go-tests.txt,
-// with the same asymmetry -- removals block, additions merely notice. Filed as
-// a backlog item; not built here.
+// WHAT THIS FLOOR STILL CANNOT DETECT, AT ANY SETTING, IS A SUBSTITUTION:
+// delete one test file and add another in the same commit and the cardinality
+// is unchanged, so it passes while a suite has in fact been lost. A count
+// cannot see that; only a committed expected-SET can, which is why the path set
+// above is written out and why REQUIRED_TEST_FILES below now names the suites
+// whose absence is a security regression. THAT LIST IS NOT THE POPULATION: a
+// substitution among the files it does not name is still invisible here. The
+// enumerated/executed/missing reconciliation below is a different check again,
+// and neither of these is a substitute for the others.
 //
 // Adding a suite is what raises this number.
-const MIN_TEST_FILES = 6;
+const MIN_TEST_FILES = 7;
+
+// ------------------------------------------------------- required by path ---
+// THE FLOOR COUNTS; THIS ONE NAMES.
+//
+// The defect that produced this list: a security fix and the only test that
+// pins it can be deleted in the SAME commit and every gate stays green. The
+// floor does not fire, because the count is restored by any other file; the
+// enumerated/executed reconciliation does not fire, because a file that is not
+// in the tree is not missing from a runner. Nothing in this script was looking
+// for a suite BY NAME.
+//
+// The asymmetry is deliberate and mirrors .github/expected-go-tests.txt:
+// REMOVALS BLOCK, ADDITIONS ARE FREE. This is not the whole population and must
+// not be grown into a copy of it -- a list that has to be edited every time
+// anyone adds a test file is a list that gets edited without being read. It is
+// the suites whose ABSENCE is a security regression rather than a coverage one:
+//
+//   render-sink-xss.test.ts   the XSS pin at the unsafeHTML sinks
+//   markdown-href.test.ts     the URL policy at the markdown sink
+//   safe-url.test.ts          the policy itself, and the shared fixtures
+//   url-binding-scan.test.ts  every href binding it can parse
+//
+// Deleting one of these is a decision, not an accident. Making it means
+// removing the line here in the same commit, where the diff shows a named
+// security suite going away instead of a number going down by one.
+const REQUIRED_TEST_FILES = [
+  'web/src/components/inspector/render-sink-xss.test.ts',
+  'web/src/util/markdown-href.test.ts',
+  'web/src/util/safe-url.test.ts',
+  'web/src/util/url-binding-scan.test.ts',
+];
 
 // Tracked files, plus files that are new and not gitignored. In CI the second
 // set is always empty; locally it means a test file you just created is counted
@@ -879,9 +926,10 @@ if (present.length < MIN_TEST_FILES) {
       '      WHAT IT CANNOT DETECT, so do not read a green as more than it is:\n' +
       '      a SUBSTITUTION. Delete one test file and add another in the same\n' +
       '      commit and the count is unchanged, so this check passes while a\n' +
-      '      suite has been lost. Only a committed expected-SET catches that.\n' +
-      '      The enumerated/executed/missing reconciliation below is a separate\n' +
-      '      check again, and this floor is not a substitute for either.\n' +
+      '      suite has been lost. REQUIRED_TEST_FILES catches that for the\n' +
+      '      suites it names, and only for those. The enumerated/executed/\n' +
+      '      missing reconciliation below is a separate check again, and this\n' +
+      '      floor is not a substitute for either.\n' +
       '\n' +
       '      Lowering MIN_TEST_FILES is not the remedy for this failure. It\n' +
       '      is a separate, deliberate decision that a suite is INTENDED to\n' +
@@ -890,6 +938,76 @@ if (present.length < MIN_TEST_FILES) {
       '      this message stop is how the alarm gets disabled by the person\n' +
       '      it was ringing for. (Raising it is the other half: a new suite\n' +
       '      should raise the floor in the commit that adds it.)',
+  );
+  console.error(`      ${counts} unanalysable=${unanalysable.length}`);
+  process.exit(1);
+}
+
+// -------------------------------------------------- required set, by name ---
+// AFTER THE FLOOR, FOR THE SAME REASON THE FLOOR IS FIRST: if enumeration
+// under-ran, `present` is not the tree and every membership answer taken
+// against it is a statement about the wrong population.
+//
+// This is the arm that catches a SUBSTITUTION, which the floor structurally
+// cannot: delete markdown-href.test.ts and add anything else in the same
+// commit and the count is unchanged. It catches it only for the four suites
+// REQUIRED_TEST_FILES names, and that is the whole intended reach.
+function absentFrom(required) {
+  return required.filter((f) => !present.includes(f));
+}
+
+// POSITIVE CONTROL, FIRED ON EVERY RUN, IN-PROCESS. Same argument as the
+// surplus arm's: `absentFrom(...).length === 0` has its pass condition at zero,
+// and zero is also what a broken implementation returns -- a wrong path root, a
+// set built from the wrong variable, an empty `present`. So the same function
+// is fired at a path constructed to be absent, and it must come back non-empty.
+// The negative arm is the real call below: on a green run it returns 0 for four
+// paths that ARE in the tree, so the function has been shown to answer both
+// ways in the same invocation.
+const requiredControl = absentFrom([CONTROL_PATH]);
+if (requiredControl.length !== 1) {
+  console.error(
+    "FAIL: the required-suite arm's positive control did not fire.\n" +
+      `      absentFrom(['${CONTROL_PATH}']) returned ` +
+      `${requiredControl.length}; it must return 1.\n` +
+      '\n' +
+      '      That seeded path is not in the tree, so it MUST be reported\n' +
+      '      absent. It was not, which means the check is broken and every\n' +
+      '      pass it has ever reported is a constant rather than a finding.\n' +
+      '\n' +
+      '      DO THIS: fix `absentFrom` or the `present` set it closes over.\n' +
+      '      Do not delete the control.',
+  );
+  process.exit(1);
+}
+
+const requiredMissing = absentFrom(REQUIRED_TEST_FILES);
+if (requiredMissing.length) {
+  console.error(
+    `FAIL: ${requiredMissing.length} named security suite(s) are not in the ` +
+      'tree.\n',
+  );
+  requiredMissing.forEach((p) => console.error(`        ${p}`));
+  console.error(
+    '\n' +
+      '      These are listed by PATH in REQUIRED_TEST_FILES because their\n' +
+      '      absence is a security regression, not a coverage one. The count\n' +
+      '      floor above did not fire, which means the population size was\n' +
+      '      restored by some other file: this is the substitution case.\n' +
+      '\n' +
+      '      A suite that is not in the tree is not "missing from a runner",\n' +
+      '      so the enumerated/executed reconciliation below cannot see it\n' +
+      '      either. Nothing else in this script looks for a suite by name.\n' +
+      '\n' +
+      '      IF THE DELETION WAS DELIBERATE, say so where a reviewer will see\n' +
+      '      it: remove the path from REQUIRED_TEST_FILES in the SAME commit\n' +
+      '      that deletes the file, so the diff shows a named security suite\n' +
+      '      going away. Deleting the line to make this message stop, in a\n' +
+      '      later commit or a separate one, is the alarm being disabled by\n' +
+      '      the person it was ringing for.\n' +
+      '\n' +
+      '      IF IT WAS NOT: the file was probably moved or renamed. Update the\n' +
+      '      path here rather than dropping it.',
   );
   console.error(`      ${counts} unanalysable=${unanalysable.length}`);
   process.exit(1);
@@ -991,4 +1109,12 @@ console.log(
     '    this arm is not redundant with missing=0 and must not be simplified\n' +
     `    away. Positive control, fired this run: outOfPopulation(['${CONTROL_PATH}'])\n` +
     `    returned ${controlHits.length}, so the zero above is a measurement and not a default.`,
+);
+console.log(
+  `    required=${REQUIRED_TEST_FILES.length} named security suite(s) present by PATH. This is the\n` +
+    '    only arm that survives a SUBSTITUTION (one suite deleted, another added\n' +
+    '    in the same commit), and it covers ONLY the paths it names -- it is not\n' +
+    `    the population. Positive control, fired this run:\n` +
+    `    absentFrom(['${CONTROL_PATH}']) returned ${requiredControl.length},\n` +
+    `    against 0 for the ${REQUIRED_TEST_FILES.length} real paths in the same run.`,
 );
