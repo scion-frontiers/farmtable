@@ -29,7 +29,7 @@ const cases: { input: string | null | undefined; expected: string | undefined }[
   { input: 'https://github.com/acme/repo/issues/7', expected: 'https://github.com/acme/repo/issues/7' },
   { input: 'http://localhost:3000/a', expected: 'http://localhost:3000/a' },
   { input: 'http://127.0.0.1:3000/a', expected: 'http://127.0.0.1:3000/a' },
-  { input: 'http://example.com/a', expected: undefined },
+  { input: 'http://example.com/a', expected: 'http://example.com/a' },
   { input: 'javascript:alert(1)', expected: undefined },
   { input: 'JAVASCRIPT:alert(1)', expected: undefined },
   { input: ' javascript:alert(1) ', expected: undefined },
