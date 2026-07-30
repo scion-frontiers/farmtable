@@ -1944,6 +1944,203 @@ func TestRPC_GetCriticalPath_DiamondDAG(t *testing.T) {
 	_ = taskD
 }
 
+// C153: ClaimTask rejection-path tests. Each case exercises a path that
+// correctly rejects a claim and asserts the specific gRPC status code and
+// message, not merely that an error occurred.
+//
+// NOTE ON INDISTINGUISHABILITY: Cases a–d (triage, held, dependency-blocked,
+// future-start) all produce codes.FailedPrecondition with message
+// "task unavailable". They are indistinguishable from each other at the gRPC
+// error level; the server does not expose the underlying availability reason
+// in the error message. Each test still asserts the specific code and message
+// to detect regressions, but cannot prove WHICH availability reason triggered.
+
+func TestRPC_ClaimTask_TriageTask(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	// Default stage is TRIAGE; do not promote to ACCEPTED.
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "claim triage test",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: created.GetId()})
+	if err == nil {
+		t.Fatal("expected error when claiming a triage task")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("code = %v, want FailedPrecondition", st.Code())
+	}
+	if st.Message() != "task unavailable" {
+		t.Errorf("message = %q, want %q", st.Message(), "task unavailable")
+	}
+}
+
+func TestRPC_ClaimTask_HeldTask(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	hold := pb.TaskHoldReason_TASK_HOLD_REASON_WAITING_FOR_INPUT
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "claim held test",
+		Stage:        &accepted,
+		HoldReason:   &hold,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: created.GetId()})
+	if err == nil {
+		t.Fatal("expected error when claiming a held task")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("code = %v, want FailedPrecondition", st.Code())
+	}
+	if st.Message() != "task unavailable" {
+		t.Errorf("message = %q, want %q", st.Message(), "task unavailable")
+	}
+}
+
+func TestRPC_ClaimTask_DependencyBlockedTask(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	// Create an open blocker that will not be resolved.
+	blocker, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "open blocker",
+		Stage:        &accepted,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask blocker: %v", err)
+	}
+
+	// Create a task blocked by the open blocker.
+	blocked, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId:     collID,
+		Name:             "claim blocked test",
+		Stage:            &accepted,
+		BlockedByTaskIds: []string{blocker.GetId()},
+	})
+	if err != nil {
+		t.Fatalf("CreateTask blocked: %v", err)
+	}
+
+	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: blocked.GetId()})
+	if err == nil {
+		t.Fatal("expected error when claiming a dependency-blocked task")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("code = %v, want FailedPrecondition", st.Code())
+	}
+	if st.Message() != "task unavailable" {
+		t.Errorf("message = %q, want %q", st.Message(), "task unavailable")
+	}
+}
+
+func TestRPC_ClaimTask_FutureStartTask(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "claim future-start test",
+		Stage:        &accepted,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	// Set start_date to one year in the future.
+	futureStart := timestamppb.New(time.Now().Add(365 * 24 * time.Hour))
+	_, err = client.UpdateTask(ctx, &pb.UpdateTaskRequest{
+		Id:        created.GetId(),
+		StartDate: futureStart,
+	})
+	if err != nil {
+		t.Fatalf("UpdateTask set future start_date: %v", err)
+	}
+
+	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{Id: created.GetId()})
+	if err == nil {
+		t.Fatal("expected error when claiming a future-start task")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("code = %v, want FailedPrecondition", st.Code())
+	}
+	if st.Message() != "task unavailable" {
+		t.Errorf("message = %q, want %q", st.Message(), "task unavailable")
+	}
+}
+
+func TestRPC_ClaimTask_RejectsAssigneeId(t *testing.T) {
+	client, cleanup := testutil.NewTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	collID := createTestCollection(t, client)
+	accepted := pb.TaskStage_TASK_STAGE_ACCEPTED
+	created, err := client.CreateTask(ctx, &pb.CreateTaskRequest{
+		CollectionId: collID,
+		Name:         "claim assignee_id test",
+		Stage:        &accepted,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	_, err = client.ClaimTask(ctx, &pb.ClaimTaskRequest{
+		Id:         created.GetId(),
+		AssigneeId: strPtr("00000000-0000-0000-0000-000000000001"),
+	})
+	if err == nil {
+		t.Fatal("expected error when ClaimTask carries assignee_id")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Errorf("code = %v, want InvalidArgument", st.Code())
+	}
+	if !strings.Contains(st.Message(), "assignee_id is not accepted") {
+		t.Errorf("message = %q, want substring %q", st.Message(), "assignee_id is not accepted")
+	}
+}
+
 func strPtr(s string) *string { return &s }
 
 func stringOfLength(length int) string {
