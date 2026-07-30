@@ -42,7 +42,7 @@ describe('ft-inspector-meta — hostile remoteUrl values', () => {
     expect(fallback).not.toBeNull();
     expect(fallback?.getAttribute('title')).toContain('javascript:');
     // The hostile string is NOWHERE ELSE in any attribute
-    for (const el of meta.shadowRoot!.querySelectorAll('*')) {
+    for (const el of queryAllDeep(meta, '*')) {
       for (const attr of el.attributes) {
         if (el === fallback && attr.name === 'title') continue; // admitted: title on fallback
         expect(attr.value).not.toContain('javascript:');
@@ -59,7 +59,7 @@ describe('ft-inspector-meta — hostile remoteUrl values', () => {
     expect(fallback).not.toBeNull();
     expect(fallback?.getAttribute('title')).toContain('data:text/html');
     // The hostile string is NOWHERE ELSE in any attribute
-    for (const el of meta.shadowRoot!.querySelectorAll('*')) {
+    for (const el of queryAllDeep(meta, '*')) {
       for (const attr of el.attributes) {
         if (el === fallback && attr.name === 'title') continue; // admitted: title on fallback
         expect(attr.value).not.toContain('data:text/html');
