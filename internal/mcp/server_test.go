@@ -248,9 +248,9 @@ func TestAvailabilityReasonsToStrings(t *testing.T) {
 			for i := range got {
 				if got[i] != tc.want[i] {
 					t.Errorf("got[%d] = %q, want %q", i, got[i], tc.want[i])
-					}
 				}
-			})
+			}
+		})
 	}
 }
 
