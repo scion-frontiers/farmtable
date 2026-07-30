@@ -10,24 +10,19 @@ import { safeHref } from '../src/util/safe-url.js';
  * - https: and http: are always allowed (C2 ruling: allow by default)
  * - everything else returns undefined (not null — see @returns tag)
  *
- * The loopback cases below pass because Vitest runs with `import.meta.env.DEV`
- * true. They are the *development* contract, not the production one: a
- * production bundle constant-folds the carve-out away and rejects loopback
- * http: entirely. The production side is asserted in
- * `src/util/safe-url.test.ts`, which runs under plain Node where
- * `import.meta.env` is undefined.
+ * http: is accepted unconditionally — there is no per-environment carve-out
+ * and no loopback restriction. The localhost and 127.0.0.1 fixtures below are
+ * ordinary http: cases, accepted for the same reason as http://example.com/a.
  *
- * Until that module lands this whole file fails to load, which is the intended
- * "the contracted API does not exist yet" signal. The rendered evidence that
- * the inspector actually sanitizes lives in
+ * The rendered evidence that the inspector actually sanitizes lives in
  * `test/ft-inspector-meta.safe-url.test.ts` and does not depend on this module.
  */
 
 const cases: { input: string | null | undefined; expected: string | undefined }[] = [
   { input: 'https://example.com/a', expected: 'https://example.com/a' },
   { input: 'https://github.com/acme/repo/issues/7', expected: 'https://github.com/acme/repo/issues/7' },
-  { input: 'http://localhost:3000/a', expected: 'http://localhost:3000/a' },
-  { input: 'http://127.0.0.1:3000/a', expected: 'http://127.0.0.1:3000/a' },
+  { input: 'http://localhost:3000/a', expected: 'http://localhost:3000/a' },   // ordinary http:, not a carve-out
+  { input: 'http://127.0.0.1:3000/a', expected: 'http://127.0.0.1:3000/a' }, // ordinary http:, not a carve-out
   { input: 'http://example.com/a', expected: 'http://example.com/a' },
   { input: 'javascript:alert(1)', expected: undefined },
   { input: 'JAVASCRIPT:alert(1)', expected: undefined },
