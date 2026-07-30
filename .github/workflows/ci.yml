@@ -685,4 +685,64 @@ jobs:
       # reach both suites. If this fails while the direct steps above passed,
       # the Makefile is wrong -- not the code.
       - name: Makefile self-check (make test reaches both suites)
-        run: make test
+        run: |
+          # ===================================================================
+          # REACHABILITY, NOT JUST PASS/FAIL.
+          #
+          # `make test` exits 0 when every suite it reaches passes. It also
+          # exits 0 when a suite is silently dropped from the prerequisite
+          # list, because fewer prerequisites is not an error. This step's
+          # name promises reachability, so it must test reachability.
+          #
+          # `make -n test` prints every recipe that WOULD execute without
+          # running any of them. If both suites are prerequisites, their
+          # recipes appear in the output. If one is dropped, its recipe
+          # disappears. Grepping the dry-run output therefore detects the
+          # exact condition the name claims to check.
+          #
+          # WHAT THIS ACTUALLY TESTS: the strings 'go test' and 'npm test'
+          # appear in the dry-run output of `make -n test`. That is the
+          # proposition "make test's recipes include commands containing
+          # these substrings." It diverges from "the suite is reached" if:
+          #   - a recipe is changed to invoke the suite through a wrapper
+          #     script that does not contain the matched string;
+          #   - a recipe uses variable-expanded commands;
+          #   - a sub-make invokes the suite indirectly.
+          # In all three cases, the check would fail, which is conservative:
+          # a false red is safer than a false green on a gate.
+          #
+          # MAKE VERSION: GNU Make 4.3 on both this container and the
+          # ubuntu-latest runner. `-n` prints recipes for all reachable
+          # targets, including those prefixed with `@` (the `@` prefix
+          # suppresses echoing during execution but not during dry-run).
+          # No `.SILENT` directives exist in this Makefile.
+          # ===================================================================
+          dryrun=$(make -n test 2>&1)
+          printf '%s\n' "$dryrun"
+
+          fail=0
+          if ! printf '%s\n' "$dryrun" | grep -Pq 'go test'; then
+            echo "::error::make -n test does not contain 'go test'."
+            echo "The Go suite is not reached by 'make test'."
+            fail=1
+          fi
+          if ! printf '%s\n' "$dryrun" | grep -Pq 'npm test'; then
+            echo "::error::make -n test does not contain 'npm test'."
+            echo "The web suite is not reached by 'make test'."
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo
+            echo "The Makefile 'test' target must reach both test-go and"
+            echo "test-web. Dry-run output above shows what it does reach."
+            exit 1
+          fi
+
+          echo "OK: make -n test reaches both suites."
+
+          # Reachability is necessary but not sufficient: the suites must
+          # also pass. The direct steps above already ran them, but this
+          # redundant execution through the Makefile verifies the Makefile
+          # wiring end-to-end.
+          make test
