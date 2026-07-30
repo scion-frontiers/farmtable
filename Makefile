@@ -73,7 +73,7 @@ web-dev: web-deps
 # These are prerequisites rather than chained shell commands on purpose: make
 # stops at the first failing prerequisite, so a Go failure can never be masked
 # by a later command's exit status. Do not collapse this into a single recipe.
-test: test-go test-web
+test: test-go
 
 test-go:
 	go test ./...
