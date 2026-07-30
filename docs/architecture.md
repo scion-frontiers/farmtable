@@ -451,6 +451,42 @@ use offset-based pagination since results are computed in-memory.
 
 ---
 
+## Watch/Streaming Limitations
+
+`WatchTasks` emits events when a task is directly created, updated, closed,
+or claimed. It does **not** emit synthetic events when a task's _computed
+availability_ changes due to a related task change. The following scenarios
+produce no watch event on the affected task:
+
+- **Blocker terminal outcome.** Task B depends on Task A. When Task A moves
+  to `completed` (or another terminal stage), Task B's availability changes
+  from `BLOCKED_BY_DEPENDENCY` to available. No event is emitted for Task B.
+- **Dependency edge add/remove.** Adding or removing a `blocked_by`
+  relationship changes the dependent task's availability. No event is
+  emitted for the dependent.
+- **Hold reason change on a different task.** If a workflow sets
+  `hold_reason` on a task that is a blocker for another, the downstream
+  task's availability is unaffected (hold is not transitive), but the
+  held task's own availability change is delivered as a normal update event.
+- **`start_date` crossing.** When a task's `start_date` passes from future
+  to past, the task transitions from `FUTURE_START_DATE`-unavailable to
+  available. No watch event is emitted because no field was written — the
+  change is a function of the current time, not a persisted mutation.
+
+**Design rationale.** The event bus is mutation-driven: each `Publish` call
+is co-located with the store write that changes the task. Availability is
+a derived projection (`ComputeAvailability`) over persisted primitives
+(stage, hold_reason, start_date, dependency edges). Emitting derived-change
+events would require either polling or a dependency-graph walk after every
+write, neither of which the v1 event bus supports.
+
+**Workaround.** Clients that need availability-change reactivity should
+poll `GetReadyTasks` with `include_unblocked=true` or re-query individual
+tasks after receiving an event for a related task. The per-task
+`availability.reasons` array provides the full breakdown.
+
+---
+
 ## Building and Testing
 
 ```bash
