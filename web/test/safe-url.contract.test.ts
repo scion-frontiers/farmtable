@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { safeExternalUrl } from '../src/util/safe-url.js';
+import { safeHref } from '../src/util/safe-url.js';
 
 /**
  * Interface contract with dev-p2-fixes:
  *
  *   web/src/util/safe-url.ts
- *   export function safeExternalUrl(raw: string | null | undefined): string | null
+ *   export function safeHref(raw: string | null | undefined): string | null
  *
  * - https: is always allowed
  * - http: is allowed only for localhost / 127.0.0.1, and only in a DEV build
@@ -43,16 +43,16 @@ const cases: { input: string | null | undefined; expected: string | null }[] = [
   { input: undefined, expected: null },
 ];
 
-describe('safeExternalUrl', () => {
+describe('safeHref', () => {
   for (const testCase of cases) {
     it(`maps ${JSON.stringify(testCase.input)} to ${JSON.stringify(testCase.expected)}`, () => {
-      expect(safeExternalUrl(testCase.input)).toBe(testCase.expected);
+      expect(safeHref(testCase.input)).toBe(testCase.expected);
     });
   }
 
   /**
    * The conditional body is the point of the test, so the loop has to be
-   * stopped from proving nothing: if `safeExternalUrl` regressed to always
+   * stopped from proving nothing: if `safeHref` regressed to always
    * returning `null`, every `if` would be skipped and this would pass having
    * executed zero assertions. Pinning the exact accepted count fails both ways
    * — an over-permissive change and a fail-closed one.
@@ -60,7 +60,7 @@ describe('safeExternalUrl', () => {
   it('never returns a value whose scheme is not http(s)', () => {
     expect.hasAssertions();
     const accepted = cases
-      .map((testCase) => safeExternalUrl(testCase.input))
+      .map((testCase) => safeHref(testCase.input))
       .filter((result): result is string => result !== null);
 
     expect(accepted).toHaveLength(cases.filter((testCase) => testCase.expected !== null).length);
@@ -71,7 +71,7 @@ describe('safeExternalUrl', () => {
   });
 
   /**
-   * `safeExternalUrl` returns `url.href` — the WHATWG-normalized form — not the
+   * `safeHref` returns `url.href` — the WHATWG-normalized form — not the
    * raw input, and the docstring makes that a contract. Normalization is the
    * security-relevant half: it is what collapses the casing and whitespace
    * tricks the scheme check then relies on. Returning `raw` instead survived
@@ -88,7 +88,7 @@ describe('safeExternalUrl', () => {
 
   for (const testCase of normalizations) {
     it(`returns the normalized href, not the raw input: ${testCase.why}`, () => {
-      const result = safeExternalUrl(testCase.input);
+      const result = safeHref(testCase.input);
 
       expect(result).toBe(testCase.expected);
       // Guard against a future fixture that is accidentally already normalized,
