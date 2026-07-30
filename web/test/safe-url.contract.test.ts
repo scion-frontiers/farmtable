@@ -7,9 +7,8 @@ import { safeHref } from '../src/util/safe-url.js';
  *   web/src/util/safe-url.ts
  *   export function safeHref(raw: string | null | undefined): string | undefined
  *
- * - https: is always allowed
- * - http: is allowed only for localhost / 127.0.0.1, and only in a DEV build
- * - everything else returns undefined
+ * - https: and http: are always allowed (C2 ruling: allow by default)
+ * - everything else returns undefined (not null — see @returns tag)
  *
  * The loopback cases below pass because Vitest runs with `import.meta.env.DEV`
  * true. They are the *development* contract, not the production one: a
@@ -71,29 +70,33 @@ describe('safeHref', () => {
   });
 
   /**
-   * `safeHref` returns `url.href` — the WHATWG-normalized form — not the
-   * raw input, and the docstring makes that a contract. Normalization is the
-   * security-relevant half: it is what collapses the casing and whitespace
-   * tricks the scheme check then relies on. Returning `raw` instead survived
-   * the round-2 mutation run because every other case in this file happens to
-   * be already-normalized. These inputs are not.
+   * `safeHref` returns the ORIGINAL input string, not `url.href`.
+   *
+   * The docblock at safe-url.ts:112-115 makes this a contract: "we only want
+   * to make a keep/reject decision here, not to rewrite what the user stored."
+   * Also pinned by the @returns tag at safe-url.ts:117-118 and by the unit
+   * test at safe-url.test.ts:128-134 (already-normalized inputs only).
+   *
+   * These inputs are deliberately un-normalized so `raw !== url.href`. They
+   * verify that safeHref returns the input UNCHANGED — not the WHATWG-parsed
+   * form — even when the two differ.
    */
-  const normalizations: { input: string; expected: string; why: string }[] = [
-    { input: 'HTTPS://Example.COM/a', expected: 'https://example.com/a', why: 'scheme and host are lowercased' },
-    { input: '  https://example.com/a  ', expected: 'https://example.com/a', why: 'surrounding whitespace is stripped' },
-    { input: 'https://example.com', expected: 'https://example.com/', why: 'an empty path becomes /' },
-    { input: 'https://example.com:443/a', expected: 'https://example.com/a', why: 'the default port is dropped' },
-    { input: 'https://example.com/a/../b', expected: 'https://example.com/b', why: 'dot segments are resolved' },
+  const rawPassthrough: { input: string; why: string }[] = [
+    { input: 'HTTPS://Example.COM/a', why: 'mixed-case scheme and host are preserved' },
+    { input: '  https://example.com/a  ', why: 'surrounding whitespace is preserved' },
+    { input: 'https://example.com', why: 'missing trailing slash is not added' },
+    { input: 'https://example.com:443/a', why: 'default port is not stripped' },
+    { input: 'https://example.com/a/../b', why: 'dot segments are not resolved' },
   ];
 
-  for (const testCase of normalizations) {
-    it(`returns the normalized href, not the raw input: ${testCase.why}`, () => {
+  for (const testCase of rawPassthrough) {
+    it(`returns the raw input unchanged: ${testCase.why}`, () => {
       const result = safeHref(testCase.input);
 
-      expect(result).toBe(testCase.expected);
-      // Guard against a future fixture that is accidentally already normalized,
-      // which would make the assertion above pass on a raw-input regression.
-      expect(result, 'this case no longer exercises normalization').not.toBe(testCase.input);
+      expect(result).toBe(testCase.input);
+      // Guard: the input must differ from url.href, otherwise this case does
+      // not exercise the raw-vs-normalized distinction.
+      expect(new URL(testCase.input).href, 'fixture is already normalized — add a different one').not.toBe(testCase.input);
     });
   }
 });
