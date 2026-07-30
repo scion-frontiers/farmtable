@@ -4,8 +4,10 @@
  * WHAT THIS PINS. `renderMarkdown` calls `purify.sanitize(...)` with
  * `FORBID_TAGS` and `FORBID_ATTR` configuration. This file pins that:
  *
- *   (a) Interactive form controls -- `<form>`, `<input>`, `<button>`,
- *       `<select>`, `<textarea>`, `<option>` -- are stripped. These are the
+ *   (a) Interactive form controls -- `<form>`, `<button>`, `<select>`,
+ *       `<textarea>`, `<option>` -- are stripped via FORBID_TAGS; `<input>`
+ *       is stripped via a `uponSanitizeElement` hook UNLESS it is
+ *       `type="checkbox" disabled` (GFM task-list checkbox). These are the
  *       tags named in GitHub issue #195 / C89. A form wrapping an
  *       attacker-chosen button label, rendered on a trusted origin, is a
  *       phishing vector even when the `action` URL is policed by `safeHref`.
@@ -74,7 +76,10 @@ function parse(html: string): Document {
  *   OUTPUT: <textarea>Enter credentials</textarea>
  *   The <textarea> survived intact.
  *
- * MEASURED AFTER THE FIX: all six tags are stripped by FORBID_TAGS.
+ * MEASURED AFTER THE FIX: five tags are stripped by FORBID_TAGS (form,
+ * button, select, textarea, option); `<input>` is stripped by a
+ * `uponSanitizeElement` hook that refuses all inputs except
+ * `<input type="checkbox" disabled>` (GFM task-list checkboxes).
  * Text content of stripped tags is preserved by DOMPurify (it removes the
  * tags, not their children), so the text "View pull request #482" remains
  * visible as inline text -- the interactive control is gone, the label stays.
@@ -96,8 +101,8 @@ function testFormControlsAreStripped(): void {
     assertEqual(
       found,
       null,
-      `${name}: <${tag}> survived the markdown sink -- FORBID_TAGS must strip it. ` +
-        `Output: ${html}`,
+      `${name}: <${tag}> survived the markdown sink -- must be stripped ` +
+        `(FORBID_TAGS or uponSanitizeElement hook). Output: ${html}`,
     );
   }
 }
@@ -158,6 +163,106 @@ function testFormIsStrippedEvenWithSafeAction(): void {
     doc.querySelector('form'),
     null,
     'a form with a same-origin action survived -- the ruling strips the element, not the URL',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// (a′) GFM TASK-LIST CHECKBOXES SURVIVE.
+// ---------------------------------------------------------------------------
+
+/**
+ * GFM task lists (`- [ ]`, `- [x]`) render via `marked` as `<li>` elements
+ * containing `<input type="checkbox" disabled>`. These are read-only display
+ * elements, not interactive form controls. They must survive the sanitiser.
+ *
+ * GitHub renders task-list checkboxes (the owner ruling says to conform to
+ * GitHub's expectations). A sanitiser that strips them is ANTI-conforming.
+ *
+ * MEASURED, BEFORE THE FIX (round-2 regression on round-1 code):
+ *   marked.parse('- [x] Done\n- [ ] Pending') produces:
+ *     <ul>
+ *     <li><input checked="" disabled="" type="checkbox"> Done</li>
+ *     <li><input disabled="" type="checkbox"> Pending</li>
+ *     </ul>
+ *   With `input` in FORBID_TAGS, the output was:
+ *     <ul><li> Done</li><li> Pending</li></ul>
+ *   Checkboxes silently disappeared. No visual distinction between checked
+ *   and unchecked items.
+ *
+ * MEASURED, AFTER THE FIX (input removed from FORBID_TAGS, hook added):
+ *   The checkboxes survive with type, disabled, and checked attributes intact.
+ */
+function testTaskListCheckboxesSurvive(): void {
+  const md = '- [x] Done item\n- [ ] Pending item';
+  const html = renderMarkdown(md);
+  const doc = parse(html);
+
+  const checkboxes = Array.from(doc.querySelectorAll('input[type="checkbox"]'));
+  assertEqual(
+    checkboxes.length,
+    2,
+    `Expected 2 task-list checkboxes, found ${checkboxes.length}. Output: ${html}`,
+  );
+
+  // Both must have disabled (read-only)
+  for (const cb of checkboxes) {
+    assertEqual(
+      cb.hasAttribute('disabled'),
+      true,
+      `Task-list checkbox missing disabled attribute. Output: ${html}`,
+    );
+  }
+
+  // First checkbox (checked item) must have checked
+  assertEqual(
+    checkboxes[0]!.hasAttribute('checked'),
+    true,
+    `Checked task-list item missing checked attribute. Output: ${html}`,
+  );
+
+  // Second checkbox (unchecked item) must NOT have checked
+  assertEqual(
+    checkboxes[1]!.hasAttribute('checked'),
+    false,
+    `Unchecked task-list item has checked attribute. Output: ${html}`,
+  );
+
+  // The surrounding <li> and <ul> must survive (positive control)
+  assert(doc.querySelector('ul') !== null, '<ul> must survive');
+  assert(doc.querySelectorAll('li').length === 2, 'both <li> elements must survive');
+}
+
+/**
+ * Interactive inputs are STILL stripped, even though task-list checkboxes
+ * survive. The hook strips <input> unless type="checkbox" AND disabled.
+ */
+function testInteractiveInputsStillStripped(): void {
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    ['text input', '<input type="text" placeholder="Enter password">'],
+    ['password input', '<input type="password">'],
+    ['submit input', '<input type="submit" value="Go">'],
+    ['hidden input', '<input type="hidden" name="x" value="y">'],
+    ['bare input (no type)', '<input>'],
+    ['checkbox WITHOUT disabled', '<input type="checkbox">'],
+    ['checkbox with only checked (no disabled)', '<input type="checkbox" checked>'],
+  ];
+
+  for (const [name, payload] of cases) {
+    const html = renderMarkdown(payload);
+    const doc = parse(html);
+    assertEqual(
+      doc.querySelector('input'),
+      null,
+      `${name}: <input> survived -- the uponSanitizeElement hook must strip it. Output: ${html}`,
+    );
+  }
+
+  // POSITIVE CONTROL: a task-list checkbox (type=checkbox + disabled) survives
+  const positiveHtml = renderMarkdown('- [x] Checked');
+  const positiveDoc = parse(positiveHtml);
+  assert(
+    positiveDoc.querySelector('input[type="checkbox"]') !== null,
+    'positive control: task-list checkbox must survive while interactive inputs are stripped',
   );
 }
 
@@ -306,6 +411,8 @@ async function run(): Promise<void> {
   testOrdinaryElementsSurviveFormStripping();
   testPhishingFormVectorIsNeutralised();
   testFormIsStrippedEvenWithSafeAction();
+  testTaskListCheckboxesSurvive();
+  testInteractiveInputsStillStripped();
   testStyleAttributeIsStripped();
   testClassAttributeSurvivesWhenStyleIsStripped();
   testStyleIsStrippedOnAllElements();
