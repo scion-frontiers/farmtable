@@ -694,52 +694,98 @@ jobs:
           # list, because fewer prerequisites is not an error. This step's
           # name promises reachability, so it must test reachability.
           #
-          # `make -n test` prints every recipe that WOULD execute without
-          # running any of them. If both suites are prerequisites, their
-          # recipes appear in the output. If one is dropped, its recipe
-          # disappears. Grepping the dry-run output therefore detects the
-          # exact condition the name claims to check.
+          # TWO INDEPENDENT CHECKS, because they fail in DIFFERENT directions
+          # and choosing one silently adopts the blind spot of the winner.
           #
-          # WHAT THIS ACTUALLY TESTS: the strings 'go test' and 'npm test'
-          # appear in the dry-run output of `make -n test`. That is the
-          # proposition "make test's recipes include commands containing
-          # these substrings." It diverges from "the suite is reached" if:
-          #   - a recipe is changed to invoke the suite through a wrapper
-          #     script that does not contain the matched string;
-          #   - a recipe uses variable-expanded commands;
-          #   - a sub-make invokes the suite indirectly.
-          # In all three cases, the check would fail, which is conservative:
-          # a false red is safer than a false green on a gate.
+          # CHECK 1 — STRUCTURAL (make -p): are test-go and test-web declared
+          # as prerequisites of the `test` target? This catches a DROPPED
+          # prerequisite but cannot see a HOLLOW recipe (one that declares
+          # the prerequisite, keeps a decorative echo, and deletes the real
+          # command).
+          #
+          # CHECK 2 — RECIPE CONTENT (make -n): do the dry-run recipes
+          # contain `go test` and `npm test` on NON-ECHO lines? This catches
+          # both the dropped-prerequisite case (recipe output disappears) and
+          # the hollow-recipe case (the string appears only inside an echo,
+          # which the negative lookahead rejects).
+          #
+          # WHAT THE RECIPE CHECK ACTUALLY TESTS: the patterns
+          #   ^(?!.*echo).*go test
+          #   ^(?!.*echo).*npm test
+          # match a line that contains the test command but does NOT contain
+          # the word `echo` anywhere. This is the proposition "a non-echo
+          # recipe line mentioning the test command exists in the dry-run."
+          #
+          # Known FALSE REDS (conservative — safe direction):
+          #   - wrapper script: recipe changed to ./run-tests.sh
+          #   - variable-expanded command: $(CMD) where CMD is external
+          #   - sub-make: $(MAKE) -C web test
+          #   - legitimate recipe with trailing echo:
+          #       go test ./... && echo done
+          #     The negative lookahead rejects the line because `echo`
+          #     appears in it, even though `go test` is the real command.
+          #
+          # Known FALSE GREENS closed by this revision: a recipe like
+          #   echo "Running go test suite..."
+          # contains the substring `go test` but never invokes it. The
+          # previous check (bare substring match) passed on this. The
+          # echo-exclusion lookahead rejects it.
           #
           # MAKE VERSION: GNU Make 4.3 on both this container and the
           # ubuntu-latest runner. `-n` prints recipes for all reachable
-          # targets, including those prefixed with `@` (the `@` prefix
-          # suppresses echoing during execution but not during dry-run).
+          # targets, including those prefixed with `@`. `-p` prints the
+          # internal database including prerequisite declarations.
           # No `.SILENT` directives exist in this Makefile.
           # ===================================================================
-          dryrun=$(make -n test 2>&1)
-          printf '%s\n' "$dryrun"
 
           fail=0
-          if ! printf '%s\n' "$dryrun" | grep -Pq 'go test'; then
-            echo "::error::make -n test does not contain 'go test'."
-            echo "The Go suite is not reached by 'make test'."
+
+          # ------ CHECK 1: structural prerequisite declaration ------
+          prereqs=$(make -p 2>/dev/null | grep -P '^test:' || true)
+          echo "Prerequisite declaration: $prereqs"
+
+          if [ -z "$prereqs" ]; then
+            echo "::error::make -p does not contain a 'test:' rule."
+            fail=1
+          else
+            if ! printf '%s\n' "$prereqs" | grep -Pq '\btest-go\b'; then
+              echo "::error::test-go is not a declared prerequisite of test."
+              fail=1
+            fi
+            if ! printf '%s\n' "$prereqs" | grep -Pq '\btest-web\b'; then
+              echo "::error::test-web is not a declared prerequisite of test."
+              fail=1
+            fi
+          fi
+
+          # ------ CHECK 2: recipe content (echo-excluded) ------
+          dryrun=$(make -n test 2>&1)
+          echo "Dry-run output:"
+          printf '%s\n' "$dryrun"
+          echo "---"
+
+          if ! printf '%s\n' "$dryrun" | grep -Pq '^(?!.*echo).*go test'; then
+            echo "::error::make -n test has no non-echo line containing 'go test'."
+            echo "Either the Go suite is not reached, or its recipe is a"
+            echo "decorative echo that never invokes go test."
             fail=1
           fi
-          if ! printf '%s\n' "$dryrun" | grep -Pq 'npm test'; then
-            echo "::error::make -n test does not contain 'npm test'."
-            echo "The web suite is not reached by 'make test'."
+          if ! printf '%s\n' "$dryrun" | grep -Pq '^(?!.*echo).*npm test'; then
+            echo "::error::make -n test has no non-echo line containing 'npm test'."
+            echo "Either the web suite is not reached, or its recipe is a"
+            echo "decorative echo that never invokes npm test."
             fail=1
           fi
 
           if [ "$fail" -ne 0 ]; then
             echo
-            echo "The Makefile 'test' target must reach both test-go and"
-            echo "test-web. Dry-run output above shows what it does reach."
+            echo "The Makefile 'test' target must declare both test-go and"
+            echo "test-web as prerequisites, and their recipes must contain"
+            echo "the actual test commands (not just echo statements)."
             exit 1
           fi
 
-          echo "OK: make -n test reaches both suites."
+          echo "OK: make test reaches both suites (structural + recipe)."
 
           # Reachability is necessary but not sufficient: the suites must
           # also pass. The direct steps above already ran them, but this
