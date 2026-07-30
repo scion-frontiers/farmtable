@@ -675,6 +675,7 @@ func (s *Server) handleTaskReady(ctx context.Context, req mcp.CallToolRequest) (
 			"assignees":         usersToList(t.GetAssignees()),
 			"blockers_resolved": item.GetBlockersResolved(),
 			"updated_at":        formatTimestamp(t.GetUpdatedAt()),
+			"availability":      availabilityToMap(t.GetAvailability()),
 		})
 	}
 	return toolJSON(map[string]interface{}{
@@ -1035,6 +1036,39 @@ func nilIfZeroPriority(p pb.TaskPriority) interface{} {
 		return nil
 	}
 	return priorityNames[p]
+}
+
+// --- availability helpers ---
+
+var availabilityReasonNames = map[pb.AvailabilityReason]string{
+	pb.AvailabilityReason_AVAILABILITY_REASON_TRIAGE:                "triage",
+	pb.AvailabilityReason_AVAILABILITY_REASON_TERMINAL:              "terminal",
+	pb.AvailabilityReason_AVAILABILITY_REASON_HELD:                  "held",
+	pb.AvailabilityReason_AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY: "blocked_by_dependency",
+	pb.AvailabilityReason_AVAILABILITY_REASON_FUTURE_START_DATE:     "future_start_date",
+}
+
+func availabilityReasonsToStrings(reasons []pb.AvailabilityReason) []string {
+	result := make([]string, 0, len(reasons))
+	for _, r := range reasons {
+		if name, ok := availabilityReasonNames[r]; ok {
+			result = append(result, name)
+		}
+	}
+	return result
+}
+
+func availabilityToMap(a *pb.TaskAvailability) map[string]interface{} {
+	if a == nil {
+		return map[string]interface{}{
+			"available": false,
+			"reasons":   []string{},
+		}
+	}
+	return map[string]interface{}{
+		"available": a.GetAvailable(),
+		"reasons":   availabilityReasonsToStrings(a.GetReasons()),
+	}
 }
 
 // --- request param helpers ---

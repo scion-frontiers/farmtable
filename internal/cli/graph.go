@@ -59,8 +59,12 @@ func newReadyCmd(globals *globalFlags) *cobra.Command {
 				return handleGRPCError(err)
 			}
 
-			if len(resp.GetItems()) == 0 && !includeUnblocked {
-				fmt.Fprintln(os.Stderr, "No available accepted tasks. Try --include-unblocked to also show unblocked open tasks that are not currently claimable.")
+			if len(resp.GetItems()) == 0 {
+				if includeUnblocked {
+					fmt.Fprintln(os.Stderr, "No tasks are ready. Tasks may be unavailable due to: triage, terminal, held, blocked_by_dependency, or future_start_date. Use JSON output (-o json) to see per-task availability reasons.")
+				} else {
+					fmt.Fprintln(os.Stderr, "No available accepted tasks. Try --include-unblocked to also show unblocked open tasks that are not currently claimable.")
+				}
 			}
 
 			switch output {
@@ -337,6 +341,39 @@ func newBottlenecksCmd(globals *globalFlags) *cobra.Command {
 	return cmd
 }
 
+// --- availability helpers ---
+
+var availabilityReasonNames = map[pb.AvailabilityReason]string{
+	pb.AvailabilityReason_AVAILABILITY_REASON_TRIAGE:                "triage",
+	pb.AvailabilityReason_AVAILABILITY_REASON_TERMINAL:              "terminal",
+	pb.AvailabilityReason_AVAILABILITY_REASON_HELD:                  "held",
+	pb.AvailabilityReason_AVAILABILITY_REASON_BLOCKED_BY_DEPENDENCY: "blocked_by_dependency",
+	pb.AvailabilityReason_AVAILABILITY_REASON_FUTURE_START_DATE:     "future_start_date",
+}
+
+func availabilityReasonsToStrings(reasons []pb.AvailabilityReason) []string {
+	result := make([]string, 0, len(reasons))
+	for _, r := range reasons {
+		if name, ok := availabilityReasonNames[r]; ok {
+			result = append(result, name)
+		}
+	}
+	return result
+}
+
+func availabilityToMap(a *pb.TaskAvailability) map[string]interface{} {
+	if a == nil {
+		return map[string]interface{}{
+			"available": false,
+			"reasons":   []string{},
+		}
+	}
+	return map[string]interface{}{
+		"available": a.GetAvailable(),
+		"reasons":   availabilityReasonsToStrings(a.GetReasons()),
+	}
+}
+
 // --- helpers ---
 
 func parseDirection(s string) (pb.DependencyDirection, error) {
@@ -364,6 +401,7 @@ func readyTaskToMap(rt *pb.ReadyTask) map[string]interface{} {
 		"collection_id":     t.GetCollectionId(),
 		"blockers_resolved": rt.GetBlockersResolved(),
 		"updated_at":        formatTimestamp(t.GetUpdatedAt()),
+		"availability":      availabilityToMap(t.GetAvailability()),
 	}
 }
 
@@ -459,7 +497,7 @@ func bottleneckTaskToMap(bt *pb.BottleneckTask) map[string]interface{} {
 
 func printReadyTable(items []*pb.ReadyTask, totalCount int32) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tNAME\tSTAGE\tPRI\tBLOCKERS_RESOLVED")
+	fmt.Fprintln(w, "ID\tNAME\tSTAGE\tPRI\tAVAIL\tBLOCKERS_RESOLVED")
 	for _, item := range items {
 		t := item.GetTask()
 		id := t.GetId()
@@ -470,11 +508,25 @@ func printReadyTable(items []*pb.ReadyTask, totalCount int32) {
 		if t.GetPriority() != pb.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
 			pri = priorityNames[t.GetPriority()]
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
+		avail := "—"
+		if a := t.GetAvailability(); a != nil {
+			if a.GetAvailable() {
+				avail = "yes"
+			} else {
+				reasons := availabilityReasonsToStrings(a.GetReasons())
+				if len(reasons) > 0 {
+					avail = strings.Join(reasons, ",")
+				} else {
+					avail = "no"
+				}
+			}
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\n",
 			id,
 			truncate(t.GetName(), 45),
 			stageNames[t.GetStage()],
 			pri,
+			avail,
 			item.GetBlockersResolved(),
 		)
 	}
