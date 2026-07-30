@@ -34,7 +34,17 @@ describe('ft-inspector-code — hostile pull request urls', () => {
     const code = await mountCode('javascript:alert(1)');
 
     expect(links(code)).toHaveLength(0);
-    expect(code.shadowRoot?.innerHTML ?? '').not.toContain('javascript:');
+    // The hostile string IS in the title of the fallback span (positive arm — intended)
+    const fallback = code.shadowRoot!.querySelector('.pr-link-unsafe');
+    expect(fallback).not.toBeNull();
+    expect(fallback?.getAttribute('title')).toContain('javascript:');
+    // The hostile string is NOWHERE ELSE in any attribute (general property, one admitted exception)
+    for (const el of code.shadowRoot!.querySelectorAll('*')) {
+      for (const attr of el.attributes) {
+        if (el === fallback && attr.name === 'title') continue; // admitted: title on fallback
+        expect(attr.value).not.toContain('javascript:');
+      }
+    }
   });
 
   for (const hostile of [
@@ -43,7 +53,6 @@ describe('ft-inspector-code — hostile pull request urls', () => {
     'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
     'vbscript:msgbox(1)',
     'file:///etc/passwd',
-    'http://evil.example.com/pr/7',
   ]) {
     it(`renders no href for pull request url ${JSON.stringify(hostile)}`, async () => {
       const code = await mountCode(hostile);
@@ -73,6 +82,13 @@ describe('ft-inspector-code — safe pull request urls', () => {
 
     expect(links(code).map((anchor) => anchor.getAttribute('href'))).toEqual([
       'http://localhost:3000/pull/7',
+    ]);
+  });
+
+  it('renders a link for a remote http: pull request url (C2 ruling)', async () => {
+    const code = await mountCode('http://evil.example.com/pr/7');
+    expect(links(code).map((anchor) => anchor.getAttribute('href'))).toEqual([
+      'http://evil.example.com/pr/7',
     ]);
   });
 

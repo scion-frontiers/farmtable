@@ -37,14 +37,34 @@ describe('ft-inspector-meta — hostile remoteUrl values', () => {
     const meta = await mountMeta('javascript:alert(document.domain)');
 
     expect(links(meta)).toHaveLength(0);
-    expect(meta.shadowRoot?.innerHTML ?? '').not.toContain('javascript:');
+    // The hostile string IS in the title of the fallback span (positive arm — intended)
+    const fallback = meta.shadowRoot!.querySelector('.external-source-unsafe');
+    expect(fallback).not.toBeNull();
+    expect(fallback?.getAttribute('title')).toContain('javascript:');
+    // The hostile string is NOWHERE ELSE in any attribute
+    for (const el of meta.shadowRoot!.querySelectorAll('*')) {
+      for (const attr of el.attributes) {
+        if (el === fallback && attr.name === 'title') continue; // admitted: title on fallback
+        expect(attr.value).not.toContain('javascript:');
+      }
+    }
   });
 
   it('renders no link for data: remoteUrl', async () => {
     const meta = await mountMeta('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==');
 
     expect(links(meta)).toHaveLength(0);
-    expect(meta.shadowRoot?.innerHTML ?? '').not.toContain('data:text/html');
+    // The hostile string IS in the title of the fallback span (positive arm — intended)
+    const fallback = meta.shadowRoot!.querySelector('.external-source-unsafe');
+    expect(fallback).not.toBeNull();
+    expect(fallback?.getAttribute('title')).toContain('data:text/html');
+    // The hostile string is NOWHERE ELSE in any attribute
+    for (const el of meta.shadowRoot!.querySelectorAll('*')) {
+      for (const attr of el.attributes) {
+        if (el === fallback && attr.name === 'title') continue; // admitted: title on fallback
+        expect(attr.value).not.toContain('data:text/html');
+      }
+    }
   });
 
   for (const hostile of HOSTILE_URLS) {
@@ -90,10 +110,10 @@ describe('ft-inspector-meta — safe remoteUrl values', () => {
     expect(hrefs).toEqual(['http://localhost:8080/tasks/1']);
   });
 
-  it('renders no link for a remote http: remoteUrl', async () => {
+  it('renders a link for a remote http: remoteUrl (C2 ruling)', async () => {
     const meta = await mountMeta('http://evil.example.com/task/1');
-
-    expect(links(meta)).toHaveLength(0);
+    const hrefs = links(meta).map((anchor) => anchor.getAttribute('href'));
+    expect(hrefs).toEqual(['http://evil.example.com/task/1']);
   });
 
   it('renders no External Source row when remoteUrl is absent', async () => {
