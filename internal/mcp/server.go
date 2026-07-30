@@ -58,7 +58,7 @@ func (s *Server) MCPServer() *server.MCPServer {
 func (s *Server) registerTools() {
 	s.mcp.AddTool(mcp.NewTool("task_list",
 		mcp.WithDescription("List tasks with optional filters. Returns paginated results."),
-		mcp.WithString("phase", mcp.Description("Filter by phase: OPEN, IN_PROGRESS, ON_HOLD, CLOSED")),
+		mcp.WithString("phase", mcp.Description("Filter by phase: OPEN, IN_PROGRESS, CLOSED")),
 		mcp.WithString("stage", mcp.Description("Filter by native stage (comma-separated): triage, accepted, working, in_review, in_qa, deploying, completed, wont_fix, duplicate, cancelled")),
 		mcp.WithString("assignee", mcp.Description("Filter by assignee name or ID. Use 'me' for self, 'none' for unassigned.")),
 		mcp.WithString("priority", mcp.Description("Filter by priority: URGENT, HIGH, NORMAL, LOW")),
@@ -142,7 +142,7 @@ func (s *Server) registerTools() {
 	s.mcp.AddTool(mcp.NewTool("task_search",
 		mcp.WithDescription("Search tasks by name substring match. Returns matching tasks across all open phases by default."),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search string to match against task names")),
-		mcp.WithString("phase", mcp.Description("Filter by phase: OPEN, IN_PROGRESS, ON_HOLD, CLOSED")),
+		mcp.WithString("phase", mcp.Description("Filter by phase: OPEN, IN_PROGRESS, CLOSED")),
 		mcp.WithString("collection", mcp.Description("Collection UUID or name")),
 		mcp.WithNumber("limit", mcp.Description("Max results (default 20)")),
 	), s.handleTaskSearch)
@@ -820,12 +820,10 @@ func parsePhase(s string) (pb.TaskPhase, error) {
 		return pb.TaskPhase_TASK_PHASE_OPEN, nil
 	case "IN_PROGRESS":
 		return pb.TaskPhase_TASK_PHASE_IN_PROGRESS, nil
-	case "ON_HOLD":
-		return pb.TaskPhase_TASK_PHASE_ON_HOLD, nil
 	case "CLOSED":
 		return pb.TaskPhase_TASK_PHASE_CLOSED, nil
 	default:
-		return 0, fmt.Errorf("invalid phase %q; valid: OPEN, IN_PROGRESS, ON_HOLD, CLOSED", s)
+		return 0, fmt.Errorf("invalid phase %q; valid: OPEN, IN_PROGRESS, CLOSED", s)
 	}
 }
 
