@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "node scripts/run-node-tests.mjs",
+    "test": "npm run test:node && npm run test:components",
+    "test:node": "node scripts/run-node-tests.mjs",
+    "test:components": "vitest run",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -25,6 +27,7 @@
     "jsdom": "^29.1.1",
     "typescript": "^5.5.0",
     "vite": "^6.0.0",
-    "vite-plugin-static-copy": "^3.4.0"
+    "vite-plugin-static-copy": "^3.4.0",
+    "vitest": "^3.2.0"
   }
 }
