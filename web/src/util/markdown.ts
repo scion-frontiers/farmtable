@@ -291,6 +291,77 @@ purify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
+/**
+ * C89 / ISSUE #195: FORBID_TAGS AND FORBID_ATTR, per owner ruling.
+ *
+ * Owner ruling 2026-07-30T19:02:32Z, verbatim: "conforming to a similar set of
+ * expectations as on github is a good default for questions like this." That
+ * resolves both the form-control vector and the style-attribute overlay vector.
+ *
+ * FORBID_TAGS is a DENYLIST. It names six spellings of the hazard. An element
+ * not on this list -- or a future DOMPurify default, or an SVG/MathML element
+ * nobody listed -- can comply exactly and still put an interactive control on
+ * the page. GitHub, by contrast, uses an ALLOWLIST of permitted tags. The cost
+ * of migrating to an allowlist is measured in the C89 report
+ * (reports/c89-fix.md, deliverable 3) but is NOT implemented here: regression
+ * risk on existing rendered content is real and unmeasured.
+ *
+ * MEASURED, VERBATIM, BEFORE THIS CHANGE (DOMPurify 3.x defaults, no config):
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request #482</button></form>
+ *   survived as: <form><button>View pull request #482</button></form>
+ *   The afterSanitizeAttributes hook stripped `action`, but the <form> and
+ *   <button> elements survived as interactive controls on a trusted origin.
+ *
+ *   <input type="text" placeholder="Enter password">
+ *   survived as: <input type="text" placeholder="Enter password">
+ *
+ *   <select><option value="a">A</option><option value="b">B</option></select>
+ *   survived as: <p><select><option value="a">A</option><option value="b">B</option></select></p>
+ *
+ *   <textarea>Enter credentials</textarea>
+ *   survived as: <textarea>Enter credentials</textarea>
+ *
+ *   <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999">FAKE LOGIN</div>
+ *   survived as: <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999">FAKE LOGIN</div>
+ *   The style attribute survived verbatim, permitting attacker-controlled CSS
+ *   overlays over real UI.
+ *
+ * MEASURED, VERBATIM, AFTER THIS CHANGE (with FORBID_TAGS and FORBID_ATTR):
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request #482</button></form>
+ *   survived as: View pull request #482
+ *   The <form> and <button> tags are stripped; text content is preserved.
+ *
+ *   <input type="text" placeholder="Enter password">
+ *   survived as: (empty string)
+ *   The <input> is stripped (void element, no text content to preserve).
+ *
+ *   <select><option value="a">A</option><option value="b">B</option></select>
+ *   survived as: <p>AB</p>
+ *   Tags stripped; text content of options preserved.
+ *
+ *   <textarea>Enter credentials</textarea>
+ *   survived as: Enter credentials
+ *   Tag stripped; text content preserved.
+ *
+ *   <div style="position:fixed;...">FAKE LOGIN</div>
+ *   survived as: <div>FAKE LOGIN</div>
+ *   The style attribute is stripped; the <div> and its text survive.
+ *
+ * MEASURED NEGATIVE: `formaction` on `<button>` is STILL stripped by
+ * DOMPurify's own defaults before FORBID_TAGS fires, confirming the
+ * existing negative documented in the LINK_ATTRS docblock above. With
+ * FORBID_TAGS now stripping <button> itself, this is doubly unreachable.
+ *
+ * POSITIVE CONTROL for style stripping: `class` attribute on the same
+ * element survives. Measured: <div class="info-box" style="color:red">text</div>
+ * produces <div class="info-box">text</div>. The class attribute is present
+ * (positive control alive); the style attribute is absent (refusal effective).
+ */
 export function renderMarkdown(md: string): string {
-  return purify.sanitize(marked.parse(md) as string);
+  return purify.sanitize(marked.parse(md) as string, {
+    FORBID_TAGS: ['form', 'input', 'button', 'select', 'textarea', 'option'],
+    FORBID_ATTR: ['style'],
+  });
 }
