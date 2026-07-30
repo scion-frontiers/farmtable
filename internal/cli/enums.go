@@ -133,12 +133,10 @@ func parsePhase(s string) (pb.TaskPhase, error) {
 		return pb.TaskPhase_TASK_PHASE_OPEN, nil
 	case "IN_PROGRESS":
 		return pb.TaskPhase_TASK_PHASE_IN_PROGRESS, nil
-	case "ON_HOLD":
-		return pb.TaskPhase_TASK_PHASE_ON_HOLD, nil
 	case "CLOSED":
 		return pb.TaskPhase_TASK_PHASE_CLOSED, nil
 	default:
-		return 0, fmt.Errorf("invalid phase %q; valid phases: OPEN, IN_PROGRESS, ON_HOLD, CLOSED", s)
+		return 0, fmt.Errorf("invalid phase %q; valid phases: OPEN, IN_PROGRESS, CLOSED", s)
 	}
 }
 

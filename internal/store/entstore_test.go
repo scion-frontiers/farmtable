@@ -596,7 +596,7 @@ func TestComputeAvailability_TerminalDependencyMatrix(t *testing.T) {
 		{task.StageCompleted, true, false, "completed blockers satisfy dependencies"},
 		{task.StageWontFix, false, true, "wont_fix blockers do not satisfy dependencies in v1"},
 		{task.StageCancelled, false, true, "cancelled blockers do not satisfy dependencies in v1"},
-		{task.StageDuplicate, false, true, "duplicate blockers without a persisted canonical replacement do not satisfy dependencies in v1"},
+		{task.StageDuplicate, false, true, "duplicate blockers do not satisfy dependencies (intended behaviour per owner ruling 2026-07-30, not a v1 limitation)"},
 	}
 
 	for _, tt := range tests {
@@ -637,6 +637,51 @@ func TestComputeAvailability_TerminalDependencyMatrix(t *testing.T) {
 				t.Fatalf("%s: blocked_by_dependency reason = %v, want %v; reasons=%v", tt.documentation, hasAvailabilityReason(availability, store.AvailabilityReasonBlockedByDependency), tt.wantReason, availability.Reasons)
 			}
 		})
+	}
+}
+
+// TestDuplicateDoesNotSatisfyDependency is an explicit regression guard for the
+// owner ruling (2026-07-30T16:34Z): closing a blocker as duplicate does NOT
+// satisfy the dependency. The blocked task must remain blocked until its owner
+// explicitly removes the relationship.
+func TestDuplicateDoesNotSatisfyDependency(t *testing.T) {
+	s, cleanup := testutil.NewTestStore(t)
+	defer cleanup()
+	ctx := context.Background()
+	collID := createTestCollection(t, s)
+
+	blocker, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Blocker", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted,
+	})
+	if err != nil {
+		t.Fatalf("create blocker: %v", err)
+	}
+	blocked, err := s.CreateTask(ctx, store.CreateTaskParams{
+		Title: "Blocked", CollectionID: collID, Phase: task.PhaseOpen, Stage: task.StageAccepted, BlockedByTaskIDs: []uuid.UUID{blocker.ID},
+	})
+	if err != nil {
+		t.Fatalf("create blocked: %v", err)
+	}
+
+	// Close the blocker as duplicate.
+	if _, err := s.CloseTask(ctx, blocker.ID, task.StageDuplicate, "", uuid.Nil); err != nil {
+		t.Fatalf("close blocker as duplicate: %v", err)
+	}
+
+	// The blocked task must still be blocked.
+	gotBlocked, err := s.GetTask(ctx, blocked.ID)
+	if err != nil {
+		t.Fatalf("GetTask blocked: %v", err)
+	}
+	availability, err := s.ComputeAvailability(ctx, gotBlocked)
+	if err != nil {
+		t.Fatalf("ComputeAvailability: %v", err)
+	}
+	if availability.Available {
+		t.Fatalf("blocked task became available after blocker closed as duplicate; want BLOCKED_BY_DEPENDENCY")
+	}
+	if !hasAvailabilityReason(availability, store.AvailabilityReasonBlockedByDependency) {
+		t.Fatalf("expected BLOCKED_BY_DEPENDENCY reason, got reasons=%v", availability.Reasons)
 	}
 }
 
