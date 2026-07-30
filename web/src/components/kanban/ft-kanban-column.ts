@@ -2,32 +2,19 @@ import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import type { Task } from '../../gen/types.js';
-import { TaskStage, TaskPriority } from '../../gen/types.js';
+import { TaskStage } from '../../gen/types.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtTaskCard } from './ft-task-card.js';
-
-const STAGE_COLOR: Record<number, string> = {
-  [TaskStage.TRIAGE]: 'var(--ft-stage-triage)',
-  [TaskStage.ACCEPTED]: 'var(--ft-stage-accepted)',
-  [TaskStage.WORKING]: 'var(--ft-stage-working)',
-  [TaskStage.IN_REVIEW]: 'var(--ft-stage-in-review)',
-  [TaskStage.IN_QA]: 'var(--ft-stage-in-qa)',
-  [TaskStage.DEPLOYING]: 'var(--ft-stage-deploying)',
-  [TaskStage.COMPLETED]: 'var(--ft-stage-completed)',
-};
-
-function priorityRank(p?: TaskPriority): number {
-  if (p === undefined || p === TaskPriority.UNSPECIFIED) return 99;
-  return p;
-}
+import {
+  acceptsStageDrop,
+  compareAcceptedQueueOrder,
+  DROP_REFUSAL,
+  STAGE_COLOR,
+} from '../../util/task-state-utils.js';
+import type { TaskStore } from '../../store/task-store.js';
 
 function sortTasks(tasks: Task[]): Task[] {
-  return [...tasks].sort((a, b) => {
-    const pa = priorityRank(a.priority);
-    const pb = priorityRank(b.priority);
-    if (pa !== pb) return pa - pb;
-    return a.createdAt.localeCompare(b.createdAt);
-  });
+  return [...tasks].sort(compareAcceptedQueueOrder);
 }
 
 @customElement('ft-kanban-column')
@@ -109,6 +96,10 @@ export class FtKanbanColumn extends LitElement {
       outline-offset: -2px;
       border-radius: 0.25rem;
     }
+    .cards.dragover.drop-refused {
+      background: rgba(245, 158, 11, 0.1);
+      outline-color: var(--sl-color-warning-500);
+    }
     .empty-filter-message {
       color: var(--sl-color-neutral-500);
       font-size: 0.8rem;
@@ -123,6 +114,9 @@ export class FtKanbanColumn extends LitElement {
 
   @property({ attribute: false })
   tasks: Task[] = [];
+
+  @property({ attribute: false })
+  store?: TaskStore;
 
   @property()
   label = '';
@@ -179,30 +173,67 @@ export class FtKanbanColumn extends LitElement {
     }
   }
 
-  private get isStageChangeDragDisabled(): boolean {
-    return this.readOnly || this.capabilities?.canChangeStage === false;
+  /**
+   * Whether this lane will refuse an incoming stage change.
+   *
+   * Refusing lanes still accept the drop *gesture* on purpose: the drop
+   * handler dispatches `stage-change` and `ft-kanban-view` answers with an
+   * explicit toast. Blocking the gesture here (or setting `dropEffect` to
+   * `none`, which cancels the drop event) would make the refusal silent and
+   * leave the terminal lanes looking broken.
+   */
+  private get isDropRefused(): boolean {
+    return (
+      this.readOnly ||
+      this.capabilities?.canChangeStage === false ||
+      !acceptsStageDrop(this.stage)
+    );
+  }
+
+  /**
+   * Human-readable reason this lane refuses drops; empty when it accepts them.
+   *
+   * This single value drives BOTH channels — the `title` tooltip and the
+   * `aria-description`. It used to drive only the description, with `title`
+   * gated on `acceptsStageDrop` alone (finding M-1a), so a read-only board or a
+   * stage-incapable collection gave a screen-reader user a reason and a pointer
+   * user nothing at all. The two channels answer the same question, so they
+   * must not disagree about whether there is anything to explain.
+   *
+   * The previous gating was justified as tooltip-noise avoidance on the
+   * board-level refusals: those put a tooltip on all ten lanes rather than one.
+   * That is a real cost, but it is the smaller one — a pointer user with no
+   * other explanation for why their drag does nothing is worse than a hover
+   * hint they can ignore, and it is the same reason the drop gesture is
+   * accepted and answered rather than blocked.
+   */
+  private get dropHint(): string {
+    if (this.readOnly) return DROP_REFUSAL.readOnlyBoard;
+    if (this.capabilities?.canChangeStage === false) {
+      return DROP_REFUSAL.stageChangeUnsupported;
+    }
+    if (!acceptsStageDrop(this.stage)) {
+      return DROP_REFUSAL.terminalLaneHint(this.label);
+    }
+    return '';
   }
 
   private onDragEnter() {
-    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount++;
     this.isDragOver = true;
   }
 
   private onDragOver(e: DragEvent) {
-    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
   }
 
   private onDragLeave() {
-    if (this.isStageChangeDragDisabled) return;
     this._dragEnterCount--;
     this.isDragOver = this._dragEnterCount > 0;
   }
 
   private onDrop(e: DragEvent) {
-    if (this.isStageChangeDragDisabled) return;
     e.preventDefault();
     this._dragEnterCount = 0;
     this.isDragOver = false;
@@ -304,6 +335,7 @@ export class FtKanbanColumn extends LitElement {
   render() {
     const sorted = this._sortedTasks;
     const color = STAGE_COLOR[this.stage] ?? 'var(--ft-stage-triage)';
+    const dropHint = this.dropHint;
     const isFiltered = this.totalCount > 0 && sorted.length !== this.totalCount;
     // NOTE(i18n): Hardcoded English; extract if i18n is added.
     const countLabel = isFiltered ? `${sorted.length} of ${this.totalCount}` : `${sorted.length}`;
@@ -334,9 +366,15 @@ export class FtKanbanColumn extends LitElement {
         ></sl-icon-button>`}
       </div>
       <div
-        class=${classMap({ cards: true, dragover: this.isDragOver })}
+        class=${classMap({
+          cards: true,
+          dragover: this.isDragOver,
+          'drop-refused': this.isDropRefused,
+        })}
         role="listbox"
         aria-label=${this.label}
+        aria-description=${dropHint || nothing}
+        title=${dropHint || nothing}
         @dragenter=${this.onDragEnter}
         @dragover=${this.onDragOver}
         @dragleave=${this.onDragLeave}
@@ -346,6 +384,7 @@ export class FtKanbanColumn extends LitElement {
           (task, index) => html`
             <ft-task-card
               .task=${task}
+              .store=${this.store}
               ?selected=${task.id === this.selectedTaskId}
               ?readOnly=${this.readOnly}
               card-tab-index=${index === this.activeCardIndex ? 0 : -1}

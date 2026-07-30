@@ -119,16 +119,16 @@ export class FtInspectorCode extends LitElement {
         ? html`<div class="row">
             <span class="label">PRs</span>
             <span class="pr-list">
-              ${ctx.pullRequests.map(
-                (pr) => html`
+              ${ctx.pullRequests.map((pr) => {
+                return html`
                   <span class="pr-item">
                     ${renderPrLink(pr.url, pr.id)}
                     <sl-badge variant=${PR_VARIANT[pr.status] ?? 'neutral'} pill>
                       ${PR_LABEL[pr.status] ?? 'Unknown'}
                     </sl-badge>
                   </span>
-                `,
-              )}
+                `;
+              })}
             </span>
           </div>`
         : nothing}

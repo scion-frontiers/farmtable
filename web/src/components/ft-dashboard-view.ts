@@ -2,12 +2,20 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TaskStore } from '../store/task-store.js';
 import { TaskStoreController } from '../store/task-store-controller.js';
-import { TaskPhase, TaskPriority, type Task } from '../gen/types.js';
+import { AvailabilityReason, TaskPriority, type Task } from '../gen/types.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../util/priority-utils.js';
 import { isReady } from '../utils/task-ready.js';
+import {
+  ATTENTION,
+  attentionBlockers,
+  AVAILABILITY_REASON_LABEL,
+  hasHoldReason,
+  isClosedStage,
+} from '../util/task-state-utils.js';
+import type { TaskFilterChangeDetail } from './task-filters.js';
 import './ft-empty-state.js';
 
-interface PhaseStat {
+interface StateStat {
   label: string;
   count: number;
 }
@@ -84,6 +92,26 @@ export class FtDashboardView extends LitElement {
       color: var(--sl-color-success-600);
     }
 
+    .stat-card.attention {
+      border-color: var(--sl-color-danger-300);
+      background: var(--sl-color-danger-50);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .stat-card.attention:hover {
+      border-color: var(--sl-color-danger-500);
+      box-shadow: 0 0 0 1px var(--sl-color-danger-500);
+    }
+
+    .stat-card.attention .stat-count {
+      color: var(--sl-color-danger-700);
+    }
+
+    .stat-card.attention .stat-label {
+      color: var(--sl-color-danger-600);
+    }
+
     .stat-count {
       font-size: 2rem;
       font-weight: 700;
@@ -129,39 +157,85 @@ export class FtDashboardView extends LitElement {
     new TaskStoreController(this, this.store);
   }
 
-  private computePhaseStats(tasks: readonly Task[]): PhaseStat[] {
-    const counts: Record<number, number> = {
-      [TaskPhase.OPEN]: 0,
-      [TaskPhase.IN_PROGRESS]: 0,
-      [TaskPhase.ON_HOLD]: 0,
-      [TaskPhase.CLOSED]: 0,
-    };
+  private computeStateStats(tasks: readonly Task[]): StateStat[] {
+    let active = 0;
+    let closed = 0;
+    let held = 0;
+    let unavailable = 0;
+
     for (const task of tasks) {
-      if (counts[task.phase] !== undefined) {
-        counts[task.phase]++;
-      }
+      if (isClosedStage(task.stage)) closed++;
+      else active++;
+      if (hasHoldReason(task.holdReason)) held++;
+      if (task.availability?.available === false) unavailable++;
     }
+
     return [
-      { label: 'Open', count: counts[TaskPhase.OPEN] },
-      { label: 'In Progress', count: counts[TaskPhase.IN_PROGRESS] },
-      { label: 'On Hold', count: counts[TaskPhase.ON_HOLD] },
-      { label: 'Closed', count: counts[TaskPhase.CLOSED] },
+      { label: 'Active', count: active },
+      { label: 'Closed', count: closed },
+      { label: 'Held', count: held },
+      { label: 'Unavailable', count: unavailable },
     ];
   }
 
-  /** Count tasks available under the shared Ready Queue predicate. */
-  private computeReadyCount(tasks: readonly Task[]): number {
+  /** Count tasks available under the shared Available Queue predicate. */
+  private computeAvailableCount(tasks: readonly Task[]): number {
     return tasks.filter((task) => isReady(task, this.store)).length;
   }
 
   /**
-   * Navigate to the Ready Queue view by dispatching the same view-change
+   * Navigate to the Available Queue view by dispatching the same view-change
    * event the toolbar uses.
    */
-  private navigateToReadyQueue() {
+  private navigateToAvailableQueue() {
     this.dispatchEvent(
       new CustomEvent('view-change', {
         detail: { view: 'ready-queue' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Count tasks stranded behind an unsuccessful terminal prerequisite, using
+   * the same `attentionBlockers()` the card badge and the inspector callout
+   * use. Never re-derived here: a second definition of "needs attention" would
+   * let the tile disagree with the set the filter then shows.
+   */
+  private computeAttentionCount(tasks: readonly Task[]): number {
+    return tasks.filter((task) => attentionBlockers(task, this.store).length > 0).length;
+  }
+
+  /**
+   * Show the attention set on the board.
+   *
+   * Two events, in this order: `view-change` first so the shell has already
+   * switched to a view that renders unavailable tasks by the time the filter
+   * lands. The Available Queue is the wrong destination — attention tasks are
+   * dependency-blocked by definition, so the queue would show none of them.
+   *
+   * Every other filter is cleared. This tile promises a count, and an
+   * already-active stage or assignee filter would silently show the user fewer
+   * tasks than the number they just clicked.
+   */
+  private showAttentionTasks() {
+    this.dispatchEvent(
+      new CustomEvent('view-change', {
+        detail: { view: 'kanban' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    this.dispatchEvent(
+      new CustomEvent<TaskFilterChangeDetail>('filter-change', {
+        detail: {
+          group: null,
+          stage: null,
+          holdReason: null,
+          availability: 'attention',
+          assigneeId: null,
+        },
         bubbles: true,
         composed: true,
       }),
@@ -197,6 +271,34 @@ export class FtDashboardView extends LitElement {
     }));
   }
 
+  private computeAvailabilityReasons(tasks: readonly Task[]): StateStat[] {
+    const counts: Record<number, number> = {
+      [AvailabilityReason.TRIAGE]: 0,
+      [AvailabilityReason.TERMINAL]: 0,
+      [AvailabilityReason.HELD]: 0,
+      [AvailabilityReason.BLOCKED_BY_DEPENDENCY]: 0,
+      [AvailabilityReason.FUTURE_START_DATE]: 0,
+    };
+    for (const task of tasks) {
+      // This renders under an "Unavailable Reasons" heading, so only tasks the
+      // server actually marked unavailable belong in the tally. The server
+      // sends no reasons for available tasks today, but counting them here
+      // would silently contradict the heading if that ever changed.
+      if (task.availability?.available !== false) continue;
+      for (const reason of task.availability.reasons ?? []) {
+        if (counts[reason] !== undefined) {
+          counts[reason]++;
+        }
+      }
+    }
+    return Object.entries(counts)
+      .map(([reason, count]) => ({
+        label: AVAILABILITY_REASON_LABEL[Number(reason)] ?? reason,
+        count,
+      }))
+      .filter((stat) => stat.count > 0);
+  }
+
   render() {
     const tasks = this.store.allTasks;
 
@@ -210,16 +312,18 @@ export class FtDashboardView extends LitElement {
       `;
     }
 
-    const phaseStats = this.computePhaseStats(tasks);
+    const stateStats = this.computeStateStats(tasks);
     const priorityStats = this.computePriorityStats(tasks);
-    const totalCount = phaseStats.reduce((sum, s) => sum + s.count, 0);
-    const readyCount = this.computeReadyCount(tasks);
+    const availabilityReasons = this.computeAvailabilityReasons(tasks);
+    const totalCount = tasks.length;
+    const availableCount = this.computeAvailableCount(tasks);
+    const attentionCount = this.computeAttentionCount(tasks);
 
     return html`
       <div class="dashboard">
-        <h2 class="section-title">Tasks by Phase</h2>
+        <h2 class="section-title">Tasks by State</h2>
         <div class="stat-cards">
-          ${phaseStats.map(
+          ${stateStats.map(
             (stat) => html`
               <div class="stat-card" role="group" aria-label="${stat.label}: ${stat.count}">
                 <div class="stat-count">${stat.count}</div>
@@ -231,19 +335,49 @@ export class FtDashboardView extends LitElement {
             class="stat-card ready"
             role="link"
             tabindex="0"
-            aria-label="Available: ${readyCount} — click to view Available Queue"
+            aria-label="Available: ${availableCount} — click to view Available Queue"
             title="View Available Queue"
-            @click=${this.navigateToReadyQueue}
+            @click=${this.navigateToAvailableQueue}
             @keydown=${(e: KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                this.navigateToReadyQueue();
+                this.navigateToAvailableQueue();
               }
             }}
           >
-            <div class="stat-count">${readyCount}</div>
+            <div class="stat-count">${availableCount}</div>
             <div class="stat-label">Available</div>
           </div>
+          <!--
+            Rendered only when there is something to find, matching the
+            Unavailable Reasons section below: a permanent "0" would be noise on
+            the dashboard of every healthy collection, and the concept stays
+            discoverable regardless through the Availability filter, which
+            always lists it. When it does appear, it appears unprompted — which
+            is the point, since contract §11 guarantees nothing else will ever
+            surface these tasks.
+          -->
+          ${attentionCount > 0
+            ? html`
+                <div
+                  class="stat-card attention"
+                  role="link"
+                  tabindex="0"
+                  aria-label="${ATTENTION.label}: ${attentionCount} — ${ATTENTION.tileAction}"
+                  title=${ATTENTION.explanation}
+                  @click=${this.showAttentionTasks}
+                  @keydown=${(e: KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      this.showAttentionTasks();
+                    }
+                  }}
+                >
+                  <div class="stat-count">${attentionCount}</div>
+                  <div class="stat-label">${ATTENTION.label}</div>
+                </div>
+              `
+            : null}
           <div class="stat-card total" role="group" aria-label="Total: ${totalCount}">
             <div class="stat-count">${totalCount}</div>
             <div class="stat-label">Total</div>
@@ -261,6 +395,22 @@ export class FtDashboardView extends LitElement {
             `,
           )}
         </div>
+
+        ${availabilityReasons.length > 0
+          ? html`
+              <h2 class="section-title">Unavailable Reasons</h2>
+              <div class="priority-badges">
+                ${availabilityReasons.map(
+                  (stat) => html`
+                    <div class="priority-item">
+                      <sl-badge variant="neutral" pill>${stat.label}</sl-badge>
+                      <span class="priority-count">${stat.count}</span>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+          : null}
       </div>
     `;
   }

@@ -6,11 +6,22 @@ import { StreamManager, type ConnectionStatus } from '../store/stream-manager.js
 import { PollManager } from '../store/poll-manager.js';
 import { applyTaskUpdateFields, type FarmTableServiceClient } from '../gen/service.js';
 import type { UpdateTaskFields } from '../gen/service.js';
-import { Platform, RelationshipType, TaskPhase, type Collection, type Task, type User } from '../gen/types.js';
+import {
+  Platform,
+  RelationshipType,
+  TaskHoldReason,
+  TaskStage,
+  type Collection,
+  type Task,
+  type User,
+} from '../gen/types.js';
 import { createGrpcFarmTableClientWithOptions } from '../gen/grpc-client.js';
 import { getCapabilities, isCollectionWritable, type CollectionCapabilities } from '../capabilities.js';
 import { matchesTaskFilters, type TaskFilterChangeDetail } from './task-filters.js';
 import { isReady } from '../utils/task-ready.js';
+import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
+import { isClosedStage } from '../util/task-state-utils.js';
+import { isServerRejection } from '../util/grpc-error.js';
 import './ft-filter-chips.js';
 import './ft-dashboard-view.js';
 import './ready-queue/ft-ready-queue-view.js';
@@ -188,7 +199,16 @@ export class FtApp extends LitElement {
   private addRelationshipDefaultType: RelationshipType | undefined = undefined;
 
   @state()
-  private phaseFilter: TaskPhase | null = null;
+  private groupFilter: TaskGroupFilter | null = null;
+
+  @state()
+  private stageFilter: TaskStage | null = null;
+
+  @state()
+  private holdReasonFilter: TaskHoldReason | null = null;
+
+  @state()
+  private availabilityFilter: AvailabilityFilter | null = null;
 
   @state()
   private assigneeFilter: string | null = null;
@@ -291,10 +311,14 @@ export class FtApp extends LitElement {
    * localStorage token fallback, show the login dialog.
    */
   private async checkSessionAndRoute() {
-    // Check for localStorage token fallback (dev/testing).
-    const localToken = localStorage.getItem('farmtable.token');
-    if (localToken) {
-      // User has a localStorage token — skip session check.
+    // Check for the localStorage token fallback (dev/testing only). The same
+    // build flag as in grpc-client.ts gates it: session validation must not be
+    // skipped just because a `farmtable.token` key exists. `import.meta.env.DEV`
+    // is statically false in production builds, so this branch is dropped.
+    const isDevTokenFallbackEnabled =
+      import.meta.env.DEV && import.meta.env.VITE_ENABLE_LOCAL_TOKEN === 'true';
+    if (isDevTokenFallbackEnabled && localStorage.getItem('farmtable.token')) {
+      // Dev token fallback is active — skip session check.
       void this.applyRoute();
       return;
     }
@@ -348,9 +372,25 @@ export class FtApp extends LitElement {
 
     const allTasks = this.storeController.taskStore.allTasks;
     const totalCount = allTasks.length;
+    const hasFilters =
+      this.groupFilter !== null ||
+      this.stageFilter !== null ||
+      this.holdReasonFilter !== null ||
+      this.availabilityFilter !== null ||
+      this.assigneeFilter !== null;
     const filteredCount =
-      this.phaseFilter !== null || this.assigneeFilter !== null
-        ? allTasks.filter((task) => matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter))
+      hasFilters
+        ? allTasks.filter((task) =>
+            matchesTaskFilters(
+              task,
+              this.groupFilter,
+              this.stageFilter,
+              this.holdReasonFilter,
+              this.availabilityFilter,
+              this.assigneeFilter,
+              this.taskStore,
+            ),
+          )
             .length
         : totalCount;
 
@@ -361,7 +401,10 @@ export class FtApp extends LitElement {
         .client=${this.client}
         .unscopedClient=${this.unscopedClient}
         .collectionId=${this.currentCollectionId ?? ''}
-        .phaseFilter=${this.phaseFilter}
+        .groupFilter=${this.groupFilter}
+        .stageFilter=${this.stageFilter}
+        .holdReasonFilter=${this.holdReasonFilter}
+        .availabilityFilter=${this.availabilityFilter}
         .assigneeFilter=${this.assigneeFilter}
         .layoutOrientation=${this.layoutOrientation}
         ?isPolling=${this.isPolling}
@@ -379,7 +422,10 @@ export class FtApp extends LitElement {
       ></ft-toolbar>
 
       <ft-filter-chips
-        .phaseFilter=${this.phaseFilter}
+        .groupFilter=${this.groupFilter}
+        .stageFilter=${this.stageFilter}
+        .holdReasonFilter=${this.holdReasonFilter}
+        .availabilityFilter=${this.availabilityFilter}
         .assigneeFilter=${this.assigneeFilter}
         .users=${this.users}
         .filteredCount=${filteredCount}
@@ -436,19 +482,33 @@ export class FtApp extends LitElement {
     switch (this.currentView) {
       case 'dashboard':
         return html`
+          <!--
+            The dashboard's needs-attention tile is a two-part navigation: it
+            switches the view AND applies the filter that makes the tile's own
+            count reachable. Both events are handled by the same methods the
+            toolbar's are, so the tile cannot drift from the manual route.
+          -->
           <ft-dashboard-view
             .store=${this.taskStore}
             @view-change=${this.onViewChange}
+            @filter-change=${this.onFilterChange}
           ></ft-dashboard-view>
         `;
       case 'ready-queue':
         return html`
           <ft-ready-queue-view
             .store=${this.taskStore}
-            .phaseFilter=${this.phaseFilter}
+            .client=${this.client}
+            .groupFilter=${this.groupFilter}
+            .stageFilter=${this.stageFilter}
+            .holdReasonFilter=${this.holdReasonFilter}
+            .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
+            ?readOnly=${this.isReadOnly}
+            .capabilities=${this.capabilities}
             selected-task-id=${this.selectedTaskId ?? ''}
             @task-select=${this.onTaskSelect}
+            @write-error=${this.onWriteError}
           ></ft-ready-queue-view>
         `;
       case 'dependencies':
@@ -465,11 +525,15 @@ export class FtApp extends LitElement {
         `;
       case 'tree':
         return html`
+          <!--
+            ft-tree-view declares no filter properties, so filter bindings here
+            are inert. They are omitted rather than passed: a binding that looks
+            wired but does nothing is worse than an obvious gap. Making the tree
+            view honour the contract filters is a feature, tracked separately.
+          -->
           <ft-tree-view
             .store=${this.taskStore}
             .client=${this.client}
-            .phaseFilter=${this.phaseFilter}
-            .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             ?isolateMode=${this.isolateMode}
             .layoutOrientation=${this.layoutOrientation}
@@ -487,7 +551,10 @@ export class FtApp extends LitElement {
           <ft-kanban-view
             .store=${this.taskStore}
             .client=${this.client}
-            .phaseFilter=${this.phaseFilter}
+            .groupFilter=${this.groupFilter}
+            .stageFilter=${this.stageFilter}
+            .holdReasonFilter=${this.holdReasonFilter}
+            .availabilityFilter=${this.availabilityFilter}
             .assigneeFilter=${this.assigneeFilter}
             ?readOnly=${this.isReadOnly}
             .capabilities=${this.capabilities}
@@ -514,8 +581,11 @@ export class FtApp extends LitElement {
   }
 
   private onFilterChange(e: CustomEvent) {
-    const { phase, assigneeId } = e.detail as TaskFilterChangeDetail;
-    this.phaseFilter = phase;
+    const { group, stage, holdReason, availability, assigneeId } = e.detail as TaskFilterChangeDetail;
+    this.groupFilter = group;
+    this.stageFilter = stage;
+    this.holdReasonFilter = holdReason;
+    this.availabilityFilter = availability;
     this.assigneeFilter = assigneeId;
     if (this.selectedTaskId && !this.isTaskVisibleInCurrentView(this.selectedTaskId)) {
       this.showDimOverlay();
@@ -567,7 +637,7 @@ export class FtApp extends LitElement {
 
     // Dependencies view shows non-closed tasks in blocking relationships.
     if (this.currentView === 'dependencies') {
-      if (task.phase === TaskPhase.CLOSED) {
+      if (isClosedStage(task.stage)) {
         return false;
       }
       // Visible if the task is involved in any active blocking relationship,
@@ -576,26 +646,26 @@ export class FtApp extends LitElement {
       for (const rel of task.relationships) {
         if (rel.type === RelationshipType.BLOCKED_BY) {
           const blocker = this.taskStore.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          if (blocker && !isClosedStage(blocker.stage)) {
             involved = true;
             break;
           }
         }
         if (rel.type === RelationshipType.BLOCKS) {
           const target = this.taskStore.getTask(rel.targetTaskId);
-          if (target && target.phase !== TaskPhase.CLOSED) {
+          if (target && !isClosedStage(target.stage)) {
             involved = true;
             break;
           }
         }
       }
       // Layer 0 = unblocked OPEN/IN_PROGRESS tasks (matches isReady() in getVisibleTasks)
-      if (!involved && (task.phase === TaskPhase.OPEN || task.phase === TaskPhase.IN_PROGRESS)) {
+      if (!involved && !isClosedStage(task.stage)) {
         let isBlocked = false;
         for (const rel of task.relationships) {
           if (rel.type !== RelationshipType.BLOCKED_BY) continue;
           const blocker = this.taskStore.getTask(rel.targetTaskId);
-          if (blocker && blocker.phase !== TaskPhase.CLOSED) {
+          if (blocker && !isClosedStage(blocker.stage)) {
             isBlocked = true;
             break;
           }
@@ -605,12 +675,22 @@ export class FtApp extends LitElement {
       return involved;
     }
 
-    // Task must pass the active phase + assignee filters.
-    if (!matchesTaskFilters(task, this.phaseFilter, this.assigneeFilter)) {
+    // Task must pass the active state + assignee filters.
+    if (
+      !matchesTaskFilters(
+        task,
+        this.groupFilter,
+        this.stageFilter,
+        this.holdReasonFilter,
+        this.availabilityFilter,
+        this.assigneeFilter,
+        this.taskStore,
+      )
+    ) {
       return false;
     }
 
-    // Ready-queue only shows tasks that the Phase 1 availability model marks available.
+    // Available queue only shows tasks that the server availability model marks available.
     if (this.currentView === 'ready-queue') {
       return isReady(task, this.taskStore);
     }
@@ -753,16 +833,39 @@ export class FtApp extends LitElement {
 
     let message: string;
 
-    if (/permission|403|forbidden/i.test(raw)) {
+    // A GitHub-specific diagnosis needs positive evidence that GitHub was
+    // involved. GitHub is not the default explanation for a permission-shaped
+    // error: Farm Table's own authorization (task:accept / task:claim / close
+    // scopes) and its hold and availability gates reject writes with the same
+    // vocabulary. Without evidence, the generic branch shows the real server
+    // reason — a truthful generic message beats a confident wrong one.
+    const mentionsGitHub = /github/i.test(raw);
+
+    if (isServerRejection(error)) {
+      // The rejection reached us from the Farm Table server, but it may have
+      // originated in a platform adapter (a GitHub 403 relayed as
+      // PermissionDenied whose text never says "github" lands here). Naming
+      // either culprit would be a guess, so report the reason, not the culprit.
+      message = `The change was rejected: ${raw}`;
+    } else if (mentionsGitHub && /permission|403|forbidden/i.test(raw)) {
       message = 'GitHub rejected this edit — your token may not have write access';
     } else if (/rate.?limit|429|too many requests/i.test(raw)) {
-      message = 'GitHub rate limit reached — please wait before making more edits';
+      // Rate limiting names no credential, so the neutral form is still
+      // truthful and keeps the actionable advice when the source is unknown.
+      message = mentionsGitHub
+        ? 'GitHub rate limit reached — please wait before making more edits'
+        : 'Rate limit reached — please wait before making more edits';
     } else if (/network|fetch|ECONNREFUSED|unavailable|deadline/i.test(raw)) {
       message = 'Could not reach the server — your change will retry on the next sync';
     } else {
       message = `Failed to save changes: ${raw}`;
     }
 
+    this.showErrorToast(message);
+  }
+
+  /** Render a message as a danger toast. */
+  private showErrorToast(message: string) {
     const alert = Object.assign(document.createElement('sl-alert'), {
       variant: 'danger',
       closable: true,
@@ -777,7 +880,15 @@ export class FtApp extends LitElement {
   }
 
   private onWriteError(e: CustomEvent) {
-    this.showWriteError(e.detail.error);
+    // Views may report a client-side refusal (`message`) instead of a failed
+    // server write (`error`); both surface on the same toast channel so a
+    // rejected edit is never a silent no-op.
+    const detail = e.detail as { error?: unknown; message?: string };
+    if (detail.message) {
+      this.showErrorToast(detail.message);
+      return;
+    }
+    this.showWriteError(detail.error);
   }
 
   private onIsolateToggle(e: CustomEvent) {
@@ -882,7 +993,10 @@ export class FtApp extends LitElement {
     this.stopStream();
     this.stopPolling();
     this.taskStore.removeEventListener('snapshot-complete', this.onSnapshotComplete);
-    this.phaseFilter = null;
+    this.groupFilter = null;
+    this.stageFilter = null;
+    this.holdReasonFilter = null;
+    this.availabilityFilter = null;
     this.assigneeFilter = null;
     this.currentCollectionId = collectionId;
     this.client = createGrpcFarmTableClientWithOptions({

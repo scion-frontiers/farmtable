@@ -18,7 +18,7 @@ export class FtConnectionBadge extends LitElement {
     }
     .dot.green { background: var(--ft-stage-completed, #22c55e); }
     .dot.yellow { background: var(--ft-priority-high, #f97316); }
-    .dot.red { background: var(--ft-stage-blocked, #ef4444); }
+    .dot.red { background: var(--sl-color-danger-600, #ef4444); }
     .label {
       font-size: 0.8rem;
       color: var(--sl-color-neutral-500);

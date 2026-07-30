@@ -1,10 +1,25 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { Platform, TaskPhase, type Collection, type User } from '../gen/types.js';
+import {
+  AvailabilityReason,
+  Platform,
+  TaskHoldReason,
+  TaskStage,
+  type Collection,
+  type User,
+} from '../gen/types.js';
 import { platformLabel } from '../util/platform-label.js';
 import type { FarmTableServiceClient } from '../gen/service.js';
 import type { ConnectionStatus } from '../store/stream-manager.js';
 import { UNASSIGNED_FILTER_VALUE, type TaskFilterChangeDetail } from './task-filters.js';
+import type { AvailabilityFilter, TaskGroupFilter } from '../util/task-state-utils.js';
+import {
+  ATTENTION,
+  AVAILABILITY_REASON_LABEL,
+  HOLD_REASON_LABEL,
+  NATIVE_STAGE_OPTIONS,
+  STAGE_LABEL,
+} from '../util/task-state-utils.js';
 import type { FtCollectionPicker } from './ft-collection-picker.js';
 import './ft-collection-picker.js';
 import './ft-new-collection-dialog.js';
@@ -30,12 +45,27 @@ type ImportCollectionDialog = HTMLElement & {
   close(): void;
 };
 
-// UNSPECIFIED is the protobuf default, not a user-selectable task phase.
-const PHASE_OPTIONS = [
-  { value: TaskPhase.OPEN, label: 'Open' },
-  { value: TaskPhase.IN_PROGRESS, label: 'In Progress' },
-  { value: TaskPhase.ON_HOLD, label: 'On Hold' },
-  { value: TaskPhase.CLOSED, label: 'Closed' },
+const GROUP_OPTIONS: { value: TaskGroupFilter; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'closed', label: 'Closed' },
+] as const;
+
+const HOLD_REASON_OPTIONS = [
+  TaskHoldReason.WAITING_FOR_INPUT,
+  TaskHoldReason.DEFERRED,
+] as const;
+
+const AVAILABILITY_OPTIONS: { value: AvailabilityFilter; label: string }[] = [
+  { value: 'available', label: 'Available' },
+  { value: 'unavailable', label: 'Unavailable' },
+  { value: AvailabilityReason.TRIAGE, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.TRIAGE] },
+  { value: AvailabilityReason.HELD, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.HELD] },
+  { value: AvailabilityReason.BLOCKED_BY_DEPENDENCY, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.BLOCKED_BY_DEPENDENCY] },
+  // Sits directly under the reason it narrows: attention tasks are the subset
+  // of dependency-blocked tasks whose blocker will never close successfully.
+  { value: 'attention', label: ATTENTION.label },
+  { value: AvailabilityReason.FUTURE_START_DATE, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.FUTURE_START_DATE] },
+  { value: AvailabilityReason.TERMINAL, label: AVAILABILITY_REASON_LABEL[AvailabilityReason.TERMINAL] },
 ] as const;
 
 @customElement('ft-toolbar')
@@ -177,7 +207,16 @@ export class FtToolbar extends LitElement {
   externalWritable = false;
 
   @property({ attribute: false })
-  phaseFilter: TaskPhase | null = null;
+  groupFilter: TaskGroupFilter | null = null;
+
+  @property({ attribute: false })
+  stageFilter: TaskStage | null = null;
+
+  @property({ attribute: false })
+  holdReasonFilter: TaskHoldReason | null = null;
+
+  @property({ attribute: false })
+  availabilityFilter: AvailabilityFilter | null = null;
 
   @property({ attribute: false })
   assigneeFilter: string | null = null;
@@ -292,15 +331,63 @@ export class FtToolbar extends LitElement {
 
       <div class="filters">
         <sl-select
-          placeholder="Phase"
+          placeholder="Group"
           size="small"
           clearable
           hoist
-          value=${this.phaseFilter === null ? '' : String(this.phaseFilter)}
+          value=${this.groupFilter ?? ''}
           ?disabled=${filtersDisabled}
-          @sl-change=${this.onPhaseFilterChange}
+          @sl-change=${this.onGroupFilterChange}
         >
-          ${PHASE_OPTIONS.map(
+          ${GROUP_OPTIONS.map(
+            (option) => html`
+              <sl-option value=${option.value}>${option.label}</sl-option>
+            `,
+          )}
+        </sl-select>
+
+        <sl-select
+          placeholder="Stage"
+          size="small"
+          clearable
+          hoist
+          value=${this.stageFilter === null ? '' : String(this.stageFilter)}
+          ?disabled=${filtersDisabled}
+          @sl-change=${this.onStageFilterChange}
+        >
+          ${NATIVE_STAGE_OPTIONS.map(
+            (stage) => html`
+              <sl-option value=${String(stage)}>${STAGE_LABEL[stage]}</sl-option>
+            `,
+          )}
+        </sl-select>
+
+        <sl-select
+          placeholder="Hold"
+          size="small"
+          clearable
+          hoist
+          value=${this.holdReasonFilter === null ? '' : String(this.holdReasonFilter)}
+          ?disabled=${filtersDisabled}
+          @sl-change=${this.onHoldReasonFilterChange}
+        >
+          ${HOLD_REASON_OPTIONS.map(
+            (reason) => html`
+              <sl-option value=${String(reason)}>${HOLD_REASON_LABEL[reason]}</sl-option>
+            `,
+          )}
+        </sl-select>
+
+        <sl-select
+          placeholder="Availability"
+          size="small"
+          clearable
+          hoist
+          value=${this.availabilityFilter === null ? '' : String(this.availabilityFilter)}
+          ?disabled=${filtersDisabled}
+          @sl-change=${this.onAvailabilityFilterChange}
+        >
+          ${AVAILABILITY_OPTIONS.map(
             (option) => html`
               <sl-option value=${String(option.value)}>${option.label}</sl-option>
             `,
@@ -648,10 +735,46 @@ export class FtToolbar extends LitElement {
     }
   }
 
-  private onPhaseFilterChange(e: Event) {
+  private onGroupFilterChange(e: Event) {
     const value = this.selectValue(e);
     this.dispatchFilterChange({
-      phase: value ? Number(value) as TaskPhase : null,
+      group: value ? value as TaskGroupFilter : null,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private onStageFilterChange(e: Event) {
+    const value = this.selectValue(e);
+    this.dispatchFilterChange({
+      group: this.groupFilter,
+      stage: value ? Number(value) as TaskStage : null,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private onHoldReasonFilterChange(e: Event) {
+    const value = this.selectValue(e);
+    this.dispatchFilterChange({
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: value ? Number(value) as TaskHoldReason : null,
+      availability: this.availabilityFilter,
+      assigneeId: this.assigneeFilter,
+    });
+  }
+
+  private onAvailabilityFilterChange(e: Event) {
+    const value = this.selectValue(e);
+    this.dispatchFilterChange({
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: this.parseAvailabilityFilter(value),
       assigneeId: this.assigneeFilter,
     });
   }
@@ -659,7 +782,10 @@ export class FtToolbar extends LitElement {
   private onAssigneeFilterChange(e: Event) {
     const value = this.selectValue(e);
     this.dispatchFilterChange({
-      phase: this.phaseFilter,
+      group: this.groupFilter,
+      stage: this.stageFilter,
+      holdReason: this.holdReasonFilter,
+      availability: this.availabilityFilter,
       assigneeId: value || null,
     });
   }
@@ -677,6 +803,12 @@ export class FtToolbar extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private parseAvailabilityFilter(value: string): AvailabilityFilter | null {
+    if (!value) return null;
+    if (value === 'available' || value === 'unavailable' || value === 'attention') return value;
+    return Number(value) as AvailabilityReason;
   }
 
   private onShortcutHelpClick() {
