@@ -5,11 +5,11 @@ import { safeHref } from '../src/util/safe-url.js';
  * Interface contract with dev-p2-fixes:
  *
  *   web/src/util/safe-url.ts
- *   export function safeHref(raw: string | null | undefined): string | null
+ *   export function safeHref(raw: string | null | undefined): string | undefined
  *
  * - https: is always allowed
  * - http: is allowed only for localhost / 127.0.0.1, and only in a DEV build
- * - everything else returns null
+ * - everything else returns undefined
  *
  * The loopback cases below pass because Vitest runs with `import.meta.env.DEV`
  * true. They are the *development* contract, not the production one: a
@@ -24,23 +24,23 @@ import { safeHref } from '../src/util/safe-url.js';
  * `test/ft-inspector-meta.safe-url.test.ts` and does not depend on this module.
  */
 
-const cases: { input: string | null | undefined; expected: string | null }[] = [
+const cases: { input: string | null | undefined; expected: string | undefined }[] = [
   { input: 'https://example.com/a', expected: 'https://example.com/a' },
   { input: 'https://github.com/acme/repo/issues/7', expected: 'https://github.com/acme/repo/issues/7' },
   { input: 'http://localhost:3000/a', expected: 'http://localhost:3000/a' },
   { input: 'http://127.0.0.1:3000/a', expected: 'http://127.0.0.1:3000/a' },
-  { input: 'http://example.com/a', expected: null },
-  { input: 'javascript:alert(1)', expected: null },
-  { input: 'JAVASCRIPT:alert(1)', expected: null },
-  { input: ' javascript:alert(1) ', expected: null },
-  { input: 'data:text/html,<script>alert(1)</script>', expected: null },
-  { input: 'vbscript:msgbox(1)', expected: null },
-  { input: 'file:///etc/passwd', expected: null },
-  { input: '/relative/path', expected: null },
-  { input: 'not a url', expected: null },
-  { input: '', expected: null },
-  { input: null, expected: null },
-  { input: undefined, expected: null },
+  { input: 'http://example.com/a', expected: undefined },
+  { input: 'javascript:alert(1)', expected: undefined },
+  { input: 'JAVASCRIPT:alert(1)', expected: undefined },
+  { input: ' javascript:alert(1) ', expected: undefined },
+  { input: 'data:text/html,<script>alert(1)</script>', expected: undefined },
+  { input: 'vbscript:msgbox(1)', expected: undefined },
+  { input: 'file:///etc/passwd', expected: undefined },
+  { input: '/relative/path', expected: undefined },
+  { input: 'not a url', expected: undefined },
+  { input: '', expected: undefined },
+  { input: null, expected: undefined },
+  { input: undefined, expected: undefined },
 ];
 
 describe('safeHref', () => {
@@ -53,7 +53,7 @@ describe('safeHref', () => {
   /**
    * The conditional body is the point of the test, so the loop has to be
    * stopped from proving nothing: if `safeHref` regressed to always
-   * returning `null`, every `if` would be skipped and this would pass having
+   * returning `undefined`, every `if` would be skipped and this would pass having
    * executed zero assertions. Pinning the exact accepted count fails both ways
    * — an over-permissive change and a fail-closed one.
    */
@@ -61,9 +61,9 @@ describe('safeHref', () => {
     expect.hasAssertions();
     const accepted = cases
       .map((testCase) => safeHref(testCase.input))
-      .filter((result): result is string => result !== null);
+      .filter((result): result is string => result !== undefined);
 
-    expect(accepted).toHaveLength(cases.filter((testCase) => testCase.expected !== null).length);
+    expect(accepted).toHaveLength(cases.filter((testCase) => testCase.expected !== undefined).length);
     expect(accepted.length).toBeGreaterThan(0);
     for (const result of accepted) {
       expect(result).toMatch(/^https?:\/\//);

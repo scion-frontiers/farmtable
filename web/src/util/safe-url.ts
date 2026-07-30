@@ -113,6 +113,10 @@ export const SAFE_SCHEMES: ReadonlySet<string> = new Set(['http:', 'https:']);
  * normalises its input (it strips tab/newline characters, lowercases the host
  * and can percent-encode), and we only want to make a keep/reject decision here,
  * not to rewrite what the user stored.
+ *
+ * @returns The original `raw` string if safe, otherwise `undefined`. Rejection
+ * is signalled by `undefined`, NOT by `null` — callers must check against
+ * `undefined` specifically. Loose `!= null` or `!== null` checks will fail open.
  */
 export function safeHref(raw: string | null | undefined): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;
