@@ -3,6 +3,11 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
+# safe-url.test.ts walks up from web/src looking for go.mod to locate the repo
+# root, then reads testdata/url-scheme-cases.json (the shared Go/JS fixture).
+# Both must be present for npm test to pass inside this stage.
+COPY go.mod /app/go.mod
+COPY testdata/ /app/testdata/
 # ARTEFACT: THIS IS THE PRODUCTION IMAGE. The live service is built and
 # deployed from this file (`-f Dockerfile.server`, binary farmtable-server).
 #

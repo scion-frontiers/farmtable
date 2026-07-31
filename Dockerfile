@@ -3,6 +3,11 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
+# safe-url.test.ts walks up from web/src looking for go.mod to locate the repo
+# root, then reads testdata/url-scheme-cases.json (the shared Go/JS fixture).
+# Both must be present for npm test to pass inside this stage.
+COPY go.mod /app/go.mod
+COPY testdata/ /app/testdata/
 # `npm test` runs web/scripts/run-node-tests.mjs, which DISCOVERS every
 # src/**/*.{test,spec}.{ts,tsx} rather than running a hardcoded list, so the
 # URL-binding guard does execute here and a red guard does fail this image.
