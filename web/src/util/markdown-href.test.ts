@@ -586,6 +586,14 @@ function testHrefOnNonAnchorElementsIsPoliced(): void {
  * returns the correct answer for this URL and always did. It was in `LINK_ATTRS`
  * being a LIST, and a list is only as current as its last measurement.
  *
+ * C89 / ISSUE #195 CHANGE: `<form>` and `<button>` are now stripped entirely
+ * by FORBID_TAGS. The afterSanitizeAttributes hook on `action` is STILL IN
+ * PLACE and would police any form that somehow survived, but FORBID_TAGS fires
+ * first and removes the element. This test now verifies that the form element
+ * is GONE and the credential-bearing URL reaches no attribute in the output.
+ * The label text survives because DOMPurify preserves text content of stripped
+ * tags.
+ *
  * MEASURED NEGATIVE, so the arm is not wider than its evidence: `formaction` on
  * `<input>` and on `<button>` is STRIPPED by DOMPurify's own defaults before any
  * hook runs, on this version. It is therefore not pinned here -- pinning
@@ -597,41 +605,39 @@ function testFormActionIsPoliced(): void {
   const refusedHtml = renderMarkdown(
     `<form action="${cred}"><button>View pull request #482</button></form>`,
   );
+
+  // C89: <form> is now stripped by FORBID_TAGS, so the element is gone entirely.
   const form = parse(refusedHtml).querySelector('form');
-  assert(form !== null, 'the <form> element did not survive sanitising at all');
-  assertEqual(form!.getAttribute('action'), null, 'a credential-bearing form action survived');
+  assertEqual(form, null, 'the <form> element survived despite FORBID_TAGS');
+  assertEqual(
+    parse(refusedHtml).querySelector('button'),
+    null,
+    'the <button> element survived despite FORBID_TAGS',
+  );
   assert(
     !attributeValues(refusedHtml).some((v) => v.includes('evil.example')),
-    `the rejected address survived in an attribute on a form: ${refusedHtml}`,
+    `the rejected address survived in an attribute: ${refusedHtml}`,
   );
   assert(
     refusedHtml.includes('View pull request #482'),
-    `Option B keeps the control's own label, and it was lost: ${refusedHtml}`,
+    `the label text was lost when the form was stripped: ${refusedHtml}`,
   );
 
-  // POST is the same policy. Without this row the arm would pass on a hook that
-  // only policed GET forms, which is a distinction the URL policy does not make.
-  const post = parse(
-    renderMarkdown(`<form action="${cred}" method="post"><button>Go</button></form>`),
-  ).querySelector('form');
-  assertEqual(post!.getAttribute('action'), null, 'a credential-bearing POST action survived');
-
-  // POSITIVE ARM. An ordinary form action is untouched, so this cannot pass by
-  // stripping every action attribute.
-  const keptHtml = renderMarkdown('<form action="https://example.com/search"><button>Go</button></form>');
-  const kept = parse(keptHtml).querySelector('form');
-  assert(kept !== null, 'the <form> element did not survive sanitising at all');
+  // POST form: also stripped.
+  const postHtml = renderMarkdown(
+    `<form action="${cred}" method="post"><button>Go</button></form>`,
+  );
   assertEqual(
-    kept!.getAttribute('action'),
-    'https://example.com/search',
-    'a legitimate form action was removed',
+    parse(postHtml).querySelector('form'),
+    null,
+    'a POST form survived despite FORBID_TAGS',
   );
 
-  // And a same-origin action, which the resolution carve-out must keep.
-  const relative = parse(
-    renderMarkdown('<form action="/tasks/search"><button>Go</button></form>'),
-  ).querySelector('form');
-  assertEqual(relative!.getAttribute('action'), '/tasks/search', 'a same-origin action was refused');
+  // POSITIVE ARM. A <div> with a data attribute DOES survive, proving the
+  // instrument is alive and FORBID_TAGS is selective rather than total.
+  const positiveHtml = renderMarkdown('<div data-testid="alive"><p>content</p></div>');
+  const positiveDiv = parse(positiveHtml).querySelector('div');
+  assert(positiveDiv !== null, 'a <div> must survive (positive control for FORBID_TAGS)');
 }
 
 /**

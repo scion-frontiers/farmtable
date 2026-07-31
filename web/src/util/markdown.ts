@@ -291,6 +291,147 @@ purify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
+/**
+ * C89 / ISSUE #195: FORBID_TAGS AND FORBID_ATTR, per owner ruling.
+ *
+ * Owner ruling 2026-07-30T19:02:32Z, verbatim: "conforming to a similar set of
+ * expectations as on github is a good default for questions like this." That
+ * resolves both the form-control vector and the style-attribute overlay vector.
+ *
+ * FORBID_TAGS is a DENYLIST. It names six spellings of the hazard. An element
+ * not on this list -- or a future DOMPurify default, or an SVG/MathML element
+ * nobody listed -- can comply exactly and still put an interactive control on
+ * the page. GitHub, by contrast, uses an ALLOWLIST of permitted tags. The cost
+ * of migrating to an allowlist is measured in the C89 report
+ * (reports/c89-fix.md, deliverable 3) but is NOT implemented here: regression
+ * risk on existing rendered content is real and unmeasured.
+ *
+ * MEASURED, VERBATIM, BEFORE THIS CHANGE (DOMPurify 3.x defaults, no config):
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request #482</button></form>
+ *   survived as: <form><button>View pull request #482</button></form>
+ *   The afterSanitizeAttributes hook stripped `action`, but the <form> and
+ *   <button> elements survived as interactive controls on a trusted origin.
+ *
+ *   <input type="text" placeholder="Enter password">
+ *   survived as: <input type="text" placeholder="Enter password">
+ *
+ *   <select><option value="a">A</option><option value="b">B</option></select>
+ *   survived as: <p><select><option value="a">A</option><option value="b">B</option></select></p>
+ *
+ *   <textarea>Enter credentials</textarea>
+ *   survived as: <textarea>Enter credentials</textarea>
+ *
+ *   <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999">FAKE LOGIN</div>
+ *   survived as: <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999">FAKE LOGIN</div>
+ *   The style attribute survived verbatim, permitting attacker-controlled CSS
+ *   overlays over real UI.
+ *
+ * MEASURED, VERBATIM, AFTER THIS CHANGE (with FORBID_TAGS and FORBID_ATTR):
+ *
+ *   <form action="https://github.com@evil.example/"><button>View pull request #482</button></form>
+ *   survived as: View pull request #482
+ *   The <form> and <button> tags are stripped; text content is preserved.
+ *
+ *   <input type="text" placeholder="Enter password">
+ *   survived as: (empty string)
+ *   The <input> is stripped (void element, no text content to preserve).
+ *
+ *   <select><option value="a">A</option><option value="b">B</option></select>
+ *   survived as: <p>AB</p>
+ *   Tags stripped; text content of options preserved.
+ *
+ *   <textarea>Enter credentials</textarea>
+ *   survived as: Enter credentials
+ *   Tag stripped; text content preserved.
+ *
+ *   <div style="position:fixed;...">FAKE LOGIN</div>
+ *   survived as: <div>FAKE LOGIN</div>
+ *   The style attribute is stripped; the <div> and its text survive.
+ *
+ * MEASURED NEGATIVE: `formaction` on `<button>` is STILL stripped by
+ * DOMPurify's own defaults before FORBID_TAGS fires, confirming the
+ * existing negative documented in the LINK_ATTRS docblock above. With
+ * FORBID_TAGS now stripping <button> itself, this is doubly unreachable.
+ *
+ * POSITIVE CONTROL for style stripping: `class` attribute on the same
+ * element survives. Measured: <div class="info-box" style="color:red">text</div>
+ * produces <div class="info-box">text</div>. The class attribute is present
+ * (positive control alive); the style attribute is absent (refusal effective).
+ *
+ * WHY `input` IS NOT IN FORBID_TAGS (round 2 of this change). GFM task-list
+ * syntax (`- [ ]`, `- [x]`) renders via `marked` as
+ * `<input type="checkbox" disabled>`. A blanket `input` in FORBID_TAGS strips
+ * those checkboxes, breaking a documented content pattern (mock data in
+ * web/src/gen/service.ts:400 contains task lists). GitHub RENDERS task-list
+ * checkboxes; a GitHub-conforming sanitiser must too.
+ *
+ * Instead, a `uponSanitizeElement` hook below strips `<input>` elements UNLESS
+ * `type="checkbox"` AND `disabled` is present. This preserves the security
+ * property for interactive inputs (text, password, submit, hidden, etc.) while
+ * keeping the read-only display checkbox that GFM task lists produce.
+ *
+ * WHAT STILL REACHES THE PAGE THROUGH THIS GATE:
+ *   <input type="checkbox" disabled>         — unchecked task-list item
+ *   <input type="checkbox" disabled checked> — checked task-list item
+ * Both are read-only (disabled prevents interaction), non-submittable (no
+ * form to submit to — <form> is in FORBID_TAGS), and carry no credential
+ * or phishing risk. DOMPurify's attribute sanitisation strips event handlers
+ * (onclick etc.) and FORBID_ATTR strips `style` on surviving elements.
+ *
+ * WHAT DOES NOT REACH THE PAGE (measured):
+ *   <input type="text" placeholder="Enter password">  — stripped (not checkbox)
+ *   <input type="password">                            — stripped (not checkbox)
+ *   <input type="submit" value="Go">                   — stripped (not checkbox)
+ *   <input type="hidden" name="x" value="y">           — stripped (not checkbox)
+ *   <input type="checkbox">                            — stripped (no disabled)
+ *   <input>                                            — stripped (no type, no disabled)
+ *
+ * The distinction is: `type="checkbox"` AND `disabled`. Both conditions are
+ * required. A checkbox without `disabled` is interactive (can be toggled) and
+ * is stripped. An input with `disabled` but a non-checkbox type is a
+ * non-display form control and is stripped. Only the read-only display
+ * checkbox survives — the exact element GFM task lists produce.
+ *
+ * ATTACKER-INJECTED `<input type="checkbox" disabled>` IN RAW HTML also
+ * survives this gate. This is the same element shape as a task-list checkbox
+ * and carries the same (negligible) risk: a disabled, read-only, formless
+ * checkbox. Distinguishing the source (marked's parser vs raw HTML) is not
+ * possible at this layer, and the security property does not require it.
+ */
+
+/**
+ * SELECTIVE INPUT STRIPPING: all inputs except task-list checkboxes.
+ *
+ * This hook fires before DOMPurify's own allow/forbid decision. When it
+ * detaches a node from its parent, DOMPurify recognises the detachment
+ * (purify.cjs.js line 1681) and treats the element as removed.
+ *
+ * ORDER OF OPERATIONS:
+ *   1. uponSanitizeElement hook (this) — strips non-checkbox inputs
+ *   2. FORBID_TAGS check — strips form, button, select, textarea, option
+ *   3. Attribute sanitisation — DOMPurify defaults + FORBID_ATTR + afterSanitizeAttributes hook
+ *
+ * A surviving checkbox input goes through steps 2 (passes — not in
+ * FORBID_TAGS) and 3 (DOMPurify strips event handlers; FORBID_ATTR strips
+ * style; afterSanitizeAttributes polices LINK_ATTRS, none of which apply to
+ * input). The element that reaches the output has only type, disabled,
+ * and optionally checked.
+ */
+purify.addHook('uponSanitizeElement', (node, data) => {
+  if (data.tagName === 'input') {
+    const el = node as unknown as Element;
+    const isTaskListCheckbox =
+      el.getAttribute('type') === 'checkbox' && el.hasAttribute('disabled');
+    if (!isTaskListCheckbox) {
+      node.parentNode?.removeChild(node);
+    }
+  }
+});
+
 export function renderMarkdown(md: string): string {
-  return purify.sanitize(marked.parse(md) as string);
+  return purify.sanitize(marked.parse(md) as string, {
+    FORBID_TAGS: ['form', 'button', 'select', 'textarea', 'option'],
+    FORBID_ATTR: ['style'],
+  });
 }
