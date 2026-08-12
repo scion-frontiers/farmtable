@@ -434,6 +434,36 @@ func TestRPC_ImportCollection_MigratesOldTaskStatesWithNotes(t *testing.T) {
 	}
 }
 
+func TestRPC_ImportCollection_MigrationAuthorUserIsIdempotent(t *testing.T) {
+	client, _, cleanup := newExportImportTestServer(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	taskDoc := map[string]interface{}{
+		"id":            uuid.New().String(),
+		"title":         "old ready task",
+		"description":   "",
+		"phase":         "open",
+		"stage":         "ready",
+		"native_label":  "ready",
+		"type":          "",
+		"labels":        []string{},
+		"repo":          "",
+		"branch":        "",
+		"pull_requests": []map[string]string{},
+		"remote_data":   map[string]interface{}{},
+	}
+	doc := minimalImportDoc("repeat migration import", nil, []map[string]interface{}{taskDoc}, nil, nil, nil)
+	data, _ := json.Marshal(doc)
+
+	if _, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data, Name: strPtr("repeat migration import 1")}); err != nil {
+		t.Fatalf("first ImportCollection: %v", err)
+	}
+	if _, err := client.ImportCollection(ctx, &pb.ImportCollectionRequest{Data: data, Name: strPtr("repeat migration import 2")}); err != nil {
+		t.Fatalf("second ImportCollection: %v", err)
+	}
+}
+
 func TestRPC_ImportCollection_FormatV2RejectsRemovedNativeStages(t *testing.T) {
 	client, _, cleanup := newExportImportTestServer(t)
 	defer cleanup()

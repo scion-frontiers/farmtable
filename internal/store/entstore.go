@@ -2106,6 +2106,13 @@ func (s *EntStore) ImportCollection(ctx context.Context, p ImportCollectionParam
 	defer tx.Rollback()
 
 	for _, imported := range p.Users {
+		exists, err := tx.User.Query().Where(user.IDEQ(imported.ID)).Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("checking imported user %s: %w", imported.ID, err)
+		}
+		if exists {
+			continue
+		}
 		create := tx.User.Create().
 			SetID(imported.ID).
 			SetDisplayName(imported.DisplayName).
