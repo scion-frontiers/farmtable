@@ -1,14 +1,18 @@
 import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { Task } from '../../gen/types.js';
-import { TaskPriority } from '../../gen/types.js';
+import { TaskPriority, TaskStage } from '../../gen/types.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 import { PRIORITY_VARIANT, PRIORITY_LABEL } from '../../util/priority-utils.js';
 import {
+  CLOSED_STAGE_OPTIONS,
+  NATIVE_STAGE_OPTIONS,
+  acceptsStageDrop,
   availabilityLabel,
   holdReasonLabel,
+  requiresCloseReason,
   STAGE_COLOR,
   STAGE_LABEL,
 } from '../../util/task-state-utils.js';
@@ -51,6 +55,18 @@ export class FtInspectorHeader extends LitElement {
       font-weight: 500;
       color: #fff;
     }
+    .stage-button {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .stage-button:focus-visible {
+      outline: 2px solid var(--sl-color-primary-500);
+      outline-offset: 2px;
+      border-radius: 999px;
+    }
     .priority-button {
       border: 0;
       background: transparent;
@@ -68,6 +84,11 @@ export class FtInspectorHeader extends LitElement {
       --sl-input-height-small: 1.5rem;
       --sl-input-font-size-small: 0.75rem;
     }
+    sl-select.stage-select {
+      width: 8.5rem;
+      --sl-input-height-small: 1.5rem;
+      --sl-input-font-size-small: 0.75rem;
+    }
   `,
   ];
 
@@ -82,6 +103,9 @@ export class FtInspectorHeader extends LitElement {
 
   @state()
   private isEditingPriority = false;
+
+  @state()
+  private isEditingStage = false;
 
   private prevTaskId = '';
 
@@ -112,6 +136,54 @@ export class FtInspectorHeader extends LitElement {
     select?.show?.();
   }
 
+  private async startStageEdit(e: Event) {
+    if (!this.canEditStage()) return;
+    e.stopPropagation();
+    this.isEditingStage = true;
+    await this.updateComplete;
+    const select = this.renderRoot.querySelector<HTMLElement & { focus: () => void; show?: () => void }>(
+      'sl-select.stage-select',
+    );
+    select?.focus();
+    select?.show?.();
+  }
+
+  private onStageChange(e: Event) {
+    e.stopPropagation();
+    const raw = Number((e.currentTarget as Element & { value: string }).value);
+    if (Number.isNaN(raw)) return;
+
+    const nextStage = raw as TaskStage;
+    this.isEditingStage = false;
+
+    if (nextStage === this.task.stage || !this.stageOptions().includes(nextStage)) return;
+
+    if (requiresCloseReason(nextStage)) {
+      this.dispatchEvent(
+        new CustomEvent('stage-close-request', {
+          detail: { taskId: this.task.id, stage: nextStage, stageLabel: STAGE_LABEL[nextStage] ?? 'Closed' },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      return;
+    }
+
+    this.dispatchTaskUpdate({ stage: nextStage });
+  }
+
+  private onStageBlur() {
+    this.isEditingStage = false;
+  }
+
+  private onStageKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.onStageBlur();
+    }
+  }
+
   private onPriorityChange(e: Event) {
     e.stopPropagation();
     const raw = Number((e.currentTarget as Element & { value: string }).value);
@@ -140,6 +212,7 @@ export class FtInspectorHeader extends LitElement {
 
   private resetEditState() {
     this.isEditingPriority = false;
+    this.isEditingStage = false;
   }
 
   private dispatchTaskUpdate(fields: UpdateTaskFields) {
@@ -174,6 +247,60 @@ export class FtInspectorHeader extends LitElement {
     `;
   }
 
+  private canEditStage(): boolean {
+    return !this.readOnly && this.capabilities?.canChangeStage !== false;
+  }
+
+  private stageOptions(): TaskStage[] {
+    return NATIVE_STAGE_OPTIONS.filter((stage) => {
+      if (!acceptsStageDrop(stage)) return false;
+      if (this.capabilities?.canCloseTask === false && CLOSED_STAGE_OPTIONS.includes(stage as (typeof CLOSED_STAGE_OPTIONS)[number])) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  private renderStageEditor(stage: TaskStage) {
+    return html`
+      <sl-select
+        class="stage-select"
+        size="small"
+        value=${String(stage)}
+        hoist
+        @mousedown=${this.stopInspectorInteraction}
+        @click=${this.stopInspectorInteraction}
+        @keydown=${this.onStageKeyDown}
+        @sl-change=${this.onStageChange}
+        @sl-after-hide=${this.onStageBlur}
+      >
+        ${this.stageOptions().map(
+          (option) => html`
+            <sl-option value=${String(option)}>${STAGE_LABEL[option]}</sl-option>
+          `,
+        )}
+      </sl-select>
+    `;
+  }
+
+  private renderStageBadge(stageLabel: string, stageColor: string) {
+    const badge = html`<span class="stage-badge" style="background:${stageColor}">${stageLabel}</span>`;
+    if (!this.canEditStage()) return badge;
+
+    return html`
+      <button
+        class="stage-button"
+        type="button"
+        aria-label="Edit stage, current: ${stageLabel}"
+        title="Edit stage"
+        @mousedown=${this.stopInspectorInteraction}
+        @click=${this.startStageEdit}
+      >
+        ${badge}
+      </button>
+    `;
+  }
+
   private renderPriorityBadge(priorityLabel: string, priorityVariant: string) {
     return html`
       <button
@@ -202,7 +329,9 @@ export class FtInspectorHeader extends LitElement {
       <div class="title">${t.name}</div>
       <div class="badges">
         ${stageLabel
-          ? html`<span class="stage-badge" style="background:${stageColor}">${stageLabel}</span>`
+          ? this.isEditingStage
+            ? this.renderStageEditor(t.stage)
+            : this.renderStageBadge(stageLabel, stageColor)
           : nothing}
         ${holdLabel ? html`<sl-badge variant="warning">${holdLabel}</sl-badge>` : nothing}
         ${t.availability

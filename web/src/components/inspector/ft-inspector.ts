@@ -2,9 +2,12 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TaskStoreController } from '../../store/task-store-controller.js';
 import type { TaskStore } from '../../store/task-store.js';
-import type { FarmTableServiceClient } from '../../gen/service.js';
+import { phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
+import type { TaskStage } from '../../gen/types.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
+import '../kanban/ft-close-reason-dialog.js';
+import type { CloseReasonDetail, FtCloseReasonDialog } from '../kanban/ft-close-reason-dialog.js';
 
 @customElement('ft-inspector')
 export class FtInspector extends LitElement {
@@ -133,6 +136,44 @@ export class FtInspector extends LitElement {
     this.onClose();
   }
 
+  private async onStageCloseRequest(e: CustomEvent<{ taskId: string; stage: TaskStage; stageLabel: string }>) {
+    if (this.readOnly || this.capabilities?.canCloseTask === false) return;
+    const { taskId, stage, stageLabel } = e.detail;
+    const dialog = this.renderRoot.querySelector<FtCloseReasonDialog>('ft-close-reason-dialog');
+    await dialog?.showFor(taskId, stage, stageLabel);
+  }
+
+  private async onCloseReasonSubmit(e: CustomEvent<CloseReasonDetail>) {
+    const dialog = e.currentTarget as FtCloseReasonDialog;
+    const { taskId, stage, reason } = e.detail;
+    const task = this.store.getTask(taskId);
+    if (!task || this.readOnly || this.capabilities?.canCloseTask === false) {
+      dialog.close();
+      return;
+    }
+
+    this.store.upsert({ ...task, stage, phase: phaseForStage(stage) });
+    dialog.setClosing(true);
+
+    try {
+      if (!this.client) throw new Error('Not connected to the server');
+      const updated = await this.client.closeTask(taskId, { stage, reason });
+      this.store.upsert(updated);
+      dialog.close();
+    } catch (error) {
+      console.warn('Failed to close task; rolled back optimistic change', error);
+      this.store.upsert(task);
+      dialog.setError('Failed to close task. Please try again.');
+      this.dispatchEvent(new CustomEvent('write-error', {
+        bubbles: true,
+        composed: true,
+        detail: { error, reason: 'stage-change-failed' },
+      }));
+    } finally {
+      dialog.setClosing(false);
+    }
+  }
+
   render() {
     const task = this.store.getTask(this.taskId);
     if (!task) {
@@ -163,7 +204,12 @@ export class FtInspector extends LitElement {
         ></sl-icon-button>
       </div>
 
-      <ft-inspector-header .task=${task} ?readOnly=${this.readOnly} .capabilities=${this.capabilities}></ft-inspector-header>
+      <ft-inspector-header
+        .task=${task}
+        ?readOnly=${this.readOnly}
+        .capabilities=${this.capabilities}
+        @stage-close-request=${this.onStageCloseRequest}
+      ></ft-inspector-header>
 
       <sl-tab-group>
         <sl-tab slot="nav" panel="general" active>General</sl-tab>
@@ -230,6 +276,7 @@ export class FtInspector extends LitElement {
           ></ft-inspector-relationships>
         </sl-tab-panel>
       </sl-tab-group>
+      <ft-close-reason-dialog @close-reason-submit=${this.onCloseReasonSubmit}></ft-close-reason-dialog>
     `;
   }
 }
