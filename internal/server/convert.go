@@ -608,6 +608,15 @@ func taskToProto(t *ent.Task) *pb.Task {
 		}
 	}
 
+	sort.Slice(pt.Relationships, func(i, j int) bool {
+		left := pt.Relationships[i]
+		right := pt.Relationships[j]
+		if left.GetType() != right.GetType() {
+			return left.GetType() < right.GetType()
+		}
+		return left.GetTargetTaskId() < right.GetTargetTaskId()
+	})
+
 	return pt
 }
 
