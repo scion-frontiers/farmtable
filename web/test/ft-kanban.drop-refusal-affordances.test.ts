@@ -70,8 +70,8 @@ describe('ft-kanban-column — a refusing lane looks refusing before the drop', 
     },
     {
       label: 'the lane is an unsuccessful terminal stage',
-      props: { stage: TaskStage.WONT_FIX, label: "Won't Fix", tasks: [] },
-      hint: DROP_REFUSAL.terminalLaneHint("Won't Fix"),
+      props: { stage: TaskStage.DUPLICATE, label: 'Duplicate', tasks: [] },
+      hint: DROP_REFUSAL.terminalLaneHint('Duplicate'),
     },
   ];
 

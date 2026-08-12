@@ -260,14 +260,12 @@ describe('ft-app — the four write-error reasons are each surfaced', () => {
       reason: 'stage-change-refused',
       view: 'kanban',
       detail: {
-        // Was a hand-copied literal that had already drifted from production:
-        // a curly apostrophe where `STAGE_LABEL` uses a straight one, and the
-        // trailing "rather than by dragging" clause missing entirely. It only
-        // passed because `expected` is a loose substring match.
-        message: DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[TaskStage.WONT_FIX]),
+        // Duplicate is now the remaining terminal lane that refuses the drop
+        // before a write. Reason-only close stages ask for the missing reason.
+        message: DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[TaskStage.DUPLICATE]),
         reason: 'stage-change-refused',
       },
-      expected: /needs a reason/i,
+      expected: /needs more context/i,
     },
     {
       reason: 'stage-change-failed',

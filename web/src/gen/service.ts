@@ -46,6 +46,13 @@ export interface CreateTaskFields {
   stage?: TaskStage;
 }
 
+export interface CloseTaskFields {
+  stage?: TaskStage;
+  reason?: string;
+  duplicateOfTaskId?: string;
+  version?: string;
+}
+
 export interface FarmTableServiceClient {
   listCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection>;
@@ -57,6 +64,7 @@ export interface FarmTableServiceClient {
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
   updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
+  closeTask(id: string, fields: CloseTaskFields): Promise<Task>;
   addComment(taskId: string, body: string): Promise<Comment>;
   listComments(taskId: string): Promise<Comment[]>;
   listChanges(taskId: string): Promise<Change[]>;
@@ -524,6 +532,11 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     const updated: Task = { ...applied, phase: phaseForStage(applied.stage) };
     MOCK_TASKS[taskIndex] = updated;
     return updated;
+  }
+
+  async closeTask(id: string, fields: CloseTaskFields): Promise<Task> {
+    const stage = fields.stage ?? TaskStage.COMPLETED;
+    return this.updateTask(id, { stage, version: fields.version });
   }
 
   async listUsers(): Promise<User[]> {

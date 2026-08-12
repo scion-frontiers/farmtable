@@ -11,6 +11,7 @@ import {
   dropTaskOn,
   flush,
   mount,
+  queryDeep,
   queryAllDeep,
   settle,
 } from './helpers/dom.js';
@@ -103,6 +104,100 @@ describe('ft-kanban-view — stage mutation payload', () => {
     expect(store.getTask('t1')?.stage).toBe(TaskStage.IN_REVIEW);
     expect(laneContents(view).get(TaskStage.IN_REVIEW)).toEqual(['t1']);
     expect(laneContents(view).get(TaskStage.ACCEPTED)).toEqual([]);
+  });
+});
+
+describe("ft-kanban-view — reason-gated close lanes", () => {
+  function closeReasonDialog(view: Element): HTMLElement {
+    const dialog = queryDeep<HTMLElement>(view, 'ft-close-reason-dialog');
+    if (!dialog) throw new Error('no ft-close-reason-dialog rendered');
+    return dialog;
+  }
+
+  function dialogOpen(view: Element): boolean {
+    const dialog = closeReasonDialog(view).shadowRoot?.querySelector('sl-dialog');
+    return dialog?.hasAttribute('open') ?? false;
+  }
+
+  function reasonInput(view: Element): HTMLElement & { value: string } {
+    const input = closeReasonDialog(view).shadowRoot?.querySelector('sl-textarea[name="reason"]') as
+      | (HTMLElement & { value: string })
+      | null;
+    if (!input) throw new Error('no reason textarea rendered');
+    return input;
+  }
+
+  function submitReason(view: Element, reason: string) {
+    reasonInput(view).value = reason;
+    const form = closeReasonDialog(view).shadowRoot?.querySelector('form');
+    if (!form) throw new Error('no reason form rendered');
+    form.dispatchEvent(new Event('submit', { bubbles: true, composed: true, cancelable: true }));
+  }
+
+  it("opens a reason dialog when a card is dropped on Won't Fix", async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.TRIAGE }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WONT_FIX), 't1');
+    await flush();
+    await settle(view);
+
+    expect(dialogOpen(view)).toBe(true);
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.closeTaskCalls).toEqual([]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.TRIAGE);
+    expect(laneContents(view).get(TaskStage.TRIAGE)).toEqual(['t1']);
+  });
+
+  it("confirms Won't Fix through CloseTask with the chosen reason", async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.TRIAGE }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WONT_FIX), 't1');
+    await flush();
+    submitReason(view, 'No longer planned');
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.closeTaskCalls).toEqual([
+      { id: 't1', fields: { stage: TaskStage.WONT_FIX, reason: 'No longer planned' } },
+    ]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.WONT_FIX);
+    expect(laneContents(view).get(TaskStage.WONT_FIX)).toEqual(['t1']);
+  });
+
+  it('uses the same reason dialog path for Cancelled', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.CANCELLED), 't1');
+    await flush();
+    submitReason(view, 'No longer needed');
+    await flush();
+    await settle(view);
+
+    expect(client.closeTaskCalls).toEqual([
+      { id: 't1', fields: { stage: TaskStage.CANCELLED, reason: 'No longer needed' } },
+    ]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.CANCELLED);
+  });
+
+  it("keeps the card in its original lane when the Won't Fix dialog is cancelled", async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.TRIAGE }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WONT_FIX), 't1');
+    await flush();
+    const cancel = closeReasonDialog(view).shadowRoot?.querySelector('sl-button');
+    cancel?.dispatchEvent(new Event('click', { bubbles: true, composed: true }));
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.closeTaskCalls).toEqual([]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.TRIAGE);
+    expect(laneContents(view).get(TaskStage.TRIAGE)).toEqual(['t1']);
   });
 });
 
@@ -250,7 +345,7 @@ describe('ft-kanban-view — refusals must be visible', () => {
     const { view } = await mountBoard(store);
     const feedback = collectFeedback(document.body);
 
-    dropTaskOn(dropZoneFor(view, TaskStage.WONT_FIX), 't1');
+    dropTaskOn(dropZoneFor(view, TaskStage.DUPLICATE), 't1');
     await flush();
 
     expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-refused']);

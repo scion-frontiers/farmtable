@@ -139,14 +139,14 @@ describe('DROP_REFUSAL — the refusal vocabulary itself', () => {
   // NB the apostrophe in "Won't Fix" is a STRAIGHT quote, matching
   // `STAGE_LABEL`. The drifted literal this block replaces used a curly one.
   it('names the lane and points at the API, CLI, or MCP in the hover hint', () => {
-    expect(DROP_REFUSAL.terminalLaneHint(STAGE_LABEL[TaskStage.WONT_FIX])).toBe(
-      '“Won\'t Fix” is set through the API, CLI, or MCP — dragging here will not change the stage.',
+    expect(DROP_REFUSAL.terminalLaneHint(STAGE_LABEL[TaskStage.DUPLICATE])).toBe(
+      '“Duplicate” is set through the API, CLI, or MCP — dragging here will not change the stage.',
     );
   });
 
-  it('explains in the toast that the outcome needs a reason, not just that it failed', () => {
-    expect(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[TaskStage.WONT_FIX])).toBe(
-      '“Won\'t Fix” needs a reason, so it is set through the API, CLI, or MCP rather than by dragging.',
+  it('explains in the toast that the outcome needs more context, not just that it failed', () => {
+    expect(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[TaskStage.DUPLICATE])).toBe(
+      '“Duplicate” needs more context than a drag can provide, so it is set through the API, CLI, or MCP rather than by dragging.',
     );
   });
 

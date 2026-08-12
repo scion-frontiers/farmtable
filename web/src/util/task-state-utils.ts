@@ -89,13 +89,16 @@ export function isClosedStage(stage: TaskStage): boolean {
 /**
  * Whether a board lane accepts a drag-and-drop stage change.
  *
- * `wont_fix`, `duplicate` and `cancelled` carry semantics a drag gesture
- * cannot express (a reason, a duplicate target), so the board renders those
- * lanes — the stage filter needs a visible destination — but refuses drops
- * onto them. The refusal is surfaced to the user, never silent.
+ * `duplicate` needs a canonical replacement, which a drag gesture cannot
+ * express. Reason-only terminal stages can accept the gesture because the board
+ * asks for the missing reason before closing the task.
  */
 export function acceptsStageDrop(stage: TaskStage): boolean {
-  return !isClosedStage(stage) || stage === TaskStage.COMPLETED;
+  return stage !== TaskStage.DUPLICATE;
+}
+
+export function requiresCloseReason(stage: TaskStage): boolean {
+  return stage === TaskStage.WONT_FIX || stage === TaskStage.CANCELLED;
 }
 
 /**
@@ -121,7 +124,7 @@ export const DROP_REFUSAL = {
   terminalLaneHint: (label: string) =>
     `“${label}” is set through the API, CLI, or MCP — dragging here will not change the stage.`,
   terminalLaneToast: (label: string) =>
-    `“${label}” needs a reason, so it is set through the API, CLI, or MCP rather than by dragging.`,
+    `“${label}” needs more context than a drag can provide, so it is set through the API, CLI, or MCP rather than by dragging.`,
 
   // ── Queue reorder (ft-ready-queue-view) ──
   readOnlyQueue: 'This queue is read-only — the order is not saved.',

@@ -7,10 +7,12 @@ import type { Task } from '../../gen/types.js';
 import { applyTaskUpdateFields, phaseForStage, type FarmTableServiceClient } from '../../gen/service.js';
 import type { UpdateTaskFields } from '../../gen/service.js';
 import { matchesTaskFilters } from '../task-filters.js';
-import { acceptsStageDrop, DROP_REFUSAL, STAGE_LABEL } from '../../util/task-state-utils.js';
+import { acceptsStageDrop, DROP_REFUSAL, requiresCloseReason, STAGE_LABEL } from '../../util/task-state-utils.js';
 import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
+import './ft-close-reason-dialog.js';
+import type { CloseReasonDetail, FtCloseReasonDialog } from './ft-close-reason-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
 
 // TODO(test-coverage): Add component tests for the column-add-task event flow.
@@ -170,6 +172,16 @@ export class FtKanbanView extends LitElement {
       return;
     }
 
+    if (requiresCloseReason(stage)) {
+      if (this.capabilities?.canCloseTask === false) {
+        this.reportRefusal(DROP_REFUSAL.stageChangeUnsupported);
+        return;
+      }
+      const dialog = this.renderRoot.querySelector<FtCloseReasonDialog>('ft-close-reason-dialog');
+      await dialog?.showFor(taskId, stage, STAGE_LABEL[stage] ?? 'Closed');
+      return;
+    }
+
     // `phase` is a server-derived wire projection. It is computed here for the
     // optimistic store entry ONLY, so the card lands in the right lane
     // immediately; it is never included in an update payload and is replaced
@@ -222,6 +234,37 @@ export class FtKanbanView extends LitElement {
         composed: true,
         detail: { error },
       }));
+    }
+  }
+
+  private async onCloseReasonSubmit(e: CustomEvent<CloseReasonDetail>) {
+    const dialog = e.currentTarget as FtCloseReasonDialog;
+    const { taskId, stage, reason } = e.detail;
+    const task = this.store.getTask(taskId);
+    if (!task || this.readOnly || this.capabilities?.canCloseTask === false) {
+      dialog.close();
+      return;
+    }
+
+    this.store.upsert({ ...task, stage, phase: phaseForStage(stage) });
+    dialog.setClosing(true);
+
+    try {
+      if (!this.client) throw new Error('Not connected to the server');
+      const updated = await this.client.closeTask(taskId, { stage, reason });
+      this.store.upsert(updated);
+      dialog.close();
+    } catch (error) {
+      console.warn('Failed to close task; rolled back optimistic change', error);
+      this.store.upsert(task);
+      dialog.setError('Failed to close task. Please try again.');
+      this.dispatchEvent(new CustomEvent('write-error', {
+        bubbles: true,
+        composed: true,
+        detail: { error, reason: 'stage-change-failed' },
+      }));
+    } finally {
+      dialog.setClosing(false);
     }
   }
 
@@ -431,6 +474,7 @@ export class FtKanbanView extends LitElement {
       </div>
 
       <ft-add-task-dialog @task-create=${this.onTaskCreate}></ft-add-task-dialog>
+      <ft-close-reason-dialog @close-reason-submit=${this.onCloseReasonSubmit}></ft-close-reason-dialog>
     `;
   }
 }

@@ -10,6 +10,7 @@ import {
 } from '../../src/gen/types.js';
 import { TaskStore } from '../../src/store/task-store.js';
 import type {
+  CloseTaskFields,
   CreateTaskFields,
   FarmTableServiceClient,
   UpdateTaskFields,
@@ -59,6 +60,11 @@ export interface UpdateTaskCall {
   fields: UpdateTaskFields;
 }
 
+export interface CloseTaskCall {
+  id: string;
+  fields: CloseTaskFields;
+}
+
 /**
  * A `FarmTableServiceClient` that records every `updateTask()` call so tests
  * can assert on the exact wire payload the UI produces.
@@ -73,8 +79,10 @@ export interface UpdateTaskCall {
  */
 export class RecordingClient implements FarmTableServiceClient {
   readonly updateTaskCalls: UpdateTaskCall[] = [];
+  readonly closeTaskCalls: CloseTaskCall[] = [];
   readonly createTaskCalls: CreateTaskFields[] = [];
   rejectUpdateWith: Error | null = null;
+  rejectCloseWith: Error | null = null;
 
   constructor(private readonly source?: TaskStore) {}
 
@@ -124,6 +132,19 @@ export class RecordingClient implements FarmTableServiceClient {
     // The server keeps the wire-only phase projection consistent with stage.
     const echoed = { ...updated, phase: phaseForStage(updated.stage) };
     return this.updateTaskResponse ? this.updateTaskResponse(echoed, { id, fields }) : echoed;
+  }
+
+  async closeTask(id: string, fields: CloseTaskFields): Promise<Task> {
+    this.closeTaskCalls.push({ id, fields });
+    if (this.rejectCloseWith) throw this.rejectCloseWith;
+
+    const stage = fields.stage ?? TaskStage.COMPLETED;
+    const current = this.source?.getTask(id) ?? task({ id });
+    const updated = applyTaskUpdateFields(current, {
+      stage,
+      version: fields.version,
+    });
+    return { ...updated, phase: phaseForStage(updated.stage) };
   }
 
   /**

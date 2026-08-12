@@ -21,7 +21,7 @@ import {
   type User,
   SortOrder,
 } from './types.js';
-import type { CreateTaskFields, FarmTableServiceClient, UpdateTaskFields } from './service.js';
+import type { CloseTaskFields, CreateTaskFields, FarmTableServiceClient, UpdateTaskFields } from './service.js';
 
 export { GrpcError } from '../util/grpc-error.js';
 
@@ -114,6 +114,7 @@ const methods = {
   getTask: unaryMethod('GetTask', 'GetTaskRequest', 'GetTaskResponse'),
   createTask: unaryMethod('CreateTask', 'CreateTaskRequest', 'Task'),
   updateTask: unaryMethod('UpdateTask', 'UpdateTaskRequest', 'Task'),
+  closeTask: unaryMethod('CloseTask', 'CloseTaskRequest', 'Task'),
   addComment: unaryMethod('AddComment', 'AddCommentRequest', 'Comment'),
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
   listChanges: unaryMethod('ListChanges', 'ListChangesRequest', 'ListChangesResponse'),
@@ -278,6 +279,17 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
     if (fields.version !== undefined) request.version = fields.version;
 
     const response = await this.unary(methods.updateTask, request);
+    return toTask(response);
+  }
+
+  async closeTask(id: string, fields: CloseTaskFields): Promise<Task> {
+    const request: ProtoRecord = { id };
+    if (fields.stage !== undefined) request.stage = fields.stage;
+    if (fields.reason !== undefined) request.reason = fields.reason;
+    if (fields.duplicateOfTaskId !== undefined) request.duplicateOfTaskId = fields.duplicateOfTaskId;
+    if (fields.version !== undefined) request.version = fields.version;
+
+    const response = await this.unary(methods.closeTask, request);
     return toTask(response);
   }
 
