@@ -15,13 +15,14 @@ import (
 )
 
 type Server struct {
-	mcp    *server.MCPServer
-	client pb.FarmTableServiceClient
-	closer io.Closer
-	token  string
+	mcp      *server.MCPServer
+	client   pb.FarmTableServiceClient
+	closer   io.Closer
+	token    string
+	iapToken string
 }
 
-type ClientFactory func() (pb.FarmTableServiceClient, io.Closer, string, error)
+type ClientFactory func() (pb.FarmTableServiceClient, io.Closer, string, string, error)
 
 const (
 	maxMCPPageSize        int32 = 200
@@ -29,16 +30,17 @@ const (
 )
 
 func NewServer(factory ClientFactory) (*Server, error) {
-	client, closer, token, err := factory()
+	client, closer, token, iapToken, err := factory()
 	if err != nil {
 		return nil, fmt.Errorf("connecting to farm table: %w", err)
 	}
 
 	s := &Server{
-		mcp:    server.NewMCPServer("farmtable", "0.2.0", server.WithToolCapabilities(false)),
-		client: client,
-		closer: closer,
-		token:  token,
+		mcp:      server.NewMCPServer("farmtable", "0.2.0", server.WithToolCapabilities(false)),
+		client:   client,
+		closer:   closer,
+		token:    token,
+		iapToken: iapToken,
 	}
 	s.registerTools()
 	return s, nil
@@ -734,7 +736,7 @@ func (s *Server) authCtx(ctx context.Context) context.Context {
 	if s.token == "" {
 		return ctx
 	}
-	return contextWithToken(ctx, s.token)
+	return contextWithAuth(ctx, s.token, s.iapToken)
 }
 
 func (s *Server) resolveCollection(ctx context.Context, explicit string) string {

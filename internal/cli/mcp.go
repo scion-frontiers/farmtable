@@ -25,13 +25,13 @@ func newMCPServeCmd(globals *globalFlags) *cobra.Command {
 		Short: "Start MCP server on stdio",
 		Long:  "Start a Model Context Protocol server that exposes Farm Table operations as tools. Communicates via JSON-RPC 2.0 over stdin/stdout.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			factory := func() (pb.FarmTableServiceClient, io.Closer, string, error) {
+			factory := func() (pb.FarmTableServiceClient, io.Closer, string, string, error) {
 				client, closer, err := newClient(globals)
 				if err != nil {
-					return nil, nil, "", err
+					return nil, nil, "", "", err
 				}
 				token := resolveToken(globals.token)
-				return client, closer, token, nil
+				return client, closer, token, currentIAPAuthToken(), nil
 			}
 
 			s, err := ftmcp.NewServer(factory)
