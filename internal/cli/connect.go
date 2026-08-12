@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	pb "github.com/farmtable-io/farmtable/api/farmtable/v1"
 	"github.com/farmtable-io/farmtable/internal/platform/github"
@@ -25,6 +26,12 @@ import (
 )
 
 const grpcMaxMessageSize = 64 << 20
+
+var (
+	mintIAPTokenFunc = mintIAPToken
+	iapAuthMu        sync.RWMutex
+	iapAuthToken     string
+)
 
 func resolveServer(flagVal string) string {
 	if flagVal != "" {
@@ -46,6 +53,13 @@ func resolveToken(flagVal string) string {
 	}
 	cfg := LoadConfig()
 	return cfg.Token
+}
+
+func resolveIAPAudience(flagVal string) string {
+	if flagVal != "" {
+		return flagVal
+	}
+	return os.Getenv("IAP_AUDIENCE")
 }
 
 func resolveCollection(flagVal string) string {
@@ -125,6 +139,9 @@ func newClient(globals *globalFlags) (pb.FarmTableServiceClient, io.Closer, erro
 	server := resolveServer(globals.server)
 
 	if server != "" {
+		if err := configureIAPAuth(globals.iapAudience, server); err != nil {
+			return nil, nil, err
+		}
 		conn, err := dialServer(server)
 		if err != nil {
 			return nil, nil, err
@@ -355,9 +372,60 @@ func resolveGitHubToken() string {
 	return ""
 }
 
+func configureIAPAuth(audienceFlag, server string) error {
+	audience := resolveIAPAudience(audienceFlag)
+	if audience == "" || server == "" {
+		setIAPAuthToken("")
+		return nil
+	}
+
+	token, err := mintIAPTokenFunc(audience)
+	if err != nil {
+		return fmt.Errorf("minting IAP identity token: %w", err)
+	}
+	setIAPAuthToken(token)
+	return nil
+}
+
+func setIAPAuthToken(token string) {
+	iapAuthMu.Lock()
+	defer iapAuthMu.Unlock()
+	iapAuthToken = token
+}
+
+func currentIAPAuthToken() string {
+	iapAuthMu.RLock()
+	defer iapAuthMu.RUnlock()
+	return iapAuthToken
+}
+
+func mintIAPToken(audience string) (string, error) {
+	cmd := exec.Command("gcloud", "auth", "print-identity-token", "--audiences="+audience)
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return "", fmt.Errorf("gcloud failed: %s", string(exitErr.Stderr))
+		}
+		return "", err
+	}
+	token := strings.TrimSpace(string(out))
+	if token == "" {
+		return "", fmt.Errorf("gcloud returned empty identity token")
+	}
+	return token, nil
+}
+
 func authCtx(ctx context.Context, token string) context.Context {
 	if token == "" {
 		return ctx
+	}
+	if iapToken := currentIAPAuthToken(); iapToken != "" {
+		md := metadata.Pairs(
+			"authorization", "Bearer "+iapToken,
+			"x-farmtable-token", token,
+		)
+		return metadata.NewOutgoingContext(ctx, md)
 	}
 	md := metadata.Pairs(
 		"authorization", "Bearer "+token,

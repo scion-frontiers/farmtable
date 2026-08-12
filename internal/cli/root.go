@@ -9,11 +9,12 @@ import (
 )
 
 type globalFlags struct {
-	output     string
-	collection string
-	server     string
-	token      string
-	verbose    bool
+	output      string
+	collection  string
+	server      string
+	token       string
+	iapAudience string
+	verbose     bool
 }
 
 func Execute(version string) {
@@ -30,6 +31,7 @@ func Execute(version string) {
 	root.PersistentFlags().StringVarP(&globals.collection, "collection", "c", "", "Scope to a collection (UUID or name)")
 	root.PersistentFlags().StringVar(&globals.server, "server", "", "Server address (host:port)")
 	root.PersistentFlags().StringVar(&globals.token, "token", "", "API token override")
+	root.PersistentFlags().StringVar(&globals.iapAudience, "iap-audience", "", "IAP OAuth client ID; auto-mints OIDC identity token via gcloud (or IAP_AUDIENCE env)")
 	root.PersistentFlags().BoolVarP(&globals.verbose, "verbose", "v", false, "Verbose output")
 
 	root.AddCommand(
