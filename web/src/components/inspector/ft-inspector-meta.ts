@@ -7,6 +7,7 @@ import { safeHref } from '../../util/safe-url.js';
 import { CAPABILITY_TOOLTIPS, type CollectionCapabilities } from '../../capabilities.js';
 import { iconButtonFocusStyles } from './inspector-shared-styles.js';
 import { availabilityLabel, holdReasonLabel } from '../../util/task-state-utils.js';
+import { fuzzyScore } from '../../util/fuzzy-match.js';
 
 type EditableDateField = 'startDate' | 'dueDate';
 
@@ -132,6 +133,11 @@ export class FtInspectorMeta extends LitElement {
       --sl-input-height-small: 1.75rem;
       --sl-input-font-size-small: 0.8125rem;
     }
+    sl-input.assignee-input {
+      width: 12rem;
+      --sl-input-height-small: 1.75rem;
+      --sl-input-font-size-small: 0.8125rem;
+    }
     .assignee-picker {
       display: flex;
       flex-direction: column;
@@ -197,6 +203,9 @@ export class FtInspectorMeta extends LitElement {
 
   @state()
   private pickingAssignee = false;
+
+  @state()
+  private assigneeQuery = '';
 
   @state()
   private availableUsers: User[] = [];
@@ -339,7 +348,10 @@ export class FtInspectorMeta extends LitElement {
     if (this.readOnly || this.capabilities?.canChangeAssignee === false) return;
     if (!this.client) return; // S-4: no-op when client is absent
     this.pickingAssignee = true;
+    this.assigneeQuery = '';
     this.addDismissListener();
+    await this.updateComplete;
+    this.renderRoot.querySelector<HTMLElement>('sl-input.assignee-input')?.focus();
     try {
       if (!this.userCache) {
         this.userCache = await this.client.listUsers();
@@ -352,6 +364,7 @@ export class FtInspectorMeta extends LitElement {
 
   private cancelAssigneePick() {
     this.pickingAssignee = false;
+    this.assigneeQuery = '';
     this.removeDismissListenerIfIdle();
   }
 
@@ -359,8 +372,13 @@ export class FtInspectorMeta extends LitElement {
     const currentIds = this.task.assignees.map((u) => u.id);
     if (currentIds.includes(userId)) return;
     this.pickingAssignee = false;
+    this.assigneeQuery = '';
     this.removeDismissListenerIfIdle();
     this.dispatchTaskUpdate({ assigneeIds: [...currentIds, userId] });
+  }
+
+  private onAssigneeInput(e: Event) {
+    this.assigneeQuery = (e.currentTarget as HTMLInputElement).value;
   }
 
   private onDocumentKeyDown = (e: KeyboardEvent) => {
@@ -399,6 +417,7 @@ export class FtInspectorMeta extends LitElement {
     this.addingLabel = false;
     this.labelDraft = '';
     this.pickingAssignee = false;
+    this.assigneeQuery = '';
     this.availableUsers = []; // Clear rendered list; intentionally keep userCache for next pick.
     this.removeDismissListener();
   }
@@ -510,6 +529,14 @@ export class FtInspectorMeta extends LitElement {
     const assignees = this.task.assignees;
     const assignedIds = new Set(assignees.map((u) => u.id));
     const unassignedUsers = this.availableUsers.filter((u) => !assignedIds.has(u.id));
+    const assigneeQuery = this.assigneeQuery.trim();
+    const filteredUsers = assigneeQuery
+      ? unassignedUsers
+          .map((user) => ({ user, score: fuzzyScore(assigneeQuery, user.name) }))
+          .filter(({ score }) => Number.isFinite(score))
+          .sort((a, b) => a.score - b.score)
+          .map(({ user }) => user)
+      : unassignedUsers;
 
     return html`
       <span class="assignees">
@@ -536,8 +563,16 @@ export class FtInspectorMeta extends LitElement {
                 @click=${this.cancelAssigneePick}
               ></sl-icon-button>
               <div class="assignee-picker">
-                ${unassignedUsers.length > 0
-                  ? unassignedUsers.map(
+                <sl-input
+                  class="assignee-input"
+                  size="small"
+                  placeholder="Search assignees"
+                  clearable
+                  .value=${this.assigneeQuery}
+                  @input=${this.onAssigneeInput}
+                ></sl-input>
+                ${filteredUsers.length > 0
+                  ? filteredUsers.map(
                       (u) => html`
                         <span class="assignee-option" @click=${() => this.onAssigneeSelect(u.id)}>
                           <sl-avatar
@@ -549,7 +584,7 @@ export class FtInspectorMeta extends LitElement {
                         </span>
                       `,
                     )
-                  : html`<span class="empty">No users available</span>`}
+                  : html`<span class="empty">${assigneeQuery ? 'No matching users' : 'No users available'}</span>`}
               </div>
             `
           : this.client && !this.readOnly && this.capabilities?.canChangeAssignee !== false

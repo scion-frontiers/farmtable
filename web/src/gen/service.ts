@@ -534,6 +534,20 @@ export class MockFarmTableClient implements FarmTableServiceClient {
     return updated;
   }
 
+  async claimTask(id: string): Promise<Task> {
+    const taskIndex = MOCK_TASKS.findIndex((t) => t.id === id);
+    const task = MOCK_TASKS[taskIndex];
+    if (!task) throw new Error(`Task not found: ${id}`);
+    const updated: Task = {
+      ...task,
+      stage: TaskStage.WORKING,
+      phase: phaseForStage(TaskStage.WORKING),
+      assignees: task.assignees.length > 0 ? task.assignees : [MOCK_USERS.u1],
+    };
+    MOCK_TASKS[taskIndex] = updated;
+    return { ...updated };
+  }
+
   async closeTask(id: string, fields: CloseTaskFields): Promise<Task> {
     const stage = fields.stage ?? TaskStage.COMPLETED;
     return this.updateTask(id, { stage, version: fields.version });
