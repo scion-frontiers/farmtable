@@ -65,6 +65,10 @@ export interface CloseTaskCall {
   fields: CloseTaskFields;
 }
 
+export interface ClaimTaskCall {
+  id: string;
+}
+
 /**
  * A `FarmTableServiceClient` that records every `updateTask()` call so tests
  * can assert on the exact wire payload the UI produces.
@@ -80,9 +84,11 @@ export interface CloseTaskCall {
 export class RecordingClient implements FarmTableServiceClient {
   readonly updateTaskCalls: UpdateTaskCall[] = [];
   readonly closeTaskCalls: CloseTaskCall[] = [];
+  readonly claimTaskCalls: ClaimTaskCall[] = [];
   readonly createTaskCalls: CreateTaskFields[] = [];
   rejectUpdateWith: Error | null = null;
   rejectCloseWith: Error | null = null;
+  rejectClaimWith: Error | null = null;
 
   constructor(private readonly source?: TaskStore) {}
 
@@ -145,6 +151,19 @@ export class RecordingClient implements FarmTableServiceClient {
       version: fields.version,
     });
     return { ...updated, phase: phaseForStage(updated.stage) };
+  }
+
+  async claimTask(id: string): Promise<Task> {
+    this.claimTaskCalls.push({ id });
+    if (this.rejectClaimWith) throw this.rejectClaimWith;
+
+    const current = this.source?.getTask(id) ?? task({ id });
+    return {
+      ...current,
+      stage: TaskStage.WORKING,
+      phase: phaseForStage(TaskStage.WORKING),
+      assignees: current.assignees.length ? current.assignees : [user('claimer', 'Claiming User')],
+    };
   }
 
   /**

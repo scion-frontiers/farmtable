@@ -206,12 +206,12 @@ describe('ft-kanban-view — dropping a card back on its own lane', () => {
   it('does write when the card lands on a different lane', async () => {
     const { view, client } = await mountBoard();
 
-    dropTaskOn(laneFor(view, TaskStage.WORKING), 't1');
+    dropTaskOn(laneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
     await settle(view);
 
     expect(client.updateTaskCalls).toHaveLength(1);
-    expect(client.updateTaskCalls[0].fields.stage).toBe(TaskStage.WORKING);
+    expect(client.updateTaskCalls[0].fields.stage).toBe(TaskStage.IN_REVIEW);
   });
 
   /**

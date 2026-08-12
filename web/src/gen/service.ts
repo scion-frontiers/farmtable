@@ -64,6 +64,7 @@ export interface FarmTableServiceClient {
   getTask(id: string): Promise<Task>;
   createTask(fields: CreateTaskFields): Promise<Task>;
   updateTask(id: string, fields: UpdateTaskFields): Promise<Task>;
+  claimTask(id: string): Promise<Task>;
   closeTask(id: string, fields: CloseTaskFields): Promise<Task>;
   addComment(taskId: string, body: string): Promise<Comment>;
   listComments(taskId: string): Promise<Comment[]>;

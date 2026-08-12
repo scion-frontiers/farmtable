@@ -11,6 +11,8 @@ import { acceptsStageDrop, DROP_REFUSAL, requiresCloseReason, STAGE_LABEL } from
 import type { AvailabilityFilter, TaskGroupFilter } from '../../util/task-state-utils.js';
 import type { CollectionCapabilities } from '../../capabilities.js';
 import type { FtAddTaskDialog, TaskCreateDetail } from './ft-add-task-dialog.js';
+import './ft-claim-task-dialog.js';
+import type { ClaimTaskDetail, FtClaimTaskDialog } from './ft-claim-task-dialog.js';
 import './ft-close-reason-dialog.js';
 import type { CloseReasonDetail, FtCloseReasonDialog } from './ft-close-reason-dialog.js';
 import type { FtKanbanColumn } from './ft-kanban-column.js';
@@ -146,6 +148,14 @@ export class FtKanbanView extends LitElement {
     }));
   }
 
+  private reportStageFailure(error: unknown) {
+    this.dispatchEvent(new CustomEvent('write-error', {
+      bubbles: true,
+      composed: true,
+      detail: { error, reason: 'stage-change-failed' },
+    }));
+  }
+
   private async onStageChange(e: CustomEvent) {
     const { taskId, stage } = e.detail as { taskId: string; stage: TaskStage };
 
@@ -169,6 +179,16 @@ export class FtKanbanView extends LitElement {
 
     if (!acceptsStageDrop(stage)) {
       this.reportRefusal(DROP_REFUSAL.terminalLaneToast(STAGE_LABEL[stage] ?? 'This outcome'));
+      return;
+    }
+
+    if (stage === TaskStage.WORKING) {
+      if (task.assignees.length > 0) {
+        this.reportRefusal('This task is already assigned. Clear the assignee before claiming it.');
+        return;
+      }
+      const dialog = this.renderRoot.querySelector<FtClaimTaskDialog>('ft-claim-task-dialog');
+      await dialog?.showFor(task);
       return;
     }
 
@@ -202,11 +222,7 @@ export class FtKanbanView extends LitElement {
       // phase projection), then surface the server's rejection reason.
       console.warn('Failed to update task stage; rolled back optimistic change', error);
       this.store.upsert(task);
-      this.dispatchEvent(new CustomEvent('write-error', {
-        bubbles: true,
-        composed: true,
-        detail: { error, reason: 'stage-change-failed' },
-      }));
+      this.reportStageFailure(error);
     }
   }
 
@@ -258,13 +274,36 @@ export class FtKanbanView extends LitElement {
       console.warn('Failed to close task; rolled back optimistic change', error);
       this.store.upsert(task);
       dialog.setError('Failed to close task. Please try again.');
-      this.dispatchEvent(new CustomEvent('write-error', {
-        bubbles: true,
-        composed: true,
-        detail: { error, reason: 'stage-change-failed' },
-      }));
+      this.reportStageFailure(error);
     } finally {
       dialog.setClosing(false);
+    }
+  }
+
+  private async onClaimTaskSubmit(e: CustomEvent<ClaimTaskDetail>) {
+    const dialog = e.currentTarget as FtClaimTaskDialog;
+    const { taskId } = e.detail;
+    const task = this.store.getTask(taskId);
+    if (!task || this.readOnly || this.capabilities?.canChangeStage === false) {
+      dialog.close();
+      return;
+    }
+
+    this.store.upsert({ ...task, stage: TaskStage.WORKING, phase: phaseForStage(TaskStage.WORKING) });
+    dialog.setClaiming(true);
+
+    try {
+      if (!this.client) throw new Error('Not connected to the server');
+      const updated = await this.client.claimTask(taskId);
+      this.store.upsert(updated);
+      dialog.close();
+    } catch (error) {
+      console.warn('Failed to claim task; rolled back optimistic change', error);
+      this.store.upsert(task);
+      dialog.setError('Failed to claim task. Please try again.');
+      this.reportStageFailure(error);
+    } finally {
+      dialog.setClaiming(false);
     }
   }
 
@@ -474,6 +513,7 @@ export class FtKanbanView extends LitElement {
       </div>
 
       <ft-add-task-dialog @task-create=${this.onTaskCreate}></ft-add-task-dialog>
+      <ft-claim-task-dialog @claim-task-submit=${this.onClaimTaskSubmit}></ft-claim-task-dialog>
       <ft-close-reason-dialog @close-reason-submit=${this.onCloseReasonSubmit}></ft-close-reason-dialog>
     `;
   }

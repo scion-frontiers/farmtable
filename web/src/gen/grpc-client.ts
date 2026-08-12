@@ -114,6 +114,7 @@ const methods = {
   getTask: unaryMethod('GetTask', 'GetTaskRequest', 'GetTaskResponse'),
   createTask: unaryMethod('CreateTask', 'CreateTaskRequest', 'Task'),
   updateTask: unaryMethod('UpdateTask', 'UpdateTaskRequest', 'Task'),
+  claimTask: unaryMethod('ClaimTask', 'ClaimTaskRequest', 'ClaimTaskResponse'),
   closeTask: unaryMethod('CloseTask', 'CloseTaskRequest', 'Task'),
   addComment: unaryMethod('AddComment', 'AddCommentRequest', 'Comment'),
   listComments: unaryMethod('ListComments', 'ListCommentsRequest', 'ListCommentsResponse'),
@@ -280,6 +281,11 @@ export class GrpcFarmTableClient implements FarmTableServiceClient {
 
     const response = await this.unary(methods.updateTask, request);
     return toTask(response);
+  }
+
+  async claimTask(id: string): Promise<Task> {
+    const response = await this.unary(methods.claimTask, { id });
+    return toTask(asRecord(response.task));
   }
 
   async closeTask(id: string, fields: CloseTaskFields): Promise<Task> {

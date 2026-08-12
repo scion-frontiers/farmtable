@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import '../src/components/kanban/ft-kanban-view.js';
 import '../src/components/kanban/ft-kanban-column.js';
 import '../src/components/kanban/ft-task-card.js';
-import { TaskStage } from '../src/gen/types.js';
+import { IdentityStatus, TaskStage, UserType } from '../src/gen/types.js';
 import { ALL_ENABLED } from '../src/capabilities.js';
 import { STAGE_LABEL, acceptsStageDrop } from '../src/util/task-state-utils.js';
 import {
@@ -83,14 +83,14 @@ describe('ft-kanban-view — stage mutation payload', () => {
     const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
     const { view, client } = await mountBoard(store);
 
-    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    dropTaskOn(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
 
     expect(client.updateTaskCalls).toHaveLength(1);
     expect(client.updateTaskCalls[0].id).toBe('t1');
     expect(client.updateTaskCalls[0].fields).not.toHaveProperty('phase');
     expect(Object.keys(client.updateTaskCalls[0].fields)).toEqual(['stage']);
-    expect(client.updateTaskCalls[0].fields.stage).toBe(TaskStage.WORKING);
+    expect(client.updateTaskCalls[0].fields.stage).toBe(TaskStage.IN_REVIEW);
   });
 
   it('moves the card into the drop-target lane on success', async () => {
@@ -104,6 +104,122 @@ describe('ft-kanban-view — stage mutation payload', () => {
     expect(store.getTask('t1')?.stage).toBe(TaskStage.IN_REVIEW);
     expect(laneContents(view).get(TaskStage.IN_REVIEW)).toEqual(['t1']);
     expect(laneContents(view).get(TaskStage.ACCEPTED)).toEqual([]);
+  });
+});
+
+describe('ft-kanban-view — claim-gated Working lane', () => {
+  function claimDialog(view: Element): HTMLElement {
+    const dialog = queryDeep<HTMLElement>(view, 'ft-claim-task-dialog');
+    if (!dialog) throw new Error('no ft-claim-task-dialog rendered');
+    return dialog;
+  }
+
+  function dialogOpen(view: Element): boolean {
+    const dialog = claimDialog(view).shadowRoot?.querySelector('sl-dialog');
+    return dialog?.hasAttribute('open') ?? false;
+  }
+
+  function confirmClaim(view: Element) {
+    const buttons = claimDialog(view).shadowRoot?.querySelectorAll('sl-button') ?? [];
+    const confirm = buttons[buttons.length - 1];
+    if (!confirm) throw new Error('no claim confirm button rendered');
+    confirm.dispatchEvent(new Event('click', { bubbles: true, composed: true }));
+  }
+
+  function cancelClaim(view: Element) {
+    const cancel = claimDialog(view).shadowRoot?.querySelector('sl-button');
+    if (!cancel) throw new Error('no claim cancel button rendered');
+    cancel.dispatchEvent(new Event('click', { bubbles: true, composed: true }));
+  }
+
+  it('opens a confirmation dialog when an unassigned card is dropped on Working', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    await settle(view);
+
+    expect(dialogOpen(view)).toBe(true);
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.claimTaskCalls).toEqual([]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
+    expect(laneContents(view).get(TaskStage.ACCEPTED)).toEqual(['t1']);
+  });
+
+  it('confirms Working through ClaimTask and reconciles the returned task', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    confirmClaim(view);
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.claimTaskCalls).toEqual([{ id: 't1' }]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.WORKING);
+    expect(store.getTask('t1')?.assignees.map((assignee) => assignee.name)).toEqual(['Claiming User']);
+    expect(laneContents(view).get(TaskStage.WORKING)).toEqual(['t1']);
+  });
+
+  it('keeps the card in its original lane when the claim dialog is cancelled', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    cancelClaim(view);
+    await flush();
+    await settle(view);
+
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.claimTaskCalls).toEqual([]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
+    expect(laneContents(view).get(TaskStage.ACCEPTED)).toEqual(['t1']);
+  });
+
+  it('surfaces claim rejection cleanly and leaves the dialog open for recovery', async () => {
+    const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
+    const { view, client } = await mountBoard(store);
+    const rejection = new Error('task unavailable');
+    client.rejectClaimWith = rejection;
+    const feedback = collectFeedback(document.body);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    confirmClaim(view);
+    await flush();
+    await settle(view);
+
+    expect(client.claimTaskCalls).toEqual([{ id: 't1' }]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
+    expect(dialogOpen(view)).toBe(true);
+    expect(claimDialog(view).shadowRoot?.textContent).toContain('Failed to claim task');
+    expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-failed']);
+    expect(feedback.writeErrors[0]?.detail.error).toBe(rejection);
+  });
+
+  it('refuses an already-assigned task before ClaimTask because the server treats it as already claimed', async () => {
+    const store = storeWith(task({
+      id: 't1',
+      stage: TaskStage.ACCEPTED,
+      assignees: [{ id: 'u2', name: 'Someone Else', type: UserType.HUMAN, status: IdentityStatus.ACTIVE }],
+    }));
+    const { view, client } = await mountBoard(store);
+    const feedback = collectFeedback(document.body);
+
+    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    await flush();
+    await settle(view);
+
+    expect(dialogOpen(view)).toBe(false);
+    expect(client.updateTaskCalls).toEqual([]);
+    expect(client.claimTaskCalls).toEqual([]);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
+    expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-refused']);
+    expect(feedback.writeErrors[0]?.detail.message).toContain('already assigned');
   });
 });
 
@@ -269,7 +385,7 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
     const { view, client } = await mountBoard(store);
     client.rejectUpdateWith = new Error('PermissionDenied: missing task:accept scope');
 
-    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    dropTaskOn(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
 
     expect(store.getTask('t1')?.stage).toBe(TaskStage.ACCEPTED);
@@ -284,7 +400,7 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
     const events: CustomEvent[] = [];
     document.body.addEventListener('write-error', (e) => events.push(e as CustomEvent));
 
-    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    dropTaskOn(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
 
     expect(events).toHaveLength(1);
@@ -299,7 +415,7 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
     client.rejectUpdateWith = new Error('PermissionDenied: missing task:accept scope');
     const feedback = collectFeedback(document.body);
 
-    dropTaskOn(dropZoneFor(view, TaskStage.WORKING), 't1');
+    dropTaskOn(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
 
     expect(feedback.reasons(), feedback.describe()).toEqual(['stage-change-failed']);
@@ -316,7 +432,7 @@ describe('ft-kanban-view — server-rejected stage transitions', () => {
 
     const lanes = laneContents(view);
     expect(lanes.get(TaskStage.ACCEPTED)).toEqual(['t1']);
-    expect(lanes.get(TaskStage.WORKING)).toEqual([]);
+    expect(lanes.get(TaskStage.IN_REVIEW)).toEqual([]);
   });
 });
 
@@ -464,7 +580,7 @@ describe('ft-kanban-view — refusing lanes must still accept the drop gesture',
   it('cancels dragover on an accepting lane', async () => {
     const { view } = await mountBoard(storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED })));
 
-    expect(dragOverOn(dropZoneFor(view, TaskStage.WORKING)).defaultPrevented).toBe(true);
+    expect(dragOverOn(dropZoneFor(view, TaskStage.IN_REVIEW)).defaultPrevented).toBe(true);
   });
 
   it('sets dropEffect to move rather than leaving it none', async () => {
@@ -508,7 +624,7 @@ describe('ft-kanban-view — refusing lanes must still accept the drop gesture',
     });
     const feedback = collectFeedback(document.body);
 
-    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.WORKING), 't1');
+    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
     await settle(view);
 
@@ -520,12 +636,12 @@ describe('ft-kanban-view — refusing lanes must still accept the drop gesture',
     const store = storeWith(task({ id: 't1', stage: TaskStage.ACCEPTED }));
     const { view, client } = await mountBoard(store);
 
-    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.WORKING), 't1');
+    const dropped = dragTaskOnto(dropZoneFor(view, TaskStage.IN_REVIEW), 't1');
     await flush();
     await settle(view);
 
     expect(dropped).toBe(true);
     expect(client.updateTaskCalls).toHaveLength(1);
-    expect(store.getTask('t1')?.stage).toBe(TaskStage.WORKING);
+    expect(store.getTask('t1')?.stage).toBe(TaskStage.IN_REVIEW);
   });
 });
